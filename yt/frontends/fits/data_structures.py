@@ -40,7 +40,8 @@ from yt.utilities.file_handler import \
     FITSFileHandler
 from yt.utilities.io_handler import \
     io_registry
-from .fields import FITSFieldInfo
+from .fields import FITSFieldInfo, \
+    WCSFITSFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.units.unit_lookup_table import \
@@ -48,7 +49,8 @@ from yt.units.unit_lookup_table import \
     prefixable_units, \
     unit_prefixes
 from yt.units import dimensions
-from yt.utilities.on_demand_imports import _astropy, NotAModule
+from yt.utilities.on_demand_imports import \
+    _astropy, NotAModule
 
 
 lon_prefixes = ["X","RA","GLON","LINEAR"]
@@ -310,8 +312,6 @@ class FITSDataset(Dataset):
                  nprocs=None,
                  storage_filename=None,
                  nan_mask=None,
-                 spectral_factor=1.0,
-                 z_axis_decomp=False,
                  suppress_astropy_warnings=True,
                  parameters=None,
                  units_override=None,
@@ -321,9 +321,6 @@ class FITSDataset(Dataset):
             parameters = {}
         parameters["nprocs"] = nprocs
         self.specified_parameters = parameters
-
-        self.z_axis_decomp = z_axis_decomp
-        self.spectral_factor = spectral_factor
 
         if suppress_astropy_warnings:
             warnings.filterwarnings('ignore', module="astropy", append=True)
@@ -359,65 +356,6 @@ class FITSDataset(Dataset):
                                              do_not_scale_image_data=True,
                                              ignore_blank=True)
                 self._handle._fits_files.append(f)
-
-        if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
-            self.events_data = True
-            self.first_image = 1
-            self.primary_header = self._handle[self.first_image].header
-            self.naxis = 2
-            self.wcs = _astropy.pywcs.WCS(naxis=2)
-            self.events_info = {}
-            for k,v in self.primary_header.items():
-                if k.startswith("TTYP"):
-                    if v.lower() in ["x","y"]:
-                        num = k.strip("TTYPE")
-                        self.events_info[v.lower()] = (self.primary_header["TLMIN"+num],
-                                                       self.primary_header["TLMAX"+num],
-                                                       self.primary_header["TCTYP"+num],
-                                                       self.primary_header["TCRVL"+num],
-                                                       self.primary_header["TCDLT"+num],
-                                                       self.primary_header["TCRPX"+num])
-                    elif v.lower() in ["energy","time"]:
-                        num = k.strip("TTYPE")
-                        unit = self.primary_header["TUNIT"+num].lower()
-                        if unit.endswith("ev"): unit = unit.replace("ev","eV")
-                        self.events_info[v.lower()] = unit
-            self.axis_names = [self.events_info[ax][2] for ax in ["x","y"]]
-            self.reblock = 1
-            if "reblock" in self.specified_parameters:
-                self.reblock = self.specified_parameters["reblock"]
-            self.wcs.wcs.cdelt = [self.events_info["x"][4]*self.reblock,
-                                  self.events_info["y"][4]*self.reblock]
-            self.wcs.wcs.crpix = [(self.events_info["x"][5]-0.5)/self.reblock+0.5,
-                                  (self.events_info["y"][5]-0.5)/self.reblock+0.5]
-            self.wcs.wcs.ctype = [self.events_info["x"][2],self.events_info["y"][2]]
-            self.wcs.wcs.cunit = ["deg","deg"]
-            self.wcs.wcs.crval = [self.events_info["x"][3],self.events_info["y"][3]]
-            self.dims = [(self.events_info["x"][1]-self.events_info["x"][0])/self.reblock,
-                         (self.events_info["y"][1]-self.events_info["y"][0])/self.reblock]
-        else:
-            self.events_data = False
-            # Sometimes the primary hdu doesn't have an image
-            if len(self._handle) > 1 and self._handle[0].header["naxis"] == 0:
-                self.first_image = 1
-            else:
-                self.first_image = 0
-            self.primary_header = self._handle[self.first_image].header
-            self.naxis = self.primary_header["naxis"]
-            self.axis_names = [self.primary_header.get("ctype%d" % (i+1),"LINEAR")
-                               for i in range(self.naxis)]
-            self.dims = [self.primary_header["naxis%d" % (i+1)]
-                         for i in range(self.naxis)]
-            wcs = _astropy.pywcs.WCS(header=self.primary_header)
-            if self.naxis == 4:
-                self.wcs = _astropy.pywcs.WCS(naxis=3)
-                self.wcs.wcs.crpix = wcs.wcs.crpix[:3]
-                self.wcs.wcs.cdelt = wcs.wcs.cdelt[:3]
-                self.wcs.wcs.crval = wcs.wcs.crval[:3]
-                self.wcs.wcs.cunit = [str(unit) for unit in wcs.wcs.cunit][:3]
-                self.wcs.wcs.ctype = [type for type in wcs.wcs.ctype][:3]
-            else:
-                self.wcs = wcs
 
         self.refine_by = 2
 
@@ -459,17 +397,23 @@ class FITSDataset(Dataset):
             beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value
         else:
             beam_size = 1.0
-        self.unit_registry.add("beam",beam_size,dimensions=dimensions.solid_angle)
+        self.unit_registry.add("beam", beam_size, dimensions=dimensions.solid_angle)
         if self.spec_cube:
             units = self.wcs_2d.wcs.cunit[0]
-            if units == "deg": units = "degree"
-            if units == "rad": units = "radian"
+            if units == "deg":
+                units = "degree"
+            if units == "rad":
+                units = "radian"
             pixel_area = np.prod(np.abs(self.wcs_2d.wcs.cdelt))
             pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
             pixel_dims = pixel_area.units.dimensions
             self.unit_registry.add("pixel",float(pixel_area.value),dimensions=pixel_dims)
 
     def _parse_parameter_file(self):
+
+        self._determine_structure()
+        self._determine_wcs()
+        self._determine_wcs2d()
 
         if self.parameter_filename.startswith("InMemory"):
             self.unique_identifier = time.time()
@@ -484,7 +428,8 @@ class FITSDataset(Dataset):
 
         # Sometimes a FITS file has a 4D datacube, in which case
         # we take the 4th axis and assume it consists of different fields.
-        if self.dimensionality == 4: self.dimensionality = 3
+        if self.dimensionality == 4: 
+            self.dimensionality = 3
 
         self.domain_dimensions = np.array(self.dims)[:self.dimensionality]
         if self.dimensionality == 2:
@@ -514,24 +459,10 @@ class FITSDataset(Dataset):
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
 
-        if self.dimensionality == 2 and self.z_axis_decomp:
-            mylog.warning("You asked to decompose along the z-axis, but this is a 2D dataset. " +
-                          "Ignoring.")
-            self.z_axis_decomp = False
-
-        if self.events_data: self.specified_parameters["nprocs"] = 1
-
-        # If nprocs is None, do some automatic decomposition of the domain
-        if self.specified_parameters["nprocs"] is None:
-            if self.z_axis_decomp:
-                nprocs = np.around(self.domain_dimensions[2]/8).astype("int")
-            else:
-                nprocs = np.around(np.prod(self.domain_dimensions)/32**self.dimensionality).astype("int")
-            self.parameters["nprocs"] = max(min(nprocs, 512), 1)
-        else:
-            self.parameters["nprocs"] = self.specified_parameters["nprocs"]
+        self._determine_nprocs()
 
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
+        """
         self.spec_cube = False
         self.wcs_2d = None
         x = 0
@@ -547,17 +478,56 @@ class FITSDataset(Dataset):
                 self.lon_name = "X"
             else:
                 self._setup_spec_cube()
+        """
 
         # Now we can set up some of our parameters for convenience.
-        #self.parameters['wcs'] = dict(self.wcs.to_header())
         for k, v in self.primary_header.items():
             self.parameters[k] = v
         # Remove potential default keys
         self.parameters.pop('', None)
 
+    def _determine_nprocs(self):
+        # If nprocs is None, do some automatic decomposition of the domain
+        if self.specified_parameters["nprocs"] is None:
+            nprocs = np.around(np.prod(self.domain_dimensions)/32**self.dimensionality).astype("int")
+            self.parameters["nprocs"] = max(min(nprocs, 512), 1)
+        else:
+            self.parameters["nprocs"] = self.specified_parameters["nprocs"]
+
+    def _determine_structure(self):
+        # Sometimes the primary hdu doesn't have an image
+        if len(self._handle) > 1 and self._handle[0].header["naxis"] == 0:
+            self.first_image = 1
+        else:
+            self.first_image = 0
+        self.primary_header = self._handle[self.first_image].header
+        self.naxis = self.primary_header["naxis"]
+        self.axis_names = [self.primary_header.get("ctype%d" % (i+1),"LINEAR")
+                           for i in range(self.naxis)]
+        self.dims = [self.primary_header["naxis%d" % (i+1)]
+                     for i in range(self.naxis)]
+
+    def _determine_wcs(self):
+        wcs = _astropy.pywcs.WCS(header=self.primary_header)
+        if self.naxis == 4:
+            self.wcs = _astropy.pywcs.WCS(naxis=3)
+            self.wcs.wcs.crpix = wcs.wcs.crpix[:3]
+            self.wcs.wcs.cdelt = wcs.wcs.cdelt[:3]
+            self.wcs.wcs.crval = wcs.wcs.crval[:3]
+            self.wcs.wcs.cunit = [str(unit) for unit in wcs.wcs.cunit][:3]
+            self.wcs.wcs.ctype = [type for type in wcs.wcs.ctype][:3]
+        else:
+            self.wcs = wcs
+
+    def _determine_wcs2d(self):
+        self.wcs_2d = self.wcs
+        self.lat_axis = 1
+        self.lon_axis = 0
+        self.lat_name = "Y"
+        self.lon_name = "X"
+
     def _setup_spec_cube(self):
 
-        self.spec_cube = True
         self.geometry = "spectral_cube"
 
         end = min(self.dimensionality+1,4)
@@ -630,16 +600,6 @@ class FITSDataset(Dataset):
             self.spec_name = "z"
             self.spec_unit = "code_length"
 
-    def spec2pixel(self, spec_value):
-        sv = self.arr(spec_value).in_units(self.spec_unit)
-        return self.arr((sv.v-self._z0)/self._dz+self._p0,
-                        "code_length")
-
-    def pixel2spec(self, pixel_value):
-        pv = self.arr(pixel_value, "code_length")
-        return self.arr((pv.v-self._p0)*self._dz+self._z0,
-                        self.spec_unit)
-
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         ext = args[0].rsplit(".", 1)[-1]
@@ -676,3 +636,113 @@ class FITSDataset(Dataset):
 
     def close(self):
         self._handle.close()
+
+class SkyDataFITSDataset(FITSDataset):
+    _field_info_class = WCSFITSFieldInfo
+
+    def _parse_parameter_file(self):
+        super(SkyDataFITSDataset, self)._parse_parameter_file()
+        
+class SpectralCubeFITSDataset(SkyDataFITSDataset):
+    def __init__(self, filename,
+                 auxiliary_files=[],
+                 nprocs=None,
+                 storage_filename=None,
+                 nan_mask=None,
+                 spectral_factor=1.0,
+                 z_axis_decomp=False,
+                 suppress_astropy_warnings=True,
+                 parameters=None,
+                 units_override=None,
+                 unit_system="cgs"):
+        super(SpectralCubeFITSDataset, self).__init__(filename, nprocs=nprocs,
+            auxiliary_files=auxiliary_files, storage_filename=storage_filename,
+            suppress_astropy_warnings=suppress_astropy_warnings, nan_mask=nan_mask,
+            parameters=parameters, units_override=units_override,
+            unit_system=unit_system)
+
+        self.spectral_factor = spectral_factor
+        self.z_axis_decomp = z_axis_decomp
+
+    def _determine_nprocs(self):
+        # If nprocs is None, do some automatic decomposition of the domain
+        if self.specified_parameters["nprocs"] is None:
+            if self.z_axis_decomp:
+                nprocs = np.around(self.domain_dimensions[2] / 8).astype("int")
+            else:
+                nprocs = np.around(np.prod(self.domain_dimensions) / 32 ** self.dimensionality).astype("int")
+            self.parameters["nprocs"] = max(min(nprocs, 512), 1)
+        else:
+            self.parameters["nprocs"] = self.specified_parameters["nprocs"]
+
+    def spec2pixel(self, spec_value):
+        sv = self.arr(spec_value).in_units(self.spec_unit)
+        return self.arr((sv.v-self._z0)/self._dz+self._p0,
+                        "code_length")
+
+    def pixel2spec(self, pixel_value):
+        pv = self.arr(pixel_value, "code_length")
+        return self.arr((pv.v-self._p0)*self._dz+self._z0,
+                        self.spec_unit)
+
+class EventsFITSHierarchy(FITSHierarchy):
+
+    def _parse_index(self):
+        super(EventsFITSHierarchy, self)._parse_index()
+        try:
+            self.grid_particle_count[:] = self.dataset.primary_header["naxis2"]
+        except KeyError:
+            self.grid_particle_count[:] = 0.0
+        self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
+        self._particle_indices[1] = self.grid_particle_count.squeeze()
+
+class EventsFITSDataset(SkyDataFITSDataset):
+    _index_class = EventsFITSHierarchy
+    def __init__(self, filename,
+                 nprocs=None,
+                 storage_filename=None,
+                 suppress_astropy_warnings=True,
+                 parameters=None,
+                 units_override=None,
+                 unit_system="cgs"):
+        super(EventsFITSDataset, self).__init__(filename, nprocs=nprocs,
+            storage_filename=storage_filename, parameters=parameters,
+            suppress_astropy_warnings=suppress_astropy_warnings,
+            units_override=units_override, unit_system=unit_system)
+
+    def _determine_structure(self):
+        self.first_image = 1
+        self.primary_header = self._handle[self.first_image].header
+        self.naxis = 2
+
+    def _determine_wcs(self):
+        self.wcs = _astropy.pywcs.WCS(naxis=2)
+        self.events_info = {}
+        for k, v in self.primary_header.items():
+            if k.startswith("TTYP"):
+                if v.lower() in ["x", "y"]:
+                    num = k.strip("TTYPE")
+                    self.events_info[v.lower()] = (self.primary_header["TLMIN" + num],
+                                                   self.primary_header["TLMAX" + num],
+                                                   self.primary_header["TCTYP" + num],
+                                                   self.primary_header["TCRVL" + num],
+                                                   self.primary_header["TCDLT" + num],
+                                                   self.primary_header["TCRPX" + num])
+                elif v.lower() in ["energy", "time"]:
+                    num = k.strip("TTYPE")
+                    unit = self.primary_header["TUNIT" + num].lower()
+                    if unit.endswith("ev"): unit = unit.replace("ev", "eV")
+                    self.events_info[v.lower()] = unit
+        self.axis_names = [self.events_info[ax][2] for ax in ["x", "y"]]
+        self.reblock = 1
+        if "reblock" in self.specified_parameters:
+            self.reblock = self.specified_parameters["reblock"]
+        self.wcs.wcs.cdelt = [self.events_info["x"][4] * self.reblock,
+                              self.events_info["y"][4] * self.reblock]
+        self.wcs.wcs.crpix = [(self.events_info["x"][5] - 0.5) / self.reblock + 0.5,
+                              (self.events_info["y"][5] - 0.5) / self.reblock + 0.5]
+        self.wcs.wcs.ctype = [self.events_info["x"][2], self.events_info["y"][2]]
+        self.wcs.wcs.cunit = ["deg", "deg"]
+        self.wcs.wcs.crval = [self.events_info["x"][3], self.events_info["y"][3]]
+        self.dims = [(self.events_info["x"][1] - self.events_info["x"][0]) / self.reblock,
+                     (self.events_info["y"][1] - self.events_info["y"][0]) / self.reblock]
