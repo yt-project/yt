@@ -193,6 +193,7 @@ class Shader(traitlets.HasTraits):
     blend_func = traitlets.Tuple(GLValue(), GLValue(),
             default_value = ("src alpha", "dst alpha"))
     blend_equation = GLValue("func add")
+    depth_test = GLValue("always")
 
     use_separate_blend = traitlets.Bool(False)
     blend_equation_separate = traitlets.Tuple(GLValue(), GLValue(),
@@ -251,6 +252,8 @@ class Shader(traitlets.HasTraits):
         else:
             GL.glBlendEquation(self.blend_equation)
             GL.glBlendFunc(*self.blend_func)
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glDepthFunc(self.depth_test)
 
     @property
     def shader(self):

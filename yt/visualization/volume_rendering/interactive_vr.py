@@ -776,12 +776,6 @@ class MeshRendering(SceneComponent):
         model_to_clip = np.dot(projection_matrix, view_matrix)
         shader_program._set_uniform("model_to_clip", model_to_clip)
 
-    def init_draw(self, scene):
-        GL.glEnable(GL.GL_DEPTH_TEST)
-        GL.glDepthFunc(GL.GL_LESS)
-        GL.glEnable(GL.GL_CULL_FACE)
-        GL.glCullFace(GL.GL_BACK)
-
 class SceneGraph(traitlets.HasTraits):
     components = traitlets.List(trait = traitlets.Instance(SceneComponent),
             default_value = [])

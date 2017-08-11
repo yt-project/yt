@@ -24,6 +24,11 @@ fragment:
   mesh:
     info: A vertex shader used for unstructured mesh rendering.
     source: mesh.fragmentshader
+    depth_test: less
+    blend_func:
+    - one
+    - zero
+    blend_equation: func add
   noop:
     info: A second pass fragment shader that performs no operation.  Usually used
       if the first pass already took care of applying proper color to the data
@@ -75,6 +80,7 @@ vertex:
   mesh:
     info: A vertex shader used for unstructured mesh rendering.
     source: mesh.vertexshader
+    depth_test: less
   passthrough:
     info: A second pass vertex shader that performs no operations on vertices
     source: passthrough.vertexshader

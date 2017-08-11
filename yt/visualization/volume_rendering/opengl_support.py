@@ -318,9 +318,8 @@ class VertexAttribute(traitlets.HasTraits):
         loc = -1
         if program is not None:
             loc = GL.glGetAttribLocation(program.program, self.name)
-            if loc < 0:
-                raise RuntimeError
-            rv = GL.glEnableVertexAttribArray(loc)
+            if loc >= 0:
+                rv = GL.glEnableVertexAttribArray(loc)
         rv = GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.id)
         if loc >= 0:
             GL.glVertexAttribPointer(loc, self.each, self.opengl_type, False, 0,
