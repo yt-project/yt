@@ -787,6 +787,22 @@ class SceneGraph(traitlets.HasTraits):
     ds = traitlets.Instance(Dataset)
     fb = traitlets.Instance(Framebuffer, allow_none = True)
 
+    def add_volume(self, data_source, field_name, no_ghost = False):
+        self.data_objects.append(BlockCollection(
+            data_source = data_source))
+        self.data_objects[-1].add_data(field_name, no_ghost = no_ghost)
+        self.components.append(BlockRendering(
+            data = self.data_objects[-1]))
+
+    def add_text(self, **kwargs):
+        if "data" not in kwargs:
+            if not any(_.name == "text_overlay" for _ in self.data_objects):
+                self.data_objects.append(TextCharacters())
+                self.data_objects[-1].build_textures()
+            kwargs['data'] = next((_ for _ in self.data_objects
+                                  if _.name == "text_overlay"))
+        self.annotations.append(TextAnnotation(**kwargs))
+
     def render(self):
         with self.bind_buffer():
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
