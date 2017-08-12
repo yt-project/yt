@@ -24,6 +24,12 @@ paper](http://adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
 in; if you use yt in the preparation of a publication, please consider citing
 it.
 
+## Code of Conduct
+
+yt abides by a code of conduct partially modified from the PSF code of conduct,
+and is found [in our contributing
+guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-code-of-conduct).
+
 ## Installation
 
 If you're using conda with [conda-forge](http://conda-forge.github.io/), you
