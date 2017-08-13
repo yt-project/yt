@@ -412,16 +412,6 @@ class FITSDataset(Dataset):
         else:
             beam_size = 1.0
         self.unit_registry.add("beam", beam_size, dimensions=dimensions.solid_angle)
-        if self.spec_cube:
-            units = self.wcs_2d.wcs.cunit[0]
-            if units == "deg":
-                units = "degree"
-            if units == "rad":
-                units = "radian"
-            pixel_area = np.prod(np.abs(self.wcs_2d.wcs.cdelt))
-            pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
-            pixel_dims = pixel_area.units.dimensions
-            self.unit_registry.add("pixel",float(pixel_area.value),dimensions=pixel_dims)
 
     def _parse_parameter_file(self):
 
@@ -590,6 +580,19 @@ class SkyDataFITSDataset(FITSDataset):
             self.lon_axis = 0
             self.lat_name = "Y"
             self.lon_name = "X"
+
+    def _set_code_unit_attributes(self):
+        super(SkyDataFITSDataset, self)._set_code_unit_attributes()
+        wcs_2d = getattr(self, "wcs_2d", self.wcs)
+        units = wcs_2d.wcs.cunit[0]
+        if units == "deg":
+            units = "degree"
+        if units == "rad":
+            units = "radian"
+        pixel_area = np.prod(np.abs(wcs_2d.wcs.cdelt))
+        pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
+        pixel_dims = pixel_area.units.dimensions
+        self.unit_registry.add("pixel", float(pixel_area.value), dimensions=pixel_dims)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

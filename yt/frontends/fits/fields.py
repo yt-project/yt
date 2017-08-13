@@ -25,10 +25,7 @@ class FITSFieldInfo(FieldInfoContainer):
 class WCSFITSFieldInfo(FITSFieldInfo):
 
     def setup_fluid_fields(self):
-        if hasattr(self.ds, "wcs_2d"):
-            wcs_2d = self.ds.wcs_2d
-        else:
-            wcs_2d = self.ds.wcs
+        wcs_2d = getattr(self.ds, "wcs_2d", self.ds.wcs)
 
         def _pixel(field, data):
             return data.ds.arr(data["ones"], "pixel")
