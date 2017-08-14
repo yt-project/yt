@@ -64,7 +64,9 @@ spec_names = {"V":"Velocity",
               "W":"Wavelength"}
 
 space_prefixes = list(set(lon_prefixes + lat_prefixes))
-sky_prefixes = list(set(space_prefixes).difference_update({"X", "Y", "LINEAR"}))
+sky_prefixes = set(space_prefixes)
+sky_prefixes.difference_update({"X", "Y", "LINEAR"})
+sky_prefixes = list(sky_prefixes)
 spec_prefixes = list(spec_names.keys())
 
 field_from_unit = {"Jy":"intensity",
