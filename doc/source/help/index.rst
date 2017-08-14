@@ -36,18 +36,23 @@ Update to the latest version
 Sometimes the pace of development is pretty fast on yt, particularly in the
 development branch, so a fix to your problem may have already been developed
 by the time you encounter it.  Many users' problems can simply be corrected
-by updating to the latest version of the code and/or its dependencies.  You
-can update yt's source by running:
+by updating to the latest version of the code and/or its dependencies. If you
+have installed the latest stable release of yt then you should update yt using
+the package manager appropriate for your python installation. For example, with
+``pip``::
+
+  $ pip install -U yt
+
+Or with conda::
+
+  $ conda update yt
+
+If you installed yt from a checkout of the git repository, you can update to
+the latest development version by issuing the following command:
 
 .. code-block:: bash
 
   $ yt update
-
-or you could update yt's source as well as any software dependencies by running:
-
-.. code-block:: bash
-
-  $ yt update --all
 
 .. _update-errors:
 
@@ -64,7 +69,7 @@ execute these commands:
 
 .. code-block:: bash
 
-  $ python setup.py develop
+  $ pip install -e .
 
 Now try running yt again with:
 
@@ -117,7 +122,7 @@ of the yt git repository and make it the 'active' installation by doing
 
 .. code-block:: bash
 
-  python setup.py develop
+   $ pip install -e .
 
 in the root directory of the yt git repository.
 
@@ -157,10 +162,11 @@ script.  This can help you (and us) to identify the basic problem.  Follow
 these steps:
 
 * Identify what it is that went wrong, and how you knew it went wrong.
-* Put your script, errors, and outputs online:
+* Put your script, errors, inputs and outputs online:
 
   * ``$ yt pastebin script.py`` - pastes script.py online
   * ``$ yt upload_image image.png`` - pastes image online
+  * ``$ yt upload my_input.tar`` - pastes my_input.tar online
 
 * Identify which version of the code you’re using.
 

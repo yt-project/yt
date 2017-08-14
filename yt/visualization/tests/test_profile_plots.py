@@ -21,11 +21,12 @@ from yt.data_objects.profiles import create_profile
 from yt.testing import \
     fake_random_ds, \
     assert_array_almost_equal, \
-    requires_file
+    requires_file, \
+    assert_fname
 from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
 from yt.visualization.tests.test_plotwindow import \
-    assert_fname, TEST_FLNMS
+    TEST_FLNMS
 from yt.utilities.answer_testing.framework import \
     PhasePlotAttributeTest, \
     requires_ds, \
@@ -59,13 +60,12 @@ def test_phase_plot_attributes():
     z_field = 'cell_mass'
     decimals = 12
     ds = data_dir_load(g30)
-    for ax in 'xyz':
-        for attr_name in ATTR_ARGS.keys():
-            for args in ATTR_ARGS[attr_name]:
-                test = PhasePlotAttributeTest(ds, x_field, y_field, z_field, 
-                                               attr_name, args, decimals)
-                test_phase_plot_attributes.__name__ = test.description
-                yield test
+    for attr_name in ATTR_ARGS.keys():
+        for args in ATTR_ARGS[attr_name]:
+            test = PhasePlotAttributeTest(ds, x_field, y_field, z_field, 
+                                          attr_name, args, decimals)
+            test_phase_plot_attributes.__name__ = test.description
+            yield test
 
 class TestProfilePlotSave(unittest.TestCase):
 

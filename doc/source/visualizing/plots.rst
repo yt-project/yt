@@ -14,8 +14,8 @@ many example scripts in :ref:`cookbook`.
 
 The :class:`~yt.visualization.plot_window.PlotWindow` interface is useful for
 taking a quick look at simulation outputs.  Simple mechanisms exist for making
-plots of slices, projections, 1D profiles, and 2D profiles (phase plots), all of
-which are described below.
+plots of slices, projections, 1D spatial line plots, 1D profiles, and 2D
+profiles (phase plots), all of which are described below.
 
 .. _viewing-plots:
 
@@ -30,7 +30,7 @@ example in a jupyter notebook environment, but the same command should work
 in other environments as well:
 
 .. code-block:: python
- 
+
    %matplotlib notebook
    import yt
    yt.toggle_interactivity()
@@ -202,6 +202,30 @@ or a :ref:`cut region <cut-regions>`.
 
 See :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot` for the
 full class description.
+
+.. _plot-2d:
+
+Plots of 2D Datasets
+~~~~~~~~~~~~~~~~~~~~
+
+If you have a two-dimensional cartesian, cylindrical, or polar dataset,
+:func:`~yt.visualization.plot_window.plot_2d` is a way to make a plot
+within the dataset's plane without having to specify the axis, which
+in this case is redundant. Otherwise, ``plot_2d`` accepts the same
+arguments as ``SlicePlot``. The one other difference is that the
+``center`` keyword argument can be a two-dimensional coordinate instead
+of a three-dimensional one:
+
+.. python-script::
+
+    import yt
+    ds = yt.load("WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030")
+    p = yt.plot_2d(ds, "density", center=[1.0, 0.4])
+    p.set_log("density", False)
+    p.save()
+
+See :func:`~yt.visualization.plot_window.plot_2d` for the full description
+of the function and its keywords.
 
 .. _off-axis-slices:
 
@@ -943,6 +967,7 @@ method and then given to the ProfilePlot object.
    # Save the image.
    plot.save()
 
+
 Customizing axis limits
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1053,6 +1078,88 @@ change the property of a single line, give also the index of the profile.
 
     # change only the first line
     plot.set_line_property("linestyle", "--", 0)
+
+.. _how-to-1d-unstructured-mesh:
+
+1D Line Sampling
+----------------
+
+YT has the ability to sample datasets along arbitrary lines
+and plot the result. You must supply five arguments to the ``LinePlot``
+class. They are enumerated below:
+
+1. Dataset
+2. A list of fields or a single field you wish to plot
+3. The starting point of the sampling line. This should be an n-element list, tuple,
+   ndarray, or YTArray with the elements corresponding to the coordinates of the
+   starting point. (n should equal the dimension of the dataset)
+4. The ending point of the sampling line. This should also be an n-element list, tuple,
+   ndarray, or YTArray with the elements corresponding to the coordinates of the
+   ending point.
+5. The number of sampling points along the line, e.g. if 1000 is specified, then
+   data will be sampled at 1000 points evenly spaced between the starting and
+   ending points.
+
+The below code snippet illustrates how this is done:
+
+.. code-block:: python
+
+   ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
+   plot = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000)
+   plot.save()
+
+If working in a Jupyter Notebook, ``LinePlot`` also has the ``show()`` method.
+
+You can can add a legend to a 1D sampling plot. The legend process takes two steps:
+
+1. When instantiating the ``LinePlot``, pass a dictionary of
+   labels with keys corresponding to the field names
+2. Call the ``LinePlot`` ``annotate_legend`` method
+
+X- and Y- axis units can be set with ``set_x_unit`` and ``set_unit`` methods
+respectively. The below code snippet combines all the features we've discussed:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+   plot = yt.LinePlot(ds, 'density', [0, 0, 0], [1, 1, 1], 512)
+   plot.annotate_legend('density')
+   plot.set_x_unit('cm')
+   plot.set_unit('density', 'kg/cm**3')
+   plot.save()
+
+If a list of fields is passed to ``LinePlot``, yt will create a number of
+individual figures equal to the number of different dimensional
+quantities. E.g. if ``LinePlot`` receives two fields with units of "length/time"
+and a field with units of "temperature", two different figures will be created,
+one with plots of the "length/time" fields and another with the plot of the
+"temperature" field. It is only necessary to call ``annotate_legend``
+for one field of a multi-field plot to produce a legend containing all the
+labels passed in the initial construction of the ``LinePlot`` instance. Example:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
+   plot = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], [0, 0, 0], [0, 1, 0],
+                      100, field_labels={('all', 'u') : r"v$_x$",
+                                         ('all', 'v') : r"v$_y$"})
+   plot.annotate_legend(('all', 'u'))
+   plot.save()
+
+``LinePlot`` is a bit different from yt ray objects which are data
+containers. ``LinePlot`` is a plotting class that may use yt ray objects to
+supply field plotting information. However, perhaps the most important
+difference to highlight between rays and ``LinePlot`` is that rays return data
+elements that intersect with the ray and make no guarantee about the spacing
+between data elements. ``LinePlot`` sampling points are guaranteed to be evenly
+spaced. In the case of cell data where multiple points fall within the same
+cell, the ``LinePlot`` object will show the same field value for each sampling
+point that falls within the same cell.
 
 .. _how-to-make-2d-profiles:
 

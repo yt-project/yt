@@ -722,7 +722,7 @@ triggers. The errors will be in your newly added code because we have already
 cleaned up the rest of the yt codebase of the errors and warnings detected by
 the `flake8` tool. Note that this will only trigger a subset of the `full flake8
 error and warning list
-<http://flake8.readthedocs.org/en/latest/warnings.html>`_, since we explicitly
+<http://flake8.readthedocs.io/en/latest/user/error-codes.html>`_, since we explicitly
 blacklist a large number of the full list of rules that are checked by
 ``flake8`` by default.
 

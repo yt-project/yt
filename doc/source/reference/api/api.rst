@@ -18,6 +18,7 @@ SlicePlot and ProjectionPlot
    ~yt.visualization.plot_window.OffAxisProjectionPlot
    ~yt.visualization.plot_window.WindowPlotMPL
    ~yt.visualization.plot_window.PlotWindow
+   ~yt.visualization.plot_window.plot_2d
 
 ProfilePlot and PhasePlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -46,6 +47,17 @@ Fixed Resolution Pixelization
    ~yt.visualization.fixed_resolution.ParticleImageBuffer
    ~yt.visualization.fixed_resolution.CylindricalFixedResolutionBuffer
    ~yt.visualization.fixed_resolution.OffAxisProjectionFixedResolutionBuffer
+
+Writing FITS images
+^^^^^^^^^^^^^^^^^^^
+
+.. autosummary::
+
+   ~yt.visualization.fits_image.FITSImageData
+   ~yt.visualization.fits_image.FITSSlice
+   ~yt.visualization.fits_image.FITSProjection
+   ~yt.visualization.fits_image.FITSOffAxisSlice
+   ~yt.visualization.fits_image.FITSOffAxisProjection
 
 Data Sources
 ------------

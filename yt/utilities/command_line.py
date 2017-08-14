@@ -43,6 +43,7 @@ from yt.funcs import \
 from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib, input
 from yt.extern.six.moves.urllib.parse import urlparse
+from yt.extern.tqdm import tqdm
 from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
@@ -50,7 +51,7 @@ from yt.visualization.plot_window import \
 from yt.utilities.metadata import get_metadata
 from yt.utilities.configure import set_config
 from yt.utilities.exceptions import \
-    YTOutputNotIdentified, YTFieldNotParseable
+    YTOutputNotIdentified, YTFieldNotParseable, YTCommandRequiresModule
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
@@ -135,10 +136,7 @@ def _get_girder_client():
     try:
         import girder_client
     except ImportError:
-        print("this command requires girder_client to be installed")
-        print("Please install them using your python package manager, e.g.:")
-        print("   pip install girder_client --user")
-        sys.exit()
+        raise YTCommandRequiresModule('girder_client')
     if not ytcfg.get("yt", "hub_api_key"):
         print("Before you can access the yt Hub you need an API key")
         print("In order to obtain one, either register by typing:")
@@ -151,6 +149,25 @@ def _get_girder_client():
     gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
     return gc
 
+
+class FileStreamer:
+    final_size = None
+    next_sent = 0
+    chunksize = 100*1024
+
+    def __init__(self, f, final_size = None):
+        location = f.tell()
+        f.seek(0, os.SEEK_END)
+        self.final_size = f.tell() - location
+        f.seek(location)
+        self.f = f
+
+    def __iter__(self):
+        with tqdm(total=self.final_size, desc='Uploading file',
+                  unit='B', unit_scale=True) as pbar:
+            while self.f.tell() < self.final_size:
+                yield self.f.read(self.chunksize)
+                pbar.update(self.chunksize)
 
 _subparsers = {None: subparsers}
 _subparsers_description = {
@@ -237,8 +254,8 @@ _common_options = dict(
     all     = dict(longname="--all", dest="reinstall",
                    default=False, action="store_true",
                    help=("Reinstall the full yt stack in the current location."
-                         "  This option has been deprecated and may not work "
-                         "correctly."),),
+                         "This option has been deprecated and will not have any"
+                         "effect."),),
     ds      = dict(short="ds", action=GetParameterFiles,
                    nargs="+", help="datasets to run on"),
     ods     = dict(action=GetParameterFiles, dest="ds",
@@ -429,53 +446,6 @@ _common_options = dict(
 
     )
 
-def _get_yt_stack_date():
-    if "YT_DEST" not in os.environ:
-        return
-    date_file = os.path.join(os.environ["YT_DEST"], ".yt_update")
-    if not os.path.exists(date_file):
-        print("Could not determine when yt stack was last updated.")
-        return
-    print("".join(open(date_file, 'r').readlines()))
-    print("To update all dependencies, run \"yt update --all\".")
-
-def _update_yt_stack(path):
-    "Rerun the install script to updated all dependencies."
-
-    if "YT_DEST" not in os.environ:
-        print()
-        print("This yt installation does not appear to be managed by the")
-        print("source-based install script, but 'update --all' was specified.")
-        print("You will need to update your dependencies manually.")
-        return
-
-    install_script = os.path.join(path, "doc/install_script.sh")
-    if not os.path.exists(install_script):
-        print()
-        print("Install script not found!")
-        print("The install script should be here: %s," % install_script)
-        print("but it was not.")
-        return
-
-    print()
-    print("We will now attempt to update the yt stack located at:")
-    print("    %s." % os.environ["YT_DEST"])
-    print()
-    print("[hit enter to continue or Ctrl-C to stop]")
-    try:
-        input()
-    except:
-        sys.exit(0)
-    os.environ["REINST_YT"] = "1"
-    ret = subprocess.call(["bash", install_script])
-    print()
-    if ret:
-        print("The install script seems to have failed.")
-        print("Check the output above.")
-    else:
-        print("The yt stack has been updated successfully.")
-        print("Now get back to work!")
-
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
     uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
@@ -619,10 +589,7 @@ class YTHubRegisterCmd(YTCommand):
         try:
             import requests
         except ImportError:
-            print("yt {} requires requests to be installed".format(self.name))
-            print("Please install them using your python package manager, e.g.:")
-            print("   pip install requests --user")
-            sys.exit()
+            raise YTCommandRequiresModule('requests')
         if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
             print("{} . Delete this if you want to force a".format(CURRENT_CONFIG_FILE))
@@ -718,7 +685,6 @@ class YTInstInfoCmd(YTCommand):
             print("This installation CAN be automatically updated.")
             if opts.update_source:
                 update_hg_or_git(path)
-                _get_yt_stack_date()
         elif opts.update_source:
             _print_failed_source_update()
         if vstring is not None and opts.outputfile is not None:
@@ -1034,7 +1000,7 @@ class YTNotebookCmd(YTCommand):
             pw = IPython.lib.passwd()
             print("If you would like to use this password in the future,")
             print("place a line like this inside the [yt] section in your")
-            print("yt configuration file at ~/.yt/config")
+            print("yt configuration file at ~/.config/yt/ytrc")
             print()
             print("notebook_password = %s" % pw)
             print()
@@ -1127,9 +1093,6 @@ class YTUpdateCmd(YTCommand):
             print()
             print("This installation CAN be automatically updated.")
             update_hg_or_git(path)
-            _get_yt_stack_date()
-            if opts.reinstall:
-                _update_yt_stack(path)
         else:
             _print_failed_source_update(opts.reinstall)
 
@@ -1208,6 +1171,29 @@ class YTUploadImageCmd(YTCommand):
             print("Something has gone wrong!  Here is the server response:")
             print()
             pprint.pprint(rv)
+
+
+class YTUploadFileCmd(YTCommand):
+    args = (dict(short="file", type=str),)
+    description = \
+        """
+        Upload a file to yt's curldrop.
+
+        """
+    name = "upload"
+
+    def __call__(self, args):
+        try:
+            import requests
+        except ImportError:
+            raise YTCommandRequiresModule('requests')
+
+        fs = iter(FileStreamer(open(args.file, 'rb')))
+        upload_url = ytcfg.get("yt", "curldrop_upload_url")
+        r = requests.put(upload_url + "/" + os.path.basename(args.file),
+                         data=fs)
+        print()
+        print(r.text)
 
 
 class YTConfigGetCmd(YTCommand):

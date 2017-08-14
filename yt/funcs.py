@@ -515,47 +515,47 @@ def update_git(path):
         print("Try: pip install gitpython")
         return -1
     with open(os.path.join(path, "yt_updater.log"), "a") as f:
-        with git.Repo(path) as repo:
-            if repo.is_dirty(untracked_files=True):
-                print("Changes have been made to the yt source code so I won't ")
-                print("update the code. You will have to do this yourself.")
-                print("Here's a set of sample commands:")
-                print("")
-                print("    $ cd %s" % (path))
-                print("    $ git stash")
-                print("    $ git checkout master")
-                print("    $ git pull")
-                print("    $ git stash pop")
-                print("    $ %s setup.py develop" % (sys.executable))
-                print("")
-                return 1
-            if repo.active_branch.name != 'master':
-                print("yt repository is not tracking the master branch so I won't ")
-                print("update the code. You will have to do this yourself.")
-                print("Here's a set of sample commands:")
-                print("")
-                print("    $ cd %s" % (path))
-                print("    $ git checkout master")
-                print("    $ git pull")
-                print("    $ %s setup.py develop" % (sys.executable))
-                print("")
-                return 1
-            print("Updating the repository")
-            f.write("Updating the repository\n\n")
-            old_version = repo.git.rev_parse('HEAD', short=12)
-            try:
-                remote = repo.remotes.yt_upstream
-            except AttributeError:
-                remote = repo.create_remote(
-                    'yt_upstream', url='https://github.com/yt-project/yt')
-                remote.fetch()
-            master = repo.heads.master
-            master.set_tracking_branch(remote.refs.master)
-            master.checkout()
-            remote.pull()
-            new_version = repo.git.rev_parse('HEAD', short=12)
-            f.write('Updated from %s to %s\n\n' % (old_version, new_version))
-            rebuild_modules(path, f)
+        repo = git.Repo(path)
+        if repo.is_dirty(untracked_files=True):
+            print("Changes have been made to the yt source code so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
+            print("")
+            print("    $ cd %s" % (path))
+            print("    $ git stash")
+            print("    $ git checkout master")
+            print("    $ git pull")
+            print("    $ git stash pop")
+            print("    $ %s setup.py develop" % (sys.executable))
+            print("")
+            return 1
+        if repo.active_branch.name != 'master':
+            print("yt repository is not tracking the master branch so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
+            print("")
+            print("    $ cd %s" % (path))
+            print("    $ git checkout master")
+            print("    $ git pull")
+            print("    $ %s setup.py develop" % (sys.executable))
+            print("")
+            return 1
+        print("Updating the repository")
+        f.write("Updating the repository\n\n")
+        old_version = repo.git.rev_parse('HEAD', short=12)
+        try:
+            remote = repo.remotes.yt_upstream
+        except AttributeError:
+            remote = repo.create_remote(
+                'yt_upstream', url='https://github.com/yt-project/yt')
+            remote.fetch()
+        master = repo.heads.master
+        master.set_tracking_branch(remote.refs.master)
+        master.checkout()
+        remote.pull()
+        new_version = repo.git.rev_parse('HEAD', short=12)
+        f.write('Updated from %s to %s\n\n' % (old_version, new_version))
+        rebuild_modules(path, f)
     print('Updated successfully')
 
 def update_hg(path):
@@ -621,8 +621,8 @@ def get_git_version(path):
         print("Try: pip install gitpython")
         return None
     try:
-        with git.Repo(path) as repo:
-            return repo.git.rev_parse('HEAD', short=12)
+        repo = git.Repo(path)
+        return repo.git.rev_parse('HEAD', short=12)
     except git.InvalidGitRepositoryError:
         # path is not a git repository
         return None

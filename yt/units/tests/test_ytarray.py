@@ -119,9 +119,19 @@ def test_addition():
     # Catch the different dimensions error
     a1 = YTArray([1, 2, 3], 'm')
     a2 = YTArray([4, 5, 6], 'kg')
+    a3 = [7, 8, 9]
+    a4 = YTArray([10, 11, 12], '')
 
     assert_raises(YTUnitOperationError, operator.add, a1, a2)
     assert_raises(YTUnitOperationError, operator.iadd, a1, a2)
+    assert_raises(YTUnitOperationError, operator.add, a1, a3)
+    assert_raises(YTUnitOperationError, operator.iadd, a1, a3)
+    assert_raises(YTUnitOperationError, operator.add, a3, a1)
+    assert_raises(YTUnitOperationError, operator.iadd, a3, a1)
+    assert_raises(YTUnitOperationError, operator.add, a1, a4)
+    assert_raises(YTUnitOperationError, operator.iadd, a1, a4)
+    assert_raises(YTUnitOperationError, operator.add, a4, a1)
+    assert_raises(YTUnitOperationError, operator.iadd, a4, a1)
 
     # adding with zero is allowed irrespective of the units
     zeros = np.zeros(3)
@@ -200,9 +210,19 @@ def test_subtraction():
     # Catch the different dimensions error
     a1 = YTArray([1, 2, 3], 'm')
     a2 = YTArray([4, 5, 6], 'kg')
+    a3 = [7, 8, 9]
+    a4 = YTArray([10, 11, 12], '')
 
     assert_raises(YTUnitOperationError, operator.sub, a1, a2)
     assert_raises(YTUnitOperationError, operator.isub, a1, a2)
+    assert_raises(YTUnitOperationError, operator.sub, a1, a3)
+    assert_raises(YTUnitOperationError, operator.isub, a1, a3)
+    assert_raises(YTUnitOperationError, operator.sub, a3, a1)
+    assert_raises(YTUnitOperationError, operator.isub, a3, a1)
+    assert_raises(YTUnitOperationError, operator.sub, a1, a4)
+    assert_raises(YTUnitOperationError, operator.isub, a1, a4)
+    assert_raises(YTUnitOperationError, operator.sub, a4, a1)
+    assert_raises(YTUnitOperationError, operator.isub, a4, a1)
 
     # subtracting with zero is allowed irrespective of the units
     zeros = np.zeros(3)

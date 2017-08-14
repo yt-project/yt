@@ -176,6 +176,20 @@ STDOUT for local use.  See :ref:`pastebin` for more information.
 
    yt pastebin_grab 1768
 
+upload
+++++++
+
+Upload a file to a public curldrop instance. Curldrop is a simple web
+application that allows you to upload and download files straight from your
+Terminal with an http client like e.g. curl. It was initially developed by
+`Kevin Kennell <https://github.com/kennell/curldrop>`_ and later forked and
+adjusted for yt’s needs. After a successful upload you will receive a url that
+can be used to share the data with other people.
+
+.. code-block:: bash
+
+   yt upload my_file.tar.gz
+
 plot
 ++++
 

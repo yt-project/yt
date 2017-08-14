@@ -63,6 +63,7 @@ from yt.fields.field_exceptions import \
     NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
 from yt.frontends.sph.data_structures import ParticleDataset
+from yt.units.yt_array import YTArray
 import yt.extern.six as six
 
 class YTStreamline(YTSelectionContainer1D):
@@ -344,6 +345,10 @@ class YTQuadTreeProj(YTSelectionContainer2D):
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)
+        # if there's less than nprocs chunks, units won't be initialized
+        # on all processors, so sync with _projected_units on rank 0
+        projected_units = self.comm.mpi_bcast(self._projected_units)
+        self._projected_units = projected_units
         # Note that this will briefly double RAM usage
         if self.method == "mip":
             merge_style = -1
@@ -356,8 +361,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         # TODO: Add the combine operation
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
-        ox = self.ds.domain_left_edge[xax]
-        oy = self.ds.domain_left_edge[yax]
+        ox = self.ds.domain_left_edge[xax].v
+        oy = self.ds.domain_left_edge[yax].v
         px, py, pdx, pdy, nvals, nwvals = tree.get_all(False, merge_style)
         nvals = self.comm.mpi_allreduce(nvals, op=op)
         nwvals = self.comm.mpi_allreduce(nwvals, op=op)
@@ -845,16 +850,17 @@ class YTArbitraryGrid(YTCoveringGrid):
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
-        assert(len(fields) == 1)
-        field = fields[0]
-        dest = np.zeros(self.ActiveDimensions, dtype="float64")
-        for chunk in self._data_source.chunks(fields, "io"):
-            fill_region_float(chunk.fcoords, chunk.fwidth, chunk[field],
-                              self.left_edge, self.right_edge, dest, 1,
-                              self.ds.domain_width,
-                              int(any(self.ds.periodicity)))
-        fi = self.ds._get_field_info(field)
-        self[field] = self.ds.arr(dest, fi.units)
+        # It may be faster to adapt fill_region_float to fill multiple fields
+        # instead of looping here
+        for field in fields:
+            dest = np.zeros(self.ActiveDimensions, dtype="float64")
+            for chunk in self._data_source.chunks(fields, "io"):
+                fill_region_float(chunk.fcoords, chunk.fwidth, chunk[field],
+                                  self.left_edge, self.right_edge, dest, 1,
+                                  self.ds.domain_width,
+                                  int(any(self.ds.periodicity)))
+            fi = self.ds._get_field_info(field)
+            self[field] = self.ds.arr(dest, fi.units)
 
 
 class LevelState(object):
@@ -1364,26 +1370,23 @@ class YTSurface(YTSelectionContainer3D):
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> trans = 1.0
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> surf = ds.surface(sp, "density", 5e-27)
-        >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
+        >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
-        >>> mi, ma = sp.quantities.extrema('temperature')[0]
+        >>> mi, ma = sp.quantities.extrema('temperature')
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature', dist_fac = distf,
+        ...                      color_field='temperature'
         ...                      plot_index = i, color_field_max = ma,
         ...                      color_field_min = mi)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> def _Emissivity(field, data):
         ...     return (data['density']*data['density'] *
         ...             np.sqrt(data['temperature']))
@@ -1394,7 +1397,7 @@ class YTSurface(YTSelectionContainer3D):
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
         ...                      color_field='temperature',
         ...                      emit_field='emissivity',
-        ...                      dist_fac = distf, plot_index = i)
+        ...                      plot_index = i)
 
         """
         if color_map is None:
@@ -1619,26 +1622,23 @@ class YTSurface(YTSelectionContainer3D):
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> trans = 1.0
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> surf = ds.surface(sp, "density", 5e-27)
-        >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
+        >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> mi, ma = sp.quantities.extrema('temperature')[0]
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature', dist_fac = distf,
+        ...                      color_field='temperature',
         ...                      plot_index = i, color_field_max = ma,
         ...                      color_field_min = mi)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> def _Emissivity(field, data):
         ...     return (data['density']*data['density']*np.sqrt(data['temperature']))
         >>> ds.add_field("emissivity", function=_Emissivity, units="g / cm**6")
@@ -1646,7 +1646,7 @@ class YTSurface(YTSelectionContainer3D):
         ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
         ...                      color_field='temperature', emit_field = 'emissivity',
-        ...                      dist_fac = distf, plot_index = i)
+        ...                      plot_index = i)
 
         """
         if color_map is None:
@@ -1789,6 +1789,11 @@ class YTSurface(YTSelectionContainer3D):
             DLE = self.ds.domain_left_edge
             DRE = self.ds.domain_right_edge
             bounds = [(DLE[i], DRE[i]) for i in range(3)]
+        elif any([not all([isinstance(be, YTArray) for be in b])
+                  for b in bounds]):
+            bounds = [tuple(be if isinstance(be, YTArray) else
+                            self.ds.quan(be, 'code_length') for be in b)
+                      for b in bounds]
         nv = self.vertices.shape[1]
         vs = [("x", "<f"), ("y", "<f"), ("z", "<f"),
               ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
@@ -1856,7 +1861,7 @@ class YTSurface(YTSelectionContainer3D):
         SketchFab.com.  It requires an API key, which can be found on your
         SketchFab.com dashboard.  You can either supply the API key to this
         routine directly or you can place it in the variable
-        "sketchfab_api_key" in your ~/.yt/config file.  This function is
+        "sketchfab_api_key" in your ~/.config/yt/ytrc file.  This function is
         parallel-safe.
 
         Parameters

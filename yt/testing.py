@@ -1053,3 +1053,30 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
     at = at.value
 
     return assert_allclose(act, des, rt, at, **kwargs)
+
+def assert_fname(fname):
+    """Function that checks file type using libmagic"""
+    if fname is None:
+        return
+
+    with open(fname, 'rb') as fimg:
+        data = fimg.read()
+    image_type = ''
+
+    # see http://www.w3.org/TR/PNG/#5PNG-file-signature
+    if data.startswith(b'\211PNG\r\n\032\n'):
+        image_type = '.png'
+    # see http://www.mathguide.de/info/tools/media-types/image/jpeg
+    elif data.startswith(b'\377\330'):
+        image_type = '.jpeg'
+    elif data.startswith(b'%!PS-Adobe'):
+        data_str = data.decode("utf-8", "ignore")
+        if 'EPSF' in data_str[:data_str.index('\n')]:
+            image_type = '.eps'
+        else:
+            image_type = '.ps'
+    elif data.startswith(b'%PDF'):
+        image_type = '.pdf'
+
+    return image_type == os.path.splitext(fname)[1]
+

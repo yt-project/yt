@@ -121,10 +121,6 @@ script and set ``INST_YT_SOURCE=1`` near the top. This will clone a copy of the
 yt git repository and build yt form source. The default is
 ``INST_YT_SOURCE=0``, which installs yt from a binary conda package.
 
-The install script can also build python and all yt dependencies from source. To
-switch to this mode, set ``INST_CONDA=0`` at the top of the install script. If
-you choose this mode, you must also set ``INST_YT_SOURCE=1``.
-
 In addition, you can tell the install script to download and install some
 additional packages --- currently these include
 `PyX <http://pyx.sourceforge.net/>`_, the `Rockstar halo
@@ -144,8 +140,8 @@ To execute the install script, run:
 
 Because the installer is downloading and building a variety of packages from
 source, this will likely take a few minutes, especially if you have a slow
-internet connection or have ``INST_CONDA=0`` set. You will get updates of its
-status at the command prompt throughout.
+internet connection. You will get updates of its status at the command prompt
+throughout.
 
 If you receive errors during this process, the installer will provide you
 with a large amount of information to assist in debugging your problems.  The
@@ -155,15 +151,6 @@ at the last few hundred lines (i.e. ``tail -500 yt_install.log``), you can
 potentially figure out what went wrong.  If you have problems, though, do not
 hesitate to :ref:`contact us <asking-for-help>` for assistance.
 
-If the install script errors out with a message about being unable to import the
-python SSL bindings, this means that the Python built by the install script was
-unable to link against the OpenSSL library. This likely means that you installed
-with ``INST_CONDA=0`` on a recent version of OSX, or on a cluster that has a
-very out of date installation of OpenSSL. In both of these cases you will either
-need to install OpenSSL yourself from the system package manager or consider
-using ``INST_CONDA=1``, since conda-based installs can install the conda package
-for OpenSSL.
-
 .. _activating-yt:
 
 Activating Your Installation
@@ -172,11 +159,8 @@ Activating Your Installation
 Once the installation has completed, there will be instructions on how to set up
 your shell environment to use yt.  
 
-Activating Conda-based installs (``INST_CONDA=1``)
-""""""""""""""""""""""""""""""""""""""""""""""""""
-
-For conda-based installs, you will need to ensure that the installation's
-``yt-conda/bin`` directory is prepended to your ``PATH`` environment variable.
+In particular, you will need to ensure that the installation's ``yt-conda/bin``
+directory is prepended to your ``PATH`` environment variable.
 
 For Bash-style shells, you can use the following command in a terminal session
 to temporarily activate the yt installation:
@@ -195,31 +179,6 @@ If you would like to permanently activate yt, you can also update the init file
 appropriate for your shell and OS (e.g. .bashrc, .bash_profile, .cshrc, .zshrc)
 to include the same command.
 
-Activating source-based installs (``INST_CONDA=0``)
-"""""""""""""""""""""""""""""""""""""""""""""""""""
-
-For this installation method, you must run an ``activate`` script to activate
-the yt environment in a terminal session. You must run this script in order to
-have yt properly recognized by your system.  You can either add it to your login
-script, or you must execute it in each shell session prior to working with yt.
-
-.. code-block:: bash
-
-  $ source <yt installation directory>/bin/activate
-
-If you use csh or tcsh as your shell, activate that version of the script:
-
-.. code-block:: bash
-
-  $ source <yt installation directory>/bin/activate.csh
-
-If you don't like executing outside scripts on your computer, you can set
-the shell variables manually.  ``YT_DEST`` needs to point to the root of the
-directory containing the install. By default, this will be ``yt-<arch>``, where
-``<arch>`` is your machine's architecture (usually ``x86_64`` or ``i386``). You
-will also need to set ``LD_LIBRARY_PATH`` and ``PYTHONPATH`` to contain
-``$YT_DEST/lib`` and ``$YT_DEST/python2.7/site-packages``, respectively.
-
 .. _updating-yt:
 
 Updating yt and Its Dependencies
@@ -231,21 +190,20 @@ this command at a command-line:
 
 .. code-block:: bash
 
-  $ yt update
+  $ conda update yt
 
-Additionally, if you ran the install script with ``INST_CONDA=0`` and want to
-make sure you have the latest dependencies associated with yt and update the
-codebase simultaneously, type this:
+If you want to update your dependencies, run:
 
 .. code-block:: bash
 
-  $ yt update --all
+   $ conda update --all
 
-If you ran the install script with ``INST_CONDA=1`` and want to update your dependencies, run:
+If you have installed yt from source, you can use the following command to get
+the latest development version of yt:
 
 .. code-block:: bash
 
-  $ conda update --all
+   $ yt update
 
 .. _removing-yt:
 
@@ -254,10 +212,14 @@ Removing yt and Its Dependencies
 
 Because yt and its dependencies are installed in an isolated directory when
 you use the script installer, you can easily remove yt and all of its
-dependencies cleanly.  Simply remove the install directory and its
-subdirectories and you're done.  If you *really* had problems with the
-code, this is a last defense for solving: remove and then fully
-:ref:`re-install <installing-yt>` from the install script again.
+dependencies cleanly. Simply remove the install directory and its
+subdirectories::
+
+  $ rm -rf yt-conda
+
+If you *really* had problems with the installation process, this is a last
+defense for solving: remove and then fully :ref:`re-install <installing-yt>`
+from the install script again.
 
 .. _anaconda-installation:
 
@@ -324,24 +286,22 @@ Clone the yt repository with:
   $ git clone https://github.com/yt-project/yt
 
 Once inside the yt directory, update to the appropriate branch and
-run ``setup.py develop``. For example, the following commands will allow you
+run ``pip install -e .``. For example, the following commands will allow you
 to see the tip of the development branch.
 
 .. code-block:: bash
 
   $ git checkout master
-  $ python setup.py develop
+  $ pip install -e .
 
 This will make sure you are running a version of yt corresponding to the
 most up-to-date source code.
 
-.. _rockstar-conda:
-
-Rockstar Halo Finder for Conda-based installations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Installing Support for the Rockstar Halo Finder
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The easiest way to set rockstar up in a conda-based python envrionment is to run
-the install script with both ``INST_CONDA=1`` and ``INST_ROCKSTAR=1``.
+the install script with ``INST_ROCKSTAR=1``.
 
 If you want to do this manually, you will need to follow these
 instructions. First, clone Matt Turk's fork of rockstar and compile it:
@@ -367,7 +327,7 @@ to a clone that you have already made, and do the following:
   $ cd /path/to/yt-git
   $ ./clean.sh
   $ echo /path/to/rockstar > rockstar.cfg
-  $ python setup.py develop
+  $ pip install -e .
 
 Here ``/path/to/yt-git`` is the path to your clone of the yt git repository
 and ``/path/to/rockstar`` is the path to your clone of Matt Turk's fork of
@@ -447,16 +407,16 @@ development version of yt instead of the latest stable release, you will need
   $ git clone https://github.com/yt-project/yt
   $ cd yt
   $ git checkout master
-  $ python setup.py install --user --prefix=
+  $ pip install . --user --install-option="--prefix="
 
 .. note::
 
   If you maintain your own user-level python installation separate from the
-  OS-level python installation, you can leave off ``--user --prefix=``, although
+  OS-level python installation, you can leave off ``--user --install-option="--prefix="``, although
   you might need ``sudo`` depending on where python is installed. See `This
   StackOverflow discussion
   <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
-  if you are curious why ``--prefix=`` is neccessary on some systems.
+  if you are curious why ``--install-option="--prefix="`` is neccessary on some systems.
 
 This will install yt into a folder in your home directory
 (``$HOME/.local/lib64/python2.7/site-packages`` on Linux,
@@ -479,9 +439,9 @@ repository the "active" installed copy:
   $ git clone https://github.com/yt-project/yt
   $ cd yt
   $ git checkout master
-  $ python setup.py develop --user --prefix=
+  $ pip install -e . --user --install-option="--prefix="
 
-As above, you can leave off ``--user --prefix=`` if you want to install yt into
+As above, you can leave off ``--user --install-option="--prefix="`` if you want to install yt into
 the default package install path.  If you do not have write access for this
 location, you might need to use ``sudo``.
 
@@ -609,7 +569,7 @@ C code requires a compilation step for big changes like this):
 
   $ cd yt-<machine>/src/yt-git
   $ git checkout <desired version>
-  $ python setup.py develop
+  $ pip install -e .
 
 Valid versions to jump to are described in :ref:`branches-of-yt`.
 
@@ -635,7 +595,7 @@ repository. Use git to update to the appropriate version and recompile.
 
   $ cd yt
   $ git checkout <desired-version>
-  $ python setup.py install --user --prefix=
+  $ pip install . --user --install-option="--prefix="
 
 Valid versions to jump to are described in :ref:`branches-of-yt`).
 

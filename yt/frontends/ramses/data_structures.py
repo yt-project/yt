@@ -15,6 +15,7 @@ from __future__ import print_function, absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import glob
 import os
 import numpy as np
 import stat
@@ -54,6 +55,7 @@ class RAMSESDomainFile(object):
         self.ds = ds
         self.domain_id = domain_id
         self.nvar = 0 # Set this later!
+
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
         basename = "%s/%%s_%s.out%05i" % (
@@ -154,6 +156,7 @@ class RAMSESDomainFile(object):
         hvals.update(fpu.read_attrs(f, attrs))
         self.particle_header = hvals
         self.local_particle_count = hvals['npart']
+
         particle_fields = [
                 ("particle_position_x", "d"),
                 ("particle_position_y", "d"),
@@ -167,6 +170,8 @@ class RAMSESDomainFile(object):
         if hvals["nstar_tot"] > 0:
             particle_fields += [("particle_age", "d"),
                                 ("particle_metallicity", "d")]
+        if self.ds._extra_particle_fields is not None:
+            particle_fields += self.ds._extra_particle_fields
 
         field_offsets = {}
         _pfields = {}
@@ -374,10 +379,6 @@ class RAMSESIndex(OctreeIndex):
         '''
         If no fluid fields are set, the code tries to set up a fluids array by hand
         '''
-        # TODO: SUPPORT RT - THIS REQUIRES IMPLEMENTING A NEW FILE READER!
-        # Find nvar
-        
-
         # TODO: copy/pasted from DomainFile; needs refactoring!
         num = os.path.basename(self.dataset.parameter_filename).split("."
                 )[0].split("_")[1]
@@ -404,32 +405,43 @@ class RAMSESIndex(OctreeIndex):
         self.ds.gamma = hvals['gamma']
         nvar = hvals['nvar']
         # OK, we got NVAR, now set up the arrays depending on what NVAR is
+        # but first check for radiative transfer!    
+        foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
+        rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
+        if rt_flag: # rt run
+            if nvar < 10:
+                mylog.info('Detected RAMSES-RT file WITHOUT IR trapping.')
+                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
+            else:
+                mylog.info('Detected RAMSES-RT file WITH IR trapping.')
+                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]     
+        else:            
+            if nvar < 5:
+                mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
+                raise ValueError
+            # Basic hydro runs
+            if nvar == 5:
+                fields = ["Density",
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "Pressure"]
+            if nvar > 5 and nvar < 11:
+                fields = ["Density", 
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "Pressure", "Metallicity"]
+            # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
+            if nvar == 11:
+                fields = ["Density", 
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
+                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
+                          "Pressure"]
+            if nvar > 11:
+                fields = ["Density", 
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
+                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
+                          "Pressure","Metallicity"]
         # Allow some wiggle room for users to add too many variables
-        if nvar < 5:
-            mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
-            raise ValueError
-        # Basic hydro runs
-        if nvar == 5:
-            fields = ["Density", 
-                      "x-velocity", "y-velocity", "z-velocity", 
-                      "Pressure"]
-        if nvar > 5 and nvar < 11:
-            fields = ["Density", 
-                      "x-velocity", "y-velocity", "z-velocity", 
-                      "Pressure", "Metallicity"]
-        # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
-        if nvar == 11:
-            fields = ["Density", 
-                      "x-velocity", "y-velocity", "z-velocity", 
-                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
-                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
-                      "Pressure"]
-        if nvar > 11:
-            fields = ["Density", 
-                      "x-velocity", "y-velocity", "z-velocity", 
-                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
-                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
-                      "Pressure","Metallicity"]
         while len(fields) < nvar:
             fields.append("var"+str(len(fields)))
         mylog.debug("No fields specified by user; automatically setting fields array to %s", str(fields))
@@ -530,20 +542,27 @@ class RAMSESDataset(Dataset):
     gamma = 1.4 # This will get replaced on hydro_fn open
     
     def __init__(self, filename, dataset_type='ramses',
-                 fields = None, storage_filename = None,
-                 units_override=None, unit_system="cgs"):
+                 fields=None, storage_filename=None,
+                 units_override=None, unit_system="cgs",
+                 extra_particle_fields=None, cosmological=None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, string_types):
             fields = field_aliases[fields]
         '''
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
                 If set to None, will try a default set of fields
+        extra_particle_fields: An array of extra particle variables in order of position in the particle_XXXXX.outYYYYY file.
+        cosmological: If set to None, automatically detect cosmological simulation. If a boolean, force 
+                      its value.
         '''
         self.fluid_types += ("ramses",)
         self._fields_in_file = fields
+        self._extra_particle_fields = extra_particle_fields
+        self.force_cosmological = cosmological
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
         self.storage_filename = storage_filename
+
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -629,8 +648,16 @@ class RAMSESDataset(Dataset):
         self.domain_right_edge = np.ones(3, dtype='float64')
         # This is likely not true, but it's not clear how to determine the boundary conditions
         self.periodicity = (True, True, True)
-        # These conditions seem to always be true for non-cosmological datasets
-        if rheader["time"] >= 0 and rheader["H0"] == 1 and rheader["aexp"] == 1:
+
+        if self.force_cosmological is not None:
+            is_cosmological = self.force_cosmological
+        else:
+            # These conditions seem to always be true for non-cosmological datasets
+            is_cosmological = not (rheader["time"] >= 0 and
+                                   rheader["H0"] == 1 and
+                                   rheader["aexp"] == 1)
+
+        if not is_cosmological:
             self.cosmological_simulation = 0
             self.current_redshift = 0
             self.hubble_constant = 0

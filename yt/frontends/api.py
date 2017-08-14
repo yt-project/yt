@@ -17,6 +17,7 @@ import sys, types, os, glob, time, importlib
 from yt.extern.six.moves import cPickle as pickle
 
 _frontends = [
+    'ahf',
     'art',
     'artio',
     'athena',
@@ -25,6 +26,7 @@ _frontends = [
     'chombo',
     'eagle',
     'enzo',
+    'enzo_p',
     'exodus_ii',
     'fits',
     'flash',

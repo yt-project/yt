@@ -365,7 +365,7 @@ class AbsorptionSpectrum(object):
                                    this_wavelength[lixel]), \
                               continuum['index']) * \
                     (column_density[lixel] / continuum['normalization'])
-                self.tau_field[left_index[lixel]:right_index[lixel]] += cont_tau
+                self.tau_field[left_index[lixel]:right_index[lixel]] += cont_tau.d
                 pbar.update(i)
             pbar.finish()
 

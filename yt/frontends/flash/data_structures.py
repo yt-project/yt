@@ -155,12 +155,6 @@ class FLASHHierarchy(GridIndex):
             gre[:,2] = 2.0 * np.pi
             return
 
-        # Now, for cartesian data.
-        for i in range(self.num_grids):
-            dx = dxs[self.grid_levels[i],:]
-            gle[i][:ND] = np.rint(gle[i][:ND]/dx[0][:ND])*dx[0][:ND]
-            gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
-
     def _populate_grid_objects(self):
         ii = np.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
