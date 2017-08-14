@@ -52,7 +52,6 @@ from yt.units import dimensions
 from yt.utilities.on_demand_imports import \
     _astropy, NotAModule
 
-
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
 delimiters = ["*", "/", "-", "^", "(", ")"]
@@ -63,6 +62,10 @@ spec_names = {"V":"Velocity",
               "F":"Frequency",
               "E":"Energy",
               "W":"Wavelength"}
+
+space_prefixes = list(set(lon_prefixes + lat_prefixes))
+sky_prefixes = list(set(space_prefixes).difference_update({"X", "Y", "LINEAR"}))
+spec_prefixes = list(spec_names.keys())
 
 field_from_unit = {"Jy":"intensity",
                    "K":"temperature"}
@@ -282,27 +285,36 @@ class FITSHierarchy(GridIndex):
             yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
                               cache = cache)
 
+def find_primary_header(fileh):
+    # Sometimes the primary hdu doesn't have an image
+    if len(fileh) > 1 and fileh[0].header["naxis"] == 0:
+        first_image = 1
+    else:
+        first_image = 0
+    header = fileh[first_image].header
+    return header, fileh
+
 def check_fits_valid(args):
     ext = args[0].rsplit(".", 1)[-1]
     if ext.upper() in ("GZ", "FZ"):
         # We don't know for sure that there will be > 1
         ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
     if ext.upper() not in ("FITS", "FTS"):
-        return False
+        return None
     elif isinstance(_astropy.pyfits, NotAModule):
         raise RuntimeError("This appears to be a FITS file, but AstroPy is not installed.")
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=UserWarning, append=True)
             fileh = _astropy.pyfits.open(args[0])
-        valid = fileh[0].header["naxis"] >= 2
-        if len(fileh) > 1:
-            valid = fileh[1].header["naxis"] >= 2 or valid
-        fileh.close()
-        return valid
+        header, _ = find_primary_header(fileh)
+        if header["naxis"] >= 2:
+            return fileh
+        else:
+            fileh.close()
     except:
         pass
-    return False
+    return None
 
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
@@ -487,12 +499,7 @@ class FITSDataset(Dataset):
             self.parameters["nprocs"] = self.specified_parameters["nprocs"]
 
     def _determine_structure(self):
-        # Sometimes the primary hdu doesn't have an image
-        if len(self._handle) > 1 and self._handle[0].header["naxis"] == 0:
-            self.first_image = 1
-        else:
-            self.first_image = 0
-        self.primary_header = self._handle[self.first_image].header
+        self.primary_header, self.first_image = find_primary_header(self._handle)
         self.naxis = self.primary_header["naxis"]
         self.axis_names = [self.primary_header.get("ctype%d" % (i+1),"LINEAR")
                            for i in range(self.naxis)]
@@ -519,7 +526,12 @@ class FITSDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        return check_fits_valid(args)
+        fileh = check_fits_valid(args)
+        if fileh is None:
+            return False
+        else:
+            fileh.close()
+            return True
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -534,6 +546,13 @@ class FITSDataset(Dataset):
 
     def close(self):
         self._handle.close()
+
+def find_axes(axis_names, prefixes):
+    x = 0
+    for p in prefixes:
+        y = np_char.startswith(axis_names, p)
+        x += np.any(y)
+    return x
 
 class SkyDataFITSDataset(FITSDataset):
     _field_info_class = WCSFITSFieldInfo
@@ -586,20 +605,21 @@ class SkyDataFITSDataset(FITSDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if check_fits_valid(args):
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore', category=UserWarning, append=True)
-                fileh = _astropy.pyfits.open(args[0])
+        fileh = check_fits_valid(args)
+        if fileh is not None:
             try:
-            self.primary_header = self._handle[self.first_image].header
-            self.naxis = self.primary_header["naxis"]
-            self.axis_names = [self.primary_header.get("ctype%d" % (i + 1), "LINEAR")
-                               for i in range(self.naxis)]
+                header, _ = find_primary_header(fileh)
+                if header["naxis"] > 2:
+                    return False
+                axis_names = [header.get("ctype%d" % (i+1), "")
+                              for i in range(header["naxis"])]
+                x = find_axes(axis_names, sky_prefixes)
+                fileh.close()
+                return x == 2
+            except:
+                pass
+        return False
 
-            x = 0
-            for p in lon_prefixes + lat_prefixes + list(spec_names.keys()):
-                y = np_char.startswith(self.axis_names[:self.dimensionality], p)
-                x += np.any(y)
 class SpectralCubeFITSHierarchy(FITSHierarchy):
 
     def _domain_decomp(self):
@@ -617,13 +637,13 @@ class SpectralCubeFITSHierarchy(FITSHierarchy):
 
 
 class SpectralCubeFITSDataset(SkyDataFITSDataset):
+    _index_class = SpectralCubeFITSHierarchy
     def __init__(self, filename,
                  auxiliary_files=[],
                  nprocs=None,
                  storage_filename=None,
                  nan_mask=None,
                  spectral_factor=1.0,
-                 z_axis_decomp=False,
                  suppress_astropy_warnings=True,
                  parameters=None,
                  units_override=None,
@@ -635,7 +655,6 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
             unit_system=unit_system)
 
         self.spectral_factor = spectral_factor
-        self.z_axis_decomp = z_axis_decomp
 
     def _parse_parameter_file(self):
         super(SpectralCubeFITSDataset, self)._parse_parameter_file()
@@ -698,6 +717,24 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         pv = self.arr(pixel_value, "code_length")
         return self.arr((pv.v-self._p0)*self._dz+self._z0,
                         self.spec_unit)
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        fileh = check_fits_valid(args)
+        if fileh is not None:
+            try:
+                header, _ = find_primary_header(fileh)
+                naxis = min(header["naxis"], 3)
+                if naxis < 3:
+                    return False
+                axis_names = [header.get("ctype%d" % (i+1), "LINEAR")
+                              for i in range(naxis)]
+                x = find_axes(axis_names[:naxis], space_prefixes+spec_prefixes)
+                fileh.close()
+                return x == 3
+            except:
+                pass
+        return False
 
 class EventsFITSHierarchy(FITSHierarchy):
 
@@ -767,11 +804,9 @@ class EventsFITSDataset(SkyDataFITSDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if check_fits_valid(args):
+        fileh = check_fits_valid(args)
+        if fileh is not None:
             try:
-                with warnings.catch_warnings():
-                    warnings.filterwarnings('ignore', category=UserWarning, append=True)
-                    fileh = _astropy.pyfits.open(args[0])
                 valid = fileh[1].name == "EVENTS"
                 fileh.close()
                 return valid
