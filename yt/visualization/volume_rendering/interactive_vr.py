@@ -859,5 +859,6 @@ class SceneGraph(traitlets.HasTraits):
         scene = SceneGraph(camera = c)
         scene.add_volume(data_source, field)
 
-        shell = render_context.start_shell(scene, c)
-        return shell
+        local_ns = {'scene': scene, 'camera': c}
+        shell = render_context.start_shell(scene, c, kwargs = dict())
+        shell(stack_depth = 2, module = None, local_ns = local_ns) 

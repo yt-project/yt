@@ -225,14 +225,14 @@ class RenderingContext(object):
         callbacks.draw = True
         return callbacks
 
-    def start_shell(self, scene, camera): 
+    def start_shell(self, scene, camera, **kwargs): 
         from IPython.terminal.pt_inputhooks import register
         from IPython.terminal.embed import InteractiveShellEmbed
         callbacks = self.setup_loop(scene, camera)
         rl = self(scene, camera, callbacks)
         hook = InputHookGLFW(rl)
         register("glfw", hook)
-        shell = InteractiveShellEmbed()
+        shell = InteractiveShellEmbed(**kwargs)
         shell.enable_gui('glfw')
         return shell
 
