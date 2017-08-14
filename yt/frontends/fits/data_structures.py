@@ -202,7 +202,7 @@ class FITSHierarchy(GridIndex):
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
-                        self._scale_map[fname] = [0.0,1.0]
+                        self._scale_map[fname] = [0.0, 1.0]
                         if "bzero" in hdu.header:
                             self._scale_map[fname][0] = hdu.header["bzero"]
                         if "bscale" in hdu.header:
@@ -226,27 +226,7 @@ class FITSHierarchy(GridIndex):
 
         # If nprocs > 1, decompose the domain into virtual grids
         if self.num_grids > 1:
-            if self.ds.z_axis_decomp:
-                dz = ds.quan(1.0, "code_length")*ds.spectral_factor
-                self.grid_dimensions[:,2] = np.around(float(ds.domain_dimensions[2])/
-                                                            self.num_grids).astype("int")
-                self.grid_dimensions[-1,2] += (ds.domain_dimensions[2] % self.num_grids)
-                self.grid_left_edge[0,2] = ds.domain_left_edge[2]
-                self.grid_left_edge[1:,2] = ds.domain_left_edge[2] + \
-                                            np.cumsum(self.grid_dimensions[:-1,2])*dz
-                self.grid_right_edge[:,2] = self.grid_left_edge[:,2]+self.grid_dimensions[:,2]*dz
-                self.grid_left_edge[:,:2] = ds.domain_left_edge[:2]
-                self.grid_right_edge[:,:2] = ds.domain_right_edge[:2]
-                self.grid_dimensions[:,:2] = ds.domain_dimensions[:2]
-            else:
-                bbox = np.array([[le,re] for le, re in zip(ds.domain_left_edge,
-                                                           ds.domain_right_edge)])
-                dims = np.array(ds.domain_dimensions)
-                psize = get_psize(dims, self.num_grids)
-                gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
-                self.grid_left_edge = self.ds.arr(gle, "code_length")
-                self.grid_right_edge = self.ds.arr(gre, "code_length")
-                self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
+            self._domain_decomp()
         else:
             self.grid_left_edge[0,:] = ds.domain_left_edge
             self.grid_right_edge[0,:] = ds.domain_right_edge
@@ -256,6 +236,16 @@ class FITSHierarchy(GridIndex):
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels[i,0])
+
+    def _domain_decomp(self):
+        bbox = np.array([[le, re] for le, re in zip(self.ds.domain_left_edge,
+                                                    self.ds.domain_right_edge)])
+        dims = np.array(self.ds.domain_dimensions)
+        psize = get_psize(dims, self.num_grids)
+        gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
+        self.grid_left_edge = self.ds.arr(gle, "code_length")
+        self.grid_right_edge = self.ds.arr(gre, "code_length")
+        self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
 
     def _populate_grid_objects(self):
         for i in range(self.num_grids):
@@ -610,8 +600,20 @@ class SkyDataFITSDataset(FITSDataset):
             for p in lon_prefixes + lat_prefixes + list(spec_names.keys()):
                 y = np_char.startswith(self.axis_names[:self.dimensionality], p)
                 x += np.any(y)
+class SpectralCubeFITSHierarchy(FITSHierarchy):
 
-            fileh.close()
+    def _domain_decomp(self):
+        dz = self.ds.quan(1.0, "code_length") * self.ds.spectral_factor
+        self.grid_dimensions[:, 2] = np.around(float(self.ds.domain_dimensions[2]) /
+                                               self.num_grids).astype("int")
+        self.grid_dimensions[-1, 2] += (self.ds.domain_dimensions[2] % self.num_grids)
+        self.grid_left_edge[0, 2] = self.ds.domain_left_edge[2]
+        self.grid_left_edge[1:, 2] = self.ds.domain_left_edge[2] + \
+                                     np.cumsum(self.grid_dimensions[:-1, 2]) * dz
+        self.grid_right_edge[:, 2] = self.grid_left_edge[:, 2] + self.grid_dimensions[:, 2] * dz
+        self.grid_left_edge[:, :2] = self.ds.domain_left_edge[:2]
+        self.grid_right_edge[:, :2] = self.ds.domain_right_edge[:2]
+        self.grid_dimensions[:, :2] = self.ds.domain_dimensions[:2]
 
 
 class SpectralCubeFITSDataset(SkyDataFITSDataset):
