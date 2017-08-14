@@ -615,8 +615,7 @@ class SkyDataFITSDataset(FITSDataset):
                     return False
                 axis_names = [header.get("ctype%d" % (i+1), "")
                               for i in range(header["naxis"])]
-                x = find_axes(axis_names, sky_prefixes)
-                fileh.close()
+                x = find_axes(axis_names, sky_prefixes+spec_prefixes)
                 return x == 2
             except:
                 pass
@@ -732,7 +731,6 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
                 axis_names = [header.get("ctype%d" % (i+1), "LINEAR")
                               for i in range(naxis)]
                 x = find_axes(axis_names[:naxis], space_prefixes+spec_prefixes)
-                fileh.close()
                 return x == 3
             except:
                 pass
