@@ -53,6 +53,7 @@ from .opengl_support import \
     Framebuffer, Texture3DIterator
 from .input_events import \
     EventCollection
+from yt.data_objects.api import Dataset
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
@@ -836,3 +837,27 @@ class SceneGraph(traitlets.HasTraits):
                 GL.GL_FLOAT)[::-1,:,:]
         arr.swapaxes(0, 1)
         return arr
+
+    @staticmethod
+    def from_ds(ds, field, render_context = None):
+        # Here we make a bunch of guesses.  Nothing too complex -- only two
+        # arguments: dataset and field.  If you supply a rendering context,
+        # great.  If not, we'll make one.
+        if render_context is None:
+            from .interactive_loop import RenderingContext
+            render_context = RenderingContext(1024, 1024)
+        if isinstance(ds, Dataset):
+            data_source = ds.all_data()
+        else:
+            ds, data_source = ds.ds, ds
+        center = ds.domain_center
+        pos = center + 1.5 * ds.domain_width
+        near_plane = 3.0 * ds.index.get_smallest_dx().min().d
+
+        c = TrackballCamera(position=pos, focus = center, near_plane = near_plane)
+
+        scene = SceneGraph(camera = c)
+        scene.add_volume(data_source, field)
+
+        shell = render_context.start_shell(scene, c)
+        return shell
