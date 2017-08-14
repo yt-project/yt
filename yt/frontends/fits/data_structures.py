@@ -58,10 +58,10 @@ delimiters = ["*", "/", "-", "^", "(", ")"]
 delimiters += [str(i) for i in range(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 
-spec_names = {"V":"Velocity",
-              "F":"Frequency",
-              "E":"Energy",
-              "W":"Wavelength"}
+spec_names = {"V": "Velocity",
+              "F": "Frequency",
+              "E": "Energy",
+              "W": "Wavelength"}
 
 space_prefixes = list(set(lon_prefixes + lat_prefixes))
 sky_prefixes = set(space_prefixes)
@@ -75,8 +75,8 @@ field_from_unit = {"Jy":"intensity",
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, index, level):
-        AMRGridPatch.__init__(self, id, filename = index.index_filename,
-                              index = index)
+        AMRGridPatch.__init__(self, id, filename=index.index_filename,
+                              index=index)
         self.Parent = None
         self.Children = []
         self.Level = 0
@@ -294,7 +294,7 @@ def find_primary_header(fileh):
     else:
         first_image = 0
     header = fileh[first_image].header
-    return header, fileh
+    return header, first_image
 
 def check_fits_valid(args):
     ext = args[0].rsplit(".", 1)[-1]
@@ -468,23 +468,6 @@ class FITSDataset(Dataset):
             self.hubble_constant = self.cosmological_simulation = 0.0
 
         self._determine_nprocs()
-
-        # Check to see if this data is in some kind of (Lat,Lon,Vel) format
-        """
-        x = 0
-        for p in lon_prefixes+lat_prefixes+list(spec_names.keys()):
-            y = np_char.startswith(self.axis_names[:self.dimensionality], p)
-            x += np.any(y)
-        if x == self.dimensionality:
-            if self.axis_names == ['LINEAR','LINEAR']:
-                self.wcs_2d = self.wcs
-                self.lat_axis = 1
-                self.lon_axis = 0
-                self.lat_name = "Y"
-                self.lon_name = "X"
-            else:
-                self._setup_spec_cube()
-        """
 
         # Now we can set up some of our parameters for convenience.
         for k, v in self.primary_header.items():
