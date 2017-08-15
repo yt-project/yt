@@ -45,12 +45,13 @@ class HaloCatalogParticleIndex(ParticleIndex):
                    self.dataset.parameter_filename, 0)]
 
 class HaloCatalogHDF5File(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range):
         with h5py.File(filename, "r") as f:
             self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
 
-        super(HaloCatalogHDF5File, self).__init__(ds, io, filename, file_id)
+        super(HaloCatalogHDF5File, self).__init__(
+            ds, io, filename, file_id, range)
     
 class HaloCatalogDataset(SavedDataset):
     _index_class = ParticleIndex
@@ -63,11 +64,8 @@ class HaloCatalogDataset(SavedDataset):
                   "domain_left_edge", "domain_right_edge")
 
     def __init__(self, filename, dataset_type="halocatalog_hdf5",
-                 index_order=None, index_filename=None, units_override=None,
-                 unit_system="cgs"):
+                 units_override=None, unit_system="cgs"):
         super(HaloCatalogDataset, self).__init__(filename, dataset_type,
-                                                 index_order=index_order,
-                                                 index_filename=index_filename,
                                                  units_override=units_override,
                                                  unit_system=unit_system)
 

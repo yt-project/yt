@@ -133,7 +133,7 @@ class StreamParticleIOHandler(BaseIOHandler):
             if (ptype, 'smoothing_length') in self.ds.field_list:
                 hsml = self._read_smoothing_length(chunks, ptf, ptype)
             else:
-                hsml = 0
+                hsml = 0.0
             psize[ptype] += selector.count_points(x, y, z, hsml)
         return psize
 
@@ -152,7 +152,7 @@ class StreamParticleIOHandler(BaseIOHandler):
                 if (ptype, 'smoothing_length') in self.ds.field_list:
                     hsml = f[ptype, 'smoothing_length']
                 else:
-                    hsml = 0
+                    hsml = 0.0
                 mask = selector.select_points(x, y, z, hsml)
                 if mask is None:
                     continue
