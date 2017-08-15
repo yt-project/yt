@@ -220,12 +220,12 @@ class YTDataset(SavedDataset):
         pass
 
 class YTDataHDF5File(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range):
         with h5py.File(filename, "r") as f:
             self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
 
-        super(YTDataHDF5File, self).__init__(ds, io, filename, file_id)
+        super(YTDataHDF5File, self).__init__(ds, io, filename, file_id, range)
 
 class YTDataContainerDataset(YTDataset):
     """Dataset for saved geometric data containers."""
