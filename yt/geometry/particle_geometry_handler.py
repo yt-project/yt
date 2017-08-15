@@ -15,6 +15,7 @@ Particle-only geometry handler
 #-----------------------------------------------------------------------------
 
 import collections
+import errno
 import numpy as np
 import os
 import weakref
@@ -271,8 +272,15 @@ class ParticleIndex(Index):
             # chunking system
             if pfile.start not in (0, None):
                 continue
-
-            mtime = os.path.getmtime(pfile.filename)
+            try:
+                mtime = os.path.getmtime(pfile.filename)
+            except OSError as e:
+                if e.errno == errno.ENOENT:
+                    # this is an in-memory file so we return with a dummy
+                    # value
+                    return -1
+                else:
+                    raise
             ret.extend(str(mtime).encode('utf-8'))
             size = os.path.getsize(pfile.filename)
             if size > 1e6:
