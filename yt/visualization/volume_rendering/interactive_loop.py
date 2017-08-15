@@ -21,6 +21,7 @@ import numpy as np
 import OpenGL.GL as GL
 from .input_events import EventCollection, MouseRotation, JoystickAction
 from .glfw_inputhook import InputHookGLFW
+from ..image_writer import write_bitmap
 
 from yt import write_bitmap
 
@@ -126,6 +127,7 @@ class RenderingContext(object):
         specified, default to center.
     '''
     should_quit = False
+    image_widget = None
     def __init__(self, width=1024, height=1024, title="vol_render",
                  always_on_top = False, decorated = True, position = None,
                  visible = True):
@@ -134,6 +136,7 @@ class RenderingContext(object):
         # glfw sometimes changes the current working directory, see
         # https://github.com/adamlwgriffiths/cyglfw3/issues/21
         os.chdir(curdir)
+        self.offscreen = not visible
         glfw.WindowHint(glfw.VISIBLE, visible)
         glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
@@ -250,6 +253,9 @@ class RenderingContext(object):
                 scene.render()
                 glfw.SwapBuffers(self.window)
                 callbacks.draw = False
+                if self.image_widget is not None:
+                    self.image_widget.value = write_bitmap(
+                            scene.image, None)
             glfw.PollEvents()
             yield self
         glfw.Terminate()
