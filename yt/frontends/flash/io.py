@@ -246,9 +246,14 @@ class IOHandlerFLASHParticle(BaseIOHandler):
             ind += self._chunksize
         return morton
 
+    _pcount = None
     def _count_particles(self, data_file):
-        pcount = {"io": self._handle["/localnp"][:].sum()}
-        return pcount
+        if self._pcount is None:
+            self._pcount = self._handle["/localnp"][:].sum()
+        si, ei = data_file.start, data_file.end
+        if None not in (si, ei):
+            pcount = np.clip(self._pcount - si, 0, ei - si)
+        return {'io': pcount}
 
     def _identify_fields(self, data_file):
         fields = [("io", field) for field in self._particle_fields]
