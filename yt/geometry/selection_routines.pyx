@@ -1108,8 +1108,8 @@ cdef class RegionSelector(SelectorObject):
             this_level = 1
         cdef np.int64_t si[3]
         cdef np.int64_t ei[3]
-        if not self.check_period[i]:
-            for i in range(3):
+        for i in range(3):
+            if not self.check_period[i]:
                 si[i] = <np.int64_t> ((self.left_edge[i] - left_edge[i])/dds[i])
                 ei[i] = <np.int64_t> ((self.right_edge[i] - left_edge[i])/dds[i])
                 si[i] = iclip(si[i] - 1, 0, dim[i])
