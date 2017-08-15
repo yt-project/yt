@@ -80,9 +80,6 @@ class ParticleIndex(Index):
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
 
-        # Get index & populate octree
-        self._initialize_index()
-
     def _initialize_index(self):
         ds = self.dataset
         only_on_root(mylog.info, "Allocating for %0.3e particles",

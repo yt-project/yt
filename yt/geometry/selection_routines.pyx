@@ -611,9 +611,9 @@ cdef class SelectorObject:
         cdef np.float64_t radius
         cdef np.float64_t[:] _radii
         if radii is not None:
-            _radii = np.atleast_1d(np.array(radii))
+            _radii = np.atleast_1d(np.array(radii, dtype='float64'))
         else:
-            _radii = np.array([0.0])
+            _radii = np.array([0.0], dtype='float64')
         _ensure_code(x)
         _ensure_code(y)
         _ensure_code(z)
@@ -647,9 +647,9 @@ cdef class SelectorObject:
         cdef np.ndarray[np.uint8_t, ndim=1] mask
         cdef np.float64_t[:] _radii
         if radii is not None:
-            _radii = np.atleast_1d(np.array(radii))
+            _radii = np.atleast_1d(np.array(radii, dtype='float64'))
         else:
-            _radii = np.array([0.0])
+            _radii = np.array([0.0], dtype='float64')
         mask = np.empty(x.shape[0], dtype='uint8')
         _ensure_code(x)
         _ensure_code(y)
