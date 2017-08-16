@@ -810,11 +810,11 @@ class Dataset(object):
         """
         mylog.debug("Searching for maximum value of %s", field)
         source = self.all_data()
-        max_val, max_loc = \
+        max_val, mx, my, mz = \
             source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
-                   max_val, max_loc[0], max_loc[1], max_loc[2])
-        return max_val, max_loc
+              max_val, mx, my, mz)
+        return max_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
 
     def find_min(self, field):
         """
