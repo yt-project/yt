@@ -566,7 +566,7 @@ class Dataset(object):
             if nfields == 0:
                 mylog.debug("zero common fields: skipping particle union 'all'")
         if "nbody" not in self.particle_types:
-            mylog.debug("Creating Particle Union 'all'")
+            mylog.debug("Creating Particle Union 'nbody'")
             ptypes = list(self.particle_types_raw)
             if hasattr(self, '_sph_ptype'):
                 ptypes.remove(self._sph_ptype)

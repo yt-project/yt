@@ -317,7 +317,7 @@ class BulkVelocity(DerivedQuantity):
         self.num_vals = 0
         if use_gas:
             self.num_vals += 4
-        if use_particles:
+        if use_particles and 'nbody' in self.data_source.ds.particle_types:
             self.num_vals += 4
 
     def process_chunk(self, data, use_gas = True, use_particles = False):
@@ -327,7 +327,7 @@ class BulkVelocity(DerivedQuantity):
                       data["gas", "mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
             vals.append(data["gas", "mass"].sum(dtype=np.float64))
-        if use_particles:
+        if use_particles and 'nbody' in data.ds.particle_types:
             vals += [(data["nbody", "particle_velocity_%s" % ax] *
                       data["nbody", "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
