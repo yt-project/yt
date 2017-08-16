@@ -126,7 +126,10 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                     d = [p["Coordinates"][ax].astype("float64")
                          for ax in 'xyz']
                     del p
-                    hsml = self._read_smoothing_length(data_file, count)
+                    if ptype == self.ds._sph_ptype:
+                        hsml = self._read_smoothing_length(data_file, count)
+                    else:
+                        hsml = 0.0
                     yield ptype, d, hsml
 
     @property
