@@ -156,15 +156,14 @@ def test_in_memory_sph_derived_quantities():
     assert_equal(weighted_av_z, 7/3)
 
 iso_collapse = "IsothermalCollapse/snap_505"
-os33 = "snapshot_033/snap_033.0.hdf5"
+tipsy_gal = 'TipsyGalaxy/galaxy.00300'
 
 @requires_file(iso_collapse)
-@requires_file(os33)
+@requires_file(tipsy_gal)
 def test_sph_datasets_derived_quantities():
-    for fname in [iso_collapse, os33]:
+    for fname in [tipsy_gal, iso_collapse]:
         ds = yt.load(fname)
         ad = ds.all_data()
-
         ad.quantities.angular_momentum_vector()
         ad.quantities.bulk_velocity(True, True)
         ad.quantities.center_of_mass(True, True)
