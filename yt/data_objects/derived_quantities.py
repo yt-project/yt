@@ -606,7 +606,8 @@ class MaxLocation(SampleAtMaxFieldValues):
         self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
         rv = super(MaxLocation, self).__call__(field, sample_fields)
-        rv = [rv[0], self.data_source.ds.arr(rv[1:])]
+        if len(rv) == 1:
+            rv = rv[0]
         return rv
 
 class SampleAtMinFieldValues(SampleAtMaxFieldValues):
@@ -656,7 +657,8 @@ class MinLocation(SampleAtMinFieldValues):
         self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
         rv = super(MinLocation, self).__call__(field, sample_fields)
-        rv = [rv[0], self.data_source.ds.arr(rv[1:])]
+        if len(rv) == 1:
+            rv = rv[0]
         return rv
 
 class SpinParameter(DerivedQuantity):

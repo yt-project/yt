@@ -140,14 +140,14 @@ def test_in_memory_sph_derived_quantities():
         assert_equal(fex, ans)
 
     for d, v, l in zip('xyz', [1, 2, 3], [[1, 0, 0], [0, 2, 0], [0, 0, 3]]):
-        max_d, max_loc = ad.quantities.max_location(d)
+        max_d, x, y, z = ad.quantities.max_location(d)
         assert_equal(max_d, v)
-        assert_equal(max_loc, l)
+        assert_equal([x, y, z], l)
 
     for d in 'xyz':
-        min_d, min_loc = ad.quantities.min_location(d)
+        min_d, x, y, z = ad.quantities.min_location(d)
         assert_equal(min_d, 0)
-        assert_equal(min_loc, [0, 0, 0])
+        assert_equal([x, y, z], [0, 0, 0])
 
     tot_m = ad.quantities.total_mass()
     assert_equal(tot_m, [7, 0])
