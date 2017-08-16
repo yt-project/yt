@@ -88,6 +88,10 @@ class GadgetBinaryFile(ParticleFile):
 
 class GadgetBinaryIndex(SPHParticleIndex):
 
+    def __init__(self, ds, dataset_type):
+        super(GadgetBinaryIndex, self).__init__(ds, dataset_type)
+        self._initialize_index()
+
     def _initialize_index(self):
         # Normally this function is called during field detection. We call it
         # here because we need to know which fields exist on-disk so that we can
