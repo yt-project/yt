@@ -376,8 +376,7 @@ projection through a simulation.
 Here, ``W`` is the width of the projection in the x, y, *and* z
 directions.
 
-One can also generate generate annotated off axis projections
-using
+One can also generate annotated off axis projections using
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`. These
 plots can be created in much the same way as an
 ``OffAxisSlicePlot``, requiring only an open dataset, a direction
@@ -403,7 +402,7 @@ Unstructured Mesh Slices
 ------------------------
 
 Unstructured Mesh datasets can be sliced using the same syntax as above.
-Here is an example script using a publically available MOOSE dataset:
+Here is an example script using a publicly available MOOSE dataset:
 
 .. python-script::
 
@@ -647,7 +646,7 @@ Fonts
 ~~~~~
 
 :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_font` allows font
-costomization.
+customization.
 
 .. python-script::
 
@@ -691,7 +690,7 @@ linear.
    slc.save()
 
 Specifically, a field containing both positive and negative values can be plotted
-with symlog scale, by seting the boolean to be ``True`` and providing an extra
+with symlog scale, by setting the boolean to be ``True`` and providing an extra
 parameter ``linthresh``. In the region around zero (when the log scale approaches
 to infinity), the linear scale will be applied to the region ``(-linthresh, linthresh)``
 and stretched relative to the logarithmic range. You can also plot a positive field
@@ -889,7 +888,7 @@ For instance:
 Note that because we have specified the weighting field to be ``None``, the
 profile plot will display the accumulated cell mass as a function of temperature
 rather than the average. Also note the use of a ``(value, unit)`` tuple. These
-can be used interchangably with units explicitly imported from ``yt.units`` when
+can be used interchangeably with units explicitly imported from ``yt.units`` when
 creating yt plots.
 
 We can also accumulate along the bin field of a ``ProfilePlot`` (the bin field
@@ -1110,7 +1109,7 @@ The below code snippet illustrates how this is done:
 
 If working in a Jupyter Notebook, ``LinePlot`` also has the ``show()`` method.
 
-You can can add a legend to a 1D sampling plot. The legend process takes two steps:
+You can add a legend to a 1D sampling plot. The legend process takes two steps:
 
 1. When instantiating the ``LinePlot``, pass a dictionary of
    labels with keys corresponding to the field names
@@ -1426,7 +1425,7 @@ to only consider the particles that lie within a 50 kpc sphere around the domain
    p.save()
 
 Finally, with 1D and 2D Profiles, you can create a :class:`~yt.data_objects.profiles.ParticleProfile`
-object seperately using the :func:`~yt.data_objects.profiles.create_profile` function, and then use it
+object separately using the :func:`~yt.data_objects.profiles.create_profile` function, and then use it
 create a :class:`~yt.visualization.particle_plots.ParticlePhasePlot` object using the
 :meth:`~yt.visualization.particle_plots.ParticlePhasePlot.from_profile` method. In this example,
 we have also used the ``weight_field`` argument to compute the average ``particle_mass`` in each
@@ -1645,7 +1644,7 @@ For ``PhasePlot``:
 Publication-ready Figures
 -------------------------
 
-While the routines above give a convienent method to inspect and
+While the routines above give a convenient method to inspect and
 visualize your data, publishers often require figures to be in PDF or
 EPS format.  While the matplotlib supports vector graphics and image
 compression in PDF formats, it does not support compression in EPS

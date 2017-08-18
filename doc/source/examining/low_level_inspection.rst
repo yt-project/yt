@@ -264,6 +264,6 @@ and ``PartType1``, while Enzo data, which usually only has one particle type,
 will only have a particle named ``io``.
 
 Finally, one can see the number of each particle type by inspecting
-``ds.particle_type_counts``. This will be a dictionary mappying the names of
+``ds.particle_type_counts``. This will be a dictionary mapping the names of
 particle types in ``ds.particle_types_raw`` to the number of each particle type
 in a simulation output.
