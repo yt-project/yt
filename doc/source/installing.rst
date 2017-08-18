@@ -20,7 +20,7 @@ will work best for you depends on your precise situation:
   python packages, or are working on a supercomputer or cluster computer, you
   will probably want to use the bash all-in-one installation script.  This
   creates a python environment using the `miniconda python
-  distrubtion <http://conda.pydata.org/miniconda.html>`_ and the
+  distribution <http://conda.pydata.org/miniconda.html>`_ and the
   `conda <http://conda.pydata.org/docs/>`_ package manager inside of a single
   folder in your home directory. See :ref:`install-script` for more details.
 
@@ -107,7 +107,7 @@ If you do not have ``wget``, the following should also work:
   $ curl -OL https://raw.githubusercontent.com/yt-project/yt/master/doc/install_script.sh
 
 By default, the bash install script will create a python environment based on
-the `miniconda python distrubtion <http://conda.pydata.org/miniconda.html>`_,
+the `miniconda python distribution <http://conda.pydata.org/miniconda.html>`_,
 and will install yt's dependencies using the `conda
 <http://conda.pydata.org/docs/>`_ package manager. To avoid needing a
 compilation environment to run the install script, yt itself will also be
@@ -300,7 +300,7 @@ most up-to-date source code.
 Installing Support for the Rockstar Halo Finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The easiest way to set rockstar up in a conda-based python envrionment is to run
+The easiest way to set rockstar up in a conda-based python environment is to run
 the install script with ``INST_ROCKSTAR=1``.
 
 If you want to do this manually, you will need to follow these

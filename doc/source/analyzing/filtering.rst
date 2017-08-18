@@ -157,7 +157,7 @@ As an alternative syntax, you can also define a new particle filter via the
 
 This is equivalent to our use of the ``particle_filter`` decorator above.  The
 choice to use either the ``particle_filter`` decorator or the
-``add_particle_fitler`` function is a purely stylistic choice.
+``add_particle_filter`` function is a purely stylistic choice.
 
 .. notebook:: particle_filter.ipynb
 
