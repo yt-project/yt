@@ -367,7 +367,7 @@ class YTDataContainer(object):
                         outputs.append(rv)
                         ind = 0 # Does this work with mesh?
                     with o._activate_cache():
-                        ind += o.select(self.selector, o[field], rv, ind)
+                        ind += o.select(self.selector, self[field], rv, ind)
         else:
             chunks = self.index._chunk(self, "spatial", ngz = ngz)
             for i, chunk in enumerate(chunks):
