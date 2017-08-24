@@ -102,6 +102,27 @@ FULLSCREEN_QUAD = np.array(
      +1.0, +1.0, 0.0], dtype=np.float32
 )
 
+def compute_box_geometry(left_edge, right_edge):
+    move = get_translate_matrix(*left_edge)
+    width = (right_edge - left_edge)
+    scale = get_scale_matrix(*width)
+
+    transformed_box = bbox_vertices.dot(scale.T).dot(move.T).astype("float32")
+    return transformed_box
+
+class YTPositionTrait(traitlets.TraitType):
+    default_value = None
+    info_text = "A position in code_length"
+
+    def validate(self, obj, value):
+        if isinstance(value, (tuple, list)):
+            value = np.array(value)
+        if hasattr(value, "in_units"):
+            value = value.in_units("unitary").d
+        if not isinstance(value, np.ndarray):
+            self.error(obj, value)
+        return value.astype("f4")
+
 class IDVCamera(object):
     '''Camera object used in the Interactive Data Visualization
 
@@ -590,7 +611,7 @@ class BlockCollection(SceneData):
             self.min_val = min(self.min_val, np.nanmin(block.my_data[0].min()))
             self.max_val = max(self.max_val, np.nanmax(block.my_data[0].max()))
             self.blocks[id(block)] = (i, block)
-            vert.append(self._compute_geometry(block, bbox_vertices))
+            vert.append(compute_box_geometry(block.LeftEdge, block.RightEdge))
             dds = (block.RightEdge - block.LeftEdge)/block.my_data[0].shape
             n = int(vert[-1].size) // 4
             dx.append([dds.astype('f4') for _ in range(n)])
@@ -630,14 +651,6 @@ class BlockCollection(SceneData):
             vbo_i, _ = self.blocks[id(block)]
             yield (vbo_i, self.texture_objects[vbo_i],
                    self.bitmap_objects[vbo_i])
-
-    def _compute_geometry(self, block, bbox_vertices):
-        move = get_translate_matrix(*block.LeftEdge)
-        dds = (block.RightEdge - block.LeftEdge)
-        scale = get_scale_matrix(*dds)
-
-        transformed_box = bbox_vertices.dot(scale.T).dot(move.T).astype("float32")
-        return transformed_box
 
     def _load_textures(self):
         for block_id in sorted(self.blocks):
@@ -684,6 +697,31 @@ class BlockRendering(SceneComponent):
         shader_program._set_uniform("ds_tex", 0)
         shader_program._set_uniform("bitmap_tex", 1)
 
+class BoxData(SceneData):
+    name = "box_data"
+    left_edge = YTPositionTrait([0.0, 0.0, 0.0])
+    right_edge = YTPositionTrait([1.0, 1.0, 1.0])
+    
+    @traitlets.default("vertex_array")
+    def _default_vertex_array(self):
+        va = VertexArray(name = "box_outline", each = 36)
+        data = compute_box_geometry(self.left_edge, self.right_edge).copy()
+        va.attributes.append(VertexAttribute(
+            name = "model_vertex",
+            data = data.astype("f4")))
+        N = data.size // 4
+        le = np.concatenate([self.left_edge.copy() for _ in range(N)])
+        re = np.concatenate([self.right_edge.copy() for _ in range(N)])
+        dds = self.right_edge - self.left_edge
+        dds = np.concatenate([dds.copy() for _ in range(N)])
+        va.attributes.append(VertexAttribute(
+            name = "in_left_edge", data = le.astype('f4')))
+        va.attributes.append(VertexAttribute(
+            name = "in_right_edge", data = re.astype('f4')))
+        va.attributes.append(VertexAttribute(
+            name = "in_dx", data = dds.astype('f4')))
+        return va
+
 class BlockOutline(SceneAnnotation):
     '''
     A class that renders outlines of block data.  
@@ -692,13 +730,38 @@ class BlockOutline(SceneAnnotation):
     data = traitlets.Instance(BlockCollection)
     box_width = traitlets.CFloat(0.1)
     box_alpha = traitlets.CFloat(1.0)
-    default_shaders = ("default", "drawlines",
+    default_shaders = ("default", "draw_blocks",
                        "passthrough", "passthrough")
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
         for tex_ind, tex, bitmap_tex in self.data.viewpoint_iter(scene.camera):
             GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
+
+    def _set_uniforms(self, scene, shader_program):
+        cam = scene.camera
+        shader_program._set_uniform("projection",
+                cam.get_projection_matrix())
+        shader_program._set_uniform("modelview",
+                cam.get_view_matrix())
+        shader_program._set_uniform("viewport",
+                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
+        shader_program._set_uniform("camera_pos",
+                cam.position)
+        shader_program._set_uniform("box_width", self.box_width)
+        shader_program._set_uniform("box_alpha", self.box_alpha)
+
+class BoxAnnotation(SceneAnnotation):
+    name = "box_outline"
+    data = traitlets.Instance(BoxData)
+    box_width = traitlets.CFloat(0.05)
+    box_alpha = traitlets.CFloat(1.0)
+    default_shaders = ("default", "draw_blocks",
+                       "passthrough", "passthrough")
+
+    def draw(self, scene, program):
+        each = self.data.vertex_array.each
+        GL.glDrawArrays(GL.GL_TRIANGLES, 0, each)
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
@@ -794,6 +857,7 @@ class SceneGraph(traitlets.HasTraits):
         self.data_objects[-1].add_data(field_name, no_ghost = no_ghost)
         self.components.append(BlockRendering(
             data = self.data_objects[-1]))
+        return self.components[-1] # Only the rendering object
 
     def add_text(self, **kwargs):
         if "data" not in kwargs:
@@ -803,6 +867,12 @@ class SceneGraph(traitlets.HasTraits):
             kwargs['data'] = next((_ for _ in self.data_objects
                                   if _.name == "text_overlay"))
         self.annotations.append(TextAnnotation(**kwargs))
+        return self.annotations[-1]
+
+    def add_box(self, left_edge, right_edge):
+        data = BoxData(left_edge = left_edge, right_edge = right_edge)
+        self.data_objects.append(data)
+        self.annotations.append(BoxAnnotation(data = data))
 
     def render(self):
         with self.bind_buffer():
@@ -819,12 +889,6 @@ class SceneGraph(traitlets.HasTraits):
                 yield
         else:
             yield
-
-    def set_camera(self, camera):
-        self.camera = camera
-
-    def update_minmax(self):
-        pass
 
     @property
     def image(self):

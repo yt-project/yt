@@ -180,8 +180,7 @@ class RenderingContext(object):
         self.set_position(0.5, 0.5)
 
     def setup_loop(self, scene, camera):
-        scene.set_camera(camera)
-        scene.update_minmax()
+        scene.camera = camera
         camera.compute_matrices()
         print("Starting rendering...")
         callbacks = EventCollection(scene, camera)
@@ -249,7 +248,7 @@ class RenderingContext(object):
             callbacks(self.window)
             if callbacks.draw:
                 camera.compute_matrices()
-                scene.set_camera(camera)
+                scene.camera = camera
                 scene.render()
                 glfw.SwapBuffers(self.window)
                 callbacks.draw = False

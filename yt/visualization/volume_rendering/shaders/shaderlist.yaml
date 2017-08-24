@@ -7,9 +7,12 @@ fragment:
     - src alpha
     - dst alpha
     blend_equation: func add
-  drawlines:
+  draw_blocks:
     info: A first pass fragment shader that performs ray casting using transfer function.
       See :ref:`volume-rendering-method` for more details.
+    source: block_outline.fragmentshader
+  draw_box:
+    info: A box annotation.
     source: box_outline.fragmentshader
   max_intensity:
     info: A first pass fragment shader that computes Maximum Intensity Projection
