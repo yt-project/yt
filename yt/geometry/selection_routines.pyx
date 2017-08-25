@@ -239,17 +239,7 @@ cdef class SelectorObject:
             return
         # Now we visit all our children.  We subtract off sdds for the first
         # pass because we center it on the first cell.
-        cdef int iter
-        if visit_covered == 0:
-            # Only visit octs with one or more missing children
-            iter = 1
-        elif visit_covered == 1:
-            # Visit all octs
-            iter = 2
-        elif visit_covered == 2:
-            # Only visit octs without any children
-            iter = 1
-        # cdef int iter = 1 - visit_covered # 2 if 1, 1 if 0.
+        cdef int iter = 1 - visit_covered # 2 if 1, 1 if 0.
         # So the order here goes like so.  If visit_covered is 1, which usually
         # comes from "partial_coverage", we visit the components of a zone even
         # if it has children.  But in general, the first iteration through, we
@@ -284,20 +274,16 @@ cdef class SelectorObject:
                             visitor.pos[1] = (visitor.pos[1] >> 1)
                             visitor.pos[2] = (visitor.pos[2] >> 1)
                             visitor.level -= 1
-                        # Add this cell for the root even if it has children
                         elif this_level == 1 and visitor.oref > 0:
-                            if visit_covered != 2 or root.children == NULL:
-                                visitor.global_index += increment
-                                increment = 0
-                                self.visit_oct_cells(root, ch, spos, sdds,
-                                                     visitor, i, j, k)
-                        # Add the root once
+                            visitor.global_index += increment
+                            increment = 0
+                            self.visit_oct_cells(root, ch, spos, sdds,
+                                                 visitor, i, j, k)
                         elif this_level == 1 and increment == 1:
-                            if visit_covered != 2 or root.children == NULL:
-                                visitor.global_index += increment
-                                increment = 0
-                                visitor.ind[0] = visitor.ind[1] = visitor.ind[2] = 0
-                                visitor.visit(root, 1)
+                            visitor.global_index += increment
+                            increment = 0
+                            visitor.ind[0] = visitor.ind[1] = visitor.ind[2] = 0
+                            visitor.visit(root, 1)
                         spos[2] += sdds[2]
                     spos[1] += sdds[1]
                 spos[0] += sdds[0]
