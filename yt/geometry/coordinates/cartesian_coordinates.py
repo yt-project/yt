@@ -240,6 +240,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         from yt.data_objects.construction_data_containers import \
             YTQuadTreeProj
         # We should be using fcoords
+        field = data_source._determine_fields(field)[0]
         period = self.period[:2].copy() # dummy here
         period[0] = self.period[self.x_axis[dim]]
         period[1] = self.period[self.y_axis[dim]]
@@ -248,10 +249,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
         buff = np.zeros((size[1], size[0]), dtype="f8")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
-        if isinstance(field, tuple):
-            is_sph_field = field[0] in 'gas'
-        else:
-            is_sph_field = field.name[0] in 'gas'
+        is_sph_field = field[0] in 'gas'
         if hasattr(data_source.ds, '_sph_ptype'):
             is_sph_field |= field[0] in data_source.ds._sph_ptype
 
