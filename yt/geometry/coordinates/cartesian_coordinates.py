@@ -248,7 +248,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
         buff = np.zeros((size[1], size[0]), dtype="f8")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
-        is_sph_field = field[0] in 'gas'
+        if isinstance(field, tuple):
+            is_sph_field = field[0] in 'gas'
+        else:
+            is_sph_field = field.name[0] in 'gas'
         if hasattr(data_source.ds, '_sph_ptype'):
             is_sph_field |= field[0] in data_source.ds._sph_ptype
 
