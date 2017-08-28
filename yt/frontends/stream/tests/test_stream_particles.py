@@ -106,7 +106,7 @@ def test_stream_particles():
                     dimensions=grid.ActiveDimensions)
 
         for field in amr1.field_list:
-            if field[0] != "all":
+            if field[0] not in ("all", "nbody"):
                 data[field] = grid[field]
 
         grid_data.append(data)
@@ -219,7 +219,7 @@ def test_stream_particles():
                     dimensions=grid.ActiveDimensions)
 
         for field in amr3.field_list:
-            if field[0] != "all":
+            if field[0] not in ("all", "nbody"):
                 data[field] = grid[field]
 
         grid_data.append(data)
