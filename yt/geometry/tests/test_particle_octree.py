@@ -122,7 +122,7 @@ def FakeBitmap(npart, nfiles, order1, order2,
         right_edge = np.array([1.0, 1.0, 1.0])
     if periodicity is None:
         periodicity = np.array([0, 0, 0], 'bool')
-    reg = ParticleBitmap(left_edge, right_edge, periodicity, nfiles,
+    reg = ParticleBitmap(left_edge, right_edge, periodicity, 12345, nfiles,
                          order1, order2)
     # Load from file if it exists
     if isinstance(fname,str) and os.path.isfile(fname):
@@ -165,9 +165,10 @@ def test_bitmap_no_collisions():
     periodicity = np.array([0, 0, 0], 'bool')
     npart = 100
     nfiles = 2
+    file_hash = 12345
     order1 = 2
     order2 = 2
-    reg = ParticleBitmap(left_edge, right_edge, periodicity, nfiles,
+    reg = ParticleBitmap(left_edge, right_edge, periodicity, file_hash, nfiles,
                          order1, order2)
     # Coarse index
     posgen = yield_fake_decomp('sliced', npart, nfiles,
@@ -203,9 +204,10 @@ def test_bitmap_collisions():
     right_edge = np.array([1.0, 1.0, 1.0])
     periodicity = np.array([0, 0, 0], 'bool')
     nfiles = 2
+    file_hash = 12345
     order1 = 2
     order2 = 2
-    reg = ParticleBitmap(left_edge, right_edge, periodicity, nfiles,
+    reg = ParticleBitmap(left_edge, right_edge, periodicity, file_hash, nfiles,
                          order1, order2)
     # Use same points for all files to force collisions
     pos = cell_centers(order1+order2, left_edge, right_edge)
@@ -241,6 +243,7 @@ def test_bitmap_save_load():
     right_edge = np.array([1.0, 1.0, 1.0])
     periodicity = np.array([0, 0, 0], 'bool')
     npart = NPART
+    file_hash = 12345
     nfiles = 32
     order1 = 2
     order2 = 2
@@ -255,7 +258,7 @@ def test_bitmap_save_load():
                       left_edge, right_edge, periodicity)
     reg0.save_bitmasks(fname)
     # Attempt to load bitmap
-    reg1 = ParticleBitmap(left_edge, right_edge, periodicity, nfiles,
+    reg1 = ParticleBitmap(left_edge, right_edge, periodicity, file_hash, nfiles,
                           order1, order2)
     reg1.load_bitmasks(fname)
     assert_true(reg0.iseq_bitmask(reg1))
