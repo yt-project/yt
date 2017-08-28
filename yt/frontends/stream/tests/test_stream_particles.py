@@ -270,13 +270,14 @@ def test_load_particles_types():
     ds1 = load_particles(data1)
     ds1.index
 
-    assert set(ds1.particle_types) == {"all", "io"}
+    assert set(ds1.particle_types) == {"all", "io", "nbody"}
 
     dd = ds1.all_data()
 
     for ax in "xyz":
         assert dd["io", "particle_position_%s" % ax].size == num_particles
         assert dd["all", "particle_position_%s" % ax].size == num_particles
+        assert dd["nbody", "particle_position_%s" % ax].size == num_particles
 
     num_dm_particles = 10000
     num_star_particles = 50000
@@ -294,7 +295,7 @@ def test_load_particles_types():
     ds2 = load_particles(data2)
     ds2.index
 
-    assert set(ds2.particle_types) == {"all", "star", "dm"}
+    assert set(ds2.particle_types) == {"all", "star", "dm", "nbody"}
 
     dd = ds2.all_data()
 
