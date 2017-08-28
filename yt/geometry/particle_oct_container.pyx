@@ -529,6 +529,10 @@ cdef class ParticleBitmap:
             mask[mi] = 1
             # Expand mask by softening
             if hsml is not None:
+                if hsml[p] < 0:
+                    raise RuntimeError(
+                        "Smoothing length for particle %s is negative with "
+                        "value \"%s\"" % p, hsml[p])
                 Nex = 1
                 for i in range(3):
                     Nex_min[i] = 0
