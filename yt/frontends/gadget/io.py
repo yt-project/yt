@@ -394,7 +394,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
     # header is 256, but we have 4 at beginning and end for ints
     _field_size = 4
     def _calculate_field_offsets(self, field_list, pcount,
-                                 offset, file_size=None):
+                                 offset, df_start, file_size=None):
         # field_list is (ftype, fname) but the blocks are ordered
         # (fname, ftype) in the file.
         if self._format == 2:
@@ -428,12 +428,16 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     continue
                 if (ptype, field) not in field_list:
                     continue
+                start_offset = df_start * fs
+                if field in self._vector_fields:
+                    start_offset *= self._vector_fields[field]
+                pos += start_offset
                 offsets[(ptype, field)] = pos
                 any_ptypes = True
+                remain_offset = (pcount[ptype] - df_start) * fs
                 if field in self._vector_fields:
-                    pos += self._vector_fields[field] * pcount[ptype] * fs
-                else:
-                    pos += pcount[ptype] * fs
+                    remain_offset *= self._vector_fields[field]
+                pos += remain_offset
             pos += 4
             if not any_ptypes:
                 pos -= 8

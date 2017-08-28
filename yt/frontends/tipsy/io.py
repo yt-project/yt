@@ -415,7 +415,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     def _identify_fields(self, data_file):
         return self._field_list, {}
 
-    def _calculate_particle_offsets(self, data_file):
+    def _calculate_particle_offsets(self, data_file, pcounts):
         field_offsets = {}
         pos = data_file.ds._header_offset
         for i, ptype in enumerate(self._ptypes):

@@ -50,8 +50,8 @@ class TipsyFile(ParticleFile):
             io._update_domain(self) 
         self._calculate_offsets(io._field_list)
 
-    def _calculate_offsets(self, field_list):
-        self.field_offsets = self.io._calculate_particle_offsets(self)
+    def _calculate_offsets(self, field_list, pcounts):
+        self.field_offsets = self.io._calculate_particle_offsets(self, pcounts)
 
 class TipsyDataset(SPHDataset):
     _index_class = SPHParticleIndex

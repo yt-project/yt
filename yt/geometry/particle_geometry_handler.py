@@ -198,10 +198,11 @@ class ParticleIndex(Index):
         self._setup_filenames()
         dsl = []
         units = {}
+        pcounts = self._get_particle_type_counts()
         for dom in self.data_files:
             fl, _units = self.io._identify_fields(dom)
             units.update(_units)
-            dom._calculate_offsets(fl)
+            dom._calculate_offsets(fl, pcounts)
             for f in fl:
                 if f not in dsl: dsl.append(f)
         self.field_list = dsl

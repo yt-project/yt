@@ -1481,7 +1481,7 @@ class ParticleFile(object):
     def count(self, selector):
         pass
 
-    def _calculate_offsets(self, fields):
+    def _calculate_offsets(self, fields, pcounts):
         pass
 
     def __lt__(self, other):

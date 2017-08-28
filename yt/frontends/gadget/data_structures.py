@@ -81,10 +81,10 @@ class GadgetBinaryFile(ParticleFile):
 
         super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id, range)
 
-    def _calculate_offsets(self, field_list):
+    def _calculate_offsets(self, field_list, pcounts):
         self.field_offsets = self.io._calculate_field_offsets(
-            field_list, self.total_particles,
-            self._position_offset, self._file_size)
+            field_list, pcounts, self._position_offset, self.start,
+            self._file_size)
 
 class GadgetBinaryIndex(SPHParticleIndex):
 
