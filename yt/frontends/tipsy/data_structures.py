@@ -47,11 +47,11 @@ class TipsyFile(ParticleFile):
         if not hasattr(io, '_field_list'):
             io._create_dtypes(self)
             # Check automatically what the domain size is
-            io._update_domain(self) 
+            io._update_domain(self)
         self._calculate_offsets(io._field_list)
 
-    def _calculate_offsets(self, field_list, pcounts):
-        self.field_offsets = self.io._calculate_particle_offsets(self, pcounts)
+    def _calculate_offsets(self, field_list, pcounts=None):
+        self.field_offsets = self.io._calculate_particle_offsets(self, None)
 
 class TipsyDataset(SPHDataset):
     _index_class = SPHParticleIndex
