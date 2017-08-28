@@ -136,7 +136,11 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        return {'halos': data_file.header['num_halos']}
+        nhalos = data_file.header['num_halos']
+        si, ei = data_file.start, data_file.end
+        if None not in (si, ei):
+            nhalos = np.clip(nhalos - si, 0, ei - si)
+        return {'halos': nhalos}
 
     def _identify_fields(self, data_file):
         fields = [("halos", f) for f in self._halo_dt.fields if
