@@ -188,6 +188,8 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
     def _yield_coordinates(self, data_file):
         with h5py.File(data_file.filename, 'r') as f:
             for ptype in f.keys():
+                if 'x' not in f[ptype].keys():
+                    continue
                 units = _get_position_array_units(ptype, f, "x")
                 x, y, z = (self.ds.arr(_get_position_array(ptype, f, ax), units)
                            for ax in "xyz")
