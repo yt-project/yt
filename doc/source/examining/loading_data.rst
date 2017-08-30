@@ -505,7 +505,7 @@ To load Enzo-P data into yt, provide the block list file:
 
 Mesh and particle fields are fully supported for 1, 2, and 3D datasets.  Enzo-P
 supports arbitrary particle types defined by the user.  The available particle
-types will known as soon as the dataset index is created.
+types will be known as soon as the dataset index is created.
 
 .. code-block:: python
 

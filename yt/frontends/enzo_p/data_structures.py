@@ -68,8 +68,8 @@ class EnzoPGrid(AMRGridPatch):
         return "EnzoPGrid_%04d" % self.id
 
     def _prepare_grid(self):
-        """ Copies all the appropriate attributes from the index. """
-        h = self.index # cache it
+        """Copies all the appropriate attributes from the index."""
+        h = self.index  # cache it
         my_ind = self.id - self._id_offset
         self.ActiveDimensions = h.grid_dimensions[my_ind]
         self.LeftEdge = h.grid_left_edge[my_ind]
