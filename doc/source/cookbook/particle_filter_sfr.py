@@ -24,7 +24,7 @@ hist, bins = np.histogram(formation_time, bins=n_bins, range=time_range,)
 inds = np.digitize(formation_time, bins=bins)
 time = (bins[:-1] + bins[1:])/2
 
-sfr = np.array([masses[inds == j].sum()/(bins[j+1]-bins[j])
+sfr = np.array([masses[inds == j+1].sum()/(bins[j+1]-bins[j])
                 for j in range(len(time))])
 sfr[sfr == 0] = np.nan
 
