@@ -169,15 +169,18 @@ class RAMSESDomainFile(object):
             ("particle_velocity_y", "d"),
             ("particle_velocity_z", "d"),
             ("particle_age", "d"),
-            ("real_accretion", "d"),
-            ("bondi_accretion", "d"),
-            ("eddington_accretion", "d"),
-            ("esave", "d"),
-            ("spin_x", "d"),
-            ("spin_y", "d"),
-            ("spin_z", "d"),
-            ("spin", "d"),
-            ("efficiency", "d")]
+            ("BH_real_accretion", "d"),
+            ("BH_bondi_accretion", "d"),
+            ("BH_eddington_accretion", "d"),
+            ("BH_esave", "d"),
+            ("gas_spin_x", "d"),
+            ("gas_spin_y", "d"),
+            ("gas_spin_z", "d"),
+            ("BH_spin_x", "d"),
+            ("BH_spin_y", "d"),
+            ("BH_spin_z", "d"),
+            ("BH_spin", "d"),
+            ("BH_efficiency", "d")]
 
         for i in range(self.ds.dimensionality*2+1):
             for j in range(self.ds.max_level, self.ds.min_level):
