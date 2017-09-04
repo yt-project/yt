@@ -24,6 +24,7 @@ import yt.utilities.fortran_utils as fpu
 from yt.utilities.lib.cosmology_time import \
     get_ramses_ages
 from yt.extern.six import PY3
+from yt.utilities.exceptions import YTFieldNotFound
 
 if PY3:
     from io import BytesIO as IO
@@ -136,6 +137,10 @@ class IOHandlerRAMSES(BaseIOHandler):
                 fname = subset.domain.sink_fn
                 foffsets = subset.domain.sink_field_offsets
                 data_types = subset.domain.sink_field_types
+
+            else:
+                # Raise here an exception
+                raise Exception('Unknown field %s' % ptype)
 
             tr.update(self._generic_handler(fname, foffsets, data_types,
                                             subset, subs_fields))
