@@ -445,7 +445,6 @@ class RAMSESIndex(OctreeIndex):
         for domain in self.domains:
             dsl.update(set(domain.particle_field_offsets.keys()))
             dsl.update(set(domain.sink_field_offsets.keys()))
-            ptypes = domain.particle_types
 
         self.particle_field_list = list(dsl)
         self.field_list = [("ramses", f) for f in self.fluid_field_list] \
@@ -464,12 +463,11 @@ class RAMSESIndex(OctreeIndex):
               os.path.dirname(self.dataset.parameter_filename)),
             num, testdomain)
         hydro_fn = basename % "hydro"
-        sink_fn = basename % "sink"
         # Do we have a hydro file?
         if not os.path.exists(hydro_fn):
             self.fluid_field_list = []
             return
-        # Read the number of hydro  variables
+        # Read the number of hydro variables
         f = open(hydro_fn, "rb")
         hydro_header = ( ('ncpu', 1, 'i'),
                          ('nvar', 1, 'i'),
