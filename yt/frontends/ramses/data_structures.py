@@ -62,11 +62,12 @@ class RAMSESDomainFile(object):
             os.path.abspath(
               os.path.dirname(ds.parameter_filename)),
             num, domain_id)
-        for t in ['grav', 'hydro', 'part', 'amr']:
+        for t in ['grav', 'hydro', 'part', 'amr', 'sink']:
             setattr(self, "%s_fn" % t, basename % t)
         self._read_amr_header()
         self._read_hydro_header()
         self._read_particle_header()
+        self._read_sink_header()
         self._read_amr()
 
     _hydro_offset = None
@@ -75,11 +76,19 @@ class RAMSESDomainFile(object):
     def __repr__(self):
         return "RAMSESDomainFile: %i" % self.domain_id
 
-    def _is_hydro(self):
+    @property
+    def _has_hydro(self):
         '''
         Does the output include hydro?
         '''
         return os.path.exists(self.hydro_fn)
+
+    @property
+    def _has_sink(self):
+        '''
+        Does the output include sinks (black holes)?
+        '''
+        return os.path.exists(self.sink_fn)
 
     @property
     def level_count(self):
@@ -125,13 +134,74 @@ class RAMSESDomainFile(object):
 
     def _read_hydro_header(self):
         # If no hydro file is found, return
-        if not self._is_hydro():
+        if not self._has_hydro:
             return
         if self.nvar > 0: return self.nvar
-        # Read the number of hydro  variables
+        # Read the number of hydro variables
         f = open(self.hydro_fn, "rb")
         fpu.skip(f, 1)
         self.nvar = fpu.read_vector(f, "i")[0]
+
+
+    def _read_sink_header(self):
+        if not self._has_sink:
+            self.local_sink_count = 0
+            self.sink_field_offsets = {}
+            return
+        f = open(self.sink_fn, "rb")
+        f.seek(0, os.SEEK_END)
+        flen = f.tell()
+        f.seek(0)
+        hvals = {}
+        attrs = (('nsink', 1, 'I'),
+                 ('nindsink', 1, 'I'))
+        hvals.update(fpu.read_attrs(f, attrs))
+        self.sink_header = hvals
+        self.local_sink_count = hvals['nsink']
+
+        sink_fields = [
+            ("particle_identifier", "i"),
+            ("particle_mass", "d"),
+            ("particle_position_x", "d"),
+            ("particle_position_y", "d"),
+            ("particle_position_z", "d"),
+            ("particle_velocity_x", "d"),
+            ("particle_velocity_y", "d"),
+            ("particle_velocity_z", "d"),
+            ("particle_age", "d"),
+            ("real_accretion", "d"),
+            ("bondi_accretion", "d"),
+            ("eddington_accretion", "d"),
+            ("esave", "d"),
+            ("spin_x", "d"),
+            ("spin_y", "d"),
+            ("spin_z", "d"),
+            ("spin", "d"),
+            ("efficiency", "d")]
+
+        for i in range(self.ds.dimensionality*2+1):
+            for j in range(self.ds.max_level, self.ds.min_level):
+                sink_fields.append((
+                    "particle_prop_%s_%s" % (i, j), "d"
+                ))
+
+        field_offsets = {}
+        _pfields = {}
+        for field, vtype in sink_fields:
+            if f.tell() >= flen: break
+            field_offsets["sink", field] = f.tell()
+            _pfields["sink", field] = vtype
+            fpu.skip(f, 1)
+        self.sink_field_offsets = field_offsets
+        self.sink_field_types = _pfields
+
+        try:
+            ptypes = list(self.particles_types)
+        except AttributeError:
+            ptypes = []
+        finally:
+            ptypes.append('sink')
+        self.particle_types = self.particle_types_raw = tuple(ptypes)
 
     def _read_particle_header(self):
         if not os.path.exists(self.part_fn):
@@ -175,14 +245,16 @@ class RAMSESDomainFile(object):
 
         field_offsets = {}
         _pfields = {}
+
+        ptype = 'particle' if self._has_sink else 'io'
+
         for field, vtype in particle_fields:
             if f.tell() >= flen: break
-            field_offsets["io", field] = f.tell()
-            _pfields["io", field] = vtype
+            field_offsets[ptype, field] = f.tell()
+            _pfields[ptype, field] = vtype
             fpu.skip(f, 1)
         self.particle_field_offsets = field_offsets
         self.particle_field_types = _pfields
-        self.particle_types = self.particle_types_raw = ("io",)
 
     def _read_amr_header(self):
         hvals = {}
@@ -210,7 +282,7 @@ class RAMSESDomainFile(object):
 
     def _read_amr(self):
         """Open the oct file, read in octs level-by-level.
-           For each oct, only the position, index, level and domain 
+           For each oct, only the position, index, level and domain
            are needed - its position in the octree is found automatically.
            The most important is finding all the information to feed
            oct_handler.add
@@ -236,7 +308,7 @@ class RAMSESDomainFile(object):
         min_level = self.ds.min_level
         # yt max level is not the same as the RAMSES one.
         # yt max level is the maximum number of additional refinement levels
-        # so for a uni grid run with no refinement, it would be 0. 
+        # so for a uni grid run with no refinement, it would be 0.
         # So we initially assume that.
         max_level = 0
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
@@ -369,8 +441,12 @@ class RAMSESIndex(OctreeIndex):
         dsl = set([])
         if self.fluid_field_list is None or len(self.fluid_field_list) <= 0:
             self._setup_auto_fields()
+
         for domain in self.domains:
             dsl.update(set(domain.particle_field_offsets.keys()))
+            dsl.update(set(domain.sink_field_offsets.keys()))
+            ptypes = domain.particle_types
+
         self.particle_field_list = list(dsl)
         self.field_list = [("ramses", f) for f in self.fluid_field_list] \
                         + self.particle_field_list
@@ -388,6 +464,7 @@ class RAMSESIndex(OctreeIndex):
               os.path.dirname(self.dataset.parameter_filename)),
             num, testdomain)
         hydro_fn = basename % "hydro"
+        sink_fn = basename % "sink"
         # Do we have a hydro file?
         if not os.path.exists(hydro_fn):
             self.fluid_field_list = []
@@ -405,7 +482,7 @@ class RAMSESIndex(OctreeIndex):
         self.ds.gamma = hvals['gamma']
         nvar = hvals['nvar']
         # OK, we got NVAR, now set up the arrays depending on what NVAR is
-        # but first check for radiative transfer!    
+        # but first check for radiative transfer!
         foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
         rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
         if rt_flag: # rt run
@@ -414,32 +491,32 @@ class RAMSESIndex(OctreeIndex):
                 fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
             else:
                 mylog.info('Detected RAMSES-RT file WITH IR trapping.')
-                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]     
-        else:            
+                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
+        else:
             if nvar < 5:
                 mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
                 raise ValueError
             # Basic hydro runs
             if nvar == 5:
                 fields = ["Density",
-                          "x-velocity", "y-velocity", "z-velocity", 
+                          "x-velocity", "y-velocity", "z-velocity",
                           "Pressure"]
             if nvar > 5 and nvar < 11:
-                fields = ["Density", 
-                          "x-velocity", "y-velocity", "z-velocity", 
+                fields = ["Density",
+                          "x-velocity", "y-velocity", "z-velocity",
                           "Pressure", "Metallicity"]
             # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
             if nvar == 11:
-                fields = ["Density", 
-                          "x-velocity", "y-velocity", "z-velocity", 
-                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
-                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
+                fields = ["Density",
+                          "x-velocity", "y-velocity", "z-velocity",
+                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
+                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
                           "Pressure"]
             if nvar > 11:
-                fields = ["Density", 
-                          "x-velocity", "y-velocity", "z-velocity", 
-                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
-                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
+                fields = ["Density",
+                          "x-velocity", "y-velocity", "z-velocity",
+                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
+                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
                           "Pressure","Metallicity"]
         # Allow some wiggle room for users to add too many variables
         while len(fields) < nvar:
@@ -498,9 +575,9 @@ class RAMSESIndex(OctreeIndex):
         return {'io': npart}
 
     def print_stats(self):
-        
+
         # This function prints information based on the fluid on the grids,
-        # and therefore does not work for DM only runs. 
+        # and therefore does not work for DM only runs.
         if not self.fluid_field_list:
             print("This function is not implemented for DM only runs")
             return
@@ -540,7 +617,7 @@ class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
     gamma = 1.4 # This will get replaced on hydro_fn open
-    
+
     def __init__(self, filename, dataset_type='ramses',
                  fields=None, storage_filename=None,
                  units_override=None, unit_system="cgs",
@@ -552,7 +629,7 @@ class RAMSESDataset(Dataset):
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
                 If set to None, will try a default set of fields
         extra_particle_fields: An array of extra particle variables in order of position in the particle_XXXXX.outYYYYY file.
-        cosmological: If set to None, automatically detect cosmological simulation. If a boolean, force 
+        cosmological: If set to None, automatically detect cosmological simulation. If a boolean, force
                       its value.
         '''
         self.fluid_types += ("ramses",)
@@ -561,6 +638,7 @@ class RAMSESDataset(Dataset):
         self.force_cosmological = cosmological
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
+
         self.storage_filename = storage_filename
 
 
@@ -578,7 +656,7 @@ class RAMSESDataset(Dataset):
         time_unit = self.parameters['unit_t']
 
         # calculating derived units (except velocity and temperature, done below)
-        mass_unit = density_unit * length_unit**3     
+        mass_unit = density_unit * length_unit**3
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
         pressure_unit = density_unit * (length_unit / time_unit)**2
@@ -685,8 +763,10 @@ class RAMSESDataset(Dataset):
 
             self.time_simu = self.t_frw[iage  ]*(age-self.tau_frw[iage-1])/(self.tau_frw[iage]-self.tau_frw[iage-1])+ \
                              self.t_frw[iage-1]*(age-self.tau_frw[iage  ])/(self.tau_frw[iage-1]-self.tau_frw[iage])
- 
+
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
+
+        self.particle_types = self.particle_types_raw = ('sink', 'particle')
 
 
     @classmethod

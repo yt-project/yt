@@ -91,28 +91,53 @@ class IOHandlerRAMSES(BaseIOHandler):
                         data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
                         yield (ptype, field), data
 
-    def _read_particle_subset(self, subset, fields):
-        f = open(subset.domain.part_fn, "rb")
-        foffsets = subset.domain.particle_field_offsets
+    def _generic_handler(self, fname, foffsets, data_types,
+                         subset, fields):
         tr = {}
-        # We do *all* conversion into boxlen here.
-        # This means that no other conversions need to be applied to convert
-        # positions into the same domain as the octs themselves.
-        for field in sorted(fields, key = lambda a: foffsets[a]):
-            f.seek(foffsets[field])
-            dt = subset.domain.particle_field_types[field]
-            tr[field] = fpu.read_vector(f, dt)
-            if field[1].startswith("particle_position"):
-                np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
-            cosmo = subset.domain.ds.cosmological_simulation
-            if cosmo == 1 and field[1] == "particle_age":
-                tf = subset.domain.ds.t_frw
-                dtau = subset.domain.ds.dtau
-                tauf = subset.domain.ds.tau_frw
-                tsim = subset.domain.ds.time_simu
-                h100 = subset.domain.ds.hubble_constant
-                nOver2 = subset.domain.ds.n_frw/2
-                t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
-                ages = tr[field]
-                tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))            
+        with open(fname, "rb") as f:
+            # We do *all* conversion into boxlen here.
+            # This means that no other conversions need to be applied to convert
+            # positions into the same domain as the octs themselves.
+            for field in sorted(fields, key=lambda a: foffsets[a]):
+                f.seek(foffsets[field])
+                dt = data_types[field]
+                tr[field] = fpu.read_vector(f, dt)
+                if field[1].startswith("particle_position"):
+                    np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
+                cosmo = subset.domain.ds.cosmological_simulation
+                if cosmo == 1 and field[1] == "particle_age":
+                    tf = subset.domain.ds.t_frw
+                    dtau = subset.domain.ds.dtau
+                    tauf = subset.domain.ds.tau_frw
+                    tsim = subset.domain.ds.time_simu
+                    h100 = subset.domain.ds.hubble_constant
+                    nOver2 = subset.domain.ds.n_frw/2
+                    t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
+                    ages = tr[field]
+                    tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))
+        return tr
+
+
+    def _read_particle_subset(self, subset, fields):
+        tr = {}
+
+        # Read the particles by types (particle, sinks)
+        for ptype in set(f[0] for f in fields):
+
+            # Group by particle type
+            subs_fields = filter(lambda f: f[0] == ptype, fields)
+
+            if ptype in ['particle', 'io']:
+                fname = subset.domain.part_fn
+                foffsets = subset.domain.particle_field_offsets
+                data_types = subset.domain.particle_field_types
+
+            elif ptype in ['sink']:
+                fname = subset.domain.sink_fn
+                foffsets = subset.domain.sink_field_offsets
+                data_types = subset.domain.sink_field_types
+
+            tr.update(self._generic_handler(fname, foffsets, data_types,
+                                            subset, subs_fields))
+
         return tr
