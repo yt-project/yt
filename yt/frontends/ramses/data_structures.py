@@ -767,7 +767,12 @@ class RAMSESDataset(Dataset):
 
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
 
-        if self.index.domains[0]._has_sink:
+        sink_files = os.path.join(
+            os.path.split(self.parameter_filename)[0],
+            'sink_?????.out?????')
+        has_sink = len(glob.glob(sink_files))
+
+        if has_sink:
             ptypes = ('io', 'sink')
         else:
             ptypes = ('io', )
