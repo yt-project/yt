@@ -128,19 +128,19 @@ class IOHandlerRAMSES(BaseIOHandler):
             # Group by particle type
             subs_fields = filter(lambda f: f[0] == ptype, fields)
 
-            if ptype in ['particle', 'io']:
+            if ptype == 'particle':
                 fname = subset.domain.part_fn
                 foffsets = subset.domain.particle_field_offsets
                 data_types = subset.domain.particle_field_types
 
-            elif ptype in ['sink']:
+            elif ptype == 'sink':
                 fname = subset.domain.sink_fn
                 foffsets = subset.domain.sink_field_offsets
                 data_types = subset.domain.sink_field_types
 
             else:
                 # Raise here an exception
-                raise Exception('Unknown field %s' % ptype)
+                raise Exception('Unknown particle type %s' % ptype)
 
             tr.update(self._generic_handler(fname, foffsets, data_types,
                                             subset, subs_fields))

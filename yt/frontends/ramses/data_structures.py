@@ -249,7 +249,7 @@ class RAMSESDomainFile(object):
         field_offsets = {}
         _pfields = {}
 
-        ptype = 'particle' if self._has_sink else 'io'
+        ptype = 'io'
 
         for field, vtype in particle_fields:
             if f.tell() >= flen: break
@@ -767,7 +767,13 @@ class RAMSESDataset(Dataset):
 
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
 
-        self.particle_types = self.particle_types_raw = ('sink', 'particle')
+        if self.index.domains[0]._has_sink:
+            ptypes = ('io', 'sink')
+        else:
+            ptypes = ('io', )
+
+        self.particle_types = self.particle_types_raw = ptypes
+
 
 
     @classmethod
