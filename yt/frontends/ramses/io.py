@@ -128,7 +128,7 @@ class IOHandlerRAMSES(BaseIOHandler):
             # Group by particle type
             subs_fields = filter(lambda f: f[0] == ptype, fields)
 
-            if ptype == 'particle':
+            if ptype == 'io':
                 fname = subset.domain.part_fn
                 foffsets = subset.domain.particle_field_offsets
                 data_types = subset.domain.particle_field_types
