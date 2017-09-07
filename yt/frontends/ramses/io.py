@@ -93,6 +93,16 @@ class IOHandlerRAMSES(BaseIOHandler):
 
     def _generic_handler(self, fname, foffsets, data_types,
                          subset, fields):
+        '''General file handler, called by _read_particle_subset
+
+        params:
+        -------
+        fname: filename to read from
+        foffsets: dictionary-like of the offset for the fields
+        data_types: dictionary_like of the data type for the fields
+        subset: a subset object
+        fields: list of fields to read
+        '''
         tr = {}
         with open(fname, "rb") as f:
             # We do *all* conversion into boxlen here.
@@ -119,12 +129,13 @@ class IOHandlerRAMSES(BaseIOHandler):
 
 
     def _read_particle_subset(self, subset, fields):
+        '''Read the particle files.'''
         tr = {}
 
-        # Read the particles by types (particle, sinks)
+        # Sequential read depending on particle type (io or sink)
         for ptype in set(f[0] for f in fields):
 
-            # Group by particle type
+            # Select relevant fiels
             subs_fields = filter(lambda f: f[0] == ptype, fields)
 
             if ptype == 'io':

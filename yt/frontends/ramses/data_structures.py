@@ -767,6 +767,7 @@ class RAMSESDataset(Dataset):
 
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
 
+        # Check for the presence of sink files
         sink_files = os.path.join(
             os.path.split(self.parameter_filename)[0],
             'sink_?????.out?????')
