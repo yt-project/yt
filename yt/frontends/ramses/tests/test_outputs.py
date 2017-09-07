@@ -158,10 +158,8 @@ def test_ramses_rt():
 
 ramses_sink = "ramses_sink_00016/output_00016/info_00016.txt"
 @requires_file(ramses_sink)
+@requires_file(ramsesNonCosmo)
 def test_ramses_sink():
-    ds = yt.load(ramses_sink)
-    ad = ds.all_data()
-
     expected_fields = ["BH_bondi_accretion", "BH_eddington_accretion",
                        "BH_efficiency", "BH_esave",
                        "BH_real_accretion", "BH_spin", "BH_spin_x",
@@ -176,8 +174,20 @@ def test_ramses_sink():
                        "particle_velocity_x", "particle_velocity_y",
                        "particle_velocity_z"]
 
+    # Check that sinks are autodetected
+    ds = yt.load(ramses_sink)
+    ad = ds.all_data()
+
     for field in expected_fields:
         assert(('sink', field) in ds.field_list)
 
         # test that field access works
         ad['sink', field]
+
+
+    # Checking that sinks are autodetected
+    ds = yt.load(ramsesCosmo)
+    ad = ds.all_data()
+
+    for field in expected_fields:
+        assert(('sink', 'field') not in ds.field_list)
