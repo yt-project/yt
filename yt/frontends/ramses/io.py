@@ -24,7 +24,6 @@ import yt.utilities.fortran_utils as fpu
 from yt.utilities.lib.cosmology_time import \
     get_ramses_ages
 from yt.extern.six import PY3
-from yt.utilities.exceptions import YTFieldNotFound
 
 if PY3:
     from io import BytesIO as IO
