@@ -1988,12 +1988,20 @@ particle fields by supplying the ``extra_particle_fields``:
 
 yt supports outputs made by the mainline ``RAMSES`` code as well as the
 ``RAMSES-RT`` fork. Files produces by ``RAMSES-RT`` are recognized as such
-based on the presence of a ``into_rt_*.txt`` file in the output directory.
+based on the presence of a ``info_rt_*.txt`` file in the output directory.
 
 It is possible to force yt to treat the simulation as a cosmological
 simulation by providing the ``cosmological=True`` parameter (or
 ``False`` to force non-cosmology). If left to ``None``, the kind of
 the simulation is inferred from the data.
+
+yt also support outputs that include sinks (RAMSES' name for black
+holes) when the folder contains files like ``sink_XXXXX.outYYYYY``.
+
+Note: for backward compatibility, particles from the
+``particle_XXXXX.outYYYYY`` files have the particle type ``io`` by
+default (including dark matter, stars, tracer particles, …). Sink
+particles have the particle type ``sink``.
 
 .. _loading-sph-data:
 
