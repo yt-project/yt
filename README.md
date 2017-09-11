@@ -5,6 +5,7 @@
 [![Build Status](https://img.shields.io/travis/yt-project/yt.svg?branch=master)](https://travis-ci.org/yt-project/yt)
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
+[![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](http://numfocus.org)
                 
 <a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
 
@@ -22,6 +23,12 @@ We've written a [method
 paper](http://adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
 in; if you use yt in the preparation of a publication, please consider citing
 it.
+
+## Code of Conduct
+
+yt abides by a code of conduct partially modified from the PSF code of conduct,
+and is found [in our contributing
+guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-code-of-conduct).
 
 ## Installation
 
@@ -51,7 +58,7 @@ install like this:
 ```
 git clone https://github.com/yt-project/yt yt-git
 cd yt-git
-python setup.py develop
+pip install -e .
 ```
 
 To set up yt in a virtualenv (and there are [many good
@@ -95,6 +102,32 @@ We love contributions!  yt is open source, built on open source, and we'd love
 to have you hang out in our community.
 
 We have developed some [guidelines](CONTRIBUTING.rst) for contributing to yt.
+
+**Imposter syndrome disclaimer**: We want your help. No, really.
+
+There may be a little voice inside your head that is telling you that you're not
+ready to be an open source contributor; that your skills aren't nearly good
+enough to contribute. What could you possibly offer a project like this one?
+
+We assure you - the little voice in your head is wrong. If you can write code at
+all, you can contribute code to open source. Contributing to open source
+projects is a fantastic way to advance one's coding skills. Writing perfect code
+isn't the measure of a good developer (that would disqualify all of us!); it's
+trying to create something, making mistakes, and learning from those
+mistakes. That's how we all improve, and we are happy to help others learn.
+
+Being an open source contributor doesn't just mean writing code, either. You can
+help out by writing documentation, tests, or even giving feedback about the
+project (and yes - that includes giving feedback about the contribution
+process). Some of these contributions may be the most valuable to the project as
+a whole, because you're coming to the project with fresh eyes, so you can see
+the errors and assumptions that seasoned contributors have glossed over.
+
+(This disclaimer was originally written by
+[Adrienne Lowe](https://github.com/adriennefriend) for a
+[PyCon talk](https://www.youtube.com/watch?v=6Uj746j9Heo), and was adapted by yt
+based on its use in the README file for the
+[MetPy project](https://github.com/Unidata/MetPy))
 
 ## Resources
 

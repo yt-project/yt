@@ -18,7 +18,9 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
 from yt.utilities.exceptions import YTDomainOverflow
-from yt.funcs import mylog
+from yt.funcs import \
+    mylog, \
+    parse_h5_attr
 
 from yt.utilities.io_handler import \
     BaseIOHandler
@@ -45,7 +47,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         pn = "particle_position_%s"
         for data_file in sorted(data_files):
             with h5py.File(data_file.filename, "r") as f:
-                units = f[pn % "x"].attrs["units"]
+                units = parse_h5_attr(f[pn % "x"], "units")
                 x, y, z = \
                   (self.ds.arr(f[pn % ax].value.astype("float64"), units)
                    for ax in "xyz")
@@ -65,7 +67,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         for data_file in sorted(data_files):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
-                    units = f[pn % "x"].attrs["units"]
+                    units = parse_h5_attr(f[pn % "x"], "units")
                     x, y, z = \
                       (self.ds.arr(f[pn % ax].value.astype("float64"), units)
                        for ax in "xyz")
@@ -86,7 +88,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         with h5py.File(data_file.filename, "r") as f:
             if not f.keys(): return None
             pos = np.empty((pcount, 3), dtype="float64")
-            units = (f["particle_position_x"].attrs["units"],)*3
+            units = (parse_h5_attr(f["particle_position_x"], "units"),)*3
             dx = np.finfo(f['particle_position_x'].dtype).eps
             dx = 2.0 * self.ds.quan(dx, units).to("code_length")
             pos[:,0] = f["particle_position_x"].value
@@ -115,6 +117,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
             fields = [("halos", field) for field in f]
-            units = dict([(("halos", field), 
-                           f[field].attrs["units"]) for field in f])
+            units = dict([(("halos", field),
+                           parse_h5_attr(f[field], "units"))
+                          for field in f])
         return fields, units

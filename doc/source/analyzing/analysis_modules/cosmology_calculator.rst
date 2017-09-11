@@ -39,7 +39,7 @@ redshift and time are available:
    # comoving volume
    print("comoving volume", co.comoving_volume(0, 0.5).in_units("Gpccm**3"))
 
-   # angulare diameter distance
+   # angular diameter distance
    print("angular diameter distance", co.angular_diameter_distance(0, 0.5).in_units("Mpc/h"))
 
    # angular scale

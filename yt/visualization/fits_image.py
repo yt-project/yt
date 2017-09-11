@@ -11,6 +11,7 @@ FITSImageData Class
 #-----------------------------------------------------------------------------
 from yt.extern.six import string_types
 import numpy as np
+from yt.fields.derived_field import DerivedField
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGrid
@@ -147,25 +148,27 @@ class FITSImageData(object):
         for fd in fields:
             if isinstance(fd, tuple):
                 self.fields.append(fd[1])
+            elif isinstance(fd, DerivedField):
+                self.fields.append(fd.name[1])
             else:
                 self.fields.append(fd)
 
         first = True
-        for key in fields:
-            if key not in exclude_fields:
-                if hasattr(img_data[key], "units"):
-                    self.field_units[key] = str(img_data[key].units)
+        for name, field in zip(self.fields, fields):
+            if name not in exclude_fields:
+                if hasattr(img_data[field], "units"):
+                    self.field_units[name] = str(img_data[field].units)
                 else:
-                    self.field_units[key] = "dimensionless"
-                mylog.info("Making a FITS image of field %s" % key)
+                    self.field_units[name] = "dimensionless"
+                mylog.info("Making a FITS image of field %s" % name)
                 if first:
-                    hdu = _astropy.pyfits.PrimaryHDU(np.array(img_data[key]))
+                    hdu = _astropy.pyfits.PrimaryHDU(np.array(img_data[field]))
                     first = False
                 else:
-                    hdu = _astropy.pyfits.ImageHDU(np.array(img_data[key]))
-                hdu.name = key
-                hdu.header["btype"] = key
-                hdu.header["bunit"] = re.sub('()', '', self.field_units[key])
+                    hdu = _astropy.pyfits.ImageHDU(np.array(img_data[field]))
+                hdu.name = name
+                hdu.header["btype"] = name
+                hdu.header["bunit"] = re.sub('()', '', self.field_units[name])
                 self.hdulist.append(hdu)
 
         self.shape = self.hdulist[0].shape
@@ -283,22 +286,28 @@ class FITSImageData(object):
             the FITSImageData info.  Writes to ``sys.stdout`` by default.
         """
         hinfo = self.hdulist.info(output=False)
-        format = '{:3d}  {:10}  {:11}  {:5d}   {}   {}   {}'
+        num_cols = len(hinfo[0])
+        if output is None:
+            output = sys.stdout
+        if num_cols == 8:
+            header = 'No.    Name      Ver    Type      Cards   Dimensions   Format     Units'
+            format = '{:3d}  {:10}  {:3} {:11}  {:5d}   {}   {}   {}'
+        else:
+            header = 'No.    Name         Type      Cards   Dimensions   Format     Units'
+            format = '{:3d}  {:10}  {:11}  {:5d}   {}   {}   {}'
         if self.hdulist._file is None:
             name = '(No file associated with this FITSImageData)'
         else:
             name = self.hdulist._file.name
-        results = ['Filename: {}'.format(name),
-                   'No.    Name         Type      Cards   Dimensions   Format     Units']
+        results = ['Filename: {}'.format(name), header]
         for line in hinfo:
             units = self.field_units[self.hdulist[line[0]].header['btype']]
-            summary = tuple(line[:-1] + [units])
+            summary = tuple(list(line[:-1]) + [units])
             if output:
                 results.append(format.format(*summary))
             else:
                 results.append(summary)
-        if output is None:
-            output = sys.stdout
+
         if output:
             output.write('\n'.join(results))
             output.write('\n')
@@ -429,11 +438,17 @@ class FITSImageData(object):
         w = image_list[0].wcs
         img_shape = image_list[0].shape
         data = []
+        first = True
         for fid in image_list:
             assert_same_wcs(w, fid.wcs)
             if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
-            data += fid.hdulist
+            for hdu in fid.hdulist:
+                if first:
+                    data.append(hdu)
+                    first = False
+                else:
+                    data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
         data = _astropy.pyfits.HDUList(data)
         return cls(data)
 

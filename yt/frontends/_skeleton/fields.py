@@ -20,6 +20,7 @@ from yt.fields.field_info_container import \
 # container subclass here will define which fields it knows about.  There are
 # optionally methods on it that get called which can be subclassed.
 
+
 class SkeletonFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form

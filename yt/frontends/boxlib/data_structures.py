@@ -30,7 +30,6 @@ from yt.funcs import \
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
-from yt.units import YTQuantity
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
@@ -1354,32 +1353,86 @@ def _get_active_dimensions(box):
 
 
 def _read_header(raw_file, field):
-    header_file = raw_file + field + "_H"
-    with open(header_file, "r") as f:
+    level_files = glob.glob(raw_file + 'Level_*')
+    level_files.sort()
+
+    all_boxes = []
+    all_file_names = []
+    all_offsets = []
+
+    for level_file in level_files:
+        header_file = level_file + "/" + field + "_H"
+        with open(header_file, "r") as f:
         
-        # skip the first five lines
-        for _ in range(5):
-            f.readline()
+            # skip the first five lines
+            for _ in range(5):
+                f.readline()
 
-        # read boxes
-        boxes = []
-        for line in f:
-            clean_line = line.strip().split()
-            if clean_line == [')']:
-                break
-            lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
-            boxes.append((lo_corner, hi_corner, node_type))
-
-        # read the file and offset position for the corresponding box
-        file_names = []
-        offsets = []
-        for line in f:
-            if line.startswith("FabOnDisk:"):
+            # read boxes
+            boxes = []
+            for line in f:
                 clean_line = line.strip().split()
-                file_names.append(clean_line[1])
-                offsets.append(int(clean_line[2]))
+                if clean_line == [')']:
+                    break
+                lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
+                boxes.append((lo_corner, hi_corner, node_type))
 
-    return boxes, file_names, offsets
+            # read the file and offset position for the corresponding box
+            file_names = []
+            offsets = []
+            for line in f:
+                if line.startswith("FabOnDisk:"):
+                    clean_line = line.strip().split()
+                    file_names.append(clean_line[1])
+                    offsets.append(int(clean_line[2]))
+
+            all_boxes += boxes
+            all_file_names += file_names
+            all_offsets += offsets
+
+    return all_boxes, all_file_names, all_offsets
+
+
+class WarpXHeader(object):
+    def __init__(self, header_fn):
+        self.data = {}
+        with open(header_fn, "r") as f:
+            self.data["Checkpoint_version"] = int(f.readline().strip().split()[-1])
+            
+            self.data["num_levels"] = int(f.readline().strip().split()[-1])
+            self.data["istep"]      = [int(num) for num in f.readline().strip().split()]
+            self.data["nsubsteps"]  = [int(num) for num in f.readline().strip().split()]
+            
+            self.data["t_new"] = [float(num) for num in f.readline().strip().split()]
+            self.data["t_old"] = [float(num) for num in f.readline().strip().split()]
+            self.data["dt"]    = [float(num) for num in f.readline().strip().split()]
+            
+            self.data["moving_window_x"] = float(f.readline().strip().split()[-1])
+
+            #  not all datasets will have is_synchronized
+            line = f.readline().strip().split()
+            if (len(line) == 1):                
+                self.data["is_synchronized"] = bool(line[-1])
+                self.data["prob_lo"] = [float(num) for num in f.readline().strip().split()]
+            else:
+                self.data["is_synchronized"] = True                
+                self.data["prob_lo"] = [float(num) for num in line]
+                            
+            self.data["prob_hi"] = [float(num) for num in f.readline().strip().split()]
+            
+            for _ in range(self.data["num_levels"]):
+                num_boxes = int(f.readline().strip().split()[0][1:])
+                for __ in range(num_boxes):
+                    f.readline()
+                f.readline()
+                
+            i = 0
+            line = f.readline()
+            while line:
+                line = line.strip().split()
+                self.data["species_%d" % i] = [float(val) for val in line]
+                i = i + 1
+                line = f.readline()
 
 
 class WarpXHierarchy(BoxlibHierarchy):
@@ -1392,34 +1445,24 @@ class WarpXHierarchy(BoxlibHierarchy):
             self._read_particles(ptype, is_checkpoint)
         
         # Additional WarpX particle information (used to set up species)
-        with open(self.ds.output_dir + "/WarpXHeader", 'r') as f:
-
-            # skip to the end, where species info is written out
-            line = f.readline()
-            while line and line != ')\n':
-                line = f.readline()
-            line = f.readline()
-
-            # Read in the species information
-            species_id = 0
-            while line:
-                line = line.strip().split()
-                charge = YTQuantity(float(line[0]), "C")
-                mass = YTQuantity(float(line[1]), "kg")
-                charge_name = 'particle%.1d_charge' % species_id
-                mass_name = 'particle%.1d_mass' % species_id
-                self.parameters[charge_name] = charge
-                self.parameters[mass_name] = mass
-                line = f.readline()
-                species_id += 1
-    
+        self.warpx_header = WarpXHeader(self.ds.output_dir + "/WarpXHeader")
+        
+        i = 0
+        for key, val in self.warpx_header.data.items():
+            if key.startswith("species_"):
+                charge_name = 'particle%.1d_charge' % i
+                mass_name = 'particle%.1d_mass' % i
+                self.parameters[charge_name] = val[0]
+                self.parameters[mass_name] = val[1]
+                i = i + 1
+                
     def _detect_output_fields(self):
         super(WarpXHierarchy, self)._detect_output_fields()
 
         # now detect the optional, non-cell-centered fields
-        self.raw_file = self.ds.output_dir + "/raw_fields/Level_0/"
+        self.raw_file = self.ds.output_dir + "/raw_fields/"
         self.ds.fluid_types += ("raw",)
-        self.raw_fields = _read_raw_field_names(self.raw_file)
+        self.raw_fields = _read_raw_field_names(self.raw_file + 'Level_0/')
         self.field_list += [('raw', f) for f in self.raw_fields]
         self.raw_field_map = {}
         self.ds.nodal_flags = {}

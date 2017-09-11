@@ -69,7 +69,7 @@ execute these commands:
 
 .. code-block:: bash
 
-  $ python setup.py develop
+  $ pip install -e .
 
 Now try running yt again with:
 
@@ -122,7 +122,7 @@ of the yt git repository and make it the 'active' installation by doing
 
 .. code-block:: bash
 
-  python setup.py develop
+   $ pip install -e .
 
 in the root directory of the yt git repository.
 
@@ -162,10 +162,11 @@ script.  This can help you (and us) to identify the basic problem.  Follow
 these steps:
 
 * Identify what it is that went wrong, and how you knew it went wrong.
-* Put your script, errors, and outputs online:
+* Put your script, errors, inputs and outputs online:
 
   * ``$ yt pastebin script.py`` - pastes script.py online
   * ``$ yt upload_image image.png`` - pastes image online
+  * ``$ yt upload my_input.tar`` - pastes my_input.tar online
 
 * Identify which version of the code you’re using.
 

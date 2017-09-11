@@ -49,7 +49,7 @@ specifying the gas mesh. Note that the ``pta0.500.dat`` or ``pt.dat``
 file containing particle time steps is not loaded by yt.
 
 You also have the option of gridding particles and assigning them onto the
-meshes.  This process is in beta, and for the time being it's probably best to
+meshes.  This process is in beta, and for the time being, it's probably best to
 leave ``do_grid_particles=False`` as the default.
 
 To speed up the loading of an ART file, you have a few options. You can turn
@@ -507,10 +507,10 @@ Mesh fields are fully supported for 1, 2, and 3D datasets.
 
 .. rubric:: Caveats
 
-   * The Enzo-P output format is still evolving somewhat as the code is being
-     actively developed. This frontend will be updated as development continues.
-   * Units are currently assumed to be in CGS.
-   * Particles are not yet supported.
+* The Enzo-P output format is still evolving somewhat as the code is being
+  actively developed. This frontend will be updated as development continues.
+* Units are currently assumed to be in CGS.
+* Particles are not yet supported.
 
 .. _loading-exodusii-data:
 
@@ -1023,7 +1023,7 @@ Gadget data in HDF5 format can be loaded with the ``load`` command:
 
 Gadget data in raw binary format can also be loaded with the ``load`` command.
 This is supported for snapshots created with the ``SnapFormat`` parameter
-set to 1 (the standard for Gadget-2) or 2.
+set to 1 or 2.
 
 .. code-block:: python
 
@@ -1036,24 +1036,46 @@ Units and Bounding Boxes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 There are two additional pieces of information that may be needed.  If your
-simulation is cosmological, yt can often guess the bounding box and the units
-of the simulation.  However, for isolated simulations and for cosmological
-simulations with non-standard units, these must be supplied.  For example, if
-a length unit of 1.0 corresponds to a kiloparsec, you can supply this in the
-constructor.  yt can accept units such as ``Mpc``, ``kpc``, ``cm``, ``Mpccm/h``
-and so on.  In particular, note that ``Mpc/h`` and ``Mpccm/h`` (``cm`` for
-comoving here) are usable unit definitions.
+simulation is cosmological, yt can often guess the bounding box and the units of
+the simulation.  However, for isolated simulations and for cosmological
+simulations with non-standard units, these must be supplied by the user.  For
+example, if a length unit of 1.0 corresponds to a kiloparsec, you can supply
+this in the constructor.  yt can accept units such as ``Mpc``, ``kpc``, ``cm``,
+``Mpccm/h`` and so on.  In particular, note that ``Mpc/h`` and ``Mpccm/h``
+(``cm`` for comoving here) are usable unit definitions.
 
 yt will attempt to use units for ``mass``, ``length`` and ``time`` as supplied
 in the argument ``unit_base``.  The ``bounding_box`` argument is a list of
 two-item tuples or lists that describe the left and right extents of the
-particles.
+particles. In this example we load a dataset with a custom bounding box
+and units.
 
 .. code-block:: python
 
-   ds = GadgetDataset("snap_004",
-           unit_base = {'length': ('kpc', 1.0)},
-           bounding_box = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]])
+
+   bbox = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]]
+   unit_base = {
+       'length': (1.0, 'kpc'),
+       'velocity: (1.0, 'km/s'),
+       'mass': (1.0, 'Msun')
+   }
+
+   ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
+
+In addition, you can use ``UnitLength_in_cm``, ``UnitVelocity_in_cm_per_s``,
+and ``UnitMass_in_g`` as keys for the ``unit_base`` dictionary. These names
+come from the names used in the Gadget runtime parameter file. This example
+will initialize a dataset with the same units as the example above:
+
+.. code-block:: python
+
+  unit_base = {
+      'UnitLength_in_cm': 3.09e21,
+      'UnitVelocity_in_cm_per_s': 1e5
+      'UnitMass_in_g': 1.989e33
+   }
+
+  ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
 
 .. _particle-indexing-criteria:
 
@@ -1398,7 +1420,7 @@ code:
 
 will define the (x,y,z) coordinates of the hexahedral cells and
 information about that cell's neighbors such that the cell corners
-will be a grid of points constructed as the Cartesion product of
+will be a grid of points constructed as the Cartesian product of
 xgrid, ygrid, and zgrid.
 
 Then, to load your data, which should be defined on the interiors of
@@ -1534,7 +1556,7 @@ See :ref:`generic-particle-data` and
 
 You can also load generic particle data using the same ``stream`` functionality
 discussed above to load in-memory grid data.  For example, if your particle
-positions and masses are stored in ``positions`` and ``massess``, a
+positions and masses are stored in ``positions`` and ``masses``, a
 vertically-stacked array of particle x,y, and z positions, and a 1D array of
 particle masses respectively, you would load them like this:
 
@@ -1605,7 +1627,7 @@ Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 Halo Catalog Data
 -----------------
 
-yt has support for reading halo catalogs produced by Rockstar and the inline
+yt has support for reading halo catalogs produced by AHF, Rockstar and the inline
 FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as
 particle datasets where each particle represents a single halo.  For example,
 this means that the `particle_mass` field refers to the mass of the halos.  For
@@ -1617,6 +1639,49 @@ If you have access to both the halo catalog and the simulation snapshot from
 the same redshift, additional analysis can be performed for each halo using
 :ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
 to the other halo catalogs shown here.
+
+.. _ahf:
+
+AHF
+^^^
+
+AHF halo catalogs are loaded by providing the path to the .parameter files.
+The corresponding .log and .AHF_halos files must exist for data loading to
+succeed. The field type for all fields is "halos". Some fields of note available
+from AHF are:
+
++----------------+---------------------------+
+| AHF field      | yt field name             |
++================+===========================+
+| ID             | particle_identifier       |
++----------------+---------------------------+
+| Mvir           | particle_mass             |
++----------------+---------------------------+
+| Rvir           | virial_radius             |
++----------------+---------------------------+
+| (X,Y,Z)c       | particle_position_(x,y,z) |
++----------------+---------------------------+
+| V(X,Y,Z)c      | particle_velocity_(x,y,z) |
++----------------+---------------------------+
+
+Numerous other AHF fields exist.  To see them, check the field list by typing
+`ds.field_list` for a dataset loaded as `ds`.  Like all other datasets, fields
+must be accessed through :ref:`Data-objects`.
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("ahf_halos/snap_N64L16_135.parameter", hubble_constant=0.7)
+   ad = ds.all_data()
+   # halo masses
+   print(ad["halos", "particle_mass"])
+   # halo radii
+   print(ad["halos", "virial_radius"])
+
+.. note::
+
+  Currently the dimensionless Hubble parameter that yt needs is not provided in
+  AHF outputs. So users need to provide the `hubble_constant` (default to 1.0) while loading datasets, as shown above.
 
 .. _rockstar:
 
@@ -1848,7 +1913,7 @@ PyNE Data
 ---------
 
 `PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit
-maintained by the PyNE developement team (pyne-dev@googlegroups.com).
+maintained by the PyNE development team (pyne-dev@googlegroups.com).
 PyNE meshes utilize the Mesh-Oriented datABase
 `(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ and can be
 Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne
@@ -1909,8 +1974,26 @@ You would feed it the filename ``output_00007/info_00007.txt``:
    import yt
    ds = yt.load("output_00007/info_00007.txt")
 
-yt will attempt to guess the fields in the file.  You may also specify a list
-of fields by supplying the ``fields`` keyword in your call to ``load``.
+yt will attempt to guess the fields in the file.  You may also specify
+a list of hydro fields by supplying the ``fields`` keyword in your
+call to ``load``. It is also possible to provide a list of *extra*
+particle fields by supplying the ``extra_particle_fields``:
+
+.. code-block:: python
+
+   import yt
+   extra_fields = [('family', 'I'), ('info', 'I')]
+   ds = yt.load("output_00001/info_00001.txt", extra_particle_fields=extra_fields)
+   # ('all', 'family') and ('all', 'info') now in ds.field_list
+
+yt supports outputs made by the mainline ``RAMSES`` code as well as the
+``RAMSES-RT`` fork. Files produces by ``RAMSES-RT`` are recognized as such
+based on the presence of a ``into_rt_*.txt`` file in the output directory.
+
+It is possible to force yt to treat the simulation as a cosmological
+simulation by providing the ``cosmological=True`` parameter (or
+``False`` to force non-cosmology). If left to ``None``, the kind of
+the simulation is inferred from the data.
 
 .. _loading-sph-data:
 

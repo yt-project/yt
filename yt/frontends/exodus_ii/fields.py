@@ -33,6 +33,8 @@ class ExodusIIFieldInfo(FieldInfoContainer):
 
     def __init__(self, ds, field_list):
         super(ExodusIIFieldInfo, self).__init__(ds, field_list)
+        for name in self:
+            self[name].take_log = False
         # If you want, you can check self.field_list
 
     def setup_fluid_fields(self):

@@ -16,7 +16,9 @@ Test for Volume Rendering Scene, and their movement.
 import os
 import tempfile
 import shutil
-from yt.testing import fake_random_ds
+from yt.testing import \
+    fake_random_ds, \
+    assert_fname
 from yt.visualization.volume_rendering.api import volume_render, VolumeSource
 import numpy as np
 from unittest import TestCase
@@ -78,7 +80,10 @@ class RotationTest(TestCase):
         ma_bound = ((ma-mi)*(0.90))+mi
         tf.map_to_colormap(mi_bound, ma_bound,  scale=0.01, colormap='Reds_r')
         sc.render()
-        sc.save('test_scene.png', sigma_clip=6.0)
+        for suffix in ['png', 'eps', 'ps', 'pdf']:
+            fname = 'test_scene.{}'.format(suffix)
+            sc.save(fname, sigma_clip=6.0)
+            assert_fname(fname)
 
         nrot = 2 
         for i in range(nrot):

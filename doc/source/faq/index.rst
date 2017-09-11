@@ -67,7 +67,7 @@ you need to rebuild the source.  You can do this automatically by running:
 .. code-block:: bash
 
     cd $YT_GIT
-    python setup.py develop
+    pip install -e .
 
 where ``$YT_GIT`` is the path to the yt git repository.
 

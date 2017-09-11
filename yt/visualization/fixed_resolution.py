@@ -30,7 +30,6 @@ from yt.frontends.stream.api import load_uniform_grid
 
 import numpy as np
 import weakref
-import re
 import types
 
 class FixedResolutionBuffer(object):
@@ -167,38 +166,6 @@ class FixedResolutionBuffer(object):
             if f not in exclude and f[0] not in self.data_source.ds.particle_types:
                 self[f]
 
-    def _is_ion( self, fname ):
-        p = re.compile("_p[0-9]+_")
-        result = False
-        if p.search( fname ) is not None:
-            result = True
-        return result
-
-    def _ion_to_label( self, fname ):
-        pnum2rom = {
-            "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
-            "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
-            "10":"XI", "11":"XII", "12":"XIII", "13":"XIV", "14":"XV",
-            "15":"XVI", "16":"XVII", "17":"XVIII", "18":"XIX", "19":"XX"}
-
-        p = re.compile("_p[0-9]+_")
-        m = p.search( fname )
-        if m is not None:
-            pstr = m.string[m.start()+1:m.end()-1]
-            segments = fname.split("_")
-            for i,s in enumerate(segments):
-                segments[i] = s.capitalize()
-                if s == pstr:
-                    ipstr = i
-            element = segments[ipstr-1]
-            roman = pnum2rom[pstr[1:]]
-            label = element + '\ ' + roman + '\ ' + \
-                '\ '.join(segments[ipstr+1:])
-        else:
-            label = fname
-        return label
-
-
     def _get_info(self, item):
         info = {}
         ftype, fname = field = self.data_source._determine_fields(item)[0]
@@ -222,18 +189,7 @@ class FixedResolutionBuffer(object):
         except AttributeError:
             pass
 
-        info['label'] = finfo.display_name
-        if info['label'] is None:
-            if self._is_ion( fname ):
-                fname = self._ion_to_label( fname )
-                info['label'] = r'$\rm{'+fname+r'}$'
-                info['label'] = r'$\rm{'+fname.replace('_','\ ')+r'}$'
-            else:
-                info['label'] = r'$\rm{'+fname+r'}$'
-                info['label'] = r'$\rm{'+fname.replace('_','\ ').title()+r'}$'
-        elif info['label'].find('$') == -1:
-            info['label'] = info['label'].replace(' ','\ ')
-            info['label'] = r'$\rm{'+info['label']+r'}$'
+        info['label'] = finfo.get_latex_display_name()
 
         return info
 

@@ -1,5 +1,5 @@
 """
-API for yt.frontends.skeleton
+API for yt.frontends._skeleton
 
 
 

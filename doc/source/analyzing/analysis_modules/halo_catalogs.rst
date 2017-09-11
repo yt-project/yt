@@ -309,7 +309,7 @@ Quantities
 ^^^^^^^^^^
 
 A quantity is a call back that returns a value or values. The return values
-are stored within the halo object in a dictionary called “quantities.” At
+are stored within the halo object in a dictionary called "quantities." At
 the end of the analysis, all of these quantities will be written to disk as
 the final form of the generated halo catalog.
 

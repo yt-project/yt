@@ -76,7 +76,8 @@ class IOHandlerBoxlib(BaseIOHandler):
         fn_list = self.ds.index.raw_field_map[field_name][1]
         offset_list = self.ds.index.raw_field_map[field_name][2]
 
-        filename = base_dir + fn_list[grid.id]
+        lev = grid.Level        
+        filename = base_dir + "Level_%d/" % lev + fn_list[grid.id]
         offset = offset_list[grid.id]
         box = box_list[grid.id]
         

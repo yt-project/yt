@@ -322,7 +322,7 @@ class YTNoAPIKey(YTException):
         self.config_name = config_name
 
     def __str__(self):
-        return "You need to set an API key for %s in ~/.yt/config as %s" % (
+        return "You need to set an API key for %s in ~/.config/yt/ytrc as %s" % (
             self.service, self.config_name)
 
 class YTTooManyVertices(YTException):
@@ -392,6 +392,17 @@ class YTIllDefinedFilter(YTException):
     def __str__(self):
         return "Filter '%s' ill-defined.  Applied to shape %s but is shape %s." % (
             self.filter, self.s1, self.s2)
+
+class YTIllDefinedParticleFilter(YTException):
+    def __init__(self, filter, missing):
+        self.filter = filter
+        self.missing = missing
+
+    def __str__(self):
+        msg = ("\nThe fields\n\t{},\nrequired by the \"{}\" particle filter, "
+               "are not defined for this dataset.")
+        f = self.filter
+        return msg.format("\n".join([str(m) for m in self.missing]), f.name)
 
 class YTIllDefinedBounds(YTException):
     def __init__(self, lb, ub):
@@ -707,4 +718,17 @@ class YTInconsistentGridFieldShapeGridDims(YTException):
         for name, shape in self.shapes:
             if shape != self.grid_dims:
                 msg += "    Field {} has shape {}.\n".format(name, shape)
+        return msg
+
+class YTCommandRequiresModule(YTException):
+    def __init__(self, module):
+        self.module = module
+
+    def __str__(self):
+        msg = "This command requires \"%s\" to be installed.\n\n" % self.module
+        msg += "Please install \"%s\" with the package manager " % self.module
+        msg += "appropriate for your python environment, e.g.:\n"
+        msg += "  conda install %s\n" % self.module
+        msg += "or:\n"
+        msg += "  pip install %s\n" % self.module
         return msg

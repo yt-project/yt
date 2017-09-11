@@ -25,8 +25,10 @@ from yt.data_objects.static_output import \
     Dataset
 from .fields import SkeletonFieldInfo
 
+
 class SkeletonGrid(AMRGridPatch):
     _id_offset = 0
+
     def __init__(self, id, index, level):
         AMRGridPatch.__init__(self, id, filename=index.index_filename,
                               index=index)
@@ -36,6 +38,7 @@ class SkeletonGrid(AMRGridPatch):
 
     def __repr__(self):
         return "SkeletonGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+
 
 class SkeletonHierarchy(GridIndex):
     grid = SkeletonGrid
@@ -84,6 +87,7 @@ class SkeletonHierarchy(GridIndex):
         # This is handled by the frontend because often the children must be
         # identified.
         pass
+
 
 class SkeletonDataset(Dataset):
     _index_class = SkeletonHierarchy
@@ -146,5 +150,3 @@ class SkeletonDataset(Dataset):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
         return False
-
-
