@@ -167,19 +167,35 @@ class RAMSESDomainFile(object):
                 ("particle_mass", "d"),
                 ("particle_identifier", "i"),
                 ("particle_refinement_level", "I")]
-        if hvals["nstar_tot"] > 0:
-            particle_fields += [("particle_age", "d"),
-                                ("particle_metallicity", "d")]
+
         if self.ds._extra_particle_fields is not None:
             particle_fields += self.ds._extra_particle_fields
 
         field_offsets = {}
         _pfields = {}
+
+        # Read offsets
         for field, vtype in particle_fields:
             if f.tell() >= flen: break
             field_offsets["io", field] = f.tell()
             _pfields["io", field] = vtype
             fpu.skip(f, 1)
+
+        iextra = 0
+        while f.tell() < flen:
+            iextra += 1
+            field, vtype = ('particle_extra_field_%i' % iextra, 'd')
+            particle_fields.append((field, vtype))
+
+            field_offsets["io", field] = f.tell()
+            _pfields["io", field] = vtype
+            fpu.skip(f, 1)
+
+        if iextra > 0:
+            mylog.warning("Detected %s extra particle fields assuming kind"
+                          "`double`. Consider using the `extra_particle_fields`"
+                          "keyword argument if you have unexpected behavior.")
+
         self.particle_field_offsets = field_offsets
         self.particle_field_types = _pfields
         self.particle_types = self.particle_types_raw = ("io",)
