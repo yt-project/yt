@@ -191,10 +191,12 @@ class RAMSESDomainFile(object):
             _pfields["io", field] = vtype
             fpu.skip(f, 1)
 
-        if iextra > 0:
-            mylog.warning("Detected %s extra particle fields assuming kind"
-                          "`double`. Consider using the `extra_particle_fields`"
-                          "keyword argument if you have unexpected behavior.")
+        if iextra > 0 and not self.ds._warn_extra_fields:
+            self.ds._warn_extra_fields = True
+            w = ("Detected %s extra particle fields assuming kind "
+                 "`double`. Consider using the `extra_particle_fields` "
+                 "keyword argument if you have unexpected behavior.")
+            mylog.warning(w % iextra)
 
         self.particle_field_offsets = field_offsets
         self.particle_field_types = _pfields
@@ -556,7 +558,7 @@ class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
     gamma = 1.4 # This will get replaced on hydro_fn open
-    
+
     def __init__(self, filename, dataset_type='ramses',
                  fields=None, storage_filename=None,
                  units_override=None, unit_system="cgs",
@@ -574,6 +576,7 @@ class RAMSESDataset(Dataset):
         self.fluid_types += ("ramses",)
         self._fields_in_file = fields
         self._extra_particle_fields = extra_particle_fields
+        self._warn_extra_fields = False
         self.force_cosmological = cosmological
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)

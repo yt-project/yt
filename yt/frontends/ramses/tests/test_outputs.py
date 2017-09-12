@@ -127,6 +127,20 @@ def test_extra_fields():
     families = dd[('all', 'family')]
     assert all(families == 100)
 
+
+ramsesExtraFieldsSmall = 'ramses_extra_fields_small/output_00001'
+@requires_file(ramsesExtraFieldsSmall)
+def test_extra_fields_2():
+    extra_fields = ['particle_extra_field_%s' % i for i in range(20)]
+    ds = yt.load(os.path.join(ramsesExtraFieldsSmall, 'info_00001.txt'))
+
+    # the dataset should contain the fields
+    for field, in extra_fields:
+        assert ('io', field) in ds.field_list
+
+    # In the dataset, the fields are integers, so we cannot test
+    # that they are accessed correctly.
+
 ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
 @requires_file(ramses_rt)
 def test_ramses_rt():
