@@ -62,15 +62,17 @@ class RAMSESDomainFile(object):
             os.path.abspath(
               os.path.dirname(ds.parameter_filename)),
             num, domain_id)
-        for t in ['grav', 'hydro', 'part', 'amr', 'sink']:
+        for t in ['grav', 'hydro', 'part', 'amr', 'sink', 'rt']:
             setattr(self, "%s_fn" % t, basename % t)
         self._read_amr_header()
         self._read_hydro_header()
         self._read_particle_header()
         self._read_sink_header()
+        self._read_rt_header()
         self._read_amr()
 
     _hydro_offset = None
+    _rt_offset = None
     _level_count = None
 
     def __repr__(self):
@@ -91,22 +93,26 @@ class RAMSESDomainFile(object):
         return os.path.exists(self.sink_fn)
 
     @property
+    def _has_rt(self):
+        '''
+        Does the output include rt standalone files?
+        '''
+        return os.path.exists(self.rt_fn)
+
+    @property
     def level_count(self):
         if self._level_count is not None: return self._level_count
         self.hydro_offset
         return self._level_count
 
-    @property
-    def hydro_offset(self):
-        if self._hydro_offset is not None: return self._hydro_offset
-        # We now have to open the file and calculate it
-        f = open(self.hydro_fn, "rb")
+    def _read_offset(self, fname, nvar):
+        f = open(fname, "rb")
         fpu.skip(f, 6)
         # It goes: level, CPU, 8-variable
         min_level = self.ds.min_level
         n_levels = self.amr_header['nlevelmax'] - min_level
-        hydro_offset = np.zeros(n_levels, dtype='int64')
-        hydro_offset -= 1
+        offset = np.zeros(n_levels, dtype='int64')
+        offset -= 1
         level_count = np.zeros(n_levels, dtype='int64')
         skipped = []
         for level in range(self.amr_header['nlevelmax']):
@@ -125,12 +131,35 @@ class RAMSESDomainFile(object):
                 if hvals['file_ncache'] == 0: continue
                 assert(hvals['file_ilevel'] == level+1)
                 if cpu + 1 == self.domain_id and level >= min_level:
-                    hydro_offset[level - min_level] = f.tell()
+                    offset[level - min_level] = f.tell()
                     level_count[level - min_level] = hvals['file_ncache']
-                skipped = fpu.skip(f, 8 * self.nvar)
-        self._hydro_offset = hydro_offset
+                skipped = fpu.skip(f, 8 * nvar)
+        return offset, level_count
+
+    @property
+    def hydro_offset(self):
+        if self._hydro_offset is not None: return self._hydro_offset
+        # We now have to open the file and calculate it
+        nvar = self.nvar
+        offset, level_count = self._read_offset(self.hydro_fn, nvar)
+
+        self._hydro_offset = offset
         self._level_count = level_count
+
         return self._hydro_offset
+
+    @property
+    def rt_offset(self):
+        if self._rt_offset is not None: return self._rt_offset
+        nvar = self.rt_nvar
+        # We now have to open the file and calculate it
+        offset, level_count = self._read_offset(self.rt_fn, nvar)
+
+        self._rt_offset = offset
+        self._rt_level_count = level_count
+
+        return self._rt_offset
+
 
     def _read_hydro_header(self):
         # If no hydro file is found, return
@@ -142,6 +171,15 @@ class RAMSESDomainFile(object):
         fpu.skip(f, 1)
         self.nvar = fpu.read_vector(f, "i")[0]
 
+    def _read_rt_header(self):
+        if not self._has_rt:
+            return
+        self.rt_info = {}
+        f = open(self.rt_fn, "rb")
+        fpu.skip(f, 1) # ncpu
+        self.rt_nvar = fpu.read_vector(f, 'i')[0]
+        fpu.skip(f, 3) # ndim, nlevelmax, nboundary
+        self.rt_gamma = fpu.read_vector(f, 'd')[0]
 
     def _read_sink_header(self):
         if not self._has_sink:
@@ -390,11 +428,17 @@ class RAMSESDomainSubset(OctreeSubset):
     _domain_offset = 1
     _block_reorder = "F"
 
-    def fill(self, content, fields, selector):
+    def fill(self, content, fields, selector, ftype):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
-        all_fields = self.domain.ds.index.fluid_field_list
+        if ftype == 'hydro':
+            all_fields = self.domain.ds.index.fluid_field_list
+            offsets = self.domain.hydro_offset
+        elif ftype == 'rt':
+            all_fields = self.domain.ds.index.rt_field_list
+            offsets = self.domain.rt_offset
+
         fields = [f for ft, f in fields]
         tr = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
@@ -402,7 +446,8 @@ class RAMSESDomainSubset(OctreeSubset):
             selector, self.domain_id, cell_count)
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
-        for level, offset in enumerate(self.domain.hydro_offset):
+
+        for level, offset in enumerate(offsets):
             if offset == -1: continue
             content.seek(offset)
             nc = self.domain.level_count[level]
@@ -422,6 +467,7 @@ class RAMSESIndex(OctreeIndex):
 
     def __init__(self, ds, dataset_type='ramses'):
         self.fluid_field_list = ds._fields_in_file
+        self.rt_field_list = ds._rt_fields_in_file
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         self.index_filename = self.dataset.parameter_filename
@@ -445,13 +491,17 @@ class RAMSESIndex(OctreeIndex):
         if self.fluid_field_list is None or len(self.fluid_field_list) <= 0:
             self._setup_auto_fields()
 
+        if self.rt_field_list is None or len(self.rt_field_list) <= 0:
+            self._setup_auto_rt_fields()
+
         for domain in self.domains:
             dsl.update(set(domain.particle_field_offsets.keys()))
             dsl.update(set(domain.sink_field_offsets.keys()))
 
         self.particle_field_list = list(dsl)
         self.field_list = [("ramses", f) for f in self.fluid_field_list] \
-                        + self.particle_field_list
+                        + self.particle_field_list \
+                        + [("rt", f) for f in self.rt_field_list] \
 
     def _setup_auto_fields(self):
         '''
@@ -524,6 +574,54 @@ class RAMSESIndex(OctreeIndex):
             fields.append("var"+str(len(fields)))
         mylog.debug("No fields specified by user; automatically setting fields array to %s", str(fields))
         self.fluid_field_list = fields
+
+    def _setup_auto_rt_fields(self):
+        '''
+        If no rt fields are set, the code tries to set up a fluids array by hand
+        '''
+        # TODO: copy/pasted from DomainFile; needs refactoring!
+        num = os.path.basename(self.dataset.parameter_filename).split("."
+                )[0].split("_")[1]
+        testdomain = 1 # Just pick the first domain file to read
+        basename = "%s/%%s_%s.out%05i" % (
+            os.path.abspath(
+              os.path.dirname(self.dataset.parameter_filename)),
+            num, testdomain)
+        rt_fn = basename % "rt"
+        # Do we have a hydro file?
+        if not os.path.exists(rt_fn):
+            self.rt_field_list = []
+            return
+        # Read the number of hydro variables
+        f = open(rt_fn, "rb")
+        rt_header = ( ('ncpu', 1, 'i'),
+                      ('nvar', 1, 'i'),
+                      ('ndim', 1, 'i'),
+                      ('nlevelmax', 1, 'i'),
+                      ('nboundary', 1, 'i'),
+                      ('gamma', 1, 'd')
+        )
+        hvals = fpu.read_attrs(f, rt_header)
+
+        # Sanity check: is the gamma the correct one?
+        if self.ds.gamma:
+            assert self.ds.gamma == hvals['gamma']
+        else :
+            self.ds.gamma = hvals['gamma']
+
+        nvar = hvals['nvar']
+
+        # Setup default fields
+        fields = ["Photon_density", "Photon_flux_x", "Photon_flux_y", "Photon_flux_z"]
+
+        # and eventually add trace groups
+        itracer = 1
+        if nvar > len(fields):
+            fields.append('Photon_tracer_%s' % itracer)
+            itracer += 1
+
+        self.rt_field_list = fields
+
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
@@ -620,7 +718,7 @@ class RAMSESDataset(Dataset):
     gamma = 1.4 # This will get replaced on hydro_fn open
 
     def __init__(self, filename, dataset_type='ramses',
-                 fields=None, storage_filename=None,
+                 fields=None, rt_fields=None, storage_filename=None,
                  units_override=None, unit_system="cgs",
                  extra_particle_fields=None, cosmological=None):
         # Here we want to initiate a traceback, if the reader is not built.
@@ -635,6 +733,7 @@ class RAMSESDataset(Dataset):
         '''
         self.fluid_types += ("ramses",)
         self._fields_in_file = fields
+        self._rt_fields_in_file = rt_fields
         self._extra_particle_fields = extra_particle_fields
         self.force_cosmological = cosmological
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
@@ -771,16 +870,50 @@ class RAMSESDataset(Dataset):
         sink_files = os.path.join(
             os.path.split(self.parameter_filename)[0],
             'sink_?????.out?????')
-        has_sink = len(glob.glob(sink_files))
+        has_sink = len(glob.glob(sink_files)) > 0
 
         if has_sink:
             ptypes = ('io', 'sink')
         else:
             ptypes = ('io', )
 
+        rt_files = os.path.join(
+            os.path.split(self.parameter_filename)[0],
+            'rt_?????.out?????')
+        has_rt = len(glob.glob(rt_files)) > 0
+
+        if has_rt:
+            self.fluid_types += ('rt', )
+            self._parse_rt_parameter_file()
+
+
         self.particle_types = self.particle_types_raw = ptypes
 
 
+    def _parse_rt_parameter_file(self):
+        fname = self.parameter_filename.replace('info_', 'info_rt_')
+
+        rheader = {}
+        def read_rhs(cast):
+            line = f.readline()
+            print(line)
+            p, v = line.split("=")
+            rheader[p.strip()] = cast(v)
+
+        hvals = {}
+        with open(fname, 'r') as f:
+            for i in range(4): read_rhs(int)
+            f.readline()
+            for i in range(2): read_rhs(float)
+            f.readline()
+            for i in range(3): read_rhs(float)
+            f.readline()
+            for i in range(3): read_rhs(float)
+
+            # Touchy part, we have to read the photon group properties
+            mylog.warning('Not reading photon group properties')
+
+            self.parameters.update(rheader)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

@@ -34,6 +34,8 @@ vel_units = "code_velocity"
 pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2 / code_time**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
+pdens_units = "1 / code_length**3"
+pflux_units = "1 / code_length"
 
 known_species_masses = dict(
   (sp, mh * v) for sp, v in [
@@ -128,6 +130,33 @@ class RAMSESFieldInfo(FieldInfoContainer):
         rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
         if rt_flag: # rt run
             self.setup_rt_fields()
+
+        rt_in_file_flag = any(glob.glob(os.sep.join([foldername, 'rt_*.out*'])))
+        if rt_in_file_flag:
+            self.setup_rt_infile_fields()
+
+    def setup_rt_infile_fields(self):
+        p = self.ds.parameters
+        conversion_factor = p['unit_np']/p['rt_c_frac']
+
+        def _photon_density(field, data):
+            rv = data['rt', 'Photon_density'] * conversion_factor
+            return rv
+        self.add_field(('rt', 'photon_density'), sampling_type='cell',
+                       function=_photon_density,
+                       units='1/cm**3')
+
+        def gen(key):
+            def photon_flux(field, data):
+                rv = data['rt', 'Photon_flux_%s' % key] * conversion_factor
+                return rv
+            return photon_flux
+
+        for key in 'xyz':
+            self.add_field(('rt', 'photon_flux_%s' % key), sampling_type='cell',
+                           function=gen(key),
+                           units='1/cm**2')
+
 
     def setup_rt_fields(self):
         def _temp_IR(field, data):

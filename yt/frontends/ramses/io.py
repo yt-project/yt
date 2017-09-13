@@ -75,19 +75,18 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"
 
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        # Chunks in this case will have affiliated domain subset objects
-        # Each domain subset will contain a hydro_offset array, which gives
-        # pointers to level-by-level hydro information
+    def _generic_fluid_handler(self, fselector, chunks, selector, fields, size, ftype):
         tr = defaultdict(list)
+
         for chunk in chunks:
             for subset in chunk.objs:
                 # Now we read the entire thing
-                f = open(subset.domain.hydro_fn, "rb")
+                fname = getattr(subset.domain, fselector)
+                with open(fname, "rb") as f:
+                    content = IO(f.read())
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                content = IO(f.read())
-                rv = subset.fill(content, fields, selector)
+                rv = subset.fill(content, fields, selector, ftype=ftype)
                 for ft, f in fields:
                     d = rv.pop(f)
                     mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
@@ -96,6 +95,30 @@ class IOHandlerRAMSES(BaseIOHandler):
         d = {}
         for field in fields:
             d[field] = np.concatenate(tr.pop(field))
+
+        return d
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        d = {}
+
+        # Group fields by field type
+        for ft in set(f[0] for f in fields):
+            # Select the fields for the current reader
+            fields_subs = list(
+                filter(lambda f: f[0]==ft,
+                       fields))
+
+            if ft == 'ramses':
+                fselector = 'hydro_fn'
+                ftype = 'hydro'
+            elif ft == 'rt':
+                fselector = 'rt_fn'
+                ftype = 'rt'
+
+            newd = self._generic_fluid_handler(fselector, chunks, selector, fields_subs, size,
+                                               ftype)
+            d.update(newd)
+
         return d
 
     def _read_particle_coords(self, chunks, ptf):
@@ -133,6 +156,42 @@ class IOHandlerRAMSES(BaseIOHandler):
                         data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
                         yield (ptype, field), data
 
+    def _generic_particle_handler(self, fname, foffsets, data_types,
+                                  subset, fields):
+        '''General file handler, called by _read_particle_subset
+
+        params:
+        -------
+        fname: filename to read from
+        foffsets: dictionary-like of the offset for the fields
+        data_types: dictionary_like of the data type for the fields
+        subset: a subset object
+        fields: list of fields to read
+        '''
+        tr = {}
+        with open(fname, "rb") as f:
+            # We do *all* conversion into boxlen here.
+            # This means that no other conversions need to be applied to convert
+            # positions into the same domain as the octs themselves.
+            for field in sorted(fields, key=lambda a: foffsets[a]):
+                f.seek(foffsets[field])
+                dt = data_types[field]
+                tr[field] = fpu.read_vector(f, dt)
+                if field[1].startswith("particle_position"):
+                    np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
+                cosmo = subset.domain.ds.cosmological_simulation
+                if cosmo == 1 and field[1] == "particle_age":
+                    tf = subset.domain.ds.t_frw
+                    dtau = subset.domain.ds.dtau
+                    tauf = subset.domain.ds.tau_frw
+                    tsim = subset.domain.ds.time_simu
+                    h100 = subset.domain.ds.hubble_constant
+                    nOver2 = subset.domain.ds.n_frw/2
+                    t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
+                    ages = tr[field]
+                    tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))
+        return tr
+
 
     def _read_particle_subset(self, subset, fields):
         '''Read the particle files.'''
@@ -158,7 +217,8 @@ class IOHandlerRAMSES(BaseIOHandler):
                 # Raise here an exception
                 raise Exception('Unknown particle type %s' % ptype)
 
-            tr.update(_ramses_particle_file_handler(
-                fname, foffsets, data_types, subset, subs_fields))
+            tr.update(self._generic_particle_handler(
+                fname, foffsets, data_types,
+                subset, subs_fields))
 
         return tr
