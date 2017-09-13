@@ -30,6 +30,48 @@ if PY3:
 else:
     from cStringIO import StringIO as IO
 
+def _ramses_particle_file_handler(fname, foffsets, data_types,
+                                  subset, fields):
+    '''General file handler, called by _read_particle_subset
+
+    Parameters
+    ----------
+    fname : string
+        filename to read from
+    foffsets: dict
+        Offsets in file of the fields
+    data_types: dict
+         Data type of the fields
+    subset: ``RAMSESDomainSubset``
+         A RAMSES domain subset object
+    fields: list of tuple
+         The fields to read
+    '''
+    tr = {}
+    with open(fname, "rb") as f:
+        # We do *all* conversion into boxlen here.
+        # This means that no other conversions need to be applied to convert
+        # positions into the same domain as the octs themselves.
+        for field in sorted(fields, key=lambda a: foffsets[a]):
+            f.seek(foffsets[field])
+            dt = data_types[field]
+            tr[field] = fpu.read_vector(f, dt)
+            if field[1].startswith("particle_position"):
+                np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
+            cosmo = subset.domain.ds.cosmological_simulation
+            if cosmo == 1 and field[1] == "particle_age":
+                tf = subset.domain.ds.t_frw
+                dtau = subset.domain.ds.dtau
+                tauf = subset.domain.ds.tau_frw
+                tsim = subset.domain.ds.time_simu
+                h100 = subset.domain.ds.hubble_constant
+                nOver2 = subset.domain.ds.n_frw/2
+                t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
+                ages = tr[field]
+                tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))
+    return tr
+
+
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"
 
@@ -91,42 +133,6 @@ class IOHandlerRAMSES(BaseIOHandler):
                         data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
                         yield (ptype, field), data
 
-    def _generic_handler(self, fname, foffsets, data_types,
-                         subset, fields):
-        '''General file handler, called by _read_particle_subset
-
-        params:
-        -------
-        fname: filename to read from
-        foffsets: dictionary-like of the offset for the fields
-        data_types: dictionary_like of the data type for the fields
-        subset: a subset object
-        fields: list of fields to read
-        '''
-        tr = {}
-        with open(fname, "rb") as f:
-            # We do *all* conversion into boxlen here.
-            # This means that no other conversions need to be applied to convert
-            # positions into the same domain as the octs themselves.
-            for field in sorted(fields, key=lambda a: foffsets[a]):
-                f.seek(foffsets[field])
-                dt = data_types[field]
-                tr[field] = fpu.read_vector(f, dt)
-                if field[1].startswith("particle_position"):
-                    np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
-                cosmo = subset.domain.ds.cosmological_simulation
-                if cosmo == 1 and field[1] == "particle_age":
-                    tf = subset.domain.ds.t_frw
-                    dtau = subset.domain.ds.dtau
-                    tauf = subset.domain.ds.tau_frw
-                    tsim = subset.domain.ds.time_simu
-                    h100 = subset.domain.ds.hubble_constant
-                    nOver2 = subset.domain.ds.n_frw/2
-                    t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
-                    ages = tr[field]
-                    tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))
-        return tr
-
 
     def _read_particle_subset(self, subset, fields):
         '''Read the particle files.'''
@@ -152,7 +158,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                 # Raise here an exception
                 raise Exception('Unknown particle type %s' % ptype)
 
-            tr.update(self._generic_handler(fname, foffsets, data_types,
-                                            subset, subs_fields))
+            tr.update(_ramses_particle_file_handler(
+                fname, foffsets, data_types, subset, subs_fields))
 
         return tr
