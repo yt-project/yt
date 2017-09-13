@@ -595,7 +595,7 @@ class RAMSESIndex(OctreeIndex):
         # Read the number of hydro variables
         f = open(rt_fn, "rb")
         rt_header = ( ('ncpu', 1, 'i'),
-                      ('nvar', 1, 'i'),
+                      ('nrtvar', 1, 'i'),
                       ('ndim', 1, 'i'),
                       ('nlevelmax', 1, 'i'),
                       ('nboundary', 1, 'i'),
@@ -609,16 +609,18 @@ class RAMSESIndex(OctreeIndex):
         else :
             self.ds.gamma = hvals['gamma']
 
-        nvar = hvals['nvar']
+        nvar = hvals['nrtvar']
+        # TODO
+        ngroups = 3
+        fields = ["Photon_density_1", "Photon_flux_x_1", "Photon_flux_y_1", "Photon_flux_z_1",
+                  "Photon_density_2", "Photon_flux_x_2", "Photon_flux_y_2", "Photon_flux_z_2",
+                  "Photon_density_3", "Photon_flux_x_3", "Photon_flux_y_3", "Photon_flux_z_3"]
 
-        # Setup default fields
-        fields = ["Photon_density", "Photon_flux_x", "Photon_flux_y", "Photon_flux_z"]
-
-        # and eventually add trace groups
-        itracer = 1
-        if nvar > len(fields):
-            fields.append('Photon_tracer_%s' % itracer)
-            itracer += 1
+        # # and eventually add trace groups
+        # itracer = 1
+        # if nvar > len(fields):
+        #     fields.append('Photon_tracer_%s' % itracer)
+        #     itracer += 1
 
         self.rt_field_list = fields
 
