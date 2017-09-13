@@ -609,18 +609,12 @@ class RAMSESIndex(OctreeIndex):
         else :
             self.ds.gamma = hvals['gamma']
 
-        nvar = hvals['nrtvar']
-        # TODO
-        ngroups = 3
-        fields = ["Photon_density_1", "Photon_flux_x_1", "Photon_flux_y_1", "Photon_flux_z_1",
-                  "Photon_density_2", "Photon_flux_x_2", "Photon_flux_y_2", "Photon_flux_z_2",
-                  "Photon_density_3", "Photon_flux_x_3", "Photon_flux_y_3", "Photon_flux_z_3"]
+        ngroups = self.ds.parameters['nGroups']
 
-        # # and eventually add trace groups
-        # itracer = 1
-        # if nvar > len(fields):
-        #     fields.append('Photon_tracer_%s' % itracer)
-        #     itracer += 1
+        fields = []
+        for ng in range(ngroups):
+            tmp = ["Photon_density_%s", "Photon_flux_x_%s", "Photon_flux_y_%s", "Photon_flux_z_%s"]
+            fields.extend([t % (ng + 1) for t in tmp])
 
         self.rt_field_list = fields
 
@@ -898,7 +892,6 @@ class RAMSESDataset(Dataset):
         rheader = {}
         def read_rhs(cast):
             line = f.readline()
-            print(line)
             p, v = line.split("=")
             rheader[p.strip()] = cast(v)
 

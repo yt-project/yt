@@ -17,6 +17,7 @@ import glob
 import os
 import numpy as np
 
+from yt import units
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     mass_hydrogen_cgs, \
@@ -137,25 +138,34 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
     def setup_rt_infile_fields(self):
         p = self.ds.parameters
-        conversion_factor = p['unit_np']/p['rt_c_frac']
+        ngroups = p['nGroups']
+        rt_c = p['rt_c_frac'] * units.c / (p['unit_l'] / p['unit_t'])
+        dens_conv = (p['unit_np'] / rt_c).value / units.cm**3
 
-        def _photon_density(field, data):
-            rv = data['rt', 'Photon_density'] * conversion_factor
-            return rv
-        self.add_field(('rt', 'photon_density'), sampling_type='cell',
-                       function=_photon_density,
-                       units='1/cm**3')
-
-        def gen(key):
-            def photon_flux(field, data):
-                rv = data['rt', 'Photon_flux_%s' % key] * conversion_factor
+        def gen_pdens(igroup):
+            def _photon_density(field, data):
+                rv = data['rt', 'Photon_density_%s' % (igroup + 1)] * dens_conv
                 return rv
-            return photon_flux
+            return _photon_density
+
+        for igroup in range(ngroups):
+            self.add_field(('rt', 'photon_density_%s' % (igroup + 1)), sampling_type='cell',
+                           function=gen_pdens(igroup),
+                           units='1/cm**3')
+
+        flux_conv = p['unit_pf'] / units.cm**2 / units.s
+
+        def gen_flux(key, igroup):
+            def _photon_flux(field, data):
+                rv = data['rt', 'Photon_flux_%s_%s' % (key, igroup+1)] * flux_conv
+                return rv
+            return _photon_flux
 
         for key in 'xyz':
-            self.add_field(('rt', 'photon_flux_%s' % key), sampling_type='cell',
-                           function=gen(key),
-                           units='1/cm**2')
+            for igroup in range(ngroups):
+                self.add_field(('rt', 'photon_flux_%s_%s' % (key, igroup+1)), sampling_type='cell',
+                               function=gen_flux(key, igroup),
+                               units='1/cm**2/s')
 
 
     def setup_rt_fields(self):
