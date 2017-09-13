@@ -895,7 +895,6 @@ class RAMSESDataset(Dataset):
             p, v = line.split("=")
             rheader[p.strip()] = cast(v)
 
-        hvals = {}
         with open(fname, 'r') as f:
             for i in range(4): read_rhs(int)
             f.readline()
