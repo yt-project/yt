@@ -32,8 +32,8 @@ ra_units = "code_length / code_time**2"
 rho_units = "code_density"
 vel_units = "code_velocity"
 pressure_units = "code_pressure"
-e_units = "code_mass * code_velocity**2 / code_time**2"
-am_units = "code_mass * code_velocity * code_length"
+ener_units = "code_mass * code_velocity**2 / code_time**2"
+ang_mom_units = "code_mass * code_velocity * code_length"
 
 known_species_masses = dict(
   (sp, mh * v) for sp, v in [
@@ -104,14 +104,14 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("BH_real_accretion", ("code_mass/code_time", [], None)),
         ("BH_bondi_accretion", ("code_mass/code_time", [], None)),
         ("BH_eddington_accretion", ("code_mass/code_time", [], None)),
-        ("BH_esave", (e_units, [], None)),
-        ("gas_spin_x", (am_units, [], None)),
-        ("gas_spin_y", (am_units, [], None)),
-        ("gas_spin_z", (am_units, [], None)),
+        ("BH_esave", (ener_units, [], None)),
+        ("gas_spin_x", (ang_mom_units, [], None)),
+        ("gas_spin_y", (ang_mom_units, [], None)),
+        ("gas_spin_z", (ang_mom_units, [], None)),
         ("BH_spin_x", ("", [], None)),
         ("BH_spin_y", ("", [], None)),
         ("BH_spin_z", ("", [], None)),
-        ("BH_spin", (am_units, [], None)),
+        ("BH_spin", (ang_mom_units, [], None)),
         ("BH_efficiency", ("", [], None))
     )
 
