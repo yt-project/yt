@@ -15,6 +15,8 @@ Data structures for Enzo-P
 
 from yt.utilities.on_demand_imports import \
     _h5py as h5py
+from yt.utilities.on_demand_imports import \
+    _libconf as libconf
 import numpy as np
 import os
 import stat
@@ -41,6 +43,7 @@ from yt.frontends.enzo_p.misc import \
     get_child_index, \
     get_root_blocks, \
     get_root_block_id, \
+    nested_dict_get, \
     is_parent
 
 class EnzoPGrid(AMRGridPatch):
@@ -305,6 +308,12 @@ class EnzoPDataset(Dataset):
         self.periodicity = \
           ensure_tuple(np.ones(self.dimensionality, dtype=bool))
 
+        pfn = self.parameter_filename
+        lcfn = pfn[:pfn.rfind(self._suffix)] + ".libconfig"
+        if os.path.exists(lcfn):
+            with (open(lcfn, "r")) as lf:
+                self.parameters = libconf.load(lf)
+
         fh = h5py.File(os.path.join(self.directory, fn0), "r")
         self.domain_left_edge  = fh.attrs["lower"]
         self.domain_right_edge = fh.attrs["upper"]
@@ -322,17 +331,29 @@ class EnzoPDataset(Dataset):
         fh.close()
 
         self.periodicity += (False, ) * (3 - self.dimensionality)
+        self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
 
         # WIP hard-coded for now
         self.cosmological_simulation = 0
-        self.gamma = 5. / 3.
         self.unique_identifier = \
           str(int(os.stat(self.parameter_filename)[stat.ST_CTIME]))
 
     def _set_code_unit_attributes(self):
-        setdefaultattr(self, 'length_unit', self.quan(1, "cm"))
-        setdefaultattr(self, 'mass_unit', self.quan(1, "g"))
-        setdefaultattr(self, 'time_unit', self.quan(1, "s"))
+        p = self.parameters
+        for d, u in zip(("length", "time"),
+                        ("cm", "s")):
+            val = nested_dict_get(p, ("Units", d))
+            if val is None:
+                val = 1
+            setdefaultattr(self, '%s_unit' % d, self.quan(val, u))
+        mass = nested_dict_get(p, ("Units", "mass"))
+        if mass is None:
+            density = nested_dict_get(p, ("Units", "density"))
+            if density_unit is not None:
+                mass = density * self.length_unit**3
+            else:
+                mass = 1
+        setdefaultattr(self, 'mass_unit', self.quan(mass, "g"))
         setdefaultattr(self, 'velocity_unit',
                        self.length_unit / self.time_unit)
         magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /

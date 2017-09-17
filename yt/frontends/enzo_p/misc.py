@@ -15,6 +15,9 @@ Miscellaneous functions that are Enzo-P-specific
 
 import numpy as np
 
+from yt.funcs import \
+    ensure_tuple
+
 def bdecode(block):
     if ":" in block:
         level = len(block) - block.find(":") - 1
@@ -80,3 +83,12 @@ def is_parent(anc_block, desc_block):
         if not dind.startswith(aind):
             return False
     return True
+
+def nested_dict_get(pdict, keys):
+    keys = ensure_tuple(keys)
+    val = pdict
+    for key in keys:
+        if val is None:
+            break
+        val = val.get(key)
+    return val
