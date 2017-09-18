@@ -28,7 +28,8 @@ from yt.testing import \
     assert_allclose_units, \
     assert_equal, \
     assert_fname, \
-    fake_random_ds
+    fake_random_ds, \
+    requires_module
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
@@ -229,6 +230,7 @@ def test_nonspatial_data():
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 
+@requires_module('h5py')
 def test_plot_data():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
