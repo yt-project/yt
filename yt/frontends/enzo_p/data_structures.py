@@ -342,9 +342,7 @@ class EnzoPDataset(Dataset):
         p = self.parameters
         for d, u in zip(("length", "time"),
                         ("cm", "s")):
-            val = nested_dict_get(p, ("Units", d))
-            if val is None:
-                val = 1
+            val = nested_dict_get(p, ("Units", d), default=1)
             setdefaultattr(self, '%s_unit' % d, self.quan(val, u))
         mass = nested_dict_get(p, ("Units", "mass"))
         if mass is None:

@@ -15,6 +15,8 @@ Fields specific to Enzo-P
 
 from yt.fields.field_info_container import \
     FieldInfoContainer
+from yt.frontends.enzo_p.misc import \
+    nested_dict_get
 
 rho_units = "code_mass / code_length**3"
 vel_units = "code_velocity"
@@ -50,3 +52,31 @@ class EnzoPFieldInfo(FieldInfoContainer):
         ("az", (acc_units, ["particle_acceleration_z"], None)),
         ("mass", ("code_mass", ["particle_mass"], None)),
     )
+
+    def __init__(self, ds, field_list, slice_info = None):
+        super(EnzoPFieldInfo, self).__init__(
+            ds, field_list, slice_info=slice_info)
+
+    def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64):
+        super(EnzoPFieldInfo, self).setup_particle_fields(
+            ptype, ftype=ftype, num_neighbors=num_neighbors)
+
+        if ptype == "all":
+            return
+
+        constants = nested_dict_get(
+            self.ds.parameters, ("Particle", ptype, "constants"),
+            default=[])
+        if not isinstance(constants[0], tuple):
+            constants = (constants,)
+        names = [c[0] for c in constants]
+
+        if "mass" in names:
+            val = constants[names.index("mass")][2]
+            val = self.ds.quan(val, "g")
+
+            def _pmass(field, data):
+                return val * data[ptype, "particle_ones"]
+            self.add_field((ptype, "particle_mass"),
+                            function=_pmass, units="g",
+                            sampling_type="particle")

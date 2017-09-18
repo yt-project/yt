@@ -84,11 +84,13 @@ def is_parent(anc_block, desc_block):
             return False
     return True
 
-def nested_dict_get(pdict, keys):
+def nested_dict_get(pdict, keys, default=None):
     keys = ensure_tuple(keys)
     val = pdict
     for key in keys:
         if val is None:
             break
         val = val.get(key)
+    if val is None:
+        val = default
     return val
