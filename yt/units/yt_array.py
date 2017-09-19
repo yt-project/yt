@@ -595,9 +595,13 @@ class YTArray(np.ndarray):
         units, and returns it.
 
         Optionally, an equivalence can be specified to convert to an 
-        equivalent quantity which is not in the same dimensions. All 
-        additional keyword arguments are passed to the equivalency if 
-        necessary.
+        equivalent quantity which is not in the same dimensions. 
+
+        .. note::
+
+            All additional keyword arguments are passed to the 
+            equivalency, which should be used if that particular 
+            equivalency requires them.
 
         Parameters
         ----------
@@ -641,9 +645,13 @@ class YTArray(np.ndarray):
         bare NumPy array.
 
         Optionally, an equivalence can be specified to convert to an 
-        equivalent quantity which is not in the same dimensions. All 
-        additional keyword arguments are passed to the equivalency if 
-        necessary.
+        equivalent quantity which is not in the same dimensions. 
+
+        .. note::
+
+            All additional keyword arguments are passed to the 
+            equivalency, which should be used if that particular 
+            equivalency requires them.
 
         Parameters
         ----------
