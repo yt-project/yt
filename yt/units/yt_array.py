@@ -634,7 +634,7 @@ class YTArray(np.ndarray):
         """
         return self.in_units(units, equivalence=equivalence, **kwargs)
 
-    def to_value(self, units, equivalence=None, **kwargs):
+    def to_value(self, units=None, equivalence=None, **kwargs):
         """
         Creates a copy of this array with the data in the supplied
         units, and returns it without units. Output is therefore a 
@@ -647,8 +647,10 @@ class YTArray(np.ndarray):
 
         Parameters
         ----------
-        units : Unit object or string
-            The units you want to get a new quantity in.
+        units : Unit object or string, optional
+            The units you want to get the bare quantity in. If not
+            specified, the value will be returned in the current units.
+
         equivalence : string, optional
             The equivalence you wish to use. To see which 
             equivalencies are supported for this unitful 
@@ -659,8 +661,11 @@ class YTArray(np.ndarray):
         -------
         NumPy array
         """
-        return self.in_units(units, equivalence=equivalence, **kwargs).value
-    
+        if units is None:
+            return self.value
+        else:
+            return self.in_units(units, equivalence=equivalence, **kwargs).value
+
     def in_base(self, unit_system="cgs"):
         """
         Creates a copy of this array with the data in the specified unit system,
