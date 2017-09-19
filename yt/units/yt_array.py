@@ -728,6 +728,8 @@ class YTArray(np.ndarray):
         >>> a.to_equivalent("keV", "thermal")
         """
         conv_unit = Unit(unit, registry=self.units.registry)
+        if self.units.same_dimensions_as(conv_unit):
+            return self.in_units(conv_unit)
         this_equiv = equivalence_registry[equiv]()
         oneway_or_equivalent = (
             conv_unit.has_equivalent(equiv) or this_equiv._one_way)
