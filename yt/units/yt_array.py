@@ -592,10 +592,12 @@ class YTArray(np.ndarray):
     def in_units(self, units, equivalence=None, **kwargs):
         """
         Creates a copy of this array with the data in the supplied 
-        units, and returns it. Optionally, an equivalence can be 
-        specified to convert to an equivalent quantity which is not 
-        in the same dimensions. All additional keyword arguments are 
-        passed to the equivalency if necessary.
+        units, and returns it.
+
+        Optionally, an equivalence can be specified to convert to an 
+        equivalent quantity which is not in the same dimensions. All 
+        additional keyword arguments are passed to the equivalency if 
+        necessary.
 
         Parameters
         ----------
