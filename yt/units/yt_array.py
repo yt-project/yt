@@ -670,9 +670,13 @@ class YTArray(np.ndarray):
         NumPy array
         """
         if units is None:
-            return self.value
+            v = self.value
         else:
-            return self.in_units(units, equivalence=equivalence, **kwargs).value
+            v = self.in_units(units, equivalence=equivalence, **kwargs).value
+        if isinstance(self, YTQuantity):
+            return float(v)
+        else:
+            return v
 
     def in_base(self, unit_system="cgs"):
         """
