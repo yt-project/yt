@@ -589,38 +589,48 @@ class YTArray(np.ndarray):
         """
         return self.convert_to_units(self.units.get_mks_equivalent())
 
-    def in_units(self, units):
+    def in_units(self, units, equivalence=None, **kwargs):
         """
-        Creates a copy of this array with the data in the supplied units, and
-        returns it.
+        Creates a copy of this array with the data in the supplied 
+        units, and returns it. Optionally, an equivalence can be 
+        specified to convert to an equivalent quantity which is not 
+        in the same dimensions. All additional keyword arguments are 
+        passed to the equivalency if necessary.
 
         Parameters
         ----------
         units : Unit object or string
             The units you want to get a new quantity in.
+        equivalence : string, optional
+            The equivalence you wish to use. To see which 
+            equivalencies are supported for this unitful 
+            quantity, try the :meth:`list_equivalencies` 
+            method. Default: None
 
         Returns
         -------
         YTArray
-
         """
-        new_units = _unit_repr_check_same(self.units, units)
-        (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
+        if equivalence is None:
+            new_units = _unit_repr_check_same(self.units, units)
+            (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
-        new_array = type(self)(self.ndview * conversion_factor, new_units)
+            new_array = type(self)(self.ndview * conversion_factor, new_units)
 
-        if offset:
-            np.subtract(new_array, offset*new_array.uq, new_array)
+            if offset:
+                np.subtract(new_array, offset*new_array.uq, new_array)
 
-        return new_array
+            return new_array
+        else:
+            return self.to_equivalent(units, equivalence, **kwargs)
 
-    def to(self, units):
+    def to(self, units, equivalence=None, **kwargs):
         """
         An alias for YTArray.in_units().
 
         See the docstrings of that function for details.
         """
-        return self.in_units(units)
+        return self.in_units(units, equivalence=equivalence, **kwargs)
 
     def in_base(self, unit_system="cgs"):
         """
