@@ -634,6 +634,33 @@ class YTArray(np.ndarray):
         """
         return self.in_units(units, equivalence=equivalence, **kwargs)
 
+    def to_value(self, units, equivalence=None, **kwargs):
+        """
+        Creates a copy of this array with the data in the supplied
+        units, and returns it without units. Output is therefore a 
+        bare NumPy array.
+
+        Optionally, an equivalence can be specified to convert to an 
+        equivalent quantity which is not in the same dimensions. All 
+        additional keyword arguments are passed to the equivalency if 
+        necessary.
+
+        Parameters
+        ----------
+        units : Unit object or string
+            The units you want to get a new quantity in.
+        equivalence : string, optional
+            The equivalence you wish to use. To see which 
+            equivalencies are supported for this unitful 
+            quantity, try the :meth:`list_equivalencies` 
+            method. Default: None
+
+        Returns
+        -------
+        NumPy array
+        """
+        return self.in_units(units, equivalence=equivalence, **kwargs).value
+    
     def in_base(self, unit_system="cgs"):
         """
         Creates a copy of this array with the data in the specified unit system,
