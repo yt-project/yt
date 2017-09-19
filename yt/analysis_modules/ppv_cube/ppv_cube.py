@@ -142,6 +142,10 @@ class PPVCube(object):
             width = ds.coordinates.sanitize_width(normal, width, depth)
             width = tuple(el.in_units('code_length').v for el in width)
 
+        if not hasattr(ds.fields.gas, "temperature") and thermal_broad:
+            raise RuntimeError("thermal_broad cannot be True if there is "
+                               "no 'temperature' field!")
+
         if no_shifting and not thermal_broad:
             raise RuntimeError("no_shifting cannot be True when thermal_broad is False!")
 
