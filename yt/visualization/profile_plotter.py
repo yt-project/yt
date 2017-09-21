@@ -513,10 +513,11 @@ class ProfilePlot(object):
         new_unit : string or Unit object
            The name of the new unit.
         """
+        fd = self.profiles[0].data_source._determine_fields(field)[0]
         for profile in self.profiles:
-            if field == profile.x_field[1]:
+            if fd == profile.x_field:
                 profile.set_x_unit(unit)
-            elif field in self.profiles[0].field_map:
+            elif fd[1] in self.profiles[0].field_map:
                 profile.set_field_unit(field, unit)
             else:
                 raise KeyError("Field %s not in profile plot!" % (field))
