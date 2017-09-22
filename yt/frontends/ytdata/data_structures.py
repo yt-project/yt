@@ -68,7 +68,7 @@ from yt.fields.field_exceptions import \
 from yt.data_objects.data_containers import \
     GenerationInProgress
 
-_grid_data_containers = ["abritrary_grid",
+_grid_data_containers = ["arbitrary_grid",
                          "covering_grid",
                          "smoothed_covering_grid"]
 
@@ -472,12 +472,17 @@ class YTGridDataset(YTDataset):
         self.base_domain_right_edge = self.domain_right_edge
         self.base_domain_dimensions = self.domain_dimensions
         if self.container_type in _grid_data_containers:
-            dx = (self.domain_right_edge - self.domain_left_edge) / \
-              (self.domain_dimensions *
-               self.refine_by**self.parameters["level"])
             self.domain_left_edge = self.parameters["left_edge"]
-            self.domain_right_edge = self.domain_left_edge + \
-              self.parameters["ActiveDimensions"] * dx
+            if "level" in self.parameters["con_args"]:
+                dx = (self.domain_right_edge - self.domain_left_edge) / \
+                  (self.domain_dimensions *
+                   self.refine_by**self.parameters["level"])
+                self.domain_right_edge = self.domain_left_edge + \
+                  self.parameters["ActiveDimensions"] * dx
+            else:
+                self.domain_right_edge = self.parameters["right_edge"]
+                dx = (self.domain_right_edge - self.domain_left_edge) / \
+                  self.parameters["ActiveDimensions"]
             self.domain_dimensions = self.parameters["ActiveDimensions"]
             self.periodicity = \
               np.abs(self.domain_left_edge -
