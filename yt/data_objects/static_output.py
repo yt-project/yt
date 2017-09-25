@@ -244,6 +244,7 @@ class Dataset(object):
     fields = requires_index("fields")
     _instantiated = False
     _particle_type_counts = None
+    _proj_type = 'quad_proj'
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, string_types):
@@ -799,6 +800,12 @@ class Dataset(object):
         self.object_types.sort()
 
     def _add_object_class(self, name, base):
+        # skip projection data objects that don't make sense
+        # for this type of data
+        if 'proj' in name and name != self._proj_type:
+            return
+        elif 'proj' in name:
+            name = 'proj'
         self.object_types.append(name)
         obj = functools.partial(base, ds=weakref.proxy(self))
         obj.__doc__ = base.__doc__
@@ -1501,6 +1508,7 @@ class ParticleFile(object):
 class ParticleDataset(Dataset):
     _unit_base = None
     filter_bbox = False
+    _proj_type = 'particle_proj'
 
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",

@@ -161,14 +161,12 @@ class YTStreamline(YTSelectionContainer1D):
 
 class YTProj(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
-    _type_name = "proj"
     _con_args = ('axis', 'field', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
 
-    def __init__(self, field, axis, weight_field = None,
-                 center = None, ds = None, data_source = None,
-                 style = None, method = "integrate",
-                 field_parameters = None, max_level = None):
+    def __init__(self, field, axis, weight_field=None, center=None, ds=None,
+                 data_source=None, style=None, method="integrate",
+                 field_parameters=None, max_level=None):
         super(YTProj, self).__init__(axis, ds, field_parameters)
         # Style is deprecated, but if it is set, then it trumps method
         # keyword.  TODO: Remove this keyword and this check at some point in
@@ -367,6 +365,21 @@ class YTProj(YTSelectionContainer2D):
             else:
                 self._projected_units[field] = field_unit
 
+class YTKDTreeProj(YTProj):
+    """
+    TODO add docstring
+    """
+    _type_name = "particle_proj"
+    def __init__(self, field, axis, weight_field=None, center=None, ds=None,
+                 data_source=None, style=None, method="integrate",
+                 field_parameters=None, max_level=None):
+        super(YTKDTreeProj, self).__init__(
+            field, axis, weight_field, center, ds, data_source, style, method,
+            field_parameters, max_level)
+
+        # ensure the dataset has a kdtree built
+        ds.index.kdtree
+
 
 class YTQuadTreeProj(YTProj):
     """
@@ -426,10 +439,10 @@ class YTQuadTreeProj(YTProj):
     >>> prj = ds.proj("density", 0)
     >>> print proj["density"]
     """
-    def __init__(self, field, axis, weight_field = None,
-                 center = None, ds = None, data_source = None,
-                 style = None, method = "integrate",
-                 field_parameters = None, max_level = None):
+    _type_name = "quad_proj"
+    def __init__(self, field, axis, weight_field=None, center=None, ds=None,
+                 data_source=None, style=None, method="integrate",
+                 field_parameters=None, max_level=None):
         super(YTQuadTreeProj, self).__init__(
             field, axis, weight_field, center, ds, data_source, style, method,
             field_parameters, max_level)
