@@ -764,8 +764,6 @@ class Dataset(object):
                 setattr(self, name,
                     _unsupported_object(self, name))
                 continue
-            cname = cls.__name__
-            if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cls)
         self.object_types.sort()
 
