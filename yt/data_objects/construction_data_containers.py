@@ -159,74 +159,17 @@ class YTStreamline(YTSelectionContainer1D):
         self._ts[grid.id] = ts
         return mask
 
-
-class YTQuadTreeProj(YTSelectionContainer2D):
-    """
-    This is a data object corresponding to a line integral through the
-    simulation domain.
-
-    This object is typically accessed through the `proj` object that
-    hangs off of index objects.  YTQuadTreeProj is a projection of a
-    `field` along an `axis`.  The field can have an associated
-    `weight_field`, in which case the values are multiplied by a weight
-    before being summed, and then divided by the sum of that weight; the
-    two fundamental modes of operating are direct line integral (no
-    weighting) and average along a line of sight (weighting.)  What makes
-    `proj` different from the standard projection mechanism is that it
-    utilizes a quadtree data structure, rather than the old mechanism for
-    projections.  It will not run in parallel, but serial runs should be
-    substantially faster.  Note also that lines of sight are integrated at
-    every projected finest-level cell.
-
-    Parameters
-    ----------
-    field : string
-        This is the field which will be "projected" along the axis.  If
-        multiple are specified (in a list) they will all be projected in
-        the first pass.
-    axis : int
-        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
-    weight_field : string
-        If supplied, the field being projected will be multiplied by this
-        weight value before being integrated, and at the conclusion of the
-        projection the resultant values will be divided by the projected
-        `weight_field`.
-    center : array_like, optional
-        The 'center' supplied to fields that use it.  Note that this does
-        not have to have `coord` as one value.  Strictly optional.
-    data_source : `yt.data_objects.data_containers.YTSelectionContainer`, optional
-        If specified, this will be the data source used for selecting
-        regions to project.
-    method : string, optional
-        The method of projection to be performed.
-        "integrate" : integration along the axis
-        "mip" : maximum intensity projection
-        "sum" : same as "integrate", except that we don't multiply by the path length
-        WARNING: The "sum" option should only be used for uniform resolution grid
-        datasets, as other datasets may result in unphysical images.
-    style : string, optional
-        The same as the method keyword.  Deprecated as of version 3.0.2.
-        Please use method keyword instead.
-    field_parameters : dict of items
-        Values to be passed as field parameters that can be
-        accessed by generated fields.
-
-    Examples
-    --------
-
-    >>> ds = load("RedshiftOutput0005")
-    >>> prj = ds.proj("density", 0)
-    >>> print proj["density"]
-    """
+class YTProj(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
     _type_name = "proj"
     _con_args = ('axis', 'field', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
+
     def __init__(self, field, axis, weight_field = None,
                  center = None, ds = None, data_source = None,
                  style = None, method = "integrate",
                  field_parameters = None, max_level = None):
-        YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
+        super(YTProj, self).__init__(axis, ds, field_parameters)
         # Style is deprecated, but if it is set, then it trumps method
         # keyword.  TODO: Remove this keyword and this check at some point in
         # the future.
@@ -265,11 +208,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         for f in field:
             nodal_flag = self.ds._get_field_info(f).nodal_flag
             if any(nodal_flag):
-                raise RuntimeError("Nodal fields are currently not supported for projections.")
-
-        if not self.deserialize(field):
-            self.get_data(field)
-            self.serialize()
+                raise RuntimeError("Nodal fields are currently not supported "
+                                   "for projections.")
 
     @property
     def blocks(self):
@@ -277,38 +217,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
 
     @property
     def field(self):
-        return [k for k in self.field_data.keys() if k not in self._container_fields]
-
-    @property
-    def _mrep(self):
-        return MinimalProjectionData(self)
-
-    def hub_upload(self):
-        self._mrep.upload()
-
-    def deserialize(self, fields):
-        if not ytcfg.getboolean("yt", "serialize"):
-            return False
-        for field in fields:
-            self[field] = None
-        deserialized_successfully = False
-        store_file = self.ds.parameter_filename + '.yt'
-        if os.path.isfile(store_file):
-            deserialized_successfully = self._mrep.restore(store_file, self.ds)
-
-            if deserialized_successfully:
-                mylog.info("Using previous projection data from %s" % store_file)
-                for field, field_data in self._mrep.field_data.items():
-                    self[field] = field_data
-        if not deserialized_successfully:
-            for field in fields:
-                del self[field]
-        return deserialized_successfully
-
-    def serialize(self):
-        if not ytcfg.getboolean("yt", "serialize"):
-            return
-        self._mrep.store(self.ds.parameter_filename + '.yt')
+        return [k for k in self.field_data.keys() if k not in
+                self._container_fields]
 
     def _get_tree(self, nvals):
         xax = self.ds.coordinates.x_axis[self.axis]
@@ -321,6 +231,7 @@ class YTQuadTreeProj(YTSelectionContainer2D):
                   self.ds.domain_right_edge[yax])
         return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
                         bounds, method = self.method)
+
 
     def get_data(self, fields = None):
         fields = fields or []
@@ -400,14 +311,35 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         mylog.info("Projection completed")
         self.tree = tree
 
-    def _initialize_chunk(self, chunk, tree):
-        icoords = chunk.icoords
-        xax = self.ds.coordinates.x_axis[self.axis]
-        yax = self.ds.coordinates.y_axis[self.axis]
-        i1 = icoords[:,xax]
-        i2 = icoords[:,yax]
-        ilevel = chunk.ires * self.ds.ires_factor
-        tree.initialize_chunk(i1, i2, ilevel)
+    def to_pw(self, fields=None, center='c', width=None, origin='center-window'):
+        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
+        object.
+
+        This is a bare-bones mechanism of creating a plot window from this
+        object, which can then be moved around, zoomed, and on and on.  All
+        behavior of the plot window is relegated to that routine.
+        """
+        pw = self._get_pw(fields, center, width, origin, 'Projection')
+        return pw
+
+    def plot(self, fields=None):
+        if hasattr(self.data_source, "left_edge") and \
+            hasattr(self.data_source, "right_edge"):
+            left_edge = self.data_source.left_edge
+            right_edge = self.data_source.right_edge
+            center = (left_edge + right_edge)/2.0
+            width = right_edge - left_edge
+            xax = self.ds.coordinates.x_axis[self.axis]
+            yax = self.ds.coordinates.y_axis[self.axis]
+            lx, rx = left_edge[xax], right_edge[xax]
+            ly, ry = left_edge[yax], right_edge[yax]
+            width = (rx-lx), (ry-ly)
+        else:
+            width = self.ds.domain_width
+            center = self.ds.domain_center
+        pw = self._get_pw(fields, center, width, 'native', 'Projection')
+        pw.show()
+        return pw
 
     def _initialize_projected_units(self, fields, chunk):
         for field in self.data_source._determine_fields(fields):
@@ -434,6 +366,117 @@ class YTQuadTreeProj(YTSelectionContainer2D):
                 self._projected_units[field] = field_unit*path_length_unit
             else:
                 self._projected_units[field] = field_unit
+
+
+class YTQuadTreeProj(YTProj):
+    """
+    This is a data object corresponding to a line integral through the
+    simulation domain.
+
+    This object is typically accessed through the `proj` object that
+    hangs off of index objects.  YTQuadTreeProj is a projection of a
+    `field` along an `axis`.  The field can have an associated
+    `weight_field`, in which case the values are multiplied by a weight
+    before being summed, and then divided by the sum of that weight; the
+    two fundamental modes of operating are direct line integral (no
+    weighting) and average along a line of sight (weighting.)  What makes
+    `proj` different from the standard projection mechanism is that it
+    utilizes a quadtree data structure, rather than the old mechanism for
+    projections.  It will not run in parallel, but serial runs should be
+    substantially faster.  Note also that lines of sight are integrated at
+    every projected finest-level cell.
+
+    Parameters
+    ----------
+    field : string
+        This is the field which will be "projected" along the axis.  If
+        multiple are specified (in a list) they will all be projected in
+        the first pass.
+    axis : int
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+    weight_field : string
+        If supplied, the field being projected will be multiplied by this
+        weight value before being integrated, and at the conclusion of the
+        projection the resultant values will be divided by the projected
+        `weight_field`.
+    center : array_like, optional
+        The 'center' supplied to fields that use it.  Note that this does
+        not have to have `coord` as one value.  Strictly optional.
+    data_source : `yt.data_objects.data_containers.YTSelectionContainer`, optional
+        If specified, this will be the data source used for selecting
+        regions to project.
+    method : string, optional
+        The method of projection to be performed.
+        "integrate" : integration along the axis
+        "mip" : maximum intensity projection
+        "sum" : same as "integrate", except that we don't multiply by the path length
+        WARNING: The "sum" option should only be used for uniform resolution grid
+        datasets, as other datasets may result in unphysical images.
+    style : string, optional
+        The same as the method keyword.  Deprecated as of version 3.0.2.
+        Please use method keyword instead.
+    field_parameters : dict of items
+        Values to be passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> ds = load("RedshiftOutput0005")
+    >>> prj = ds.proj("density", 0)
+    >>> print proj["density"]
+    """
+    def __init__(self, field, axis, weight_field = None,
+                 center = None, ds = None, data_source = None,
+                 style = None, method = "integrate",
+                 field_parameters = None, max_level = None):
+        super(YTQuadTreeProj, self).__init__(
+            field, axis, weight_field, center, ds, data_source, style, method,
+            field_parameters, max_level)
+
+        if not self.deserialize(field):
+            self.get_data(field)
+            self.serialize()
+
+    @property
+    def _mrep(self):
+        return MinimalProjectionData(self)
+
+    def hub_upload(self):
+        self._mrep.upload()
+
+    def deserialize(self, fields):
+        if not ytcfg.getboolean("yt", "serialize"):
+            return False
+        for field in fields:
+            self[field] = None
+        deserialized_successfully = False
+        store_file = self.ds.parameter_filename + '.yt'
+        if os.path.isfile(store_file):
+            deserialized_successfully = self._mrep.restore(store_file, self.ds)
+
+            if deserialized_successfully:
+                mylog.info("Using previous projection data from %s" % store_file)
+                for field, field_data in self._mrep.field_data.items():
+                    self[field] = field_data
+        if not deserialized_successfully:
+            for field in fields:
+                del self[field]
+        return deserialized_successfully
+
+    def serialize(self):
+        if not ytcfg.getboolean("yt", "serialize"):
+            return
+        self._mrep.store(self.ds.parameter_filename + '.yt')
+
+    def _initialize_chunk(self, chunk, tree):
+        icoords = chunk.icoords
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        i1 = icoords[:,xax]
+        i2 = icoords[:,yax]
+        ilevel = chunk.ires * self.ds.ires_factor
+        tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
         if self.method == "mip" or self._sum_only:
@@ -464,36 +507,6 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         i2 = icoords[:,yax]
         ilevel = chunk.ires * self.ds.ires_factor
         tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
-
-    def to_pw(self, fields=None, center='c', width=None, origin='center-window'):
-        r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
-        object.
-
-        This is a bare-bones mechanism of creating a plot window from this
-        object, which can then be moved around, zoomed, and on and on.  All
-        behavior of the plot window is relegated to that routine.
-        """
-        pw = self._get_pw(fields, center, width, origin, 'Projection')
-        return pw
-
-    def plot(self, fields=None):
-        if hasattr(self.data_source, "left_edge") and \
-            hasattr(self.data_source, "right_edge"):
-            left_edge = self.data_source.left_edge
-            right_edge = self.data_source.right_edge
-            center = (left_edge + right_edge)/2.0
-            width = right_edge - left_edge
-            xax = self.ds.coordinates.x_axis[self.axis]
-            yax = self.ds.coordinates.y_axis[self.axis]
-            lx, rx = left_edge[xax], right_edge[xax]
-            ly, ry = left_edge[yax], right_edge[yax]
-            width = (rx-lx), (ry-ly)
-        else:
-            width = self.ds.domain_width
-            center = self.ds.domain_center
-        pw = self._get_pw(fields, center, width, 'native', 'Projection')
-        pw.show()
-        return pw
 
 class YTCoveringGrid(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
