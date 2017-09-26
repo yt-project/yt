@@ -21,8 +21,6 @@ from six import string_types
 from yt.config import ytcfg
 from yt.data_objects.data_containers import \
     YTSelectionContainer
-from yt.data_objects.field_data import \
-    YTFieldData
 from yt.funcs import iterable
 from yt.geometry.selection_routines import convert_mask_to_indices
 import yt.geometry.particle_deposit as particle_deposit

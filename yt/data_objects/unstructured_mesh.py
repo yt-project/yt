@@ -23,8 +23,6 @@ from yt.utilities.lib.mesh_utilities import \
 
 from yt.data_objects.data_containers import \
     YTSelectionContainer
-from yt.data_objects.field_data import \
-    YTFieldData
 import yt.geometry.particle_deposit as particle_deposit
 
 class UnstructuredMesh(YTSelectionContainer):
