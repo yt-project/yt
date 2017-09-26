@@ -264,6 +264,14 @@ def test_particle_phase_plot_semantics():
     dybins = p.y_bins[1:] - p.y_bins[:-1]
     assert_allclose(dybins, dybins[0])
 
+@requires_file(tgal)
+def test_set_units():
+    ds = load(tgal)
+    sp = ds.sphere("max", (1.0, "Mpc"))
+    pp = ParticlePhasePlot(sp, ("Gas", "density"), ("Gas", "temperature"), ("Gas", "particle_mass"))
+    # make sure we can set the units using the tuple without erroring out
+    pp.set_unit(("Gas", "particle_mass"), "Msun")
+
 class TestParticleProjectionPlotSave(unittest.TestCase):
 
     def setUp(self):
