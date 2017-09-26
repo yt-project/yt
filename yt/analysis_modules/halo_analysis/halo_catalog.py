@@ -20,6 +20,7 @@ from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
     ensure_dir, \
+    get_pbar, \
     mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
@@ -419,7 +420,12 @@ class HaloCatalog(ParallelAnalysisInterface):
             self.add_default_quantities('all')
 
         my_index = np.argsort(self.data_source["all", "particle_identifier"])
+        nhalos = my_index.size
+        my_i = 0
+        my_n = self.comm.size
+        pbar = get_pbar("Creating catalog", nhalos, parallel=True)
         for i in parallel_objects(my_index, njobs=njobs, dynamic=dynamic):
+            my_i += min(my_n, nhalos - my_i)
             new_halo = Halo(self)
             halo_filter = True
             for action_type, action in self.actions:
@@ -427,7 +433,9 @@ class HaloCatalog(ParallelAnalysisInterface):
                     action(new_halo)
                 elif action_type == "filter":
                     halo_filter = action(new_halo)
-                    if not halo_filter: break
+                    if not halo_filter:
+                        pbar.update(my_i)
+                        break
                 elif action_type == "quantity":
                     key, quantity = action
                     if quantity in self.halos_ds.field_info:
@@ -448,6 +456,8 @@ class HaloCatalog(ParallelAnalysisInterface):
                 self.halo_list.append(new_halo)
             else:
                 del new_halo
+
+            pbar.update(my_i)
 
         self.catalog.sort(key=lambda a:a['particle_identifier'].to_ndarray())
         if save_catalog:

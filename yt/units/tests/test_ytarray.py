@@ -991,6 +991,17 @@ def test_registry_association():
     for op in [operator.abs, operator.neg, operator.pos]:
         unary_op_registry_comparison(op)
 
+def test_to_value():
+
+    a = YTArray([1.0, 2.0, 3.0], "kpc")
+    assert_equal(a.to_value(), np.array([1.0, 2.0, 3.0]))
+    assert_equal(a.to_value(), a.value)
+    assert_equal(a.to_value("km"), a.in_units("km").value)
+
+    b = YTQuantity(5.5, "Msun")
+    assert_equal(b.to_value(), 5.5)
+    assert_equal(b.to_value("g"), b.in_units("g").value)
+
 @requires_module("astropy")
 def test_astropy():
     from yt.utilities.on_demand_imports import _astropy
@@ -1113,83 +1124,88 @@ def test_equivalencies():
 
     # Mass-energy
 
-    E = mp.to_equivalent("keV","mass_energy")
+    E = mp.in_units("keV","mass_energy")
     assert_equal(E, mp*clight*clight)
-    assert_allclose_units(mp, E.to_equivalent("g", "mass_energy"))
+    assert_allclose_units(mp, E.in_units("g", "mass_energy"))
 
     # Thermal
 
     T = YTQuantity(1.0e8,"K")
-    E = T.to_equivalent("W*hr","thermal")
+    E = T.in_units("W*hr","thermal")
     assert_equal(E, (kboltz*T).in_units("W*hr"))
-    assert_allclose_units(T, E.to_equivalent("K", "thermal"))
+    assert_allclose_units(T, E.in_units("K", "thermal"))
 
     # Spectral
 
     l = YTQuantity(4000.,"angstrom")
-    nu = l.to_equivalent("Hz","spectral")
+    nu = l.in_units("Hz","spectral")
     assert_equal(nu, clight/l)
     E = hcgs*nu
-    l2 = E.to_equivalent("angstrom", "spectral")
+    l2 = E.in_units("angstrom", "spectral")
     assert_allclose_units(l, l2)
     nu2 = clight/l2.in_units("cm")
     assert_allclose_units(nu, nu2)
-    E2 = nu2.to_equivalent("keV", "spectral")
+    E2 = nu2.in_units("keV", "spectral")
     assert_allclose_units(E2, E.in_units("keV"))
 
     # Sound-speed
 
     mu = 0.6
     gg = 5./3.
-    c_s = T.to_equivalent("km/s","sound_speed")
+    c_s = T.in_units("km/s", equivalence="sound_speed")
     assert_equal(c_s, np.sqrt(gg*kboltz*T/(mu*mh)))
-    assert_allclose_units(T, c_s.to_equivalent("K","sound_speed"))
+    assert_allclose_units(T, c_s.in_units("K","sound_speed"))
 
     mu = 0.5
     gg = 4./3.
-    c_s = T.to_equivalent("km/s","sound_speed", mu=mu, gamma=gg)
+    c_s = T.in_units("km/s","sound_speed", mu=mu, gamma=gg)
     assert_equal(c_s, np.sqrt(gg*kboltz*T/(mu*mh)))
-    assert_allclose_units(T, c_s.to_equivalent("K","sound_speed", mu=mu, gamma=gg))
+    assert_allclose_units(T, c_s.in_units("K","sound_speed", mu=mu, gamma=gg))
 
     # Lorentz
 
     v = 0.8*clight
-    g = v.to_equivalent("dimensionless","lorentz")
+    g = v.in_units("dimensionless","lorentz")
     g2 = YTQuantity(1./np.sqrt(1.-0.8*0.8), "dimensionless")
     assert_allclose_units(g, g2)
-    v2 = g2.to_equivalent("mile/hr", "lorentz")
+    v2 = g2.in_units("mile/hr", "lorentz")
     assert_allclose_units(v2, v.in_units("mile/hr"))
 
     # Schwarzschild
 
-    R = mass_sun_cgs.to_equivalent("kpc","schwarzschild")
+    R = mass_sun_cgs.in_units("kpc","schwarzschild")
     assert_equal(R.in_cgs(), 2*G*mass_sun_cgs/(clight*clight))
-    assert_allclose_units(mass_sun_cgs, R.to_equivalent("g", "schwarzschild"))
+    assert_allclose_units(mass_sun_cgs, R.in_units("g", "schwarzschild"))
 
     # Compton
 
-    l = me.to_equivalent("angstrom","compton")
+    l = me.in_units("angstrom","compton")
     assert_equal(l, hcgs/(me*clight))
-    assert_allclose_units(me, l.to_equivalent("g", "compton"))
+    assert_allclose_units(me, l.in_units("g", "compton"))
 
     # Number density
 
     rho = mp/u.cm**3
 
-    n = rho.to_equivalent("cm**-3","number_density")
+    n = rho.in_units("cm**-3","number_density")
     assert_equal(n, rho/(mh*0.6))
-    assert_allclose_units(rho, n.to_equivalent("g/cm**3","number_density"))
+    assert_allclose_units(rho, n.in_units("g/cm**3","number_density"))
 
-    n = rho.to_equivalent("cm**-3","number_density", mu=0.75)
+    n = rho.in_units("cm**-3", equivalence="number_density", mu=0.75)
     assert_equal(n, rho/(mh*0.75))
-    assert_allclose_units(rho, n.to_equivalent("g/cm**3","number_density", mu=0.75))
+    assert_allclose_units(rho, n.in_units("g/cm**3", equivalence="number_density", mu=0.75))
 
     # Effective temperature
 
     T = YTQuantity(1.0e4, "K")
-    F = T.to_equivalent("erg/s/cm**2","effective_temperature")
+    F = T.in_units("erg/s/cm**2",equivalence="effective_temperature")
     assert_equal(F, stefan_boltzmann_constant_cgs*T**4)
-    assert_allclose_units(T, F.to_equivalent("K", "effective_temperature"))
+    assert_allclose_units(T, F.in_units("K", equivalence="effective_temperature"))
+
+    # to_value test
+
+    assert_equal(F.value, T.to_value("erg/s/cm**2", equivalence="effective_temperature"))
+    assert_equal(n.value, rho.to_value("cm**-3", equivalence="number_density", mu=0.75))
 
 def test_electromagnetic():
     from yt.units.dimensions import charge_mks, pressure, current_cgs, \
@@ -1199,19 +1215,19 @@ def test_electromagnetic():
 
     # Various tests of SI and CGS electromagnetic units
 
-    qp_mks = qp.to_equivalent("C", "SI")
+    qp_mks = qp.in_units("C", "SI")
     assert_equal(qp_mks.units.dimensions, charge_mks)
     assert_array_almost_equal(qp_mks.v, 10.0*qp.v/speed_of_light_cm_per_s)
 
-    qp_cgs = qp_mks.to_equivalent("esu", "CGS")
+    qp_cgs = qp_mks.in_units("esu", "CGS")
     assert_array_almost_equal(qp_cgs, qp)
     assert_equal(qp_cgs.units.dimensions, qp.units.dimensions)
     
-    qp_mks_k = qp.to_equivalent("kC", "SI")
+    qp_mks_k = qp.in_units("kC", "SI")
     assert_array_almost_equal(qp_mks_k.v, 1.0e-2*qp.v/speed_of_light_cm_per_s)
 
     B = YTQuantity(1.0, "T")
-    B_cgs = B.to_equivalent("gauss", "CGS")
+    B_cgs = B.in_units("gauss", "CGS")
     assert_equal(B.units.dimensions, magnetic_field_mks)
     assert_equal(B_cgs.units.dimensions, magnetic_field_cgs)
     assert_array_almost_equal(B_cgs, YTQuantity(1.0e4, "gauss"))
@@ -1223,13 +1239,13 @@ def test_electromagnetic():
     assert_array_almost_equal(u_mks.in_cgs(), u_cgs)
     
     I = YTQuantity(1.0, "A")
-    I_cgs = I.to_equivalent("statA", "CGS")
+    I_cgs = I.in_units("statA", equivalence="CGS")
     assert_array_almost_equal(I_cgs, YTQuantity(0.1*speed_of_light_cm_per_s, "statA"))
-    assert_array_almost_equal(I_cgs.to_equivalent("mA", "SI"), I.in_units("mA"))
+    assert_array_almost_equal(I_cgs.in_units("mA", equivalence="SI"), I.in_units("mA"))
     assert_equal(I_cgs.units.dimensions, current_cgs)
     
     R = YTQuantity(1.0, "ohm")
-    R_cgs = R.to_equivalent("statohm", "CGS")
+    R_cgs = R.in_units("statohm", "CGS")
     P_mks = I*I*R
     P_cgs = I_cgs*I_cgs*R_cgs
     assert_equal(P_mks.units.dimensions, power)
@@ -1238,7 +1254,7 @@ def test_electromagnetic():
     assert_array_almost_equal(P_cgs.in_mks(), YTQuantity(1.0, "W"))
     
     V = YTQuantity(1.0, "statV")
-    V_mks = V.to_equivalent("V", "SI")
+    V_mks = V.in_units("V", "SI")
     assert_array_almost_equal(V_mks.v, 1.0e8*V.v/speed_of_light_cm_per_s)
 
 def test_ytarray_coercion():
