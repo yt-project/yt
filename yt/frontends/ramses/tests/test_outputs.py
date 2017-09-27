@@ -133,7 +133,6 @@ def test_extra_fields_2():
     extra_fields = ['particle_extra_field_%s' % (i + 1) for i in range(2)]
     ds = yt.load(os.path.join(ramsesExtraFieldsSmall, 'info_00001.txt'))
 
-    print(ds.field_list)
     # the dataset should contain the fields
     for field in extra_fields:
         assert ('io', field) in ds.field_list
