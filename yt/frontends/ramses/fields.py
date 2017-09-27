@@ -17,6 +17,7 @@ import glob
 import os
 import numpy as np
 
+from yt import units
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     mass_hydrogen_cgs, \
@@ -32,6 +33,10 @@ ra_units = "code_length / code_time**2"
 rho_units = "code_density"
 vel_units = "code_velocity"
 pressure_units = "code_pressure"
+ener_units = "code_mass * code_velocity**2 / code_time**2"
+ang_mom_units = "code_mass * code_velocity * code_length"
+pdens_units = "1 / code_length**3"
+pflux_units = "1 / code_length"
 
 known_species_masses = dict(
   (sp, mh * v) for sp, v in [
@@ -89,6 +94,30 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_metallicity", ("", [], None)),
     )
 
+    known_sink_fields = (
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+        ("particle_velocity_x", (vel_units, [], None)),
+        ("particle_velocity_y", (vel_units, [], None)),
+        ("particle_velocity_z", (vel_units, [], None)),
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_identifier", ("", ["particle_index"], None)),
+        ("particle_age", ("code_time", ['age'], None)),
+        ("BH_real_accretion", ("code_mass/code_time", [], None)),
+        ("BH_bondi_accretion", ("code_mass/code_time", [], None)),
+        ("BH_eddington_accretion", ("code_mass/code_time", [], None)),
+        ("BH_esave", (ener_units, [], None)),
+        ("gas_spin_x", (ang_mom_units, [], None)),
+        ("gas_spin_y", (ang_mom_units, [], None)),
+        ("gas_spin_z", (ang_mom_units, [], None)),
+        ("BH_spin_x", ("", [], None)),
+        ("BH_spin_y", ("", [], None)),
+        ("BH_spin_z", ("", [], None)),
+        ("BH_spin", (ang_mom_units, [], None)),
+        ("BH_efficiency", ("", [], None))
+    )
+
     def setup_fluid_fields(self):
         def _temperature(field, data):
             rv = data["gas", "pressure"]/data["gas", "density"]
@@ -102,6 +131,42 @@ class RAMSESFieldInfo(FieldInfoContainer):
         rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
         if rt_flag: # rt run
             self.setup_rt_fields()
+
+        rt_in_file_flag = any(glob.glob(os.sep.join([foldername, 'rt_*.out*'])))
+        if rt_in_file_flag:
+            self.setup_rt_infile_fields()
+
+    def setup_rt_infile_fields(self):
+        p = self.ds.parameters
+        ngroups = p['nGroups']
+        rt_c = p['rt_c_frac'] * units.c / (p['unit_l'] / p['unit_t'])
+        dens_conv = (p['unit_np'] / rt_c).value / units.cm**3
+
+        def gen_pdens(igroup):
+            def _photon_density(field, data):
+                rv = data['rt', 'Photon_density_%s' % (igroup + 1)] * dens_conv
+                return rv
+            return _photon_density
+
+        for igroup in range(ngroups):
+            self.add_field(('rt', 'photon_density_%s' % (igroup + 1)), sampling_type='cell',
+                           function=gen_pdens(igroup),
+                           units='1/cm**3')
+
+        flux_conv = p['unit_pf'] / units.cm**2 / units.s
+
+        def gen_flux(key, igroup):
+            def _photon_flux(field, data):
+                rv = data['rt', 'Photon_flux_%s_%s' % (key, igroup+1)] * flux_conv
+                return rv
+            return _photon_flux
+
+        for key in 'xyz':
+            for igroup in range(ngroups):
+                self.add_field(('rt', 'photon_flux_%s_%s' % (key, igroup+1)), sampling_type='cell',
+                               function=gen_flux(key, igroup),
+                               units='1/cm**2/s')
+
 
     def setup_rt_fields(self):
         def _temp_IR(field, data):
