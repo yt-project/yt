@@ -24,8 +24,8 @@ cdef inline _ensure_code(arr):
     if hasattr(arr, "units"):
         if arr.units.is_code_unit:
             return arr
-        arr.convert_to_units("code_length")
-    return arr
+        else:
+            return arr.in_base("code")
 
 cdef class SelectorObject:
     cdef public np.int32_t min_level
