@@ -346,7 +346,7 @@ class Unit(Expr):
     #
 
     def __mul__(self, u):
-        """ Multiply Unit with u (Unit object). """
+        """ Multiply Unit with u (Unit or UnitTuple object). """
         if isinstance(u, UnitTuple):
             return u.__mul__(self)
         elif not isinstance(u, Unit):
@@ -371,7 +371,10 @@ class Unit(Expr):
                     registry=self.registry)
 
     def __div__(self, u):
-        """ Divide Unit by u (Unit object). """
+        """ Divide Unit by u (Unit or UnitTuple object). """
+        if isinstance(u, UnitTuple):
+            return UnitTuple(self / v for v in u)
+
         if not isinstance(u, Unit):
             raise InvalidUnitOperation("Tried to divide a Unit object by '%s' "
                                        "(type %s). This behavior is "
