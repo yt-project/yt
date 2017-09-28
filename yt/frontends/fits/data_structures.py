@@ -242,8 +242,8 @@ class FITSHierarchy(GridIndex):
                 dims = np.array(ds.domain_dimensions)
                 psize = get_psize(dims, self.num_grids)
                 gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
-                self.grid_left_edge = self.ds.arr(gle, "code_length")
-                self.grid_right_edge = self.ds.arr(gre, "code_length")
+                self.grid_left_edge = self.ds.arr(gle, ("code_length",)*3)
+                self.grid_right_edge = self.ds.arr(gre, ("code_length",)*3)
                 self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
         else:
             self.grid_left_edge[0,:] = ds.domain_left_edge
