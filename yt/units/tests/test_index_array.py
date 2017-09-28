@@ -365,7 +365,7 @@ def test_str_and_repr():
     assert_equal(str(index), '[[ 0.  1.  2.]\n [ 3.  4.  5.]] (km, g, s)')
     assert_equal(
         repr(index),
-        'YTIndexArray([[ 0.,  1.,  2.],\n       [ 3.,  4.,  5.]]) (km, g, s)')
+        'YTIndexArray([[ 0.,  1.,  2.],\n              [ 3.,  4.,  5.]]) (km, g, s)')
 
 def test_incompatible_unit_operations():
     index1 = YTIndexArray(np.random.random((6, 2)), [u.km, u.g])
