@@ -53,6 +53,8 @@ class YTIndexArray(YTArray):
                 geometry="cartesian", dtype=np.float64):
         if input_array is NotImplemented:
             return input_array
+        if isinstance(input_array, YTQuantity):
+            input_array = YTArray([input_array.v], input_array.units)
         if input_units is None:
             input_units = getattr(input_array, 'units', '')
 
