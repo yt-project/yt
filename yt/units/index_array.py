@@ -114,6 +114,8 @@ class YTIndexArray(YTArray):
             ret_class = YTQuantity
             if isinstance(item_ind, np.ndarray):
                 item_ind = np.where(item_ind)[0]
+                if item_ind.size == 1:
+                    item_ind = item_ind[0]
             ret_units = self.units[item_ind]
         else:
             if item_type is ELLIPSIS_TYPE:
