@@ -453,6 +453,8 @@ class Unit(Expr):
         # test first for 'is' equality to avoid expensive sympy operation
         if self.dimensions is other_unit.dimensions:
             return True
+        if isinstance(other_unit, UnitTuple):
+            return other_unit.same_dimensions_as(self)
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
     @property
@@ -809,7 +811,10 @@ class UnitTuple(tuple):
         return tuple(u.base_value for u in self)
 
     def same_dimensions_as(self, other):
-        return all(u.same_dimensions_as(o) for u, o in zip(self, other))
+        if isinstance(other, Unit):
+            return all(u.same_dimensions_as(other) for u in self)
+        else:
+            return all(u.same_dimensions_as(o) for u, o in zip(self, other))
 
     def __repr__(self):
         if self.is_homogeneous:
