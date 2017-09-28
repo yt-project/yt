@@ -308,7 +308,7 @@ class Clump(TreeContainer):
                     ftypes[f] = f[0]
                 else:
                     need_grid_positions = True
-                    if f[1] in 'xyz':
+                    if f[1] in ('x', 'y', 'z', 'dx', 'dy', 'dz'):
                         # skip 'xyz' if a user passes that in because they
                         # will be added to ftypes below
                         continue
