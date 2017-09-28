@@ -781,6 +781,10 @@ class UnitTuple(tuple):
         return ret
 
     @property
+    def registry(self):
+        return self[0].registry
+
+    @property
     def is_homogeneous(self):
         s0 = self[0]
         return all(s0 == u for u in self)
