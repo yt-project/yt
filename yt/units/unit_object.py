@@ -818,6 +818,17 @@ class UnitTuple(tuple):
             ret = super(UnitTuple, self).__mul__(other)
         return UnitTuple(ret)
 
+    def __div__(self, other):
+        if isinstance(other, UnitTuple):
+            ret = UnitTuple(u/v for u, v in zip(self, other))
+        elif isinstance(other, Unit):
+            ret = UnitTuple(u/other for u in self)
+        else:
+            ret = super(UnitTuple, self).__div__(other)
+        return UnitTuple(ret)
+
+    __truediv__ = __div__
+
     def __pow__(self, power):
         return UnitTuple(u**power for u in self)
 
