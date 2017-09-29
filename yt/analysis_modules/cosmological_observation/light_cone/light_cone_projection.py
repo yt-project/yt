@@ -210,7 +210,7 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
     proj.field_data["pdy"] = proj.field_data["pdy"].unit_quantity * \
         np.concatenate([proj.field_data["pdy"].d, add_x_pdy.d, add_y_pdy.d,
                         add2_x_pdy.d, add2_y_pdy.d])
-    proj.field_data[proj_field] = proj.field_data["pdy"].unit_quantity * \
+    proj.field_data[proj_field] = proj.field_data[proj_field].unit_quantity * \
         np.concatenate([proj.field_data[proj_field].d, add_x_field.d, add_y_field.d,
                         add2_x_field.d, add2_y_field.d])
     proj.field_data["weight_field"] = proj.field_data["weight_field"].unit_quantity * \
