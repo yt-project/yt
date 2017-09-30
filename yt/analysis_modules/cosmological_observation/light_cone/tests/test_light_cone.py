@@ -25,7 +25,6 @@ from yt.testing import \
     assert_equal
 from yt.utilities.answer_testing.framework import \
     AnswerTestingTest, \
-    data_dir_load, \
     requires_sim
 
 ETC = "enzo_tiny_cosmology/32Mpc_32.enzo"
