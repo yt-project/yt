@@ -195,7 +195,8 @@ class PlotWindowWCS(object):
     Use AstroPy's WCSAxes class to plot celestial coordinates on the axes of a
     on-axis PlotWindow plot. See 
     http://docs.astropy.org/en/stable/visualization/wcsaxes/ for more details
-    on how it works under the hood.
+    on how it works under the hood. This functionality requires a version of 
+    AstroPy >= 1.3. 
 
     Parameters
     ----------
