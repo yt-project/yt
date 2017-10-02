@@ -518,7 +518,7 @@ types will be known as soon as the dataset index is created.
 
 * The Enzo-P output format is still evolving somewhat as the code is being
   actively developed. This frontend will be updated as development continues.
-* Units are currently assumed to be in CGS.
+  Currently, only non-cosmological datasets are supported.
 
 .. _loading-exodusii-data:
 
