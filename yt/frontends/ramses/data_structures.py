@@ -167,19 +167,37 @@ class RAMSESDomainFile(object):
                 ("particle_mass", "d"),
                 ("particle_identifier", "i"),
                 ("particle_refinement_level", "I")]
-        if hvals["nstar_tot"] > 0:
-            particle_fields += [("particle_age", "d"),
-                                ("particle_metallicity", "d")]
+
         if self.ds._extra_particle_fields is not None:
             particle_fields += self.ds._extra_particle_fields
 
         field_offsets = {}
         _pfields = {}
+
+        # Read offsets
         for field, vtype in particle_fields:
             if f.tell() >= flen: break
             field_offsets["io", field] = f.tell()
             _pfields["io", field] = vtype
             fpu.skip(f, 1)
+
+        iextra = 0
+        while f.tell() < flen:
+            iextra += 1
+            field, vtype = ('particle_extra_field_%i' % iextra, 'd')
+            particle_fields.append((field, vtype))
+
+            field_offsets["io", field] = f.tell()
+            _pfields["io", field] = vtype
+            fpu.skip(f, 1)
+
+        if iextra > 0 and not self.ds._warn_extra_fields:
+            self.ds._warn_extra_fields = True
+            w = ("Detected %s extra particle fields assuming kind "
+                 "`double`. Consider using the `extra_particle_fields` "
+                 "keyword argument if you have unexpected behavior.")
+            mylog.warning(w % iextra)
+
         self.particle_field_offsets = field_offsets
         self.particle_field_types = _pfields
         self.particle_types = self.particle_types_raw = ("io",)
@@ -540,7 +558,7 @@ class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
     gamma = 1.4 # This will get replaced on hydro_fn open
-    
+
     def __init__(self, filename, dataset_type='ramses',
                  fields=None, storage_filename=None,
                  units_override=None, unit_system="cgs",
@@ -558,6 +576,7 @@ class RAMSESDataset(Dataset):
         self.fluid_types += ("ramses",)
         self._fields_in_file = fields
         self._extra_particle_fields = extra_particle_fields
+        self._warn_extra_fields = False
         self.force_cosmological = cosmological
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
