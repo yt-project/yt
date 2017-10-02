@@ -115,4 +115,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                 t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
                 ages = tr[field]
                 tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))            
+            if cosmo == 0 and field[1] == 'particle_age':
+                current_time = subset.domain.ds.parameters['time']
+                tr[field] = current_time - tr[field]
         return tr
