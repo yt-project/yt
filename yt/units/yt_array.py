@@ -1627,7 +1627,7 @@ def unorm(data, ord=None, axis=None, keepdims=False):
     return YTArray(norm, data.units)
 
 def udot(op1, op2):
-    """Matrix or vector dot product that preservs units
+    """Matrix or vector dot product that preserves units
 
     This is a wrapper around np.dot that preserves units.
     """

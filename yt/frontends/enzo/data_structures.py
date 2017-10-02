@@ -668,7 +668,7 @@ class EnzoDataset(Dataset):
         to the index to pre-determine the style of data-output.  However,
         it is not strictly necessary.  Optionally you may specify a
         *parameter_override* dictionary that will override anything in the
-        paarmeter file and a *conversion_override* dictionary that consists
+        parameter file and a *conversion_override* dictionary that consists
         of {fieldname : conversion_to_cgs} that will override the #DataCGS.
         """
         self.fluid_types += ("enzo",)

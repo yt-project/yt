@@ -81,7 +81,7 @@ from yt.geometry.coordinates.api import \
     InternalGeographicCoordinateHandler
 
 # We want to support the movie format in the future.
-# When such a thing comes to pass, I'll move all the stuff that is contant up
+# When such a thing comes to pass, I'll move all the stuff that is constant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
 _cached_datasets = weakref.WeakValueDictionary()

@@ -873,7 +873,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
     defines the somewhat arbitrary normalization to the scattering
     approximation: because everything is done largely unit-free, and is
     really not terribly accurate anyway, feel free to adjust this to change
-    the relative amount of reddenning.  Maybe in some future version this
+    the relative amount of reddening.  Maybe in some future version this
     will be unitful.
     """
     def __init__(self, T_bounds, rho_bounds, nbins=256,

@@ -1,5 +1,5 @@
 """
-Gadget-specfic fields
+Gadget-specific fields
 
 
 

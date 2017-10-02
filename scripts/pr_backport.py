@@ -158,7 +158,7 @@ def find_merge_commit_in_prs(needle, prs):
     return None
 
 
-def create_commits_to_prs_mapping(linege, prs):
+def create_commits_to_prs_mapping(lineage, prs):
     """create a mapping from commits to the pull requests that the commit is
     part of
     """

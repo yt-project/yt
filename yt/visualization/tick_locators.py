@@ -30,7 +30,7 @@ class LogLocator(object):
 
     def base(self,base):
         """
-        set the base of the log scaling (major tick every base**i, i interger)
+        set the base of the log scaling (major tick every base**i, i integer)
         """
         self._base=base+0.0
 

@@ -74,7 +74,7 @@ cdef import from "meta_io.h":
 
 cdef import from "config_vars.h":
     # Rockstar cleverly puts all of the config variables inside a templated
-    # definition of their vaiables.
+    # definition of their variables.
     char *FILE_FORMAT
     np.float64_t PARTICLE_MASS
 
@@ -244,7 +244,7 @@ cdef class RockstarInterface:
 
     def __cinit__(self, ts):
         self.ts = ts
-        self.tsl = ts.__iter__() #timseries generator used by read
+        self.tsl = ts.__iter__() #timeseries generator used by read
 
     def setup_rockstar(self, char *server_address, char *server_port,
                        int num_snaps, np.int64_t total_particles,

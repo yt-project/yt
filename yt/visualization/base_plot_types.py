@@ -422,7 +422,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
     Notes
     -----
     This is a simple implementation for a common use case.  Viewing the source
-    can be instructure, and is encouraged to see how to generate more
+    can be instructive, and is encouraged to see how to generate more
     complicated or more specific sets of multiplots for your own purposes.
     """
     import matplotlib.figure

@@ -31,7 +31,7 @@ void PrepareKD(KD kd);
 int kdMedianJst(KD kd, int d, int l, int u);
 void kdUpPass(KD kd, int iCell);
 void initgrouplist(Grouplist *g);
-void hop_main(KD kd, HC *my_comm, float densthres);
+void hop_main(KD kd, HC *my_comm, float densthresh);
 void regroup_main(float dens_outer, HC *my_comm);
 static PyObject *_HOPerror;
 

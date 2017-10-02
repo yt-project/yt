@@ -141,10 +141,10 @@ class GAMERHierarchy(GridIndex):
 
         # validate the parent-children relationship in the debug mode
         if self.dataset._debug:
-            self._validate_parent_children_relasionship()
+            self._validate_parent_children_relationship()
 
     # for _debug mode only
-    def _validate_parent_children_relasionship(self):
+    def _validate_parent_children_relationship(self):
         mylog.info('Validating the parent-children relationship ...')
 
         father_list = self._handle["Tree/Father"].value

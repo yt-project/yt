@@ -758,7 +758,7 @@ Source code style guide
    ``is`` or ``is not``.
  * If you are comparing with a numpy boolean array, just refer to the array.
    Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
- * Never comapre with None using ``==`` or ``!=``, use ``is None`` or
+ * Never compare with None using ``==`` or ``!=``, use ``is None`` or
    ``is not None``.
  * Use ``statement is not True`` instead of ``not statement is True``
  * Only one statement per line, do not use semicolons to put two or more

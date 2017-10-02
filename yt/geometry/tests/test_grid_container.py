@@ -100,7 +100,7 @@ def test_find_points():
 
     assert_equal(point_grid_inds, grid_inds)
 
-    # Test wheter find_points works for lists
+    # Test whether find_points works for lists
     point_grids, point_grid_inds = test_ds.index._find_points(randx.tolist(),
                                                               randy.tolist(),
                                                               randz.tolist())

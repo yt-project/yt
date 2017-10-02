@@ -658,7 +658,7 @@ def test_selecting():
 
 def test_iteration():
     """
-    Test that iterating over a YTArray returns a sequence of YTQuantity insances
+    Test that iterating over a YTArray returns a sequence of YTQuantity instances
     """
     a = np.arange(3)
     b = YTArray(np.arange(3), 'cm')

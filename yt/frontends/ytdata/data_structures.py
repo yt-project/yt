@@ -68,7 +68,7 @@ from yt.fields.field_exceptions import \
 from yt.data_objects.data_containers import \
     GenerationInProgress
 
-_grid_data_containers = ["abritrary_grid",
+_grid_data_containers = ["arbitrary_grid",
                          "covering_grid",
                          "smoothed_covering_grid"]
 
@@ -271,7 +271,7 @@ class YTDataContainerDataset(YTDataset):
         """
 
         if self._data_obj is None:
-            # Some data containers can't be recontructed in the same way
+            # Some data containers can't be reconstructed in the same way
             # since this is now particle-like data.
             data_type = self.parameters.get("data_type")
             container_type = self.parameters.get("container_type")
@@ -308,7 +308,7 @@ class YTDataLightRayDataset(YTDataContainerDataset):
 
     def _restore_light_ray_solution(self):
         """
-        Restore all information asssociate with the light ray solution
+        Restore all information associate with the light ray solution
         to its original form.
         """
         key = "light_ray_solution"

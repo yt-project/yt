@@ -779,7 +779,7 @@ class BoxlibDataset(Dataset):
             # We use a default of two, as Nyx doesn't always output this value
             ref_factors = [2] * (self._max_level + 1)
         # We can't vary refinement factors based on dimension, or whatever else
-        # they are vaied on.  In one curious thing, I found that some Castro 3D
+        # they are varied on.  In one curious thing, I found that some Castro 3D
         # data has only two refinement factors, which I don't know how to
         # understand.
         self.ref_factors = ref_factors

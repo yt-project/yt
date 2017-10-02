@@ -204,7 +204,7 @@ class FixedResolutionBuffer(object):
 
     def convert_distance_x(self, distance):
         r"""This function converts code-space distance into pixel-space
-        distance in the x-coordiante.
+        distance in the x-coordinate.
 
         Parameters
         ----------
@@ -222,7 +222,7 @@ class FixedResolutionBuffer(object):
 
     def convert_distance_y(self, distance):
         r"""This function converts code-space distance into pixel-space
-        distance in the y-coordiante.
+        distance in the y-coordinate.
 
         Parameters
         ----------
@@ -252,7 +252,7 @@ class FixedResolutionBuffer(object):
         equivalency : string, optional
            If set, the equivalency to use to convert the current units to
            the new requested unit. If None, the unit conversion will be done
-           without an equivelancy
+           without an equivalency
 
         equivalency_kwargs : string, optional
            Keyword arguments to be passed to the equivalency. Only used if
@@ -268,7 +268,7 @@ class FixedResolutionBuffer(object):
                 unit, equivalency, **equivalency_kwargs)
             # equiv_array isn't necessarily an ImageArray. This is an issue
             # inherent to the way the unit system handles YTArray
-            # sublcasses and I don't see how to modify the unit system to
+            # subclasses and I don't see how to modify the unit system to
             # fix this. Instead, we paper over this issue and hard code
             # that equiv_array is an ImageArray
             self[field] = ImageArray(

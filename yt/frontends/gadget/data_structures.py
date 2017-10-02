@@ -348,7 +348,7 @@ class GadgetDataset(SPHDataset):
         except struct.error:
             f.close()
             return False, 1
-        # Use value to check endianess
+        # Use value to check endianness
         if rhead == 256:
             endianswap = '<'
         elif rhead == 65536:
