@@ -123,8 +123,12 @@ class SavedDataset(Dataset):
                     to_u = self.arr
                 else:
                     to_u = self.quan
-                self.parameters[par] = to_u(
-                    self.parameters[par], self.parameters[ustr])
+                # Catch UnitTuples here
+                if isinstance(self.parameters[ustr], np.ndarray):
+                    units = tuple(self.parameters[ustr])
+                else:
+                    units = self.parameters[ustr]
+                self.parameters[par] = to_u(self.parameters[par], units)
                 del_pars.append(ustr)
         for par in del_pars:
             del self.parameters[par]
