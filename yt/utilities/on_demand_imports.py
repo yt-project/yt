@@ -122,17 +122,17 @@ class astropy_imports(object):
             self._time = time
         return self._time
 
-    _visualization = None
+    _wcsaxes = None
     @property
-    def visualization(self):
-        if self._visualization is None:
+    def wcsaxes(self):
+        if self._wcsaxes is None:
             try:
-                import astropy.visualization as visualization
+                import astropy.visualization.wcsaxes as wcsaxes
                 self.log
             except ImportError:
-                visualization = NotAModule(self._name)
-            self._visualization = visualization
-        return self._visualization
+                wcsaxes = NotAModule(self._name)
+            self._wcsaxes = wcsaxes
+        return self._wcsaxes
 
 _astropy = astropy_imports()
 

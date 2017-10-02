@@ -208,7 +208,7 @@ class PlotWindowWCS(object):
             from wcsaxes import WCSAxes
         except ImportError:
             # Try to use the AstroPy version
-            WCSAxes = _astropy.visualization.wcsaxes.WCSAxes
+            WCSAxes = _astropy.wcsaxes.WCSAxes
 
         if pw.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")
