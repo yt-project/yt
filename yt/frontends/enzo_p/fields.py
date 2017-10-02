@@ -15,6 +15,8 @@ Fields specific to Enzo-P
 
 from yt.fields.field_info_container import \
     FieldInfoContainer
+from yt.fields.particle_fields import \
+    add_union_field
 from yt.frontends.enzo_p.misc import \
     nested_dict_get
 
@@ -60,16 +62,23 @@ class EnzoPFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64):
         super(EnzoPFieldInfo, self).setup_particle_fields(
             ptype, ftype=ftype, num_neighbors=num_neighbors)
+        self.setup_particle_mass_field(ptype)
 
-        if ptype == "all":
+    def setup_particle_mass_field(self, ptype):
+        name = "particle_mass"
+        if ptype in self.ds.particle_unions:
+            add_union_field(self, ptype, name, "code_mass")
             return
 
         constants = nested_dict_get(
             self.ds.parameters, ("Particle", ptype, "constants"),
             default=[])
-        if not isinstance(constants[0], tuple):
-            constants = (constants,)
-        names = [c[0] for c in constants]
+        if not constants:
+            names = []
+        else:
+            if not isinstance(constants[0], tuple):
+                constants = (constants,)
+            names = [c[0] for c in constants]
 
         if "mass" in names:
             val = constants[names.index("mass")][2]
@@ -77,6 +86,6 @@ class EnzoPFieldInfo(FieldInfoContainer):
 
             def _pmass(field, data):
                 return val * data[ptype, "particle_ones"]
-            self.add_field((ptype, "particle_mass"),
-                            function=_pmass, units="g",
+            self.add_field((ptype, name),
+                            function=_pmass, units="code_mass",
                             sampling_type="particle")

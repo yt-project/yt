@@ -254,7 +254,7 @@ class EnzoPHierarchy(GridIndex):
             ptypes = None
         self.field_list = list(self.comm.mpi_bcast(field_list))
         self.dataset.particle_types = list(self.comm.mpi_bcast(ptypes))
-        self.dataset.particle_types_raw = self.dataset.particle_types
+        self.dataset.particle_types_raw = self.dataset.particle_types.copy()
 
 class EnzoPDataset(Dataset):
     """
@@ -347,7 +347,7 @@ class EnzoPDataset(Dataset):
         mass = nested_dict_get(p, ("Units", "mass"))
         if mass is None:
             density = nested_dict_get(p, ("Units", "density"))
-            if density_unit is not None:
+            if density is not None:
                 mass = density * self.length_unit**3
             else:
                 mass = 1
