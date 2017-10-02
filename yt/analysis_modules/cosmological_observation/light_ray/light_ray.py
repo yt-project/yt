@@ -416,7 +416,7 @@ class LightRay(CosmologySplice):
         else:
             domain = self.simulation
 
-        assumed_units = "code_length"
+        assumed_units = ("code_length",)*3
         if left_edge is None:
             left_edge = domain.domain_left_edge
         elif not hasattr(left_edge, 'units'):
@@ -434,14 +434,14 @@ class LightRay(CosmologySplice):
                 start_position = start_position
             else:
                 start_position = self.ds.arr(start_position, assumed_units)
-            start_position.convert_to_units('unitary')
+            start_position = start_position.in_units('unitary')
 
         if end_position is not None:
             if hasattr(end_position, 'units'):
                 end_position = end_position
             else:
                 end_position = self.ds.arr(end_position, assumed_units)
-            end_position.convert_to_units('unitary')
+            end_position = end_position.in_units('unitary')
 
         if get_los_velocity is not None:
             use_peculiar_velocity = get_los_velocity
