@@ -13,7 +13,8 @@ light cone generator test
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import \
+    _h5py as h5py
 import numpy as np
 import os
 import shutil
@@ -22,13 +23,15 @@ import tempfile
 from yt.analysis_modules.cosmological_observation.api import \
      LightCone
 from yt.testing import \
-    assert_equal
+    assert_equal, \
+    requires_module
 from yt.utilities.answer_testing.framework import \
     AnswerTestingTest, \
     requires_sim
 
 ETC = "enzo_tiny_cosmology/32Mpc_32.enzo"
-    
+
+@requires_module("h5py")
 class LightConeProjectionTest(AnswerTestingTest):
     _type_name = "LightConeProjection"
     _attrs = ()
