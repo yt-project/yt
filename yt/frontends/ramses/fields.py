@@ -26,6 +26,7 @@ from yt.utilities.linear_interpolators import \
 import yt.utilities.fortran_utils as fpu
 from yt.fields.field_info_container import \
     FieldInfoContainer
+from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
@@ -85,7 +86,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_mass", ("code_mass", [], None)),
         ("particle_identifier", ("", ["particle_index"], None)),
         ("particle_refinement_level", ("", [], None)),
-        ("particle_age", ("code_time", ['age'], None)),
+        ("particle_age", ("", [""], None)),
         ("particle_metallicity", ("", [], None)),
     )
 
@@ -125,6 +126,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
                            units=self.ds.unit_system['mass'])
 
 
+    def setup_particle_fields(self, ptype):
+        super(RAMSESFieldInfo, self).setup_particle_fields(ptype)
+        self.setup_age_fields(ptype)
+
     def create_cooling_fields(self):
         num = os.path.basename(self.ds.parameter_filename).split("."
                 )[0].split("_")[1]
@@ -163,3 +168,32 @@ class RAMSESFieldInfo(FieldInfoContainer):
                         (avals["lognH"], avals["logT"]),
                         ["lognH", "logT"], truncate = True)
             _create_field(("gas", n), interp)
+
+    def setup_age_fields(self, ptype):
+        ds = self.ds
+        if (ptype, 'particle_age') in self:
+            if ds.cosmological_simulation:
+                def _age(field, data):
+                    tf = ds.t_frw
+                    dtau = ds.dtau
+                    tauf = ds.tau_frw
+                    tsim = ds.time_simu
+                    h100 = ds.hubble_constant
+                    nOver2 = ds.n_frw/2
+                    t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)
+                    t_scale /= ds['unit_t']
+                    ages = data[ptype, 'particle_age']
+                    dage = 1 + (10*ages/dtau)
+                    dage = np.minimum(dage, nOver2 + (dage - nOver2)/10.)
+                    iage = np.array(dage,dtype=np.int32)
+
+                    t = ((tf[iage]*(ages - tauf[iage - 1]) /
+                          (tauf[iage] - tauf[iage - 1])))
+                    t = t + ((tf[iage-1]*(ages-tauf[iage]) /
+                              (tauf[iage-1]-tauf[iage])))
+                    return ds.arr((tsim - t)*t_scale, 'code_time')
+                self.add_field((ptype, 'age'), sampling_type='particle',
+                               function=_age, units=self.ds.unit_system['time'])
+            else:
+                self[ptype, 'particle_age'].units = 'code_time'
+                self.alias((ptype, 'age'), (ptype, 'particle_age'))
