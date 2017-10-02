@@ -122,6 +122,18 @@ class astropy_imports(object):
             self._time = time
         return self._time
 
+    _visualization = None
+    @property
+    def visualization(self):
+        if self._visualization is None:
+            try:
+                import astropy.visualization as visualization
+                self.log
+            except ImportError:
+                visualization = NotAModule(self._name)
+            self._visualization = visualization
+        return self._visualization
+
 _astropy = astropy_imports()
 
 class scipy_imports(object):

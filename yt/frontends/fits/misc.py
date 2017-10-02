@@ -192,8 +192,10 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
 
 class PlotWindowWCS(object):
     r"""
-    Use the wcsaxes library to plot celestial coordinates on the axes of a
-    on-axis PlotWindow plot. See http://wcsaxes.readthedocs.org for details.
+    Use AstroPy's WCSAxes class to plot celestial coordinates on the axes of a
+    on-axis PlotWindow plot. See 
+    http://docs.astropy.org/en/stable/visualization/wcsaxes/ for more details
+    on how it works under the hood.
 
     Parameters
     ----------
@@ -201,7 +203,13 @@ class PlotWindowWCS(object):
         The PlotWindow instance to add celestial axes to.
     """
     def __init__(self, pw):
-        from wcsaxes import WCSAxes
+        try:
+            # Attempt import from the old WCSAxes package first
+            from wcsaxes import WCSAxes
+        except ImportError:
+            # Try to use the AstroPy version
+            WCSAxes = _astropy.visualization.wcsaxes.WCSAxes
+
         if pw.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")
         if not hasattr(pw.ds, "wcs_2d"):
