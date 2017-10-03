@@ -634,8 +634,13 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
                  suppress_astropy_warnings=True,
                  parameters=None,
                  units_override=None,
-                 unit_system="cgs"):
+                 unit_system="cgs",
+                 z_axis_decomp=None):
         self.spectral_factor = spectral_factor
+        if z_axis_decomp is not None:
+            issue_deprecation_warning("The 'z_axis_decomp' argument is deprecated, "
+                                      "as this decomposition is now performed for "
+                                      "spectral-cube FITS datasets automatically.")
         super(SpectralCubeFITSDataset, self).__init__(filename, nprocs=nprocs,
             auxiliary_files=auxiliary_files, storage_filename=storage_filename,
             suppress_astropy_warnings=suppress_astropy_warnings, nan_mask=nan_mask,
