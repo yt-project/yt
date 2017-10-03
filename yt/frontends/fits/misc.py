@@ -162,16 +162,17 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     >>> print circle_region.quantities.extrema("flux")
     """
     import pyregion
+    from yt.frontends.fits.api import EventsFITSDataset
     if os.path.exists(reg):
         r = pyregion.open(reg)
     else:
         r = pyregion.parse(reg)
     reg_name = reg
-    filter = r.get_filter(header=ds.wcs_2d.to_header())
+    filter = r.get_filter(header=ds.wcs.to_header())
     nx = ds.domain_dimensions[ds.lon_axis]
     ny = ds.domain_dimensions[ds.lat_axis]
-    mask = filter.mask((ny,nx)).transpose()
-    if ds.events_data:
+    mask = filter.mask((ny, nx)).transpose()
+    if isinstance(ds, EventsFITSDataset):
         prefix = "event_"
     else:
         prefix = ""
