@@ -557,6 +557,7 @@ class SkyDataFITSDataset(FITSDataset):
         end = min(self.dimensionality+1, 4)
         self.ctypes = np.array([self.primary_header["CTYPE%d" % (i)]
                                 for i in range(1, end)])
+        self.wcs_2d = self.wcs
 
     def _parse_parameter_file(self):
         super(SkyDataFITSDataset, self)._parse_parameter_file()
@@ -592,13 +593,12 @@ class SkyDataFITSDataset(FITSDataset):
 
     def _set_code_unit_attributes(self):
         super(SkyDataFITSDataset, self)._set_code_unit_attributes()
-        wcs_2d = getattr(self, "wcs_2d", self.wcs)
-        units = wcs_2d.wcs.cunit[0]
+        units = self.wcs_2d.wcs.cunit[0]
         if units == "deg":
             units = "degree"
         if units == "rad":
             units = "radian"
-        pixel_area = np.prod(np.abs(wcs_2d.wcs.cdelt))
+        pixel_area = np.prod(np.abs(self.wcs_2d.wcs.cdelt))
         pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
         pixel_dims = pixel_area.units.dimensions
         self.unit_registry.add("pixel", float(pixel_area.value), dimensions=pixel_dims)
@@ -783,6 +783,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
         self.dims = [(self.events_info["x"][1] - self.events_info["x"][0]) / self.reblock,
                      (self.events_info["y"][1] - self.events_info["y"][0]) / self.reblock]
         self.ctypes = self.axis_names
+        self.wcs_2d = self.wcs
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
