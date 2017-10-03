@@ -143,7 +143,6 @@ class FITSHierarchy(GridIndex):
             return True
 
     def _detect_output_fields(self):
-        ds = self.dataset
         self.field_list = []
         self._axis_map = {}
         self._file_map = {}
