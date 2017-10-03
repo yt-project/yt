@@ -21,14 +21,15 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
     data_dir_load
-from ..data_structures import FITSDataset
+from ..data_structures import FITSDataset, \
+    SpectralCubeFITSDataset
 
 _fields_grs = ("temperature",)
 
 grs = "radio_fits/grs-50-cube.fits"
 @requires_ds(grs)
 def test_grs():
-    ds = data_dir_load(grs, cls=FITSDataset, kwargs={"nan_mask":0.0})
+    ds = data_dir_load(grs, cls=SpectralCubeFITSDataset, kwargs={"nan_mask":0.0})
     assert_equal(str(ds), "grs-50-cube.fits")
     for test in small_patch_amr(ds, _fields_grs, input_center="c", input_weight="ones"):
         test_grs.__name__ = test.description
@@ -51,4 +52,4 @@ def test_units_override():
 
 @requires_file(grs)
 def test_FITSDataset():
-    assert isinstance(data_dir_load(grs), FITSDataset)
+    assert isinstance(data_dir_load(grs), SpectralCubeFITSDataset)
