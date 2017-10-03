@@ -307,6 +307,21 @@ def check_fits_valid(args):
         pass
     return None
 
+def check_sky_coords(args, ndim):
+    fileh = check_fits_valid(args)
+    if fileh is not None:
+        try:
+            header, _ = find_primary_header(fileh)
+            if header["naxis"] > ndim:
+                return False
+            axis_names = [header.get("ctype%d" % (i + 1), "")
+                          for i in range(header["naxis"])]
+            x = find_axes(axis_names, sky_prefixes + spec_prefixes)
+            return x == ndim
+        except:
+            pass
+    return False
+
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
     _field_info_class = FITSFieldInfo
@@ -505,10 +520,8 @@ class FITSDataset(Dataset):
         if fileh is None:
             return False
         else:
-            # Check for FITS event files and reject them
-            valid = len(fileh) > 1 and fileh[1].name == "EVENTS"
             fileh.close()
-            return valid
+            return True
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -587,19 +600,7 @@ class SkyDataFITSDataset(FITSDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        fileh = check_fits_valid(args)
-        if fileh is not None:
-            try:
-                header, _ = find_primary_header(fileh)
-                if header["naxis"] > 2:
-                    return False
-                axis_names = [header.get("ctype%d" % (i+1), "")
-                              for i in range(header["naxis"])]
-                x = find_axes(axis_names, sky_prefixes+spec_prefixes)
-                return x == 2
-            except:
-                pass
-        return False
+        return check_sky_coords(args, 2)
 
 class SpectralCubeFITSHierarchy(FITSHierarchy):
 
@@ -696,20 +697,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        fileh = check_fits_valid(args)
-        if fileh is not None:
-            try:
-                header, _ = find_primary_header(fileh)
-                naxis = min(header["naxis"], 3)
-                if naxis < 3:
-                    return False
-                axis_names = [header.get("ctype%d" % (i+1), "LINEAR")
-                              for i in range(naxis)]
-                x = find_axes(axis_names[:naxis], space_prefixes+spec_prefixes)
-                return x == 3
-            except:
-                pass
-        return False
+        return check_sky_coords(args, 3)
 
 class EventsFITSHierarchy(FITSHierarchy):
 
