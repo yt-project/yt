@@ -409,7 +409,6 @@ class FITSDataset(Dataset):
     def _parse_parameter_file(self):
 
         self._determine_structure()
-        self._determine_wcs()
         self._determine_axes()
 
         if self.parameter_filename.startswith("InMemory"):
@@ -427,6 +426,8 @@ class FITSDataset(Dataset):
         # we take the 4th axis and assume it consists of different fields.
         if self.dimensionality == 4: 
             self.dimensionality = 3
+
+        self._determine_wcs()
 
         self.domain_dimensions = np.array(self.dims)[:self.dimensionality]
         if self.dimensionality == 2:
@@ -504,8 +505,10 @@ class FITSDataset(Dataset):
         if fileh is None:
             return False
         else:
+            # Check for FITS event files and reject them
+            valid = len(fileh) > 1 and fileh[1].name == "EVENTS"
             fileh.close()
-            return True
+            return valid
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -531,38 +534,43 @@ def find_axes(axis_names, prefixes):
 class SkyDataFITSDataset(FITSDataset):
     _field_info_class = WCSFITSFieldInfo
 
+    def _determine_wcs(self):
+        super(SkyDataFITSDataset, self)._determine_wcs()
+        end = min(self.dimensionality+1, 4)
+        self.ctypes = np.array([self.primary_header["CTYPE%d" % (i)]
+                                for i in range(1, end)])
+
     def _parse_parameter_file(self):
         super(SkyDataFITSDataset, self)._parse_parameter_file()
 
-        self.geometry = "sky_coord"
+        end = min(self.dimensionality + 1, 4)
 
-        end = min(self.dimensionality+1,4)
-        if self.events_data:
-            ctypes = self.axis_names
-        else:
-            ctypes = np.array([self.primary_header["CTYPE%d" % (i)]
-                               for i in range(1,end)])
+        self.geometry = "spectral_cube"
 
-        log_str = "Detected these axes: "+"%s "*len(ctypes)
-        mylog.info(log_str % tuple([ctype for ctype in ctypes]))
+        log_str = "Detected these axes: "+"%s "*len(self.ctypes)
+        mylog.info(log_str % tuple([ctype for ctype in self.ctypes]))
 
         self.lat_axis = np.zeros((end-1), dtype="bool")
         for p in lat_prefixes:
-            self.lat_axis += np_char.startswith(ctypes, p)
+            self.lat_axis += np_char.startswith(self.ctypes, p)
         self.lat_axis = np.where(self.lat_axis)[0][0]
-        self.lat_name = ctypes[self.lat_axis].split("-")[0].lower()
+        self.lat_name = self.ctypes[self.lat_axis].split("-")[0].lower()
 
         self.lon_axis = np.zeros((end-1), dtype="bool")
         for p in lon_prefixes:
-            self.lon_axis += np_char.startswith(ctypes, p)
+            self.lon_axis += np_char.startswith(self.ctypes, p)
         self.lon_axis = np.where(self.lon_axis)[0][0]
-        self.lon_name = ctypes[self.lon_axis].split("-")[0].lower()
+        self.lon_name = self.ctypes[self.lon_axis].split("-")[0].lower()
 
         if self.lat_axis == self.lon_axis and self.lat_name == self.lon_name:
             self.lat_axis = 1
             self.lon_axis = 0
             self.lat_name = "Y"
             self.lon_name = "X"
+
+        self.spec_axis = 2
+        self.spec_name = "z"
+        self.spec_unit = ""
 
     def _set_code_unit_attributes(self):
         super(SkyDataFITSDataset, self)._set_code_unit_attributes()
@@ -621,13 +629,12 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
                  parameters=None,
                  units_override=None,
                  unit_system="cgs"):
+        self.spectral_factor = spectral_factor
         super(SpectralCubeFITSDataset, self).__init__(filename, nprocs=nprocs,
             auxiliary_files=auxiliary_files, storage_filename=storage_filename,
             suppress_astropy_warnings=suppress_astropy_warnings, nan_mask=nan_mask,
             parameters=parameters, units_override=units_override,
             unit_system=unit_system)
-
-        self.spectral_factor = spectral_factor
 
     def _parse_parameter_file(self):
         super(SpectralCubeFITSDataset, self)._parse_parameter_file()
@@ -635,13 +642,12 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         self.geometry = "spectral_cube"
 
         end = min(self.dimensionality+1,4)
-        ctypes = np.array([self.primary_header["CTYPE%d" % (i)] for i in range(1,end)])
 
-        self.spec_axis = np.zeros((end-1), dtype="bool")
+        self.spec_axis = np.zeros(end-1, dtype="bool")
         for p in spec_names.keys():
-            self.spec_axis += np_char.startswith(ctypes, p)
+            self.spec_axis += np_char.startswith(self.ctypes, p)
         self.spec_axis = np.where(self.spec_axis)[0][0]
-        self.spec_name = spec_names[ctypes[self.spec_axis].split("-")[0][0]]
+        self.spec_name = spec_names[self.ctypes[self.spec_axis].split("-")[0][0]]
 
         self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
         self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
@@ -673,10 +679,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
     def _determine_nprocs(self):
         # If nprocs is None, do some automatic decomposition of the domain
         if self.specified_parameters["nprocs"] is None:
-            if self.z_axis_decomp:
-                nprocs = np.around(self.domain_dimensions[2] / 8).astype("int")
-            else:
-                nprocs = np.around(np.prod(self.domain_dimensions) / 32 ** self.dimensionality).astype("int")
+            nprocs = np.around(self.domain_dimensions[2] / 8).astype("int")
             self.parameters["nprocs"] = max(min(nprocs, 512), 1)
         else:
             self.parameters["nprocs"] = self.specified_parameters["nprocs"]
@@ -736,18 +739,17 @@ class EventsFITSHierarchy(FITSHierarchy):
 class EventsFITSDataset(SkyDataFITSDataset):
     _index_class = EventsFITSHierarchy
     def __init__(self, filename,
-                 nprocs=None,
                  storage_filename=None,
                  suppress_astropy_warnings=True,
                  reblock=1,
                  parameters=None,
                  units_override=None,
                  unit_system="cgs"):
-        super(EventsFITSDataset, self).__init__(filename, nprocs=nprocs,
+        self.reblock = reblock
+        super(EventsFITSDataset, self).__init__(filename, nprocs=1,
             storage_filename=storage_filename, parameters=parameters,
             suppress_astropy_warnings=suppress_astropy_warnings,
             units_override=units_override, unit_system=unit_system)
-        self.reblock = reblock
 
     def _determine_structure(self):
         self.first_image = 1
@@ -787,6 +789,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
         self.wcs.wcs.crval = [self.events_info["x"][3], self.events_info["y"][3]]
         self.dims = [(self.events_info["x"][1] - self.events_info["x"][0]) / self.reblock,
                      (self.events_info["y"][1] - self.events_info["y"][0]) / self.reblock]
+        self.ctypes = self.axis_names
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
