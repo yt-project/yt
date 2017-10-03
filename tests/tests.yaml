@@ -17,7 +17,7 @@ answer_tests:
   local_enzo_p_001:
     - yt/frontends/enzo_p/tests/test_outputs.py
 
-  local_fits_001:
+  local_fits_002:
     - yt/frontends/fits/tests/test_outputs.py
 
   local_flash_008:
