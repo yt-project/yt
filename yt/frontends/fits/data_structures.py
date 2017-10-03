@@ -145,17 +145,6 @@ class FITSHierarchy(GridIndex):
     def _detect_output_fields(self):
         ds = self.dataset
         self.field_list = []
-        if ds.events_data:
-            for k,v in ds.events_info.items():
-                fname = "event_"+k
-                mylog.info("Adding field %s to the list of fields." % (fname))
-                self.field_list.append(("io",fname))
-                if k in ["x","y"]:
-                    field_unit = "code_length"
-                else:
-                    field_unit = v
-                self.dataset.field_units[("io",fname)] = field_unit
-            return
         self._axis_map = {}
         self._file_map = {}
         self._ext_map = {}
@@ -720,6 +709,20 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         return False
 
 class EventsFITSHierarchy(FITSHierarchy):
+
+    def _detect_output_fields(self):
+        ds = self.dataset
+        self.field_list = []
+        for k,v in ds.events_info.items():
+            fname = "event_"+k
+            mylog.info("Adding field %s to the list of fields." % (fname))
+            self.field_list.append(("io",fname))
+            if k in ["x","y"]:
+                field_unit = "code_length"
+            else:
+                field_unit = v
+            self.dataset.field_units[("io",fname)] = field_unit
+        return
 
     def _parse_index(self):
         super(EventsFITSHierarchy, self)._parse_index()
