@@ -310,7 +310,8 @@ def check_sky_coords(args, ndim):
     fileh = check_fits_valid(args)
     if fileh is not None:
         try:
-            if fileh[1].name == "EVENTS" and ndim == 2:
+            if (len(fileh) > 1 and
+                fileh[1].name == "EVENTS" and ndim == 2):
                 fileh.close()
                 return True
             else:
