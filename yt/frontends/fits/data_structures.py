@@ -311,13 +311,18 @@ def check_sky_coords(args, ndim):
     fileh = check_fits_valid(args)
     if fileh is not None:
         try:
-            header, _ = find_primary_header(fileh)
-            if header["naxis"] > ndim:
-                return False
-            axis_names = [header.get("ctype%d" % (i + 1), "")
-                          for i in range(header["naxis"])]
-            x = find_axes(axis_names, sky_prefixes + spec_prefixes)
-            return x == ndim
+            if fileh[1].name == "EVENTS" and ndim == 2:
+                fileh.close()
+                return True
+            else:
+                header, _ = find_primary_header(fileh)
+                if header["naxis"] < ndim:
+                    return False
+                axis_names = [header.get("ctype%d" % (i + 1), "")
+                              for i in range(header["naxis"])]
+                x = find_axes(axis_names, sky_prefixes + spec_prefixes)
+                fileh.close()
+                return x >= ndim
         except:
             pass
     return False
