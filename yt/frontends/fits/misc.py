@@ -14,7 +14,7 @@ import numpy as np
 import base64
 from yt.extern.six import PY3
 from yt.fields.derived_field import ValidateSpatial
-from yt.funcs import mylog
+from yt.funcs import mylog, issue_deprecation_warning
 from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity, YTArray
 if PY3:
@@ -207,6 +207,13 @@ class PlotWindowWCS(object):
         try:
             # Attempt import from the old WCSAxes package first
             from wcsaxes import WCSAxes
+            issue_deprecation_warning("Support for the standalone 'wcsaxes' "
+                                      "package is deprecated since its"
+                                      "functionality has been merged into"
+                                      "AstroPy, and will be removed in a "
+                                      "future release. It is recommended to "
+                                      "use the version bundled with AstroPy "
+                                      ">= 1.3.") 
         except ImportError:
             # Try to use the AstroPy version
             WCSAxes = _astropy.wcsaxes.WCSAxes
