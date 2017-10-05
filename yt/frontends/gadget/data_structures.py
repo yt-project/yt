@@ -202,10 +202,25 @@ class GadgetDataset(SPHDataset):
 
         self.cosmological_simulation = 1
 
-        self.current_redshift = hvals["Redshift"]
-        self.omega_lambda = hvals["OmegaLambda"]
-        self.omega_matter = hvals["Omega0"]
-        self.hubble_constant = hvals["HubbleParam"]
+        try:
+            self.current_redshift = hvals["Redshift"]
+        except KeyError:
+            # Probably not a cosmological dataset, we should just set
+            # z = 0 and let the user know
+            self.current_redshift = 0.0
+            only_on_root(
+                mylog.info, "Redshift is not set in Header. Assuming z=0.")
+
+        try:
+            self.omega_lambda = hvals["OmegaLambda"]
+            self.omega_matter = hvals["Omega0"]
+            self.hubble_constant = hvals["HubbleParam"]
+        except KeyError:
+            # If these are not set it is definitely not a cosmological dataset.
+            self.omega_lambda = 0.0
+            self.omega_matter = 1.0  # Just in case somebody asks for it.
+            # Hubble is set below for Omega Lambda = 0.
+
         # According to the Gadget manual, OmegaLambda will be zero for
         # non-cosmological datasets.  However, it may be the case that
         # individuals are running cosmological simulations *without* Lambda, in
