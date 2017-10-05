@@ -1633,14 +1633,16 @@ def ucross(arr1, arr2, registry=None, axisa=-1, axisb=-1, axisc=-1, axis=None):
     See the documentation of numpy.cross for full
     details.
     """
-    from yt.units.index_array import YTIndexArray
     v = np.cross(arr1, arr2, axisa=axisa, axisb=axisb, axisc=axisc, axis=axis)
     units = arr1.units * arr2.units
     if isinstance(units, UnitTuple):
-        to_u = YTIndexArray
-    else:
-        to_u = YTArray
-    arr = to_u(v, units, registry=registry)
+        if not units.is_homogeneous:
+            raise NotImplementedError("Taking the cross product is only "
+                                      "implemented for arrays with "
+                                      "homogeneous units!")
+        else:
+            units = units[0]
+    arr = YTArray(v, units, registry=registry)
     return arr
 
 def uintersect1d(arr1, arr2, assume_unique=False):
