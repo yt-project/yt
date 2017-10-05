@@ -49,7 +49,7 @@ iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 @requires_file(isothermal_bin)
 @requires_file(BE_Gadget)
 @requires_file(LE_SnapFormat2)
-def test_GadgetDataset():
+def test_gadget_dataset():
     assert isinstance(data_dir_load(isothermal_h5, kwargs=iso_kwargs),
                       GadgetHDF5Dataset)
     assert isinstance(data_dir_load(isothermal_bin, kwargs=iso_kwargs),
@@ -59,7 +59,7 @@ def test_GadgetDataset():
 
 
 @requires_file(keplerian_ring)
-def test_NonCosmoDataset():
+def test_non_cosmo_dataset():
     """
     Non-cosmological datasets may not have the cosmological parametrs in the
     Header. The code should fall back gracefully when they are not present,
