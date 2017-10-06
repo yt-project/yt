@@ -882,7 +882,10 @@ class YTPlotCmd(YTCommand):
             dict(short="-fu", longname="--field-unit",
                  action="store", type=str,
                  dest="field_unit", default=None,
-                 help="Desired field units"))
+                 help="Desired field units"),
+            dict(longname='--scale',
+                 action='store_true',
+                 help="Annotate the plot with the scale"))
 
     name = "plot"
 
@@ -932,6 +935,8 @@ class YTPlotCmd(YTCommand):
                 plt.annotate_grids()
             if args.time:
                 plt.annotate_timestamp()
+            if args.scale:
+                plt.annotate_scale()
 
             if args.field_unit:
                 plt.set_unit(args.field, args.field_unit)
