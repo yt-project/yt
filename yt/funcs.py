@@ -642,7 +642,7 @@ def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
-    version = get_hg_version(path)
+    version = get_git_version(path)
     if version is None:
         return version
     else:

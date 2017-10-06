@@ -24,6 +24,7 @@ import warnings
 
 from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
+from six.moves import cPickle
 
 from yt.config import ytcfg
 from yt.fields.derived_field import \
@@ -252,14 +253,15 @@ class Dataset(object):
                 obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
+        cache_key = (apath, cPickle.dumps(args), cPickle.dumps(kwargs))
         if ytcfg.getboolean("yt","skip_dataset_cache"):
             obj = object.__new__(cls)
-        elif apath not in _cached_datasets:
+        elif cache_key not in _cached_datasets:
             obj = object.__new__(cls)
             if obj._skip_cache is False:
-                _cached_datasets[apath] = obj
+                _cached_datasets[cache_key] = obj
         else:
-            obj = _cached_datasets[apath]
+            obj = _cached_datasets[cache_key]
         return obj
 
     def __init__(self, filename, dataset_type=None, file_style=None,

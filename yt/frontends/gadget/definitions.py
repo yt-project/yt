@@ -29,7 +29,7 @@ gadget_header_specs = dict(
                     ('OmegaLambda', 1, 'd'),
                     ('HubbleParam', 1, 'd'),
                     ('FlagAge', 1, 'i'),
-                    ('FlagMEtals', 1, 'i'),
+                    ('FlagMetals', 1, 'i'),
                     ('NallHW', 6, 'i'),
                     ('unused', 16, 'i')),
     pad32       = (('empty',  32, 'c'),),
