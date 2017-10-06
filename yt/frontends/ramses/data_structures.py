@@ -132,6 +132,14 @@ class RAMSESDomainFile(object):
         self._level_count = level_count
         return self._hydro_offset
 
+    def _add_ptype(self, ptype):
+        if hasattr(self, 'particle_types'):
+            new = set(self.particle_types)
+        else:
+            new = set()
+        new.add(ptype)
+        self.particle_types = self.particle_types_raw = tuple(new)
+
     def _read_hydro_header(self):
         # If no hydro file is found, return
         if not self._has_hydro:
@@ -198,13 +206,8 @@ class RAMSESDomainFile(object):
         self.sink_field_offsets = field_offsets
         self.sink_field_types = _pfields
 
-        try:
-            ptypes = list(self.particles_types)
-        except AttributeError:
-            ptypes = []
-        finally:
-            ptypes.append('sink')
-        self.particle_types = self.particle_types_raw = tuple(ptypes)
+        self._add_ptype('sink')
+
 
     def _read_particle_header(self):
         if not os.path.exists(self.part_fn):
@@ -247,6 +250,8 @@ class RAMSESDomainFile(object):
         field_offsets = {}
         _pfields = {}
 
+        ptype = 'io'
+
         # Read offsets
         for field, vtype in particle_fields:
             if f.tell() >= flen: break
@@ -260,8 +265,8 @@ class RAMSESDomainFile(object):
             field, vtype = ('particle_extra_field_%i' % iextra, 'd')
             particle_fields.append((field, vtype))
 
-            field_offsets["io", field] = f.tell()
-            _pfields["io", field] = vtype
+            field_offsets[ptype, field] = f.tell()
+            _pfields[ptype, field] = vtype
             fpu.skip(f, 1)
 
         if iextra > 0 and not self.ds._warn_extra_fields:
@@ -273,6 +278,9 @@ class RAMSESDomainFile(object):
 
         self.particle_field_offsets = field_offsets
         self.particle_field_types = _pfields
+
+        # Register the particle type
+        self._add_ptype(ptype)
 
     def _read_amr_header(self):
         hvals = {}
