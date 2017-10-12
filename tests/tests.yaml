@@ -76,7 +76,7 @@ answer_tests:
     - yt/visualization/tests/test_line_plots.py:test_line_plot
     - yt/visualization/tests/test_line_plots.py:test_multi_line_plot
 
-  local_boxlib_004:
+  local_boxlib_005:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
     - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
     - yt/frontends/boxlib/tests/test_outputs.py:test_star
