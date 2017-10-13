@@ -781,7 +781,7 @@ class EnzoDataset(Dataset):
 
     def _parse_enzo2_parameter_file(self, f):
         for line in (l.strip() for l in f):
-            if (len(line) < 2) or (line.lstrip()[0] == "#"): continue
+            if (len(line) < 2) or ("=" not in line): continue
             param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
             vals = vals.split()
