@@ -764,19 +764,7 @@ class Dataset(object):
                 setattr(self, name,
                     _unsupported_object(self, name))
                 continue
-            cname = cls.__name__
-            if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cls)
-        if not np.all(self.refine_by == 2) and hasattr(self, 'proj') and \
-            hasattr(self, 'overlap_proj'):
-            mylog.warning("Refine by something other than two: reverting to"
-                        + " overlap_proj")
-            self.proj = self.overlap_proj
-        if self.dimensionality < 3 and hasattr(self, 'proj') and \
-            hasattr(self, 'overlap_proj'):
-            mylog.warning("Dimensionality less than 3: reverting to"
-                        + " overlap_proj")
-            self.proj = self.overlap_proj
         self.object_types.sort()
 
     def _add_object_class(self, name, base):
