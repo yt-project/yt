@@ -687,14 +687,6 @@ can read FITS image files that have the following (case-insensitive) suffixes:
 yt can read two kinds of FITS files: FITS image files and FITS binary table files containing
 positions, times, and energies of X-ray events.
 
-.. note::
-
-  AstroPy is necessary due to the requirements of both FITS file reading and
-  WCS coordinates. Since new releases of `PyFITS <http://www.stsci
-  .edu/institute/software_hardware/pyfits>`_ are to be discontinued, individual
-  installations of this package and the `PyWCS <http://stsdas.stsci
-  .edu/astrolib/pywcs/>`_ package are not supported.
-
 Though a FITS image is composed of a single array in the FITS file,
 upon being loaded into yt it is automatically decomposed into grids:
 
@@ -908,8 +900,7 @@ package must be installed.
 """""""""""""""""
 
 This class takes a on-axis ``SlicePlot`` or ``ProjectionPlot`` of FITS data and adds celestial
-coordinates to the plot axes. To use it, the `WCSAxes <http://wcsaxes.readthedocs.org>`_
-package must be installed.
+coordinates to the plot axes. To use it, a version of AstroPy >= 1.3 must be installed.
 
 .. code-block:: python
 
