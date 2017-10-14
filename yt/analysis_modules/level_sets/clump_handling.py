@@ -87,9 +87,6 @@ class Clump(TreeContainer):
         if parent is not None:
             self.data.parent = self.parent.data
 
-        if parent is not None:
-            self.data.parent = self.parent.data
-
         if validators is None:
             validators = []
         self.validators = validators
@@ -461,6 +458,9 @@ def find_clumps(clump, min_val, max_val, d_clump):
                         "children to parent.") % 
                         (len(these_children),len(clump.children)))
             clump.children = these_children[0].children
+            for child in clump.children:
+                child.parent = clump
+                child.data.parent = clump.data
         else:
             mylog.info("%d of %d children survived, erasing children." %
                        (len(these_children),len(clump.children)))
