@@ -883,7 +883,7 @@ class YTPlotCmd(YTCommand):
                  action="store", type=str,
                  dest="field_unit", default=None,
                  help="Desired field units"),
-            dict(longname='--scale',
+            dict(longname='--show-scale-bar',
                  action='store_true',
                  help="Annotate the plot with the scale"))
 
