@@ -231,14 +231,14 @@ class FITSHierarchy(GridIndex):
             self.grids[i] = self.grid(i, self, self.grid_levels[i,0])
 
     def _domain_decomp(self):
-        bbox = np.array([[le, re] for le, re in zip(self.ds.domain_left_edge,
-                                                    self.ds.domain_right_edge)])
-        dims = np.array(self.ds.domain_dimensions)
+        bbox = np.array([self.ds.domain_left_edge,
+                         self.ds.domain_right_edge]).transpose()
+        dims = self.ds.domain_dimensions
         psize = get_psize(dims, self.num_grids)
         gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
         self.grid_left_edge = self.ds.arr(gle, "code_length")
         self.grid_right_edge = self.ds.arr(gre, "code_length")
-        self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
+        self.grid_dimensions = np.array(shapes, dtype="int32")
 
     def _populate_grid_objects(self):
         for i in range(self.num_grids):
@@ -770,7 +770,8 @@ class EventsFITSDataset(SkyDataFITSDataset):
                 elif v.lower() in ["energy", "time"]:
                     num = k.strip("TTYPE")
                     unit = self.primary_header["TUNIT" + num].lower()
-                    if unit.endswith("ev"): unit = unit.replace("ev", "eV")
+                    if unit.endswith("ev"):
+                        unit = unit.replace("ev", "eV")
                     self.events_info[v.lower()] = unit
         self.axis_names = [self.events_info[ax][2] for ax in ["x", "y"]]
         if "reblock" in self.specified_parameters:
