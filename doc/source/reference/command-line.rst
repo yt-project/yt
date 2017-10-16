@@ -114,7 +114,12 @@ well.  Now let's see what the domain looks like with grids overlaid, using the
 
   $ yt plot --show-grids -p DD0010/moving7_0010
 
-We can now see all the grids in the field of view.
+We can now see all the grids in the field of view. If you want to annotate your plot with a scale bar, you can use the ``--scale`` option.:
+
+.. code-block:: bash
+
+  $ yt plot --scale -p DD0010/moving7_0010
+
 
 Command-line subcommand summary
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
