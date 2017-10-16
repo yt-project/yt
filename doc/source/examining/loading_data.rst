@@ -968,7 +968,7 @@ individual lines from an intensity cube:
                                     slab_centers, slab_width,
                                     nan_mask=0.0)
 
-All keyword arguments to `create_spectral_slabs` are passed on to `load` when 
+All keyword arguments to ``create_spectral_slabs`` are passed on to ``load`` when 
 creating the dataset (see :ref:`additional_fits_options` above). In the 
 returned dataset, the different slabs will be different fields, with the field 
 names taken from the keys in ``slab_centers``. The WCS coordinates on the 
