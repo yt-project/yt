@@ -118,6 +118,9 @@ answer_tests:
   local_particle_trajectory_000:
     - yt/data_objects/tests/test_particle_trajectories.py
 
+  local_light_cone_001:
+    - yt/analysis_modules/cosmological_observation/light_cone/tests/test_light_cone.py
+
 other_tests:
   unittests:
      - '--exclude=test_mesh_slices'  # disable randomly failing test
