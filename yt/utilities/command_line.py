@@ -935,7 +935,7 @@ class YTPlotCmd(YTCommand):
                 plt.annotate_grids()
             if args.time:
                 plt.annotate_timestamp()
-            if args.scale:
+            if args.show_scale_bar:
                 plt.annotate_scale()
 
             if args.field_unit:
