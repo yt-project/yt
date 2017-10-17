@@ -19,12 +19,20 @@ class FITSFieldInfo(FieldInfoContainer):
     def __init__(self, ds, field_list, slice_info=None):
         super(FITSFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
         for field in ds.field_list:
-            if field[0] == "fits": self[field].take_log = False
+            if field[0] == "fits": 
+                self[field].take_log = False
 
-    def _setup_spec_cube_fields(self):
+class WCSFITSFieldInfo(FITSFieldInfo):
+
+    def setup_fluid_fields(self):
+        wcs_2d = getattr(self.ds, "wcs_2d", self.ds.wcs)
+
+        def _pixel(field, data):
+            return data.ds.arr(data["ones"], "pixel")
+        self.add_field(("fits", "pixel"), sampling_type="cell", function=_pixel, units="pixel")
 
         def _get_2d_wcs(data, axis):
-            w_coords = data.ds.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
+            w_coords = wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
             return w_coords[axis]
 
         def world_f(axis, unit):
@@ -33,11 +41,14 @@ class FITSFieldInfo(FieldInfoContainer):
             return _world_f
 
         for (i, axis), name in zip(enumerate([self.ds.lon_axis, self.ds.lat_axis]),
-                                             [self.ds.lon_name, self.ds.lat_name]):
-            unit = str(self.ds.wcs_2d.wcs.cunit[i])
-            if unit.lower() == "deg": unit = "degree"
-            if unit.lower() == "rad": unit = "radian"
-            self.add_field(("fits",name), sampling_type="cell",  function=world_f(axis, unit), units=unit)
+                                   [self.ds.lon_name, self.ds.lat_name]):
+            unit = str(wcs_2d.wcs.cunit[i])
+            if unit.lower() == "deg":
+                unit = "degree"
+            if unit.lower() == "rad":
+                unit = "radian"
+            self.add_field(("fits",name), sampling_type="cell", 
+                           function=world_f(axis, unit), units=unit)
 
         if self.ds.dimensionality == 3:
             def _spec(field, data):
@@ -46,12 +57,3 @@ class FITSFieldInfo(FieldInfoContainer):
                 return data.ds.arr(sp, data.ds.spec_unit)
             self.add_field(("fits","spectral"), sampling_type="cell",  function=_spec,
                            units=self.ds.spec_unit, display_name=self.ds.spec_name)
-
-    def setup_fluid_fields(self):
-
-        if self.ds.spec_cube:
-            def _pixel(field, data):
-                return data.ds.arr(data["ones"], "pixel")
-            self.add_field(("fits","pixel"), sampling_type="cell",  function=_pixel, units="pixel")
-            self._setup_spec_cube_fields()
-            return
