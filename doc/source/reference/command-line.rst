@@ -116,7 +116,7 @@ well.  Now let's see what the domain looks like with grids overlaid, using the
 
 We can now see all the grids in the field of view. If you want to
 annotate your plot with a scale bar, you can use the
-``--scale-scale-bar`` option:
+``--show-scale-bar`` option:
 
 .. code-block:: bash
 
