@@ -140,9 +140,13 @@ class FixedResolutionBuffer(object):
         # FIXME FIXME FIXME we shouldn't need to do this for projections
         # but that will require fixing data object access for particle
         # projections
-        if hasattr(self.data_source, '_projected_units'):
-            units = self.data_source._projected_units[item]
-        else:
+        try:
+            if hasattr(item, 'name'):
+                it = item.name
+            else:
+                it = item
+            units = self.data_source._projected_units[it]
+        except (KeyError, AttributeError):
             units = self.data_source[item].units
 
         ia = ImageArray(buff, input_units=units, info=self._get_info(item))
