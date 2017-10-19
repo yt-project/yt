@@ -67,7 +67,7 @@ install:
     # Install dependencies
     pip install mock $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON nose flake8 nose-timer
     # HACK, FIXME BEFORE MERGING
-    pip install https://bitbucket.org/langmm/cykdtree/get/tip.zip
+    pip install https://github.com/cykdtree/cykdtree/archive/master.zip
     # install yt
     pip install -e .
 
