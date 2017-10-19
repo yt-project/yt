@@ -137,8 +137,15 @@ class FixedResolutionBuffer(object):
         for name, (args, kwargs) in self._filters:
             buff = filter_registry[name](*args[1:], **kwargs).apply(buff)
 
-        ia = ImageArray(buff, input_units=self.data_source[item].units,
-                        info=self._get_info(item))
+        # FIXME FIXME FIXME we shouldn't need to do this for projections
+        # but that will require fixing data object access for particle
+        # projections
+        if hasattr(self.data_source, '_projected_units'):
+            units = self.data_source._projected_units[item]
+        else:
+            units = self.data_source[item].units
+
+        ia = ImageArray(buff, input_units=units, info=self._get_info(item))
         self.data[item] = ia
         return self.data[item]
 

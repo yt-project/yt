@@ -40,6 +40,7 @@ class ParticleIndex(Index):
         self.dataset = weakref.proxy(ds)
         self.float_type = np.float64
         super(ParticleIndex, self).__init__(ds, dataset_type)
+        self._initialize_index()
 
     def _setup_geometry(self):
         self.regions = None
@@ -214,8 +215,6 @@ class ParticleIndex(Index):
         ds.particle_types_raw = ds.particle_types
 
     def _identify_base_chunk(self, dobj):
-        if self.regions is None:
-            self._initialize_index()
         # Must check that chunk_info contains the right number of ghost zones
         if getattr(dobj, "_chunk_info", None) is None:
             if isinstance(dobj, ParticleContainer):

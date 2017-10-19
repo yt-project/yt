@@ -218,19 +218,6 @@ class YTProj(YTSelectionContainer2D):
         return [k for k in self.field_data.keys() if k not in
                 self._container_fields]
 
-    def _get_tree(self, nvals):
-        xax = self.ds.coordinates.x_axis[self.axis]
-        yax = self.ds.coordinates.y_axis[self.axis]
-        xd = self.ds.domain_dimensions[xax]
-        yd = self.ds.domain_dimensions[yax]
-        bounds = (self.ds.domain_left_edge[xax],
-                  self.ds.domain_right_edge[xax],
-                  self.ds.domain_left_edge[yax],
-                  self.ds.domain_right_edge[yax])
-        return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
-                        bounds, method = self.method)
-
-
     def get_data(self, fields = None):
         fields = fields or []
         fields = self._determine_fields(ensure_list(fields))
@@ -248,8 +235,6 @@ class YTProj(YTSelectionContainer2D):
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           [], "io", local_only = True)):
-                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
-                            chunk.ires.size, get_memory_usage()/1024.)
                 if _units_initialized is False:
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
@@ -341,6 +326,8 @@ class YTProj(YTSelectionContainer2D):
 
     def _initialize_projected_units(self, fields, chunk):
         for field in self.data_source._determine_fields(fields):
+            if field in self._projected_units:
+                continue
             finfo = self.ds._get_field_info(*field)
             if finfo.units is None:
                 # First time calling a units="auto" field, infer units and cache
@@ -379,6 +366,13 @@ class YTKDTreeProj(YTProj):
 
         # ensure the dataset has a kdtree built
         ds.index.kdtree
+
+    def _get_tree(self, nvals):
+        return self.ds.index.kdtree
+
+    def _handle_chunk(self, chunk, fields, tree):
+        raise NotImplementedError("Particle projections have not yet been "
+                                  "implemented")
 
 
 class YTQuadTreeProj(YTProj):
@@ -482,6 +476,18 @@ class YTQuadTreeProj(YTProj):
             return
         self._mrep.store(self.ds.parameter_filename + '.yt')
 
+    def _get_tree(self, nvals):
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        xd = self.ds.domain_dimensions[xax]
+        yd = self.ds.domain_dimensions[yax]
+        bounds = (self.ds.domain_left_edge[xax],
+                  self.ds.domain_right_edge[xax],
+                  self.ds.domain_left_edge[yax],
+                  self.ds.domain_right_edge[yax])
+        return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
+                        bounds, method = self.method)
+
     def _initialize_chunk(self, chunk, tree):
         icoords = chunk.icoords
         xax = self.ds.coordinates.x_axis[self.axis]
@@ -492,6 +498,8 @@ class YTQuadTreeProj(YTProj):
         tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
+        mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
+                    chunk.ires.size, get_memory_usage()/1024.)
         if self.method == "mip" or self._sum_only:
             dl = self.ds.quan(1.0, "")
         else:

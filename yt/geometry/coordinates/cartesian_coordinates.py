@@ -238,7 +238,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         from yt.data_objects.selection_data_containers import \
             YTSlice
         from yt.data_objects.construction_data_containers import \
-            YTQuadTreeProj
+            YTKDTreeProj
         # We should be using fcoords
         field = data_source._determine_fields(field)[0]
         period = self.period[:2].copy() # dummy here
@@ -267,7 +267,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             ounits = data_source.ds.field_info[field].output_units
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
             py_name = 'particle_position_%s' % self.axis_name[self.y_axis[dim]]
-            if isinstance(data_source, YTQuadTreeProj):
+            if isinstance(data_source, YTKDTreeProj):
                 le = data_source.data_source.left_edge.in_units('code_length')
                 re = data_source.data_source.right_edge.in_units('code_length')
                 le[self.x_axis[dim]] = bounds[0]
@@ -282,6 +282,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     bounds, 'code_length').in_units('cm').tolist()
                 buff = np.zeros(size, dtype='float64')
                 for chunk in proj_reg.chunks([], 'io'):
+                    data_source._initialize_projected_units([field], chunk)
                     pixelize_sph_kernel_projection(
                         buff,
                         chunk[ptype, px_name].in_units('cm'),
