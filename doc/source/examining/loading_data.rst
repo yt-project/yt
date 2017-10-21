@@ -684,16 +684,8 @@ can read FITS image files that have the following (case-insensitive) suffixes:
 * fits.gz
 * fts.gz
 
-yt can read two kinds of FITS files: FITS image files and FITS binary table files containing
-positions, times, and energies of X-ray events.
-
-.. note::
-
-  AstroPy is necessary due to the requirements of both FITS file reading and
-  WCS coordinates. Since new releases of `PyFITS <http://www.stsci
-  .edu/institute/software_hardware/pyfits>`_ are to be discontinued, individual
-  installations of this package and the `PyWCS <http://stsdas.stsci
-  .edu/astrolib/pywcs/>`_ package are not supported.
+yt can currently read two kinds of FITS files: FITS image files and FITS 
+binary table files containing positions, times, and energies of X-ray events.
 
 Though a FITS image is composed of a single array in the FITS file,
 upon being loaded into yt it is automatically decomposed into grids:
@@ -768,14 +760,47 @@ the following dataset types:
 If your data is of the first case, yt will determine the length units based
 on the information in the header. If your data is of the second or third
 cases, no length units will be assigned, but the world coordinate information
-about the axes will be stored in separate fields. If your data is of the fourth
-type, the coordinates of the first three axes will be determined according to
-cases 1-3.
+about the axes will be stored in separate fields. If your data is of the 
+fourth type, the coordinates of the first three axes will be determined 
+according to cases 1-3.
 
 .. note::
 
-  Linear length-based coordinates (Case 1 above) are only supported if all dimensions
-  have the same value for ``CUNITx``. WCS coordinates are only supported for Cases 2-4.
+  Linear length-based coordinates (Case 1 above) are only supported if all 
+  dimensions have the same value for ``CUNITx``. WCS coordinates are only 
+  supported for Cases 2-4.
+
+FITS Data Decomposition
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Though a FITS image is composed of a single array in the FITS file,
+upon being loaded into yt it is automatically decomposed into grids:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("m33_hi.fits")
+   ds.print_stats()
+
+.. parsed-literal::
+
+   level  # grids         # cells     # cells^3
+   ----------------------------------------------
+     0	     512	  981940800       994
+   ----------------------------------------------
+             512	  981940800
+
+For 3D spectral-cube data, the decomposition into grids will be done along the
+spectral axis since this will speed up many common operations for this 
+particular type of dataset. 
+
+yt will generate its own domain decomposition, but the number of grids can be
+set manually by passing the ``nprocs`` parameter to the ``load`` call:
+
+.. code-block:: python
+
+   ds = load("m33_hi.fits", nprocs=64)
+
 
 Fields in FITS Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -805,10 +830,11 @@ based on the corresponding ``CTYPEx`` keywords. When queried, these fields
 will be generated from the pixel coordinates in the file using the WCS
 transformations provided by AstroPy.
 
-X-ray event data will be loaded as particle fields in yt, but a grid will be constructed from the
-WCS information in the FITS header. There is a helper function, ``setup_counts_fields``,
-which may be used to make deposited image fields from the event data for different energy bands
-(for an example see :ref:`xray_fits`).
+X-ray event data will be loaded as particle fields in yt, but a grid will be 
+constructed from the WCS information in the FITS header. There is a helper 
+function, ``setup_counts_fields``, which may be used to make deposited image 
+fields from the event data for different energy bands (for an example see 
+:ref:`xray_fits`).
 
 .. note::
 
@@ -822,8 +848,8 @@ which may be used to make deposited image fields from the event data for differe
 Additional Options
 ^^^^^^^^^^^^^^^^^^
 
-The following are additional options that may be passed to the ``load`` command when analyzing
-FITS data:
+The following are additional options that may be passed to the ``load`` command 
+when analyzing FITS data:
 
 ``nan_mask``
 """"""""""""
@@ -848,12 +874,6 @@ Generally, AstroPy may generate a lot of warnings about individual FITS
 files, many of which you may want to ignore. If you want to see these
 warnings, set ``suppress_astropy_warnings = False``.
 
-``z_axis_decomp``
-"""""""""""""""""
-
-For some applications, decomposing 3D FITS data into grids that span the x-y plane with short
-strides along the z-axis may result in a significant improvement in I/O speed. To enable this feature, set ``z_axis_decomp=True``.
-
 ``spectral_factor``
 """""""""""""""""""
 
@@ -868,8 +888,10 @@ plane.
 Miscellaneous Tools for Use with FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A number of tools have been prepared for use with FITS data that enhance yt's visualization and
-analysis capabilities for this particular type of data. These are included in the ``yt.frontends.fits.misc`` module, and can be imported like so:
+A number of tools have been prepared for use with FITS data that enhance yt's 
+visualization and analysis capabilities for this particular type of data. These 
+are included in the ``yt.frontends.fits.misc`` module, and can be imported like 
+so:
 
 .. code-block:: python
 
@@ -878,7 +900,8 @@ analysis capabilities for this particular type of data. These are included in th
 ``setup_counts_fields``
 """""""""""""""""""""""
 
-This function can be used to create image fields from X-ray counts data in different energy bands:
+This function can be used to create image fields from X-ray counts data in 
+different energy bands:
 
 .. code-block:: python
 
@@ -888,13 +911,13 @@ This function can be used to create image fields from X-ray counts data in diffe
 which would make two fields, ``"counts_0.1-2.0"`` and ``"counts_2.0-5.0"``,
 and add them to the field registry for the dataset ``ds``.
 
-
 ``ds9_region``
 """"""""""""""
 
-This function takes a `ds9 <http://ds9.si.edu/site/Home.html>`_ region and creates a "cut region"
-data container from it, that can be used to select the cells in the FITS dataset that fall within
-the region. To use this functionality, the `pyregion <https://github.com/astropy/pyregion/>`_
+This function takes a `ds9 <http://ds9.si.edu/site/Home.html>`_ region and 
+creates a "cut region" data container from it, that can be used to select 
+the cells in the FITS dataset that fall within the region. To use this 
+functionality, the `pyregion <https://github.com/astropy/pyregion/>`_
 package must be installed.
 
 .. code-block:: python
@@ -907,9 +930,9 @@ package must be installed.
 ``PlotWindowWCS``
 """""""""""""""""
 
-This class takes a on-axis ``SlicePlot`` or ``ProjectionPlot`` of FITS data and adds celestial
-coordinates to the plot axes. To use it, the `WCSAxes <http://wcsaxes.readthedocs.org>`_
-package must be installed.
+This class takes a on-axis ``SlicePlot`` or ``ProjectionPlot`` of FITS 
+data and adds celestial coordinates to the plot axes. To use it, a 
+version of AstroPy >= 1.3 must be installed.
 
 .. code-block:: python
 
@@ -917,21 +940,23 @@ package must be installed.
   wcs_slc.show() # for the IPython notebook
   wcs_slc.save()
 
-``WCSAxes`` is still in an experimental state, but as its functionality improves it will be
-utilized more here.
+``WCSAxes`` is still in an experimental state, but as its functionality 
+improves it will be utilized more here.
 
 ``create_spectral_slabs``
 """""""""""""""""""""""""
 
 .. note::
 
-  The following functionality requires the `spectral-cube <http://spectral-cube.readthedocs.org>`_
-  library to be installed.
+  The following functionality requires the 
+  `spectral-cube <http://spectral-cube.readthedocs.org>`_ library to be 
+  installed.
 
-If you have a spectral intensity dataset of some sort, and would like to extract emission in
-particular slabs along the spectral axis of a certain width, ``create_spectral_slabs`` can be
-used to generate a dataset with these slabs as different fields. In this example, we use it
-to extract individual lines from an intensity cube:
+If you have a spectral intensity dataset of some sort, and would like to
+extract emission in particular slabs along the spectral axis of a certain 
+width, ``create_spectral_slabs`` can be used to generate a dataset with 
+these slabs as different fields. In this example, we use it to extract 
+individual lines from an intensity cube:
 
 .. code-block:: python
 
@@ -943,11 +968,13 @@ to extract individual lines from an intensity cube:
                                     slab_centers, slab_width,
                                     nan_mask=0.0)
 
-All keyword arguments to `create_spectral_slabs` are passed on to `load` when creating the dataset
-(see :ref:`additional_fits_options` above). In the returned dataset, the different slabs will be
-different fields, with the field names taken from the keys in ``slab_centers``. The WCS coordinates
-on the spectral axis are reset so that the center of the domain along this axis is zero, and the
-left and right edges of the domain along this axis are :math:`\pm` ``0.5*slab_width``.
+All keyword arguments to ``create_spectral_slabs`` are passed on to ``load`` when 
+creating the dataset (see :ref:`additional_fits_options` above). In the 
+returned dataset, the different slabs will be different fields, with the field 
+names taken from the keys in ``slab_centers``. The WCS coordinates on the 
+spectral axis are reset so that the center of the domain along this axis is 
+zero, and the left and right edges of the domain along this axis are 
+:math:`\pm` ``0.5*slab_width``.
 
 Examples of Using FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1988,12 +2015,20 @@ particle fields by supplying the ``extra_particle_fields``:
 
 yt supports outputs made by the mainline ``RAMSES`` code as well as the
 ``RAMSES-RT`` fork. Files produces by ``RAMSES-RT`` are recognized as such
-based on the presence of a ``into_rt_*.txt`` file in the output directory.
+based on the presence of a ``info_rt_*.txt`` file in the output directory.
 
 It is possible to force yt to treat the simulation as a cosmological
 simulation by providing the ``cosmological=True`` parameter (or
 ``False`` to force non-cosmology). If left to ``None``, the kind of
 the simulation is inferred from the data.
+
+yt also support outputs that include sinks (RAMSES' name for black
+holes) when the folder contains files like ``sink_XXXXX.outYYYYY``.
+
+Note: for backward compatibility, particles from the
+``particle_XXXXX.outYYYYY`` files have the particle type ``io`` by
+default (including dark matter, stars, tracer particles, …). Sink
+particles have the particle type ``sink``.
 
 .. _loading-sph-data:
 

@@ -122,6 +122,18 @@ class astropy_imports(object):
             self._time = time
         return self._time
 
+    _wcsaxes = None
+    @property
+    def wcsaxes(self):
+        if self._wcsaxes is None:
+            try:
+                import astropy.visualization.wcsaxes as wcsaxes
+                self.log
+            except ImportError:
+                wcsaxes = NotAModule(self._name)
+            self._wcsaxes = wcsaxes
+        return self._wcsaxes
+
 _astropy = astropy_imports()
 
 class scipy_imports(object):

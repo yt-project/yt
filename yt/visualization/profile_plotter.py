@@ -513,10 +513,11 @@ class ProfilePlot(object):
         new_unit : string or Unit object
            The name of the new unit.
         """
+        fd = self.profiles[0].data_source._determine_fields(field)[0]
         for profile in self.profiles:
-            if field == profile.x_field[1]:
+            if fd == profile.x_field:
                 profile.set_x_unit(unit)
-            elif field in self.profiles[0].field_map:
+            elif fd[1] in self.profiles[0].field_map:
                 profile.set_field_unit(field, unit)
             else:
                 raise KeyError("Field %s not in profile plot!" % (field))
@@ -1235,12 +1236,12 @@ class PhasePlot(ImagePlotContainer):
         new_unit : string or Unit object
            The name of the new unit.
         """
-        fields = [fd[1] for fd in self.profile.field_data]
-        if field == self.profile.x_field[1]:
+        fd = self.data_source._determine_fields(field)[0]
+        if fd == self.profile.x_field:
             self.profile.set_x_unit(unit)
-        elif field == self.profile.y_field[1]:
+        elif fd == self.profile.y_field:
             self.profile.set_y_unit(unit)
-        elif field in fields:
+        elif fd in self.profile.field_data.keys():
             self.profile.set_field_unit(field, unit)
             self.plots[field].zmin, self.plots[field].zmax = (None, None)
         else:
