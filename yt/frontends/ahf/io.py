@@ -78,7 +78,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
             return morton
         ind = 0
         pos = np.empty((pcount, 3), dtype='float64')
-        pos = data_file.ds.arr(pos, 'code_length')
+        pos = data_file.ds.arr(pos, ('code_length',)*3)
         dx = np.finfo(halos['Xc'].dtype).eps
         dx = 2.0 * self.ds.quan(dx, 'code_length')
         pos[:, 0] = halos['Xc']
