@@ -180,17 +180,18 @@ def read_embree_location():
         exit_code = p.returncode
 
         if exit_code != 0:
-            print("Pyembree is installed, but I could not compile Embree test code.")
-            print("The error message was: ")
-            print(err)
-            print(fail_msg)
+            log.warn("Pyembree is installed, but I could not compile Embree "
+                     "test code.")
+            log.warn("The error message was: ")
+            log.warn(err)
+            log.warn(fail_msg)
 
         # Clean up
         file.close()
 
     except OSError:
-        print("read_embree_location() could not find your C compiler. "
-              "Attempted to use '%s'. " % compiler)
+        log.warn("read_embree_location() could not find your C compiler. "
+                 "Attempted to use '%s'. " % compiler)
         return False
 
     finally:
