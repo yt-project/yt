@@ -52,7 +52,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         parameter. Default: 10.
     length_range : Float
         A min/max pair for the range of values to search the over
-        the simulational volume. Default: [sqrt(3)dx, 1/2*shortest box edge],
+        the simulated volume. Default: [sqrt(3)dx, 1/2*shortest box edge],
         where dx is the smallest grid cell size.
     vol_ratio : Integer
         How to multiply-assign subvolumes to the parallel

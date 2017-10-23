@@ -1332,7 +1332,7 @@ that to a colorbar. For instance:
 
 will create a plot with the particle mass used to set the colorbar.
 Specifically, :class:`~yt.visualization.particle_plots.ParticlePlot`
-shows the total ``z_field`` for all the partices in each pixel on the
+shows the total ``z_field`` for all the particles in each pixel on the
 colorbar axis; to plot average quantities instead, one can supply a
 ``weight_field`` argument.
 
@@ -1453,7 +1453,7 @@ pixel, instead of the total:
 Under the hood, the :class:`~yt.data_objects.profiles.ParticleProfile` class works a lot like a
 :class:`~yt.data_objects.profiles.Profile2D` object, except that instead of just binning the
 particle field, you can also use higher-order deposition functions like the cloud-in-cell
-interpolant to spread out the particle quantites over a few cells in the profile. The
+interpolant to spread out the particle quantities over a few cells in the profile. The
 :func:`~yt.data_objects.profiles.create_profile` will automatically detect when all the fields
 you pass in are particle fields, and return a :class:`~yt.data_objects.profiles.ParticleProfile`
 if that is the case. For a complete description of the :class:`~yt.data_objects.profiles.ParticleProfile`
@@ -1591,7 +1591,7 @@ more information, see :ref:`saving_data`.
    fn = p.data_source.save_as_dataset()
 
 This function will optionally take a ``filename`` keyword that follows
-the same logic as dicussed above in :ref:`saving_plots`.  The filename
+the same logic as discussed above in :ref:`saving_plots`.  The filename
 to which the dataset was written will be returned.
 
 Once saved, this file can be reloaded completely independently of the

@@ -87,7 +87,7 @@ provided EMBREE_DIR is not set. An example embree.cfg file could like this:
 
 We recommend one of the later two methods, especially
 if you plan on re-compiling the cython extensions regularly. Note that none of this is
-neccessary if you installed embree into a location that is in your default path, such
+necessary if you installed embree into a location that is in your default path, such
 as /usr/local.
 
 Examples

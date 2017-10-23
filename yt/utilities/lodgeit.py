@@ -5,7 +5,7 @@
     ~~~~~~~~
 
     A script that pastes stuff into the enzotools pastebin on
-    paste.enztools.org.
+    paste.enzotools.org.
 
     Modified (very, very slightly) from the original script by the authors
     below.

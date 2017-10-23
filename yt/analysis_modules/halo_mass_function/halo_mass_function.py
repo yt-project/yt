@@ -25,13 +25,13 @@ from yt.utilities.physical_ratios import \
 
 class HaloMassFcn():
     r"""
-    Initalize a HaloMassFcn object to analyze the distribution of halos as 
+    Initialize a HaloMassFcn object to analyze the distribution of halos as 
     a function of mass.  A mass function can be created for a set of 
     simulated halos, an analytic fit to can be created for a redshift and 
     set of cosmological parameters, or both can be created.
 
     Provided with a halo dataset object, this will make a the mass function 
-    for simulated halos.  Prodiving a simulation dataset will set as many 
+    for simulated halos.  Providing a simulation dataset will set as many 
     of the cosmological parameters as possible for the creation of the 
     analytic mass function.
 
@@ -56,12 +56,12 @@ class HaloMassFcn():
     will write out the data to disk.
 
     Creating a HaloMassFcn object with no arguments will produce an analytic
-    mass function at redshift = 0 using default cosmolocigal values.
+    mass function at redshift = 0 using default cosmological values.
 
     Parameters
     ----------
     simulation_ds : Simulation dataset object
-        The loaded simulation dataset, used to set cosmological paramters.
+        The loaded simulation dataset, used to set cosmological parameters.
         Default : None.
     halos_ds : Halo dataset object
         The halos from a simulation to be used for creation of the 
@@ -80,7 +80,7 @@ class HaloMassFcn():
         Default : 0.7274.
     omega_baryon0  : float 
         The fraction of the universe made up of baryonic matter. This is not 
-        always stored in the datset and should be checked by hand.
+        always stored in the dataset and should be checked by hand.
         Default : 0.0456.
     hubble0 : float 
         The expansion rate of the universe in units of 100 km/s/Mpc. 
@@ -88,13 +88,13 @@ class HaloMassFcn():
     sigma8 : float 
         The amplitude of the linear power spectrum at z=0 as specified by 
         the rms amplitude of mass-fluctuations in a top-hat sphere of radius 
-        8 Mpc/h. This is not always stored in the datset and should be 
+        8 Mpc/h. This is not always stored in the dataset and should be 
         checked by hand.
         Default : 0.86.
     primoridal_index : float 
         This is the index of the mass power spectrum before modification by 
         the transfer function. A value of 1 corresponds to the scale-free 
-        primordial spectrum. This is not always stored in the datset and 
+        primordial spectrum. This is not always stored in the dataset and 
         should be checked by hand.
         Default : 1.0.
     this_redshift : float 
@@ -135,7 +135,7 @@ class HaloMassFcn():
     >>> plt.savefig("mass_function.png")
 
     This creates only the analytic halo mass function for a simulation
-    dataset, with default values for cosmological paramters not stored in 
+    dataset, with default values for cosmological parameters not stored in 
     the dataset.
 
     >>> ds = load("enzo_tiny_cosmology/DD0046/DD0046")
@@ -240,7 +240,7 @@ class HaloMassFcn():
         If a halo file has been supplied, make a mass function for the simulated halos.
         """
         if halos_ds is not None:
-            # Used to check if a simulated halo mass funciton exists to write out
+            # Used to check if a simulated halo mass function exists to write out
             self.make_simulated=True
             # Calculate the simulated halo mass function
             self.create_sim_hmf()
@@ -622,7 +622,7 @@ You should call the former once (per cosmology) and the latter as
 many times as you want. 
 
    TFmdm_set_cosm() -- User passes all the cosmological parameters as
-   arguments; the routine sets up all of the scalar quantites needed 
+   arguments; the routine sets up all of the scalar quantities needed 
    computation of the fitting formula.  The input parameters are: 
    1) omega_matter -- Density of CDM, baryons, and massive neutrinos,
                       in units of the critical density. 

@@ -141,7 +141,7 @@ def validate_mesh_fields(data_source, fields):
 
 class PlotWindow(ImagePlotContainer):
     r"""
-    A ploting mechanism based around the concept of a window into a
+    A plotting mechanism based around the concept of a window into a
     data source. It can have arbitrary fields, each of which will be
     centered on the same viewpoint, but will have individual zlimits.
 
@@ -376,7 +376,7 @@ class PlotWindow(ImagePlotContainer):
         equivalency : string, optional
            If set, the equivalency to use to convert the current units to
            the new requested unit. If None, the unit conversion will be done
-           without an equivelancy
+           without an equivalency
 
         equivalency_kwargs : string, optional
            Keyword arguments to be passed to the equivalency. Only used if
@@ -733,7 +733,7 @@ class PWViewerMPL(PlotWindow):
         y_in_bounds = yc >= yllim and yc <= yrlim
 
         if not x_in_bounds and not y_in_bounds:
-            msg = ('orgin inputs not in bounds of specified coordinate sytem' +
+            msg = ('origin inputs not in bounds of specified coordinate sytem' +
                    'domain.')
             msg = msg.format(self.origin)
             raise RuntimeError(msg)
@@ -1800,7 +1800,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
         This specifies the normal vector to the slice.  If given as an integer
         or a coordinate string (0=x, 1=y, 2=z), this function will return an
         :class:`AxisAlignedSlicePlot` object.  If given as a sequence of floats,
-        this is interpretted as an off-axis vector and an
+        this is interpreted as an off-axis vector and an
         :class:`OffAxisSlicePlot` object is returned.
     fields : string
          The name of the field(s) to be plotted.

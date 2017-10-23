@@ -302,7 +302,7 @@ class PlotContainer(object):
         return self
 
     def _setup_plots(self):
-        # Left blank to be overriden in subclasses
+        # Left blank to be overridden in subclasses
         pass
 
     def _initialize_dataset(self, ts):

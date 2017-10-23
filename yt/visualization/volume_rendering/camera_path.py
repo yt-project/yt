@@ -44,7 +44,7 @@ class Keyframes(object):
         niter : integer, optional
             Maximum number of iterations to find solution. Default: 50000
         init_temp : float, optional
-            Intital temperature for simulated annealing when finding a
+            Initial temperature for simulated annealing when finding a
             solution.  Lower initial temperatures result in an initial solution
             in first several iterations that changes more rapidly. Default: 10.0
         alpha : float, optional
@@ -109,7 +109,7 @@ class Keyframes(object):
         niter : integer, optional
             Maximum number of iterations to find solution. Default: 50000
         init_temp : float, optional
-            Intital temperature for simulated annealing when finding a
+            Initial temperature for simulated annealing when finding a
             solution.  Lower initial temperatures result in an initial solution
             in first several iterations that changes more rapidly. Default: 10.0
         alpha : float, optional
@@ -138,7 +138,7 @@ class Keyframes(object):
         
     def rand_seq(self):
         r"""
-        Generates values in random order, equivlanet to using shuffle
+        Generates values in random order, equivalent to using shuffle
         in random without generation all values at once.
         """
         values = range(self.nframes)

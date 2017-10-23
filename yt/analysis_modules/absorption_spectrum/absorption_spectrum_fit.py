@@ -872,7 +872,7 @@ def _check_optimization_init(p,speciesDict,initz,xb,yDat,yFit,minSize,errorBound
 
     """
     Check to see if any of the parameters in p are the
-    same as initial paramters and if so, attempt to
+    same as initial parameters and if so, attempt to
     split the region and refit it.
 
     Parameters
