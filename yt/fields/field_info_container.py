@@ -88,7 +88,15 @@ class FieldInfoContainer(dict):
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
         skip_output_units = ("code_length")
-        for f, (units, aliases, dn) in sorted(self.known_particle_fields):
+        for field in sorted(self.known_particle_fields):
+            # we can now also specify the default logging behaviour for
+            # known output fields as the fourth argument. Note that this is
+            # optional for backwards compatibility - thus the try / except block
+            try:
+                f, (units, aliases, dn) = field
+                take_log = True
+            except ValueError:
+                f, (units, aliases, dn, take_log) = field
             units = self.ds.field_units.get((ptype, f), units)
             output_units = units
             if (f in aliases or ptype not in self.ds.particle_types_raw) and \
@@ -99,8 +107,8 @@ class FieldInfoContainer(dict):
             if (ptype, f) not in self.field_list:
                 continue
             self.add_output_field((ptype, f), sampling_type="particle",
-                units = units, display_name = dn, 
-                output_units = output_units)
+                                  units=units, display_name=dn,
+                                  output_units=output_units, take_log=take_log)
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f), units = output_units)
 
@@ -182,7 +190,14 @@ class FieldInfoContainer(dict):
                 continue
             args = known_other_fields.get(
                 field[1], ("", [], None))
-            units, aliases, display_name = args
+            # we can now also specify the default logging behaviour for
+            # known output fields as the fourth argument. Note that this is
+            # optional for backwards compatibility - thus the try / except block
+            try:
+                units, aliases, display_name = args
+                take_log = True
+            except ValueError:
+                units, aliases, display_name, take_log = args
             # We allow field_units to override this.  First we check if the
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
@@ -196,8 +211,8 @@ class FieldInfoContainer(dict):
                 units = ""
             elif units == 1.0:
                 units = ""
-            self.add_output_field(field, sampling_type="cell", units = units,
-                                  display_name = display_name)
+            self.add_output_field(field, sampling_type="cell", units=units,
+                                  display_name=display_name, take_log=take_log)
             for alias in aliases:
                 self.alias(("gas", alias), field)
 
