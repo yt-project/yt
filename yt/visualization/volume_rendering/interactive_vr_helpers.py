@@ -19,7 +19,7 @@ from yt.data_objects.static_output import Dataset
 from yt.utilities.exceptions import YTSceneFieldNotFound
 
 def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
-                   cam_focus=None):
+                   cam_focus=None, take_log=None):
     '''High level wrapper for Interactive Data Visualization
     
     Parameters
@@ -41,6 +41,8 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     cam_focus: 3 element YTArray, optional
         The focus defines the point the camera is pointed at. If unspecified,
         data_source's domain center will be used.
+    take_log: bool, optional
+        Whether or not to take the log of the input field before rendering.
 
     Examples
     --------
@@ -86,7 +88,7 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     rc = RenderingContext(*window_size)
 
     if hasattr(dobj.ds.index, "meshes"):
-        scene = MeshSceneComponent(dobj, field)
+        scene = MeshSceneComponent(dobj, field, take_log)
     else:
         scene = SceneGraph()
         collection = BlockCollection()
