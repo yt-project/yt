@@ -158,6 +158,7 @@ class RenderingContext(object):
         callbacks.add_key_callback("shader_proj", "2")
         callbacks.add_key_callback("shader_test", "3")
         callbacks.add_key_callback("print_limits", "g")
+        callbacks.add_key_callback("print_camera", "x")
         callbacks.add_key_callback("print_help", "h")
         callbacks.add_key_callback("debug_buffer", "d")
         callbacks.add_key_callback("cmap_max_up", "right_bracket")
