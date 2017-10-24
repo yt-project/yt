@@ -288,6 +288,10 @@ class Dataset(object):
         # path stuff
         self.parameter_filename = str(filename)
         self.basename = os.path.basename(filename)
+        if (    (self.basename == "")
+                and (len(filename) > 0)
+                and (filename[-1] == "/")):
+            self.basename = os.path.basename(filename[:-1])
         self.directory = os.path.expanduser(os.path.dirname(filename))
         self.fullpath = os.path.abspath(self.directory)
         self.backup_filename = self.parameter_filename + '_backup.gdf'
