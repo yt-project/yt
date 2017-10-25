@@ -88,11 +88,11 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     rc = RenderingContext(*window_size)
 
     if hasattr(dobj.ds.index, "meshes"):
-        scene = MeshSceneComponent(dobj, field, take_log)
+        scene = MeshSceneComponent(dobj, field)
     else:
         scene = SceneGraph()
         collection = BlockCollection()
-        collection.add_data(dobj, field)
+        collection.add_data(dobj, field, take_log)
         scene.add_collection(collection)
 
     aspect_ratio = window_size[1] / window_size[0]
