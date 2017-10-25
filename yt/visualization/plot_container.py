@@ -328,7 +328,8 @@ class PlotContainer(object):
 
         # A _hack_ for ParticleProjectionPlots
         if name == 'Particle':
-            from yt.visualization.particle_plots import ParticleAxisAlignedDummyDataSource
+            from yt.visualization.particle_plots import \
+            ParticleAxisAlignedDummyDataSource
             new_object = ParticleAxisAlignedDummyDataSource(ds=self.ds, **kwargs)
         else:
             new_object = getattr(new_ds, name)(**kwargs)
