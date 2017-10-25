@@ -48,6 +48,7 @@ from yt.utilities.exceptions import \
 from yt.visualization.color_maps import \
     yt_colormaps
 
+
 def invalidate_data(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
@@ -322,10 +323,19 @@ class PlotContainer(object):
                 raise RuntimeError("The data_source keyword argument "
                                    "is only defined for projections.")
             kwargs['data_source'] = data_source
-        new_object = getattr(new_ds, name)(**kwargs)
+
         self.ds = new_ds
+
+        # A _hack_ for ParticleProjectionPlots
+        if name == 'Particle':
+            from yt.visualization.particle_plots import ParticleAxisAlignedDummyDataSource
+            new_object = ParticleAxisAlignedDummyDataSource(ds=self.ds, **kwargs)
+        else:
+            new_object = getattr(new_ds, name)(**kwargs)
+
         self.data_source = new_object
         self._data_valid = self._plot_valid = False
+
         for d in 'xyz':
             lim_name = d+'lim'
             if hasattr(self, lim_name):
