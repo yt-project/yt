@@ -652,6 +652,15 @@ class BlockCollection(SceneData):
             yield (vbo_i, self.texture_objects[vbo_i],
                    self.bitmap_objects[vbo_i])
 
+    def filter_callback(self, callback):
+        # This is not efficient.  It calls it once for each node in a grid.
+        # We do this the slow way because of the problem of ordering the way we
+        # iterate over the grids and nodes.  This can be fixed at some point.
+        for (g, node, (sl, dims, gi)) in self.data_source.tiles.slice_traverse():
+            new_bitmap = callback(g).astype("uint8")
+            vbo_i, _ = self.blocks[id(node.data)]
+            self.bitmap_objects[vbo_i].data = new_bitmap[sl]
+
     def _load_textures(self):
         for block_id in sorted(self.blocks):
             vbo_i, block = self.blocks[block_id]
