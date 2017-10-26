@@ -16,7 +16,7 @@ Interactive Data Visualization classes for Scene, Camera and BlockCollection
 
 import OpenGL.GL as GL
 import OpenGL.GLUT.freeglut as GLUT
-from collections import OrderedDict, namedtuple
+from collections import OrderedDict, namedtuple, defaultdict
 import matplotlib.cm as cm
 import matplotlib.font_manager
 from matplotlib.ft2font import FT2Font, LOAD_FORCE_AUTOHINT, LOAD_NO_HINTING, \
@@ -569,6 +569,8 @@ class BlockCollection(SceneData):
     bitmap_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
     blocks = traitlets.Dict(default_value = ())
     scale = traitlets.Bool(False)
+    blocks_by_grid = traitlets.Instance(defaultdict, (list,))
+    grids_by_block = traitlets.Dict(default_value = ())
 
     @traitlets.default("vertex_array")
     def _default_vertex_array(self):
@@ -617,6 +619,10 @@ class BlockCollection(SceneData):
             dx.append([dds.astype('f4') for _ in range(n)])
             le.append([block.LeftEdge.astype('f4') for _ in range(n)])
             re.append([block.RightEdge.astype('f4') for _ in range(n)])
+        for (g, node, (sl, dims, gi)) in self.data_source.tiles.slice_traverse():
+            block = node.data
+            self.blocks_by_grid[g.id - g._id_offset].append( (id(block), i ) )
+            self.grids_by_block[id(node.data)] = (g.id - g._id_offset, sl)
 
         if hasattr(self.min_val, "in_units"):
             self.min_val = self.min_val.d
@@ -656,10 +662,15 @@ class BlockCollection(SceneData):
         # This is not efficient.  It calls it once for each node in a grid.
         # We do this the slow way because of the problem of ordering the way we
         # iterate over the grids and nodes.  This can be fixed at some point.
-        for (g, node, (sl, dims, gi)) in self.data_source.tiles.slice_traverse():
-            new_bitmap = callback(g).astype("uint8")
-            vbo_i, _ = self.blocks[id(node.data)]
-            self.bitmap_objects[vbo_i].data = new_bitmap[sl]
+        for g_ind in self.blocks_by_grid:
+            blocks = self.blocks_by_grid[g_ind]
+            # Does this need an offset?
+            grid = self.data_source.index.grids[g_ind]
+            new_bitmap = callback(grid).astype("uint8")
+            for b_id, _ in blocks:
+                _, sl = self.grids_by_block[b_id]
+                vbo_i, _ = self.blocks[b_id]
+                self.bitmap_objects[vbo_i].data = new_bitmap[sl]
 
     def _load_textures(self):
         for block_id in sorted(self.blocks):
