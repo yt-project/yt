@@ -33,7 +33,10 @@ class InputHookGLFW:
         try:
             t = glfw.GetTime()
             while not context.input_is_ready():
-                next(self.rendering_context)
+                try:
+                    next(self.rendering_context)
+                except StopIteration:
+                    break
 
                 used_time = glfw.GetTime() - t
                 if 1:
