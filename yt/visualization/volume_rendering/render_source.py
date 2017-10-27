@@ -1240,7 +1240,6 @@ class CoordinateVectorSource(OpaqueSource):
             colors[2, 2] = 1.0  # z is blue
             colors[:, 3] = alpha
         self.colors = colors
-        self.color_stride = 2
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
@@ -1321,15 +1320,14 @@ class CoordinateVectorSource(OpaqueSource):
         py = py.astype('int64')
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors.astype('float64'),
-                   self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors.astype('float64'))
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
             zlines(empty, z, px[0, :], py[0, :], dz[0, :],
-                   self.colors.astype('float64'), self.color_stride)
+                   self.colors.astype('float64'))
             zlines(empty, z, px[1, :], py[1, :], dz[1, :],
-                   self.colors.astype('float64'), self.color_stride)
+                   self.colors.astype('float64'))
 
         # Set the new zbuffer
         self.zbuffer = zbuffer
