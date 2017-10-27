@@ -50,7 +50,7 @@ from .shader_objects import \
 from .opengl_support import \
     Texture, Texture1D, Texture2D, Texture3D, \
     VertexArray, VertexAttribute, ColormapTexture, \
-    Framebuffer, Texture3DIterator
+    Framebuffer, Texture3DIterator, TransferFunctionTexture
 from .input_events import \
     EventCollection
 from yt.data_objects.api import Dataset
@@ -693,15 +693,26 @@ class BlockRendering(SceneComponent):
     name = "block_rendering"
     data = traitlets.Instance(BlockCollection)
     box_width = traitlets.CFloat(0.1)
+    transfer_function = traitlets.Instance(TransferFunctionTexture)
+    tf_min = traitlets.CFloat(0.0)
+    tf_max = traitlets.CFloat(1.0)
+    tf_log = traitlets.Bool(True)
     default_shaders = ("default", "max_intensity",
                        "passthrough", "apply_colormap")
 
+    @traitlets.default("transfer_function")
+    def _default_transfer_function(self):
+        tf = TransferFunctionTexture(data = np.zeros((256, 4), dtype='f4'))
+        print(tf.channels)
+        return tf
+
     def draw(self, scene, program):
         each = self.data.vertex_array.each
-        for tex_ind, tex, bitmap_tex in self.data.viewpoint_iter(scene.camera):
-            with tex.bind(target = 0):
-                with bitmap_tex.bind(target = 1):
-                    GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
+        with self.transfer_function.bind(target = 2):
+            for tex_ind, tex, bitmap_tex in self.data.viewpoint_iter(scene.camera):
+                with tex.bind(target = 0):
+                    with bitmap_tex.bind(target = 1):
+                        GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
@@ -716,6 +727,10 @@ class BlockRendering(SceneComponent):
         shader_program._set_uniform("box_width", self.box_width)
         shader_program._set_uniform("ds_tex", 0)
         shader_program._set_uniform("bitmap_tex", 1)
+        shader_program._set_uniform("tf_tex", 2)
+        shader_program._set_uniform("tf_min", self.tf_min)
+        shader_program._set_uniform("tf_max", self.tf_max)
+        shader_program._set_uniform("tf_log", float(self.tf_log))
 
 class BoxData(SceneData):
     name = "box_data"

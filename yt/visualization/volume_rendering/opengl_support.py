@@ -225,6 +225,11 @@ class ColormapTexture(Texture1D):
         cmap_vals = np.array(cmap(np.linspace(0, 1, 256)), dtype="f4")
         self.data = cmap_vals
 
+class TransferFunctionTexture(Texture1D):
+    def __init__(self, *args, **kwargs):
+        kwargs['boundary_x'] = 'clamp'
+        super(TransferFunctionTexture, self).__init__(*args, **kwargs)
+
 class Texture2D(Texture):
     boundary_x = TextureBoundary()
     boundary_y = TextureBoundary()
