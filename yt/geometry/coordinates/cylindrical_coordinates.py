@@ -191,11 +191,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             display_center[theta_ax] = self.ds.domain_center[theta_ax]
             display_center[z_ax] = self.ds.domain_center[z_ax]
         elif ax_name == "theta":
-            # Note we are using domain_right_edge, not domain_width, so that in
-            # cases where DLE is not zero we go to the inner edge.
-            display_center[r_ax] = self.ds.domain_right_edge[r_ax]/2.0
-            display_center[z_ax] = self.ds.domain_center[z_ax]
-            # zeros for the others
+            display_center = center[:2]
         return center, display_center
 
     def sanitize_width(self, axis, width, depth):
