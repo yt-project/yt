@@ -183,14 +183,22 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                           0.0 * display_center[1],
                           0.0 * display_center[2]]
         ax_name = self.axis_name[axis]
+        r_ax = self.axis_id['r']
         theta_ax = self.axis_id['theta']
         z_ax = self.axis_id['z']
         if ax_name == "r":
-            # zeros everywhere
-            display_center[theta_ax] = self.ds.domain_center[theta_ax]
-            display_center[z_ax] = self.ds.domain_center[z_ax]
+            # use existing center value, if available
+            try:
+                display_center = np.take(center, (theta_ax, z_ax))
+            except:
+                display_center[theta_ax] = self.ds.domain_center[theta_ax]
+                display_center[z_ax] = self.ds.domain_center[z_ax]
         elif ax_name == "theta":
-            display_center = center[:2]
+            try:
+                display_center = np.take(center, (r_ax, z_ax))
+            except:
+                display_center[r_ax] = self.ds.domain_right_edge[r_ax]/2.0
+                display_center[z_ax] = self.ds.domain_center[z_ax]
         return center, display_center
 
     def sanitize_width(self, axis, width, depth):
