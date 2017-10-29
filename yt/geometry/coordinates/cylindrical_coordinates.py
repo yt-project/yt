@@ -183,7 +183,6 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                           0.0 * display_center[1],
                           0.0 * display_center[2]]
         ax_name = self.axis_name[axis]
-        r_ax = self.axis_id['r']
         theta_ax = self.axis_id['theta']
         z_ax = self.axis_id['z']
         if ax_name == "r":
