@@ -48,7 +48,7 @@ def _verify_geometry(func):
     def _check_geometry(self, plot):
         geom = plot.data.ds.coordinates.name
         # append dimensionality info to cylindrical geometry
-        if geom is "cylindrical":
+        if geom == "cylindrical":
             geom = "%s-%dd" % (geom, plot.data.ds.dimensionality)
         supp = self._supported_geometries
         cs = getattr(self, "coord_system", None)
