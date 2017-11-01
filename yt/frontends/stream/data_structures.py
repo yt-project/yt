@@ -385,7 +385,7 @@ def set_particle_types(data):
             particle_types[key] = False
     return particle_types
 
-def assign_particle_data(ds, pdata):
+def assign_particle_data(ds, pdata, bbox):
 
     """
     Assign particle data to the grids using MatchPointsToGrids. This
@@ -446,6 +446,26 @@ def assign_particle_data(ds, pdata):
                     "Cannot decompose particle data without position fields!")
             pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
             particle_grid_inds = pts.find_points_in_tree()
+            assigned_particles, = (particle_grid_inds >= 0).nonzero()
+            num_particles = particle_grid_inds.size
+            num_unassigned = num_particles - assigned_particles.size
+            if num_unassigned > 0:
+                m = ("Discarding %s particles (out of %s) that are outside "
+                     "bounding box. ")
+                eps = np.finfo(x.dtype).eps
+                s = np.array([[x.min() - eps, x.max() + eps],
+                              [y.min() - eps, y.max() + eps],
+                              [z.min() - eps, z.max() + eps]])
+                sug_bbox = [
+                    [min(bbox[0, 0], s[0, 0]), max(bbox[0, 1], s[0, 1])],
+                    [min(bbox[1, 0], s[1, 0]), max(bbox[1, 1], s[1, 1])],
+                    [min(bbox[2, 0], s[2, 0]), max(bbox[2, 1], s[2, 1])]]
+                m += ("Set bbox=%s to avoid this in the future.")
+                mylog.warn(m % (num_unassigned, num_particles, sug_bbox))
+                particle_grid_inds = particle_grid_inds[assigned_particles]
+                x = x[assigned_particles]
+                y = y[assigned_particles]
+                z = z[assigned_particles]
             idxs = np.argsort(particle_grid_inds)
             particle_grid_count = np.bincount(particle_grid_inds.astype("intp"),
                                               minlength=num_grids)
@@ -751,7 +771,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     # Now figure out where the particles go
     if number_of_particles > 0:
         # This will update the stream handler too
-        assign_particle_data(sds, pdata)
+        assign_particle_data(sds, pdata, bbox)
 
     return sds
 
@@ -1043,7 +1063,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
         # Now figure out where the particles go
         if number_of_particles > 0:
             # This will update the stream handler too
-            assign_particle_data(ds, pdata)
+            assign_particle_data(ds, pdata, bbox)
 
         cur_gc = ds.index.num_grids
 
