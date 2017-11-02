@@ -26,6 +26,16 @@ for more information.
 
 .. yt_cookbook:: multiplot_2x2.py
 
+Multipanel with PhasePlot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This illustrates how to use PhasePlot in a multipanel plot.
+See :ref:`how-to-make-2d-profiles` and the
+`Matplotlib AxesGrid Object <http://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html>`_
+for more information.
+
+.. yt_cookbook:: multiplot_phaseplot.py
+
 Time Series Multipanel
 ~~~~~~~~~~~~~~~~~~~~~~
 
