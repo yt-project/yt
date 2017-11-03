@@ -494,7 +494,7 @@ def test_contour_callback():
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", "plasma_beta")
-        slc.annotate_contour(field,
+        slc.annotate_contour("plasma_beta",
                              ncont=2,
                              factor=7.,
                              take_log=False,
