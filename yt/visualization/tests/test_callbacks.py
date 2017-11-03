@@ -24,13 +24,15 @@ from yt.testing import \
     fake_amr_ds, \
     fake_tetrahedral_ds, \
     fake_hexahedral_ds, \
-    assert_fname
+    assert_fname, \
+    requires_file
 import yt.units as u
 from yt.utilities.exceptions import \
     YTPlotCallbackError, \
     YTDataTypeUnsupported
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot
+from yt.convenience import load
 import contextlib
 
 # These are a very simple set of tests that verify that each callback is or is
@@ -345,7 +347,7 @@ def test_text_callback():
                         text_args={'color':'red'})
         assert_fname(p.save(prefix)[0])
 
-@requires_ds(cyl_2d)
+@requires_file(cyl_2d)
 def test_velocity_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =
@@ -368,7 +370,7 @@ def test_velocity_callback():
         assert_fname(p.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
-        ds = yt.load(cyl_2d)
+        ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", "density")
         slc.annotate_velocity()
         assert_fname(slc.save(prefix)[0])
@@ -381,7 +383,7 @@ def test_velocity_callback():
         p.annotate_velocity(factor=40, normalize=True)
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
-@requires_ds(cyl_2d)
+@requires_file(cyl_2d)
 def test_magnetic_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields = ("density", "magnetic_field_x",
@@ -404,7 +406,7 @@ def test_magnetic_callback():
         assert_fname(p.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
-        ds = yt.load(cyl_2d)
+        ds = load(cyl_2d)
         slc = ProjectionPlot(ds, "theta", "density")
         slc.annotate_magnetic_field()
         assert_fname(slc.save(prefix)[0])
@@ -418,7 +420,7 @@ def test_magnetic_callback():
             scale_units="inches", normalize = True)
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
-@requires_ds(cyl_2d)
+@requires_file(cyl_2d)
 def test_quiver_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =
@@ -442,7 +444,7 @@ def test_quiver_callback():
         assert_fname(p.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
-        ds = yt.load(cyl_2d)
+        ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", "density")
         slc.annotate_quiver("velocity_x", "velocity_y")
         assert_fname(slc.save(prefix)[0])
@@ -458,7 +460,7 @@ def test_quiver_callback():
             bv_y = 0.5 * u.cm / u.s)
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
-@requires_ds(cyl_2d)
+@requires_file(cyl_2d)
 def test_contour_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields = ("density", "temperature"))
@@ -490,7 +492,7 @@ def test_contour_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = yt.load(cyl_2d)
+        ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", "plasma_beta")
         slc.annotate_contour(field,
                              ncont=2,
@@ -513,7 +515,7 @@ def test_contour_callback():
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 
-@requires_ds(cyl_2d)
+@requires_file(cyl_2d)
 def test_grids_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields = ("density",))
@@ -535,7 +537,7 @@ def test_grids_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = yt.load(cyl_2d)
+        ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", "density")
         slc.annotate_grids()
         assert_fname(slc.save(prefix)[0])
@@ -549,7 +551,7 @@ def test_grids_callback():
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 
-@requires_ds(cyl_2d)
+@requires_file(cyl_2d)
 def test_cell_edges_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields = ("density",))
@@ -570,7 +572,7 @@ def test_cell_edges_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = yt.load(cyl_2d)
+        ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", "density")
         slc.annotate_cell_edges()
         assert_fname(slc.save(prefix)[0])
@@ -597,7 +599,7 @@ def test_mesh_lines_callback():
             assert_fname(sl.save(prefix)[0])
                 
 
-@requires_ds(cyl_2d)
+@requires_file(cyl_2d)
 def test_line_integral_convolution_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =
@@ -621,7 +623,7 @@ def test_line_integral_convolution_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = yt.load(cyl_2d)
+        ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", "density")
         slc.annotate_line_integral_convolution("magnetic_field_r", "magnetic_field_z")
         assert_fname(slc.save(prefix)[0])
