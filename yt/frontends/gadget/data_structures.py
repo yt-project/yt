@@ -337,14 +337,13 @@ class GadgetDataset(SPHDataset):
             vel_unit = self.velocity_unit
         self.time_unit = self.length_unit / vel_unit
 
-        # Note that energy is actually energy per unit mass
-        if "energy" in unit_base:
-            energy_unit = unit_base["energy"]
+        if "specific_energy" in unit_base:
+            specific_energy_unit = unit_base["specific_energy"]
         else:
             # Sane default
-            energy_unit = (1, "(km/s)**2")
-        energy_unit = _fix_unit_ordering(energy_unit)
-        self.energy_unit = self.quan(energy_unit[0], energy_unit[1])
+            specific_energy_unit = (1, "(km/s) ** 2")
+        specific_energy_unit = _fix_unit_ordering(specific_energy_unit)
+        self.specific_energy_unit = self.quan(*specific_energy_unit)
 
     @staticmethod
     def _validate_header(filename):
