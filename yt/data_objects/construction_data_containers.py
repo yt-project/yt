@@ -23,6 +23,8 @@ from tempfile import NamedTemporaryFile, TemporaryFile
 import os
 import sys
 import zipfile
+from multiprocessing import Pool
+
 
 from yt.config import ytcfg
 from yt.data_objects.data_containers import \
@@ -694,13 +696,13 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if not iterable(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
-        for chunk in self._data_source.chunks(fields, "io"):
+        def fill_region_for_chunk(chunk):
             input_fields = [chunk[field] for field in fields]
-            # NOTE: This usage of "refine_by" is actually *okay*, because it's
-            # being used with respect to iref, which is *already* scaled!
             fill_region(input_fields, output_fields, self.level,
                         self.global_startindex, chunk.icoords, chunk.ires,
                         domain_dims, refine_by)
+        p = Pool(4)
+        p.imap_unordered(fill_region_for_chunk, self._data_source.chunks(fields, "io"), chunksize=10)
         for name, v in zip(fields, output_fields):
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)
