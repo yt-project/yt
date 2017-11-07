@@ -153,7 +153,7 @@ class FLASHFieldInfo(FieldInfoContainer):
             Na_code = data.ds.quan(Na, '1/code_mass')
             return data["flash","dens"]*data["flash","sumy"]*Na_code
         self.add_field(('flash','nion'), sampling_type="cell",  function=_nion, units="code_length**-3")
-        self.add_field(('gas','MM_nuclei_density'), sampling_type="cell",  function=_nion,
+        self.add_field(('gas','ion_density'), sampling_type="cell",  function=_nion,
                        units=unit_system["number_density"])
 
         if ("flash", "abar") in self.field_list:
