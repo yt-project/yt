@@ -167,5 +167,20 @@ class FLASHFieldInfo(FieldInfoContainer):
             return (data["nele"]+data["nion"])
         self.add_field(("gas","number_density"), sampling_type="cell",  function=_number_density,
                        units=unit_system["number_density"])
+        
+        def _El_temperature(fields,data):
+            return data['tele']
+        self.add_field(("gas","El_temperature"), sampling_type="cell",  function=_El_temperature,
+                       units=unit_system["temperature""])
+
+        def _ion_temperature(fields,data):
+            return data['tion']
+        self.add_field(("gas","ion_temperature"), sampling_type="cell",  function=_ion_temperature,
+                       units=unit_system["temperature""])
+                                         
+        def _radiation_temperature(fields,data):
+            return data['trad']
+        self.add_field(("gas","radiation_temperature"), sampling_type="cell",  function=_radiation_temperature,
+                       units=unit_system["temperature""])
 
         setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])
