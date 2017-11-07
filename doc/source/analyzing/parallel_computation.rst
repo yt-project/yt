@@ -211,7 +211,7 @@ The following operations use chunk decomposition:
 * Projections (see :ref:`available-objects`)
 * Slices (see :ref:`available-objects`)
 * Cutting planes (see :ref:`available-objects`)
-* Covering grids (see :ref:`available-objects`)
+* Covering grids (see :ref:`construction-objects`)
 * Derived Quantities (see :ref:`derived-quantities`)
 * 1-, 2-, and 3-D profiles (see :ref:`generating-profiles-and-histograms`)
 * Isocontours & flux calculations (see :ref:`surfaces`)
