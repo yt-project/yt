@@ -147,10 +147,14 @@ class FLASHFieldInfo(FieldInfoContainer):
             return data["flash","dens"]*data["flash","ye"]*Na_code
         self.add_field(('flash','nele'), sampling_type="cell",  function=_nele, units="code_length**-3")
         self.add_field(('flash','edens'), sampling_type="cell",  function=_nele, units="code_length**-3")
+        self.add_field(('gas','El_number_density'), sampling_type="cell",  function=_nele,
+                       units=unit_system["number_density"])
         def _nion(field, data):
             Na_code = data.ds.quan(Na, '1/code_mass')
             return data["flash","dens"]*data["flash","sumy"]*Na_code
         self.add_field(('flash','nion'), sampling_type="cell",  function=_nion, units="code_length**-3")
+        self.add_field(('gas','MM_nuclei_density'), sampling_type="cell",  function=_nion,
+                       units=unit_system["number_density"])
 
         if ("flash", "abar") in self.field_list:
             self.add_output_field(("flash", "abar"), sampling_type="cell",  units="1")
