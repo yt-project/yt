@@ -88,6 +88,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_identifier", ("", ["particle_index"], None)),
         ("particle_refinement_level", ("", [], None)),
         ("particle_age", ("code_time", ['age'], None)),
+        ("particle_birth_time", ("code_time", ['age'], None)),
         ("particle_metallicity", ("", [], None)),
     )
 

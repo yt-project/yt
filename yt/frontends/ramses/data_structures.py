@@ -36,6 +36,7 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 
 from .definitions import ramses_header, field_aliases
+from .io import _read_part_file_descriptor
 from yt.utilities.physical_constants import mp, kb
 from .fields import \
     RAMSESFieldInfo, _X
@@ -58,12 +59,14 @@ class RAMSESDomainFile(object):
 
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
+        basedir = os.path.abspath(
+            os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (
-            os.path.abspath(
-              os.path.dirname(ds.parameter_filename)),
-            num, domain_id)
+            basedir, num, domain_id)
+        part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
         for t in ['grav', 'hydro', 'part', 'amr', 'sink']:
             setattr(self, "%s_fn" % t, basename % t)
+        self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
         self._read_hydro_header()
         self._read_particle_header()
@@ -214,6 +217,7 @@ class RAMSESDomainFile(object):
             self.local_particle_count = 0
             self.particle_field_offsets = {}
             return
+
         f = open(self.part_fn, "rb")
         f.seek(0, os.SEEK_END)
         flen = f.tell()
@@ -233,7 +237,12 @@ class RAMSESDomainFile(object):
         self.particle_header = hvals
         self.local_particle_count = hvals['npart']
 
-        particle_fields = [
+        # Try reading particle file descriptor
+        if os.path.exists(self._part_file_descriptor) and \
+           self.ds._extra_particle_fields is None:
+            particle_fields = _read_part_file_descriptor(self._part_file_descriptor)
+        else:
+            particle_fields = [
                 ("particle_position_x", "d"),
                 ("particle_position_y", "d"),
                 ("particle_position_z", "d"),
@@ -244,8 +253,8 @@ class RAMSESDomainFile(object):
                 ("particle_identifier", "i"),
                 ("particle_refinement_level", "I")]
 
-        if self.ds._extra_particle_fields is not None:
-            particle_fields += self.ds._extra_particle_fields
+            if self.ds._extra_particle_fields is not None:
+                particle_fields += self.ds._extra_particle_fields
 
         field_offsets = {}
         _pfields = {}

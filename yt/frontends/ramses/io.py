@@ -24,6 +24,7 @@ import yt.utilities.fortran_utils as fpu
 from yt.utilities.lib.cosmology_time import \
     get_ramses_ages
 from yt.extern.six import PY3
+import re
 
 if PY3:
     from io import BytesIO as IO
@@ -162,3 +163,48 @@ class IOHandlerRAMSES(BaseIOHandler):
                 fname, foffsets, data_types, subset, subs_fields))
 
         return tr
+
+VERSION_RE = re.compile(' *version: *(\d+)')
+VAR_DESC_RE = re.compile(' *variable # *(\d+): *(\w+)')
+def _read_part_file_descriptor(fname):
+    """
+    Read the particle file descriptor and returns the array of the fields found.
+    """
+    # The kind of the known types
+    assoc = [('position_%s' % k, 'd') for k in 'xyz'] + \
+            [('velocity_%s' % k, 'd') for k in 'xyz'] + \
+            [('mass', 'd'), ('identity', 'i'), ('levelp', 'i'),
+            ('family', 'i'), ('tag', 'i'), ('birth_time', 'd'),
+            ('metallicity', 'd')]
+
+    assoc = {k: v for k, v in assoc}
+    if True: #with open(fname, 'r') as f:
+        f = open(fname, 'r')
+        line = f.readline()
+        tmp = VERSION_RE.match(line)
+        if not tmp:
+            print(line)
+            raise Exception('File format not understood')
+
+        version = int(tmp.group(1))
+
+        if version == 1:
+            fields = []
+            for i, line in enumerate(f.readlines()):
+                tmp = VAR_DESC_RE.match(line)
+                if not tmp:
+                    raise Exception('Error while reading %s at line %s' % (fname, i+1))
+
+                # ivar = tmp.group(1)
+                varname = tmp.group(2)
+
+                if varname in assoc:
+                    dtype = assoc[varname]
+                else:
+                    dtype = 'd'
+
+                fields.append(("particle_%s" % varname, dtype))
+        else:
+            raise Exception('Unrecognized particle file descriptor version: %s' % version)
+
+    return fields
