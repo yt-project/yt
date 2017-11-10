@@ -68,7 +68,7 @@ import contextlib
 #  X line_integral_convolution
 
 # 2D cylindrical data for callback test
-cyl_2d = "WDMerger_hdf5_chk_1000"
+cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
 
 @contextlib.contextmanager
 def _cleanup_fname():
