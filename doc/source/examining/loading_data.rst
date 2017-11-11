@@ -2003,6 +2003,13 @@ You would feed it the filename ``output_00007/info_00007.txt``:
 
 yt will attempt to guess the fields in the file. For more control over the hydro fields or the particle fields, see :ref:`loading-ramses-data-args`.
 
+yt also support the new way particles are handled introduced after
+version `stable_17_09` (the version introduced after the 2017 Ramses
+User Meeting). In this case, the file `part_file_descriptor.txt`
+containing the different fields in the particle files will be read. If
+you use a custom version of RAMSES, make sure this file is up-to-date
+and reflects the true layout of the particles.
+
 yt supports outputs made by the mainline ``RAMSES`` code as well as the
 ``RAMSES-RT`` fork. Files produces by ``RAMSES-RT`` are recognized as such
 based on the presence of a ``info_rt_*.txt`` file in the output directory.
@@ -2089,6 +2096,21 @@ It is possible to provide extra arguments to the load function when loading RAMS
 
       .. note::
 	 This feature is only available when using Hilbert ordering.
+
+
+.. rubric:: Particle automatic filtering
+
+If your RAMSES version is more recent than `stable_17_09`, it is
+possible to tell yt to filter the particles in your dataset. This is
+not done by default is it requires to read all the particles and may
+be small. To use this feature, run
+
+.. code-block:: python
+
+   ds = yt.load('ramses_new_format/output_00011/info_00011.txt')
+
+   # This will load the particle types automatically
+   ds.add_ptypes()
 
 
 .. _loading-sph-data:
