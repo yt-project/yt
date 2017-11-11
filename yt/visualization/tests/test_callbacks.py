@@ -347,7 +347,6 @@ def test_text_callback():
                         text_args={'color':'red'})
         assert_fname(p.save(prefix)[0])
 
-@requires_file(cyl_2d)
 def test_velocity_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =
@@ -368,12 +367,6 @@ def test_velocity_callback():
         p.annotate_velocity(factor=8, scale=0.5, scale_units="inches",
                             normalize = True)
         assert_fname(p.save(prefix)[0])
-
-    with _cleanup_fname() as prefix:
-        ds = load(cyl_2d)
-        slc = SlicePlot(ds, "theta", "density")
-        slc.annotate_velocity()
-        assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields = 

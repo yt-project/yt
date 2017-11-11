@@ -289,7 +289,7 @@ class VelocityCallback(PlotCallback):
     strength.
     """
     _type_name = "velocity"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
         PlotCallback.__init__(self)
         self.factor = factor
