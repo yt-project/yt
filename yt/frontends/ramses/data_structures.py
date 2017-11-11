@@ -34,7 +34,7 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 
-from .definitions import ramses_header, field_aliases
+from .definitions import ramses_header, field_aliases, particle_families
 from .io import _read_part_file_descriptor
 from yt.utilities.physical_constants import mp, kb
 from .fields import \
@@ -240,7 +240,9 @@ class RAMSESDomainFile(object):
         # Try reading particle file descriptor
         if os.path.exists(self._part_file_descriptor) and \
            self.ds._extra_particle_fields is None:
-            particle_fields = _read_part_file_descriptor(self._part_file_descriptor)
+            particle_fields = (
+                _read_part_file_descriptor(self._part_file_descriptor))
+            ptype = 'io'
         else:
             particle_fields = [
                 ("particle_position_x", "d"),
@@ -256,10 +258,12 @@ class RAMSESDomainFile(object):
             if self.ds._extra_particle_fields is not None:
                 particle_fields += self.ds._extra_particle_fields
 
+            ptype = 'io'
+
+
         field_offsets = {}
         _pfields = {}
 
-        ptype = 'io'
 
         # Read offsets
         for field, vtype in particle_fields:
