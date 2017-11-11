@@ -246,8 +246,7 @@ class RAMSESDomainFile(object):
         self.local_particle_count = hvals['npart']
 
         # Try reading particle file descriptor
-        if self._has_part_descriptor and \
-           self.ds._extra_particle_fields is None:
+        if self._has_part_descriptor:
             particle_fields = (
                 _read_part_file_descriptor(self._part_file_descriptor))
             ptype = 'io'
