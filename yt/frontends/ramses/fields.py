@@ -17,6 +17,7 @@ import glob
 import os
 import numpy as np
 
+import yt
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     mass_hydrogen_cgs, \
@@ -26,6 +27,7 @@ from yt.utilities.linear_interpolators import \
 import yt.utilities.fortran_utils as fpu
 from yt.fields.field_info_container import \
     FieldInfoContainer
+from .definitions import particle_families
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
@@ -63,19 +65,6 @@ _cool_species = ("Electron_number_density",
 
 _X = 0.76 # H fraction, hardcoded
 _Y = 0.24 # He fraction, hardcoded
-
-
-# Association between particles types and families, hardcoded
-_families = {
-    1: 'DM',
-    2: 'star',
-    3: 'cloud',
-    4: 'dust',
-    -2: 'star_tracer',
-    -3: 'cloud_tracer',
-    -4: 'dust_tracer',
-    0: 'gas_tracer',
-}
 
 
 class RAMSESFieldInfo(FieldInfoContainer):
