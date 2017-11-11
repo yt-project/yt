@@ -63,12 +63,12 @@ field_aliases = {
 }
 
 particle_families = {
-    1: 'DM',
-    2: 'star',
-    3: 'cloud',
-    4: 'dust',
-    -2: 'star_tracer',
-    -3: 'cloud_tracer',
-    -4: 'dust_tracer',
-    0: 'gas_tracer',
+    'DM': 1,
+    'star': 2,
+    'cloud': 3,
+    'dust': 4,
+    'star_tracer': -2,
+    'cloud_tracer': -3,
+    'dust_tracer': -4,
+    'gas_tracer': 0
 }

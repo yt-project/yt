@@ -34,6 +34,7 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
+from yt import add_particle_filter
 
 from .definitions import ramses_header, field_aliases, particle_families
 from .io import _read_part_file_descriptor
@@ -92,6 +93,13 @@ class RAMSESDomainFile(object):
         Does the output include sinks (black holes)?
         '''
         return os.path.exists(self.sink_fn)
+
+    @property
+    def _has_part_descriptor(self):
+        '''
+        Does the output include particle file descriptor?
+        '''
+        return os.path.exists(self._part_file_descriptor)
 
     @property
     def level_count(self):
@@ -238,7 +246,7 @@ class RAMSESDomainFile(object):
         self.local_particle_count = hvals['npart']
 
         # Try reading particle file descriptor
-        if os.path.exists(self._part_file_descriptor) and \
+        if self._has_part_descriptor and \
            self.ds._extra_particle_fields is None:
             particle_fields = (
                 _read_part_file_descriptor(self._part_file_descriptor))
@@ -679,6 +687,22 @@ class RAMSESDataset(Dataset):
 
         self.storage_filename = storage_filename
 
+        # Add particles filters
+        for fname, value in particle_families.items():
+            def loc(val):
+                def closure(pfilter, data):
+                    filter = data[(pfilter.filtered_type, "particle_family")] == val
+                    return filter
+
+                return closure
+            add_particle_filter(fname, loc(value),
+                                filtered_type='io', requires=['particle_family'])
+
+
+    def add_ptypes(self):
+        for k in particle_families.keys():
+            mylog.info('Adding particle_type: %s' % k)
+            self.add_particle_filter('%s' % k)
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
