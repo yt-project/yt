@@ -2098,7 +2098,8 @@ It is possible to provide extra arguments to the load function when loading RAMS
 	 This feature is only available when using Hilbert ordering.
 
 
-.. rubric:: Particle automatic filtering
+Particle automatic filtering
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If your RAMSES version is more recent than `stable_17_09`, it is
 possible to tell yt to filter the particles in your dataset. This is
@@ -2111,6 +2112,19 @@ be small. To use this feature, run
 
    # This will load the particle types automatically
    ds.add_ptypes()
+
+
+Adding custom particle fields
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to add support for particle fields. For this, one
+should tweak
+:func:`~yt.frontends.ramses.io._read_part_file_descriptor` to include
+the field as well as its data type to the assoc list, following the
+convention from
+`python struct module <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
+For example, to add support for a longint field named
+`my_custom_field`, one would add `('my_custom_field', 'l')` to `assoc`.
 
 
 .. _loading-sph-data:
