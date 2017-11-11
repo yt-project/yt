@@ -174,7 +174,7 @@ def _read_part_file_descriptor(fname):
     assoc = [('position_%s' % k, 'd') for k in 'xyz'] + \
             [('velocity_%s' % k, 'd') for k in 'xyz'] + \
             [('mass', 'd'), ('identity', 'i'), ('levelp', 'i'),
-            ('family', 'i'), ('tag', 'i'), ('birth_time', 'd'),
+            ('family', 'b'), ('tag', 'b'), ('birth_time', 'd'),
             ('metallicity', 'd')]
 
     assoc = {k: v for k, v in assoc}
@@ -182,6 +182,7 @@ def _read_part_file_descriptor(fname):
         f = open(fname, 'r')
         line = f.readline()
         tmp = VERSION_RE.match(line)
+        mylog.info('Reading part file descriptor.')
         if not tmp:
             print(line)
             raise Exception('File format not understood')

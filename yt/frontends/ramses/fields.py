@@ -64,6 +64,20 @@ _cool_species = ("Electron_number_density",
 _X = 0.76 # H fraction, hardcoded
 _Y = 0.24 # He fraction, hardcoded
 
+
+# Association between particles types and families, hardcoded
+_families = {
+    1: 'DM',
+    2: 'star',
+    3: 'cloud',
+    4: 'dust',
+    -2: 'star_tracer',
+    -3: 'cloud_tracer',
+    -4: 'dust_tracer',
+    0: 'gas_tracer',
+}
+
+
 class RAMSESFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("Density", (rho_units, ["density"], None)),
@@ -90,6 +104,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_age", ("code_time", ['age'], None)),
         ("particle_birth_time", ("code_time", ['age'], None)),
         ("particle_metallicity", ("", [], None)),
+        ("particle_family", ("", [], None)),
+        ("particle_tag", ("", [], None))
     )
 
     known_sink_fields = (
