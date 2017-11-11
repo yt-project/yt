@@ -174,8 +174,8 @@ def _read_part_file_descriptor(fname):
     assoc = [('position_%s' % k, 'd') for k in 'xyz'] + \
             [('velocity_%s' % k, 'd') for k in 'xyz'] + \
             [('mass', 'd'), ('identity', 'i'), ('levelp', 'i'),
-            ('family', 'b'), ('tag', 'b'), ('birth_time', 'd'),
-            ('metallicity', 'd')]
+             ('family', 'b'), ('tag', 'b'), ('birth_time', 'd'),
+             ('metallicity', 'd')]
 
     assoc = {k: v for k, v in assoc}
     if True: #with open(fname, 'r') as f:
