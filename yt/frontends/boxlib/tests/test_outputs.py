@@ -273,7 +273,7 @@ def test_nyx_no_part():
 
 msubch = 'maestro_subCh_plt00248'
 @requires_file(msubch)
-def test_maestro_bool_parameters():
+def test_maestro_parameters():
     assert isinstance(data_dir_load(msubch), MaestroDataset)
     ds = data_dir_load(msubch)
 
