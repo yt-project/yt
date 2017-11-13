@@ -23,7 +23,8 @@ from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 import yt.utilities.fortran_utils as fpu
 from yt.utilities.lib.cosmology_time import \
     get_ramses_ages
-from yt.utilities.exceptions import YTFieldTypeNotFound
+from yt.utilities.exceptions import YTFieldTypeNotFound, YTOutputFormatNotImplemented, \
+    YTNotParsableFile
 from yt.extern.six import PY3
 import re
 
@@ -195,7 +196,7 @@ def _read_part_file_descriptor(fname):
             for i, line in enumerate(f.readlines()):
                 tmp = VAR_DESC_RE.match(line)
                 if not tmp:
-                    raise Exception('Error while reading %s at line %s' % (fname, i+1))
+                    raise YTNotParsableFile(fname, i+1)
 
                 # ivar = tmp.group(1)
                 varname = tmp.group(2)
@@ -207,6 +208,6 @@ def _read_part_file_descriptor(fname):
 
                 fields.append(("particle_%s" % varname, dtype))
         else:
-            raise Exception('Unrecognized particle file descriptor version: %s' % version)
+            raise YTOutputFormatNotImplemented()
 
     return fields
