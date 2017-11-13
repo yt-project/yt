@@ -698,7 +698,12 @@ class RAMSESDataset(Dataset):
                                 filtered_type='io', requires=['particle_family'])
 
 
-    def add_ptypes(self):
+    def create_field_info(self, *args, **kwa):
+        """Extend create_field_info to add the particles types."""
+        Dataset.create_field_info(self, *args, **kwa)
+        self._add_ptypes()
+
+    def _add_ptypes(self):
         for k in particle_families.keys():
             mylog.info('Adding particle_type: %s' % k)
             self.add_particle_filter('%s' % k)
