@@ -676,7 +676,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
-            if f.particle_type:
+            if f.sampling_type == 'particle':
                 self[a] = self._data_source[f]
             else:
                 self[a] = f(self)
@@ -686,7 +686,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             cell_gen = []
             for field in gen:
                 finfo = self.ds.field_info[field]
-                if finfo.particle_type:
+                if finfo.sampling_type == 'particle':
                     part_gen.append(field)
                 else:
                     cell_gen.append(field)

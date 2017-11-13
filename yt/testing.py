@@ -199,7 +199,6 @@ def fake_random_ds(
     for field, offset, u in zip(fields, offsets, units):
         v = (prng.random_sample(ndims) - offset) * peak_value
         if field[0] == "all":
-            data['number_of_particles'] = v.size
             v = v.ravel()
         data[field] = (v, u)
     if particles:
@@ -217,7 +216,6 @@ def fake_random_ds(
             for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
                 data['io', f] = (prng.random_sample(size=particles) - 0.5, 'cm/s')
             data['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
-        data['number_of_particles'] = particles
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs,
                            unit_system=unit_system, bbox=bbox)
     return ug
@@ -259,7 +257,6 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0):
             for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
                 gdata['io', f] = (prng.random_sample(particles) - 0.5, 'cm/s')
             gdata['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
-            gdata['number_of_particles'] = particles
         data.append(gdata)
     bbox = np.array([LE, RE]).T
     return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox)
