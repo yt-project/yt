@@ -23,6 +23,7 @@ from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 import yt.utilities.fortran_utils as fpu
 from yt.utilities.lib.cosmology_time import \
     get_ramses_ages
+from yt.utilities.exceptions import YTFieldTypeNotFound
 from yt.extern.six import PY3
 import re
 
@@ -157,7 +158,7 @@ class IOHandlerRAMSES(BaseIOHandler):
 
             else:
                 # Raise here an exception
-                raise Exception('Unknown particle type %s' % ptype)
+                raise YTFieldTypeNotFound(ptype)
 
             tr.update(_ramses_particle_file_handler(
                 fname, foffsets, data_types, subset, subs_fields))
