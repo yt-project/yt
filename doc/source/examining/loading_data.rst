@@ -2038,22 +2038,6 @@ Note: for backward compatibility, particles from the
 default (including dark matter, stars, tracer particles, …). Sink
 particles have the particle type ``sink``.
 
-Particle automatic filtering
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-If your RAMSES version is more recent than `stable_17_09`, it is
-possible to tell yt to filter the particles in your dataset. This is
-not done by default is it requires to read all the particles and may
-be small. To use this feature, run
-
-.. code-block:: python
-
-   ds = yt.load('ramses_new_format/output_00011/info_00011.txt')
-
-   # This will load the particle types automatically
-   ds.add_ptypes()
-
-
 Adding custom particle fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
