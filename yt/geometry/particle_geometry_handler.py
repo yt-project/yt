@@ -67,7 +67,7 @@ class ParticleIndex(Index):
         cls = self.dataset._file_class
         self.data_files = []
         fi = 0
-        for i in range(ndoms):
+        for i in range(int(ndoms)):
             start = 0
             end = start + CHUNKSIZE
             while 1:

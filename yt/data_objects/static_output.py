@@ -24,6 +24,7 @@ import warnings
 
 from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
+from six.moves import cPickle
 
 from yt.config import ytcfg
 from yt.fields.derived_field import \
@@ -81,7 +82,7 @@ from yt.geometry.coordinates.api import \
     InternalGeographicCoordinateHandler
 
 # We want to support the movie format in the future.
-# When such a thing comes to pass, I'll move all the stuff that is contant up
+# When such a thing comes to pass, I'll move all the stuff that is constant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
 
 _cached_datasets = weakref.WeakValueDictionary()
@@ -257,14 +258,15 @@ class Dataset(object):
                 obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
+        cache_key = (apath, cPickle.dumps(args), cPickle.dumps(kwargs))
         if ytcfg.getboolean("yt","skip_dataset_cache"):
             obj = object.__new__(cls)
-        elif apath not in _cached_datasets:
+        elif cache_key not in _cached_datasets:
             obj = object.__new__(cls)
             if obj._skip_cache is False:
-                _cached_datasets[apath] = obj
+                _cached_datasets[cache_key] = obj
         else:
-            obj = _cached_datasets[apath]
+            obj = _cached_datasets[cache_key]
         return obj
 
     def __init__(self, filename, dataset_type=None, file_style=None,
@@ -784,19 +786,7 @@ class Dataset(object):
                 setattr(self, name,
                     _unsupported_object(self, name))
                 continue
-            cname = cls.__name__
-            if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cls)
-        if not np.all(self.refine_by == 2) and hasattr(self, 'proj') and \
-            hasattr(self, 'overlap_proj'):
-            mylog.warning("Refine by something other than two: reverting to"
-                        + " overlap_proj")
-            self.proj = self.overlap_proj
-        if self.dimensionality < 3 and hasattr(self, 'proj') and \
-            hasattr(self, 'overlap_proj'):
-            mylog.warning("Dimensionality less than 3: reverting to"
-                        + " overlap_proj")
-            self.proj = self.overlap_proj
         self.object_types.sort()
 
     def _add_object_class(self, name, base):
@@ -983,6 +973,8 @@ class Dataset(object):
         self.unit_registry.add("code_length", 1.0, dimensions.length)
         self.unit_registry.add("code_mass", 1.0, dimensions.mass)
         self.unit_registry.add("code_density", 1.0, dimensions.density)
+        self.unit_registry.add("code_specific_energy", 1.0,
+                               dimensions.energy / dimensions.mass)
         self.unit_registry.add("code_time", 1.0, dimensions.time)
         self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
@@ -1060,10 +1052,12 @@ class Dataset(object):
             self.mass_unit / (self.length_unit * (self.time_unit)**2))
         temperature_unit = getattr(self, "temperature_unit", 1.0)
         density_unit = getattr(self, "density_unit", self.mass_unit / self.length_unit**3)
+        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit**2)
         self.unit_registry.modify("code_velocity", vel_unit)
         self.unit_registry.modify("code_temperature", temperature_unit)
         self.unit_registry.modify("code_pressure", pressure_unit)
         self.unit_registry.modify("code_density", density_unit)
+        self.unit_registry.modify("code_specific_energy", specific_energy_unit)
         # domain_width does not yet exist
         if (self.domain_left_edge is not None and
             self.domain_right_edge is not None):

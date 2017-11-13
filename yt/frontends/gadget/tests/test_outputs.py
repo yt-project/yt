@@ -27,6 +27,7 @@ isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"
 BE_Gadget = "BigEndianGadgetBinary/BigEndianGadgetBinary"
 LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
+keplerian_ring = "KeplerianRing/keplerian_ring_test_data.hdf5"
 
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
@@ -48,13 +49,25 @@ iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 @requires_file(isothermal_bin)
 @requires_file(BE_Gadget)
 @requires_file(LE_SnapFormat2)
-def test_GadgetDataset():
+def test_gadget_dataset():
     assert isinstance(data_dir_load(isothermal_h5, kwargs=iso_kwargs),
                       GadgetHDF5Dataset)
     assert isinstance(data_dir_load(isothermal_bin, kwargs=iso_kwargs),
                       GadgetDataset)
     assert isinstance(data_dir_load(BE_Gadget), GadgetDataset)
     assert isinstance(data_dir_load(LE_SnapFormat2), GadgetDataset)
+
+
+@requires_file(keplerian_ring)
+def test_non_cosmo_dataset():
+    """
+    Non-cosmological datasets may not have the cosmological parametrs in the
+    Header. The code should fall back gracefully when they are not present,
+    with the Redshift set to 0.
+    """
+    data = data_dir_load(keplerian_ring)
+    assert data.current_redshift == 0.0
+    assert data.cosmological_simulation == 0
 
 
 @requires_ds(isothermal_h5)

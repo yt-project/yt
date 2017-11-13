@@ -368,11 +368,13 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         for f in glob.glob(data_file.filename + '.*'):
             afield = f.rsplit('.')[-1]
             filename = data_file.filename + '.' + afield
-            if not os.path.exists(filename): continue
+            if not os.path.exists(filename):
+                continue
             if afield in ['log', 'parameter', 'kdtree']:
                 # Amiga halo finder makes files like this we need to ignore
                 continue
             self._aux_fields.append(afield)
+        skip_afields = []
         for afield in self._aux_fields:
             filename = data_file.filename + '.' + afield
             # We need to do some fairly ugly detection to see what format the
@@ -386,14 +388,12 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 with open(filename, 'rb') as f:
                     header_nparts = f.readline()
                     try:
-                        if int(header_nparts) != tot_parts:
-                            raise RuntimeError
+                        header_nparts = int(header_nparts)
                     except ValueError:
-                        msg = (
-                            'Auxiliary file %s contains %i particles but '
-                            'expected %i particles' % (
-                                filename, tot_parts_from_file, tot_parts))
-                        raise RuntimeError(msg)
+                        skip_afields.append(afield)
+                        continue
+                    if int(header_nparts) != tot_parts:
+                        raise RuntimeError
                 self._aux_pdtypes[afield] = "ascii"
             elif (filesize - 4) / 8 == tot_parts:
                 self._aux_pdtypes[afield] = np.dtype([('aux', endian + 'd')])
@@ -403,8 +403,9 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 else:
                     self._aux_pdtypes[afield] = np.dtype([('aux', endian + 'f')])
             else:
-                raise RuntimeError
-
+                skip_afields.append(afield)
+        for afield in skip_afields:
+            self._aux_fields.remove(afield)
         # Add the auxiliary fields to each ptype we have
         for ptype in self._ptypes:
             if any([ptype == field[0] for field in self._field_list]):

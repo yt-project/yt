@@ -27,7 +27,7 @@ sc.render()
 sc.save("v2.png", sigma_clip=6.0)
 
 # Now let's set the grey_opacity to True.  This should make the inner portions
-# start to be obcured
+# start to be obscured
 
 tf.grey_opacity = True
 sc.render()

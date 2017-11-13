@@ -50,7 +50,7 @@ used.
 The ``finder_method`` options should be given as "fof", "hop", or
 "rockstar".  Each of these methods has their own set of keyword
 arguments to control functionality.  These can specified in the form
-of a dictinoary using the ``finder_kwargs`` keyword.
+of a dictionary using the ``finder_kwargs`` keyword.
 
 .. code-block:: python
 

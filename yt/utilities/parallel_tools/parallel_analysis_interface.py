@@ -203,7 +203,7 @@ class ObjectIterator(object):
 class ParallelObjectIterator(ObjectIterator):
     """
     This takes an object, *pobj*, that implements ParallelAnalysisInterface,
-    and then does its thing, calling initliaze and finalize on the object.
+    and then does its thing, calling initialize and finalize on the object.
     """
     def __init__(self, pobj, just_list = False, attr='_grids',
                  round_robin=False):
@@ -1059,7 +1059,7 @@ class Communicator(object):
         tmp_send = send.view(self.__tocast)
         recv = np.empty(total_size, dtype=send.dtype)
         if isinstance(send, YTArray):
-            # We assume send.units is consitent with the units
+            # We assume send.units is consistent with the units
             # on the receiving end.
             if isinstance(send, ImageArray):
                 recv = ImageArray(recv, input_units=send.units)

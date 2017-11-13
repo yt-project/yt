@@ -4,7 +4,7 @@
 environment:
 
   global:
-      PYTHON: "C:\\Miniconda3-x64"
+      PYTHON: "C:\\Miniconda36-x64"
 
   matrix:
       - PYTHON_VERSION: "2.7"

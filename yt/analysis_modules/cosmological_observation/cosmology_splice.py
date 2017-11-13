@@ -183,7 +183,7 @@ class CosmologySplice(object):
 
         # Make light ray using maximum number of datasets (minimum spacing).
         else:
-            # Sort data outputs by proximity to current redsfhit.
+            # Sort data outputs by proximity to current redshift.
             self.splice_outputs.sort(key=lambda obj:np.abs(far_redshift -
                                                            obj['redshift']))
             # For first data dump, choose closest to desired redshift.

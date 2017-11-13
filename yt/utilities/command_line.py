@@ -779,7 +779,7 @@ class YTPastebinCmd(YTCommand):
                   help="Use syntax highlighter for the file in language"),
              dict(short="-L", longname="--languages", action="store_true",
                   default = False, dest="languages",
-                  help="Retrive a list of supported languages"),
+                  help="Retrieve a list of supported languages"),
              dict(short="-e", longname="--encoding", action="store",
                   default = 'utf-8', dest="encoding",
                   help="Specify the encoding of a file (default is "
@@ -882,7 +882,10 @@ class YTPlotCmd(YTCommand):
             dict(short="-fu", longname="--field-unit",
                  action="store", type=str,
                  dest="field_unit", default=None,
-                 help="Desired field units"))
+                 help="Desired field units"),
+            dict(longname='--show-scale-bar',
+                 action='store_true',
+                 help="Annotate the plot with the scale"))
 
     name = "plot"
 
@@ -932,6 +935,8 @@ class YTPlotCmd(YTCommand):
                 plt.annotate_grids()
             if args.time:
                 plt.annotate_timestamp()
+            if args.show_scale_bar:
+                plt.annotate_scale()
 
             if args.field_unit:
                 plt.set_unit(args.field, args.field_unit)

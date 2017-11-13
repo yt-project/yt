@@ -32,6 +32,8 @@ ra_units = "code_length / code_time**2"
 rho_units = "code_density"
 vel_units = "code_velocity"
 pressure_units = "code_pressure"
+ener_units = "code_mass * code_velocity**2 / code_time**2"
+ang_mom_units = "code_mass * code_velocity * code_length"
 
 known_species_masses = dict(
   (sp, mh * v) for sp, v in [
@@ -87,6 +89,30 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_refinement_level", ("", [], None)),
         ("particle_age", ("code_time", ['age'], None)),
         ("particle_metallicity", ("", [], None)),
+    )
+
+    known_sink_fields = (
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+        ("particle_velocity_x", (vel_units, [], None)),
+        ("particle_velocity_y", (vel_units, [], None)),
+        ("particle_velocity_z", (vel_units, [], None)),
+        ("particle_mass", ("code_mass", [], None)),
+        ("particle_identifier", ("", ["particle_index"], None)),
+        ("particle_age", ("code_time", ['age'], None)),
+        ("BH_real_accretion", ("code_mass/code_time", [], None)),
+        ("BH_bondi_accretion", ("code_mass/code_time", [], None)),
+        ("BH_eddington_accretion", ("code_mass/code_time", [], None)),
+        ("BH_esave", (ener_units, [], None)),
+        ("gas_spin_x", (ang_mom_units, [], None)),
+        ("gas_spin_y", (ang_mom_units, [], None)),
+        ("gas_spin_z", (ang_mom_units, [], None)),
+        ("BH_spin_x", ("", [], None)),
+        ("BH_spin_y", ("", [], None)),
+        ("BH_spin_z", ("", [], None)),
+        ("BH_spin", (ang_mom_units, [], None)),
+        ("BH_efficiency", ("", [], None))
     )
 
     def setup_fluid_fields(self):

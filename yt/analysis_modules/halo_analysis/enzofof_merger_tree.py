@@ -30,7 +30,7 @@ from __future__ import print_function
 # 7. For every halo in ball-query result, execute numpy's intersect1d on
 #    particle IDs
 # 8. Parentage is described by a fraction of particles that pass from one to
-#    the other; we have both descendent fractions and ancestory fractions. 
+#    the other; we have both descendent fractions and ancestor fractions. 
 
 
 import numpy as np

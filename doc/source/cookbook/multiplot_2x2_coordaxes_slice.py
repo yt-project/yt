@@ -38,7 +38,7 @@ for i, (direction, field) in enumerate(zip(cuts, fields)):
     # Since there are only two colorbar axes, we need to make sure we don't try
     # to set the temperature colorbar to cbar_axes[4], which would if we used i
     # to index cbar_axes, yielding a plot without a temperature colorbar.
-    # This unecessarily redraws the Density colorbar three times, but that has
+    # This unnecessarily redraws the Density colorbar three times, but that has
     # no effect on the final plot.
     if field == 'density':
         plot.cax = grid.cbar_axes[0]

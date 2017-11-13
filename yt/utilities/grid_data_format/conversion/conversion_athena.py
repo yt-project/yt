@@ -127,7 +127,7 @@ class AthenaDistributedConverter(Converter):
                       (np.prod(grid['dimensions']), grid['ncells']))
                 raise TypeError
 
-            # Append all hierachy info before reading this grid's data
+            # Append all hierarchy info before reading this grid's data
             grid_dims[i]=grid['dimensions']
             grid_left_edges[i]=grid['left_edge']
             grid_dds[i]=grid['dds']

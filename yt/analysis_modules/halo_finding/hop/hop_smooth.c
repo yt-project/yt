@@ -102,7 +102,7 @@ void smBallSearch(SMX smx,float fBall2,float *ri)
 	cell = ROOT;
 	/*
 	 ** First find the "local" Bucket.
-	 ** This could mearly be the closest bucket to ri[3].
+	 ** This could merely be the closest bucket to ri[3].
 	 */
 	while (cell < smx->kd->nSplit) {
 		if (ri[c[cell].iDim] < c[cell].fSplit) cell = LOWER(cell);
@@ -282,7 +282,7 @@ void smSmooth(SMX smx,void (*fncSmooth)(SMX,int,int,int *,float *))
 			/* printf("%"ISYM": %"GSYM" %"GSYM" %"GSYM"\n", pi, x, y, z); */
 			/*
 			 ** First find the "local" Bucket.
-			 ** This could mearly be the closest bucket to ri[3].
+			 ** This could merely be the closest bucket to ri[3].
 			 */
 			cell = ROOT;
 			while (cell < smx->kd->nSplit) {

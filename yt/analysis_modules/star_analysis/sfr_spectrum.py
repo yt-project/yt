@@ -435,7 +435,7 @@ class SpectrumBuilder(object):
                      star_metallicity_constant is None):
                 mylog.error(
                     """
-                If data_source is not provided, all of these paramters
+                If data_source is not provided, all of these parameters
                 need to be set:
                    star_mass (array, Msun),
                    star_creation_time (array, code units),

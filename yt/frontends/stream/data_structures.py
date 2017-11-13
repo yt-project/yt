@@ -1287,9 +1287,9 @@ class StreamHexahedralHierarchy(UnstructuredIndex):
 
     def _initialize_mesh(self):
         coords = self.stream_handler.fields.pop('coordinates')
-        connec = self.stream_handler.fields.pop('connectivity')
+        connect = self.stream_handler.fields.pop('connectivity')
         self.meshes = [StreamHexahedralMesh(0,
-          self.index_filename, connec, coords, self)]
+          self.index_filename, connect, coords, self)]
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
@@ -1685,10 +1685,10 @@ class StreamUnstructuredIndex(UnstructuredIndex):
 
     def _initialize_mesh(self):
         coords = ensure_list(self.stream_handler.fields.pop("coordinates"))
-        connec = ensure_list(self.stream_handler.fields.pop("connectivity"))
+        connect = ensure_list(self.stream_handler.fields.pop("connectivity"))
         self.meshes = [StreamUnstructuredMesh(
                        i, self.index_filename, c1, c2, self)
-                       for i, (c1, c2) in enumerate(zip(connec, repeat(coords[0])))]
+                       for i, (c1, c2) in enumerate(zip(connect, repeat(coords[0])))]
         self.mesh_union = MeshUnion("mesh_union", self.meshes)
 
     def _setup_data_io(self):

@@ -632,7 +632,7 @@ class GridBoundaryCallback(PlotCallback):
             if self.edgecolors is not None:
                 edgecolors = colorConverter.to_rgba(
                     self.edgecolors, alpha=self.alpha)
-            else:  # use colormap if not explicity overridden by edgecolors
+            else:  # use colormap if not explicitly overridden by edgecolors
                 if self.cmap is not None:
                     color_bounds = [0,plot.data.ds.index.max_level]
                     edgecolors = apply_colormap(
@@ -1698,7 +1698,7 @@ class TriangleFacetsCallback(PlotCallback):
     Intended for representing a slice of a triangular faceted
     geometry in a slice plot.
 
-    Uses a set of *triangle_vertices* to find all trangles the plane of a
+    Uses a set of *triangle_vertices* to find all triangles the plane of a
     SlicePlot intersects with. The lines between the intersection points
     of the triangles are then added to the plot to create an outline
     of the geometry represented by the triangles.
@@ -2271,7 +2271,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
     """
     Add the line integral convolution to the plot for vector fields
     visualization. Two component of vector fields needed to be provided
-    (i.e., velocity_x and velocity_y, magentic_field_x and magnetic_field_y).
+    (i.e., velocity_x and velocity_y, magnetic_field_x and magnetic_field_y).
 
     Parameters
     ----------

@@ -670,7 +670,7 @@ class EnzoDataset(Dataset):
         to the index to pre-determine the style of data-output.  However,
         it is not strictly necessary.  Optionally you may specify a
         *parameter_override* dictionary that will override anything in the
-        paarmeter file and a *conversion_override* dictionary that consists
+        parameter file and a *conversion_override* dictionary that consists
         of {fieldname : conversion_to_cgs} that will override the #DataCGS.
         """
         self.fluid_types += ("enzo",)
@@ -783,7 +783,7 @@ class EnzoDataset(Dataset):
 
     def _parse_enzo2_parameter_file(self, f):
         for line in (l.strip() for l in f):
-            if len(line) < 2: continue
+            if (len(line) < 2) or ("=" not in line): continue
             param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
             vals = vals.split()

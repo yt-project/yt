@@ -881,7 +881,7 @@ def check_results(func):
     ... def field_checker(dd, field_name):
     ...     return dd[field_name]
 
-    >>> field_cheker(ds.all_data(), 'density', result_basename='density')
+    >>> field_checker(ds.all_data(), 'density', result_basename='density')
 
     """
     def compute_results(func):
@@ -1007,7 +1007,7 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
         Array obtained (possibly with attached units)
     desired : array-like
         Array to compare with (possibly with attached units)
-    rtol : float, oprtional
+    rtol : float, optional
         Relative tolerance, defaults to 1e-7
     atol : float or quantity, optional
         Absolute tolerance. If units are attached, they must be consistent

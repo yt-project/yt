@@ -28,7 +28,8 @@ from yt.testing import \
     assert_allclose_units, \
     assert_equal, \
     assert_fname, \
-    fake_random_ds
+    fake_random_ds, \
+    requires_module
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
@@ -120,15 +121,26 @@ def test_grid_datacontainer_data():
     curdir = os.getcwd()
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
+
     cg = ds.covering_grid(level=0, left_edge=[0.25]*3, dims=[16]*3)
     fn = cg.save_as_dataset(fields=["density", "particle_mass"])
     full_fn = os.path.join(tmpdir, fn)
     cg_ds = load(full_fn)
     compare_unit_attributes(ds, cg_ds)
     assert isinstance(cg_ds, YTGridDataset)
-
     yield YTDataFieldTest(full_fn, ("grid", "density"))
     yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
+
+    ag = ds.arbitrary_grid(left_edge=[0.25]*3, right_edge=[0.75]*3,
+                           dims=[16]*3)
+    fn = ag.save_as_dataset(fields=["density", "particle_mass"])
+    full_fn = os.path.join(tmpdir, fn)
+    ag_ds = load(full_fn)
+    compare_unit_attributes(ds, ag_ds)
+    assert isinstance(ag_ds, YTGridDataset)
+    yield YTDataFieldTest(full_fn, ("grid", "density"))
+    yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
+
     my_proj = ds.proj("density", "x", weight_field="density")
     frb = my_proj.to_frb(1.0, (800, 800))
     fn = frb.save_as_dataset(fields=["density"])
@@ -229,6 +241,7 @@ def test_nonspatial_data():
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 
+@requires_module('h5py')
 def test_plot_data():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()

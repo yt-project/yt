@@ -114,7 +114,7 @@ def test_unit_cosmo():
 ramsesExtraFieldsSmall = 'ramses_extra_fields_small/output_00001'
 @requires_file(ramsesExtraFieldsSmall)
 def test_extra_fields():
-    extra_fields = [('family', 'I'), ('pointer', 'I')]
+    extra_fields = [('particle_family', 'I'), ('particle_pointer', 'I')]
     ds = yt.load(os.path.join(ramsesExtraFieldsSmall, 'info_00001.txt'),
                  extra_particle_fields=extra_fields)
 
@@ -124,8 +124,21 @@ def test_extra_fields():
 
     # Check the family (they should equal 100, for tracer particles)
     dd = ds.all_data()
-    families = dd[('all', 'family')]
+    families = dd[('all', 'particle_family')]
     assert all(families == 100)
+
+
+@requires_file(ramsesExtraFieldsSmall)
+def test_extra_fields_2():
+    extra_fields = ['particle_extra_field_%s' % (i + 1) for i in range(2)]
+    ds = yt.load(os.path.join(ramsesExtraFieldsSmall, 'info_00001.txt'))
+
+    # the dataset should contain the fields
+    for field in extra_fields:
+        assert ('io', field) in ds.field_list
+
+    # In the dataset, the fields are integers, so we cannot test
+    # that they are accessed correctly.
 
 ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
 @requires_file(ramses_rt)
@@ -154,3 +167,40 @@ def test_ramses_rt():
     for field in special_fields:
         assert(field in ds.derived_field_list)
         ad[field]
+
+
+ramses_sink = "ramses_sink_00016/output_00016/info_00016.txt"
+@requires_file(ramses_sink)
+@requires_file(ramsesNonCosmo)
+def test_ramses_sink():
+    expected_fields = ["BH_bondi_accretion", "BH_eddington_accretion",
+                       "BH_efficiency", "BH_esave",
+                       "BH_real_accretion", "BH_spin", "BH_spin_x",
+                       "BH_spin_y", "BH_spin_z", "gas_spin_x",
+                       "gas_spin_y", "gas_spin_z", "particle_age",
+                       "particle_identifier", "particle_mass",
+                       "particle_position_x", "particle_position_y",
+                       "particle_position_z", "particle_prop_0_0",
+                       "particle_prop_0_1", "particle_prop_0_2",
+                       "particle_prop_0_3", "particle_prop_1_0",
+                       "particle_prop_1_1", "particle_prop_1_2",
+                       "particle_velocity_x", "particle_velocity_y",
+                       "particle_velocity_z"]
+
+    # Check that sinks are autodetected
+    ds = yt.load(ramses_sink)
+    ad = ds.all_data()
+
+    for field in expected_fields:
+        assert(('sink', field) in ds.field_list)
+
+        # test that field access works
+        ad['sink', field]
+
+
+    # Checking that sinks are autodetected
+    ds = yt.load(ramsesCosmo)
+    ad = ds.all_data()
+
+    for field in expected_fields:
+        assert(('sink', 'field') not in ds.field_list)

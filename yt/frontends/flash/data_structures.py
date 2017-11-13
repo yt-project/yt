@@ -292,7 +292,7 @@ class FLASHDataset(Dataset):
         # First we load all of the parameters
         hns = ["simulation parameters"]
         # note the ordering here is important: runtime parameters should
-        # ovewrite scalars with the same name.
+        # overwrite scalars with the same name.
         for ptype in ['scalars', 'runtime parameters']:
             for vtype in ['integer', 'real', 'logical', 'string']:
                 hns.append("%s %s" % (vtype, ptype))

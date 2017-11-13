@@ -589,38 +589,94 @@ class YTArray(np.ndarray):
         """
         return self.convert_to_units(self.units.get_mks_equivalent())
 
-    def in_units(self, units):
+    def in_units(self, units, equivalence=None, **kwargs):
         """
-        Creates a copy of this array with the data in the supplied units, and
-        returns it.
+        Creates a copy of this array with the data in the supplied 
+        units, and returns it.
+
+        Optionally, an equivalence can be specified to convert to an 
+        equivalent quantity which is not in the same dimensions. 
+
+        .. note::
+
+            All additional keyword arguments are passed to the 
+            equivalency, which should be used if that particular 
+            equivalency requires them.
 
         Parameters
         ----------
         units : Unit object or string
             The units you want to get a new quantity in.
+        equivalence : string, optional
+            The equivalence you wish to use. To see which 
+            equivalencies are supported for this unitful 
+            quantity, try the :meth:`list_equivalencies` 
+            method. Default: None
 
         Returns
         -------
         YTArray
-
         """
-        new_units = _unit_repr_check_same(self.units, units)
-        (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
+        if equivalence is None:
+            new_units = _unit_repr_check_same(self.units, units)
+            (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
-        new_array = type(self)(self.ndview * conversion_factor, new_units)
+            new_array = type(self)(self.ndview * conversion_factor, new_units)
 
-        if offset:
-            np.subtract(new_array, offset*new_array.uq, new_array)
+            if offset:
+                np.subtract(new_array, offset*new_array.uq, new_array)
 
-        return new_array
+            return new_array
+        else:
+            return self.to_equivalent(units, equivalence, **kwargs)
 
-    def to(self, units):
+    def to(self, units, equivalence=None, **kwargs):
         """
         An alias for YTArray.in_units().
 
         See the docstrings of that function for details.
         """
-        return self.in_units(units)
+        return self.in_units(units, equivalence=equivalence, **kwargs)
+
+    def to_value(self, units=None, equivalence=None, **kwargs):
+        """
+        Creates a copy of this array with the data in the supplied
+        units, and returns it without units. Output is therefore a 
+        bare NumPy array.
+
+        Optionally, an equivalence can be specified to convert to an 
+        equivalent quantity which is not in the same dimensions. 
+
+        .. note::
+
+            All additional keyword arguments are passed to the 
+            equivalency, which should be used if that particular 
+            equivalency requires them.
+
+        Parameters
+        ----------
+        units : Unit object or string, optional
+            The units you want to get the bare quantity in. If not
+            specified, the value will be returned in the current units.
+
+        equivalence : string, optional
+            The equivalence you wish to use. To see which 
+            equivalencies are supported for this unitful 
+            quantity, try the :meth:`list_equivalencies` 
+            method. Default: None
+
+        Returns
+        -------
+        NumPy array
+        """
+        if units is None:
+            v = self.value
+        else:
+            v = self.in_units(units, equivalence=equivalence, **kwargs).value
+        if isinstance(self, YTQuantity):
+            return float(v)
+        else:
+            return v
 
     def in_base(self, unit_system="cgs"):
         """
@@ -684,6 +740,8 @@ class YTArray(np.ndarray):
         >>> a.to_equivalent("keV", "thermal")
         """
         conv_unit = Unit(unit, registry=self.units.registry)
+        if self.units.same_dimensions_as(conv_unit):
+            return self.in_units(conv_unit)
         this_equiv = equivalence_registry[equiv]()
         oneway_or_equivalent = (
             conv_unit.has_equivalent(equiv) or this_equiv._one_way)
@@ -1569,7 +1627,7 @@ def unorm(data, ord=None, axis=None, keepdims=False):
     return YTArray(norm, data.units)
 
 def udot(op1, op2):
-    """Matrix or vector dot product that preservs units
+    """Matrix or vector dot product that preserves units
 
     This is a wrapper around np.dot that preserves units.
     """
