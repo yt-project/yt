@@ -424,6 +424,19 @@ class YTObjectNotImplemented(YTException):
         v += r"'%s'."
         return v % (self.obj_name, self.ds)
 
+class YTParticleOutputFormatNotImplemented(YTException):
+    def __str__(self):
+        return "The particle output format is not supported."
+
+class YTNotParsableFile(YTException):
+    def __init__(self, fname, line):
+        self.fname = fname
+        self.line = line
+
+    def __str__(self):
+        v = r"Error while parsing file %s at line %s"
+        return v % (self.fname, self.line)
+
 class YTRockstarMultiMassNotSupported(YTException):
     def __init__(self, mi, ma, ptype):
         self.mi = mi
