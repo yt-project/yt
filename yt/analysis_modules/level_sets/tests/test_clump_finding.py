@@ -54,8 +54,7 @@ def test_clump_finding():
             "particle_mass": np.ones(n_p),
             "particle_position_x": px,
             "particle_position_y": px,
-            "particle_position_z": px,
-            "number_of_particles": n_p}
+            "particle_position_z": px}
 
     ds = load_uniform_grid(data, dims)
 
