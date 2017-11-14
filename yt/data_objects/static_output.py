@@ -702,8 +702,10 @@ class Dataset(object):
                 # Now we append the dependencies
                 fd[filter.name, fn[1]] = fd[fn]
         if available:
-            self.particle_types += (filter.name,)
-            self.filtered_particle_types.append(filter.name)
+            if filter.name not in self.particle_types:
+                self.particle_types += (filter.name,)
+            if filter.name not in self.filtered_particle_types:
+                self.filtered_particle_types.append(filter.name)
             new_fields = self._setup_particle_types([filter.name])
             deps, _ = self.field_info.check_derived_fields(new_fields)
             self.field_dependencies.update(deps)
