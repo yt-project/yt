@@ -319,6 +319,14 @@ def print_limits(event_coll, event):
           event_coll.camera.cmap_log)
     return False
 
+@register_event("print_camera")
+def print_camera(event_coll, event):
+    """Print the current camera position and orientation"""
+    print("Camera position: ", event_coll.camera.position)
+    print("Camera focus:", event_coll.camera.focus)
+    print("Camera up direction: ", event_coll.camera.up)
+    return False
+
 @register_event("debug_buffer")
 def debug_buffer(event_coll, event):
     """Print debug info about framebuffer"""

@@ -381,7 +381,7 @@ class BlockCollection(SceneComponent):
         """
         self.add_data(self.data_source, self.data_source.tiles.fields[0], log_field)
 
-    def add_data(self, data_source, field, log_field=True):
+    def add_data(self, data_source, field, log_field=None):
         r"""Adds a source of data for the block collection.
 
         Given a `data_source` and a `field` to populate from, adds the data
@@ -395,7 +395,12 @@ class BlockCollection(SceneComponent):
             A field to populate from.
         log_field : boolean, optional
             If set to True log10 will be applied to data before passing it to GPU.
+            If None, the default behavior for the requested field will be used.
         """
+
+        if log_field is None:
+            log_field = data_source.ds.field_info[field].take_log        
+
         self.data_source = data_source
         self.data_source.tiles.set_fields([field], [log_field], no_ghost=False)
         self.data_logged = log_field
