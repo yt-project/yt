@@ -30,6 +30,7 @@ from yt.data_objects.static_output import \
 from yt.utilities.file_handler import \
     HDF5FileHandler
 from .fields import GAMERFieldInfo
+from .definitions import geometry_parameters
 from yt.testing import assert_equal
 
 
@@ -308,11 +309,7 @@ class GAMERDataset(Dataset):
         # old data format (version < 2210) does not contain any information of code units
         self.parameters.setdefault('Opt__Unit', 0)
 
-        self.geometry = {1: "cartesian",
-                         2: ("cylindrical", ("r", "theta", "z")),
-                         3: ("spherical", ("r", "theta", "phi"))}[
-                             parameters.get("Coordinate", 1)]
-
+        self.geometry = geometry_parameters[parameters.get("Coordinate", 1)]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
