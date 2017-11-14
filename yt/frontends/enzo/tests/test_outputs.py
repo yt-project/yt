@@ -219,3 +219,12 @@ def test_deeply_nested_zoom():
     assert_allclose_units(c, c_actual)
 
     assert_equal(max([g['density'].max() for g in ds.index.grids]), v)
+
+@requires_file(kh2d)
+def test_2d_grid_shape():
+    # see issue #1601
+    # we want to make sure that accessing data on a grid object
+    # returns a 3D array with a dummy dimension.
+    ds = data_dir_load(kh2d)
+    g = ds.index.grids[1]
+    assert g['density'].shape == (128, 100, 1)
