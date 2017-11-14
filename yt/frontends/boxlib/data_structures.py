@@ -1326,7 +1326,10 @@ def _guess_pcast(vals):
             pcast = float
         else:
             pcast = int
-    vals = [pcast(value) for value in vals.split()]
+    if pcast == bool:
+        vals = [value=="T" for value in vals.split()]
+    else:
+        vals = [pcast(value) for value in vals.split()]
     if len(vals) == 1:
         vals = vals[0]
     return vals
