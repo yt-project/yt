@@ -567,7 +567,7 @@ class BoxlibHierarchy(GridIndex):
                                                         extra_field_names)
 
         num_parts = self.particle_headers[directory_name].num_particles
-        if not hasattr(self.ds, "_particle_type_counts") or self.ds._particle_type_counts is None:
+        if self.ds._particle_type_counts is None:
             self.ds._particle_type_counts = {}
         self.ds._particle_type_counts[directory_name] = num_parts
 
