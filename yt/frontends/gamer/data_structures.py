@@ -304,6 +304,12 @@ class GAMERDataset(Dataset):
         # old data format (version < 2210) does not contain any information of code units
         self.parameters.setdefault('Opt__Unit', 0)
 
+        self.geometry = {1: "cartesian",
+                         2: ("cylindrical", ("r", "theta", "z")),
+                         3: ("spherical", ("r", "theta", "phi"))}[
+                             parameters.get("Coordinate", 1)]
+
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
