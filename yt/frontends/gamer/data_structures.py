@@ -101,6 +101,8 @@ class GAMERHierarchy(GridIndex):
                 = (grid_corner[ gid0:gid0 + num_grids_level ] + patch_scale)*convert2physical
 
             gid0 += num_grids_level
+        self.grid_left_edge += self.dataset.domain_left_edge
+        self.grid_right_edge += self.dataset.domain_left_edge
 
         # allocate all grid objects
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -272,8 +274,10 @@ class GAMERDataset(Dataset):
         # simulation time and domain
         self.current_time      = parameters['Time'][0]
         self.dimensionality    = 3  # always 3D
-        self.domain_left_edge  = np.array([0.,0.,0.], dtype='float64')
-        self.domain_right_edge = parameters['BoxSize'].astype('float64')
+        self.domain_left_edge  = parameters.get("BoxEdgeL",
+                np.array([0.,0.,0.])).astype("f8")
+        self.domain_right_edge  = parameters.get("BoxEdgeR",
+                parameters["BoxSize"]).astype("f8")
         self.domain_dimensions = parameters['NX0'].astype('int64')
 
         # periodicity
