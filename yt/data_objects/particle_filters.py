@@ -87,7 +87,9 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     A particle filter is a short name that corresponds to an algorithm for
     filtering a set of particles into a subset.  This is useful for creating new
     particle types based on a cut on a particle field, such as particle mass, ID
-    or type.
+    or type. After defining a new filter, it still needs to be added to the
+    dataset by calling
+    :func:`~yt.data_objects.static_output.add_particle_filter`.
 
     .. note::
        Alternatively, you can make use of the

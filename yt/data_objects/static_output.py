@@ -353,7 +353,7 @@ class Dataset(object):
             return hashlib.md5(s.encode('utf-8')).hexdigest()
         except ImportError:
             return s.replace(";", "*")
-   
+
     _checksum = None
     @property
     def checksum(self):
@@ -655,6 +655,12 @@ class Dataset(object):
         return len(new_fields)
 
     def add_particle_filter(self, filter):
+        """Add particle filter to the dataset.
+
+        Add ``filter`` to the dataset and set up relavent derived_field.
+        It will also add any ``filtered_type`` that the ``filter`` depends on.
+
+        """
         # This requires an index
         self.index
         # This is a dummy, which we set up to enable passthrough of "all"
