@@ -5,6 +5,7 @@ from yt.testing import \
     requires_file
 from yt.data_objects.particle_filters import \
     add_particle_filter, particle_filter
+import numpy as np
 
 
 # Dataset required for this test
