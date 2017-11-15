@@ -49,6 +49,32 @@ def test_particle_filter():
     assert True
 
 @requires_file(iso_galaxy)
+def test_particle_filter_dependency():
+    """
+    Test dataset add_particle_filter which should automatically add
+    the dependency of the filter.
+    """
+
+    @particle_filter(filtered_type='all', requires=['particle_type'])
+    def stars(pfilter, data):
+        filter = data[(pfilter.filtered_type, "particle_type")] == 2
+        return filter
+
+    @particle_filter(filtered_type='stars', requires=['creation_time'])
+    def young_stars(pfilter, data):
+        age = data.ds.current_time - data[pfilter.filtered_type, "creation_time"]
+        filter = np.logical_and(age.in_units('Myr') <= 5, age >= 0)
+        return filter
+
+    ds = yt.load(iso_galaxy)
+    ds.add_particle_filter('young_stars')
+    assert 'young_stars' in ds.particle_types
+    assert 'stars' in ds.particle_types
+    print(ds.derived_field_list)
+    assert ('deposit', 'young_stars_cic') in ds.derived_field_list
+    assert ('deposit', 'stars_cic') in ds.derived_field_list
+
+@requires_file(iso_galaxy)
 def test_covering_grid_particle_filter():
     @particle_filter(requires=["particle_type"], filtered_type='all')
     def stars(pfilter, data):
@@ -61,7 +87,7 @@ def test_covering_grid_particle_filter():
 
     for grid in ds.index.grids[20:31]:
         cg = ds.covering_grid(grid.Level, grid.LeftEdge, grid.ActiveDimensions)
-        
+
         assert_equal(cg['stars', 'particle_ones'].shape[0],
                      grid['stars', 'particle_ones'].shape[0])
         assert_equal(cg['stars', 'particle_mass'].shape[0],
