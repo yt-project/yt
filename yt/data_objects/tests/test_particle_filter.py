@@ -71,7 +71,6 @@ def test_particle_filter_dependency():
     ds.add_particle_filter('young_stars')
     assert 'young_stars' in ds.particle_types
     assert 'stars' in ds.particle_types
-    print(ds.derived_field_list)
     assert ('deposit', 'young_stars_cic') in ds.derived_field_list
     assert ('deposit', 'stars_cic') in ds.derived_field_list
 
