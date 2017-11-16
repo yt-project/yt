@@ -8,8 +8,9 @@ This is a non-comprehensive log of changes to yt over its many releases.
 Contributors
 ------------
 
-The `CREDITS file <http://bitbucket.org/yt_analysis/yt/src/yt/CREDITS>`_ contains the
-most up-to-date list of everyone who has contributed to the yt source code.
+The `CREDITS file <https://github.com/yt-project/yt/blob/master/CREDITS>`_ 
+contains the most up-to-date list of everyone who has contributed to the yt 
+source code.
 
 Version 3.4
 -----------
