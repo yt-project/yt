@@ -69,8 +69,8 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[pn % "x"], "units")
                     x, y, z = \
-                      (self.ds.arr(f[pn % ax].value.astype("float64"), units)
-                       for ax in "xyz")
+                      (self.ds.arr(f[pn % ax].value.astype("float64"),
+                                   units).in_base('code') for ax in "xyz")
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None: continue
