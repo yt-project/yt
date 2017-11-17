@@ -127,8 +127,8 @@ cdef class SelectorObject:
                 self.domain_width[i] = 1.0
                 self.periodicity[i] = False
         else:
-            DLE = _ensure_code(ds.domain_left_edge)
-            DRE = _ensure_code(ds.domain_right_edge)
+            DLE = ds.domain_left_edge
+            DRE = ds.domain_right_edge
             for i in range(3):
                 self.domain_width[i] = DRE[i] - DLE[i]
                 self.periodicity[i] = ds.periodicity[i]
@@ -421,9 +421,6 @@ cdef class SelectorObject:
         child_mask = gobj.child_mask
         cdef np.ndarray[np.uint8_t, ndim=3] mask
         cdef int dim[3]
-        _ensure_code(gobj.dds)
-        _ensure_code(gobj.LeftEdge)
-        _ensure_code(gobj.RightEdge)
         cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds.d
         cdef np.ndarray[np.float64_t, ndim=1] oleft_edge = gobj.LeftEdge.d
         cdef np.ndarray[np.float64_t, ndim=1] oright_edge = gobj.RightEdge.d
@@ -1210,8 +1207,6 @@ cdef class SliceSelector(SelectorObject):
         cdef int this_level = 0
         cdef int ind[3][2]
         cdef np.int32_t level = gobj.Level
-        _ensure_code(gobj.LeftEdge)
-        _ensure_code(gobj.dds)
 
         if level < self.min_level or level > self.max_level:
             return None
@@ -1302,9 +1297,6 @@ cdef class OrthoRaySelector(SelectorObject):
         cdef int this_level = 0
         cdef int ind[3][2]
         cdef np.int32_t level = gobj.Level
-        _ensure_code(gobj.LeftEdge)
-        _ensure_code(gobj.RightEdge)
-        _ensure_code(gobj.dds)
 
         if level < self.min_level or level > self.max_level:
             return None
@@ -1434,9 +1426,6 @@ cdef class RaySelector(SelectorObject):
         ia.dt = <np.float64_t *> dt.data
         ia.child_mask = <np.uint8_t *> child_mask.data
         ia.hits = 0
-        _ensure_code(gobj.LeftEdge)
-        _ensure_code(gobj.RightEdge)
-        _ensure_code(gobj.dds)
         for i in range(3):
             vc.left_edge[i] = gobj.LeftEdge[i]
             vc.right_edge[i] = gobj.RightEdge[i]
@@ -1472,9 +1461,6 @@ cdef class RaySelector(SelectorObject):
         ia.dt = <np.float64_t *> dt.data
         ia.child_mask = <np.uint8_t *> child_mask.data
         ia.hits = 0
-        _ensure_code(gobj.LeftEdge)
-        _ensure_code(gobj.RightEdge)
-        _ensure_code(gobj.dds)
         for i in range(3):
             vc.left_edge[i] = gobj.LeftEdge[i]
             vc.right_edge[i] = gobj.RightEdge[i]
