@@ -21,7 +21,6 @@ cimport cython
 cimport libc.math as math
 from libc.math cimport abs, sqrt
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max
-from yt.geometry.selection_routines cimport _ensure_code
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport strcmp
@@ -933,10 +932,6 @@ def fill_region_float(np.ndarray[np.float64_t, ndim=2] fcoords,
             ds_period[i] = period[i]
     else:
         ds_period[0] = ds_period[1] = ds_period[2] = 0.0
-    box_left_edge = _ensure_code(box_left_edge)
-    box_right_edge = _ensure_code(box_right_edge)
-    _ensure_code(fcoords)
-    _ensure_code(fwidth)
     for i in range(3):
         LE[i] = box_left_edge[i]
         RE[i] = box_right_edge[i]
