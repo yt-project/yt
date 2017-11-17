@@ -145,8 +145,6 @@ cdef class SelectorObject:
         cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
-        _ensure_code(left_edges)
-        _ensure_code(right_edges)
         with nogil:
             for n in range(ng):
                 # Call our selector function
@@ -546,9 +544,6 @@ cdef class SelectorObject:
         cdef int count = 0
         cdef int i
         cdef np.float64_t pos[3]
-        _ensure_code(x)
-        _ensure_code(y)
-        _ensure_code(z)
         with nogil:
             if radius == 0.0 :
                 for i in range(x.shape[0]):
