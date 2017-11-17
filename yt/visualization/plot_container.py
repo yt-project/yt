@@ -470,7 +470,7 @@ class PlotContainer(object):
         """
         names = []
         if mpl_kwargs is None: mpl_kwargs = {}
-        if isinstance(name, tuple):
+        if isinstance(name, (tuple, list)):
             name = os.path.join(*name)
         if name is None:
             name = str(self.ds)
