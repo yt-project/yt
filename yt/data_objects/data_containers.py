@@ -204,13 +204,12 @@ class YTDataContainer(object):
         elif isinstance(center, YTIndexArray):
             self.center = center
         elif isinstance(center, YTArray):
-            self.center = self.ds.arr(center.copy())
-            self.center.convert_to_units('code_length')
+            self.center = self.ds.arr(center.copy()).in_base("code")
         elif isinstance(center, (list, tuple, np.ndarray)):
             # TODO make this DTRT for nonspatial data
             if isinstance(center[0], YTQuantity):
-                self.center = self.ds.arr([c.copy() for c in center])
-                self.center.convert_to_units('code_length')
+                self.center = self.ds.arr([c.copy()
+                                           for c in center]).in_base('code')
             else:
                 self.center = self.ds.arr(center, 'code_length')
         elif isinstance(center, string_types):

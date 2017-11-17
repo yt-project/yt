@@ -758,7 +758,7 @@ def fix_length(length, ds=None):
     if isinstance(length, YTArray):
         if registry is not None:
             length.units.registry = registry
-        return length.in_units("code_length")
+        return length.in_base("code")
     if isinstance(length, numeric_type):
         return YTArray(length, 'code_length', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2

@@ -74,7 +74,7 @@ class YTPoint(YTSelectionContainer0D):
         super(YTPoint, self).__init__(ds, field_parameters, data_source)
         if isinstance(p, YTArray):
             # we pass p through ds.arr to ensure code units are attached
-            self.p = self.ds.arr(p)
+            self.p = self.ds.arr(p).in_base('code')
         else:
             self.p = self.ds.arr(p, 'code_length')
 
@@ -141,11 +141,11 @@ class YTOrthoRay(YTSelectionContainer1D):
         self.py_dx = 'd%s'%('xyz'[self.py_ax])
         # Convert coordinates to code length.
         if isinstance(coords[0], YTQuantity):
-            self.px = self.ds.quan(coords[0]).to("code_length")
+            self.px = self.ds.quan(coords[0]).in_base("code")
         else:
             self.px = self.ds.quan(coords[0], "code_length")
         if isinstance(coords[1], YTQuantity):
-            self.py = self.ds.quan(coords[1]).to("code_length")
+            self.py = self.ds.quan(coords[1]).in_base("code")
         else:
             self.py = self.ds.quan(coords[1], "code_length")
         self.sort_by = 'xyz'[self.axis]
@@ -199,8 +199,7 @@ class YTRay(YTSelectionContainer1D):
     >>> my_ray = ds.ray(...)
     >>> ray_sort = np.argsort(my_ray["t"])
     >>> density = my_ray["density"][ray_sort]
-
-"""
+    """
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     _container_fields = ("t", "dts")
@@ -209,14 +208,14 @@ class YTRay(YTSelectionContainer1D):
         super(YTRay, self).__init__(ds, field_parameters, data_source)
         if isinstance(start_point, YTArray):
             self.start_point = \
-              self.ds.arr(start_point).to("code_length")
+              self.ds.arr(start_point).in_base("code")
         else:
             self.start_point = \
               self.ds.arr(start_point, 'code_length',
                           dtype='float64')
         if isinstance(end_point, YTArray):
             self.end_point = \
-              self.ds.arr(end_point).to("code_length")
+              self.ds.arr(end_point).in_base("code")
         else:
             self.end_point = \
               self.ds.arr(end_point, 'code_length',
@@ -624,12 +623,12 @@ class YTRegion(YTSelectionContainer3D):
             self.left_edge = self.ds.arr(left_edge, 'code_length')
         else:
             # need to assign this dataset's unit registry to the YTArray
-            self.left_edge = self.ds.arr(left_edge.copy())
+            self.left_edge = self.ds.arr(left_edge.copy()).in_base('code')
         if not isinstance(right_edge, YTArray):
             self.right_edge = self.ds.arr(right_edge, 'code_length')
         else:
             # need to assign this dataset's unit registry to the YTArray
-            self.right_edge = self.ds.arr(right_edge.copy())
+            self.right_edge = self.ds.arr(right_edge.copy()).in_base('code')
 
 class YTDataCollection(YTSelectionContainer3D):
     """
@@ -670,7 +669,7 @@ class YTSphere(YTSelectionContainer3D):
     def __init__(self, center, radius, ds=None,
                  field_parameters=None, data_source=None):
         super(YTSphere, self).__init__(center, ds,
-                                           field_parameters, data_source)
+                                       field_parameters, data_source)
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.ds)
         if radius < self.index.get_smallest_dx():
