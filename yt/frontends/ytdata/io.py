@@ -146,8 +146,8 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[ptype][pn % "x"], "units")
                     x, y, z = \
-                      (self.ds.arr(f[ptype][pn % ax].value.astype("float64"), units)
-                       for ax in "xyz")
+                      (self.ds.arr(f[ptype][pn % ax].value.astype("float64"),
+                                   units).in_base('code') for ax in "xyz")
                     for field in field_list:
                         if np.asarray(f[ptype][field]).ndim > 1:
                             self._array_fields[field] = f[ptype][field].shape
@@ -168,8 +168,8 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[ptype][pn % "x"], "units")
                     x, y, z = \
-                      (self.ds.arr(f[ptype][pn % ax].value.astype("float64"), units)
-                       for ax in "xyz")
+                      (self.ds.arr(f[ptype][pn % ax].value.astype("float64"), 
+                                   units).in_base('code') for ax in "xyz")
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
@@ -197,8 +197,8 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                     if pcount == 0: continue
                     units = _get_position_array_units(ptype, f, "x")
                     x, y, z = \
-                      (self.ds.arr(_get_position_array(ptype, f, ax), units)
-                       for ax in "xyz")
+                      (self.ds.arr(_get_position_array(ptype, f, ax),
+                                   units).in_base('code') for ax in "xyz")
                     yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -213,8 +213,8 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     units = _get_position_array_units(ptype, f, "x")
                     x, y, z = \
-                      (self.ds.arr(_get_position_array(ptype, f, ax), units)
-                       for ax in "xyz")
+                      (self.ds.arr(_get_position_array(ptype, f, ax),
+                                   units).in_base('code') for ax in "xyz")
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None: continue
@@ -236,19 +236,18 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 units = _get_position_array_units(ptype, f, "x")
                 if ptype == "grid":
                     dx = f["grid"]["dx"].value.min()
-                    dx = self.ds.quan(
-                        dx, parse_h5_attr(f["grid"]["dx"], "units")).to("code_length")
+                    dx = self.ds.quan(dx, parse_h5_attr(f["grid"]["dx"],
+                                      "units")).in_base('code')
                 else:
-                    dx = 2. * np.finfo(f[ptype]["particle_position_x"].dtype).eps
-                    dx = self.ds.quan(dx, units).to("code_length")
-                u = ("code_length",)*3
+                    dx = 2.*np.finfo(f[ptype]["particle_position_x"].dtype).eps
+                    dx = self.ds.quan(dx, units).in_base('code')
                 pos[:,0] = _get_position_array(ptype, f, "x")
                 pos[:,1] = _get_position_array(ptype, f, "y")
                 pos[:,2] = _get_position_array(ptype, f, "z")
                 # TODO make this DTRT for non-spatial data
-                pos = self.ds.arr(pos, (units,)*3).to(u)
-                dle = self.ds.domain_left_edge.to(u)
-                dre = self.ds.domain_right_edge.to(u)
+                pos = self.ds.arr(pos, (units,)*3).in_base('code')
+                dle = self.ds.domain_left_edge
+                dre = self.ds.domain_right_edge
 
                 # These are 32 bit numbers, so we give a little lee-way.
                 # Otherwise, for big sets of particles, we often will bump into the
