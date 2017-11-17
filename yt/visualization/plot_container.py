@@ -454,9 +454,11 @@ class PlotContainer(object):
 
         Parameters
         ----------
-        name : string
-           The base of the filename.  If name is a directory or if name is not
-           set, the filename of the dataset is used.
+        name : string or tuple
+           The base of the filename. If name is a directory or if name is not
+           set, the filename of the dataset is used. For a tuple, the
+           resulting path will be given by joining the elements of the
+           tuple
         suffix : string
            Specify the image type by its suffix. If not specified, the output
            type will be inferred from the filename. Defaults to PNG.
@@ -468,6 +470,8 @@ class PlotContainer(object):
         """
         names = []
         if mpl_kwargs is None: mpl_kwargs = {}
+        if isinstance(name, (tuple, list)):
+            name = os.path.join(*name)
         if name is None:
             name = str(self.ds)
         name = os.path.expanduser(name)
