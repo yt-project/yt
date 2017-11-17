@@ -576,10 +576,6 @@ cdef class SelectorObject:
         cdef np.float64_t pos[3]
         cdef np.ndarray[np.uint8_t, ndim=1] mask
         mask = np.empty(x.shape[0], dtype='uint8')
-        _ensure_code(x)
-        _ensure_code(y)
-        _ensure_code(z)
-
 
         # this is to allow selectors to optimize the point vs
         # 0-radius sphere case.  These two may have different
