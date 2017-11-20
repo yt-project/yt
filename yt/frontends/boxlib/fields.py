@@ -13,6 +13,7 @@ BoxLib code fields
 
 import string
 import re
+import numpy as np
 
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, amu_cgs, c
