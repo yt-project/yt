@@ -291,7 +291,7 @@ class VelocityCallback(PlotCallback):
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, factor=16, scale=None, scale_units=None, 
-                 normalize=False, color=None):
+                 normalize=False, color="k"):
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
@@ -341,7 +341,7 @@ class MagFieldCallback(PlotCallback):
     _type_name = "magnetic_field"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, factor=16, scale=None, scale_units=None, 
-                 normalize=False, color=None):
+                 normalize=False, color="k"):
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
@@ -379,7 +379,7 @@ class QuiverCallback(PlotCallback):
     _type_name = "quiver"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, color=None, normalize=False, 
+                 scale_units=None, color="k", normalize=False, 
                  bv_x=0, bv_y=0):
         PlotCallback.__init__(self)
         self.field_x = field_x
@@ -845,7 +845,7 @@ class CuttingQuiverCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=None, color=None):
+                 scale_units=None, normalize=None, color="k"):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
