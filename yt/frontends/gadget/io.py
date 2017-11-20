@@ -350,7 +350,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             arr = arr.reshape((count//factor, factor), order="C")
         return arr.astype(self._float_type)
 
-    def _yield_coordinates(self, data_file):
+    def _yield_coordinates(self, data_file, needed_ptype=None):
         self._float_type = data_file.ds._validate_header(data_file.filename)[1]
         self._field_size = np.dtype(self._float_type).itemsize
         with open(data_file.filename, "rb") as f:
@@ -358,6 +358,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             f.seek(data_file._position_offset + 4)
             for ptype, count in data_file.total_particles.items():
                 if count == 0:
+                    continue
+                if needed_ptype is not None and ptype != needed_ptype:
                     continue
                 # The first total_particles * 3 values are positions
                 pp = np.fromfile(f, dtype = self._float_type, count = count*3)
