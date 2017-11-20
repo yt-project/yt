@@ -142,6 +142,7 @@ class ParticleIndex(Index):
         try:
             rflag = self.regions.load_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
+            self._initialize_frontend_specific()
             if rflag == 0:
                 raise OSError
         except OSError:
@@ -289,3 +290,12 @@ class ParticleIndex(Index):
                 data = fh.read(size)
                 ret.extend(data)
             return fnv_hash(ret)
+
+    def _initialize_frontend_specific(self):
+        """This is for frontend-specific initialization code
+
+        If there are frontend-specific things that need to be set while 
+        creating the index, this function forces these operations to happen
+        in cases where we are reloading the index from a sidecar file.
+        """
+        pass

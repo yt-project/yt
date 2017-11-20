@@ -100,6 +100,11 @@ class GadgetBinaryIndex(SPHParticleIndex):
         self._detect_output_fields()
         super(GadgetBinaryIndex, self)._initialize_index()
 
+    def _initialize_frontend_specific(self):
+        super(GadgetBinaryIndex, self)._initialize_frontend_specific()
+        fname = self.data_files[0].filename
+        self.io._float_type = self.ds._validate_header(fname)[1]
+
 class GadgetDataset(SPHDataset):
     _index_class = GadgetBinaryIndex
     _file_class = GadgetBinaryFile
