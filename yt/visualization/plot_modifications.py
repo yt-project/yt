@@ -290,12 +290,14 @@ class VelocityCallback(PlotCallback):
     """
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
+    def __init__(self, factor=16, scale=None, scale_units=None, 
+                 normalize=False, color=None):
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
         self.scale_units = scale_units
         self.normalize = normalize
+        self.color = color
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -304,7 +306,8 @@ class VelocityCallback(PlotCallback):
                                         "cutting_plane_velocity_y",
                                         self.factor, scale=self.scale,
                                         normalize=self.normalize,
-                                        scale_units=self.scale_units)
+                                        scale_units=self.scale_units,
+                                        color=self.color)
         else:
             ax = plot.data.axis
             (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
@@ -321,7 +324,8 @@ class VelocityCallback(PlotCallback):
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
-                                 normalize=self.normalize, bv_x=bv_x, bv_y=bv_y)
+                                 normalize=self.normalize, bv_x=bv_x, 
+                                 bv_y=bv_y, color=self.color)
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
@@ -336,12 +340,14 @@ class MagFieldCallback(PlotCallback):
     """
     _type_name = "magnetic_field"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
-    def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
+    def __init__(self, factor=16, scale=None, scale_units=None, 
+                 normalize=False, color=None):
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
         self.scale_units = scale_units
         self.normalize = normalize
+        self.color = color
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -350,14 +356,17 @@ class MagFieldCallback(PlotCallback):
                                         "cutting_plane_magnetic_field_y",
                                         self.factor, scale=self.scale, 
                                         scale_units=self.scale_units, 
-                                        normalize=self.normalize)
+                                        normalize=self.normalize,
+                                        color=self.color)
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
             yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
             axis_names = plot.data.ds.coordinates.axis_name
             xv = "magnetic_field_%s" % (axis_names[xax])
             yv = "magnetic_field_%s" % (axis_names[yax])
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
+                                 scale_units=self.scale_units, 
+                                 normalize=self.normalize, color=self.color)
         return qcb(plot)
 
 class QuiverCallback(PlotCallback):
@@ -370,7 +379,8 @@ class QuiverCallback(PlotCallback):
     _type_name = "quiver"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=False, bv_x=0, bv_y=0):
+                 scale_units=None, color=None, normalize=False, 
+                 bv_x=0, bv_y=0):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -380,6 +390,7 @@ class QuiverCallback(PlotCallback):
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
+        self.color = color
 
     def __call__(self, plot):
         x0, x1 = [p.to('code_length') for p in plot.xlim]
@@ -424,7 +435,8 @@ class QuiverCallback(PlotCallback):
             nn = np.sqrt(pixX**2 + pixY**2)
             pixX /= nn
             pixY /= nn
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
+                          color=self.color, scale_units=self.scale_units)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
 
@@ -833,7 +845,7 @@ class CuttingQuiverCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=None):
+                 scale_units=None, normalize=None, color=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -841,6 +853,7 @@ class CuttingQuiverCallback(PlotCallback):
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
+        self.color = color
 
     def __call__(self, plot):
         x0, x1 = [p.to('code_length') for p in plot.xlim]
@@ -875,7 +888,8 @@ class CuttingQuiverCallback(PlotCallback):
             pixX /= nn
             pixY /= nn
 
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
+                          scale_units=self.scale_units, color=self.color)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
 
