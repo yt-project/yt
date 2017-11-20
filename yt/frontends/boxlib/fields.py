@@ -15,7 +15,7 @@ import string
 import re
 
 from yt.utilities.physical_constants import \
-    boltzmann_constant_cgs, amu_cgs
+    boltzmann_constant_cgs, amu_cgs, c
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.units import YTQuantity
@@ -71,9 +71,9 @@ class WarpXFieldInfo(FieldInfoContainer):
         ("particle_position_x", ("m", [], None)),
         ("particle_position_y", ("m", [], None)),
         ("particle_position_z", ("m", [], None)),
-        ("particle_velocity_x", ("m/s", [], None)),
-        ("particle_velocity_y", ("m/s", [], None)),
-        ("particle_velocity_z", ("m/s", [], None)),
+        ("particle_momentum_x", ("kg*m/s", [], None)),
+        ("particle_momentum_y", ("kg*m/s", [], None)),
+        ("particle_momentum_z", ("kg*m/s", [], None)),
     )
 
     extra_union_fields = (
@@ -108,6 +108,37 @@ class WarpXFieldInfo(FieldInfoContainer):
                        function=get_charge,
                        units="C")
 
+        def get_energy(field, data):
+            p2 = data[ptype, 'particle_momentum_x']**2 + \
+                 data[ptype, 'particle_momentum_y']**2 + \
+                 data[ptype, 'particle_momentum_z']**2
+            return np.sqrt(p2 * c**2 + data[ptype, 'particle_mass']**2 * c**4)
+
+        self.add_field((ptype, "particle_energy"), sampling_type="particle",
+                       function=get_energy,
+                       units="J")
+
+        def get_velocity_x(field, data):
+            return c**2 * data[ptype, 'particle_momentum_x'] / data[ptype, 'particle_energy']
+
+        def get_velocity_y(field, data):
+            return c**2 * data[ptype, 'particle_momentum_y'] / data[ptype, 'particle_energy']
+
+        def get_velocity_z(field, data):
+            return c**2 * data[ptype, 'particle_momentum_z'] / data[ptype, 'particle_energy']
+            
+        self.add_field((ptype, "particle_velocity_x"), sampling_type="particle",
+                       function=get_velocity_x,
+                       units="m/s")
+
+        self.add_field((ptype, "particle_velocity_y"), sampling_type="particle",
+                       function=get_velocity_y,
+                       units="m/s")
+
+        self.add_field((ptype, "particle_velocity_z"), sampling_type="particle",
+                       function=get_velocity_z,
+                       units="m/s")
+                                    
         super(WarpXFieldInfo, self).setup_particle_fields(ptype)
 
 
