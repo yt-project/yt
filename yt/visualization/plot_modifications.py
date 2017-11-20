@@ -382,8 +382,8 @@ class QuiverCallback(PlotCallback):
         self.normalize = normalize
 
     def __call__(self, plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
+        x0, x1 = [p.to('code_length') for p in plot.xlim]
+        y0, y1 = [p.to('code_length') for p in plot.ylim]
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         # See the note about rows/columns in the pixelizer for more information
