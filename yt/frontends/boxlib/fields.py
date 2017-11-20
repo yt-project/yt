@@ -55,19 +55,19 @@ def _temperature(field, data):
 class WarpXFieldInfo(FieldInfoContainer):
 
     known_other_fields = (
-        ("Bx", ("T", ["magnetic_field_x"], None)),
-        ("By", ("T", ["magnetic_field_y"], None)),
-        ("Bz", ("T", ["magnetic_field_z"], None)),
-        ("Ex", ("V/m", ["electric_field_x"], None)),
-        ("Ey", ("V/m", ["electric_field_y"], None)),
-        ("Ez", ("V/m", ["electric_field_z"], None)),
-        ("jx", ("A", ["current_x"], None)),
-        ("jy", ("A", ["current_y"], None)),
-        ("jz", ("A", ["current_z"], None)),
+        ("Bx", ("T",   ["magnetic_field_x", "B_x"], None)),
+        ("By", ("T",   ["magnetic_field_y", "B_y"], None)),
+        ("Bz", ("T",   ["magnetic_field_z", "B_z"], None)),
+        ("Ex", ("V/m", ["electric_field_x", "E_x"], None)),
+        ("Ey", ("V/m", ["electric_field_y", "E_y"], None)),
+        ("Ez", ("V/m", ["electric_field_z". "E_z"], None)),
+        ("jx", ("A",   ["current_x", "Jx", "J_x"],  None)),
+        ("jy", ("A",   ["current_y", "Jy", "J_y"],  None)),
+        ("jz", ("A",   ["current_z", "Jz", "J_z"],  None)),
     )
 
     known_particle_fields = (
-        ("particle_weight", ("", [], None)),
+        ("particle_weight", ("", ["particle_weighting"], None)),
         ("particle_position_x", ("m", [], None)),
         ("particle_position_y", ("m", [], None)),
         ("particle_position_z", ("m", [], None)),
