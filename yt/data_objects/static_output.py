@@ -565,7 +565,7 @@ class Dataset(object):
                 mylog.debug("zero common fields: skipping particle union 'all'")
         self.field_info.setup_extra_union_fields()
         mylog.debug("Loading field plugins.")
-        self.field_info.load_all_plugins()
+        self.field_info.load_all_plugins(self.default_fluid_type)
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
         self.fields = FieldTypeContainer(self)
