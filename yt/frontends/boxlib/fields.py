@@ -21,6 +21,7 @@ from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.units import YTQuantity
 
+
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_time * code_length**2)"
 eden_units = "code_mass / (code_time**2 * code_length)" # erg / cm^3
@@ -90,6 +91,14 @@ class WarpXFieldInfo(FieldInfoContainer):
         for field in ds.index.raw_fields:
             finfo = self.__getitem__(('raw', field))
             finfo.nodal_flag = ds.nodal_flags[field]
+
+    def setup_fluid_fields(self):
+        for field in self.known_other_fields:
+            fname = field[0]
+            self.alias(("mesh", fname), ('boxlib', fname))
+
+    def setup_fluid_aliases(self):
+        super(WarpXFieldInfo, self).setup_fluid_aliases("mesh")
 
     def setup_particle_fields(self, ptype):
 

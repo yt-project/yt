@@ -1499,6 +1499,10 @@ class WarpXDataset(BoxlibDataset):
                  units_override=None,
                  unit_system="mks"):
 
+        self.default_fluid_type = "mesh"
+        self.default_field = ("mesh", "density")
+        self.fluid_types = ("mesh", "index")
+
         super(WarpXDataset, self).__init__(output_dir,
                                            cparam_filename,
                                            fparam_filename,
