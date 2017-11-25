@@ -189,7 +189,7 @@ def _read_part_file_descriptor(fname):
     # Convert in dictionary
     mapping = {k: v for k, v in mapping}
 
-    if True: #with open(fname, 'r') as f:
+    with open(fname, 'r') as f:
         f = open(fname, 'r')
         line = f.readline()
         tmp = VERSION_RE.match(line)
