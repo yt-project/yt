@@ -428,7 +428,7 @@ class YTParticleOutputFormatNotImplemented(YTException):
     def __str__(self):
         return "The particle output format is not supported."
 
-class YTNotParsableFile(YTException):
+class YTFileNotParseable(YTException):
     def __init__(self, fname, line):
         self.fname = fname
         self.line = line
