@@ -687,15 +687,16 @@ class RAMSESDataset(Dataset):
         self.storage_filename = storage_filename
 
         # Add particles filters
-        for fname, value in particle_families.items():
-            def loc(val):
-                def closure(pfilter, data):
-                    filter = data[(pfilter.filtered_type, "particle_family")] == val
-                    return filter
+        if ('io', 'particle_family') in self.field_list:
+            for fname, value in particle_families.items():
+                def loc(val):
+                    def closure(pfilter, data):
+                        filter = data[(pfilter.filtered_type, "particle_family")] == val
+                        return filter
 
-                return closure
-            add_particle_filter(fname, loc(value),
-                                filtered_type='io', requires=['particle_family'])
+                    return closure
+                add_particle_filter(fname, loc(value),
+                                    filtered_type='io', requires=['particle_family'])
 
 
     def create_field_info(self, *args, **kwa):
@@ -704,9 +705,10 @@ class RAMSESDataset(Dataset):
         self._add_ptypes()
 
     def _add_ptypes(self):
-        for k in particle_families.keys():
-            mylog.info('Adding particle_type: %s' % k)
-            self.add_particle_filter('%s' % k)
+        if ('io', 'particle_family') in self.field_list:
+            for k in particle_families.keys():
+                mylog.info('Adding particle_type: %s' % k)
+                self.add_particle_filter('%s' % k)
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
