@@ -24,7 +24,7 @@ import yt.utilities.fortran_utils as fpu
 from yt.utilities.lib.cosmology_time import \
     get_ramses_ages
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
-    YTNotParsableFile
+    YTFileNotParseable
 from yt.extern.six import PY3
 import re
 
@@ -206,7 +206,7 @@ def _read_part_file_descriptor(fname):
             for i, line in enumerate(f.readlines()):
                 tmp = VAR_DESC_RE.match(line)
                 if not tmp:
-                    raise YTNotParsableFile(fname, i+1)
+                    raise YTFileNotParseable(fname, i+1)
 
                 # ivar = tmp.group(1)
                 varname = tmp.group(2)
