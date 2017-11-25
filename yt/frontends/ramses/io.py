@@ -23,7 +23,7 @@ from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 import yt.utilities.fortran_utils as fpu
 from yt.utilities.lib.cosmology_time import \
     get_ramses_ages
-from yt.utilities.exceptions import YTFieldTypeNotFound, YTOutputFormatNotImplemented, \
+from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTNotParsableFile
 from yt.extern.six import PY3
 import re
@@ -166,32 +166,42 @@ class IOHandlerRAMSES(BaseIOHandler):
 
         return tr
 
-VERSION_RE = re.compile(' *version: *(\d+)')
-VAR_DESC_RE = re.compile(' *variable # *(\d+): *(\w+)')
+VERSION_RE = re.compile('# version: *(\d+)')
+VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 def _read_part_file_descriptor(fname):
     """
     Read the particle file descriptor and returns the array of the fields found.
     """
-    # The kind of the known types
-    assoc = [('position_%s' % k, 'd') for k in 'xyz'] + \
-            [('velocity_%s' % k, 'd') for k in 'xyz'] + \
-            [('mass', 'd'), ('identity', 'i'), ('levelp', 'i'),
-             ('family', 'b'), ('tag', 'b'), ('birth_time', 'd'),
-             ('metallicity', 'd')]
+    # Mapping
+    mapping = [
+        ('position_x', 'particle_position_x'),
+        ('position_y', 'particle_position_y'),
+        ('position_z', 'particle_position_z'),
+        ('velocity_x', 'particle_velocity_x'),
+        ('velocity_y', 'particle_velocity_y'),
+        ('velocity_z', 'particle_velocity_z'),
+        ('mass', 'particle_mass'),
+        ('identity', 'particle_identity'),
+        ('levelp', 'particle_level'),
+        ('family', 'particle_family'),
+        ('tag', 'particle_tag')
+    ]
+    # Convert in dictionary
+    mapping = {k: v for k, v in mapping}
 
-    assoc = {k: v for k, v in assoc}
     if True: #with open(fname, 'r') as f:
         f = open(fname, 'r')
         line = f.readline()
         tmp = VERSION_RE.match(line)
         mylog.info('Reading part file descriptor.')
         if not tmp:
-            print(line)
-            raise Exception('File format not understood')
+            raise YTParticleOutputFormatNotImplemented()
 
         version = int(tmp.group(1))
 
         if version == 1:
+            # Skip one line (containing the headers)
+            line = f.readline()
             fields = []
             for i, line in enumerate(f.readlines()):
                 tmp = VAR_DESC_RE.match(line)
@@ -200,14 +210,15 @@ def _read_part_file_descriptor(fname):
 
                 # ivar = tmp.group(1)
                 varname = tmp.group(2)
+                dtype = tmp.group(3)
 
-                if varname in assoc:
-                    dtype = assoc[varname]
+                if varname in mapping:
+                    varname = mapping[varname]
                 else:
-                    dtype = 'd'
+                    varname = 'particle_%s' % varname
 
-                fields.append(("particle_%s" % varname, dtype))
+                fields.append((varname, dtype))
         else:
-            raise YTOutputFormatNotImplemented()
+            raise YTParticleOutputFormatNotImplemented()
 
     return fields
