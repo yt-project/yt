@@ -206,32 +206,31 @@ def test_ramses_sink():
         assert(('sink', 'field') not in ds.field_list)
 
 
-ramses_new_format = "ramses_new_format/output_00011/info_00011.txt"
+ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
 @requires_file(ramses_new_format)
 def test_new_format():
     expected_particle_fields = [
-        ('io', 'particle_birth_time'),
-        ('io', 'particle_family'),
-        ('io', 'particle_identity'),
-        ('io', 'particle_levelp'),
-        ('io', 'particle_mass'),
-        ('io', 'particle_metallicity'),
-        ('io', 'particle_position_x'),
-        ('io', 'particle_position_y'),
-        ('io', 'particle_position_z'),
-        ('io', 'particle_tag'),
-        ('io', 'particle_velocity_x'),
-        ('io', 'particle_velocity_y'),
-        ('io', 'particle_velocity_z')]
+        ('star', 'particle_identity'),
+        ('star', 'particle_level'),
+        ('star', 'particle_mass'),
+        ('star', 'particle_metallicity'),
+        ('star', 'particle_position_x'),
+        ('star', 'particle_position_y'),
+        ('star', 'particle_position_z'),
+        ('star', 'particle_tag'),
+        ('star', 'particle_velocity_x'),
+        ('star', 'particle_velocity_y'),
+        ('star', 'particle_velocity_z')]
 
     ds = yt.load(ramses_new_format)
     ad = ds.all_data()
 
     # Check all the expected fields exist and can be accessed
     for f in expected_particle_fields:
-        assert(f in ds.field_list)
+        assert(f in ds.derived_field_list)
         ad[f]
 
     # Check there is only stars with tag 0 (it should be right)
-    assert(all(ad['particle_family'] == 2))
-    assert(all(ad['particle_tag'] == 0))
+    assert(all(ad['star', 'particle_family'] == 2))
+    assert(all(ad['star', 'particle_tag'] == 0))
+    assert(len(ad['star', 'particle_tag']) == 600)
