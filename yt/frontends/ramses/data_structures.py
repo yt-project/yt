@@ -39,6 +39,7 @@ from .definitions import ramses_header, field_aliases
 from yt.utilities.physical_constants import mp, kb
 from .fields import \
     RAMSESFieldInfo, _X
+from .hilbert import get_cpu_list
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
@@ -455,8 +456,13 @@ class RAMSESIndex(OctreeIndex):
         super(RAMSESIndex, self).__init__(ds, dataset_type)
 
     def _initialize_oct_handler(self):
+        if self.ds._bbox:
+            cpu_list = get_cpu_list(self.dataset, self.dataset._bbox)
+        else:
+            cpu_list = range(self.dataset['ncpu'])
+
         self.domains = [RAMSESDomainFile(self.dataset, i + 1)
-                        for i in range(self.dataset['ncpu'])]
+                        for i in cpu_list]
         total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
                          for dom in self.domains)
         self.max_level = max(dom.max_level for dom in self.domains)
@@ -645,7 +651,8 @@ class RAMSESDataset(Dataset):
     def __init__(self, filename, dataset_type='ramses',
                  fields=None, storage_filename=None,
                  units_override=None, unit_system="cgs",
-                 extra_particle_fields=None, cosmological=None):
+                 extra_particle_fields=None, cosmological=None,
+                 bbox=None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, string_types):
             fields = field_aliases[fields]
@@ -661,6 +668,7 @@ class RAMSESDataset(Dataset):
         self._extra_particle_fields = extra_particle_fields
         self._warn_extra_fields = False
         self.force_cosmological = cosmological
+        self._bbox = bbox
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
 
