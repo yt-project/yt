@@ -723,9 +723,9 @@ class RAMSESDataset(Dataset):
         rheader = {}
         f = open(self.parameter_filename)
         def read_rhs(cast):
-            line = f.readline()
+            line = f.readline().replace('\n', '')
             p, v = line.split("=")
-            rheader[p.strip()] = cast(v)
+            rheader[p.strip()] = cast(v.strip())
         for i in range(6): read_rhs(int)
         f.readline()
         for i in range(11): read_rhs(float)
