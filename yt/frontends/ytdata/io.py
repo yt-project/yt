@@ -332,7 +332,8 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
             for ptype in all_count:
                 if ptype not in f or all_count[ptype] == 0: continue
                 pos = np.empty((all_count[ptype], 3), dtype="float64")
-                pos = self.ds.arr(pos, "code_length")
+                units = _get_position_array_units(ptype, f, "px")
+                pos = self.ds.arr(pos, (units,)*3).in_base('code')
                 if ptype == "grid":
                     dx = f["grid"]["pdx"].value.min()
                     dx = self.ds.quan(
@@ -342,7 +343,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                 pos[:,0] = _get_position_array(ptype, f, "px")
                 pos[:,1] = _get_position_array(ptype, f, "py")
                 pos[:,2] = np.zeros(all_count[ptype], dtype="float64") + \
-                  self.ds.domain_left_edge[2].to("code_length").d
+                    self.ds.domain_left_edge[2].to("code_length").d
                 dle = self.ds.domain_left_edge.to("code_length")
                 dre = self.ds.domain_right_edge.to("code_length")
 
