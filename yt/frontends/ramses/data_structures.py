@@ -20,7 +20,6 @@ import os
 import numpy as np
 import stat
 import weakref
-from io import BytesIO
 
 from yt.extern.six import string_types
 from yt.funcs import \
@@ -320,9 +319,7 @@ class RAMSESDomainFile(object):
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
         fb = open(self.amr_fn, "rb")
         fb.seek(self.amr_offset)
-        f = BytesIO()
-        f.write(fb.read())
-        f.seek(0)
+        f = fb
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
         def _ng(c, l):
