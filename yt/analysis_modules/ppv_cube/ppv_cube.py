@@ -30,7 +30,7 @@ from yt.extern.six import string_types
 def create_vlos(normal, no_shifting):
     if no_shifting:
         def _v_los(field, data):
-            return data.ds.arr(data["gas", "zeros"], "cm/s")
+            return data.ds.arr(data["index", "zeros"], "cm/s")
     elif isinstance(normal, string_types):
         def _v_los(field, data):
             return -data["gas", "velocity_%s" % normal]
