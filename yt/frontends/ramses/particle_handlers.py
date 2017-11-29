@@ -22,13 +22,14 @@ class RAMSESParticleFileHandlerRegister(type):
     """
     def __new__(meta, name, bases, class_dict):
         cls = type.__new__(meta, name, bases, class_dict)
-        register_particle_handler(cls)
+        if cls.ptype is not None:
+            register_particle_handler(cls)
         return cls
 
 
+@add_metaclass(RAMSESParticleFileHandlerRegister)
 class ParticleFileHandler(object):
     '''Abstract class to handle particles in RAMSES.
-
 
     See `SinkParticleFileHandler` for an example implementation.'''
 
@@ -75,7 +76,6 @@ class ParticleFileHandler(object):
         raise NotImplementedError
 
 
-@add_metaclass(RAMSESParticleFileHandlerRegister)
 class DefaultParticleFileHandler(ParticleFileHandler):
     ptype = 'io'
     fname = 'part_{iout:05d}.out{icpu:05d}'
@@ -172,7 +172,6 @@ class DefaultParticleFileHandler(ParticleFileHandler):
 
 
 
-@add_metaclass(RAMSESParticleFileHandlerRegister)
 class SinkParticleFileHandler(ParticleFileHandler):
     '''Handle sink files'''
     ptype = 'sink'
