@@ -281,23 +281,25 @@ class VelocityCallback(PlotCallback):
     """
     Adds a 'quiver' plot of velocity to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* and *color* sets the color (see
-    matplotlib.axes.Axes.quiver for more info). if *normalize* is
-    True, the velocity fields will be scaled by their local
-    (in-plane) length, allowing morphological features to be more
-    clearly seen for fields with substantial variation in field
-    strength.
+    length unit using *scale_units* and *plot_args* allows you to 
+    pass in matplotlib arguments (see matplotlib.axes.Axes.quiver 
+    for more info). if *normalize* is True, the velocity fields 
+    will be scaled by their local (in-plane) length, allowing 
+    morphological features to be more clearly seen for fields 
+    with substantial variation in field strength.
     """
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, factor=16, scale=None, scale_units=None, 
-                 normalize=False, color="k"):
+                 normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
         self.scale_units = scale_units
         self.normalize = normalize
-        self.color = color
+        if plot_args is None:
+            plot_args = {}
+        self.plot_args = plot_args
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -307,7 +309,7 @@ class VelocityCallback(PlotCallback):
                                         self.factor, scale=self.scale,
                                         normalize=self.normalize,
                                         scale_units=self.scale_units,
-                                        color=self.color)
+                                        plot_args=self.plot_args)
         else:
             ax = plot.data.axis
             (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
@@ -325,29 +327,31 @@ class VelocityCallback(PlotCallback):
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
                                  normalize=self.normalize, bv_x=bv_x, 
-                                 bv_y=bv_y, color=self.color)
+                                 bv_y=bv_y, plot_args=self.plot_args)
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
     """
     Adds a 'quiver' plot of magnetic field to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* and *color* sets the color of the 
-    arrows (see matplotlib.axes.Axes.quiver for more info). if 
-    *normalize* is True, the magnetic fields will be scaled by their local
-    (in-plane) length, allowing morphological features to be more
+    length unit using *scale_units* and *plot_args* allows you to pass 
+    in matplotlib arguments (see matplotlib.axes.Axes.quiver for more info).
+    if *normalize* is True, the magnetic fields will be scaled by their 
+    local (in-plane) length, allowing morphological features to be more
     clearly seen for fields with substantial variation in field strength.
     """
     _type_name = "magnetic_field"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, factor=16, scale=None, scale_units=None, 
-                 normalize=False, color="k"):
+                 normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
         self.scale_units = scale_units
         self.normalize = normalize
-        self.color = color
+        if plot_args is None:
+            plot_args = {}
+        self.plot_args = plot_args
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -357,7 +361,7 @@ class MagFieldCallback(PlotCallback):
                                         self.factor, scale=self.scale, 
                                         scale_units=self.scale_units, 
                                         normalize=self.normalize,
-                                        color=self.color)
+                                        plot_args=self.plot_args)
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
             yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
@@ -365,8 +369,9 @@ class MagFieldCallback(PlotCallback):
             xv = "magnetic_field_%s" % (axis_names[xax])
             yv = "magnetic_field_%s" % (axis_names[yax])
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
-                                 scale_units=self.scale_units, 
-                                 normalize=self.normalize, color=self.color)
+                                 scale_units=self.scale_units,
+                                 normalize=self.normalize, 
+                                 plot_args=self.plot_args)
         return qcb(plot)
 
 class QuiverCallback(PlotCallback):
@@ -374,16 +379,17 @@ class QuiverCallback(PlotCallback):
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints.
     *scale* is the data units per arrow length unit using *scale_units*
-    and *color* sets the color of the arrows (see matplotlib.axes.Axes.quiver
-    for more info). if *normalize* is True, the fields will be scaled by
-    their local (in-plane) length, allowing morphological features to be more
-    clearly seen for fields with substantial variation in field strength.
+    and *plot_args* allows you to pass in matplotlib arguments (see 
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is True, 
+    the fields will be scaled by their local (in-plane) length, allowing 
+    morphological features to be more clearly seen for fields with 
+    substantial variation in field strength.
     """
     _type_name = "quiver"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, color="k", normalize=False, 
-                 bv_x=0, bv_y=0):
+                 scale_units=None, normalize=False, bv_x=0, bv_y=0,
+                 plot_args=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -393,7 +399,9 @@ class QuiverCallback(PlotCallback):
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
-        self.color = color
+        if plot_args is None:
+            plot_args = {}
+        self.plot_args = plot_args
 
     def __call__(self, plot):
         x0, x1 = [p.to('code_length') for p in plot.xlim]
@@ -439,7 +447,7 @@ class QuiverCallback(PlotCallback):
             pixX /= nn
             pixY /= nn
         plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
-                          color=self.color, scale_units=self.scale_units)
+                          scale_units=self.scale_units, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
 
@@ -844,16 +852,17 @@ class CuttingQuiverCallback(PlotCallback):
     Get a quiver plot on top of a cutting plane, using *field_x* and
     *field_y*, skipping every *factor* datapoint in the discretization.
     *scale* is the data units per arrow length unit using *scale_units*
-    and *color* sets the color of the arrows (see matplotlib.axes.Axes.quiver
-    for more info). if *normalize* is True, the fields will be scaled by 
-    their local (in-plane) length, allowing morphological features to be more
-    clearly seen for fields with substantial variation in field strength.
+    and *plot_args* allows you to pass in matplotlib arguments (see 
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is True, 
+    the fields will be scaled by their local (in-plane) length, allowing 
+    morphological features to be more clearly seen for fields with 
+    substantial variation in field strength.
     """
     _type_name = "cquiver"
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=None, color="k"):
+                 scale_units=None, normalize=None, plot_args=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -861,7 +870,9 @@ class CuttingQuiverCallback(PlotCallback):
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
-        self.color = color
+        if plot_args is None:
+            plot_args = {}
+        self.plot_args = plot_args
 
     def __call__(self, plot):
         x0, x1 = [p.to('code_length') for p in plot.xlim]
@@ -897,7 +908,7 @@ class CuttingQuiverCallback(PlotCallback):
             pixY /= nn
 
         plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
-                          scale_units=self.scale_units, color=self.color)
+                          scale_units=self.scale_units, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
 
