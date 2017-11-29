@@ -6,6 +6,7 @@ import numpy as np
 import yt
 
 def test_hilbert3d():
+    # 8 different cases, checked against RAMSES' own implementation
     inputs = [[0, 0, 0],
               [1, 0, 0],
               [0, 1, 0],
