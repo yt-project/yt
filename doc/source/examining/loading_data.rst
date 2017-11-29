@@ -2061,6 +2061,44 @@ It is possible to provide extra arguments to the load function when loading RAMS
       Force yt to consider a simulation to be cosmological or
       not. This may be useful for some specific simulations e.g. that
       run down to negative redshifts.
+
+``bbox``
+      The subbox to load. Yt will only read CPUs intersecting with the
+      subbox. This is especially useful for large simulations or
+      zoom-in simulations, where you don't want to have access to data
+      outside of a small region of interest. This argument will prevent
+      yt from loading AMR files outside the subbox and will hence
+      spare memory and time.
+      For example, one could used
+
+      .. code-block:: python
+
+          import yt
+	  # Only load a small cube of size (0.1)**3
+	  bbox = [[0., 0., 0.], [0.1, 0.1, 0.1]]
+	  ds = yt.load('output_00001/info_00001.txt', bbox=bbox)
+
+	  # See the note below for the following examples
+	  ds.right_edge == [1, 1, 1]             # is True
+
+	  ad = ds.all_data()
+	  ad['particle_position_x'].max() > 0.1  # _may_ be True
+
+	  bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
+	  bb['particle_position_x'].max() < 0.1  # is True
+      .. note::
+	 When using the bbox argument, yt will read all the CPUs
+         intersecting with the subbox. However it may also read some
+         data *outside* the selected region. This is due to the fact
+         that domains have a complicated shape when using Hilbert
+         ordering. Internally, yt will hence assume the loaded dataset
+         covers the entire simulation. If you only want the data from
+         the selected region, you may want to use ``ds.box(…)``.
+
+      .. note::
+	 This feature is only available when using Hilbert ordering.
+
+
 .. _loading-sph-data:
 
 SPH Particle Data
