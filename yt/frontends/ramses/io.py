@@ -147,18 +147,15 @@ class IOHandlerRAMSES(BaseIOHandler):
             # Select relevant fiels
             subs_fields = filter(lambda f: f[0] == ptype, fields)
 
-            if ptype == 'io':
-                fname = subset.domain.part_fn
-                foffsets = subset.domain.particle_field_offsets
-                data_types = subset.domain.particle_field_types
-
-            elif ptype == 'sink':
-                fname = subset.domain.sink_fn
-                foffsets = subset.domain.sink_field_offsets
-                data_types = subset.domain.sink_field_types
-
-            else:
-                # Raise here an exception
+            ok = False
+            for ph in subset.domain.particle_handlers:
+                if ph.ptype == ptype:
+                    fname = ph.fname
+                    foffsets = ph.field_offsets
+                    data_types = ph.field_types
+                    ok = True
+                    break
+            if not ok:
                 raise YTFieldTypeNotFound(ptype)
 
             tr.update(_ramses_particle_file_handler(
