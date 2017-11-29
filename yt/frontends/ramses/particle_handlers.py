@@ -83,7 +83,12 @@ class DefaultParticleFileHandler(ParticleFileHandler):
 
     attrs = ( ('ncpu', 1, 'I'),
               ('ndim', 1, 'I'),
-              ('npart', 1, 'I') )
+              ('npart', 1, 'I'),
+              ('localseed', 4, 'I'),
+              ('nstar_tot', 1, 'I'),
+              ('mstar_tot', 1, 'd'),
+              ('mstar_lost', 1, 'd'),
+              ('nsink', 1, 'I') )
 
     known_fields = [
         ("particle_position_x", "d"),
@@ -111,16 +116,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         flen = f.tell()
         f.seek(0)
         hvals = {}
-        attrs = ( ('ncpu', 1, 'I'),
-                  ('ndim', 1, 'I'),
-                  ('npart', 1, 'I') )
-        hvals.update(fpu.read_attrs(f, attrs))
-        fpu.read_vector(f, 'I')
-
-        attrs = ( ('nstar_tot', 1, 'I'),
-                  ('mstar_tot', 1, 'd'),
-                  ('mstar_lost', 1, 'd'),
-                  ('nsink', 1, 'I') )
+        attrs = self.attrs
         hvals.update(fpu.read_attrs(f, attrs))
         self.header = hvals
         self.local_particle_count = hvals['npart']
