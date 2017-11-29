@@ -1,3 +1,21 @@
+"""
+RAMSES-specific hilbert ordering routines.
+
+These functions were translated from their original files from the
+RAMSES project. See https://bitbucket.org/rteyssie/ramses.
+
+
+"""
+from __future__ import print_function, absolute_import
+
+#-----------------------------------------------------------------------------
+# Copyright (c) yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
 import numpy as np
 
 def hilbert3d(X, bit_length):
