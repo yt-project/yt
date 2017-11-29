@@ -749,6 +749,9 @@ class RAMSESDataset(Dataset):
             for n in range(rheader['ncpu']):
                 dom, mi, ma = f.readline().split()
                 self.hilbert_indices[int(dom)] = (float(mi), float(ma))
+
+        if rheader['ordering type'] != 'hilbert' and self.bbox:
+            raise NotImplementedError('The ordering %s is not compatible with the `bbox` argument.' % rheader['ordering type'])
         self.parameters.update(rheader)
         self.domain_left_edge = np.zeros(3, dtype='float64')
         self.domain_dimensions = np.ones(3, dtype='int32') * \
