@@ -30,17 +30,17 @@ from yt.extern.six import string_types
 def create_vlos(normal, no_shifting):
     if no_shifting:
         def _v_los(field, data):
-            return data.ds.arr(data["zeros"], "cm/s")
+            return data.ds.arr(data["gas", "zeros"], "cm/s")
     elif isinstance(normal, string_types):
         def _v_los(field, data):
-            return -data["velocity_%s" % normal]
+            return -data["gas", "velocity_%s" % normal]
     else:
         orient = Orientation(normal)
         los_vec = orient.unit_vectors[2]
         def _v_los(field, data):
-            vz = data["velocity_x"]*los_vec[0] + \
-                data["velocity_y"]*los_vec[1] + \
-                data["velocity_z"]*los_vec[2]
+            vz = data["gas", "velocity_x"]*los_vec[0] + \
+                data["gas", "velocity_y"]*los_vec[1] + \
+                data["gas", "velocity_z"]*los_vec[2]
             return -vz
     return _v_los
 
@@ -326,15 +326,15 @@ class PPVCube(object):
     def _create_intensity(self):
         if self.thermal_broad:
             def _intensity(field, data):
-                v = self.current_v-data["v_los"].in_cgs().v
-                T = data["temperature"].in_cgs().v
+                v = self.current_v-data["gas", "v_los"].in_cgs().v
+                T = data["gas", "temperature"].in_cgs().v
                 w = ppv_utils.compute_weight(self.thermal_broad, self.dv_cgs,
                                              self.particle_mass, v.flatten(), T.flatten())
                 w[np.isnan(w)] = 0.0
                 return data[self.field]*w.reshape(v.shape)
         else:
             def _intensity(field, data):
-                w = 1.-np.fabs(self.current_v-data["v_los"].in_cgs().v)/self.dv_cgs
+                w = 1.-np.fabs(self.current_v-data["gas", "v_los"].in_cgs().v)/self.dv_cgs
                 w[w < 0.0] = 0.0
                 return data[self.field]*w
         return _intensity
