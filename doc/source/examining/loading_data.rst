@@ -2017,19 +2017,50 @@ yt supports outputs made by the mainline ``RAMSES`` code as well as the
 ``RAMSES-RT`` fork. Files produces by ``RAMSES-RT`` are recognized as such
 based on the presence of a ``info_rt_*.txt`` file in the output directory.
 
-It is possible to force yt to treat the simulation as a cosmological
-simulation by providing the ``cosmological=True`` parameter (or
-``False`` to force non-cosmology). If left to ``None``, the kind of
-the simulation is inferred from the data.
-
-yt also support outputs that include sinks (RAMSES' name for black
-holes) when the folder contains files like ``sink_XXXXX.outYYYYY``.
 
 Note: for backward compatibility, particles from the
 ``particle_XXXXX.outYYYYY`` files have the particle type ``io`` by
 default (including dark matter, stars, tracer particles, …). Sink
 particles have the particle type ``sink``.
 
+Arguments passed to the load function
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+It is possible to provide extra arguments to the load function when loading RAMSES datasets. Here is a list of the ones specific to RAMSES:
+
+``fields``
+      A list of fields to read from the hydro files. For a hydro simulation with an extra custom field
+
+      .. code-block:: python
+
+          import yt
+          fields = ["Density",
+                    "x-velocity", "y-velocity", "z-velocity",
+                    "Pressure", "my-awesome-field"]
+	  ds = yt.load('output_00123/info_00123.txt', fields=fields)
+	  'my-awesome-field' in ds.field  # is True
+
+
+``extra_particle_fields``
+      A list of tuples describing extra particles fields to read in. By
+      default, yt will try to detect as many fields as possible,
+      assuming the extra ones to be double precision floats. This
+      argument is useful if you have extra fields that yt cannot
+      detect. For example, for a dataset containing two integer fields
+      in the particles, one would do
+
+      .. code-block:: python
+
+          import yt
+          extra_fields = [('family', 'I'), ('info', 'I')]
+          ds = yt.load("output_00001/info_00001.txt", extra_particle_fields=extra_fields)
+          # ('all', 'family') and ('all', 'info') now in ds.field_list
+
+      The format of the passed argument is as follow: ``[('field_name_1', 'type_1'), …, ('field_name_n', 'type_n')]`` where the ``type_n`` should follow the `python convention <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
+
+``cosmological``
+      Force yt to consider a simulation to be cosmological or
+      not. This may be useful for some specific simulations e.g. that
+      run down to negative redshifts.
 .. _loading-sph-data:
 
 SPH Particle Data
@@ -2113,6 +2144,3 @@ non-default cosmological parameters, you may pass an empty dictionary.
 
     import yt
     ds = yt.load(filename, cosmology_parameters={})
-
-
-
