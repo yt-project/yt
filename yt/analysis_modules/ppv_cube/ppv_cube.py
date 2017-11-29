@@ -30,24 +30,24 @@ from yt.extern.six import string_types
 def create_vlos(normal, no_shifting):
     if no_shifting:
         def _v_los(field, data):
-            return data.ds.arr(data["zeros"], "cm/s")
+            return data.ds.arr(data["index", "zeros"], "cm/s")
     elif isinstance(normal, string_types):
         def _v_los(field, data):
-            return -data["velocity_%s" % normal]
+            return -data["gas", "velocity_%s" % normal]
     else:
         orient = Orientation(normal)
         los_vec = orient.unit_vectors[2]
         def _v_los(field, data):
-            vz = data["velocity_x"]*los_vec[0] + \
-                data["velocity_y"]*los_vec[1] + \
-                data["velocity_z"]*los_vec[2]
+            vz = data["gas", "velocity_x"]*los_vec[0] + \
+                data["gas", "velocity_y"]*los_vec[1] + \
+                data["gas", "velocity_z"]*los_vec[2]
             return -vz
     return _v_los
 
-fits_info = {"velocity":("m/s","VOPT","v"),
-             "frequency":("Hz","FREQ","f"),
-             "energy":("eV","ENER","E"),
-             "wavelength":("angstrom","WAVE","lambda")}
+fits_info = {"velocity": ("m/s", "VOPT", "v"),
+             "frequency": ("Hz", "FREQ", "f"),
+             "energy": ("eV", "ENER", "E"),
+             "wavelength": ("angstrom", "WAVE", "lambda")}
 
 class PPVCube(object):
     def __init__(self, ds, normal, field, velocity_bounds, center="c",
@@ -141,6 +141,10 @@ class PPVCube(object):
         if not isinstance(normal, string_types):
             width = ds.coordinates.sanitize_width(normal, width, depth)
             width = tuple(el.in_units('code_length').v for el in width)
+
+        if not hasattr(ds.fields.gas, "temperature") and thermal_broad:
+            raise RuntimeError("thermal_broad cannot be True if there is "
+                               "no 'temperature' field!")
 
         if no_shifting and not thermal_broad:
             raise RuntimeError("no_shifting cannot be True when thermal_broad is False!")
@@ -320,11 +324,17 @@ class PPVCube(object):
         return self.data[item]
 
     def _create_intensity(self):
-        def _intensity(field, data):
-            v = self.current_v-data["v_los"].in_cgs().v
-            T = (data["temperature"]).in_cgs().v
-            w = ppv_utils.compute_weight(self.thermal_broad, self.dv_cgs,
-                                         self.particle_mass, v.flatten(), T.flatten())
-            w[np.isnan(w)] = 0.0
-            return data[self.field]*w.reshape(v.shape)
+        if self.thermal_broad:
+            def _intensity(field, data):
+                v = self.current_v-data["gas", "v_los"].in_cgs().v
+                T = data["gas", "temperature"].in_cgs().v
+                w = ppv_utils.compute_weight(self.thermal_broad, self.dv_cgs,
+                                             self.particle_mass, v.flatten(), T.flatten())
+                w[np.isnan(w)] = 0.0
+                return data[self.field]*w.reshape(v.shape)
+        else:
+            def _intensity(field, data):
+                w = 1.-np.fabs(self.current_v-data["gas", "v_los"].in_cgs().v)/self.dv_cgs
+                w[w < 0.0] = 0.0
+                return data[self.field]*w
         return _intensity
