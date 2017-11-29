@@ -1,17 +1,29 @@
 import os
 import yt.utilities.fortran_utils as fpu
 import glob
+from yt.extern.six import add_metaclass
 from yt.funcs import mylog
 
 from .io import _read_part_file_descriptor
 
-PARTICLE_HANDLERS = []
+PARTICLE_HANDLERS = set()
 
 def get_particle_handlers():
     return PARTICLE_HANDLERS
 
 def register_particle_handler(ph):
-    PARTICLE_HANDLERS.append(ph)
+    PARTICLE_HANDLERS.add(ph)
+
+
+class RAMSESParticleFileHandlerRegister(type):
+    """
+    This is a base class that on instantiation registers the file
+    handler into the list. Used as a metaclass.
+    """
+    def __new__(meta, name, bases, class_dict):
+        cls = type.__new__(meta, name, bases, class_dict)
+        register_particle_handler(cls)
+        return cls
 
 
 class ParticleFileHandler(object):
@@ -62,6 +74,8 @@ class ParticleFileHandler(object):
         self.fields.'''
         raise NotImplementedError
 
+
+@add_metaclass(RAMSESParticleFileHandlerRegister)
 class DefaultParticleFileHandler(ParticleFileHandler):
     ptype = 'io'
     fname = 'part_{iout:05d}.out{icpu:05d}'
@@ -162,6 +176,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
 
 
 
+@add_metaclass(RAMSESParticleFileHandlerRegister)
 class SinkParticleFileHandler(ParticleFileHandler):
     '''Handle sink files'''
     ptype = 'sink'
@@ -234,6 +249,3 @@ class SinkParticleFileHandler(ParticleFileHandler):
             fpu.skip(f, 1)
         self.field_offsets = field_offsets
         self.field_types = _pfields
-
-register_particle_handler(DefaultParticleFileHandler)
-register_particle_handler(SinkParticleFileHandler)
