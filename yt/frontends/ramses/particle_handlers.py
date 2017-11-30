@@ -38,12 +38,16 @@ class ParticleFileHandler(object):
 
     See `SinkParticleFileHandler` for an example implementation.'''
 
+    # These properties are static properties
     ptype = None  # The name to give to the particle type
     fname = None  # The name of the file(s).
-
     attrs = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
 
+    # These properties are computed dynamically
+    field_offsets = None     # Mapping from field to offset in file
+    field_types = None       # Mapping from field to the type of the data (float, integer, …)
+    local_particle_count = None  # The number of particle in the domain
 
     def __init__(self, ds, domain_id):
         '''
@@ -55,6 +59,7 @@ class ParticleFileHandler(object):
         need in the inherited class.
         '''
         self.ds = ds
+        self.domain_id = domain_id
         basename = os.path.abspath(
               os.path.dirname(ds.parameter_filename))
         iout = int(
@@ -62,6 +67,7 @@ class ParticleFileHandler(object):
             .split(".")[0].
             split("_")[1])
         icpu = domain_id
+
         self.fname = os.path.join(
             basename,
             self.fname.format(iout=iout, icpu=icpu))
@@ -74,7 +80,7 @@ class ParticleFileHandler(object):
         disk.
 
         By default, it just returns whether the file exists. Override
-        it for more complex behavior.
+        it for more complex cases.
         '''
         return os.path.exists(self.fname)
 
@@ -112,7 +118,7 @@ class ParticleFileHandler(object):
         * `field_types`: dictionary: tuple -> character
            A dictionary that maps `(type, field_name)` to their type
            (character), following Python's struct convention.
-z        '''
+        '''
         raise NotImplementedError
 
 
