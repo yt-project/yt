@@ -22,6 +22,7 @@ from contextlib import contextmanager
 from yt.fields.field_info_container import \
     NullFunc, TranslationFunc
 from yt.utilities.exceptions import YTIllDefinedFilter
+from yt.funcs import mylog
 
 # One to many mapping
 filter_registry = defaultdict(None)
@@ -131,6 +132,8 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     if requires is None:
         requires = []
     filter = ParticleFilter(name, function, requires, filtered_type)
+    if filter_registry[name] is not None:
+        mylog.warning('The %s particle filter already exists. Overriding.' % name)
     filter_registry[name] = filter
 
 
