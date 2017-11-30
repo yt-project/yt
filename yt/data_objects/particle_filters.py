@@ -15,7 +15,6 @@ This is a library for defining and using particle filters.
 #-----------------------------------------------------------------------------
 
 import copy
-from collections import defaultdict
 
 from contextlib import contextmanager
 
@@ -24,8 +23,8 @@ from yt.fields.field_info_container import \
 from yt.utilities.exceptions import YTIllDefinedFilter
 from yt.funcs import mylog
 
-# One to many mapping
-filter_registry = defaultdict(None)
+# One to one mapping
+filter_registry = {}
 
 class DummyFieldInfo(object):
     particle_type = True
@@ -132,7 +131,7 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     if requires is None:
         requires = []
     filter = ParticleFilter(name, function, requires, filtered_type)
-    if filter_registry[name] is not None:
+    if filter_registry.get(name, None) is not None:
         mylog.warning('The %s particle filter already exists. Overriding.' % name)
     filter_registry[name] = filter
 

@@ -663,7 +663,9 @@ class Dataset(object):
         self.known_filters[n] = None
         if isinstance(filter, string_types):
             used = False
-            f = filter_registry[filter]
+            f = filter_registry.get(filter, None)
+            if f is None:
+                return False
             used = self._setup_filtered_type(f)
             if used:
                 filter = f
