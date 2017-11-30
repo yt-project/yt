@@ -29,7 +29,12 @@ class RAMSESParticleFileHandlerRegister(type):
 
 @add_metaclass(RAMSESParticleFileHandlerRegister)
 class ParticleFileHandler(object):
-    '''Abstract class to handle particles in RAMSES.
+    '''
+    Abstract class to handle particles in RAMSES. Each instance
+    represents a single file (one domain).
+
+    To add support to a new particle file, inherit from this class and
+    implement all functions containing a `NotImplementedError`.
 
     See `SinkParticleFileHandler` for an example implementation.'''
 
@@ -39,18 +44,16 @@ class ParticleFileHandler(object):
     attrs = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
 
-    @classmethod
-    def any_exist(cls, ds):
-        '''Return True if any file of this type is found
-
-        Arguments
-        ---------
-        * ds: a Ramses Dataset
-        '''
-        raise NotImplementedError
-
 
     def __init__(self, ds, domain_id):
+        '''
+        Initalize an instance of the class. This automatically sets
+        the full path to the file. This is not intended to be
+        overriden in most cases.
+
+        If you need more flexibility, rewrite this function to your
+        need in the inherited class.
+        '''
         self.ds = ds
         basename = os.path.abspath(
               os.path.dirname(ds.parameter_filename))
@@ -65,14 +68,51 @@ class ParticleFileHandler(object):
 
     @property
     def exists(self):
-        '''Return True if the fname exists'''
+        '''
+        This function should return True if the *file* the instance
+        exists. It is called for each file of the type found on the
+        disk.
+
+        By default, it just returns whether the file exists. Override
+        it for more complex behavior.
+        '''
         return os.path.exists(self.fname)
+
+    @classmethod
+    def any_exist(cls, ds):
+        '''
+        This function should return True if the kind of particle
+        represented by the class exists in the dataset. It takes as
+        argument the class itself —not an instance— and a dataset.
+
+        Arguments
+        ---------
+        * ds: a Ramses Dataset
+
+        Note
+        ----
+        This function is usually called once at the initialization of
+        the RAMSES Dataset structure to determine if the particle type
+        (e.g. regular particles) exists.
+        '''
+        raise NotImplementedError
+
 
     def read_header(self):
         '''
-        This function should read the header, compute the offsets of
-        the file into self.offsets and store the fields found in
-        self.fields.'''
+        This function is called once per file. It should:
+        * read the header of the file and store any relevant information
+        * detect the fields in the file
+        * compute the offsets (location in the file) of each field
+
+        It is in charge of setting `self.field_offsets` and `self.field_types`.
+        * `field_offsets`: dictionary: tuple -> integer
+           A dictionary that maps `(type, field_name)` to their
+           location in the file (integer)
+        * `field_types`: dictionary: tuple -> character
+           A dictionary that maps `(type, field_name)` to their type
+           (character), following Python's struct convention.
+z        '''
         raise NotImplementedError
 
 
