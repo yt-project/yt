@@ -171,7 +171,6 @@ def test_ramses_rt():
 
 ramses_sink = "ramses_sink_00016/output_00016/info_00016.txt"
 @requires_file(ramses_sink)
-@requires_file(ramsesNonCosmo)
 def test_ramses_sink():
     expected_fields = ["BH_bondi_accretion", "BH_eddington_accretion",
                        "BH_efficiency", "BH_esave",
@@ -205,7 +204,6 @@ def test_ramses_sink():
     for field in expected_fields:
         assert(('sink', 'field') not in ds.field_list)
 
-
 ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
 @requires_file(ramses_new_format)
 def test_new_format():
@@ -234,3 +232,12 @@ def test_new_format():
     assert(all(ad['star', 'particle_family'] == 2))
     assert(all(ad['star', 'particle_tag'] == 0))
     assert(len(ad['star', 'particle_tag']) == 600)
+
+@requires_file(ramses_sink)
+def test_ramses_part_count():
+    ds = yt.load(ramses_sink)
+    pcount = ds.particle_type_counts
+
+    assert_equal(pcount['all'], 17140, err_msg='Got wrong number of particle')
+    assert_equal(pcount['io'], 17132, err_msg='Got wrong number of io particle')
+    assert_equal(pcount['sink'], 8, err_msg='Got wrong number of sink particle')
