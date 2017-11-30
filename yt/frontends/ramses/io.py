@@ -34,7 +34,7 @@ else:
     from cStringIO import StringIO as IO
 
 def _ramses_particle_file_handler(fname, foffsets, data_types,
-                                  subset, fields):
+                                  subset, fields, count):
     '''General file handler, called by _read_particle_subset
 
     Parameters
@@ -44,11 +44,13 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
     foffsets: dict
         Offsets in file of the fields
     data_types: dict
-         Data type of the fields
+        Data type of the fields
     subset: ``RAMSESDomainSubset``
-         A RAMSES domain subset object
+        A RAMSES domain subset object
     fields: list of tuple
-         The fields to read
+        The fields to read
+    count: integer
+        The number of elements to count
     '''
     tr = {}
     with open(fname, "rb") as f:
@@ -56,6 +58,9 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
         # This means that no other conversions need to be applied to convert
         # positions into the same domain as the octs themselves.
         for field in sorted(fields, key=lambda a: foffsets[a]):
+            if count == 0:
+                tr[field] = np.empty(0, dtype=data_types[field])
+                continue
             f.seek(foffsets[field])
             dt = data_types[field]
             tr[field] = fpu.read_vector(f, dt)
@@ -154,12 +159,15 @@ class IOHandlerRAMSES(BaseIOHandler):
                     foffsets = ph.field_offsets
                     data_types = ph.field_types
                     ok = True
+                    count = ph.local_particle_count
                     break
             if not ok:
                 raise YTFieldTypeNotFound(ptype)
 
             tr.update(_ramses_particle_file_handler(
-                fname, foffsets, data_types, subset, subs_fields))
+                fname, foffsets, data_types, subset, subs_fields,
+                count=count
+            ))
 
         return tr
 
