@@ -34,7 +34,7 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
-from yt import add_particle_filter
+from yt.data_objects.particle_filters import add_particle_filter
 
 from .definitions import ramses_header, field_aliases, particle_families
 from .io import _read_part_file_descriptor
