@@ -24,7 +24,7 @@ from yt.fields.field_info_container import \
 from yt.utilities.exceptions import YTIllDefinedFilter
 
 # One to many mapping
-filter_registry = defaultdict(list)
+filter_registry = defaultdict(None)
 
 class DummyFieldInfo(object):
     particle_type = True
@@ -131,7 +131,7 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     if requires is None:
         requires = []
     filter = ParticleFilter(name, function, requires, filtered_type)
-    filter_registry[name].append(filter)
+    filter_registry[name] = filter
 
 
 def particle_filter(name=None, requires=None, filtered_type='all'):
