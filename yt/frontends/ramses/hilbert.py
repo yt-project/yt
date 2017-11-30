@@ -2,7 +2,8 @@
 RAMSES-specific hilbert ordering routines.
 
 These functions were translated from their original files from the
-RAMSES project. See https://bitbucket.org/rteyssie/ramses.
+RAMSES project with the agreement of the original developer. See
+https://bitbucket.org/rteyssie/ramses.
 
 
 """

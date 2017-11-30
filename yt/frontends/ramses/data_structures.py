@@ -317,9 +317,8 @@ class RAMSESDomainFile(object):
                 self.ds.domain_left_edge, self.ds.domain_right_edge)
         root_nodes = self.amr_header['numbl'][self.ds.min_level,:].sum()
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
-        fb = open(self.amr_fn, "rb")
-        fb.seek(self.amr_offset)
-        f = fb
+        f = open(self.amr_fn, "rb")
+        f.seek(self.amr_offset)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
         def _ng(c, l):
@@ -751,7 +750,9 @@ class RAMSESDataset(Dataset):
                 self.hilbert_indices[int(dom)] = (float(mi), float(ma))
 
         if rheader['ordering type'] != 'hilbert' and self.bbox:
-            raise NotImplementedError('The ordering %s is not compatible with the `bbox` argument.' % rheader['ordering type'])
+            raise NotImplementedError(
+                'The ordering %s is not compatible with the `bbox` argument.'
+                % rheader['ordering type'])
         self.parameters.update(rheader)
         self.domain_left_edge = np.zeros(3, dtype='float64')
         self.domain_dimensions = np.ones(3, dtype='int32') * \

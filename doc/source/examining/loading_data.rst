@@ -2029,7 +2029,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
                     "x-velocity", "y-velocity", "z-velocity",
                     "Pressure", "my-awesome-field"]
 	  ds = yt.load('output_00123/info_00123.txt', fields=fields)
-	  'my-awesome-field' in ds.field  # is True
+	  'my-awesome-field' in ds.field_list  # is True
 
 
 ``extra_particle_fields``
@@ -2047,7 +2047,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
           ds = yt.load("output_00001/info_00001.txt", extra_particle_fields=extra_fields)
           # ('all', 'family') and ('all', 'info') now in ds.field_list
 
-      The format of the passed argument is as follow: ``[('field_name_1', 'type_1'), …, ('field_name_n', 'type_n')]`` where the ``type_n`` should follow the `python convention <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
+      The format of the passed argument is as follow: ``[('field_name_1', 'type_1'), …, ('field_name_n', 'type_n')]`` where the ``type_n`` is as follow `python convention <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
 
 ``cosmological``
       Force yt to consider a simulation to be cosmological or
@@ -2061,7 +2061,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
       outside of a small region of interest. This argument will prevent
       yt from loading AMR files outside the subbox and will hence
       spare memory and time.
-      For example, one could used
+      For example, one could use
 
       .. code-block:: python
 
