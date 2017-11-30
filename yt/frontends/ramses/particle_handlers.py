@@ -157,6 +157,11 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         return ret
 
     def read_header(self):
+        if not self.exists:
+            self.field_offsets = {}
+            self.field_types = {}
+            self.local_particle_count = 0
+            return
         f = open(self.fname, "rb")
         f.seek(0, os.SEEK_END)
         flen = f.tell()
@@ -258,6 +263,11 @@ class SinkParticleFileHandler(ParticleFileHandler):
         return ret
 
     def read_header(self):
+        if not self.exists:
+            self.field_offsets = {}
+            self.field_types = {}
+            self.local_particle_count = 0
+            return
         f = open(self.fname, "rb")
         f.seek(0, os.SEEK_END)
         flen = f.tell()
@@ -265,9 +275,10 @@ class SinkParticleFileHandler(ParticleFileHandler):
         hvals = {}
         # Read the header of the file
         attrs = self.attrs
+
         hvals.update(fpu.read_attrs(f, attrs))
         self._header = hvals
-        self._sink_count = hvals['nsink']
+        self.local_particle_count = hvals['nsink']
 
         # Read the fields + add the sink properties
         fields = self.known_fields.copy()
