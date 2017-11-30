@@ -77,7 +77,7 @@ class RAMSESDomainFile(object):
                              if PH.any_exist(self.ds)]
         self.particle_handlers = particle_handlers
         for ph in particle_handlers:
-            mylog.info('Detected particle type %s in domain_id=%s' % (ph.ptype, domain_id))
+            mylog.debug('Detected particle type %s in domain_id=%s' % (ph.ptype, domain_id))
             ph.read_header()
             self._add_ptype(ph.ptype)
 
