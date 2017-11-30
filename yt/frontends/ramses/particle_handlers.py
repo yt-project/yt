@@ -278,7 +278,16 @@ class SinkParticleFileHandler(ParticleFileHandler):
 
         hvals.update(fpu.read_attrs(f, attrs))
         self._header = hvals
-        self.local_particle_count = hvals['nsink']
+
+        # This is somehow a trick here: we only want one domain to
+        # be read, as ramses writes all the sinks in all the
+        # domains. Here, we set the local_particle_count to 0 except
+        # for the first domain to be red.
+        if getattr(self.ds, '_sink_file_flag', False):
+            self.local_particle_count = 0
+        else:
+            self.ds._sink_file_flag = True
+            self.local_particle_count = hvals['nsink']
 
         # Read the fields + add the sink properties
         fields = self.known_fields.copy()
