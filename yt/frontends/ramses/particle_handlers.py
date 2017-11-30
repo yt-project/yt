@@ -91,6 +91,19 @@ class ParticleFileHandler(object):
         '''
         return os.path.exists(self.fname)
 
+    @property
+    def has_part_descriptor(self):
+        '''
+        This function should return True if a *file descriptor*
+        exists.
+
+        By default, it just returns whether the file exists. Override
+        it for more complex cases.
+        '''
+        return os.path.exists(self.file_descriptor)
+
+
+
     @classmethod
     def any_exist(cls, ds):
         '''
@@ -221,19 +234,12 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         self.field_offsets = field_offsets
         self.field_types = _pfields
 
-    @property
-    def has_part_descriptor(self):
-        '''
-        Does the output include particle file descriptor?
-        '''
-        return os.path.exists(self.file_descriptor)
-
-
 
 class SinkParticleFileHandler(ParticleFileHandler):
     '''Handle sink files'''
     ptype = 'sink'
     fname = 'sink_{iout:05d}.out{icpu:05d}'
+    file_descriptor = 'sink_file_descriptor.txt'
 
     attrs = (('nsink', 1, 'I'),
              ('nindsink', 1, 'I'))
@@ -297,6 +303,13 @@ class SinkParticleFileHandler(ParticleFileHandler):
             self.local_particle_count = hvals['nsink']
 
         # Read the fields + add the sink properties
+        if self.has_part_descriptor:
+            fields = (
+                _read_part_file_descriptor(self.file_descriptor)
+            )
+        else:
+            fields = self.known_fields.copy()
+
         fields = self.known_fields.copy()
         for i in range(self.ds.dimensionality*2+1):
             for j in range(self.ds.max_level, self.ds.min_level):
