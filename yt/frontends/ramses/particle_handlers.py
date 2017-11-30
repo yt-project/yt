@@ -41,6 +41,8 @@ class ParticleFileHandler(object):
     # These properties are static properties
     ptype = None  # The name to give to the particle type
     fname = None  # The name of the file(s).
+    file_descriptor = None # The name of the file descriptor (if any)
+
     attrs = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
 
@@ -71,6 +73,11 @@ class ParticleFileHandler(object):
         self.fname = os.path.join(
             basename,
             self.fname.format(iout=iout, icpu=icpu))
+
+        if self.file_descriptor is not None:
+            self.file_descriptor = os.path.join(
+                basename,
+                self.file_descriptor)
 
     @property
     def exists(self):
