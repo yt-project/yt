@@ -33,6 +33,51 @@ def test_add_particle_filter():
     ad['deposit', 'stars_cic']
     assert True
 
+
+def test_add_particle_filter_overriding():
+    """Test the add_particle_filter overriding"""
+    from yt.data_objects.particle_filters import filter_registry
+    from yt.funcs import mylog
+
+    def star_0(pfilter, data):
+        pass
+
+    def star_1(pfilter, data):
+        pass
+
+    # Use a closure to store whether the warning was called
+    def closure(status):
+        def warning_patch(*args, **kwargs):
+            print('I am called!')
+            status[0] = True
+
+        def was_called():
+            return status[0]
+
+        return warning_patch, was_called
+
+    ## Test 1: we add a dummy particle filter
+    add_particle_filter("dummy", function=star_0, filtered_type='all',
+                        requires=["creation_time"])
+    assert 'dummy' in filter_registry
+    assert_equal(filter_registry['dummy'].function, star_0)
+
+    ## Test 2: we add another dummy particle filter.
+    ##         a warning is expected. We use the above closure to
+    ##         check that.
+    # Store the original warning function
+    warning = mylog.warning
+    monkey_warning, monkey_patch_was_called = closure([False])
+    mylog.warning = monkey_warning
+    add_particle_filter("dummy", function=star_1, filtered_type='all',
+                        requires=["creation_time"])
+    assert_equal(filter_registry['dummy'].function, star_1)
+    assert_equal(monkey_patch_was_called(), True)
+
+    # Restore the original warning function
+    mylog.warning = warning
+
+
 @requires_file(iso_galaxy)
 def test_particle_filter():
     """Test the particle_filter decorator"""
