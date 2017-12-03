@@ -48,7 +48,6 @@ def test_add_particle_filter_overriding():
     # Use a closure to store whether the warning was called
     def closure(status):
         def warning_patch(*args, **kwargs):
-            print('I am called!')
             status[0] = True
 
         def was_called():
@@ -106,7 +105,7 @@ def test_covering_grid_particle_filter():
 
     for grid in ds.index.grids[20:31]:
         cg = ds.covering_grid(grid.Level, grid.LeftEdge, grid.ActiveDimensions)
-        
+
         assert_equal(cg['stars', 'particle_ones'].shape[0],
                      grid['stars', 'particle_ones'].shape[0])
         assert_equal(cg['stars', 'particle_mass'].shape[0],
