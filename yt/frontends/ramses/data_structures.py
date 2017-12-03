@@ -41,6 +41,7 @@ from .fields import \
     RAMSESFieldInfo, _X
 from .hilbert import get_cpu_list
 from .particle_handlers import get_particle_handlers
+from .field_handlers import get_field_handlers
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
@@ -65,16 +66,26 @@ class RAMSESDomainFile(object):
         basename = "%s/%%s_%s.out%05i" % (
             basedir, num, domain_id)
         part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
-        for t in ['grav', 'hydro', 'amr']:
+        for t in ['grav', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
         self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
-        self._read_hydro_header()
+        # self._read_hydro_header()
+
+        # Autodetect field files
+        field_handlers = [FH(self)
+                          for FH in get_field_handlers()
+                          if FH.any_exist(ds)]
+        self.field_handlers = field_handlers
+        for fh in field_handlers:
+            mylog.debug('Detected particle type %s in domain_id=%s' % (fh.ftype, domain_id))
+            fh.detect_fields(ds)
+            # self._add_ftype(fh.ftype)
 
         # Autodetect particle files
         particle_handlers = [PH(ds, domain_id)
                              for PH in get_particle_handlers()
-                             if PH.any_exist(self.ds)]
+                             if PH.any_exist(ds)]
         self.particle_handlers = particle_handlers
         for ph in particle_handlers:
             mylog.debug('Detected particle type %s in domain_id=%s' % (ph.ptype, domain_id))
@@ -90,54 +101,59 @@ class RAMSESDomainFile(object):
     def __repr__(self):
         return "RAMSESDomainFile: %i" % self.domain_id
 
-    @property
-    def _has_hydro(self):
-        '''
-        Does the output include hydro?
-        '''
-        return os.path.exists(self.hydro_fn)
+    # @property
+    # def _has_hydro(self):
+    #     '''
+    #     Does the output include hydro?
+    #     '''
+    #     return os.path.exists(self.hydro_fn)
 
     @property
     def level_count(self):
-        if self._level_count is not None: return self._level_count
-        self.hydro_offset
-        return self._level_count
+        lvl_count = None
+        for fh in self.field_handlers:
+            fh.offset
+            if lvl_count is None:
+                lvl_count = fh.level_count.copy()
+            else:
+                lvl_count += fh._level_count
+        return lvl_count
 
-    @property
-    def hydro_offset(self):
-        if self._hydro_offset is not None: return self._hydro_offset
-        # We now have to open the file and calculate it
-        f = open(self.hydro_fn, "rb")
-        fpu.skip(f, 6)
-        # It goes: level, CPU, 8-variable
-        min_level = self.ds.min_level
-        n_levels = self.amr_header['nlevelmax'] - min_level
-        hydro_offset = np.zeros(n_levels, dtype='int64')
-        hydro_offset -= 1
-        level_count = np.zeros(n_levels, dtype='int64')
-        skipped = []
-        for level in range(self.amr_header['nlevelmax']):
-            for cpu in range(self.amr_header['nboundary'] +
-                             self.amr_header['ncpu']):
-                header = ( ('file_ilevel', 1, 'I'),
-                           ('file_ncache', 1, 'I') )
-                try:
-                    hvals = fpu.read_attrs(f, header, "=")
-                except AssertionError:
-                    print("You are running with the wrong number of fields.")
-                    print("If you specified these in the load command, check the array length.")
-                    print("In this file there are %s hydro fields." % skipped)
-                    #print"The last set of field sizes was: %s" % skipped
-                    raise
-                if hvals['file_ncache'] == 0: continue
-                assert(hvals['file_ilevel'] == level+1)
-                if cpu + 1 == self.domain_id and level >= min_level:
-                    hydro_offset[level - min_level] = f.tell()
-                    level_count[level - min_level] = hvals['file_ncache']
-                skipped = fpu.skip(f, 8 * self.nvar)
-        self._hydro_offset = hydro_offset
-        self._level_count = level_count
-        return self._hydro_offset
+    # @property
+    # def hydro_offset(self):
+    #     if self._hydro_offset is not None: return self._hydro_offset
+    #     # We now have to open the file and calculate it
+    #     f = open(self.hydro_fn, "rb")
+    #     fpu.skip(f, 6)
+    #     # It goes: level, CPU, 8-variable
+    #     min_level = self.ds.min_level
+    #     n_levels = self.amr_header['nlevelmax'] - min_level
+    #     hydro_offset = np.zeros(n_levels, dtype='int64')
+    #     hydro_offset -= 1
+    #     level_count = np.zeros(n_levels, dtype='int64')
+    #     skipped = []
+    #     for level in range(self.amr_header['nlevelmax']):
+    #         for cpu in range(self.amr_header['nboundary'] +
+    #                          self.amr_header['ncpu']):
+    #             header = ( ('file_ilevel', 1, 'I'),
+    #                        ('file_ncache', 1, 'I') )
+    #             try:
+    #                 hvals = fpu.read_attrs(f, header, "=")
+    #             except AssertionError:
+    #                 print("You are running with the wrong number of fields.")
+    #                 print("If you specified these in the load command, check the array length.")
+    #                 print("In this file there are %s hydro fields." % skipped)
+    #                 #print"The last set of field sizes was: %s" % skipped
+    #                 raise
+    #             if hvals['file_ncache'] == 0: continue
+    #             assert(hvals['file_ilevel'] == level+1)
+    #             if cpu + 1 == self.domain_id and level >= min_level:
+    #                 hydro_offset[level - min_level] = f.tell()
+    #                 level_count[level - min_level] = hvals['file_ncache']
+    #             skipped = fpu.skip(f, 8 * self.nvar)
+    #     self._hydro_offset = hydro_offset
+    #     self._level_count = level_count
+    #     return self._hydro_offset
 
     def _add_ptype(self, ptype):
         if hasattr(self, 'particle_types'):
@@ -147,15 +163,15 @@ class RAMSESDomainFile(object):
         new.add(ptype)
         self.particle_types = self.particle_types_raw = tuple(new)
 
-    def _read_hydro_header(self):
-        # If no hydro file is found, return
-        if not self._has_hydro:
-            return
-        if self.nvar > 0: return self.nvar
-        # Read the number of hydro variables
-        f = open(self.hydro_fn, "rb")
-        fpu.skip(f, 1)
-        self.nvar = fpu.read_vector(f, "i")[0]
+    # def _read_hydro_header(self):
+    #     # If no hydro file is found, return
+    #     if not self._has_hydro:
+    #         return
+    #     if self.nvar > 0: return self.nvar
+    #     # Read the number of hydro variables
+    #     f = open(self.hydro_fn, "rb")
+    #     fpu.skip(f, 1)
+    #     self.nvar = fpu.read_vector(f, "i")[0]
 
     def _read_amr_header(self):
         hvals = {}
@@ -285,32 +301,39 @@ class RAMSESDomainSubset(OctreeSubset):
     _domain_offset = 1
     _block_reorder = "F"
 
-    def fill(self, content, fields, selector):
+    def fill(self, content, fields, selector, file_handler):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
-        all_fields = self.domain.ds.index.fluid_field_list
+        all_fields = [f for ft, f in file_handler.field_list]
         fields = [f for ft, f in fields]
         tr = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
         levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
             selector, self.domain_id, cell_count)
+        # Initializing data container
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
-        for level, offset in enumerate(self.domain.hydro_offset):
+
+        # Loop over levels
+        for level, offset in enumerate(file_handler.offset):
             if offset == -1: continue
             content.seek(offset)
-            nc = self.domain.level_count[level]
-            temp = {}
+            nc = file_handler.level_count[level]
+            tmp = {}
+            # Initalize temporary data container for io
             for field in all_fields:
-                temp[field] = np.empty((nc, 8), dtype="float64")
+                tmp[field] = np.empty((nc, 8), dtype="float64")
             for i in range(8):
+                # Read the selected fields
                 for field in all_fields:
                     if field not in fields:
                         fpu.skip(content)
                     else:
-                        temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
-            oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, temp)
+                        tmp[field][:,i] = fpu.read_vector(content, 'd') # i-th cell
+
+            print(tr.keys(), tmp.keys())
+            oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, tmp)
         return tr
 
 class RAMSESIndex(OctreeIndex):
@@ -340,90 +363,22 @@ class RAMSESIndex(OctreeIndex):
         self.num_grids = total_octs
 
     def _detect_output_fields(self):
-        # Do we want to attempt to figure out what the fields are in the file?
         dsl = set([])
-        if self.fluid_field_list is None or len(self.fluid_field_list) <= 0:
-            self._setup_auto_fields()
 
+        # Get the detected particle fields
         for domain in self.domains:
             for ph in domain.particle_handlers:
                 dsl.update(set(ph.field_offsets.keys()))
 
         self.particle_field_list = list(dsl)
-        self.field_list = [("ramses", f) for f in self.fluid_field_list] \
-                        + self.particle_field_list
 
-    def _setup_auto_fields(self):
-        '''
-        If no fluid fields are set, the code tries to set up a fluids array by hand
-        '''
-        # TODO: copy/pasted from DomainFile; needs refactoring!
-        num = os.path.basename(self.dataset.parameter_filename).split("."
-                )[0].split("_")[1]
-        testdomain = 1 # Just pick the first domain file to read
-        basename = "%s/%%s_%s.out%05i" % (
-            os.path.abspath(
-              os.path.dirname(self.dataset.parameter_filename)),
-            num, testdomain)
-        hydro_fn = basename % "hydro"
-        # Do we have a hydro file?
-        if not os.path.exists(hydro_fn):
-            self.fluid_field_list = []
-            return
-        # Read the number of hydro variables
-        f = open(hydro_fn, "rb")
-        hydro_header = ( ('ncpu', 1, 'i'),
-                         ('nvar', 1, 'i'),
-                         ('ndim', 1, 'i'),
-                         ('nlevelmax', 1, 'i'),
-                         ('nboundary', 1, 'i'),
-                         ('gamma', 1, 'd')
-                         )
-        hvals = fpu.read_attrs(f, hydro_header)
-        self.ds.gamma = hvals['gamma']
-        nvar = hvals['nvar']
-        # OK, we got NVAR, now set up the arrays depending on what NVAR is
-        # but first check for radiative transfer!
-        foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
-        rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
-        if rt_flag: # rt run
-            if nvar < 10:
-                mylog.info('Detected RAMSES-RT file WITHOUT IR trapping.')
-                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
-            else:
-                mylog.info('Detected RAMSES-RT file WITH IR trapping.')
-                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
-        else:
-            if nvar < 5:
-                mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
-                raise ValueError
-            # Basic hydro runs
-            if nvar == 5:
-                fields = ["Density",
-                          "x-velocity", "y-velocity", "z-velocity",
-                          "Pressure"]
-            if nvar > 5 and nvar < 11:
-                fields = ["Density",
-                          "x-velocity", "y-velocity", "z-velocity",
-                          "Pressure", "Metallicity"]
-            # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
-            if nvar == 11:
-                fields = ["Density",
-                          "x-velocity", "y-velocity", "z-velocity",
-                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
-                          "Pressure"]
-            if nvar > 11:
-                fields = ["Density",
-                          "x-velocity", "y-velocity", "z-velocity",
-                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
-                          "Pressure","Metallicity"]
-        # Allow some wiggle room for users to add too many variables
-        while len(fields) < nvar:
-            fields.append("var"+str(len(fields)))
-        mylog.debug("No fields specified by user; automatically setting fields array to %s", str(fields))
-        self.fluid_field_list = fields
+        # Get the detected fields
+        dsl = set([])
+        for fh in self.domains[0].field_handlers:
+            dsl.update(set(fh.field_list))
+        self.fluid_field_list = list(dsl)
+
+        self.field_list = self.particle_field_list + self.fluid_field_list
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
@@ -443,7 +398,7 @@ class RAMSESIndex(OctreeIndex):
 
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i,og in enumerate(sobjs):
+        for i, og in enumerate(sobjs):
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
@@ -481,17 +436,18 @@ class RAMSESIndex(OctreeIndex):
         return npart
 
     def print_stats(self):
+        '''
+        Prints out (stdout) relevant information about the simulation
 
-        # This function prints information based on the fluid on the grids,
-        # and therefore does not work for DM only runs.
+        This function prints information based on the fluid on the grids,
+        and therefore does not work for DM only runs.
+        '''
         if not self.fluid_field_list:
             print("This function is not implemented for DM only runs")
             return
 
         self._initialize_level_stats()
-        """
-        Prints out (stdout) relevant information about the simulation
-        """
+
         header = "%3s\t%14s\t%14s" % ("level", "# cells","# cells^3")
         print(header)
         print("%s" % (len(header.expandtabs())*"-"))

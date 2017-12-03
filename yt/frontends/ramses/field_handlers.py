@@ -3,6 +3,7 @@ import yt.utilities.fortran_utils as fpu
 import glob
 from yt.extern.six import add_metaclass
 from yt.funcs import mylog
+import numpy as np
 
 FIELD_HANDLERS = set()
 
@@ -37,7 +38,7 @@ class FieldFileHandler(object):
     See `SinkParticleFileHandler` for an example implementation.'''
 
     # These properties are static properties
-    ftype = None  # The name to give to the particle type
+    ftype = None  # The name to give to the field type
     fname = None  # The name of the file(s).
     attrs = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
@@ -46,7 +47,7 @@ class FieldFileHandler(object):
     field_offsets = None     # Mapping from field to offset in file
     field_types = None       # Mapping from field to the type of the data (float, integer, …)
 
-    def __init__(self, ds, domain_id):
+    def __init__(self, domain):
         '''
         Initalize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
@@ -55,19 +56,19 @@ class FieldFileHandler(object):
         If you need more flexibility, rewrite this function to your
         need in the inherited class.
         '''
-        self.ds = ds
-        self.domain_id = domain_id
+        self.domain = domain
+        self.domain_id = domain.domain_id
+        ds = domain.ds
         basename = os.path.abspath(
               os.path.dirname(ds.parameter_filename))
         iout = int(
             os.path.basename(ds.parameter_filename)
             .split(".")[0].
             split("_")[1])
-        icpu = domain_id
 
         self.fname = os.path.join(
             basename,
-            self.fname.format(iout=iout, icpu=icpu))
+            self.fname.format(iout=iout, icpu=domain.domain_id))
 
     @property
     def exists(self):
@@ -101,7 +102,7 @@ class FieldFileHandler(object):
         raise NotImplementedError
 
     @classmethod
-    def get_field_list(cls, ds):
+    def detect_fields(cls, ds):
         raise NotImplementedError
 
 
@@ -125,7 +126,7 @@ class FieldFileHandler(object):
 
 class HydroFieldFileHandler(FieldFileHandler):
     ftype = 'ramses'
-    fname = 'part_{iout:05d}.out{icpu:05d}'
+    fname = 'hydro_{iout:05d}.out{icpu:05d}'
     attrs = ( ('ncpu', 1, 'i'),
               ('nvar', 1, 'i'),
               ('ndim', 1, 'i'),
@@ -142,7 +143,10 @@ class HydroFieldFileHandler(FieldFileHandler):
         return ret
 
     @classmethod
-    def get_field_list(cls, ds):
+    def detect_fields(cls, ds):
+        if getattr(cls, 'field_list', None) is not None:
+            return cls.field_list
+
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
@@ -152,10 +156,6 @@ class HydroFieldFileHandler(FieldFileHandler):
             num, testdomain)
         fname = basename % "hydro"
 
-        if not os.path.exists(fname):
-            cls.fluid_field_list = []
-            return
-
         f = open(fname, 'rb')
         attrs = cls.attrs
         hvals = fpu.read_attrs(f, attrs)
@@ -164,46 +164,104 @@ class HydroFieldFileHandler(FieldFileHandler):
         ds.gamma = hvals['gamma']
         nvar = cls.nvar = hvals['nvar']
 
-        foldername  = os.path.abspath(os.path.dirname(ds.parameter_filename))
-        rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
-        if rt_flag: # rt run
-            if nvar < 10:
-                mylog.info('Detected RAMSES-RT file WITHOUT IR trapping.')
-                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure",
-                          "Metallicity", "HII", "HeII", "HeIII"]
-            else:
-                mylog.info('Detected RAMSES-RT file WITH IR trapping.')
-                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR",
-                          "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
+        if ds._fields_in_file is not None:
+            fields = [('ramses', f) for f in ds._fields_in_file]
         else:
-            if nvar < 5:
-                mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
-                raise ValueError
-            # Basic hydro runs
-            if nvar == 5:
-                fields = ["Density",
-                          "x-velocity", "y-velocity", "z-velocity",
-                          "Pressure"]
-            if nvar > 5 and nvar < 11:
-                fields = ["Density",
-                          "x-velocity", "y-velocity", "z-velocity",
-                          "Pressure", "Metallicity"]
-            # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
-            if nvar == 11:
-                fields = ["Density",
-                          "x-velocity", "y-velocity", "z-velocity",
-                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
-                          "Pressure"]
-            if nvar > 11:
-                fields = ["Density",
-                          "x-velocity", "y-velocity", "z-velocity",
-                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
-                          "Pressure","Metallicity"]
+            foldername  = os.path.abspath(os.path.dirname(ds.parameter_filename))
+            rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
+            if rt_flag: # rt run
+                if nvar < 10:
+                    mylog.info('Detected RAMSES-RT file WITHOUT IR trapping.')
+                    fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure",
+                              "Metallicity", "HII", "HeII", "HeIII"]
+                else:
+                    mylog.info('Detected RAMSES-RT file WITH IR trapping.')
+                    fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR",
+                              "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
+            else:
+                if nvar < 5:
+                    mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
+                    raise ValueError
+                # Basic hydro runs
+                if nvar == 5:
+                    fields = ["Density",
+                              "x-velocity", "y-velocity", "z-velocity",
+                              "Pressure"]
+                if nvar > 5 and nvar < 11:
+                    fields = ["Density",
+                              "x-velocity", "y-velocity", "z-velocity",
+                              "Pressure", "Metallicity"]
+                # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
+                if nvar == 11:
+                    fields = ["Density",
+                              "x-velocity", "y-velocity", "z-velocity",
+                              "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
+                              "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
+                              "Pressure"]
+                if nvar > 11:
+                    fields = ["Density",
+                              "x-velocity", "y-velocity", "z-velocity",
+                              "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
+                              "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
+                              "Pressure","Metallicity"]
+            mylog.debug("No fields specified by user; automatically setting fields array to %s"
+                        % str(fields))
+
         # Allow some wiggle room for users to add too many variables
+        count_extra = 0
         while len(fields) < nvar:
             fields.append("var"+str(len(fields)))
-        mylog.debug("No fields specified by user; automatically setting fields array to %s", str(fields))
-        cls.fluid_field_list = fields
+            count_extra += 1
+        if count_extra > 0:
+            mylog.debug('Detected %s extra fluid fields.' % count_extra)
+        cls.field_list = [(cls.ftype, f) for f in fields]
+
         return fields
+
+    @property
+    def offset(self):
+        if getattr(self, '_offset', None) is not None:
+            return self._offset
+
+        with open(self.fname, 'rb') as f:
+            # Skip header
+            fpu.skip(f, 6)
+
+            # It goes: level, CPU, 8-variable (1 cube)
+            min_level = self.domain.ds.min_level
+            n_levels = self.domain.amr_header['nlevelmax'] - min_level
+            offset = np.zeros(n_levels, dtype='int64')
+            offset -= 1
+            level_count = np.zeros(n_levels, dtype='int64')
+            skipped = []
+            amr_header = self.domain.amr_header
+            for level in range(amr_header['nlevelmax']):
+                for cpu in range(amr_header['nboundary'] +
+                                 amr_header['ncpu']):
+                    header = ( ('file_ilevel', 1, 'I'),
+                               ('file_ncache', 1, 'I') )
+                    try:
+                        hvals = fpu.read_attrs(f, header, "=")
+                    except AssertionError:
+                        mylog.error(
+                            "You are running with the wrong number of fields. "
+                            "If you specified these in the load command, check the array length. "
+                            "In this file there are %s hydro fields." % skipped)
+                        raise
+                    if hvals['file_ncache'] == 0: continue
+                    assert(hvals['file_ilevel'] == level+1)
+                    if cpu + 1 == self.domain_id and level >= min_level:
+                        offset[level - min_level] = f.tell()
+                        level_count[level - min_level] = hvals['file_ncache']
+                    skipped = fpu.skip(f, 8 * self.nvar)
+        self._offset = offset
+        self._level_count = level_count
+        return self._offset
+
+    @property
+    def level_count(self):
+        if getattr(self, '_level_count', None) is not None:
+            return self._level_count
+        self.offset
+
+        return self._level_count
