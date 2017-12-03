@@ -83,20 +83,27 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"
 
-    def _read_fluid_selection_foo(self, chunks, selector, fields, size):
-        # Chunks in this case will have affiliated domain subset objects
-        # Each domain subset will contain a hydro_offset array, which gives
-        # pointers to level-by-level hydro information
+    def _generic_fluid_handler(self, chunks, selector, fields, size, ftype):
         tr = defaultdict(list)
+
         for chunk in chunks:
             for subset in chunk.objs:
+                fname = None
+                for fh in subset.domain.field_handlers:
+                    if fh.ftype == ftype:
+                        file_handler = fh
+                        fname = fh.fname
+                        break
+
+                if fname is None:
+                    raise YTFieldTypeNotFound(ftype)
+
                 # Now we read the entire thing
-                print(fields)
-                f = open(subset.domain.hydro_fn, "rb")
+                with open(fname, "rb") as f:
+                    content = IO(f.read())
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                content = IO(f.read())
-                rv = subset.fill(content, fields, selector)
+                rv = subset.fill(content, fields, selector, file_handler)
                 for ft, f in fields:
                     d = rv.pop(f)
                     mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
@@ -105,51 +112,24 @@ class IOHandlerRAMSES(BaseIOHandler):
         d = {}
         for field in fields:
             d[field] = np.concatenate(tr.pop(field))
+
         return d
 
-
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        ftypes = set(f[0] for f in fields)
-
-        tr = defaultdict(list)
-        fields_by_type = defaultdict(list)
-        for field_type, field_name in fields:
-            fields_by_type[field_type].append((field_type, field_name))
-
-        for chunk in chunks:
-            for subset in chunk.objs:
-                file_handlers = subset.domain.field_handlers
-                for ftype in ftypes:
-                    # Get the file handler
-                    ok = False
-                    for field_handler in file_handlers:
-                        if field_handler.ftype == ftype:
-                            ok = True
-                            break
-
-                    if not ok:
-                        raise YTFieldTypeNotFound(ftype)
-
-                    # Get the fields of the given type
-                    sub_fields = fields_by_type[ftype]
-
-                    # Open the file
-                    f = open(field_handler.fname, 'rb')
-                    content = IO(f.read())
-                    rv = subset.fill(content, sub_fields, selector, field_handler)
-                    for ft, f in fields:
-                        d = rv.pop(f)
-                        mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
-                            f, d.size, d.min(), d.max(), d.size)
-                        tr[(ft, f)].append(d)
-
         d = {}
-        for field in fields:
-            d[field] = np.concatenate(tr.pop(field))
 
+        # Group fields by field type
+        for ft in set(f[0] for f in fields):
+            # Select the fields for the current reader
+            fields_subs = list(
+                filter(lambda f: f[0]==ft,
+                       fields))
 
-        return tr
+            newd = self._generic_fluid_handler(chunks, selector, fields_subs, size,
+                                               ft)
+            d.update(newd)
 
+        return d
 
     def _read_particle_coords(self, chunks, ptf):
         pn = "particle_position_%s"

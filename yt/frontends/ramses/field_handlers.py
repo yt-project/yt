@@ -106,21 +106,12 @@ class FieldFileHandler(object):
         raise NotImplementedError
 
 
-    def read_header(self):
-        '''
-        This function is called once per file. It should:
-        * read the header of the file and store any relevant information
-        * detect the fields in the file
-        * compute the offsets (location in the file) of each field
+    @property
+    def offset(self):
+        raise NotImplementedError
 
-        It is in charge of setting `self.field_offsets` and `self.field_types`.
-        * `field_offsets`: dictionary: tuple -> integer
-           A dictionary that maps `(type, field_name)` to their
-           location in the file (integer)
-        * `field_types`: dictionary: tuple -> character
-           A dictionary that maps `(type, field_name)` to their type
-           (character), following Python's struct convention.
-        '''
+    @property
+    def level_count(self):
         raise NotImplementedError
 
 

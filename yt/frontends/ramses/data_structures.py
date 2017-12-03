@@ -57,7 +57,6 @@ class RAMSESDomainFile(object):
     def __init__(self, ds, domain_id):
         self.ds = ds
         self.domain_id = domain_id
-        self.nvar = 0 # Set this later!
 
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
@@ -90,7 +89,7 @@ class RAMSESDomainFile(object):
         for ph in particle_handlers:
             mylog.debug('Detected particle type %s in domain_id=%s' % (ph.ptype, domain_id))
             ph.read_header()
-            self._add_ptype(ph.ptype)
+            # self._add_ptype(ph.ptype)
 
         # Load the AMR structure
         self._read_amr()
@@ -100,13 +99,6 @@ class RAMSESDomainFile(object):
 
     def __repr__(self):
         return "RAMSESDomainFile: %i" % self.domain_id
-
-    # @property
-    # def _has_hydro(self):
-    #     '''
-    #     Does the output include hydro?
-    #     '''
-    #     return os.path.exists(self.hydro_fn)
 
     @property
     def level_count(self):
@@ -118,60 +110,6 @@ class RAMSESDomainFile(object):
             else:
                 lvl_count += fh._level_count
         return lvl_count
-
-    # @property
-    # def hydro_offset(self):
-    #     if self._hydro_offset is not None: return self._hydro_offset
-    #     # We now have to open the file and calculate it
-    #     f = open(self.hydro_fn, "rb")
-    #     fpu.skip(f, 6)
-    #     # It goes: level, CPU, 8-variable
-    #     min_level = self.ds.min_level
-    #     n_levels = self.amr_header['nlevelmax'] - min_level
-    #     hydro_offset = np.zeros(n_levels, dtype='int64')
-    #     hydro_offset -= 1
-    #     level_count = np.zeros(n_levels, dtype='int64')
-    #     skipped = []
-    #     for level in range(self.amr_header['nlevelmax']):
-    #         for cpu in range(self.amr_header['nboundary'] +
-    #                          self.amr_header['ncpu']):
-    #             header = ( ('file_ilevel', 1, 'I'),
-    #                        ('file_ncache', 1, 'I') )
-    #             try:
-    #                 hvals = fpu.read_attrs(f, header, "=")
-    #             except AssertionError:
-    #                 print("You are running with the wrong number of fields.")
-    #                 print("If you specified these in the load command, check the array length.")
-    #                 print("In this file there are %s hydro fields." % skipped)
-    #                 #print"The last set of field sizes was: %s" % skipped
-    #                 raise
-    #             if hvals['file_ncache'] == 0: continue
-    #             assert(hvals['file_ilevel'] == level+1)
-    #             if cpu + 1 == self.domain_id and level >= min_level:
-    #                 hydro_offset[level - min_level] = f.tell()
-    #                 level_count[level - min_level] = hvals['file_ncache']
-    #             skipped = fpu.skip(f, 8 * self.nvar)
-    #     self._hydro_offset = hydro_offset
-    #     self._level_count = level_count
-    #     return self._hydro_offset
-
-    def _add_ptype(self, ptype):
-        if hasattr(self, 'particle_types'):
-            new = set(self.particle_types)
-        else:
-            new = set()
-        new.add(ptype)
-        self.particle_types = self.particle_types_raw = tuple(new)
-
-    # def _read_hydro_header(self):
-    #     # If no hydro file is found, return
-    #     if not self._has_hydro:
-    #         return
-    #     if self.nvar > 0: return self.nvar
-    #     # Read the number of hydro variables
-    #     f = open(self.hydro_fn, "rb")
-    #     fpu.skip(f, 1)
-    #     self.nvar = fpu.read_vector(f, "i")[0]
 
     def _read_amr_header(self):
         hvals = {}
