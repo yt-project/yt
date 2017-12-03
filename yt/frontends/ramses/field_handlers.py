@@ -105,14 +105,54 @@ class FieldFileHandler(object):
     def detect_fields(cls, ds):
         raise NotImplementedError
 
+    @property
+    def level_count(self):
+        if getattr(self, '_level_count', None) is not None:
+            return self._level_count
+        self.offset
+
+        return self._level_count
 
     @property
     def offset(self):
-        raise NotImplementedError
+        if getattr(self, '_offset', None) is not None:
+            return self._offset
 
-    @property
-    def level_count(self):
-        raise NotImplementedError
+        with open(self.fname, 'rb') as f:
+            # Skip headers
+            nskip = len(self.header)
+            fpu.skip(f, nskip)
+
+            # It goes: level, CPU, 8-variable (1 cube)
+            min_level = self.domain.ds.min_level
+            n_levels = self.domain.amr_header['nlevelmax'] - min_level
+            offset = np.zeros(n_levels, dtype='int64')
+            offset -= 1
+            level_count = np.zeros(n_levels, dtype='int64')
+            skipped = []
+            amr_header = self.domain.amr_header
+            for level in range(amr_header['nlevelmax']):
+                for cpu in range(amr_header['nboundary'] +
+                                 amr_header['ncpu']):
+                    header = ( ('file_ilevel', 1, 'I'),
+                               ('file_ncache', 1, 'I') )
+                    try:
+                        hvals = fpu.read_attrs(f, header, "=")
+                    except AssertionError:
+                        mylog.error(
+                            "You are running with the wrong number of fields. "
+                            "If you specified these in the load command, check the array length. "
+                            "In this file there are %s hydro fields." % skipped)
+                        raise
+                    if hvals['file_ncache'] == 0: continue
+                    assert(hvals['file_ilevel'] == level+1)
+                    if cpu + 1 == self.domain_id and level >= min_level:
+                        offset[level - min_level] = f.tell()
+                        level_count[level - min_level] = hvals['file_ncache']
+                    skipped = fpu.skip(f, 8 * self.nvar)
+        self._offset = offset
+        self._level_count = level_count
+        return self._offset
 
 
 class HydroFieldFileHandler(FieldFileHandler):
@@ -145,7 +185,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             os.path.abspath(
               os.path.dirname(ds.parameter_filename)),
             num, testdomain)
-        fname = basename % "hydro"
+        fname = basename % 'hydro'
 
         f = open(fname, 'rb')
         attrs = cls.attrs
@@ -209,50 +249,61 @@ class HydroFieldFileHandler(FieldFileHandler):
 
         return fields
 
-    @property
-    def offset(self):
-        if getattr(self, '_offset', None) is not None:
-            return self._offset
+class RTFieldFileHandler(FieldFileHandler):
+    ftype = 'rt'
+    fname = 'rt_{iout:05d}.out{icpu:05d}'
+    header = ( ('ncpu', 1, 'i'),
+               ('nvar', 1, 'i'),
+               ('ndim', 1, 'i'),
+               ('nlevelmax', 1, 'i'),
+               ('nboundary', 1, 'i'),
+               ('gamma', 1, 'd')
+    )
 
-        with open(self.fname, 'rb') as f:
-            # Skip header
-            fpu.skip(f, 6)
+    @classmethod
+    def any_exist(cls, ds):
+        files = os.path.join(
+            os.path.split(ds.parameter_filename)[0],
+            'info_rt_?????.txt')
+        ret = len(glob.glob(files)) == 0
+        return ret
 
-            # It goes: level, CPU, 8-variable (1 cube)
-            min_level = self.domain.ds.min_level
-            n_levels = self.domain.amr_header['nlevelmax'] - min_level
-            offset = np.zeros(n_levels, dtype='int64')
-            offset -= 1
-            level_count = np.zeros(n_levels, dtype='int64')
-            skipped = []
-            amr_header = self.domain.amr_header
-            for level in range(amr_header['nlevelmax']):
-                for cpu in range(amr_header['nboundary'] +
-                                 amr_header['ncpu']):
-                    header = ( ('file_ilevel', 1, 'I'),
-                               ('file_ncache', 1, 'I') )
-                    try:
-                        hvals = fpu.read_attrs(f, header, "=")
-                    except AssertionError:
-                        mylog.error(
-                            "You are running with the wrong number of fields. "
-                            "If you specified these in the load command, check the array length. "
-                            "In this file there are %s hydro fields." % skipped)
-                        raise
-                    if hvals['file_ncache'] == 0: continue
-                    assert(hvals['file_ilevel'] == level+1)
-                    if cpu + 1 == self.domain_id and level >= min_level:
-                        offset[level - min_level] = f.tell()
-                        level_count[level - min_level] = hvals['file_ncache']
-                    skipped = fpu.skip(f, 8 * self.nvar)
-        self._offset = offset
-        self._level_count = level_count
-        return self._offset
+    @classmethod
+    def detect_fields(cls, ds):
+        if getattr(cls, 'field_list', None) is not None:
+            return cls.field_list
 
-    @property
-    def level_count(self):
-        if getattr(self, '_level_count', None) is not None:
-            return self._level_count
-        self.offset
+        ngroups = ds.parameters['nGroups']
 
-        return self._level_count
+        fields = []
+        for ng in range(ngroups):
+            tmp = ["Photon_density_%s", "Photon_flux_x_%s", "Photon_flux_y_%s", "Photon_flux_z_%s"]
+            fields.extend([t % (ng + 1) for t in tmp])
+
+        cls.field_list = [(cls.ftype, f) for f in fields]
+        return fields
+
+    # def __init__(self, *args, **kwargs):
+    #     super(RTFieldFileHandler, self).__init__(*args, **kwargs)
+    #     # Parse the rt descriptor
+    #     fname = self.domain.parameter_filename.replace('info_', 'info_rt_')
+
+    #     rheader = {}
+    #     def read_rhs(cast):
+    #         line = f.readline()
+    #         p, v = line.split("=")
+    #         rheader[p.strip()] = cast(v)
+
+    #     with open(fname, 'r') as f:
+    #         for i in range(4): read_rhs(int)
+    #         f.readline()
+    #         for i in range(2): read_rhs(float)
+    #         f.readline()
+    #         for i in range(3): read_rhs(float)
+    #         f.readline()
+    #         for i in range(3): read_rhs(float)
+
+    #         # Touchy part, we have to read the photon group properties
+    #         mylog.warning('Not reading photon group properties')
+
+    #         self.rt_parameters = rheader
