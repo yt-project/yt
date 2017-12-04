@@ -122,20 +122,6 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("BH_efficiency", ("", [], None))
     )
 
-    # def __init__(self, ds, field_list, slice_info = None):
-    #     rt_flag = RTFieldFileHandler.any_exist(ds)
-    #     if rt_flag:
-    #         ds.fluid_types += ('rt', )
-    #         print(ds.fluid_types)
-    #         for igroup in range(RTFieldFileHandler.rt_parameters['nGroups']):
-    #             self.known_other_fields += ('Photon_density_%s' % igroup,
-    #                                         (dens_unit, [], 'photon_density_%s' % igroup))
-    #             for k in 'xyz':
-    #                 self.known_other_fields += ('Photon_flux_%s_%s' % (k, igroup),
-    #                                             (flux_unit, [],
-    #                                              'photon_flux_%s_%s' % (k, igroup)))
-    #     super(RAMSESFieldInfo, self).__init__(ds, field_list, slice_info)
-
     def setup_fluid_fields(self):
         def _temperature(field, data):
             rv = data["gas", "pressure"]/data["gas", "density"]
@@ -152,7 +138,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
     def create_rt_fields(self):
         self.ds.fluid_types += ('rt', )
-        p = RTFieldFileHandler.rt_parameters.copy()
+        tmp = RTFieldFileHandler.rt_parameters
+        p = tmp.copy()
         p.update(self.ds.parameters)
         ngroups = p['nGroups']
         rt_c = p['rt_c_frac'] * units.c / (p['unit_l'] / p['unit_t'])

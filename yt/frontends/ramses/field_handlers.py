@@ -343,3 +343,15 @@ class RTFieldFileHandler(FieldFileHandler):
 
         cls.field_list = [(cls.ftype, f) for f in fields]
         return fields
+
+    @property
+    def rt_parameters(self):
+        if self._rt_parameters: return self._rt_parameters
+
+        # Call detect fields to get the rt_parameters
+        self.detect_fields(RTFieldFileHandler, self.ds)
+        return self._rt_parameters
+
+    @rt_parameters.setter
+    def rt_parameters(self, val):
+        self._rt_parameters = val
