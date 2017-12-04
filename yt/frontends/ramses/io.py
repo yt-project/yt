@@ -190,7 +190,6 @@ def _read_part_file_descriptor(fname):
     mapping = {k: v for k, v in mapping}
 
     with open(fname, 'r') as f:
-        f = open(fname, 'r')
         line = f.readline()
         tmp = VERSION_RE.match(line)
         mylog.info('Reading part file descriptor.')
