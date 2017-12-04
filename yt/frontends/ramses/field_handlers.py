@@ -191,9 +191,6 @@ class HydroFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def any_exist(cls, ds):
-        if getattr(cls, '_any_exist', None) is not None:
-            return cls._any_exist
-
         files = os.path.join(
             os.path.split(ds.parameter_filename)[0],
             'hydro_?????.out?????')
@@ -203,9 +200,6 @@ class HydroFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
-        if getattr(cls, 'field_list', None) is not None:
-            return cls.field_list
-
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
@@ -291,8 +285,6 @@ class RTFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def any_exist(cls, ds):
-        if getattr(cls, '_any_exist', None) is not None:
-            return cls._any_exist
         files = os.path.join(
             os.path.split(ds.parameter_filename)[0],
             'info_rt_?????.txt')
@@ -303,9 +295,6 @@ class RTFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
-        if getattr(cls, 'field_list', None) is not None:
-            return cls.field_list
-
         fname = ds.parameter_filename.replace('info_', 'info_rt_')
 
         rheader = {}
