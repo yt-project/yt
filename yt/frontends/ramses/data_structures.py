@@ -270,7 +270,6 @@ class RAMSESDomainSubset(OctreeSubset):
                     else:
                         tmp[field][:,i] = fpu.read_vector(content, 'd') # i-th cell
 
-            print(tr.keys(), tmp.keys())
             oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, tmp)
         return tr
 
@@ -433,7 +432,6 @@ class RAMSESDataset(Dataset):
         cosmological: If set to None, automatically detect cosmological simulation. If a boolean, force
                       its value.
         '''
-        self.fluid_types += ("ramses",)
         self._fields_in_file = fields
         self._extra_particle_fields = extra_particle_fields
         self._warn_extra_fields = False
@@ -441,7 +439,9 @@ class RAMSESDataset(Dataset):
         self._bbox = bbox
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
-
+        for FH in get_field_handlers():
+            if FH.any_exist(self):
+                self.fluid_types += (FH.ftype, )
         self.storage_filename = storage_filename
 
 

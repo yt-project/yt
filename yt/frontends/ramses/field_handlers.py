@@ -118,9 +118,10 @@ class FieldFileHandler(object):
         if getattr(self, '_offset', None) is not None:
             return self._offset
 
+        nvar = self.parameters['nvar']
         with open(self.fname, 'rb') as f:
             # Skip headers
-            nskip = len(self.header)
+            nskip = len(self.attrs)
             fpu.skip(f, nskip)
 
             # It goes: level, CPU, 8-variable (1 cube)
@@ -149,7 +150,7 @@ class FieldFileHandler(object):
                     if cpu + 1 == self.domain_id and level >= min_level:
                         offset[level - min_level] = f.tell()
                         level_count[level - min_level] = hvals['file_ncache']
-                    skipped = fpu.skip(f, 8 * self.nvar)
+                    skipped = fpu.skip(f, 8 * nvar)
         self._offset = offset
         self._level_count = level_count
         return self._offset
@@ -167,10 +168,14 @@ class HydroFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def any_exist(cls, ds):
+        if getattr(cls, '_any_exist', None) is not None:
+            return cls._any_exist
+
         files = os.path.join(
             os.path.split(ds.parameter_filename)[0],
             'hydro_?????.out?????')
         ret = len(glob.glob(files)) > 0
+        cls._any_exist = ret
         return ret
 
     @classmethod
@@ -190,10 +195,11 @@ class HydroFieldFileHandler(FieldFileHandler):
         f = open(fname, 'rb')
         attrs = cls.attrs
         hvals = fpu.read_attrs(f, attrs)
+        cls.parameters = hvals
 
         # Store some metadata
         ds.gamma = hvals['gamma']
-        nvar = cls.nvar = hvals['nvar']
+        nvar = hvals['nvar']
 
         if ds._fields_in_file is not None:
             fields = [('ramses', f) for f in ds._fields_in_file]
