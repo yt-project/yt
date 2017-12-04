@@ -2015,7 +2015,7 @@ particle fields by supplying the ``extra_particle_fields``:
    # ('all', 'family') and ('all', 'info') now in ds.field_list
 
 yt also support the new way particles are handled introduced after
-version ``stable_17_091` (the version introduced after the 2017 Ramses
+version ``stable_17_091`` (the version introduced after the 2017 Ramses
 User Meeting). In this case, the file ``part_file_descriptor.txt``
 containing the different fields in the particle files will be read. If
 you use a custom version of RAMSES, make sure this file is up-to-date
