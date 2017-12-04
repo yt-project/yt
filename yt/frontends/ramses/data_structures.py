@@ -249,7 +249,6 @@ class RAMSESDomainFile(object):
         if self._has_part_descriptor:
             particle_fields = (
                 _read_part_file_descriptor(self._part_file_descriptor))
-            ptype = 'io'
         else:
             particle_fields = [
                 ("particle_position_x", "d"),
@@ -265,8 +264,7 @@ class RAMSESDomainFile(object):
             if self.ds._extra_particle_fields is not None:
                 particle_fields += self.ds._extra_particle_fields
 
-            ptype = 'io'
-
+        ptype = 'io'
 
         field_offsets = {}
         _pfields = {}
