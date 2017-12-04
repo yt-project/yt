@@ -2095,7 +2095,8 @@ It is possible to provide extra arguments to the load function when loading RAMS
          the selected region, you may want to use ``ds.box(…)``.
 
       .. note::
-	 This feature is only available when using Hilbert ordering.
+	 The ``bbox`` feature is only available for datasets using
+	 Hilbert ordering.
 
 
 Adding custom particle fields
