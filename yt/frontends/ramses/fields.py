@@ -13,10 +13,10 @@ RAMSES-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import glob
 import os
 import numpy as np
 
+from yt import units
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     mass_hydrogen_cgs, \
@@ -26,6 +26,7 @@ from yt.utilities.linear_interpolators import \
 import yt.utilities.fortran_utils as fpu
 from yt.fields.field_info_container import \
     FieldInfoContainer
+from .field_handlers import RTFieldFileHandler
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
@@ -34,6 +35,8 @@ vel_units = "code_velocity"
 pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2 / code_time**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
+flux_unit = "1 / code_length**2 / code_time"
+dens_unit = "1 / code_length**3"
 
 known_species_masses = dict(
   (sp, mh * v) for sp, v in [
@@ -119,6 +122,20 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("BH_efficiency", ("", [], None))
     )
 
+    # def __init__(self, ds, field_list, slice_info = None):
+    #     rt_flag = RTFieldFileHandler.any_exist(ds)
+    #     if rt_flag:
+    #         ds.fluid_types += ('rt', )
+    #         print(ds.fluid_types)
+    #         for igroup in range(RTFieldFileHandler.rt_parameters['nGroups']):
+    #             self.known_other_fields += ('Photon_density_%s' % igroup,
+    #                                         (dens_unit, [], 'photon_density_%s' % igroup))
+    #             for k in 'xyz':
+    #                 self.known_other_fields += ('Photon_flux_%s_%s' % (k, igroup),
+    #                                             (flux_unit, [],
+    #                                              'photon_flux_%s_%s' % (k, igroup)))
+    #     super(RAMSESFieldInfo, self).__init__(ds, field_list, slice_info)
+
     def setup_fluid_fields(self):
         def _temperature(field, data):
             rv = data["gas", "pressure"]/data["gas", "density"]
@@ -127,32 +144,44 @@ class RAMSESFieldInfo(FieldInfoContainer):
         self.add_field(("gas", "temperature"), sampling_type="cell",  function=_temperature,
                         units=self.ds.unit_system["temperature"])
         self.create_cooling_fields()
-        # See if we need to load the rt fields
-        foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
-        rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
-        if rt_flag: # rt run
-            self.setup_rt_fields()
 
-    def setup_rt_fields(self):
-        def _temp_IR(field, data):
-            rv = data["gas", "pres_IR"]/data["gas", "density"]
-            rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
-            return rv
-        self.add_field(("gas", "temp_IR"), sampling_type="cell",
-                       function=_temp_IR,
-                       units=self.ds.unit_system["temperature"])
-        for species in ['H_p1', 'He_p1', 'He_p2']:
-            def _species_density(field, data):
-                return data['gas', species+'_fraction']*data['gas', 'density']
-            self.add_field(('gas', species+'_density'), sampling_type='cell',
-                           function=_species_density,
-                           units=self.ds.unit_system['density'])
-            def _species_mass(field, data):
-                return (data['gas', species+'_density']*
-                        data['index', 'cell_volume'])
-            self.add_field(('gas', species+'_mass'), sampling_type='cell',
-                           function=_species_mass,
-                           units=self.ds.unit_system['mass'])
+        # See if we need to load the rt fields
+        rt_flag = RTFieldFileHandler.any_exist(self.ds)
+        if rt_flag: # rt run
+            self.create_rt_fields()
+
+    def create_rt_fields(self):
+        self.ds.fluid_types += ('rt', )
+        p = RTFieldFileHandler.rt_parameters.copy()
+        p.update(self.ds.parameters)
+        ngroups = p['nGroups']
+        rt_c = p['rt_c_frac'] * units.c / (p['unit_l'] / p['unit_t'])
+        dens_conv = (p['unit_np'] / rt_c).value / units.cm**3
+
+        def gen_pdens(igroup):
+            def _photon_density(field, data):
+                rv = data['ramses-rt', 'Photon_density_%s' % (igroup + 1)] * dens_conv
+                return rv
+            return _photon_density
+
+        for igroup in range(ngroups):
+            self.add_field(('rt', 'photon_density_%s' % (igroup + 1)), sampling_type='cell',
+                           function=gen_pdens(igroup),
+                           units=dens_unit)
+
+        flux_conv = p['unit_pf'] / units.cm**2 / units.s
+
+        def gen_flux(key, igroup):
+            def _photon_flux(field, data):
+                rv = data['ramses-rt', 'Photon_flux_%s_%s' % (key, igroup + 1)] * flux_conv
+                return rv
+            return _photon_flux
+
+        for key in 'xyz':
+            for igroup in range(ngroups):
+                self.add_field(('rt', 'photon_flux_%s_%s' % (key, igroup + 1)), sampling_type='cell',
+                               function=gen_flux(key, igroup),
+                               units=flux_unit)
 
 
     def create_cooling_fields(self):
@@ -169,9 +198,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
                 # Return array in unit 'per volume' consistently with line below
-                return data.ds.arr(rv, 'code_length**-3')
+                return data.ds.arr(rv, dens_unit)
             self.add_field(name = name, sampling_type="cell", function=_func,
-                                 units = "code_length**-3")
+                                 units = dens_unit)
         avals = {}
         tvals = {}
         with open(filename, "rb") as f:

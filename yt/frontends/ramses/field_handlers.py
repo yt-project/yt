@@ -39,7 +39,7 @@ class FieldFileHandler(object):
 
     # These properties are static properties
     ftype = None  # The name to give to the field type
-    fname = None  # The name of the file(s).
+    fname = None  # The name of the file(s)
     attrs = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
 
@@ -73,7 +73,7 @@ class FieldFileHandler(object):
     @property
     def exists(self):
         '''
-        This function should return True if the *file* the instance
+        This function should return True if the *file* for the domain
         exists. It is called for each file of the type found on the
         disk.
 
@@ -85,7 +85,7 @@ class FieldFileHandler(object):
     @classmethod
     def any_exist(cls, ds):
         '''
-        This function should return True if the kind of particle
+        This function should return True if the kind of field
         represented by the class exists in the dataset. It takes as
         argument the class itself —not an instance— and a dataset.
 
@@ -103,10 +103,23 @@ class FieldFileHandler(object):
 
     @classmethod
     def detect_fields(cls, ds):
+        '''
+        Called once to setup the fields of this type
+
+        It should set the following static variables:
+        * parameters: dictionary
+           Dictionary containing the variables. The keys should match
+           those of `cls.attrs`
+        * field_list: list of (ftype, fname)
+           The list of the field present in the file
+        '''
         raise NotImplementedError
 
     @property
     def level_count(self):
+        '''
+        Return the number of cells per level.
+        '''
         if getattr(self, '_level_count', None) is not None:
             return self._level_count
         self.offset
@@ -115,6 +128,16 @@ class FieldFileHandler(object):
 
     @property
     def offset(self):
+        '''
+        Compute the offsets of the fields.
+
+        By default, it skips the header (as defined by `cls.attrs`)
+        and computes the offset at each level.
+
+        It should be generic enough for most of the cases, but it the
+        *structure* of your fluid file is non-canonial, change this.
+        '''
+
         if getattr(self, '_offset', None) is not None:
             return self._offset
 
@@ -256,22 +279,26 @@ class HydroFieldFileHandler(FieldFileHandler):
         return fields
 
 class RTFieldFileHandler(FieldFileHandler):
-    ftype = 'rt'
+    ftype = 'ramses-rt'
     fname = 'rt_{iout:05d}.out{icpu:05d}'
-    header = ( ('ncpu', 1, 'i'),
-               ('nvar', 1, 'i'),
-               ('ndim', 1, 'i'),
-               ('nlevelmax', 1, 'i'),
-               ('nboundary', 1, 'i'),
-               ('gamma', 1, 'd')
+    attrs = ( ('ncpu', 1, 'i'),
+              ('nvar', 1, 'i'),
+              ('ndim', 1, 'i'),
+              ('nlevelmax', 1, 'i'),
+              ('nboundary', 1, 'i'),
+              ('gamma', 1, 'd')
     )
 
     @classmethod
     def any_exist(cls, ds):
+        if getattr(cls, '_any_exist', None) is not None:
+            return cls._any_exist
         files = os.path.join(
             os.path.split(ds.parameter_filename)[0],
             'info_rt_?????.txt')
-        ret = len(glob.glob(files)) == 0
+        ret = len(glob.glob(files)) == 1
+
+        cls._any_exist = ret
         return ret
 
     @classmethod
@@ -279,7 +306,35 @@ class RTFieldFileHandler(FieldFileHandler):
         if getattr(cls, 'field_list', None) is not None:
             return cls.field_list
 
-        ngroups = ds.parameters['nGroups']
+        fname = ds.parameter_filename.replace('info_', 'info_rt_')
+
+        rheader = {}
+        def read_rhs(cast):
+            line = f.readline()
+            p, v = line.split("=")
+            rheader[p.strip()] = cast(v)
+
+        with open(fname, 'r') as f:
+            for i in range(4): read_rhs(int)
+            f.readline()
+            for i in range(2): read_rhs(float)
+            f.readline()
+            for i in range(3): read_rhs(float)
+            f.readline()
+            for i in range(3): read_rhs(float)
+
+            # Touchy part, we have to read the photon group properties
+            mylog.warning('Not reading photon group properties')
+
+            cls.rt_parameters = rheader
+
+        ngroups = rheader['nGroups']
+
+        iout = int(str(ds).split('_')[1])
+        basedir = os.path.split(ds.parameter_filename)[0]
+        fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
+        with open(fname, 'rb') as f:
+            cls.parameters = fpu.read_attrs(f, cls.attrs)
 
         fields = []
         for ng in range(ngroups):
@@ -288,28 +343,3 @@ class RTFieldFileHandler(FieldFileHandler):
 
         cls.field_list = [(cls.ftype, f) for f in fields]
         return fields
-
-    # def __init__(self, *args, **kwargs):
-    #     super(RTFieldFileHandler, self).__init__(*args, **kwargs)
-    #     # Parse the rt descriptor
-    #     fname = self.domain.parameter_filename.replace('info_', 'info_rt_')
-
-    #     rheader = {}
-    #     def read_rhs(cast):
-    #         line = f.readline()
-    #         p, v = line.split("=")
-    #         rheader[p.strip()] = cast(v)
-
-    #     with open(fname, 'r') as f:
-    #         for i in range(4): read_rhs(int)
-    #         f.readline()
-    #         for i in range(2): read_rhs(float)
-    #         f.readline()
-    #         for i in range(3): read_rhs(float)
-    #         f.readline()
-    #         for i in range(3): read_rhs(float)
-
-    #         # Touchy part, we have to read the photon group properties
-    #         mylog.warning('Not reading photon group properties')
-
-    #         self.rt_parameters = rheader
