@@ -2003,6 +2003,13 @@ You would feed it the filename ``output_00007/info_00007.txt``:
 
 yt will attempt to guess the fields in the file. For more control over the hydro fields or the particle fields, see :ref:`loading-ramses-data-args`.
 
+yt also support the new way particles are handled introduced after
+version ``stable_17_091`` (the version introduced after the 2017 Ramses
+User Meeting). In this case, the file ``part_file_descriptor.txt``
+containing the different fields in the particle files will be read. If
+you use a custom version of RAMSES, make sure this file is up-to-date
+and reflects the true layout of the particles.
+
 yt supports outputs made by the mainline ``RAMSES`` code as well as the
 ``RAMSES-RT`` fork. Files produces by ``RAMSES-RT`` are recognized as such
 based on the presence of a ``info_rt_*.txt`` file in the output directory.
@@ -2089,6 +2096,19 @@ It is possible to provide extra arguments to the load function when loading RAMS
 
       .. note::
 	 This feature is only available when using Hilbert ordering.
+
+
+Adding custom particle fields
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to add support for particle fields. For this, one
+should tweak
+:func:`~yt.frontends.ramses.io._read_part_file_descriptor` to include
+the field as well as its data type to the assoc list, following the
+convention from
+`python struct module <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
+For example, to add support for a longint field named
+``my_custom_field``, one would add ``('my_custom_field', 'l')`` to ``assoc``.
 
 
 .. _loading-sph-data:
