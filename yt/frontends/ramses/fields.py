@@ -64,6 +64,7 @@ _cool_species = ("Electron_number_density",
 _X = 0.76 # H fraction, hardcoded
 _Y = 0.24 # He fraction, hardcoded
 
+
 class RAMSESFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("Density", (rho_units, ["density"], None)),
@@ -88,7 +89,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_identifier", ("", ["particle_index"], None)),
         ("particle_refinement_level", ("", [], None)),
         ("particle_age", ("code_time", ['age'], None)),
+        ("particle_birth_time", ("code_time", ['age'], None)),
         ("particle_metallicity", ("", [], None)),
+        ("particle_family", ("", [], None)),
+        ("particle_tag", ("", [], None))
     )
 
     known_sink_fields = (

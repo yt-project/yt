@@ -61,3 +61,14 @@ field_aliases = {
                           'Metallicity'),
 
 }
+
+particle_families = {
+    'DM': 1,
+    'star': 2,
+    'cloud': 3,
+    'dust': 4,
+    'star_tracer': -2,
+    'cloud_tracer': -3,
+    'dust_tracer': -4,
+    'gas_tracer': 0
+}

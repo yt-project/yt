@@ -318,7 +318,7 @@ would have a ``job_info`` file in the plotfile directory.
 * yt does not read the Maestro base state (although you can have Maestro
   map it to a full Cartesian state variable before writing the plotfile
   to get around this).  E-mail the dev list if you need this support.
-* yt supports AMReX/BoxLib particle data stored in the standard format used 
+* yt supports AMReX/BoxLib particle data stored in the standard format used
   by Nyx and WarpX, and optionally Castro. It currently does not support the ASCII particle
   data used by Maestro and Castro.
 * For Maestro, yt aliases either "tfromp" or "tfromh to" ``temperature``
@@ -331,7 +331,7 @@ Viewing raw fields in WarpX
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Most AMReX/BoxLib codes output cell-centered data. If the underlying discretization
-is not cell-centered, then fields are typically averaged to cell centers before 
+is not cell-centered, then fields are typically averaged to cell centers before
 they are written to plot files for visualization. WarpX, however, has the option
 to output the raw (i.e., not averaged to cell centers) data as well.  If you
 run your WarpX simulation with ``warpx.plot_raw_fields = 1`` in your inputs
@@ -348,10 +348,10 @@ defined, with the "raw" field type:
 The raw fields in WarpX are nodal in at least one direction. We define a field
 to be "nodal" in a given direction if the field data is defined at the "low"
 and "high" sides of the cell in that direction, rather than at the cell center.
-Instead of returning one field value per cell selected, nodal fields return a 
+Instead of returning one field value per cell selected, nodal fields return a
 number of values, depending on their centering. This centering is marked by
 a `nodal_flag` that describes whether the fields is nodal in each dimension.
-``nodal_flag = [0, 0, 0]`` means that the field is cell-centered, while 
+``nodal_flag = [0, 0, 0]`` means that the field is cell-centered, while
 ``nodal_flag = [0, 0, 1]`` means that the field is nodal in the z direction
 and cell centered in the others, i.e. it is defined on the z faces of each cell.
 ``nodal_flag = [1, 1, 0]`` would mean that the field is centered in the z direction,
@@ -371,7 +371,7 @@ to the z direction.
 
 Here, the field ``('raw', 'Ex')`` is nodal in two directions, so four values per cell
 are returned, corresponding to the four edges in each cell on which the variable
-is defined. ``('raw', 'Bx')`` is nodal in one direction, so two values are returned 
+is defined. ``('raw', 'Bx')`` is nodal in one direction, so two values are returned
 per cell. The standard, averaged-to-cell-centers fields are still available.
 
 Currently, slices and data selection are implemented for nodal fields. Projections,
@@ -684,7 +684,7 @@ can read FITS image files that have the following (case-insensitive) suffixes:
 * fits.gz
 * fts.gz
 
-yt can currently read two kinds of FITS files: FITS image files and FITS 
+yt can currently read two kinds of FITS files: FITS image files and FITS
 binary table files containing positions, times, and energies of X-ray events.
 
 Though a FITS image is composed of a single array in the FITS file,
@@ -760,14 +760,14 @@ the following dataset types:
 If your data is of the first case, yt will determine the length units based
 on the information in the header. If your data is of the second or third
 cases, no length units will be assigned, but the world coordinate information
-about the axes will be stored in separate fields. If your data is of the 
-fourth type, the coordinates of the first three axes will be determined 
+about the axes will be stored in separate fields. If your data is of the
+fourth type, the coordinates of the first three axes will be determined
 according to cases 1-3.
 
 .. note::
 
-  Linear length-based coordinates (Case 1 above) are only supported if all 
-  dimensions have the same value for ``CUNITx``. WCS coordinates are only 
+  Linear length-based coordinates (Case 1 above) are only supported if all
+  dimensions have the same value for ``CUNITx``. WCS coordinates are only
   supported for Cases 2-4.
 
 FITS Data Decomposition
@@ -791,8 +791,8 @@ upon being loaded into yt it is automatically decomposed into grids:
              512	  981940800
 
 For 3D spectral-cube data, the decomposition into grids will be done along the
-spectral axis since this will speed up many common operations for this 
-particular type of dataset. 
+spectral axis since this will speed up many common operations for this
+particular type of dataset.
 
 yt will generate its own domain decomposition, but the number of grids can be
 set manually by passing the ``nprocs`` parameter to the ``load`` call:
@@ -830,10 +830,10 @@ based on the corresponding ``CTYPEx`` keywords. When queried, these fields
 will be generated from the pixel coordinates in the file using the WCS
 transformations provided by AstroPy.
 
-X-ray event data will be loaded as particle fields in yt, but a grid will be 
-constructed from the WCS information in the FITS header. There is a helper 
-function, ``setup_counts_fields``, which may be used to make deposited image 
-fields from the event data for different energy bands (for an example see 
+X-ray event data will be loaded as particle fields in yt, but a grid will be
+constructed from the WCS information in the FITS header. There is a helper
+function, ``setup_counts_fields``, which may be used to make deposited image
+fields from the event data for different energy bands (for an example see
 :ref:`xray_fits`).
 
 .. note::
@@ -848,7 +848,7 @@ fields from the event data for different energy bands (for an example see
 Additional Options
 ^^^^^^^^^^^^^^^^^^
 
-The following are additional options that may be passed to the ``load`` command 
+The following are additional options that may be passed to the ``load`` command
 when analyzing FITS data:
 
 ``nan_mask``
@@ -888,9 +888,9 @@ plane.
 Miscellaneous Tools for Use with FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-A number of tools have been prepared for use with FITS data that enhance yt's 
-visualization and analysis capabilities for this particular type of data. These 
-are included in the ``yt.frontends.fits.misc`` module, and can be imported like 
+A number of tools have been prepared for use with FITS data that enhance yt's
+visualization and analysis capabilities for this particular type of data. These
+are included in the ``yt.frontends.fits.misc`` module, and can be imported like
 so:
 
 .. code-block:: python
@@ -900,7 +900,7 @@ so:
 ``setup_counts_fields``
 """""""""""""""""""""""
 
-This function can be used to create image fields from X-ray counts data in 
+This function can be used to create image fields from X-ray counts data in
 different energy bands:
 
 .. code-block:: python
@@ -914,9 +914,9 @@ and add them to the field registry for the dataset ``ds``.
 ``ds9_region``
 """"""""""""""
 
-This function takes a `ds9 <http://ds9.si.edu/site/Home.html>`_ region and 
-creates a "cut region" data container from it, that can be used to select 
-the cells in the FITS dataset that fall within the region. To use this 
+This function takes a `ds9 <http://ds9.si.edu/site/Home.html>`_ region and
+creates a "cut region" data container from it, that can be used to select
+the cells in the FITS dataset that fall within the region. To use this
 functionality, the `pyregion <https://github.com/astropy/pyregion/>`_
 package must be installed.
 
@@ -930,8 +930,8 @@ package must be installed.
 ``PlotWindowWCS``
 """""""""""""""""
 
-This class takes a on-axis ``SlicePlot`` or ``ProjectionPlot`` of FITS 
-data and adds celestial coordinates to the plot axes. To use it, a 
+This class takes a on-axis ``SlicePlot`` or ``ProjectionPlot`` of FITS
+data and adds celestial coordinates to the plot axes. To use it, a
 version of AstroPy >= 1.3 must be installed.
 
 .. code-block:: python
@@ -940,7 +940,7 @@ version of AstroPy >= 1.3 must be installed.
   wcs_slc.show() # for the IPython notebook
   wcs_slc.save()
 
-``WCSAxes`` is still in an experimental state, but as its functionality 
+``WCSAxes`` is still in an experimental state, but as its functionality
 improves it will be utilized more here.
 
 ``create_spectral_slabs``
@@ -948,14 +948,14 @@ improves it will be utilized more here.
 
 .. note::
 
-  The following functionality requires the 
-  `spectral-cube <http://spectral-cube.readthedocs.org>`_ library to be 
+  The following functionality requires the
+  `spectral-cube <http://spectral-cube.readthedocs.org>`_ library to be
   installed.
 
 If you have a spectral intensity dataset of some sort, and would like to
-extract emission in particular slabs along the spectral axis of a certain 
-width, ``create_spectral_slabs`` can be used to generate a dataset with 
-these slabs as different fields. In this example, we use it to extract 
+extract emission in particular slabs along the spectral axis of a certain
+width, ``create_spectral_slabs`` can be used to generate a dataset with
+these slabs as different fields. In this example, we use it to extract
 individual lines from an intensity cube:
 
 .. code-block:: python
@@ -968,12 +968,12 @@ individual lines from an intensity cube:
                                     slab_centers, slab_width,
                                     nan_mask=0.0)
 
-All keyword arguments to ``create_spectral_slabs`` are passed on to ``load`` when 
-creating the dataset (see :ref:`additional_fits_options` above). In the 
-returned dataset, the different slabs will be different fields, with the field 
-names taken from the keys in ``slab_centers``. The WCS coordinates on the 
-spectral axis are reset so that the center of the domain along this axis is 
-zero, and the left and right edges of the domain along this axis are 
+All keyword arguments to ``create_spectral_slabs`` are passed on to ``load`` when
+creating the dataset (see :ref:`additional_fits_options` above). In the
+returned dataset, the different slabs will be different fields, with the field
+names taken from the keys in ``slab_centers``. The WCS coordinates on the
+spectral axis are reset so that the center of the domain along this axis is
+zero, and the left and right edges of the domain along this axis are
 :math:`\pm` ``0.5*slab_width``.
 
 Examples of Using FITS Data
@@ -991,10 +991,10 @@ FLASH Data
 ----------
 
 FLASH HDF5 data is *mostly* supported and cared for by John ZuHone.  To load a
-FLASH dataset, you can use the ``yt.load`` command and provide it the file name of 
+FLASH dataset, you can use the ``yt.load`` command and provide it the file name of
 a plot file, checkpoint file, or particle file. Particle files require special handling
-depending on the situation, the main issue being that they typically lack grid information. 
-The first case is when you have a plotfile and a particle file that you would like to 
+depending on the situation, the main issue being that they typically lack grid information.
+The first case is when you have a plotfile and a particle file that you would like to
 load together. In the simplest case, this occurs automatically. For instance, if you
 were in a directory with the following files:
 
@@ -1003,8 +1003,8 @@ were in a directory with the following files:
    radio_halo_1kpc_hdf5_plt_cnt_0100 # plotfile
    radio_halo_1kpc_hdf5_part_0100 # particle file
 
-where the plotfile and the particle file were created at the same time (therefore having 
-particle data consistent with the grid structure of the former). Notice also that the 
+where the plotfile and the particle file were created at the same time (therefore having
+particle data consistent with the grid structure of the former). Notice also that the
 prefix ``"radio_halo_1kpc_"`` and the file number ``100`` are the same. In this special case,
 the particle file will be loaded automatically when ``yt.load`` is called on the plotfile.
 This also works when loading a number of files in a time series.
@@ -1018,10 +1018,10 @@ grid structure and are at the same simulation time, the particle data may be loa
     import yt
     ds = yt.load("radio_halo_1kpc_hdf5_plt_cnt_0100", particle_filename="radio_halo_1kpc_hdf5_part_0100")
 
-However, if you don't have a corresponding plotfile for a particle file, but would still 
-like to load the particle data, you can still call ``yt.load`` on the file. However, the 
+However, if you don't have a corresponding plotfile for a particle file, but would still
+like to load the particle data, you can still call ``yt.load`` on the file. However, the
 grid information will not be available, and the particle data will be loaded in a fashion
-similar to SPH data. 
+similar to SPH data.
 
 .. rubric:: Caveats
 
@@ -1349,7 +1349,7 @@ resolution.
    yt only supports a block structure where the grid edges on the ``n``-th
    refinement level are aligned with the cell edges on the ``n-1``-th level.
 
-Particle fields are supported by adding 1-dimensional arrays to each 
+Particle fields are supported by adding 1-dimensional arrays to each
 ``grid``'s dict:
 
 .. code-block:: python
@@ -1394,7 +1394,7 @@ density field in cubic domain of 3 Mpc edge size (3 * 3.08e24 cm) and
 simultaneously divide the domain into 12 chunks, so that you can take advantage
 of the underlying parallelism.
 
-Particle fields are added as one-dimensional arrays in a similar manner as the 
+Particle fields are added as one-dimensional arrays in a similar manner as the
 three-dimensional grid fields:
 
 .. code-block:: python
@@ -1562,7 +1562,7 @@ To load multiple meshes, you can do:
 
    # only plot the second
    sl = yt.SlicePlot(ds, 'z', ('connect2', 'test'))
-   
+
    # plot both
    sl = yt.SlicePlot(ds, 'z', ('all', 'test'))
 
@@ -1631,10 +1631,10 @@ The ``load_particles`` function also accepts the following keyword parameters:
 Gizmo Data
 ----------
 
-Gizmo datasets, including FIRE outputs, can be loaded into yt in the usual 
-manner.  Like other SPH data formats, yt loads Gizmo data as particle fields 
-and then uses smoothing kernels to deposit those fields to an underlying 
-grid structure as spatial fields as described in :ref:`loading-gadget-data`.  
+Gizmo datasets, including FIRE outputs, can be loaded into yt in the usual
+manner.  Like other SPH data formats, yt loads Gizmo data as particle fields
+and then uses smoothing kernels to deposit those fields to an underlying
+grid structure as spatial fields as described in :ref:`loading-gadget-data`.
 To load Gizmo datasets using the standard HDF5 output format::
 
    import yt
@@ -1642,11 +1642,11 @@ To load Gizmo datasets using the standard HDF5 output format::
 
 Because the Gizmo output format is similar to the Gadget format, yt
 may load Gizmo datasets as Gadget depending on the circumstances, but this
-should not pose a problem in most situations.  FIRE outputs will be loaded 
-accordingly due to the number of metallicity fields found (11 or 17).  
+should not pose a problem in most situations.  FIRE outputs will be loaded
+accordingly due to the number of metallicity fields found (11 or 17).
 
 For Gizmo outputs written as raw binary outputs, you may have to specify
-a bounding box, field specification, and units as are done for standard 
+a bounding box, field specification, and units as are done for standard
 Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 
 .. _halo-catalog-data:
@@ -2001,7 +2001,8 @@ You would feed it the filename ``output_00007/info_00007.txt``:
    import yt
    ds = yt.load("output_00007/info_00007.txt")
 
-yt will attempt to guess the fields in the file.  You may also specify
+
+yt will attempt to guess the fields in the file. You may also specify
 a list of hydro fields by supplying the ``fields`` keyword in your
 call to ``load``. It is also possible to provide a list of *extra*
 particle fields by supplying the ``extra_particle_fields``:
@@ -2012,6 +2013,13 @@ particle fields by supplying the ``extra_particle_fields``:
    extra_fields = [('family', 'I'), ('info', 'I')]
    ds = yt.load("output_00001/info_00001.txt", extra_particle_fields=extra_fields)
    # ('all', 'family') and ('all', 'info') now in ds.field_list
+
+yt also support the new way particles are handled introduced after
+version ``stable_17_091`` (the version introduced after the 2017 Ramses
+User Meeting). In this case, the file ``part_file_descriptor.txt``
+containing the different fields in the particle files will be read. If
+you use a custom version of RAMSES, make sure this file is up-to-date
+and reflects the true layout of the particles.
 
 yt supports outputs made by the mainline ``RAMSES`` code as well as the
 ``RAMSES-RT`` fork. Files produces by ``RAMSES-RT`` are recognized as such
@@ -2029,6 +2037,19 @@ Note: for backward compatibility, particles from the
 ``particle_XXXXX.outYYYYY`` files have the particle type ``io`` by
 default (including dark matter, stars, tracer particles, …). Sink
 particles have the particle type ``sink``.
+
+Adding custom particle fields
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to add support for particle fields. For this, one
+should tweak
+:func:`~yt.frontends.ramses.io._read_part_file_descriptor` to include
+the field as well as its data type to the assoc list, following the
+convention from
+`python struct module <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
+For example, to add support for a longint field named
+``my_custom_field``, one would add ``('my_custom_field', 'l')`` to ``assoc``.
+
 
 .. _loading-sph-data:
 
@@ -2113,6 +2134,3 @@ non-default cosmological parameters, you may pass an empty dictionary.
 
     import yt
     ds = yt.load(filename, cosmology_parameters={})
-
-
-
