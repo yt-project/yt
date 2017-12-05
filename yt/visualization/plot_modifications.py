@@ -862,7 +862,7 @@ class CuttingQuiverCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=None, plot_args=None):
+                 scale_units=None, normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
