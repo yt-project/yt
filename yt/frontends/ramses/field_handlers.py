@@ -45,7 +45,7 @@ class FieldFileHandler(object):
 
     # These properties are computed dynamically
     field_offsets = None     # Mapping from field to offset in file
-    field_types = None       # Mapping from field to the type of the data (float, integer, …)
+    field_types = None       # Mapping from field to the type of the data (float, integer, ...)
 
     def __init__(self, domain):
         '''
@@ -87,7 +87,7 @@ class FieldFileHandler(object):
         '''
         This function should return True if the kind of field
         represented by the class exists in the dataset. It takes as
-        argument the class itself —not an instance— and a dataset.
+        argument the class itself - not an instance - and a dataset.
 
         Arguments
         ---------
