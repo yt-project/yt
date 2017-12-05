@@ -34,8 +34,10 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
+from yt.data_objects.particle_filters import add_particle_filter
 
-from .definitions import ramses_header, field_aliases
+from .definitions import ramses_header, field_aliases, particle_families
+from .io import _read_part_file_descriptor
 from yt.utilities.physical_constants import mp, kb
 from .fields import \
     RAMSESFieldInfo, _X
@@ -58,12 +60,14 @@ class RAMSESDomainFile(object):
 
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
+        basedir = os.path.abspath(
+            os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (
-            os.path.abspath(
-              os.path.dirname(ds.parameter_filename)),
-            num, domain_id)
+            basedir, num, domain_id)
+        part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
         for t in ['grav', 'hydro', 'part', 'amr', 'sink']:
             setattr(self, "%s_fn" % t, basename % t)
+        self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
         self._read_hydro_header()
         self._read_particle_header()
@@ -89,6 +93,13 @@ class RAMSESDomainFile(object):
         Does the output include sinks (black holes)?
         '''
         return os.path.exists(self.sink_fn)
+
+    @property
+    def _has_part_descriptor(self):
+        '''
+        Does the output include particle file descriptor?
+        '''
+        return os.path.exists(self._part_file_descriptor)
 
     @property
     def level_count(self):
@@ -214,6 +225,7 @@ class RAMSESDomainFile(object):
             self.local_particle_count = 0
             self.particle_field_offsets = {}
             return
+
         f = open(self.part_fn, "rb")
         f.seek(0, os.SEEK_END)
         flen = f.tell()
@@ -233,7 +245,12 @@ class RAMSESDomainFile(object):
         self.particle_header = hvals
         self.local_particle_count = hvals['npart']
 
-        particle_fields = [
+        # Try reading particle file descriptor
+        if self._has_part_descriptor:
+            particle_fields = (
+                _read_part_file_descriptor(self._part_file_descriptor))
+        else:
+            particle_fields = [
                 ("particle_position_x", "d"),
                 ("particle_position_y", "d"),
                 ("particle_position_z", "d"),
@@ -244,13 +261,14 @@ class RAMSESDomainFile(object):
                 ("particle_identifier", "i"),
                 ("particle_refinement_level", "I")]
 
-        if self.ds._extra_particle_fields is not None:
-            particle_fields += self.ds._extra_particle_fields
+            if self.ds._extra_particle_fields is not None:
+                particle_fields += self.ds._extra_particle_fields
+
+        ptype = 'io'
 
         field_offsets = {}
         _pfields = {}
 
-        ptype = 'io'
 
         # Read offsets
         for field, vtype in particle_fields:
@@ -666,6 +684,25 @@ class RAMSESDataset(Dataset):
 
         self.storage_filename = storage_filename
 
+
+    def create_field_info(self, *args, **kwa):
+        """Extend create_field_info to add the particles types."""
+        super(RAMSESDataset, self).create_field_info(*args, **kwa)
+        # Register particle filters
+        if ('io', 'particle_family') in self.field_list:
+            for fname, value in particle_families.items():
+                def loc(val):
+                    def closure(pfilter, data):
+                        filter = data[(pfilter.filtered_type, "particle_family")] == val
+                        return filter
+
+                    return closure
+                add_particle_filter(fname, loc(value),
+                                    filtered_type='io', requires=['particle_family'])
+
+            for k in particle_families.keys():
+                mylog.info('Adding particle_type: %s' % k)
+                self.add_particle_filter('%s' % k)
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

@@ -23,7 +23,10 @@ from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 import yt.utilities.fortran_utils as fpu
 from yt.utilities.lib.cosmology_time import \
     get_ramses_ages
+from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
+    YTFileNotParseable
 from yt.extern.six import PY3
+import re
 
 if PY3:
     from io import BytesIO as IO
@@ -156,9 +159,66 @@ class IOHandlerRAMSES(BaseIOHandler):
 
             else:
                 # Raise here an exception
-                raise Exception('Unknown particle type %s' % ptype)
+                raise YTFieldTypeNotFound(ptype)
 
             tr.update(_ramses_particle_file_handler(
                 fname, foffsets, data_types, subset, subs_fields))
 
         return tr
+
+def _read_part_file_descriptor(fname):
+    """
+    Read the particle file descriptor and returns the array of the fields found.
+    """
+    VERSION_RE = re.compile('# version: *(\d+)')
+    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
+
+    # Mapping
+    mapping = [
+        ('position_x', 'particle_position_x'),
+        ('position_y', 'particle_position_y'),
+        ('position_z', 'particle_position_z'),
+        ('velocity_x', 'particle_velocity_x'),
+        ('velocity_y', 'particle_velocity_y'),
+        ('velocity_z', 'particle_velocity_z'),
+        ('mass', 'particle_mass'),
+        ('identity', 'particle_identity'),
+        ('levelp', 'particle_level'),
+        ('family', 'particle_family'),
+        ('tag', 'particle_tag')
+    ]
+    # Convert in dictionary
+    mapping = {k: v for k, v in mapping}
+
+    with open(fname, 'r') as f:
+        line = f.readline()
+        tmp = VERSION_RE.match(line)
+        mylog.info('Reading part file descriptor.')
+        if not tmp:
+            raise YTParticleOutputFormatNotImplemented()
+
+        version = int(tmp.group(1))
+
+        if version == 1:
+            # Skip one line (containing the headers)
+            line = f.readline()
+            fields = []
+            for i, line in enumerate(f.readlines()):
+                tmp = VAR_DESC_RE.match(line)
+                if not tmp:
+                    raise YTFileNotParseable(fname, i+1)
+
+                # ivar = tmp.group(1)
+                varname = tmp.group(2)
+                dtype = tmp.group(3)
+
+                if varname in mapping:
+                    varname = mapping[varname]
+                else:
+                    varname = 'particle_%s' % varname
+
+                fields.append((varname, dtype))
+        else:
+            raise YTParticleOutputFormatNotImplemented()
+
+    return fields
