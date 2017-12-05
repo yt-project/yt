@@ -171,12 +171,14 @@ class IOHandlerRAMSES(BaseIOHandler):
 
         return tr
 
-VERSION_RE = re.compile('# version: *(\d+)')
-VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
+
 def _read_part_file_descriptor(fname):
     """
     Read the particle file descriptor and returns the array of the fields found.
     """
+    VERSION_RE = re.compile('# version: *(\d+)')
+    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
+
     # Mapping
     mapping = [
         ('position_x', 'particle_position_x'),
@@ -195,7 +197,6 @@ def _read_part_file_descriptor(fname):
     mapping = {k: v for k, v in mapping}
 
     with open(fname, 'r') as f:
-        f = open(fname, 'r')
         line = f.readline()
         tmp = VERSION_RE.match(line)
         mylog.info('Reading part file descriptor.')

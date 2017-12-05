@@ -102,8 +102,6 @@ class ParticleFileHandler(object):
         '''
         return os.path.exists(self.file_descriptor)
 
-
-
     @classmethod
     def any_exist(cls, ds):
         '''

@@ -2004,8 +2004,8 @@ You would feed it the filename ``output_00007/info_00007.txt``:
 yt will attempt to guess the fields in the file. For more control over the hydro fields or the particle fields, see :ref:`loading-ramses-data-args`.
 
 yt also support the new way particles are handled introduced after
-version `stable_17_09` (the version introduced after the 2017 Ramses
-User Meeting). In this case, the file `part_file_descriptor.txt`
+version ``stable_17_09`` (the version introduced after the 2017 Ramses
+User Meeting). In this case, the file ``part_file_descriptor.txt``
 containing the different fields in the particle files will be read. If
 you use a custom version of RAMSES, make sure this file is up-to-date
 and reflects the true layout of the particles.
@@ -2108,7 +2108,7 @@ the field as well as its data type to the assoc list, following the
 convention from
 `python struct module <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
 For example, to add support for a longint field named
-`my_custom_field`, one would add `('my_custom_field', 'l')` to `assoc`.
+``my_custom_field``, one would add ``('my_custom_field', 'l')`` to ``assoc``.
 
 
 .. _loading-sph-data:
