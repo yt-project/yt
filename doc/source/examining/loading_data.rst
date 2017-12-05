@@ -2001,18 +2001,7 @@ You would feed it the filename ``output_00007/info_00007.txt``:
    import yt
    ds = yt.load("output_00007/info_00007.txt")
 
-
-yt will attempt to guess the fields in the file. You may also specify
-a list of hydro fields by supplying the ``fields`` keyword in your
-call to ``load``. It is also possible to provide a list of *extra*
-particle fields by supplying the ``extra_particle_fields``:
-
-.. code-block:: python
-
-   import yt
-   extra_fields = [('family', 'I'), ('info', 'I')]
-   ds = yt.load("output_00001/info_00001.txt", extra_particle_fields=extra_fields)
-   # ('all', 'family') and ('all', 'info') now in ds.field_list
+yt will attempt to guess the fields in the file. For more control over the hydro fields or the particle fields, see :ref:`loading-ramses-data-args`.
 
 yt also support the new way particles are handled introduced after
 version ``stable_17_091`` (the version introduced after the 2017 Ramses
@@ -2025,18 +2014,89 @@ yt supports outputs made by the mainline ``RAMSES`` code as well as the
 ``RAMSES-RT`` fork. Files produces by ``RAMSES-RT`` are recognized as such
 based on the presence of a ``info_rt_*.txt`` file in the output directory.
 
-It is possible to force yt to treat the simulation as a cosmological
-simulation by providing the ``cosmological=True`` parameter (or
-``False`` to force non-cosmology). If left to ``None``, the kind of
-the simulation is inferred from the data.
+.. note::
+   for backward compatibility, particles from the
+   ``part_XXXXX.outYYYYY`` files have the particle type ``io`` by
+   default (including dark matter, stars, tracer particles, …). Sink
+   particles have the particle type ``sink``.
 
-yt also support outputs that include sinks (RAMSES' name for black
-holes) when the folder contains files like ``sink_XXXXX.outYYYYY``.
+.. _loading-ramses-data-args:
 
-Note: for backward compatibility, particles from the
-``particle_XXXXX.outYYYYY`` files have the particle type ``io`` by
-default (including dark matter, stars, tracer particles, …). Sink
-particles have the particle type ``sink``.
+Arguments passed to the load function
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+It is possible to provide extra arguments to the load function when loading RAMSES datasets. Here is a list of the ones specific to RAMSES:
+
+``fields``
+      A list of fields to read from the hydro files. For a hydro simulation with an extra custom field
+
+      .. code-block:: python
+
+          import yt
+          fields = ["Density",
+                    "x-velocity", "y-velocity", "z-velocity",
+                    "Pressure", "my-awesome-field"]
+	  ds = yt.load('output_00123/info_00123.txt', fields=fields)
+	  'my-awesome-field' in ds.field_list  # is True
+
+
+``extra_particle_fields``
+      A list of tuples describing extra particles fields to read in. By
+      default, yt will try to detect as many fields as possible,
+      assuming the extra ones to be double precision floats. This
+      argument is useful if you have extra fields that yt cannot
+      detect. For example, for a dataset containing two integer fields
+      in the particles, one would do
+
+      .. code-block:: python
+
+          import yt
+          extra_fields = [('family', 'I'), ('info', 'I')]
+          ds = yt.load("output_00001/info_00001.txt", extra_particle_fields=extra_fields)
+          # ('all', 'family') and ('all', 'info') now in ds.field_list
+
+      The format of the passed argument is as follow: ``[('field_name_1', 'type_1'), …, ('field_name_n', 'type_n')]`` where the ``type_n`` is as follow `python convention <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
+
+``cosmological``
+      Force yt to consider a simulation to be cosmological or
+      not. This may be useful for some specific simulations e.g. that
+      run down to negative redshifts.
+
+``bbox``
+      The subbox to load. Yt will only read CPUs intersecting with the
+      subbox. This is especially useful for large simulations or
+      zoom-in simulations, where you don't want to have access to data
+      outside of a small region of interest. This argument will prevent
+      yt from loading AMR files outside the subbox and will hence
+      spare memory and time.
+      For example, one could use
+
+      .. code-block:: python
+
+          import yt
+	  # Only load a small cube of size (0.1)**3
+	  bbox = [[0., 0., 0.], [0.1, 0.1, 0.1]]
+	  ds = yt.load('output_00001/info_00001.txt', bbox=bbox)
+
+	  # See the note below for the following examples
+	  ds.right_edge == [1, 1, 1]             # is True
+
+	  ad = ds.all_data()
+	  ad['particle_position_x'].max() > 0.1  # _may_ be True
+
+	  bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
+	  bb['particle_position_x'].max() < 0.1  # is True
+      .. note::
+	 When using the bbox argument, yt will read all the CPUs
+         intersecting with the subbox. However it may also read some
+         data *outside* the selected region. This is due to the fact
+         that domains have a complicated shape when using Hilbert
+         ordering. Internally, yt will hence assume the loaded dataset
+         covers the entire simulation. If you only want the data from
+         the selected region, you may want to use ``ds.box(…)``.
+
+      .. note::
+	 This feature is only available when using Hilbert ordering.
+
 
 Adding custom particle fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

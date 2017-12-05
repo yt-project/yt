@@ -20,7 +20,6 @@ import os
 import numpy as np
 import stat
 import weakref
-from io import BytesIO
 
 from yt.extern.six import string_types
 from yt.funcs import \
@@ -41,6 +40,7 @@ from .io import _read_part_file_descriptor
 from yt.utilities.physical_constants import mp, kb
 from .fields import \
     RAMSESFieldInfo, _X
+from .hilbert import get_cpu_list
 import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
@@ -335,11 +335,8 @@ class RAMSESDomainFile(object):
                 self.ds.domain_left_edge, self.ds.domain_right_edge)
         root_nodes = self.amr_header['numbl'][self.ds.min_level,:].sum()
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
-        fb = open(self.amr_fn, "rb")
-        fb.seek(self.amr_offset)
-        f = BytesIO()
-        f.write(fb.read())
-        f.seek(0)
+        f = open(self.amr_fn, "rb")
+        f.seek(self.amr_offset)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
         def _ng(c, l):
@@ -473,8 +470,13 @@ class RAMSESIndex(OctreeIndex):
         super(RAMSESIndex, self).__init__(ds, dataset_type)
 
     def _initialize_oct_handler(self):
+        if self.ds._bbox:
+            cpu_list = get_cpu_list(self.dataset, self.dataset._bbox)
+        else:
+            cpu_list = range(self.dataset['ncpu'])
+
         self.domains = [RAMSESDomainFile(self.dataset, i + 1)
-                        for i in range(self.dataset['ncpu'])]
+                        for i in cpu_list]
         total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
                          for dom in self.domains)
         self.max_level = max(dom.max_level for dom in self.domains)
@@ -663,7 +665,8 @@ class RAMSESDataset(Dataset):
     def __init__(self, filename, dataset_type='ramses',
                  fields=None, storage_filename=None,
                  units_override=None, unit_system="cgs",
-                 extra_particle_fields=None, cosmological=None):
+                 extra_particle_fields=None, cosmological=None,
+                 bbox=None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, string_types):
             fields = field_aliases[fields]
@@ -679,6 +682,7 @@ class RAMSESDataset(Dataset):
         self._extra_particle_fields = extra_particle_fields
         self._warn_extra_fields = False
         self.force_cosmological = cosmological
+        self._bbox = bbox
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
 
@@ -760,9 +764,9 @@ class RAMSESDataset(Dataset):
         rheader = {}
         f = open(self.parameter_filename)
         def read_rhs(cast):
-            line = f.readline()
+            line = f.readline().replace('\n', '')
             p, v = line.split("=")
-            rheader[p.strip()] = cast(v)
+            rheader[p.strip()] = cast(v.strip())
         for i in range(6): read_rhs(int)
         f.readline()
         for i in range(11): read_rhs(float)
@@ -781,6 +785,11 @@ class RAMSESDataset(Dataset):
             for n in range(rheader['ncpu']):
                 dom, mi, ma = f.readline().split()
                 self.hilbert_indices[int(dom)] = (float(mi), float(ma))
+
+        if rheader['ordering type'] != 'hilbert' and self.bbox:
+            raise NotImplementedError(
+                'The ordering %s is not compatible with the `bbox` argument.'
+                % rheader['ordering type'])
         self.parameters.update(rheader)
         self.domain_left_edge = np.zeros(3, dtype='float64')
         self.domain_dimensions = np.ones(3, dtype='int32') * \
