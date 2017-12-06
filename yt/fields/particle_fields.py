@@ -173,7 +173,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     for ax in 'xyz':
         for method, name in zip(("cic", "sum"), ("cic", "nn")):
             function = _get_density_weighted_deposit_field(
-                "particle_velocity_%s" % ax, "cm/s", method)
+                "particle_velocity_%s" % ax, "code_velocity", method)
             registry.add_field(
                 ("deposit", ("%s_"+name+"_velocity_%s") % (ptype, ax)), sampling_type="cell",
                 function=function, units=unit_system["velocity"], take_log=False,
@@ -181,7 +181,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
 
     for method, name in zip(("cic", "sum"), ("cic", "nn")):
         function = _get_density_weighted_deposit_field(
-            "age", "s", method)
+            "age", "code_time", method)
         registry.add_field(
             ("deposit", ("%s_"+name+"_age") % (ptype)), sampling_type="cell",
             function=function, units=unit_system["time"], take_log=False,
