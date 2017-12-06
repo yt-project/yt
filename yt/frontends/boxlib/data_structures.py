@@ -1464,7 +1464,6 @@ class WarpXHierarchy(BoxlibHierarchy):
 
         # now detect the optional, non-cell-centered fields
         self.raw_file = self.ds.output_dir + "/raw_fields/"
-        self.ds.fluid_types += ("raw",)
         self.raw_fields = _read_raw_field_names(self.raw_file + 'Level_0/')
         self.field_list += [('raw', f) for f in self.raw_fields]
         self.raw_field_map = {}
@@ -1501,7 +1500,7 @@ class WarpXDataset(BoxlibDataset):
 
         self.default_fluid_type = "mesh"
         self.default_field = ("mesh", "density")
-        self.fluid_types = ("mesh", "index")
+        self.fluid_types = ("mesh", "index", "raw")
 
         super(WarpXDataset, self).__init__(output_dir,
                                            cparam_filename,
