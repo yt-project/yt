@@ -5,6 +5,8 @@ from yt.extern.six import add_metaclass
 from yt.funcs import mylog
 import numpy as np
 
+from .io import _read_fluid_file_descriptor
+
 FIELD_HANDLERS = set()
 
 def get_field_handlers():
@@ -42,6 +44,7 @@ class FieldFileHandler(object):
     fname = None  # The name of the file(s)
     attrs = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
+    file_descriptor = None # The name of the file descriptor (if any)
 
     # These properties are computed dynamically
     field_offsets = None     # Mapping from field to offset in file
@@ -70,6 +73,11 @@ class FieldFileHandler(object):
             basename,
             self.fname.format(iout=iout, icpu=domain.domain_id))
 
+        if self.file_descriptor is not None:
+            self.file_descriptor = os.path.join(
+                basename,
+                self.file_descriptor)
+
     @property
     def exists(self):
         '''
@@ -81,6 +89,18 @@ class FieldFileHandler(object):
         it for more complex cases.
         '''
         return os.path.exists(self.fname)
+
+    @property
+    def has_part_descriptor(self):
+        '''
+        This function should return True if a *file descriptor*
+        exists.
+
+        By default, it just returns whether the file exists. Override
+        it for more complex cases.
+        '''
+        return os.path.exists(self.file_descriptor)
+
 
     @classmethod
     def any_exist(cls, ds):
@@ -182,6 +202,7 @@ class FieldFileHandler(object):
 class HydroFieldFileHandler(FieldFileHandler):
     ftype = 'ramses'
     fname = 'hydro_{iout:05d}.out{icpu:05d}'
+    file_descriptor = 'hydro_file_descriptor.txt'
     attrs = ( ('ncpu', 1, 'i'),
               ('nvar', 1, 'i'),
               ('ndim', 1, 'i'),
@@ -203,11 +224,12 @@ class HydroFieldFileHandler(FieldFileHandler):
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
+        basepath = os.path.abspath(
+              os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (
-            os.path.abspath(
-              os.path.dirname(ds.parameter_filename)),
-            num, testdomain)
+            basepath, num, testdomain)
         fname = basename % 'hydro'
+        fname_desc = os.path.join(basepath, cls.file_descriptor)
 
         f = open(fname, 'rb')
         attrs = cls.attrs
@@ -218,9 +240,19 @@ class HydroFieldFileHandler(FieldFileHandler):
         ds.gamma = hvals['gamma']
         nvar = hvals['nvar']
 
+        ok = False
         if ds._fields_in_file is not None:
-            fields = [('ramses', f) for f in ds._fields_in_file]
-        else:
+            fields = [f for f in ds._fields_in_file]
+            ok = True
+        elif os.path.exists(fname_desc):
+            mylog.info('Reading hydro file descriptor.')
+            # For now, we can only read double precision fields
+            fields = [f[0] for f in _read_fluid_file_descriptor(fname_desc)]
+
+            # We get no fields for old-style hydro file descriptor
+            ok = len(fields) > 0
+
+        if not ok:
             foldername  = os.path.abspath(os.path.dirname(ds.parameter_filename))
             rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
             if rt_flag: # rt run

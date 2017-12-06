@@ -199,7 +199,7 @@ class IOHandlerRAMSES(BaseIOHandler):
 
 def _read_part_file_descriptor(fname):
     """
-    Read the particle file descriptor and returns the array of the fields found.
+    Read a file descriptor and returns the array of the fields found.
     """
     VERSION_RE = re.compile('# version: *(\d+)')
     VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
@@ -250,6 +250,59 @@ def _read_part_file_descriptor(fname):
 
                 fields.append((varname, dtype))
         else:
+            raise YTParticleOutputFormatNotImplemented()
+
+    return fields
+
+def _read_fluid_file_descriptor(fname):
+    """
+    Read a file descriptor and returns the array of the fields found.
+    """
+    VERSION_RE = re.compile('# version: *(\d+)')
+    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
+
+    # Mapping
+    mapping = [
+        ('density', 'Density'),
+        ('velocity_x', 'x-velocity'),
+        ('velocity_y', 'y-velocity'),
+        ('velocity_z', 'z-velocity'),
+        ('pressure', 'Pressure'),
+        ('metallicity', 'Metallicity'),
+    ]
+    # Convert in dictionary
+    mapping = {k: v for k, v in mapping}
+
+    with open(fname, 'r') as f:
+        line = f.readline()
+        tmp = VERSION_RE.match(line)
+        mylog.info('Reading fluid file descriptor.')
+        if not tmp:
+            return []
+
+        version = int(tmp.group(1))
+
+        if version == 1:
+            # Skip one line (containing the headers)
+            line = f.readline()
+            fields = []
+            for i, line in enumerate(f.readlines()):
+                tmp = VAR_DESC_RE.match(line)
+                if not tmp:
+                    raise YTFileNotParseable(fname, i+1)
+
+                # ivar = tmp.group(1)
+                varname = tmp.group(2)
+                dtype = tmp.group(3)
+
+                if varname in mapping:
+                    varname = mapping[varname]
+                else:
+                    varname = 'particle_%s' % varname
+
+                fields.append((varname, dtype))
+        else:
+            mylog.error('Version %s', version)
             raise YTParticleOutputFormatNotImplemented()
 
     return fields
