@@ -48,7 +48,7 @@ class ParticleFileHandler(object):
 
     # These properties are computed dynamically
     field_offsets = None     # Mapping from field to offset in file
-    field_types = None       # Mapping from field to the type of the data (float, integer, …)
+    field_types = None       # Mapping from field to the type of the data (float, integer, ...)
     local_particle_count = None  # The number of particle in the domain
 
     def __init__(self, ds, domain_id):
@@ -107,7 +107,7 @@ class ParticleFileHandler(object):
         '''
         This function should return True if the kind of particle
         represented by the class exists in the dataset. It takes as
-        argument the class itself —not an instance— and a dataset.
+        argument the class itself -not an instance- and a dataset.
 
         Arguments
         ---------
