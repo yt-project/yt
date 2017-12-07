@@ -195,7 +195,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
                 _read_part_file_descriptor(self.file_descriptor)
             )
         else:
-            particle_fields = self.known_fields.copy()
+            particle_fields = list(self.known_fields)
 
             if self.ds._extra_particle_fields is not None:
                 particle_fields += self.ds._extra_particle_fields
@@ -306,9 +306,8 @@ class SinkParticleFileHandler(ParticleFileHandler):
                 _read_part_file_descriptor(self.file_descriptor)
             )
         else:
-            fields = self.known_fields.copy()
+            fields = list(self.known_fields)
 
-        fields = self.known_fields.copy()
         for i in range(self.ds.dimensionality*2+1):
             for j in range(self.ds.max_level, self.ds.min_level):
                 fields.append((

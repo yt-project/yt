@@ -139,7 +139,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
     def create_rt_fields(self):
         self.ds.fluid_types += ('rt', )
         tmp = RTFieldFileHandler.rt_parameters
-        p = tmp.copy()
+        # Copy the list
+        p = list(tmp)
         p.update(self.ds.parameters)
         ngroups = p['nGroups']
         rt_c = p['rt_c_frac'] * units.c / (p['unit_l'] / p['unit_t'])
