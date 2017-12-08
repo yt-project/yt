@@ -460,7 +460,7 @@ class OpenPMDDataset(Dataset):
         self.base_path = "/data/{}/".format(iteration)
         self.meshes_path = self._handle["/"].attrs["meshesPath"].decode()
         try:
-            meshes = handle[self.base_path + self.meshes_path]
+            handle[self.base_path + self.meshes_path]
         except(KeyError):
             if self.standard_version <= StrictVersion("1.0.1"):
                 mylog.info("meshesPath not present in file."
@@ -469,7 +469,7 @@ class OpenPMDDataset(Dataset):
                 raise
         self.particles_path = self._handle["/"].attrs["particlesPath"].decode()
         try:
-            particles = handle[self.base_path + self.particles_path]
+            handle[self.base_path + self.particles_path]
         except(KeyError):
             if self.standard_version <= StrictVersion("1.0.1"):
                 mylog.info("particlesPath not present in file."

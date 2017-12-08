@@ -22,6 +22,7 @@ from yt.testing import \
     requires_file
 from yt.utilities.answer_testing.framework import \
     data_dir_load
+from yt.convenience import load
 
 import numpy as np
 
@@ -29,6 +30,7 @@ twoD = "example-2d/hdf5/data00000100.h5"
 threeD = "example-3d/hdf5/data00000100.h5"
 noFields = "no_fields/data00000400.h5"
 noParticles = "no_particles/data00000400.h5"
+groupBased = "singleParticle/simData.h5"
 
 
 @requires_file(threeD)
@@ -207,4 +209,50 @@ def test_no_particles_out():
                         1.3161023868481013e-13 * np.ones_like(ds.current_time))
     assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge,
                         domain_width)
+
+@requires_file(groupBased)
+def test_groupBased_out():
+    dss = load(groupBased)
+    field_list = [('all', 'particle_charge'),
+                  ('all', 'particle_mass'),
+                  ('all', 'particle_momentum_x'),
+                  ('all', 'particle_momentum_y'),
+                  ('all', 'particle_momentum_z'),
+                  ('all', 'particle_positionCoarse_x'),
+                  ('all', 'particle_positionCoarse_y'),
+                  ('all', 'particle_positionCoarse_z'),
+                  ('all', 'particle_positionOffset_x'),
+                  ('all', 'particle_positionOffset_y'),
+                  ('all', 'particle_positionOffset_z'),
+                  ('all', 'particle_weighting'),
+                  ('io', 'particle_charge'),
+                  ('io', 'particle_mass'),
+                  ('io', 'particle_momentum_x'),
+                  ('io', 'particle_momentum_y'),
+                  ('io', 'particle_momentum_z'),
+                  ('io', 'particle_positionCoarse_x'),
+                  ('io', 'particle_positionCoarse_y'),
+                  ('io', 'particle_positionCoarse_z'),
+                  ('io', 'particle_positionOffset_x'),
+                  ('io', 'particle_positionOffset_y'),
+                  ('io', 'particle_positionOffset_z'),
+                  ('io', 'particle_weighting'),
+                  ('openPMD', 'J_x'),
+                  ('openPMD', 'J_y'),
+                  ('openPMD', 'J_z'),
+                  ('openPMD', 'e-chargeDensity')]
+    domain_dimensions = [32, 64, 64] * np.ones_like(dss[0].domain_dimensions)
+    domain_width = [0.0002752, 0.0005504, 0.0005504] * np.ones_like(dss[0].domain_left_edge)
+
+    assert_equal(len(dss), 101)
+    for ds in dss:
+        assert_equal(str(ds), "simData.h5")
+        assert_equal(ds.dimensionality, 3)
+        assert_equal(ds.particle_types_raw, ('io', ))
+        assert_array_equal(ds.field_list, field_list)
+        assert_array_equal(ds.domain_dimensions, domain_dimensions)
+        assert ds.current_time >= np.zeros_like(ds.current_time)
+        assert ds.current_time <= 1.6499999999999998e-12 * np.ones_like(ds.current_time)
+        assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge,
+                            domain_width)
 
