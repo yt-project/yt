@@ -353,7 +353,7 @@ class Dataset(object):
             return hashlib.md5(s.encode('utf-8')).hexdigest()
         except ImportError:
             return s.replace(";", "*")
-   
+
     _checksum = None
     @property
     def checksum(self):
@@ -655,6 +655,12 @@ class Dataset(object):
         return len(new_fields)
 
     def add_particle_filter(self, filter):
+        """Add particle filter to the dataset.
+
+        Add ``filter`` to the dataset and set up relavent derived_field.
+        It will also add any ``filtered_type`` that the ``filter`` depends on.
+
+        """
         # This requires an index
         self.index
         # This is a dummy, which we set up to enable passthrough of "all"
@@ -678,6 +684,15 @@ class Dataset(object):
         return True
 
     def _setup_filtered_type(self, filter):
+        # Check if the filtered_type of this filter is known, 
+        # otherwise add it first if it is in the filter_registry
+        if filter.filtered_type not in self.known_filters.keys():
+            if filter.filtered_type in filter_registry:
+                add_success = self.add_particle_filter(filter.filtered_type)
+                if add_success:
+                    mylog.info("Added filter dependency '%s' for '%s'",
+                       filter.filtered_type, filter.name)
+
         if not filter.available(self.derived_field_list):
             raise YTIllDefinedParticleFilter(
                 filter, filter.missing(self.derived_field_list))
@@ -694,8 +709,10 @@ class Dataset(object):
                 # Now we append the dependencies
                 fd[filter.name, fn[1]] = fd[fn]
         if available:
-            self.particle_types += (filter.name,)
-            self.filtered_particle_types.append(filter.name)
+            if filter.name not in self.particle_types:
+                self.particle_types += (filter.name,)
+            if filter.name not in self.filtered_particle_types:
+                self.filtered_particle_types.append(filter.name)
             new_fields = self._setup_particle_types([filter.name])
             deps, _ = self.field_info.check_derived_fields(new_fields)
             self.field_dependencies.update(deps)
