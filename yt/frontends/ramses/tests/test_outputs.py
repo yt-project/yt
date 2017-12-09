@@ -49,6 +49,7 @@ def test_output_00080():
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
+
     assert_equal(ds.particle_type_counts, {'io': 1090895})
 
 @requires_file(output_00080)
@@ -238,6 +239,5 @@ def test_ramses_part_count():
     ds = yt.load(ramses_sink)
     pcount = ds.particle_type_counts
 
-    assert_equal(pcount['all'], 17140, err_msg='Got wrong number of particle')
     assert_equal(pcount['io'], 17132, err_msg='Got wrong number of io particle')
     assert_equal(pcount['sink'], 8, err_msg='Got wrong number of sink particle')
