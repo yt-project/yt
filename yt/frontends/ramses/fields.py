@@ -141,7 +141,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         tmp = RTFieldFileHandler.rt_parameters
         # Copy the list
         p = list(tmp)
-        p.update(self.ds.parameters)
+        p.extend(self.ds.parameters)
         ngroups = p['nGroups']
         rt_c = p['rt_c_frac'] * units.c / (p['unit_l'] / p['unit_t'])
         dens_conv = (p['unit_np'] / rt_c).value / units.cm**3
