@@ -289,7 +289,7 @@ class HydroFieldFileHandler(FieldFileHandler):
                               "x-velocity", "y-velocity", "z-velocity",
                               "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
                               "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
-                              "Pressure","Metallicity"]
+                              "Pressure", "Metallicity"]
             mylog.debug("No fields specified by user; automatically setting fields array to %s"
                         % str(fields))
 
@@ -365,14 +365,10 @@ class RTFieldFileHandler(FieldFileHandler):
         cls.field_list = [(cls.ftype, f) for f in fields]
         return fields
 
-    @property
-    def rt_parameters(self):
-        if self._rt_parameters: return self._rt_parameters
+    @classmethod
+    def get_rt_parameters(cls, ds):
+        if cls.rt_parameters: return cls.rt_parameters
 
         # Call detect fields to get the rt_parameters
-        self.detect_fields(RTFieldFileHandler, self.ds)
-        return self._rt_parameters
-
-    @rt_parameters.setter
-    def rt_parameters(self, val):
-        self._rt_parameters = val
+        cls.detect_fields(ds)
+        return cls.rt_parameters

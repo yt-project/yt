@@ -74,7 +74,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-velocity", (vel_units, ["velocity_x"], None)),
         ("y-velocity", (vel_units, ["velocity_y"], None)),
         ("z-velocity", (vel_units, ["velocity_z"], None)),
-        ("Pres_IR", (pressure_units, ["pres_IR"], None)),
+        ("Pres_IR", (pressure_units, ["pres_IR", "pressure_IR"], None)),
         ("Pressure", (pressure_units, ["pressure"], None)),
         ("Metallicity", ("", ["metallicity"], None)),
         ("HII",  ("", ["H_p1_fraction"], None)),
@@ -138,14 +138,36 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
     def create_rt_fields(self):
         self.ds.fluid_types += ('rt', )
-        tmp = RTFieldFileHandler.rt_parameters
-        # Copy the list
-        p = list(tmp)
-        p.extend(self.ds.parameters)
+        p = RTFieldFileHandler.get_rt_parameters(self.ds).copy()
+        p.update(self.ds.parameters)
         ngroups = p['nGroups']
         rt_c = p['rt_c_frac'] * units.c / (p['unit_l'] / p['unit_t'])
         dens_conv = (p['unit_np'] / rt_c).value / units.cm**3
 
+        ########################################
+        # Adding the fields in the hydro_* files
+        def _temp_IR(field, data):
+            rv = data["gas", "pres_IR"]/data["gas", "density"]
+            rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
+            return rv
+        self.add_field(("gas", "temp_IR"), sampling_type="cell",
+                       function=_temp_IR,
+                       units=self.ds.unit_system["temperature"])
+        for species in ['H_p1', 'He_p1', 'He_p2']:
+            def _species_density(field, data):
+                return data['gas', species+'_fraction']*data['gas', 'density']
+            self.add_field(('gas', species+'_density'), sampling_type='cell',
+                           function=_species_density,
+                           units=self.ds.unit_system['density'])
+            def _species_mass(field, data):
+                return (data['gas', species+'_density']*
+                        data['index', 'cell_volume'])
+            self.add_field(('gas', species+'_mass'), sampling_type='cell',
+                           function=_species_mass,
+                           units=self.ds.unit_system['mass'])
+
+        ########################################
+        # Adding the fields in the rt_ files
         def gen_pdens(igroup):
             def _photon_density(field, data):
                 rv = data['ramses-rt', 'Photon_density_%s' % (igroup + 1)] * dens_conv
