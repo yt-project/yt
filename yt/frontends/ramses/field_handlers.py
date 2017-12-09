@@ -242,12 +242,12 @@ class HydroFieldFileHandler(FieldFileHandler):
 
         ok = False
         if ds._fields_in_file is not None:
-            fields = [f for f in ds._fields_in_file]
+            fields = list(ds._fields_in_file)
             ok = True
         elif os.path.exists(fname_desc):
             mylog.info('Reading hydro file descriptor.')
             # For now, we can only read double precision fields
-            fields = [f[0] for f in _read_fluid_file_descriptor(fname_desc)]
+            fields = [e[0] for e in _read_fluid_file_descriptor(fname_desc)]
 
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
