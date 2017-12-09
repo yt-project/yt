@@ -300,7 +300,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             count_extra += 1
         if count_extra > 0:
             mylog.debug('Detected %s extra fluid fields.' % count_extra)
-        cls.field_list = [(cls.ftype, f) for f in fields]
+        cls.field_list = [(cls.ftype, e) for e in fields]
 
         return fields
 
@@ -362,7 +362,7 @@ class RTFieldFileHandler(FieldFileHandler):
             tmp = ["Photon_density_%s", "Photon_flux_x_%s", "Photon_flux_y_%s", "Photon_flux_z_%s"]
             fields.extend([t % (ng + 1) for t in tmp])
 
-        cls.field_list = [(cls.ftype, f) for f in fields]
+        cls.field_list = [(cls.ftype, e) for e in fields]
         return fields
 
     @classmethod
