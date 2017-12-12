@@ -87,10 +87,9 @@ def backport_prs(repo_path, prs):
 
 
 if __name__ == "__main__":
-    #key = input("Please enter your github OAuth API key\n"
-    #            "See the github help for instructions on how to "
-    #            "generate a personal access token.\n>>> ")
-    key = '6efd3310bf66e941e32ad8ea18ebc581e1ccda1a'
+    key = input("Please enter your github OAuth API key\n"
+                "See the github help for instructions on how to "
+                "generate a personal access token.\n>>> ")
     print("")
     print("Gathering PR information, this may take a minute.")
     print("Don't worry, yt loves you.")
