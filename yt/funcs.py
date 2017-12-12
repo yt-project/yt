@@ -48,7 +48,7 @@ from functools import wraps
 
 def iterable(obj):
     """
-    Grabbed from Python Cookbook / matploblib.cbook.  Returns true/false for
+    Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
     *obj* iterable.
     """
     try: len(obj)
@@ -289,7 +289,7 @@ def insert_ipython(num_up=1):
     """
     Placed inside a function, this will insert an IPython interpreter at that
     current location.  This will enabled detailed inspection of the current
-    exeuction environment, as well as (optional) modification of that environment.
+    execution environment, as well as (optional) modification of that environment.
     *num_up* refers to how many frames of the stack get stripped off, and
     defaults to 1 so that this function itself is stripped off.
     """
@@ -642,7 +642,7 @@ def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
-    version = get_hg_version(path)
+    version = get_git_version(path)
     if version is None:
         return version
     else:

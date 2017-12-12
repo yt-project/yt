@@ -75,7 +75,7 @@ class ParticleIndex(Index):
         cls = self.dataset._file_class
         self.data_files = \
           [cls(self.dataset, self.io, template % {'num':i}, i)
-           for i in range(ndoms)]
+           for i in range(int(ndoms))]
 
     def _initialize_particle_handler(self):
         self._setup_data_io()

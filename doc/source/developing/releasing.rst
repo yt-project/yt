@@ -20,7 +20,7 @@ from the version number used. Version numbers should follow the scheme
   These releases happen when new features are deemed ready to be merged into the
   ``stable`` branch and should not happen on a regular schedule. Minor releases
   can also include fixes for bugs if the fix is determined to be too invasive
-  for a bugfix release. Minor releases should *not* inlucde
+  for a bugfix release. Minor releases should *not* include
   backwards-incompatible changes and should not change APIs.  If an API change
   is deemed to be necessary, the old API should continue to function but might
   trigger deprecation warnings. Minor releases should happen by merging the

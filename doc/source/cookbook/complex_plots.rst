@@ -36,8 +36,8 @@ for more information.
 
 .. yt_cookbook:: multiplot_2x2_time_series.py
 
-Mutiple Slice Multipanel
-~~~~~~~~~~~~~~~~~~~~~~~~
+Multiple Slice Multipanel
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 This illustrates how to create a multipanel plot of slices along the coordinate
 axes.  To focus on what's happening in the x-y plane, we make an additional

@@ -441,7 +441,8 @@ class HaloCatalog(ParallelAnalysisInterface):
 
             if halo_filter:
                 for quantity in new_halo.quantities.values():
-                    quantity.convert_to_base()
+                    if hasattr(quantity, "units"):
+                        quantity.convert_to_base()
                 self.catalog.append(new_halo.quantities)
 
             if save_halos and halo_filter:

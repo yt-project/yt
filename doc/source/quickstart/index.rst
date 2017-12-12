@@ -4,7 +4,7 @@ yt Quickstart
 =============
 
 The quickstart is a series of worked examples of how to use much of the
-funtionality of yt.  These are simple, short introductions to give you a taste
+functionality of yt.  These are simple, short introductions to give you a taste
 of what the code can do and are not meant to be detailed walkthroughs.
 
 There are two ways in which you can go through the quickstart: interactively and

@@ -18,6 +18,7 @@ from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it
 import numpy as np
+import functools
 import importlib
 import os
 import unittest
@@ -581,8 +582,20 @@ def requires_file(req_file):
         else:
             return ffalse
 
+def disable_dataset_cache(func):
+    @functools.wraps(func)
+    def newfunc(*args, **kwargs):
+        restore_cfg_state = False
+        if ytcfg.get("yt", "skip_dataset_cache") == "False":
+            ytcfg["yt","skip_dataset_cache"] = "True"
+        rv = func(*args, **kwargs)
+        if restore_cfg_state:
+            ytcfg["yt","skip_dataset_cache"] = "False"
+        return rv
+    return newfunc
+
+@disable_dataset_cache
 def units_override_check(fn):
-    ytcfg["yt","skip_dataset_cache"] = "True"
     units_list = ["length","time","mass","velocity",
                   "magnetic","temperature"]
     ds1 = load(fn)
@@ -596,7 +609,6 @@ def units_override_check(fn):
             units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
     del ds1
     ds2 = load(fn, units_override=units_override)
-    ytcfg["yt","skip_dataset_cache"] = "False"
     assert(len(ds2.units_override) > 0)
     for u in units_list:
         unit_attr = getattr(ds2, "%s_unit" % u, None)
@@ -847,7 +859,7 @@ def check_results(func):
     ... def field_checker(dd, field_name):
     ...     return dd[field_name]
 
-    >>> field_cheker(ds.all_data(), 'density', result_basename='density')
+    >>> field_checker(ds.all_data(), 'density', result_basename='density')
 
     """
     def compute_results(func):
@@ -973,7 +985,7 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
         Array obtained (possibly with attached units)
     desired : array-like
         Array to compare with (possibly with attached units)
-    rtol : float, oprtional
+    rtol : float, optional
         Relative tolerance, defaults to 1e-7
     atol : float or quantity, optional
         Absolute tolerance. If units are attached, they must be consistent

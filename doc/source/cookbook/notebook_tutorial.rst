@@ -3,7 +3,7 @@
 Notebook Tutorial
 -----------------
 
-The IPython notebook is a powerful system for literate codoing - a style of
+The IPython notebook is a powerful system for literate coding - a style of
 writing code that embeds input, output, and explanatory text into one document.
 
 yt has deep integration with the IPython notebook, explained in-depth in the

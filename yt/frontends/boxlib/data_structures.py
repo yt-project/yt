@@ -566,6 +566,11 @@ class BoxlibHierarchy(GridIndex):
                                                         is_checkpoint,
                                                         extra_field_names)
 
+        num_parts = self.particle_headers[directory_name].num_particles
+        if self.ds._particle_type_counts is None:
+            self.ds._particle_type_counts = {}
+        self.ds._particle_type_counts[directory_name] = num_parts
+
         base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
 
         gid = 0
@@ -1326,7 +1331,10 @@ def _guess_pcast(vals):
             pcast = float
         else:
             pcast = int
-    vals = [pcast(value) for value in vals.split()]
+    if pcast == bool:
+        vals = [value=="T" for value in vals.split()]
+    else:
+        vals = [pcast(value) for value in vals.split()]
     if len(vals) == 1:
         vals = vals[0]
     return vals

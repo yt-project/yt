@@ -366,7 +366,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         That is they start from the lower left and proceed to upper
         right varying the third index most frequently. Note that the
-        center cell (i,j,k) is ommitted.
+        center cell (i,j,k) is omitted.
 
         """
         ci = np.array(ci)
@@ -422,7 +422,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
         That is they start from the lower left and proceed to upper
         right varying the third index most frequently. Note that the
-        center cell (i,j,k) is ommitted.
+        center cell (i,j,k) is omitted.
 
         """
         position = np.array(position)

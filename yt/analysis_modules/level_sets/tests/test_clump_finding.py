@@ -104,7 +104,8 @@ def test_clump_tree_save():
     find_clumps(master_clump, c_min, c_max, step)
     leaf_clumps = get_lowest_clumps(master_clump)
 
-    fn = master_clump.save_as_dataset(fields=["density", "particle_mass"])
+    fn = master_clump.save_as_dataset(fields=["density", "x", "y", "z",
+                                              "particle_mass"])
     ds2 = load(fn)
 
     # compare clumps in the tree

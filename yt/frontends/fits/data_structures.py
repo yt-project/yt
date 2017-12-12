@@ -109,13 +109,15 @@ class FITSHierarchy(GridIndex):
             # the right case by comparing against known units. This
             # only really works for common units.
             units = set(re.split(regex_pattern, field_units))
-            if '' in units: units.remove('')
+            if '' in units: 
+                units.remove('')
             n = int(0)
             for unit in units:
                 if unit in known_units:
                     field_units = field_units.replace(unit, known_units[unit])
                     n += 1
-            if n != len(units): field_units = "dimensionless"
+            if n != len(units) or n == 0:
+                field_units = "dimensionless"
             if field_units[0] == "/":
                 field_units = "1%s" % field_units
             return field_units

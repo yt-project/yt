@@ -49,7 +49,7 @@ specifying the gas mesh. Note that the ``pta0.500.dat`` or ``pt.dat``
 file containing particle time steps is not loaded by yt.
 
 You also have the option of gridding particles and assigning them onto the
-meshes.  This process is in beta, and for the time being it's probably best to
+meshes.  This process is in beta, and for the time being, it's probably best to
 leave ``do_grid_particles=False`` as the default.
 
 To speed up the loading of an ART file, you have a few options. You can turn
@@ -1420,7 +1420,7 @@ code:
 
 will define the (x,y,z) coordinates of the hexahedral cells and
 information about that cell's neighbors such that the cell corners
-will be a grid of points constructed as the Cartesion product of
+will be a grid of points constructed as the Cartesian product of
 xgrid, ygrid, and zgrid.
 
 Then, to load your data, which should be defined on the interiors of
@@ -1556,7 +1556,7 @@ See :ref:`generic-particle-data` and
 
 You can also load generic particle data using the same ``stream`` functionality
 discussed above to load in-memory grid data.  For example, if your particle
-positions and masses are stored in ``positions`` and ``massess``, a
+positions and masses are stored in ``positions`` and ``masses``, a
 vertically-stacked array of particle x,y, and z positions, and a 1D array of
 particle masses respectively, you would load them like this:
 
@@ -1647,7 +1647,7 @@ AHF
 
 AHF halo catalogs are loaded by providing the path to the .parameter files.
 The corresponding .log and .AHF_halos files must exist for data loading to
-succeed. The field type for all fields is "halos". Some fields of note avaible
+succeed. The field type for all fields is "halos". Some fields of note available
 from AHF are:
 
 +----------------+---------------------------+
@@ -1913,7 +1913,7 @@ PyNE Data
 ---------
 
 `PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit
-maintained by the PyNE developement team (pyne-dev@googlegroups.com).
+maintained by the PyNE development team (pyne-dev@googlegroups.com).
 PyNE meshes utilize the Mesh-Oriented datABase
 `(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ and can be
 Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne

@@ -41,7 +41,6 @@ from yt.visualization.api import \
     ParticlePhasePlot
 from yt.units.yt_array import YTArray
 
-
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
@@ -263,6 +262,34 @@ def test_particle_phase_plot_semantics():
 
     dybins = p.y_bins[1:] - p.y_bins[:-1]
     assert_allclose(dybins, dybins[0])
+
+@requires_file(tgal)
+def test_set_units():
+    ds = load(tgal)
+    sp = ds.sphere("max", (1.0, "Mpc"))
+    pp = ParticlePhasePlot(sp, ("Gas", "density"), ("Gas", "temperature"), ("Gas", "particle_mass"))
+    # make sure we can set the units using the tuple without erroring out
+    pp.set_unit(("Gas", "particle_mass"), "Msun")
+
+@requires_file(tgal)
+def test_switch_ds():
+    """
+    Tests the _switch_ds() method for ParticleProjectionPlots that as of
+    25th October 2017 requires a specific hack in plot_container.py
+    """
+    ds = load(tgal)
+    ds2 = load(tgal)
+
+    plot = ParticlePlot(
+        ds,
+        ("Gas", "particle_position_x"),
+        ("Gas", "particle_position_y"),
+        ("Gas", "density"),
+    )
+
+    plot._switch_ds(ds2)
+
+    return
 
 class TestParticleProjectionPlotSave(unittest.TestCase):
 

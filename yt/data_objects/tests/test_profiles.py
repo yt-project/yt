@@ -1,6 +1,8 @@
 import yt
 import numpy as np
 
+from yt.data_objects.particle_filters import \
+    add_particle_filter
 from yt.data_objects.profiles import \
     Profile1D, \
     Profile2D, \
@@ -10,7 +12,8 @@ from yt.testing import \
     fake_random_ds, \
     assert_equal, \
     assert_raises, \
-    assert_rel_equal
+    assert_rel_equal, \
+    requires_file
 from yt.utilities.exceptions import \
     YTIllDefinedProfile
 from yt.visualization.profile_plotter import \
@@ -270,3 +273,31 @@ def test_particle_profile_negative_field():
                     'particle_position_z': False},
             weight_field=None, deposition='cic',
             accumulation=True, fractional=True)
+
+@requires_file("IsolatedGalaxy/galaxy0030/galaxy0030")
+def test_profile_zero_weight():
+    def DMparticles(pfilter, data):
+        filter = data[(pfilter.filtered_type, "particle_type")] == 1
+        return filter
+
+    def DM_in_cell_mass(field, data):
+        return data['deposit', 'DM_density']*data['index', 'cell_volume']
+
+    add_particle_filter("DM", function=DMparticles,
+                        filtered_type='io', requires=["particle_type"])
+
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+    ds.add_particle_filter('DM')
+
+    ds.add_field(("gas", "DM_cell_mass"), units="g", function=DM_in_cell_mass,
+                 sampling_type='cell')
+
+    sp = ds.sphere(ds.domain_center, (10, 'kpc'))
+
+    profile = yt.create_profile(sp,
+                                [("gas", "density")],
+                                [("gas", "temperature")],
+                                weight_field=("gas", "DM_cell_mass"))
+
+    assert not np.any(np.isnan(profile['gas', 'temperature']))

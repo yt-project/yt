@@ -8,8 +8,9 @@ This is a non-comprehensive log of changes to yt over its many releases.
 Contributors
 ------------
 
-The `CREDITS file <http://bitbucket.org/yt_analysis/yt/src/yt/CREDITS>`_ contains the
-most up-to-date list of everyone who has contributed to the yt source code.
+The `CREDITS file <https://github.com/yt-project/yt/blob/master/CREDITS>`_ 
+contains the most up-to-date list of everyone who has contributed to the yt 
+source code.
 
 Version 3.4
 -----------
@@ -364,8 +365,8 @@ Minor enhancements and bugfixes
 * Fixed bugs related to compatibility issues with newer versions of numpy
 * Added the ability to export data objects to a Pandas dataframe
 * Added support for the fabs ufunc to YTArray
-* Fixed two licensings issues
-* Fixed a number of bugs related to Windows compatability.
+* Fixed two licensing issues
+* Fixed a number of bugs related to Windows compatibility.
 * We now avoid hard-to-decipher tracebacks when loading empty files or
   directories
 * Fixed a bug related to ART star particle creation time field
@@ -441,7 +442,7 @@ Minor enhancements and bugfixes
 * Made PlotWindow show/hide helpers for axes and colorbar return self
 * Made Profile objects store field metadata.
 * Ensured GDF unit names are strings
-* Tought off_axis_projection about its resolution keyword.
+* Taught off_axis_projection about its resolution keyword.
 * Reintroduced sanitize_width for polar/cyl coordinates.
 * We now fail early when load_uniform_grid is passed data with an incorrect shape
 * Replaced progress bar with tqdm
@@ -472,7 +473,7 @@ Minor enhancements and bugfixes
 * Patched ParticlePlot to work with filtered particle fields.
 * Fixed a couple corner cases in gadget_fof frontend
 * We now properly normalise all normal vectors in functions that take a normal
-  vector (for e.g get_sph_theta)
+  vector (for e.g. get_sph_theta)
 * Fixed a bug where the transfer function features were not always getting
   cleared properly.
 * Made the Chombo frontend is_valid method smarter.
@@ -489,7 +490,7 @@ Minor enhancements and bugfixes
 * Ensured that mpi operations retain ImageArray type instead of downgrading to
   YTArray parent class
 * Added a call to _setup_plots in the custom colorbar tickmark example
-* Fixed two minor bugs in save_annocated
+* Fixed two minor bugs in save_annotated
 * Added ability to specify that DatasetSeries is not a mixed data type
 * Fixed a memory leak in ARTIO
 * Fixed copy/paste error in to_frb method.

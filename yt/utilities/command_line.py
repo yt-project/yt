@@ -779,7 +779,7 @@ class YTPastebinCmd(YTCommand):
                   help="Use syntax highlighter for the file in language"),
              dict(short="-L", longname="--languages", action="store_true",
                   default = False, dest="languages",
-                  help="Retrive a list of supported languages"),
+                  help="Retrieve a list of supported languages"),
              dict(short="-e", longname="--encoding", action="store",
                   default = 'utf-8', dest="encoding",
                   help="Specify the encoding of a file (default is "
