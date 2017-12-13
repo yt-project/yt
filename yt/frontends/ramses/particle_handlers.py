@@ -203,6 +203,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         hvals.update(fpu.read_attrs(f, attrs))
         self.header = hvals
         self.local_particle_count = hvals['npart']
+        extra_particle_fields = self.ds._extra_particle_fields
 
         if self.has_part_descriptor:
             particle_fields = (
@@ -211,8 +212,12 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         else:
             particle_fields = list(self.known_fields)
 
-            if self.ds._extra_particle_fields is not None:
-                particle_fields += self.ds._extra_particle_fields
+            if extra_particle_fields is not None:
+                particle_fields += extra_particle_fields
+
+        if hvals["nstar_tot"] > 0 and extra_particle_fields is not None:
+            particle_fields += [("particle_birth_time", "d"),
+                                ("particle_metallicity", "d")]
 
         field_offsets = {}
         _pfields = {}
@@ -266,7 +271,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
         ("particle_velocity_x", "d"),
         ("particle_velocity_y", "d"),
         ("particle_velocity_z", "d"),
-        ("particle_age", "d"),
+        ("particle_birth_time", "d"),
         ("BH_real_accretion", "d"),
         ("BH_bondi_accretion", "d"),
         ("BH_eddington_accretion", "d"),

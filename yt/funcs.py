@@ -1142,9 +1142,9 @@ def parse_h5_attr(f, attr):
     else:
         return val
 
-def issue_deprecation_warning(msg):
+def issue_deprecation_warning(msg, stacklevel=3):
     from numpy import VisibleDeprecationWarning
-    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=3)
+    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
 
 def obj_length(v):
     if iterable(v):

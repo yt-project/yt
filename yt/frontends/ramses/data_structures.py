@@ -330,6 +330,11 @@ class RAMSESIndex(OctreeIndex):
                 dsl.update(set(ph.field_offsets.keys()))
 
         self.particle_field_list = list(dsl)
+        cosmo = self.ds.cosmological_simulation
+        for f in self.particle_field_list[:]:
+            if f[1] == 'particle_birth_time' and cosmo:
+                self.particle_field_list.append(
+                    (f[0], 'conformal_birth_time'))
 
         # Get the detected fields
         dsl = set([])

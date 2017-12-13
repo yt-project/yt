@@ -29,6 +29,7 @@ from yt.config import ytcfg
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 import os
 import yt
+import numpy as np
 
 _fields = ("temperature", "density", "velocity_magnitude",
            ("deposit", "all_density"), ("deposit", "all_count"))
@@ -63,24 +64,23 @@ def test_units_override():
     units_override_check(output_00080)
 
 
-ramsesNonCosmo = 'DICEGalaxyDisk_nonCosmological/output_00002'
+ramsesNonCosmo = 'DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt'
 @requires_file(ramsesNonCosmo)
 def test_non_cosmo_detection():
-    path = os.path.join(ramsesNonCosmo, 'info_00002.txt')
-    ds = yt.load(path, cosmological=False)
+    ds = yt.load(ramsesNonCosmo, cosmological=False)
     assert_equal(ds.cosmological_simulation, 0)
 
-    ds = yt.load(path, cosmological=None)
+    ds = yt.load(ramsesNonCosmo, cosmological=None)
     assert_equal(ds.cosmological_simulation, 0)
 
-    ds = yt.load(path)
+    ds = yt.load(ramsesNonCosmo)
     assert_equal(ds.cosmological_simulation, 0)
 
 
 @requires_file(ramsesNonCosmo)
 def test_unit_non_cosmo():
     for force_cosmo in [False, None]:
-        ds = yt.load(os.path.join(ramsesNonCosmo, 'info_00002.txt'), cosmological=force_cosmo)
+        ds = yt.load(ramsesNonCosmo, cosmological=force_cosmo)
 
         expected_raw_time = 0.0299468077820411 # in ramses unit
         assert_equal(ds.current_time.value, expected_raw_time)
@@ -179,7 +179,7 @@ def test_ramses_sink():
                        "BH_efficiency", "BH_esave",
                        "BH_real_accretion", "BH_spin", "BH_spin_x",
                        "BH_spin_y", "BH_spin_z", "gas_spin_x",
-                       "gas_spin_y", "gas_spin_z", "particle_age",
+                       "gas_spin_y", "gas_spin_z", "particle_birth_time",
                        "particle_identifier", "particle_mass",
                        "particle_position_x", "particle_position_y",
                        "particle_position_z", "particle_prop_0_0",
@@ -324,3 +324,37 @@ def test_ramses_field_detection():
     # Check the right number of variables has been loaded
     assert P2['nvar'] == 6
     assert len(fields_2) == P2['nvar']
+
+@requires_file(ramses_new_format)
+@requires_file(ramsesCosmo)
+@requires_file(ramsesNonCosmo)
+def test_formation_time():
+    extra_particle_fields = [('particle_birth_time', 'd'),
+                             ('particle_metallicity', 'd')]
+
+    # test semantics for cosmological dataset
+    ds = yt.load(ramsesCosmo, extra_particle_fields=extra_particle_fields)
+    assert ('io', 'particle_birth_time') in ds.field_list
+    assert ('io', 'conformal_birth_time') in ds.field_list
+    assert ('io', 'particle_metallicity') in ds.field_list
+
+    ad = ds.all_data()
+    whstars = ad['conformal_birth_time'] != 0
+    assert np.all(ad['star_age'][whstars] > 0)
+
+    # test semantics for non-cosmological new-style output format
+    ds = yt.load(ramses_new_format)
+    ad = ds.all_data()
+    assert ('io', 'particle_birth_time') in ds.field_list
+    assert np.all(ad['particle_birth_time'] > 0)
+
+    # test semantics for non-cosmological old-style output format
+    ds = yt.load(ramsesNonCosmo, extra_particle_fields=extra_particle_fields)
+    ad = ds.all_data()
+    assert ('io', 'particle_birth_time') in ds.field_list
+    # the dataset only includes particles with arbitrarily old ages
+    # and particles that formed in the very first timestep
+    assert np.all(ad['particle_birth_time'] <= 0)
+    whdynstars = ad['particle_birth_time'] == 0
+    assert np.all(ad['star_age'][whdynstars] == ds.current_time)
+
