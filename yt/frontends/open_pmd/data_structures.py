@@ -38,7 +38,8 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5
 
 ompd_known_versions = [StrictVersion("1.0.0"),
-                       StrictVersion("1.0.1")]
+                       StrictVersion("1.0.1"),
+                       StrictVersion("1.1.0")]
 opmd_required_attributes = ["openPMD", "basePath", "meshesPath", "particlesPath"]
 
 
@@ -462,7 +463,7 @@ class OpenPMDDataset(Dataset):
         try:
             handle[self.base_path + self.meshes_path]
         except(KeyError):
-            if self.standard_version <= StrictVersion("1.0.1"):
+            if self.standard_version <= StrictVersion("1.1.0"):
                 mylog.info("meshesPath not present in file."
                            " Assuming file contains no meshes and has a domain extent of 1m^3!")
             else:
@@ -471,7 +472,7 @@ class OpenPMDDataset(Dataset):
         try:
             handle[self.base_path + self.particles_path]
         except(KeyError):
-            if self.standard_version <= StrictVersion("1.0.1"):
+            if self.standard_version <= StrictVersion("1.1.0"):
                 mylog.info("particlesPath not present in file."
                            " Assuming file contains no particles!")
             else:
@@ -537,7 +538,7 @@ class OpenPMDDataset(Dataset):
             self.domain_left_edge = np.append(dle, np.zeros(3 - len(dle)))
             self.domain_right_edge = np.append(dre, np.ones(3 - len(dre)))
         except(KeyError):
-            if self.standard_version <= StrictVersion("1.0.1"):
+            if self.standard_version <= StrictVersion("1.1.0"):
                 self.dimensionality = 3
                 self.domain_dimensions = np.ones(3, dtype=np.float64)
                 self.domain_left_edge = np.zeros(3, dtype=np.float64)
@@ -553,26 +554,22 @@ class OpenPMDDataset(Dataset):
         """
         warn_h5py(args[0])
         try:
-            f = h5.File(args[0], "r")
+            with h5.File(args[0], "r") as f:
+                attrs = list(f["/"].attrs.keys())
+                for i in opmd_required_attributes:
+                    if i not in attrs:
+                        return False
+
+                if StrictVersion(f.attrs["openPMD"].decode()) not in ompd_known_versions:
+                    return False
+
+                if f.attrs["iterationEncoding"].decode() == "fileBased":
+                    return True
+
+                return False
         except (IOError, OSError, ImportError):
             return False
 
-        attrs = list(f["/"].attrs.keys())
-        for i in opmd_required_attributes:
-            if i not in attrs:
-                f.close()
-                return False
-
-        if StrictVersion(f.attrs["openPMD"].decode()) not in ompd_known_versions:
-            f.close()
-            return False
-
-        if f.attrs["iterationEncoding"].decode() == "fileBased":
-            f.close()
-            return True
-
-        f.close()
-        return False
 
 
 class OpenPMDDatasetSeries(DatasetSeries):
@@ -584,7 +581,12 @@ class OpenPMDDatasetSeries(DatasetSeries):
 
     def __init__(self, filename):
         super(OpenPMDDatasetSeries, self).__init__([])
-        self.handle = h5.File(filename, "r")
+        # experimental: CI testing failed for OpenPMDGroupBasedDataset with
+        # 'IOError: Unable to open file (File close degree doesn't match)'
+        plist = h5.h5p.create(h5.h5p.FILE_ACCESS)
+        plist.set_fclose_degree(h5.h5f.CLOSE_DEFAULT)
+        self.handle = h5.File(h5.h5f.open(str.encode(filename), h5.h5f.ACC_RDONLY, fapl=plist))
+        #self.handle = h5.File(filename, "r")
         self.filename = filename
         self._pre_outputs = sorted(np.asarray(list(self.handle["/data"].keys()), dtype=np.int))
 
@@ -619,23 +621,19 @@ class OpenPMDGroupBasedDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         warn_h5py(args[0])
         try:
-            f = h5.File(args[0], "r")
+            with h5.File(args[0], "r") as f:
+                attrs = list(f["/"].attrs.keys())
+                for i in opmd_required_attributes:
+                    if i not in attrs:
+                        return False
+
+                if StrictVersion(f.attrs["openPMD"].decode()) not in ompd_known_versions:
+                    return False
+
+                if f.attrs["iterationEncoding"].decode() == "groupBased":
+                    return True
+
+                return False
         except (IOError, OSError, ImportError):
             return False
 
-        attrs = list(f["/"].attrs.keys())
-        for i in opmd_required_attributes:
-            if i not in attrs:
-                f.close()
-                return False
-
-        if StrictVersion(f.attrs["openPMD"].decode()) not in ompd_known_versions:
-            f.close()
-            return False
-
-        if f.attrs["iterationEncoding"].decode() == "groupBased":
-            f.close()
-            return True
-
-        f.close()
-        return False
