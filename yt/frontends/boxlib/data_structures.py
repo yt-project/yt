@@ -37,6 +37,8 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
+from yt.utilities.exceptions import \
+    YTException
 
 from .fields import \
     BoxlibFieldInfo, \
@@ -571,7 +573,13 @@ class BoxlibHierarchy(GridIndex):
             self.ds._particle_type_counts = {}
         self.ds._particle_type_counts[directory_name] = num_parts
 
-        base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
+        base = self.ds.output_dir + '/' + directory_name
+        if (len(glob.glob(base + "/Level_?/DATA_????")) > 0):
+            base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
+        elif (len(glob.glob(base + "/Level_?/DATA_?????")) > 0):
+            base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.5d"
+        else:
+              raise YTException("Could not find any particle data files.")
 
         gid = 0
         for lev, data in self.particle_headers[directory_name].data_map.items():
