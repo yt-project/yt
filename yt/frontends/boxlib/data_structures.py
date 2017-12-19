@@ -571,7 +571,7 @@ class BoxlibHierarchy(GridIndex):
             self.ds._particle_type_counts = {}
         self.ds._particle_type_counts[directory_name] = num_parts
 
-        base = self.ds.output_dir + '/' + directory_name
+        base = os.path.join(self.ds.output_dir, directory_name)
         if (len(glob.glob(os.path.join(base, "Level_?", "DATA_????"))) > 0):
             base_particle_fn = os.path.join(base, "Level_%d", "DATA_%.4d")
         elif (len(glob.glob(os.path.join(base, "Level_?", "DATA_?????"))) > 0):
