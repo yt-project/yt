@@ -579,7 +579,7 @@ class BoxlibHierarchy(GridIndex):
         elif (len(glob.glob(base + "/Level_?/DATA_?????")) > 0):
             base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.5d"
         else:
-              raise YTException("Could not find any particle data files.")
+            return
 
         gid = 0
         for lev, data in self.particle_headers[directory_name].data_map.items():
