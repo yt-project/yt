@@ -37,8 +37,6 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.io_handler import \
     io_registry
-from yt.utilities.exceptions import \
-    YTException
 
 from .fields import \
     BoxlibFieldInfo, \
