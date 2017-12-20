@@ -40,10 +40,11 @@ def exc_writeout(f):
 
 class PannableMapServer(object):
     _widget_name = "pannable_map"
-    def __init__(self, data, field, takelog, route_prefix = ""):
+    def __init__(self, data, field, takelog, cmap, route_prefix = ""):
         self.data = data
         self.ds = data.ds
         self.field = field
+        self.cmap = cmap
 
         bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
         bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
@@ -70,6 +71,7 @@ class PannableMapServer(object):
     def map(self, field, L, x, y):
         if ',' in field:
             field = tuple(field.split(','))
+        cmap = self.cmap
         dd = 1.0 / (2.0**(int(L)))
         relx = int(x) * dd
         rely = int(y) * dd
@@ -97,9 +99,11 @@ class PannableMapServer(object):
         if self.takelog:
             cmi = np.log10(cmi)
             cma = np.log10(cma)
-            to_plot = apply_colormap(np.log10(frb[field]), color_bounds = (cmi, cma))
+            to_plot = apply_colormap(np.log10(frb[field]), color_bounds = (cmi, cma),
+                                     cmap_name=cmap)
         else:
-            to_plot = apply_colormap(frb[field], color_bounds = (cmi, cma))
+            to_plot = apply_colormap(frb[field], color_bounds = (cmi, cma),
+                                     cmap_name=cmap)
 
         rv = write_png_to_string(to_plot)
         return rv
