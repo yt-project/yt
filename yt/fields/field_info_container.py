@@ -152,10 +152,6 @@ class FieldInfoContainer(dict):
         # We can in principle compute this, but it is not yet implemented.
         if (ptype, "density") not in self:
             return
-        if (ptype, "smoothing_length") in self:
-            sml_name = "smoothing_length"
-        else:
-            sml_name = None
         new_aliases = []
         for ptype2, alias_name in list(self):
             if ptype2 != ptype:
