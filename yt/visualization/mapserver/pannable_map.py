@@ -45,15 +45,30 @@ class PannableMapServer(object):
         self.ds = data.ds
         self.field = field
 
-        bottle.route("%s/map/:L/:x/:y.png" % route_prefix)(self.map)
+        bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
+        bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
         bottle.route("%s/" % route_prefix)(self.index)
         bottle.route("%s/index.html" % route_prefix)(self.index)
+        bottle.route("%s/list" % route_prefix, "GET")(self.list_fields)
         # This is a double-check, since we do not always mandate this for
         # slices:
         self.data[self.field] = self.data[self.field].astype("float64")
         bottle.route(":path#.+#", "GET")(self.static)
 
-    def map(self, L, x, y):
+        self._lock = False
+
+    def lock(self):
+        import time
+        while self._lock:
+            time.sleep(0.01)
+        self._lock = True
+
+    def unlock(self):
+        self._lock = False
+
+    def map(self, field, L, x, y):
+        if ',' in field:
+            field = tuple(field.split(','))
         dd = 1.0 / (2.0**(int(L)))
         relx = int(x) * dd
         rely = int(y) * dd
@@ -62,22 +77,25 @@ class PannableMapServer(object):
         yl = self.ds.domain_left_edge[1] + rely * DW[1]
         xr = xl + dd*DW[0]
         yr = yl + dd*DW[1]
+        self.lock()
         frb = FixedResolutionBuffer(self.data, (xl, xr, yl, yr), (256, 256))
         cmi, cma = get_color_bounds(self.data['px'], self.data['py'],
                                     self.data['pdx'], self.data['pdy'],
-                                    self.data[self.field],
+                                    self.data[field],
                                     self.ds.domain_left_edge[0],
                                     self.ds.domain_right_edge[0],
                                     self.ds.domain_left_edge[1],
                                     self.ds.domain_right_edge[1],
                                     dd*DW[0] / (64*256),
                                     dd*DW[0])
-        if self.ds._get_field_info(self.field).take_log:
+        self.unlock()
+
+        if self.ds._get_field_info(field).take_log:
             cmi = np.log10(cmi)
             cma = np.log10(cma)
-            to_plot = apply_colormap(np.log10(frb[self.field]), color_bounds = (cmi, cma))
+            to_plot = apply_colormap(np.log10(frb[field]), color_bounds = (cmi, cma))
         else:
-            to_plot = apply_colormap(frb[self.field], color_bounds = (cmi, cma))
+            to_plot = apply_colormap(frb[field], color_bounds = (cmi, cma))
         rv = write_png_to_string(to_plot)
         return rv
 
@@ -94,3 +112,23 @@ class PannableMapServer(object):
             bottle.response.headers['Content-Type'] = "text/javascript"
         full_path = os.path.join(os.path.join(local_dir, 'html'), path)
         return open(full_path, 'r').read()
+
+    def list_fields(self):
+        d = {}
+
+        # Add deposit fields (only cic + density for now)
+        for ptype in self.ds.particle_types:
+            d[ptype] = [(('deposit', '%s_cic'     % ptype), False),
+                        (('deposit', '%s_density' % ptype), False)]
+
+        # Add fluid fields (only gas for now)
+        for ftype in self.ds.fluid_types:
+            d[ftype] = []
+            for f in self.ds.derived_field_list:
+                if f[0] != ftype:
+                    continue
+
+                active = f[1] == self.field
+                d[ftype].append((f, active))
+
+        return dict(data=d, active=self.field)
