@@ -22,7 +22,7 @@ from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.utilities.lib.misc_utilities import get_color_bounds
 from yt.utilities.png_writer import write_png_to_string
 
-import yt.extern.bottle as bottle
+import bottle
 
 local_dir = os.path.dirname(__file__)
 

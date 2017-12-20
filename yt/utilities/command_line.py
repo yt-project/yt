@@ -741,9 +741,6 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
-        if sys.version_info >= (3,0,0):
-            print("yt mapserver is disabled for Python 3.")
-            return -1
         ds = args.ds
         if args.axis == 4:
             print("Doesn't work with multiple axes!")
@@ -754,10 +751,8 @@ class YTMapserverCmd(YTCommand):
             p = SlicePlot(ds, args.axis, args.field)
         from yt.visualization.mapserver.pannable_map import PannableMapServer
         PannableMapServer(p.data_source, args.field)
-        import yt.extern.bottle as bottle
+        import bottle
         bottle.debug(True)
-        bottle_dir = os.path.dirname(bottle.__file__)
-        sys.path.append(bottle_dir)
         if args.host is not None:
             colonpl = args.host.find(":")
             if colonpl >= 0:
@@ -765,10 +760,9 @@ class YTMapserverCmd(YTCommand):
                 args.host = args.host[:colonpl]
             else:
                 port = 8080
-            bottle.run(server='rocket', host=args.host, port=port)
+            bottle.run(server='auto', host=args.host, port=port)
         else:
-            bottle.run(server='rocket')
-        sys.path.remove(bottle_dir)
+            bottle.run(server='auto')
 
 
 class YTPastebinCmd(YTCommand):

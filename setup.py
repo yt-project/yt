@@ -391,7 +391,8 @@ setup(
         'IPython>=1.0',
     ],
     extras_require = {
-        'hub':  ["girder_client"]
+        'hub':  ["girder_client"],
+        'mapserver': ["bottle"]
     },
     cmdclass={'sdist': sdist, 'build_ext': build_ext},
     author="The yt project",
