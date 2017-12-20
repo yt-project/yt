@@ -49,6 +49,7 @@ class PannableMapServer(object):
         bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
         bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
         bottle.route("%s/" % route_prefix)(self.index)
+        bottle.route("%s/:field" % route_prefix)(self.index)
         bottle.route("%s/index.html" % route_prefix)(self.index)
         bottle.route("%s/list" % route_prefix, "GET")(self.list_fields)
         # This is a double-check, since we do not always mandate this for
@@ -108,7 +109,9 @@ class PannableMapServer(object):
         rv = write_png_to_string(to_plot)
         return rv
 
-    def index(self):
+    def index(self, field=None):
+        if field is not None:
+            self.field = field
         return bottle.static_file("map_index.html",
                     root=os.path.join(local_dir, "html"))
 
