@@ -37,7 +37,6 @@ from .particle_fields import \
     particle_vector_functions, \
     particle_scalar_functions, \
     standard_particle_fields, \
-    add_volume_weighted_smoothed_field, \
     sph_whitelist_fields
 
 def tupleize(inp):
@@ -166,10 +165,6 @@ class FieldInfoContainer(dict):
                     pass
                 else:
                     continue
-            add_volume_weighted_smoothed_field(
-                ptype, "particle_position", "particle_mass",
-                sml_name, "density", alias_name, self,
-                num_neighbors)
             uni_alias_name = alias_name
             if 'particle_position_' in alias_name:
                 uni_alias_name = alias_name.replace('particle_position_', '')
@@ -177,6 +172,9 @@ class FieldInfoContainer(dict):
                 uni_alias_name = alias_name.replace('particle_', '')
             new_aliases.append(
                 ((ftype, uni_alias_name), (ptype, alias_name), )
+            )
+            new_aliases.append(
+                ((ptype, uni_alias_name), (ptype, alias_name), )
             )
             for alias, source in new_aliases:
                 self.alias(alias, source)
