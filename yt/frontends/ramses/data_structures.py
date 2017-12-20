@@ -459,7 +459,7 @@ class RAMSESDataset(Dataset):
                                     filtered_type='io', requires=['particle_family'])
 
             for k in particle_families.keys():
-                mylog.info('Adding particle_type: %s' % k)
+                mylog.debug('Adding particle_type: %s' % k)
                 self.add_particle_filter('%s' % k)
 
     def __repr__(self):

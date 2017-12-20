@@ -245,7 +245,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             fields = list(ds._fields_in_file)
             ok = True
         elif os.path.exists(fname_desc):
-            mylog.info('Reading hydro file descriptor.')
+            mylog.debug('Reading hydro file descriptor.')
             # For now, we can only read double precision fields
             fields = [e[0] for e in _read_fluid_file_descriptor(fname_desc)]
 
@@ -345,7 +345,7 @@ class RTFieldFileHandler(FieldFileHandler):
             for i in range(3): read_rhs(float)
 
             # Touchy part, we have to read the photon group properties
-            mylog.warning('Not reading photon group properties')
+            mylog.debug('Not reading photon group properties')
 
             cls.rt_parameters = rheader
 
