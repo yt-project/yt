@@ -36,7 +36,7 @@ pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2 / code_time**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
 flux_unit = "1 / code_length**2 / code_time"
-dens_unit = "1 / code_length**3"
+number_density_unit = "1 / code_length**3"
 
 known_species_masses = dict(
   (sp, mh * v) for sp, v in [
@@ -177,7 +177,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         for igroup in range(ngroups):
             self.add_field(('rt', 'photon_density_%s' % (igroup + 1)), sampling_type='cell',
                            function=gen_pdens(igroup),
-                           units=dens_unit)
+                           units=self.ds.unit_system['number_density'])
 
         flux_conv = p['unit_pf'] / units.cm**2 / units.s
 
@@ -187,6 +187,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 return rv
             return _photon_flux
 
+        flux_unit = str(1/self.ds.unit_system['time']/self.ds.unit_system['length']**2)
         for key in 'xyz':
             for igroup in range(ngroups):
                 self.add_field(('rt', 'photon_flux_%s_%s' % (key, igroup + 1)), sampling_type='cell',
@@ -208,9 +209,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
                 # Return array in unit 'per volume' consistently with line below
-                return data.ds.arr(rv, dens_unit)
-            self.add_field(name = name, sampling_type="cell", function=_func,
-                                 units = dens_unit)
+                return data.ds.arr(rv, number_density_unit)
+            self.add_field(name=name, sampling_type="cell", function=_func,
+                           units=self.ds.unit_system['number_density'])
         avals = {}
         tvals = {}
         with open(filename, "rb") as f:
