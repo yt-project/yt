@@ -40,7 +40,7 @@ def exc_writeout(f):
 
 class PannableMapServer(object):
     _widget_name = "pannable_map"
-    def __init__(self, data, field, route_prefix = ""):
+    def __init__(self, data, field, takelog, route_prefix = ""):
         self.data = data
         self.ds = data.ds
         self.field = field
@@ -55,6 +55,7 @@ class PannableMapServer(object):
         self.data[self.field] = self.data[self.field].astype("float64")
         bottle.route(":path#.+#", "GET")(self.static)
 
+        self.takelog = takelog
         self._lock = False
 
     def lock(self):
@@ -77,25 +78,29 @@ class PannableMapServer(object):
         yl = self.ds.domain_left_edge[1] + rely * DW[1]
         xr = xl + dd*DW[0]
         yr = yl + dd*DW[1]
-        self.lock()
-        frb = FixedResolutionBuffer(self.data, (xl, xr, yl, yr), (256, 256))
-        cmi, cma = get_color_bounds(self.data['px'], self.data['py'],
-                                    self.data['pdx'], self.data['pdy'],
-                                    self.data[field],
-                                    self.ds.domain_left_edge[0],
-                                    self.ds.domain_right_edge[0],
-                                    self.ds.domain_left_edge[1],
-                                    self.ds.domain_right_edge[1],
-                                    dd*DW[0] / (64*256),
-                                    dd*DW[0])
-        self.unlock()
+        try:
+            self.lock()
+            data = self.data[field]
+            frb = FixedResolutionBuffer(self.data, (xl, xr, yl, yr), (256, 256))
+            cmi, cma = get_color_bounds(self.data['px'], self.data['py'],
+                                        self.data['pdx'], self.data['pdy'],
+                                        data,
+                                        self.ds.domain_left_edge[0],
+                                        self.ds.domain_right_edge[0],
+                                        self.ds.domain_left_edge[1],
+                                        self.ds.domain_right_edge[1],
+                                        dd*DW[0] / (64*256),
+                                        dd*DW[0])
+        finally:
+            self.unlock()
 
-        if self.ds._get_field_info(field).take_log:
+        if self.takelog:
             cmi = np.log10(cmi)
             cma = np.log10(cma)
             to_plot = apply_colormap(np.log10(frb[field]), color_bounds = (cmi, cma))
         else:
             to_plot = apply_colormap(frb[field], color_bounds = (cmi, cma))
+
         rv = write_png_to_string(to_plot)
         return rv
 
