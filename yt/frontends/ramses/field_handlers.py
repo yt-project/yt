@@ -16,7 +16,7 @@ def register_field_handler(ph):
     FIELD_HANDLERS.add(ph)
 
 
-class RAMSESFieldFileHandlerRegister(type):
+class RAMSESFieldFileHandlerRegistry(type):
     """
     This is a base class that on instantiation registers the file
     handler into the list. Used as a metaclass.
@@ -28,7 +28,7 @@ class RAMSESFieldFileHandlerRegister(type):
         return cls
 
 
-@add_metaclass(RAMSESFieldFileHandlerRegister)
+@add_metaclass(RAMSESFieldFileHandlerRegistry)
 class FieldFileHandler(object):
     '''
     Abstract class to handle particles in RAMSES. Each instance
