@@ -119,6 +119,7 @@ class ParticleFileHandler(object):
         the RAMSES Dataset structure to determine if the particle type
         (e.g. regular particles) exists.
         '''
+        # this function must be implemented by subclasses
         raise NotImplementedError
 
 
@@ -137,6 +138,7 @@ class ParticleFileHandler(object):
            A dictionary that maps `(type, field_name)` to their type
            (character), following Python's struct convention.
         '''
+        # this function must be implemented by subclasses
         raise NotImplementedError
 
 

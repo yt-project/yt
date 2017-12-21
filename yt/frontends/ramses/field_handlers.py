@@ -119,6 +119,7 @@ class FieldFileHandler(object):
         the RAMSES Dataset structure to determine if the particle type
         (e.g. regular particles) exists.
         '''
+        # this function must be implemented by subclasses
         raise NotImplementedError
 
     @classmethod
@@ -133,6 +134,7 @@ class FieldFileHandler(object):
         * field_list: list of (ftype, fname)
            The list of the field present in the file
         '''
+        # this function must be implemented by subclasses
         raise NotImplementedError
 
     @property
