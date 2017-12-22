@@ -1438,7 +1438,10 @@ class YTArray(np.ndarray):
         metadata extracted in __reduce__ and then serialized by pickle.
         """
         super(YTArray, self).__setstate__(state[1:])
-        unit, lut = state[0]
+        try:
+            unit, lut = state[0]
+        except TypeError:
+            unit, lut = str(state[0]), default_unit_symbol_lut.copy()
         # need to fix up the lut if the pickle was saved prior to PR #1728
         # when the pickle format changed
         if len(lut['m']) == 2:
