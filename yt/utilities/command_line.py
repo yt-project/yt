@@ -775,7 +775,14 @@ class YTMapserverCmd(YTCommand):
             p.set_log(args.field, args.takelog)
 
         PannableMapServer(p.data_source, args.field, args.takelog)
-        import bottle
+        try:
+            import bottle
+        except ImportError:
+            raise ImportError(
+                "The mapserver functionality requires the bottle "
+                "package to be installed. Please install using `pip "
+                "install bottle`."
+            )
         bottle.debug(True)
         if args.host is not None:
             colonpl = args.host.find(":")
