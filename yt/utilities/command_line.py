@@ -744,6 +744,7 @@ class YTMapserverCmd(YTCommand):
         from yt.visualization.mapserver.pannable_map import PannableMapServer
         from yt.frontends.ramses.data_structures import RAMSESDataset
 
+        # For RAMSES datasets, use the bbox feature to make the dataset load faster
         if RAMSESDataset._is_valid(args.ds) and args.center and args.width:
             kwa = dict(bbox= [[c - args.width/2 for c in args.center],
                               [c + args.width/2 for c in args.center]])
