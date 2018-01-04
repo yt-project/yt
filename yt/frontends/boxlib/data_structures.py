@@ -1461,14 +1461,13 @@ class WarpXHierarchy(BoxlibHierarchy):
         # Additional WarpX particle information (used to set up species)
         self.warpx_header = WarpXHeader(self.ds.output_dir + "/WarpXHeader")
         
-        i = 0
         for key, val in self.warpx_header.data.items():
             if key.startswith("species_"):
+                i = int(key.split("_")[-1])
                 charge_name = 'particle%.1d_charge' % i
                 mass_name = 'particle%.1d_mass' % i
                 self.parameters[charge_name] = val[0]
                 self.parameters[mass_name] = val[1]
-                i = i + 1
                 
     def _detect_output_fields(self):
         super(WarpXHierarchy, self)._detect_output_fields()
