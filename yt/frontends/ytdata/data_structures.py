@@ -499,10 +499,12 @@ class YTGridDataset(YTDataset):
                    self.base_domain_right_edge) < 0.5 * dx
 
         elif self.data_type == "yt_frb":
-            self.domain_left_edge = \
-              np.concatenate([self.parameters["left_edge"], [0.]])
-            self.domain_right_edge = \
-              np.concatenate([self.parameters["right_edge"], [1.]])
+            dle = self.domain_left_edge
+            left = self.parameters["left_edge"].to(dle.units)
+            dle[0:2] = left
+            dre = self.domain_right_edge
+            right = self.parameters["right_edge"].to(dre.units)
+            dre[0:2] = right
             self.domain_dimensions = \
               np.concatenate([self.parameters["ActiveDimensions"], [1]])
 
