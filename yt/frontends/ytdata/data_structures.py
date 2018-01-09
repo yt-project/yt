@@ -52,6 +52,7 @@ from yt.units import \
 from yt.units.unit_registry import \
     UnitRegistry
 from yt.units.yt_array import \
+    uconcatenate, \
     YTQuantity
 from yt.utilities.logger import \
     ytLogger as mylog
@@ -500,11 +501,11 @@ class YTGridDataset(YTDataset):
 
         elif self.data_type == "yt_frb":
             dle = self.domain_left_edge
-            left = self.parameters["left_edge"].to(dle.units)
-            dle[0:2] = left
+            self.domain_left_edge = uconcatenate(
+                [self.parameters["left_edge"].to(dle.units), [0] * dle.uq])
             dre = self.domain_right_edge
-            right = self.parameters["right_edge"].to(dre.units)
-            dre[0:2] = right
+            self.domain_right_edge = uconcatenate(
+                [self.parameters["right_edge"].to(dre.units), [1] * dre.uq])
             self.domain_dimensions = \
               np.concatenate([self.parameters["ActiveDimensions"], [1]])
 
