@@ -529,11 +529,7 @@ class YTArray(np.ndarray):
         """
 
         """
-        # need to check if we're dealing with a scalar to avoid a recursion
-        # error on NumPy 1.14 and newer
-        if self.shape != ():
-            return super(YTArray, self).__str__()+' '+self.units.__str__()
-        return str(np.asarray(self)) + ' ' + str(self.units)
+        return str(self.view(np.ndarray)) + ' ' + str(self.units)
 
     #
     # Start unit conversion methods
