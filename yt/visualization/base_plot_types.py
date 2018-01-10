@@ -321,15 +321,17 @@ class ImagePlotMPL(PlotMPL):
 
         return size, axrect, caxrect
 
-    def _toggle_axes(self, choice):
+    def _toggle_axes(self, choice, draw_frame=None):
         """
         Turn on/off displaying the axis ticks and labels for a plot.
 
         choice = True or False
         """
-
+        if draw_frame is None:
+            draw_frame = choice
         self._draw_axes = choice
-        self.axes.set_frame_on(choice)
+        self._draw_frame = draw_frame
+        self.axes.set_frame_on(draw_frame)
         self.axes.get_xaxis().set_visible(choice)
         self.axes.get_yaxis().set_visible(choice)
         size, axrect, caxrect = self._get_best_layout()
@@ -357,11 +359,11 @@ class ImagePlotMPL(PlotMPL):
         labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
         return labels
 
-    def hide_axes(self):
+    def hide_axes(self, draw_frame=None):
         """
         Hide the axes for a plot including ticks and labels
         """
-        self._toggle_axes(False)
+        self._toggle_axes(False, draw_frame)
         return self
 
     def show_axes(self):
