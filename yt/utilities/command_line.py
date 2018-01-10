@@ -60,17 +60,17 @@ if ytcfg.getboolean("yt","loadfieldplugins"):
 
 _default_colormap = ytcfg.get("yt", "default_colormap")
 
-def _fix_ds(arg):
+def _fix_ds(arg, *args, **kwargs):
     if os.path.isdir("%s" % arg) and \
         os.path.exists("%s/%s" % (arg,arg)):
-        ds = load("%s/%s" % (arg,arg))
+        ds = load("%s/%s" % (arg,arg), *args, **kwargs)
     elif os.path.isdir("%s.dir" % arg) and \
         os.path.exists("%s.dir/%s" % (arg,arg)):
-        ds = load("%s.dir/%s" % (arg,arg))
+        ds = load("%s.dir/%s" % (arg,arg), *args, **kwargs)
     elif arg.endswith(".index"):
-        ds = load(arg[:-10])
+        ds = load(arg[:-10], *args, **kwargs)
     else:
-        ds = load(arg)
+        ds = load(arg, *args, **kwargs)
     return ds
 
 def _add_arg(sc, arg):
@@ -725,13 +725,13 @@ class YTLoadCmd(YTCommand):
         IPython.embed(config=cfg,user_ns=local_ns)
 
 class YTMapserverCmd(YTCommand):
-    args = ("proj", "field", "weight",
+    args = ("proj", "field", "weight", "linear", "center", "width",
             dict(short="-a", longname="--axis", action="store", type=int,
-                 dest="axis", default=0, help="Axis (4 for all three)"),
+                 dest="axis", default=0, help="Axis"),
             dict(short ="-o", longname="--host", action="store", type=str,
-                   dest="host", default=None, help="IP Address to bind on"),
-            "ds",
-            )
+                 dest="host", default=None, help="IP Address to bind on"),
+            dict(short='ds', nargs=1, type=str, help='The dataset to load.')
+    )
 
     name = "mapserver"
     description = \
@@ -741,23 +741,49 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
-        if sys.version_info >= (3,0,0):
-            print("yt mapserver is disabled for Python 3.")
-            return -1
-        ds = args.ds
-        if args.axis == 4:
+        from yt.visualization.mapserver.pannable_map import PannableMapServer
+        from yt.frontends.ramses.data_structures import RAMSESDataset
+
+        # For RAMSES datasets, use the bbox feature to make the dataset load faster
+        if RAMSESDataset._is_valid(args.ds) and args.center and args.width:
+            kwa = dict(bbox= [[c - args.width/2 for c in args.center],
+                              [c + args.width/2 for c in args.center]])
+        else:
+            kwa = dict()
+
+        ds = _fix_ds(args.ds, **kwa)
+        if args.center and args.width:
+            center = args.center
+            width = args.width
+            ad = ds.box(left_edge = [c - args.width/2 for c in args.center],
+                        right_edge = [c + args.width/2 for c in args.center])
+        else:
+            center = [0.5]*3
+            width = 1.0
+            ad = ds.all_data()
+
+        if args.axis >= 4:
             print("Doesn't work with multiple axes!")
             return
         if args.projection:
-            p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight)
+            p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight, data_source=ad,
+                               center=center, width=width)
+            p.set_log(args.field, args.takelog)
         else:
-            p = SlicePlot(ds, args.axis, args.field)
-        from yt.visualization.mapserver.pannable_map import PannableMapServer
-        PannableMapServer(p.data_source, args.field)
-        import yt.extern.bottle as bottle
+            p = SlicePlot(ds, args.axis, args.field, data_source=ad,
+                               center=center, width=width)
+            p.set_log(args.field, args.takelog)
+
+        PannableMapServer(p.data_source, args.field, args.takelog)
+        try:
+            import bottle
+        except ImportError:
+            raise ImportError(
+                "The mapserver functionality requires the bottle "
+                "package to be installed. Please install using `pip "
+                "install bottle`."
+            )
         bottle.debug(True)
-        bottle_dir = os.path.dirname(bottle.__file__)
-        sys.path.append(bottle_dir)
         if args.host is not None:
             colonpl = args.host.find(":")
             if colonpl >= 0:
@@ -765,10 +791,9 @@ class YTMapserverCmd(YTCommand):
                 args.host = args.host[:colonpl]
             else:
                 port = 8080
-            bottle.run(server='rocket', host=args.host, port=port)
+            bottle.run(server='auto', host=args.host, port=port)
         else:
-            bottle.run(server='rocket')
-        sys.path.remove(bottle_dir)
+            bottle.run(server='auto')
 
 
 class YTPastebinCmd(YTCommand):
