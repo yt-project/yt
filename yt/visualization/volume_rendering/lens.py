@@ -14,6 +14,8 @@ Lens Classes
 # ----------------------------------------------------------------------------
 
 from __future__ import division
+from astropy.coordinates import spherical_to_cartesian
+from astropy_healpix import HEALPix
 from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -819,9 +821,67 @@ class StereoSphericalLens(Lens):
         """
         self.viewpoint = camera.position
 
+
+class HEALPixLens(Lens):
+    def __init__(self):
+        super(HEALPixLens, self).__init__()
+        self.nside = 1
+        self.radius = 1.0
+    
+    @property
+    def hp(self):
+        return HEALPix(self.nside)
+
+    def setup_box_properties(self, camera):
+        """Set up the view and stage based on the properties of the camera."""
+        self.radius = camera.width.max()
+        super(HEALPixLens, self).setup_box_properties(camera)
+        self.set_viewpoint(camera)
+    
+    def new_image(self, camera):
+        """Initialize a new ImageArray to be used with this lens."""
+        self.current_image = ImageArray(
+            np.zeros((self.hp.npix, 1, 4), dtype='float64'),
+            info={'imtype': 'rendering'})
+        return self.current_image
+
+    def _get_sampler_params(self, camera, render_source):
+        hp = self.hp
+
+        positions = np.ones((hp.npix, 1, 3), dtype='float64') * camera.position
+
+        lon, lat = hp.healpix_to_lonlat(range(hp.npix))
+        x, y, z = spherical_to_cartesian(np.ones(hp.npix), lat, lon)
+        vectors = np.stack([x, y, z], axis=-1).value.reshape((hp.npix, 1, 3))
+        vectors *= self.radius
+
+        dummy = np.ones(3, dtype='float64')
+
+        if render_source.zbuffer is not None:
+            image = render_source.zbuffer.rgba
+        else:
+            image = self.new_image(camera)
+
+        sampler_params = dict(
+            vp_pos=positions,
+            vp_dir=vectors,
+            center=self.back_center,
+            bounds=(0.0, 1.0, 0.0, 1.0),
+            x_vec=dummy,
+            y_vec=dummy,
+            width=np.zeros(3, dtype='float64'),
+            image=image,
+            lens_type='healpix')
+        return sampler_params
+
+    def set_viewpoint(self, camera):
+        """For a HEALPixLens, the viewpoint is the camera's position"""
+        self.viewpoint = camera.position
+
 lenses = {'plane-parallel': PlaneParallelLens,
           'perspective': PerspectiveLens,
           'stereo-perspective': StereoPerspectiveLens,
           'fisheye': FisheyeLens,
           'spherical': SphericalLens,
-          'stereo-spherical': StereoSphericalLens}
+          'stereo-spherical': StereoSphericalLens,
+          'healpix': HEALPixLens}
