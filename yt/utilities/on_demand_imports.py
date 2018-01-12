@@ -110,6 +110,18 @@ class astropy_imports(object):
             self._conv = conv
         return self._conv
 
+    _coordinates = None
+    @property
+    def coordinates(self):
+        if self._coordinates is None:
+            try:
+                import astropy.coordinates as coordinates
+                self.log
+            except ImportError:
+                coordinates = NotAModule(self._name)
+            self._coordinates = coordinates
+        return self._coordinates
+
     _time = None
     @property
     def time(self):
@@ -133,6 +145,18 @@ class astropy_imports(object):
                 wcsaxes = NotAModule(self._name)
             self._wcsaxes = wcsaxes
         return self._wcsaxes
+
+    _healpix = None
+    @property
+    def healpix(self):
+        if self._healpix is None:
+            try:
+                import astropy_healpix as healpix
+                self.log
+            except ImportError:
+                healpix = NotAModule(self._name)
+            self._healpix = healpix
+        return self._healpix
 
 _astropy = astropy_imports()
 

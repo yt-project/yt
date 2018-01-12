@@ -14,14 +14,13 @@ Lens Classes
 # ----------------------------------------------------------------------------
 
 from __future__ import division
-from astropy.coordinates import spherical_to_cartesian
-from astropy_healpix import HEALPix
 from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.data_objects.image_array import ImageArray
 from yt.units.yt_array import unorm, uvstack, uhstack
 from yt.utilities.math_utils import get_rotation_matrix
+from yt.utilities.on_demand_imports import _astropy
 import numpy as np
 
 from yt.utilities.lib.grid_traversal import \
@@ -830,7 +829,7 @@ class HEALPixLens(Lens):
     
     @property
     def hp(self):
-        return HEALPix(self.nside)
+        return _astropy.healpix.HEALPix(self.nside)
 
     def setup_box_properties(self, camera):
         """Set up the view and stage based on the properties of the camera."""
@@ -851,7 +850,8 @@ class HEALPixLens(Lens):
         positions = np.ones((hp.npix, 1, 3), dtype='float64') * camera.position
 
         lon, lat = hp.healpix_to_lonlat(range(hp.npix))
-        x, y, z = spherical_to_cartesian(np.ones(hp.npix), lat, lon)
+        s2c = _astropy.coordinates.spherical_to_cartesian
+        x, y, z = s2c(np.ones(hp.npix), lat, lon)
         vectors = np.stack([x, y, z], axis=-1).value.reshape((hp.npix, 1, 3))
         vectors *= self.radius
 
