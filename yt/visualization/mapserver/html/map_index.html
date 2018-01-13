@@ -11,14 +11,52 @@ function setFullScreen () {
     $("#map").height($(window).height());
 }
 
+var SearchWidget = function () {
+  var obj = {
+    filter: function (searchStrs) {
+      console.log("filtering on " + searchStrs);
+      this._selector.each(function(i, el) {
+        var val = $(el).text();
+        // Search
+        var matched = searchStrs.map((str) => {
+          return val.indexOf(str) !== -1;
+        }).reduce((reduced, result) => {
+          return reduced && result;
+        }, true);
+        if (matched) {
+          $(el).show();
+        } else {
+          $(el).hide();
+        }
+      });
+    },
+    init: function () {
+      var self = this;
+
+      this._selector = $('.leaflet-control-layers-list label');
+
+      $('#filter input').keyup(function(ev) {
+        const val = $(this).val();
+        self.filter(val.split(" "));
+      });
+
+      // Move search input in the DOM
+      $('leaflet-control-layers-base').prepend($('#filter'));
+      $('#filter').show();
+    },
+    _selector: null
+  };
+  obj.init();
+  return obj;
+};
 $(document).ready(function() {
   // Initialize to full screen
   setFullScreen();
   // initialize the map on the "map" div with a given center and zoom
   $.getJSON('/list', function(data) {
     var layers = [],
-	layer_groups = [],
-	default_layer = [null];
+        layer_groups = [],
+        default_layer = [null];
     var layer_group = {};
 
     // Loop over field types
@@ -27,23 +65,23 @@ $(document).ready(function() {
 
       // Loop over fields of given type
       for (var field in dtype) {
-	var loc = dtype[field]
-	var field = loc[0],
-	    active = loc[1],
-	    url = 'map/' + field[0] + ',' + field[1] + '/{z}/{x}/{y}.png';
+        var loc = dtype[field]
+        var field = loc[0],
+            active = loc[1],
+            url = 'map/' + field[0] + ',' + field[1] + '/{z}/{x}/{y}.png';
 
-	// Create new layer
-	var layer = new L.TileLayer(url, {id: 'MapID', maxzoom: 18});
+        // Create new layer
+        var layer = new L.TileLayer(url, {id: 'MapID', maxzoom: 18});
 
-	// Create readable name
-	human_name = field.join(' ');
+        // Create readable name
+        human_name = field.join(' ');
 
-	// Store it
-	layers.push(layer);
-	layer_group[human_name] = layer;
-	if (active) {
-	  default_layer[0] = layer;
-	}
+        // Store it
+        layers.push(layer);
+        layer_group[human_name] = layer;
+        if (active) {
+          default_layer[0] = layer;
+        }
       }
     }
     var map = new L.Map('map', {
@@ -53,19 +91,31 @@ $(document).ready(function() {
       crs: L.CRS.Simple
     });
     L.control.layers(layer_group).addTo(map);
+
+    // Search widget
+    var search = SearchWidget();
   });
 
   // Resize map automatically
   $(window).resize(setFullScreen);
-})
+});
+
 </script>
 <style>
 body {
     margin: 0;
 }
+#filter {
+  position: absolute;
+  bottom: 0;
+  left:0;
+  z-index: 1000;
+  display: none;
+}
 </style>
 </head>
 <body>
   <div id="map" style="height: 500px; width: 500px;"></div>
+  <div id="filter""><input type="text" placeholder="Filter out..."></div>
 </body>
 </html>
