@@ -869,7 +869,8 @@ class HEALPixLens(Lens):
         vectors = np.stack([x, y, z], axis=-1).value.reshape((hp.npix, 1, 3))
 
         # Set the inner clipping plane.
-        dx = min(g.dds.min() for g in camera.data_source.ds.index._find_points(*camera.position)[0])
+        grids = camera.data_source.ds.index._find_points(*camera.position)[0]
+        dx = min(g.dds.min() for g in grids)
         positions += self.inner_radius * dx * vectors
         vectors *= self.radius
 
