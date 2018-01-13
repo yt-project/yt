@@ -146,19 +146,22 @@ class astropy_imports(object):
             self._wcsaxes = wcsaxes
         return self._wcsaxes
 
-    _healpix = None
-    @property
-    def healpix(self):
-        if self._healpix is None:
-            try:
-                import astropy_healpix as healpix
-                self.log
-            except ImportError:
-                healpix = NotAModule(self._name)
-            self._healpix = healpix
-        return self._healpix
-
 _astropy = astropy_imports()
+
+class astropy_healpix_imports(object):
+    _name = "astropy_healpix"
+    _HEALPix = None
+    @property
+    def HEALPix(self):
+        if self._HEALPix is None:
+            try:
+                from astropy_healpix import HEALPix
+            except ImportError:
+                HEALPix = NotAModule(self._name)
+            self._HEALPix = HEALPix
+        return self._HEALPix
+
+_astropy_healpix = astropy_healpix_imports()
 
 class scipy_imports(object):
     _name = "scipy"

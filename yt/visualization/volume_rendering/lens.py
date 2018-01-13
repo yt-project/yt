@@ -21,6 +21,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.units.yt_array import unorm, uvstack, uhstack
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.on_demand_imports import _astropy_healpix
 import numpy as np
 
 from yt.utilities.lib.grid_traversal import \
@@ -842,7 +843,7 @@ class HEALPixLens(Lens):
     
     @property
     def hp(self):
-        return _astropy.healpix.HEALPix(self.nside)
+        return _astropy_healpix.HEALPix(self.nside)
 
     def setup_box_properties(self, camera):
         """Set up the view and stage based on the properties of the camera."""
