@@ -822,10 +822,23 @@ class StereoSphericalLens(Lens):
 
 
 class HEALPixLens(Lens):
+    r"""A lens for HEALPix all-sky map.
+
+    This lens type accepts a nside property, which controls the resolution
+    of pixellization. HEALPix maps are typically used for all-sky projections.
+    The images returned by this camera will be a flat pixel array ordered by
+    HEALPix indices in ring order.
+    """
+
     def __init__(self):
         super(HEALPixLens, self).__init__()
         self.nside = 1
         self.radius = 1.0
+        # innder_radius is the radius of the inner clipping plane, in units of
+        # dx (to be defined in self._get_sampler_params) at the point at which
+        # the volume rendering is centered. This avoids unphysical effects of
+        # nearby cells.
+        self.inner_radius = 10
     
     @property
     def hp(self):
@@ -849,10 +862,15 @@ class HEALPixLens(Lens):
 
         positions = np.ones((hp.npix, 1, 3), dtype='float64') * camera.position
 
+        # Compute unit vectors in directions of HEALPix pixels.
         lon, lat = hp.healpix_to_lonlat(range(hp.npix))
         s2c = _astropy.coordinates.spherical_to_cartesian
         x, y, z = s2c(np.ones(hp.npix), lat, lon)
         vectors = np.stack([x, y, z], axis=-1).value.reshape((hp.npix, 1, 3))
+
+        # Set the inner clipping plane.
+        dx = min(g.dds.min() for g in camera.data_source.ds.index._find_points(*camera.position)[0])
+        positions += self.inner_radius * dx * vectors
         vectors *= self.radius
 
         dummy = np.ones(3, dtype='float64')
