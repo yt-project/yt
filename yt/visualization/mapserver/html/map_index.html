@@ -33,16 +33,20 @@ var SearchWidget = function () {
     init: function () {
       var self = this;
 
-      this._selector = $('.leaflet-control-layers-list label');
+      var searchElement = $('<div id="filter"><input type="text" placeholder="Filter layers"></div>');
+      var selector = $('.leaflet-control-layers-list label');
 
+      this._selector = selector;
+
+      // Add input in the DOM
+      selector.first().parent().prepend(searchElement);
+
+      // Listen to keyboard input
       $('#filter input').keyup(function(ev) {
         const val = $(this).val();
         self.filter(val.split(" "));
       });
 
-      // Move search input in the DOM
-      $('leaflet-control-layers-base').prepend($('#filter'));
-      $('#filter').show();
     },
     _selector: null
   };
@@ -105,17 +109,9 @@ $(document).ready(function() {
 body {
     margin: 0;
 }
-#filter {
-  position: absolute;
-  bottom: 0;
-  left:0;
-  z-index: 1000;
-  display: none;
-}
 </style>
 </head>
 <body>
   <div id="map" style="height: 500px; width: 500px;"></div>
-  <div id="filter""><input type="text" placeholder="Filter out..."></div>
 </body>
 </html>
