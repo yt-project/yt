@@ -143,7 +143,4 @@ class PannableMapServer(object):
                 active = f[1] == self.field
                 d[ftype].append((f, active))
 
-        # TODO: get projection domain instead of dataset width
-        w = self.ds.domain_width.in_units('kpc').value[0]
-
-        return dict(data=d, width=w, active=self.field)
+        return dict(data=d, active=self.field)
