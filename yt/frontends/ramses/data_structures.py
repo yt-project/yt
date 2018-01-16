@@ -470,7 +470,7 @@ class RAMSESIndex(OctreeIndex):
         super(RAMSESIndex, self).__init__(ds, dataset_type)
 
     def _initialize_oct_handler(self):
-        if self.ds._bbox:
+        if self.ds._bbox is not None:
             cpu_list = get_cpu_list(self.dataset, self.dataset._bbox)
         else:
             cpu_list = range(self.dataset['ncpu'])
