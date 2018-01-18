@@ -1,4 +1,8 @@
-
+/*
+ * From https://github.com/MrMufflon/Leaflet.Coordinates
+ *
+ * Fixed small issue about formatting by C. Cadiou (cphyc))
+ */
 
 /*
  * L.Control.Coordinates is used for displaying current mouse coordinates on the map.
