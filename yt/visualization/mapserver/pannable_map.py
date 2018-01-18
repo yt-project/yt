@@ -55,10 +55,18 @@ class PannableMapServer(object):
         # This is a double-check, since we do not always mandate this for
         # slices:
         self.data[self.field] = self.data[self.field].astype("float64")
-        bottle.route(":path#.+#", "GET")(self.static)
+        bottle.route("%s/static/:path" % route_prefix, "GET")(self.static)
 
         self.takelog = takelog
         self._lock = False
+
+        for unit in ['Gpc', 'Mpc', 'kpc', 'pc']:
+            v = self.ds.domain_width[0].in_units(unit).value
+            if v > 1:
+                break
+        self.unit = unit
+        self.px2unit = self.ds.domain_width[0].in_units(unit).value / 256
+
 
     def lock(self):
         import time
@@ -83,8 +91,9 @@ class PannableMapServer(object):
         yr = yl + dd*DW[1]
         try:
             self.lock()
+            w = 256 # pixels
             data = self.data[field]
-            frb = FixedResolutionBuffer(self.data, (xl, xr, yl, yr), (256, 256))
+            frb = FixedResolutionBuffer(self.data, (xl, xr, yl, yr), (w, w))
             cmi, cma = get_color_bounds(self.data['px'], self.data['py'],
                                         self.data['pdx'], self.data['pdy'],
                                         data,
@@ -143,4 +152,5 @@ class PannableMapServer(object):
                 active = f[1] == self.field
                 d[ftype].append((f, active))
 
-        return dict(data=d, active=self.field)
+        print(self.px2unit, self.unit)
+        return dict(data=d, px2unit=self.px2unit, unit=self.unit, active=self.field)

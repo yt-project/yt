@@ -5,6 +5,10 @@
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.2.0/leaflet.js"></script>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.2.0/leaflet.css" />
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+
+<script type="text/javascript" src="static/Leaflet.Coordinates-0.1.5.src.js"></script>
+<link rel="stylesheet" href="static/Leaflet.Coordinates-0.1.5.css" />
+
 <script type="text/javascript">
 function setFullScreen () {
     $("#map").width($(window).width());
@@ -89,11 +93,33 @@ $(document).ready(function() {
       }
     }
     var map = new L.Map('map', {
-      center: new L.LatLng(0., 0.),
-      zoom: 2,
-      layers: default_layer,
+      crs: L.CRS.Simple,
+      center: new L.LatLng(-128, -128),
+      zoom: 4,
+      layers: default_layer
     });
+
     L.control.layers(layer_group).addTo(map);
+
+    var unit = data['unit'], px2unit = data['px2unit'], decimals = 2;
+    var fmt = (n) => {
+      return L.NumberFormatter.round(n, decimals, ".")
+    };
+    L.control.coordinates({
+      position: "bottomleft", //optional default "bootomright"
+      decimals: 2, //optional default 4
+      decimalSeperator: ".", //optional default "."
+      // labelTemplateLat: "x: {y}" + unit, //optional default "Lat: {y}"
+      // labelTemplateLng: "y: {x}" + unit, //optional default "Lng: {x}"
+      enableUserInput: true, //optional default true
+      useDMS: false, //optional default false
+      useLatLngOrder: true, //ordering of labels, default false-> lng-lat
+      markerType: L.marker, //optional default L.marker
+      // markerProps: {}, //optional default {},
+      labelFormatterLng : (lng) => { return fmt((lng+128)/px2unit)+" "+unit }, //optional default none,
+      labelFormatterLat : (lat) => { return fmt((lat+128)/px2unit)+" "+unit }, //optional default none
+    }).addTo(map);
+
 
     // Search widget
     var search = SearchWidget();
