@@ -20,7 +20,7 @@ import numpy as np
 import stat
 import weakref
 
-from yt.extern.six import string_types
+from yt.extern.six import string_types, PY3
 from yt.funcs import \
     mylog, \
     setdefaultattr
@@ -33,6 +33,10 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.data_objects.particle_filters import add_particle_filter
+if PY3:
+    from io import BytesIO as IO
+else:
+    from yt.extern.six.moves import StringIO as IO
 
 from yt.utilities.physical_constants import mp, kb
 from .definitions import ramses_header, field_aliases, particle_families
@@ -76,7 +80,7 @@ class RAMSESDomainFile(object):
                           if FH.any_exist(ds)]
         self.field_handlers = field_handlers
         for fh in field_handlers:
-            mylog.debug('Detected particle type %s in domain_id=%s' % (fh.ftype, domain_id))
+            mylog.debug('Detected fluid type %s in domain_id=%s' % (fh.ftype, domain_id))
             fh.detect_fields(ds)
             # self._add_ftype(fh.ftype)
 
@@ -110,11 +114,29 @@ class RAMSESDomainFile(object):
                 lvl_count += fh._level_count
         return lvl_count
 
+    @property
+    def buffered_amr_file(self):
+        if hasattr(self, '_buffered_amr_file'):
+            return self._buffered_amr_file
+        else:
+            f = IO()
+            with open(self.amr_fn, "rb") as ff:
+                f.write(ff.read())
+            self._buffered_amr_file = f
+            return f
+
     def _read_amr_header(self):
         hvals = {}
-        f = open(self.amr_fn, "rb")
+        f = self.buffered_amr_file
+        # f = open(self.amr_fn, "rb")
+        f.seek(0)
+
         for header in ramses_header(hvals):
             hvals.update(fpu.read_attrs(f, header))
+        # For speedup, skip reading of 'headl' and 'taill'
+        fpu.skip(f, 2)
+        hvals['numbl'] = fpu.read_vector(f, 'i')
+
         # That's the header, now we skip a few.
         hvals['numbl'] = np.array(hvals['numbl']).reshape(
             (hvals['nlevelmax'], hvals['ncpu']))
@@ -145,10 +167,13 @@ class RAMSESDomainFile(object):
                 self.ds.domain_left_edge, self.ds.domain_right_edge)
         root_nodes = self.amr_header['numbl'][self.ds.min_level,:].sum()
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
-        f = open(self.amr_fn, "rb")
-        f.seek(self.amr_offset)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
+
+        f = self.buffered_amr_file
+
+        f.seek(self.amr_offset)
+
         def _ng(c, l):
             if c < self.amr_header['ncpu']:
                 ng = self.amr_header['numbl'][l, c]

@@ -41,11 +41,6 @@ def ramses_header(hvals):
                  ('timing', 5, 'd'),
                  ('mass_sph', 1, 'd') )
     yield next_set
-    tree_header = ( ('headl', hvals['nlevelmax'] * hvals['ncpu'], 'i'),
-                    ('taill', hvals['nlevelmax'] * hvals['ncpu'], 'i'),
-                    ('numbl', hvals['nlevelmax'] * hvals['ncpu'], 'i'),
-                  )
-    yield tree_header
 
 field_aliases = {
     'standard_five':     ('Density',
