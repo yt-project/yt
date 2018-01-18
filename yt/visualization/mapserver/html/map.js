@@ -97,12 +97,16 @@ $(document).ready(function() {
       position: "bottomleft", //optional default "bootomright"
       decimals: 2, //optional default 4
       decimalSeperator: ".", //optional default "."
-      enableUserInput: true, //optional default true
+      enableUserInput: false, //optional default true
       useDMS: false, //optional default false
-      useLatLngOrder: true, //ordering of labels, default false-> lng-lat
+      useLatLngOrder: false, //ordering of labels, default false-> lng-lat
       markerType: L.marker, //optional default L.marker
-      labelFormatterLng : (lng) => { return fmt((lng+128)/px2unit)+" "+unit }, //optional default none,
-      labelFormatterLat : (lat) => { return fmt((lat+128)/px2unit)+" "+unit }, //optional default none
+      labelFormatterLng : (lng) => {
+        return fmt((lng+128)*px2unit) + " " + unit
+      }, //optional default none,
+      labelFormatterLat : (lat) => {
+        return fmt((lat+128)*px2unit) + " " + unit
+      }, //optional default none
     }).addTo(map);
 
     // Search widget
