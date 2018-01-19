@@ -325,7 +325,11 @@ class ImagePlotMPL(PlotMPL):
         """
         Turn on/off displaying the axis ticks and labels for a plot.
 
-        choice = True or False
+        Parameters
+        ----------
+        choice : boolean
+            If True, set the axes to be drawn. If False, set the axes to not be
+            drawn.
         """
         if draw_frame is None:
             draw_frame = choice

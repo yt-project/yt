@@ -1083,6 +1083,7 @@ class PWViewerMPL(PlotWindow):
 
         draw_frame : boolean
             If True, the axes frame will still be drawn. Defaults to False.
+            See note below for more details.
 
         Examples
         --------
@@ -1103,6 +1104,13 @@ class PWViewerMPL(PlotWindow):
         >>> s.hide_axes()
         >>> s.hide_colorbar()
         >>> s.save()
+
+        Note
+        ----
+        By default, when removing the axes, the patch on which the axes are
+        drawn is disabled, making it impossible to later change e.g. the
+        background colour. To force the axes patch to be displayed while still 
+        hiding the axes, set the ``draw_frame`` keyword argument to ``True``.
         """
         if field is None:
             field = self.fields
