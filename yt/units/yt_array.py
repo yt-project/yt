@@ -1441,6 +1441,9 @@ class YTArray(np.ndarray):
         try:
             unit, lut = state[0]
         except TypeError:
+            # this case happens when we try to load an old pickle file
+            # created before we serialized the unit symbol lookup table
+            # into the pickle file
             unit, lut = str(state[0]), default_unit_symbol_lut.copy()
         # need to fix up the lut if the pickle was saved prior to PR #1728
         # when the pickle format changed
