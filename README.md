@@ -1,7 +1,7 @@
 # The yt Project
 
-[![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org/)
-[![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org/)
+[![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
+[![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-dev@python.org//)
 [![Build Status](https://img.shields.io/travis/yt-project/yt.svg?branch=master)](https://travis-ci.org/yt-project/yt)
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
@@ -136,10 +136,10 @@ We have some community and documentation resources available.
  * Our latest documentation is always at http://yt-project.org/docs/dev/ and it
    includes recipes, tutorials, and API documentation
  * The [discussion mailing
-   list](http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org/)
+   list](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
    should be your first stop for general questions
  * The [development mailing
-   list](http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org/) is
+   list](https://mail.python.org/mm3/archives/list/yt-dev@python.org//) is
    better suited for more development issues
  * You can also join us on Slack at yt-project.slack.com ([request an
    invite](http://yt-project.org/slack.html))
