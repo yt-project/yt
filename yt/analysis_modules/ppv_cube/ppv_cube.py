@@ -261,15 +261,15 @@ class PPVCube(object):
         self.dv = self.vbins[1]-self.vbins[0]
 
     @parallel_root_only
-    def write_fits(self, filename, clobber=False, length_unit=None,
-                   sky_scale=None, sky_center=None):
+    def write_fits(self, filename, overwrite=False, length_unit=None,
+                   sky_scale=None, sky_center=None, **kwargs):
         r""" Write the PPVCube to a FITS file.
 
         Parameters
         ----------
         filename : string
             The name of the file to write to. 
-        clobber : boolean, optional
+        overwrite : boolean, optional
             Whether to overwrite a file with the same name that already 
             exists. Default False.
         length_unit : string, optional
@@ -283,7 +283,7 @@ class PPVCube(object):
 
         Examples
         --------
-        >>> cube.write_fits("my_cube.fits", clobber=False, 
+        >>> cube.write_fits("my_cube.fits", overwrite=False, 
         ...                 sky_scale=(1.0,"arcsec/kpc"), sky_center=(30.,45.))
         """
         vunit = fits_info[self.axis_type][0]
@@ -312,7 +312,7 @@ class PPVCube(object):
         fib.update_all_headers("btype", self.field)
         if sky_scale is not None and sky_center is not None:
             fib.create_sky_wcs(sky_center, sky_scale)
-        fib.writeto(filename, clobber=clobber)
+        fib.writeto(filename, overwrite=overwrite, **kwargs)
 
     def __repr__(self):
         return "PPVCube [%d %d %d] (%s < %s < %s)" % (self.nx, self.ny, self.nv,
