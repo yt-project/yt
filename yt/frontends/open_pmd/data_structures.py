@@ -581,12 +581,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
 
     def __init__(self, filename):
         super(OpenPMDDatasetSeries, self).__init__([])
-        # experimental: CI testing failed for OpenPMDGroupBasedDataset with
-        # 'IOError: Unable to open file (File close degree doesn't match)'
-        plist = h5.h5p.create(h5.h5p.FILE_ACCESS)
-        plist.set_fclose_degree(h5.h5f.CLOSE_DEFAULT)
-        self.handle = h5.File(h5.h5f.open(str.encode(filename), h5.h5f.ACC_RDONLY, fapl=plist))
-        #self.handle = h5.File(filename, "r")
+        self.handle = h5.File(filename, "r")
         self.filename = filename
         self._pre_outputs = sorted(np.asarray(list(self.handle["/data"].keys()), dtype=np.int))
 
