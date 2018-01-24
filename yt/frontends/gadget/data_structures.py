@@ -491,11 +491,12 @@ class GadgetHDF5Dataset(GadgetDataset):
 
         # note the contents of the HDF5 Units group are in _unit_base
         # note the velocity stored on disk is sqrt(a) dx/dt
+        # physical velocity [cm/s] = a dx/dt = sqrt(a) * velocity_on_disk * UnitVelocity_in_cm_per_s
         self.length_unit = self.quan(
             self._unit_base["UnitLength_in_cm"], 'cmcm/h')
-        self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], 'g/h')
+        self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], 'g/h')      
         self.velocity_unit = self.quan(
-            self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s')
+            self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s * sqrt(a)')
         self.time_unit = self.quan(self._unit_base["UnitTime_in_s"], 's/h')
 
     @classmethod
