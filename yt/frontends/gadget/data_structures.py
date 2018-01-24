@@ -339,6 +339,10 @@ class GadgetDataset(SPHDataset):
 
         if "specific_energy" in unit_base:
             specific_energy_unit = unit_base["specific_energy"]
+        elif "UnitEnergy_in_cgs" in unit_base and "UnitMass_in_g" in unit_base:
+            specific_energy_unit = \
+                unit_base["UnitEnergy_in_cgs"] / unit_base["UnitMass_in_g"]
+            specific_energy_unit = (specific_energy_unit, "(cm/s)**2")
         else:
             # Sane default
             specific_energy_unit = (1, "(km/s) ** 2")
