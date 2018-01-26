@@ -860,6 +860,9 @@ class HEALPixLens(Lens):
 
     def _get_sampler_params(self, camera, render_source):
         hp = self.hp
+        
+        # Set camera resolution according to self.nside (through self.hp)
+        camera.resolution = (hp.npix, 1)
 
         positions = np.ones((hp.npix, 1, 3), dtype='float64') * camera.position
 
