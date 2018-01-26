@@ -16,7 +16,7 @@ from .scene import Scene
 from .render_source import VolumeSource
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
-from yt.funcs import mylog, iterable
+from yt.funcs import mylog
 from yt.utilities.lib.partitioned_grid import \
     PartitionedGrid
 from yt.data_objects.api import ImageArray
