@@ -529,7 +529,7 @@ class YTArray(np.ndarray):
         """
 
         """
-        return super(YTArray, self).__str__()+' '+self.units.__str__()
+        return str(self.view(np.ndarray)) + ' ' + str(self.units)
 
     #
     # Start unit conversion methods

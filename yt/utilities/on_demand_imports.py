@@ -338,6 +338,19 @@ class h5py_imports(object):
             self._h5f = h5f
         return self._h5f
 
+    _h5p = None
+    @property
+    def h5p(self):
+        if self._err:
+            raise self._err
+        if self._h5p is None:
+            try:
+                import h5py.h5p as h5p
+            except ImportError:
+                h5p = NotAModule(self._name)
+            self._h5p = h5p
+        return self._h5p
+
     _h5d = None
     @property
     def h5d(self):

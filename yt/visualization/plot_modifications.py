@@ -93,6 +93,7 @@ class PlotCallback(object):
         if len(coord) == 3:
             if not isinstance(coord, YTArray):
                 coord = plot.data.ds.arr(coord, 'code_length')
+            coord.convert_to_units('code_length')
             ax = plot.data.axis
             # if this is an on-axis projection or slice, then
             # just grab the appropriate 2 coords for the on-axis view
@@ -167,7 +168,7 @@ class PlotCallback(object):
 
         Parameters
         ----------
-        
+
         plot: a PlotMPL subclass
            The plot that we are converting coordinates for
 
@@ -466,7 +467,7 @@ class ContourCallback(PlotCallback):
                  plot_args=None, label=False, take_log=None,
                  label_args=None, text_args=None, data_source=None):
         PlotCallback.__init__(self)
-        def_plot_args = {'color':'k'}
+        def_plot_args = {'colors':'k'}
         def_text_args = {'color':'w'}
         self.ncont = ncont
         self.field = field
