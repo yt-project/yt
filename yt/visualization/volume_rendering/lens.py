@@ -872,6 +872,10 @@ class HEALPixLens(Lens):
         x, y, z = s2c(np.ones(hp.npix), lat, lon)
         vectors = np.stack([x, y, z], axis=-1).value.reshape((hp.npix, 1, 3))
 
+        # Trnasform to the camera basis.
+        uy, uz, ux = camera.unit_vectors
+        vectors = vectors.dot([ux, uy, uz])
+
         # Set the inner clipping plane.
         grids = camera.data_source.ds.index._find_points(*camera.position)[0]
         dx = min(g.dds.min() for g in grids)
