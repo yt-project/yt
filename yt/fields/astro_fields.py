@@ -82,7 +82,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         nenh *= nenh
         nenh *= 0.5*(1.+X_H)*X_H*data["index", "cell_volume"]
         return nenh
-    
+
     registry.add_field((ftype, "emission_measure"),
                        sampling_type="local",
                        function=_emission_measure,
@@ -111,15 +111,28 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        function=_mazzotta_weighting,
                        units="keV**-0.75*cm**-6")
 
-    def _sz_kinetic(field, data):
-        scale = 0.88 * pc.sigma_thompson / pc.mh / pc.clight
+    def _optical_depth(field, data):
+        return data[ftype, "El_nuclei_density"]*pc.sigma_thompson
+
+    registry.add_field((ftype, "optical_depth"), sampling_type="cell",
+                       function=_optical_depth, units=unit_system["length"]**-1)
+
+    def _velocity_los(field, data):
         vel_axis = data.get_field_parameter("axis")
         if vel_axis > 2:
             raise NeedsParameter(["axis"])
-        vel = data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
+        return data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
+
+    registry.add_field((ftype, "velocity_los"), sampling_type="cell",
+                       function=_velocity_los,
+                       units=unit_system["velocity"],
+                       validators=[
+                           ValidateParameter("axis", {'axis': [0, 1, 2]})])
+
+    def _sz_kinetic(field, data):
         # minus sign is because radial velocity is WRT viewer
         # See issue #1225
-        return -scale * vel * data[ftype, "density"]
+        return -data[ftype, "velocity_los"]*data[ftype, "tau"]/pc.clight
 
     registry.add_field((ftype, "sz_kinetic"),
                        sampling_type="local",
@@ -129,9 +142,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                            ValidateParameter("axis", {'axis': [0, 1, 2]})])
 
     def _szy(field, data):
-        scale = (0.88 / pc.mh * pc.kboltz / (pc.me * pc.clight**2) *
-                 pc.sigma_thompson)
-        return scale * data[ftype, "density"] * data[ftype, "temperature"]
+        kT = data[ftype, "kT"]/(pc.me*pc.clight*pc.clight) 
+        return data[ftype, "optical_depth"] * kT
 
     registry.add_field((ftype, "szy"),
                        sampling_type="local",
