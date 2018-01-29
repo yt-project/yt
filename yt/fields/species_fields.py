@@ -12,7 +12,7 @@ from .field_plugin_registry import \
 
 _primordial_mass_fraction = \
   {"H": primordial_H_mass_fraction,
-   "He" : (1 - primordial_H_mass_fraction)}
+   "He": (1 - primordial_H_mass_fraction)}
 
 # See YTEP-0003 for details, but we want to ensure these fields are all
 # populated:
@@ -144,20 +144,30 @@ def add_nuclei_density_fields(registry, ftype):
                            sampling_type="local",
                            function = _nuclei_density,
                            units = unit_system["number_density"])
-    for element in ["H", "He"]:
+
+    for element in ["H", "He", "El"]:
         if element in elements:
             continue
         registry.add_field((ftype, "%s_nuclei_density" % element),
                            sampling_type="local",
-                           function = _default_nuclei_density,
-                           units = unit_system["number_density"])
+                           function=_default_nuclei_density,
+                           units=unit_system["number_density"])
 
 def _default_nuclei_density(field, data):
     ftype = field.name[0]
     element = field.name[1][:field.name[1].find("_")]
-    return data[ftype, "density"] * _primordial_mass_fraction[element] / \
-      ChemicalFormula(element).weight / data.ds.units.physical_constants.amu_cgs
-        
+    amu_cgs = data.ds.units.physical_constants.amu_cgs
+    if element == "El":
+        muinv = 1.0*_primordial_mass_fraction["H"] / \
+          ChemicalFormula("H").weight / amu_cgs
+        muinv += 2.0*_primordial_mass_fraction["He"] / \
+          ChemicalFormula("He").weight / amu_cgs
+    else:
+        muinv = _primordial_mass_fraction[element] / \
+          ChemicalFormula(element).weight / amu_cgs
+    return data[ftype, "density"] * muinv
+
+
 def _nuclei_density(field, data):
     ftype = field.name[0]
     element = field.name[1][:field.name[1].find("_")]
@@ -203,6 +213,7 @@ def _get_element_multiple(compound, element):
     if loc == len(my_split) - 1 or not my_split[loc + 1].isdigit():
         return 1
     return int(my_split[loc + 1])
+
 
 @register_field_plugin
 def setup_species_fields(registry, ftype = "gas", slice_info = None):
