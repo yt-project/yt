@@ -6,6 +6,9 @@ from yt.units.yt_array import ustack
 from yt.fields.derived_field import \
     ValidateParameter
 
+from .field_exceptions import \
+    NeedsParameter
+
 from .field_plugin_registry import \
     register_field_plugin
 
@@ -14,9 +17,9 @@ from yt.utilities.math_utils import \
     get_sph_phi_component
 
 @register_field_plugin
-def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
+def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     ds = registry.ds
-    
+
     unit_system = ds.unit_system
 
     axis_names = registry.ds.coordinates.axis_order
@@ -46,6 +49,17 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
                        function=_magnetic_field_strength,
                        validators=[ValidateParameter('bulk_magnetic_field')],
                        units=u)
+
+    def _magnetic_field_los(field, data):
+        mag_axis = data.get_field_parameter("axis")
+        if mag_axis > 2:
+            raise NeedsParameter(["axis"])
+        return data[ftype, "magnetic_field_%s" % ({0: "x", 1: "y", 2: "z"}[mag_axis])]
+
+    registry.add_field((ftype, "magnetic_field_los"), sampling_type="cell",
+                       function=_magnetic_field_los, units=u,
+                       validators=[
+                           ValidateParameter("axis", {'axis': [0, 1, 2]})])
 
     def _magnetic_energy(field, data):
         B = data[ftype,"magnetic_field_strength"]
@@ -109,6 +123,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
             return data[ftype,"magnetic_field_theta"] - bm[ax]
 
     elif registry.ds.geometry == "spherical":
+
         def _magnetic_field_poloidal(field, data):
             ax = axis_names.find('theta')
             bm = data.get_field_parameter("bulk_magnetic_field")
