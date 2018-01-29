@@ -78,6 +78,8 @@ class FLASHFieldInfo(FieldInfoContainer):
         ("particle_velz", ("code_length/code_time", ["particle_velocity_z"], None)),
         ("particle_tag", ("", ["particle_index"], None)),
         ("particle_mass", ("code_mass", ["particle_mass"], None)),
+        ("particle_gpot", ("code_length**2/code_time**2",
+                           ["particle_gravitational_potential"], None)),
     )
 
     def setup_fluid_fields(self):
