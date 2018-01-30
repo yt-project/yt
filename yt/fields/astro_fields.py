@@ -7,6 +7,10 @@ from .field_exceptions import \
 from .field_plugin_registry import \
     register_field_plugin
 
+from yt.funcs import \
+    iterable
+
+
 @register_field_plugin
 def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     unit_system = registry.ds.unit_system
@@ -119,9 +123,15 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     def _velocity_los(field, data):
         vel_axis = data.get_field_parameter("axis")
-        if vel_axis > 2:
+        if iterable(vel_axis):
+            ret = data[ftype, "velocity_x"]*vel_axis[0] + \
+                  data[ftype, "velocity_y"]*vel_axis[1] + \
+                  data[ftype, "velocity_z"]*vel_axis[2]
+        elif vel_axis > 2:
             raise NeedsParameter(["axis"])
-        return data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
+        else:
+            ret = data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
+        return ret
 
     registry.add_field((ftype, "velocity_los"), sampling_type="cell",
                        function=_velocity_los,

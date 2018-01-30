@@ -8,6 +8,9 @@ from yt.utilities.physical_constants import \
 from yt.fields.derived_field import \
     ValidateParameter
 
+from yt.funcs import \
+    iterable
+
 from .field_exceptions import \
     NeedsParameter
 
@@ -54,9 +57,15 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     def _magnetic_field_los(field, data):
         mag_axis = data.get_field_parameter("axis")
-        if mag_axis > 2:
+        if iterable(mag_axis):
+            ret = data[ftype, "magnetic_field_x"]*mag_axis[0] + \
+                  data[ftype, "magnetic_field_y"]*mag_axis[1] + \
+                  data[ftype, "magnetic_field_z"]*mag_axis[2]
+        elif mag_axis > 2:
             raise NeedsParameter(["axis"])
-        return data[ftype, "magnetic_field_%s" % ({0: "x", 1: "y", 2: "z"}[mag_axis])]
+        else:
+            ret = data[ftype, "magnetic_field_%s" % ({0: "x", 1: "y", 2: "z"}[mag_axis])]
+        return ret
 
     registry.add_field((ftype, "magnetic_field_los"), sampling_type="cell",
                        function=_magnetic_field_los, units=u,
