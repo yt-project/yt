@@ -99,8 +99,13 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             pos = np.empty((halos.size, 3), dtype="float64")
             # These positions are in Mpc, *not* "code" units
             pos = data_file.ds.arr(pos, "code_length")
-            dx = np.finfo(halos['particle_position_x'].dtype).eps
-            dx = 2.0*self.ds.quan(dx, "code_length")
+            eps = np.finfo(halos['particle_position_x'].dtype).eps
+            # Make sure eps is not larger than the domain itself
+            if(eps>np.max(abs(self.ds.domain_right_edge))):
+                eps = eps*self.ds.domain_right_edge
+                dx = eps
+	    else:
+                dx = 2.0*self.ds.quan(dx, "code_length")
             pos[:,0] = halos["particle_position_x"]
             pos[:,1] = halos["particle_position_y"]
             pos[:,2] = halos["particle_position_z"]
@@ -130,3 +135,4 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         fields = [("halos", f) for f in self._halo_dt.fields if
                   "padding" not in f]
         return fields, {}
+
