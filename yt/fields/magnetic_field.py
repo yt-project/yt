@@ -2,6 +2,8 @@ import numpy as np
 
 from yt.units import dimensions
 from yt.units.yt_array import ustack
+from yt.utilities.physical_constants import \
+    eps_0, mu_0, qp, clight, me
 
 from yt.fields.derived_field import \
     ValidateParameter
@@ -173,6 +175,21 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
                        sampling_type="local",
                        function=_mach_alfven,
                        units="dimensionless")
+
+    if dimensions.current_mks in u.dimensions.free_symbols:
+        rm_scale = qp.to("C", "SI")**3/(4.0*np.pi*eps_0)
+    else:
+        rm_scale = qp**3/clight
+    rm_scale *= registry.ds.quan(1.0, "rad")/(2.0*np.pi*me**2*clight**3)
+    rm_units = registry.ds.quan(1.0, "rad/m**2").units/unit_system["length"]
+
+    def _rotation_measure(field, data):
+        return rm_scale*data[ftype, "magnetic_field_los"]*data[ftype, "El_nuclei_density"]
+
+    registry.add_field((ftype, "rotation_measure"), sampling_type="cell",
+                       function=_rotation_measure, units=rm_units,
+                       validators=[
+                           ValidateParameter("axis", {'axis': [0, 1, 2]})])
 
 def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     r"""
