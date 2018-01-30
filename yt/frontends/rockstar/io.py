@@ -103,7 +103,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             # Make sure eps is not larger than the domain itself
             if(eps>np.max(abs(self.ds.domain_right_edge))):
                 eps = eps*self.ds.domain_right_edge
-                dx = eps
+                dx = np.abs(eps).max()
 	    else:
                 dx = 2.0*self.ds.quan(dx, "code_length")
             pos[:,0] = halos["particle_position_x"]
