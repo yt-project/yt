@@ -104,7 +104,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             if(eps>np.max(abs(self.ds.domain_right_edge))):
                 eps = eps*self.ds.domain_right_edge
                 dx = np.abs(eps).max()
-	    else:
+            else:
                 dx = 2.0*self.ds.quan(dx, "code_length")
             pos[:,0] = halos["particle_position_x"]
             pos[:,1] = halos["particle_position_y"]
@@ -135,4 +135,3 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         fields = [("halos", f) for f in self._halo_dt.fields if
                   "padding" not in f]
         return fields, {}
-
