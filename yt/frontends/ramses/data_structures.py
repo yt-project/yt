@@ -118,17 +118,19 @@ class RAMSESDomainFile(object):
     def buffered_amr_file(self):
         if hasattr(self, '_buffered_amr_file'):
             return self._buffered_amr_file
-        else:
-            f = IO()
-            with open(self.amr_fn, "rb") as ff:
-                f.write(ff.read())
-            self._buffered_amr_file = f
-            return f
+        f = IO()
+        with open(self.amr_fn, "rb") as ff:
+            f.write(ff.read())
+        self._buffered_amr_file = f
+
+        f.seek(0)
+
+        return f
 
     def _read_amr_header(self):
         hvals = {}
         f = self.buffered_amr_file
-        # f = open(self.amr_fn, "rb")
+
         f.seek(0)
 
         for header in ramses_header(hvals):
