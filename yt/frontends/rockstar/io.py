@@ -101,11 +101,8 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             pos = data_file.ds.arr(pos, "code_length")
             eps = np.finfo(halos['particle_position_x'].dtype).eps
             # Make sure eps is not larger than the domain itself
-            if(eps>np.max(abs(self.ds.domain_right_edge))):
-                eps = eps*self.ds.domain_right_edge
-                dx = np.abs(eps).max()
-            else:
-                dx = 2.0*self.ds.quan(eps, "code_length")
+            eps = eps*self.ds.domain_right_edge
+            dx = np.abs(eps).max()
             pos[:,0] = halos["particle_position_x"]
             pos[:,1] = halos["particle_position_y"]
             pos[:,2] = halos["particle_position_z"]
