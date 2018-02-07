@@ -35,8 +35,8 @@ cdef extern from "platform_dep.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 
-from cython.parallel import prange, parallel, threadid
-cimport openmp 
+from cython.parallel import prange
+from cpython.exc cimport PyErr_CheckSignals
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1034,7 +1034,8 @@ def gravitational_binding_energy(
     cdef np.float64_t this_potential
 
     n_q = mass.size
-    print("Calculating potential for %d cells using %d threads" % (n_q,num_threads))
+    pbar = get_pbar("Calculating potential for %d cells with %d thread(s)" % (n_q,num_threads),
+        n_q)
 
     # using reversed iterator in order to make use of guided scheduling 
     # (inner loop is getting more and more expensive)
@@ -1059,6 +1060,12 @@ def gravitational_binding_energy(
         total_potential += this_potential
         if truncate and this_potential / kinetic > 1.:
             break
+        with gil:
+            PyErr_CheckSignals()
+            # this call is not thread safe, but it gives a reasonable approximation
+            pbar.update()
+    
+    pbar.finish()
     return total_potential
 
 # The OnceIndirect code is from:
