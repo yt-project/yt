@@ -35,6 +35,9 @@ cdef extern from "platform_dep.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 
+from cython.parallel import prange, parallel, threadid
+cimport openmp 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -1021,40 +1024,41 @@ def gravitational_binding_energy(
         np.float64_t[:] y,
         np.float64_t[:] z,
         int truncate,
-        np.float64_t kinetic):
+        np.float64_t kinetic,
+        int num_threads = 0):
 
     cdef int q_outer, q_inner, n_q, i
     cdef np.float64_t mass_o, x_o, y_o, z_o
     cdef np.float64_t mass_i, x_i, y_i, z_i
-    cdef np.float64_t this_potential, total_potential
-    total_potential = 0.
+    cdef np.float64_t total_potential = 0.
+    cdef np.float64_t this_potential
 
-    i = 0
     n_q = mass.size
-    pbar = get_pbar("Calculating potential for %d cells" % n_q,
-                    0.5 * (n_q * n_q - n_q))
-    for q_outer in range(n_q - 1):
+    print("Calculating potential for %d cells using %d threads" % (n_q,num_threads))
+
+    # using reversed iterator in order to make use of guided scheduling 
+    # (inner loop is getting more and more expensive)
+    for q_outer in prange(n_q - 1,-1,-1,
+        nogil=True,schedule='guided',num_threads=num_threads):
         this_potential = 0.
+
         mass_o = mass[q_outer]
         x_o = x[q_outer]
         y_o = y[q_outer]
         z_o = z[q_outer]
-        for q_inner in range(q_outer + 1, n_q):
+        for q_inner in range(q_outer + 1, n_q): 
             mass_i = mass[q_inner]
             x_i = x[q_inner]
             y_i = y[q_inner]
             z_i = z[q_inner]
-            this_potential += mass_o * mass_i / \
+            # not using += operator so that variable is not automatically reduced
+            this_potential = this_potential + mass_o * mass_i / \
               sqrt((x_i - x_o) * (x_i - x_o) +
                    (y_i - y_o) * (y_i - y_o) +
                    (z_i - z_o) * (z_i - z_o))
-        i += n_q - q_outer
-        pbar.update(i)
         total_potential += this_potential
-        if truncate and total_potential / kinetic > 1.:
+        if truncate and this_potential / kinetic > 1.:
             break
-    pbar.finish()
-
     return total_potential
 
 # The OnceIndirect code is from:
