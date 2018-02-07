@@ -23,6 +23,10 @@ import re
 
 from functools import wraps
 
+from yt.analysis_modules.level_sets.clump_handling import \
+    Clump
+from yt.frontends.ytdata.data_structures import \
+    YTClumpContainer
 from yt.funcs import \
     mylog, iterable
 from yt.extern.six import add_metaclass
@@ -946,14 +950,23 @@ class ClumpContourCallback(PlotCallback):
         for i,clump in enumerate(reversed(self.clumps)):
             mylog.info("Pixelizing contour %s", i)
 
-            xf_copy = clump[xf].copy().in_units("code_length")
-            yf_copy = clump[yf].copy().in_units("code_length")
+            if isinstance(clump, Clump):
+                ftype = "index"
+            elif isinstance(clump, YTClumpContainer):
+                ftype = "grid"
+            else:
+                raise RuntimeError(
+                    "Unknown field type for object of type %s." %
+                    type(clump))
+
+            xf_copy = clump[ftype, xf].copy().in_units("code_length")
+            yf_copy = clump[ftype, yf].copy().in_units("code_length")
 
             temp = np.zeros((ny, nx), dtype="f8")
             pixelize_cartesian(temp, xf_copy, yf_copy,
-                                 clump[dxf].in_units("code_length")/2.0,
-                                 clump[dyf].in_units("code_length")/2.0,
-                                 clump[dxf].d*0.0+i+1, # inits inside Pixelize
+                                 clump[ftype, dxf].in_units("code_length")/2.0,
+                                 clump[ftype, dyf].in_units("code_length")/2.0,
+                                 clump[ftype, dxf].d*0.0+i+1, # inits inside Pixelize
                              (x0, x1, y0, y1), 0)
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, np.unique(buff),
