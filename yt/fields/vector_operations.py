@@ -240,10 +240,8 @@ def create_vector_fields(registry, basename, field_units,
                        units=div_units)
 
     def _tangential_over_magnitude(field, data):
-        tr = data[ftype, "tangential_%s" % basename] / \
-             np.sqrt(data[ftype, "%s_spherical_radius" % basename]**2.0 +
-                     data[ftype, "%s_spherical_theta" % basename]**2.0 +
-                     data[ftype, "%s_spherical_phi" % basename]**2.0)
+        tr = (data[ftype, "tangential_%s" % basename] /
+              data[ftype, '%s_magnitude' % basename])
         return np.abs(tr)
     registry.add_field((ftype, "tangential_over_%s_magnitude" % basename), sampling_type="cell", 
              function=_tangential_over_magnitude,
