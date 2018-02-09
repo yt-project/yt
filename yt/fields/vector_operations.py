@@ -209,14 +209,15 @@ def create_vector_fields(registry, basename, field_units,
 
     def _divergence(field, data):
         ds = div_fac * just_one(data["index", "dx"])
-        f  = data[xn][sl_right,1:-1,1:-1]/ds
-        f -= data[xn][sl_left ,1:-1,1:-1]/ds
+        bv = data.get_field_parameter('bulk_%s' % basename)
+        f  = (data[xn][sl_right,1:-1,1:-1] - bv[0])/ds
+        f -= (data[xn][sl_left ,1:-1,1:-1] - bv[0])/ds
         ds = div_fac * just_one(data["index", "dy"])
-        f += data[yn][1:-1,sl_right,1:-1]/ds
-        f -= data[yn][1:-1,sl_left ,1:-1]/ds
+        f += (data[yn][1:-1,sl_right,1:-1] - bv[1])/ds
+        f -= (data[yn][1:-1,sl_left ,1:-1] - bv[1])/ds
         ds = div_fac * just_one(data["index", "dz"])
-        f += data[zn][1:-1,1:-1,sl_right]/ds
-        f -= data[zn][1:-1,1:-1,sl_left ]/ds
+        f += (data[zn][1:-1,1:-1,sl_right] - bv[2])/ds
+        f -= (data[zn][1:-1,1:-1,sl_left ] - bv[2])/ds
         new_field = data.ds.arr(np.zeros(data[xn].shape, dtype=np.float64),
                                 f.units)        
         new_field[1:-1,1:-1,1:-1] = f
@@ -231,7 +232,8 @@ def create_vector_fields(registry, basename, field_units,
     registry.add_field((ftype, "%s_divergence" % basename), sampling_type="cell", 
                        function=_divergence,
                        units=div_units,
-                       validators=[ValidateSpatial(1)])
+                       validators=[ValidateSpatial(1),
+                                   ValidateParameter('bulk_%s' % basename)])
     
     registry.add_field((ftype, "%s_divergence_absolute" % basename), sampling_type="cell", 
                        function=_divergence_abs,
