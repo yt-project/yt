@@ -37,10 +37,15 @@ def create_magnitude_field(registry, basename, field_units,
 
     def _magnitude(field, data):
         fn = field_components[0]
-        mag = data[fn] * data[fn]
+        d = data[fn]
+        if data.has_field_parameter("bulk_%s" % basename):
+            bulk = data.get_field_parameter("bulk_%s" % basename)
+        else:
+            bulk = [0, 0, 0]*d.unit_quantity
+        mag = (d - bulk[0])**2
         for idim in range(1, registry.ds.dimensionality):
             fn = field_components[idim]
-            mag += data[fn] * data[fn]
+            mag += (data[fn] - bulk[idim])**2
         return np.sqrt(mag)
 
     registry.add_field((ftype, "%s_magnitude" % basename), sampling_type="cell", 
@@ -89,8 +94,9 @@ def create_vector_fields(registry, basename, field_units,
     if registry.ds.dimensionality < 2:
         yn = ("index", "zeros")
 
-    create_magnitude_field(registry, basename, field_units,
-                           ftype=ftype, slice_info=slice_info)
+    create_magnitude_field(
+        registry, basename, field_units, ftype=ftype, slice_info=slice_info,
+        validators=[ValidateParameter('bulk_%s' % basename)])
 
     def _spherical_radius_component(field, data):
         """The spherical radius component of the vector field
