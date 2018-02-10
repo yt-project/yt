@@ -271,7 +271,7 @@ class ParallelDummy(type):
             if attrname.startswith("_") or attrname in skip:
                 if attrname not in extra: continue
             attr = getattr(cls, attrname)
-            if isinstance(attr, types.MethodType):
+            if callable(attr):
                 setattr(cls, attrname, parallel_simple_proxy(attr))
 
 def parallel_passthrough(func):
