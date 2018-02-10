@@ -43,7 +43,8 @@ class UnitfulHDU(object):
 
 class FITSImageData(object):
 
-    def __init__(self, data, fields=None, units=None, width=None, wcs=None):
+    def __init__(self, data, fields=None, units=None, width=None, img_ctr=None,
+                 wcs=None):
         r""" Initialize a FITSImageData object.
 
         FITSImageData contains a collection of FITS ImageHDU instances and
@@ -67,6 +68,10 @@ class FITSImageData(object):
         width : float or YTQuantity
             The width of the image. Either a single value or iterable of values.
             If a float, assumed to be in *units*. Only used if this information 
+            is not already provided by *data*.
+        img_ctr : array_like or YTArray
+            The center coordinates of the image. If a list or NumPy array, 
+            it is assumed to be in *units*. Only used if this information 
             is not already provided by *data*.
         wcs : `astropy.wcs.WCS` instance, optional
             Supply an AstroPy WCS instance. Will override automatic WCS
@@ -102,6 +107,8 @@ class FITSImageData(object):
             units = "cm"
         if width is None:
             width = 1.0
+        if img_ctr is None:
+            img_ctr = np.array([0.0, 0.0, 0.0])
 
         exclude_fields = ['x','y','z','px','py','pz',
                           'pdx','pdy','pdz','weight_field']
@@ -194,15 +201,15 @@ class FITSImageData(object):
                 cdelt = img_data.dds.to(units).v
                 center = 0.5*(img_data.left_edge+img_data.right_edge).to(units).v
             else:
-                # If img_data is just an array, we assume the center is the 
-                # origin and use the image width to determine the cell widths
+                # If img_data is just an array we use the width and img_ctr 
+                # parameters to determine the cell widths
                 if not iterable(width):
                     width = [width]*self.dimensionality
                 if isinstance(width[0], YTQuantity):
                     cdelt = [wh.to(units).v/n for wh, n in zip(width, self.shape)]
                 else:
                     cdelt = [float(wh)/n for wh, n in zip(width, self.shape)]
-                center = [0.0]*self.dimensionality
+                center = img_ctr[:self.dimensionality]
             w.wcs.crpix = 0.5*(np.array(self.shape)+1)
             w.wcs.crval = center
             w.wcs.cdelt = cdelt
