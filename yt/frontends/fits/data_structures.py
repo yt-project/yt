@@ -40,7 +40,7 @@ from yt.utilities.file_handler import \
 from yt.utilities.io_handler import \
     io_registry
 from .fields import FITSFieldInfo, \
-    WCSFITSFieldInfo
+    WCSFITSFieldInfo, YTFITSFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.funcs import issue_deprecation_warning
@@ -392,39 +392,21 @@ class FITSDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         """
-        Generates the conversion to various physical _units based on the parameter file
+        Generates the conversion to various physical _units based on the
+        parameter file
         """
-        default_length_units = [u for u,v in default_unit_symbol_lut.items()
-                                if str(v[1]) == "(length)"]
-        more_length_units = []
-        for unit in default_length_units:
-            if unit in prefixable_units:
-                more_length_units += [prefix+unit for prefix in unit_prefixes]
-        default_length_units += more_length_units
-        file_units = []
-        cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
-        for unit in (_.to_string() for _ in cunits):
-            if unit in default_length_units:
-                file_units.append(unit)
-        if len(set(file_units)) == 1:
-            length_factor = self.wcs.wcs.cdelt[0]
-            length_unit = str(file_units[0])
-            mylog.info("Found length units of %s." % (length_unit))
-        else:
+        if "length_unit" not in self.units_override:
             self.no_cgs_equiv_length = True
-            mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
-            length_factor = 1.0
-            length_unit = "cm"
-        setdefaultattr(self, 'length_unit', self.quan(length_factor,length_unit))
-        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
-        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
-        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm/s"))
-        if "beam_size" in self.specified_parameters:
-            beam_size = self.specified_parameters["beam_size"]
-            beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value
-        else:
-            beam_size = 1.0
-        self.unit_registry.add("beam", beam_size, dimensions=dimensions.solid_angle)
+        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
+            # We set these to cgs for now, but they may have been overridden
+            if getattr(self, unit+'_unit', None) is not None:
+                continue
+            mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
+            setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
+        self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
+                                     (self.time_unit**2 * self.length_unit))
+        self.magnetic_unit.convert_to_units("gauss")
+        self.velocity_unit = self.length_unit / self.time_unit
 
     def _parse_parameter_file(self):
 
@@ -453,16 +435,7 @@ class FITSDataset(Dataset):
         if self.dimensionality == 2:
             self.domain_dimensions = np.append(self.domain_dimensions,
                                                [int(1)])
-
-        domain_left_edge = np.array([0.5]*3)
-        domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
-
-        if self.dimensionality == 2:
-            domain_left_edge[-1] = 0.5
-            domain_right_edge[-1] = 1.5
-
-        self.domain_left_edge = domain_left_edge
-        self.domain_right_edge = domain_right_edge
+        self._determine_bbox()
 
         # Get the simulation time
         try:
@@ -513,6 +486,17 @@ class FITSDataset(Dataset):
         else:
             self.wcs = wcs
 
+    def _determine_bbox(self):
+        domain_left_edge = np.array([0.5]*3)
+        domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
+
+        if self.dimensionality == 2:
+            domain_left_edge[-1] = 0.5
+            domain_right_edge[-1] = 1.5
+
+        self.domain_left_edge = domain_left_edge
+        self.domain_right_edge = domain_right_edge
+
     def _determine_axes(self):
         self.lat_axis = 1
         self.lon_axis = 0
@@ -548,6 +532,44 @@ def find_axes(axis_names, prefixes):
         y = np_char.startswith(axis_names, p)
         x += np.any(y)
     return x
+
+class YTFITSDataset(FITSDataset):
+    _field_info_class = YTFITSFieldInfo
+
+    def _set_code_unit_attributes(self):
+        """
+        Generates the conversion to various physical _units based on the parameter file
+        """
+        length_factor = self.wcs.wcs.cdelt[0]
+        length_unit = str(self.wcs.wcs.cunit[0])
+        mylog.info("Found length units of %s." % length_unit)
+        setdefaultattr(self, 'length_unit', self.quan(length_factor,length_unit))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'velocity_unit', self.length_unit/self.time_unit)
+
+    def _determine_bbox(self):
+        dx = self.arr(self.wcs.wcs.cdelt, str(self.wcs.wcs.cunit[0])).v
+        domain_left_edge = np.zeros(3)
+        domain_left_edge[:self.dimensionality] = self.wcs.wcs.crval/dx-(self.wcs.wcs.crpix-0.5)
+        domain_right_edge = domain_left_edge + self.domain_dimensions.astype('float64')
+
+        if self.dimensionality == 2:
+            domain_left_edge[-1] = 0.5
+            domain_right_edge[-1] = 1.5
+
+        self.domain_left_edge = domain_left_edge
+        self.domain_right_edge = domain_right_edge
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        fileh = check_fits_valid(args)
+        if fileh is None:
+            return False
+        else:
+            isyt = fileh[0].header["WCSNAME"].strip() == "yt"
+            fileh.close()
+            return isyt
 
 class SkyDataFITSDataset(FITSDataset):
     _field_info_class = WCSFITSFieldInfo
@@ -602,6 +624,10 @@ class SkyDataFITSDataset(FITSDataset):
         pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
         pixel_dims = pixel_area.units.dimensions
         self.unit_registry.add("pixel", float(pixel_area.value), dimensions=pixel_dims)
+        if "beam_size" in self.specified_parameters:
+            beam_size = self.specified_parameters["beam_size"]
+            beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value
+            self.unit_registry.add("beam", beam_size, dimensions=dimensions.solid_angle)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
