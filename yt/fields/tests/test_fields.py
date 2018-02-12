@@ -124,8 +124,15 @@ def get_base_ds(nprocs):
         fields.append(("gas", fname))
         units.append(code_units)
 
+    pfields, punits = [], []
+
+    for fname, (code_units, aliases, dn) in StreamFieldInfo.known_particle_fields:
+        pfields.append(fname)
+        punits.append(code_units)
+
     ds = fake_random_ds(
-        4, fields=fields, units=units, particles=20, nprocs=nprocs)
+        4, fields=fields, units=units, particles=20, nprocs=nprocs,
+        particle_fields=pfields, particle_field_units=punits)
     ds.parameters["HydroMethod"] = "streaming"
     ds.parameters["EOSType"] = 1.0
     ds.parameters["EOSSoundSpeed"] = 1.0
@@ -159,6 +166,9 @@ def test_all_fields():
             continue
         if field[1].find("vertex") > -1:
             # don't test the vertex fields for now
+            continue
+        if field[1].find('smoothed') > -1:
+            # smoothed fields aren't implemented for grid data
             continue
         if field in ds.field_list:
             # Don't know how to test this.  We need some way of having fields
