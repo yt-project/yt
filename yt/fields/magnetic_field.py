@@ -19,6 +19,7 @@ from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.yt_array import ustack
 from yt.utilities.physical_constants import mu_0
+from yt.funcs import handle_mks_cgs
 
 from yt.fields.derived_field import \
     ValidateParameter
@@ -44,8 +45,9 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
     u = registry[ftype,"magnetic_field_%s" % axis_names[0]].units
 
-    def _magnetic_field_strength(field,data):
-        bm = data.get_field_parameter('bulk_magnetic_field')
+    def _magnetic_field_strength(field, data):
+        bm = handle_mks_cgs(
+            data.get_field_parameter('bulk_magnetic_field'), field.units)
 
         xm = "magnetic_field_%s" % axis_names[0]
         ym = "magnetic_field_%s" % axis_names[1]
@@ -88,7 +90,8 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     if registry.ds.geometry == "cartesian":
         def _magnetic_field_poloidal(field,data):
             normal = data.get_field_parameter("normal")
-            bm = data.get_field_parameter("bulk_magnetic_field")
+            bm = handle_mks_cgs(
+                data.get_field_parameter("bulk_magnetic_field"), field.units)
 
             Bfields = ustack([
                 data[ftype,'magnetic_field_x'] - bm[0],
@@ -103,7 +106,8 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
         def _magnetic_field_toroidal(field,data):
             normal = data.get_field_parameter("normal")
-            bm = data.get_field_parameter("bulk_magnetic_field")
+            bm = handle_mks_cgs(
+                data.get_field_parameter("bulk_magnetic_field"), field.units)
 
             Bfields = ustack([
                 data[ftype,'magnetic_field_x'] - bm[0],
@@ -116,7 +120,8 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
     elif registry.ds.geometry == "cylindrical":
         def _magnetic_field_poloidal(field, data):
-            bm = data.get_field_parameter("bulk_magnetic_field")
+            bm = handle_mks_cgs(
+                data.get_field_parameter("bulk_magnetic_field"), field.units)
             r = data["index", "r"]
             z = data["index", "z"]
             d = np.sqrt(r*r+z*z)
@@ -127,18 +132,21 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
         def _magnetic_field_toroidal(field, data):
             ax = axis_names.find('theta')
-            bm = data.get_field_parameter("bulk_magnetic_field")
+            bm = handle_mks_cgs(
+                data.get_field_parameter("bulk_magnetic_field"), field.units)
             return data[ftype,"magnetic_field_theta"] - bm[ax]
 
     elif registry.ds.geometry == "spherical":
         def _magnetic_field_poloidal(field, data):
             ax = axis_names.find('theta')
-            bm = data.get_field_parameter("bulk_magnetic_field")
+            bm = handle_mks_cgs(
+                data.get_field_parameter("bulk_magnetic_field"), field.units)
             return data[ftype,"magnetic_field_theta"] - bm[ax]
 
         def _magnetic_field_toroidal(field, data):
             ax = axis_names.find('phi')
-            bm = data.get_field_parameter("bulk_magnetic_field")
+            bm = handle_mks_cgs(
+                data.get_field_parameter("bulk_magnetic_field"), field.units)
             return data[ftype,"magnetic_field_phi"] - bm[ax]
 
     else:

@@ -25,7 +25,9 @@ from yt.utilities.math_utils import \
     get_cyl_z_component, \
     get_cyl_theta_component
 
-from yt.funcs import just_one
+from yt.funcs import \
+    just_one, \
+    handle_mks_cgs
 
 from yt.utilities.lib.misc_utilities import obtain_rv_vec
 
@@ -188,7 +190,9 @@ def create_vector_fields(registry, basename, field_units,
     def _cp_vectors(ax):
         def _cp_val(field, data):
             vec = data.get_field_parameter("cp_%s_vec" % (ax))
-            bv = data.get_field_parameter("bulk_%s" % basename, None)
+            bv = handle_mks_cgs(
+                data.get_field_parameter("bulk_%s" % basename, None),
+                data.ds.field_info[xn].units)
             if bv is None:
                 bv = data.ds.arr(np.zeros(3), data[xn].units)
             tr  = (data[xn] - bv[0]) * vec.d[0]
@@ -209,7 +213,9 @@ def create_vector_fields(registry, basename, field_units,
 
     def _divergence(field, data):
         ds = div_fac * just_one(data["index", "dx"])
-        bv = data.get_field_parameter('bulk_%s' % basename)
+        bv = handle_mks_cgs(
+            data.get_field_parameter('bulk_%s' % basename),
+            data.ds.field_info[xn].units)
         f  = (data[xn][sl_right,1:-1,1:-1] - bv[0])/ds
         f -= (data[xn][sl_left ,1:-1,1:-1] - bv[0])/ds
         ds = div_fac * just_one(data["index", "dy"])

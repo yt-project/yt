@@ -39,7 +39,9 @@ from numbers import Number as numeric_type
 
 from yt.extern.six.moves import urllib
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.exceptions import YTInvalidWidthError
+from yt.utilities.exceptions import \
+    YTInvalidWidthError, \
+    YTEquivalentDimsError
 from yt.extern.tqdm import tqdm
 from yt.units.yt_array import YTArray, YTQuantity
 from functools import wraps
@@ -1149,3 +1151,10 @@ def obj_length(v):
         # If something isn't iterable, we return 0 
         # to signify zero length (aka a scalar).
         return 0
+
+def handle_mks_cgs(values, field_units):
+    try:
+        values = values.to(field_units)
+    except YTEquivalentDimsError as e:
+        values = values.to_equivalent(e.new_units, e.base)
+    return values
