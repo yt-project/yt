@@ -429,51 +429,6 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
                                domain_left_edge, domain_right_edge)
     return ind
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def obtain_rv_vec(data, ftype="gas"):
-    # This is just to let the pointers exist and whatnot.  We can't cdef them
-    # inside conditionals.
-    cdef np.ndarray[np.float64_t, ndim=1] vxf
-    cdef np.ndarray[np.float64_t, ndim=1] vyf
-    cdef np.ndarray[np.float64_t, ndim=1] vzf
-    cdef np.ndarray[np.float64_t, ndim=2] rvf
-    cdef np.ndarray[np.float64_t, ndim=3] vxg
-    cdef np.ndarray[np.float64_t, ndim=3] vyg
-    cdef np.ndarray[np.float64_t, ndim=3] vzg
-    cdef np.ndarray[np.float64_t, ndim=4] rvg
-    cdef np.float64_t bv[3]
-    cdef int i, j, k
-    bulk_velocity = data.get_field_parameter("bulk_velocity")
-    if bulk_velocity == None:
-        bulk_velocity = np.zeros(3)
-    bv[0] = bulk_velocity[0]; bv[1] = bulk_velocity[1]; bv[2] = bulk_velocity[2]
-    if len(data[ftype, 'velocity_x'].shape) == 1:
-        # One dimensional data
-        vxf = data[ftype, 'velocity_x'].astype("float64")
-        vyf = data[ftype, 'velocity_y'].astype("float64")
-        vzf = data[ftype, 'velocity_z'].astype("float64")
-        rvf = np.empty((3, vxf.shape[0]), 'float64')
-        for i in range(vxf.shape[0]):
-            rvf[0, i] = vxf[i] - bv[0]
-            rvf[1, i] = vyf[i] - bv[1]
-            rvf[2, i] = vzf[i] - bv[2]
-        return rvf
-    else:
-        # Three dimensional data
-        vxg = data[ftype, 'velocity_x'].astype("float64")
-        vyg = data[ftype, 'velocity_y'].astype("float64")
-        vzg = data[ftype, 'velocity_z'].astype("float64")
-        rvg = np.empty((3, vxg.shape[0], vxg.shape[1], vxg.shape[2]), 'float64')
-        for i in range(vxg.shape[0]):
-            for j in range(vxg.shape[1]):
-                for k in range(vxg.shape[2]):
-                    rvg[0,i,j,k] = vxg[i,j,k] - bv[0]
-                    rvg[1,i,j,k] = vyg[i,j,k] - bv[1]
-                    rvg[2,i,j,k] = vzg[i,j,k] - bv[2]
-        return rvg
-
 cdef struct PointSet
 cdef struct PointSet:
     int count

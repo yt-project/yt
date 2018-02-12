@@ -26,7 +26,7 @@ from .field_plugin_registry import \
 from .vector_operations import \
     create_magnitude_field
 
-from yt.utilities.lib.geometry_utils import \
+from yt.utilities.lib.misc_utilities import \
     obtain_rvec, obtain_rv_vec
 
 def obtain_velocities(data, ftype="gas"):

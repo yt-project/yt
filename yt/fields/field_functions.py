@@ -15,7 +15,7 @@ General field-related functions.
 
 import numpy as np
 
-from yt.utilities.lib.geometry_utils import \
+from yt.utilities.lib.misc_utilities import \
     obtain_rvec
 
 def get_radius(data, field_prefix, ftype):
