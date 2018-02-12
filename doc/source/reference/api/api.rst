@@ -171,6 +171,7 @@ These classes and functions enable yt's symbolic unit handling system.
    ~yt.units.yt_array.udot
    ~yt.units.yt_array.uvstack
    ~yt.units.yt_array.uhstack
+   ~yt.units.yt_array.ustack
 
 Frontends
 ---------
