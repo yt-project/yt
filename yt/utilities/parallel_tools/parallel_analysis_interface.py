@@ -21,7 +21,6 @@ import numpy as np
 import sys
 import os
 import traceback
-import types
 from functools import wraps
 
 from yt.funcs import \
