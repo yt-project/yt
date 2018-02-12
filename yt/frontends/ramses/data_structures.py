@@ -20,7 +20,7 @@ import numpy as np
 import stat
 import weakref
 
-from yt.extern.six import string_types, PY3
+from yt.extern.six import string_types
 from yt.funcs import \
     mylog, \
     setdefaultattr
