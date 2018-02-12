@@ -471,7 +471,7 @@ def test_contour_callback():
         p = SlicePlot(ds, "x", "density")
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
-            plot_args={'lw':2.0}, label=True,
+            plot_args={'linewidths':2.0}, label=True,
             text_args={'text-size':'x-large'})
         p.save(prefix)
 
@@ -479,7 +479,7 @@ def test_contour_callback():
         s2 = ds.slice(0, 0.2)
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
-            plot_args={'lw':2.0}, label=True,
+            plot_args={'linewidths':2.0}, label=True,
             text_args={'text-size':'x-large'},
             data_source=s2)
         p.save(prefix)
@@ -503,7 +503,7 @@ def test_contour_callback():
         p = SlicePlot(ds, "r", "density")
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
-            plot_args={'lw':2.0}, label=True,
+            plot_args={'linewidths':2.0}, label=True,
             text_args={'text-size':'x-large'})
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
