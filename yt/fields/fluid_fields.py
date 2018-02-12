@@ -18,7 +18,8 @@ import numpy as np
 from yt.units.unit_object import Unit
 
 from .derived_field import \
-    ValidateSpatial
+    ValidateSpatial, \
+    ValidateParameter
 
 from .field_plugin_registry import \
     register_field_plugin
@@ -79,12 +80,14 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
              units = "")
 
     def _kin_energy(field, data):
-        return 0.5*data[ftype, "density"] * ( data[ftype, "velocity_x"]**2.0
-                                              + data[ftype, "velocity_y"]**2.0
-                                              + data[ftype, "velocity_z"]**2.0 )
+        bv = data.get_field_parameter('bulk_velocity')
+        v2 = ((data[ftype, "velocity_x"] - bv[0])**2.0 +
+              (data[ftype, "velocity_y"] - bv[1])**2.0 +
+              (data[ftype, "velocity_z"] - bv[2])**2.0)
+        return 0.5*data[ftype, "density"] * v2
     registry.add_field((ftype, "kinetic_energy"), sampling_type="cell", 
-                       function = _kin_energy,
-                       units = unit_system["pressure"])
+                       function=_kin_energy, units=unit_system["pressure"],
+                       validators=[ValidateParameter('bulk_velocity')])
 
     def _mach_number(field, data):
         """ M{|v|/c_sound} """

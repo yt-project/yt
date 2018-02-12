@@ -78,26 +78,32 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
     def _angular_momentum_x(field, data):
         return data[ftype, "cell_mass"] \
              * data[ftype, "specific_angular_momentum_x"]
-    registry.add_field((ftype, "angular_momentum_x"), sampling_type="cell", 
+    registry.add_field((ftype, "angular_momentum_x"),
+                       sampling_type="cell",
                        function=_angular_momentum_x,
                        units=unit_system["angular_momentum"],
-                       validators=[ValidateParameter('center')])
+                       validators=[ValidateParameter('center'),
+                                   ValidateParameter("bulk_velocity")])
 
     def _angular_momentum_y(field, data):
         return data[ftype, "cell_mass"] \
              * data[ftype, "specific_angular_momentum_y"]
-    registry.add_field((ftype, "angular_momentum_y"), sampling_type="cell", 
+    registry.add_field((ftype, "angular_momentum_y"),
+                       sampling_type="cell",
                        function=_angular_momentum_y,
                        units=unit_system["angular_momentum"],
-                       validators=[ValidateParameter('center')])
+                       validators=[ValidateParameter('center'),
+                                   ValidateParameter("bulk_velocity")])
 
     def _angular_momentum_z(field, data):
         return data[ftype, "cell_mass"] \
              * data[ftype, "specific_angular_momentum_z"]
-    registry.add_field((ftype, "angular_momentum_z"), sampling_type="cell", 
+    registry.add_field((ftype, "angular_momentum_z"),
+                       sampling_type="cell",
                        function=_angular_momentum_z,
                        units=unit_system["angular_momentum"],
-                       validators=[ValidateParameter('center')])
+                       validators=[ValidateParameter('center'),
+                                   ValidateParameter("bulk_velocity")])
 
     create_magnitude_field(registry, "angular_momentum",
                            unit_system["angular_momentum"], ftype=ftype)
