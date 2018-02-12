@@ -154,90 +154,6 @@ def new_bin_profile3d(np.ndarray[np.intp_t, ndim=1] bins_x,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
-                  np.ndarray[np.float64_t, ndim=1] wsource,
-                  np.ndarray[np.float64_t, ndim=1] bsource,
-                  np.ndarray[np.float64_t, ndim=1] wresult,
-                  np.ndarray[np.float64_t, ndim=1] bresult,
-                  np.ndarray[np.float64_t, ndim=1] mresult,
-                  np.ndarray[np.float64_t, ndim=1] qresult,
-                  np.ndarray[np.float64_t, ndim=1] used):
-    cdef int n, bin
-    cdef np.float64_t wval, bval, bval_mresult
-    for n in range(bins_x.shape[0]):
-        bin = bins_x[n]
-        bval = bsource[n]
-        wval = wsource[n]
-        bval_mresult = bval - mresult[bin]
-        qresult[bin] += wresult[bin] * wval * bval_mresult * bval_mresult / \
-            (wresult[bin] + wval)
-        wresult[bin] += wval
-        bresult[bin] += wval*bval
-        mresult[bin] += wval * bval_mresult / wresult[bin]
-        used[bin] = 1
-    return
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
-                  np.ndarray[np.int64_t, ndim=1] bins_y,
-                  np.ndarray[np.float64_t, ndim=1] wsource,
-                  np.ndarray[np.float64_t, ndim=1] bsource,
-                  np.ndarray[np.float64_t, ndim=2] wresult,
-                  np.ndarray[np.float64_t, ndim=2] bresult,
-                  np.ndarray[np.float64_t, ndim=2] mresult,
-                  np.ndarray[np.float64_t, ndim=2] qresult,
-                  np.ndarray[np.float64_t, ndim=2] used):
-    cdef int n, bini, binj
-    cdef np.float64_t wval, bval, bval_mresult
-    for n in range(bins_x.shape[0]):
-        bini = bins_x[n]
-        binj = bins_y[n]
-        bval = bsource[n]
-        wval = wsource[n]
-        bval_mresult = bval - mresult[bini, binj]
-        qresult[bini, binj] += wresult[bini, binj] * wval * bval_mresult * bval_mresult / \
-            (wresult[bini, binj] + wval)
-        wresult[bini, binj] += wval
-        bresult[bini, binj] += wval*bval
-        mresult[bini, binj] += wval * bval_mresult / wresult[bini, binj]
-        used[bini, binj] = 1
-    return
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
-                  np.ndarray[np.int64_t, ndim=1] bins_y,
-                  np.ndarray[np.int64_t, ndim=1] bins_z,
-                  np.ndarray[np.float64_t, ndim=1] wsource,
-                  np.ndarray[np.float64_t, ndim=1] bsource,
-                  np.ndarray[np.float64_t, ndim=3] wresult,
-                  np.ndarray[np.float64_t, ndim=3] bresult,
-                  np.ndarray[np.float64_t, ndim=3] mresult,
-                  np.ndarray[np.float64_t, ndim=3] qresult,
-                  np.ndarray[np.float64_t, ndim=3] used):
-    cdef int n, bini, binj, bink
-    cdef np.float64_t wval, bval, bval_mresult
-    for n in range(bins_x.shape[0]):
-        bini = bins_x[n]
-        binj = bins_y[n]
-        bink = bins_z[n]
-        bval = bsource[n]
-        wval = wsource[n]
-        bval_mresult = bval - mresult[bini, binj, bink]
-        qresult[bini, binj, bink] += wresult[bini, binj, bink] * wval * bval_mresult * bval_mresult / \
-            (wresult[bini, binj, bink] + wval)
-        wresult[bini, binj, bink] += wval
-        bresult[bini, binj, bink] += wval*bval
-        mresult[bini, binj, bink] += wval * bval_mresult / wresult[bini, binj, bink]
-        used[bini, binj, bink] = 1
-    return
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def lines(np.float64_t[:,:,:] image,
           np.int64_t[:] xs,
           np.int64_t[:] ys,
@@ -649,44 +565,9 @@ def get_box_grids_below_level(
                     break
             if inside == 1: mask[i] = 1
 
+@cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
-def find_values_at_point(np.ndarray[np.float64_t, ndim=1] point,
-                         np.ndarray[np.float64_t, ndim=2] left_edges,
-                         np.ndarray[np.float64_t, ndim=2] right_edges,
-                         np.ndarray[np.int32_t, ndim=2] dimensions,
-                         field_names, grid_objects):
-    # This iterates in order, first to last, and then returns with the first
-    # one in which the point is located; this means if you order from highest
-    # level to lowest, you will find the correct grid without consulting child
-    # masking.  Note also that we will do a few relatively slow operations on
-    # strings and whatnot, but they should not be terribly slow.
-    cdef int ind[3]
-    cdef int gi, fi, nf = len(field_names)
-    cdef np.float64_t dds
-    cdef np.ndarray[np.float64_t, ndim=3] field
-    cdef np.ndarray[np.float64_t, ndim=1] rv = np.zeros(nf, dtype='float64')
-    for gi in range(left_edges.shape[0]):
-        if not ((left_edges[gi,0] < point[0] < right_edges[gi,0])
-            and (left_edges[gi,1] < point[1] < right_edges[gi,1])
-            and (left_edges[gi,2] < point[2] < right_edges[gi,2])):
-            continue
-        # We found our grid!
-        for fi in range(3):
-            dds = ((right_edges[gi,fi] - left_edges[gi,fi])/
-                   (<np.float64_t> dimensions[gi,fi]))
-            ind[fi] = <int> ((point[fi] - left_edges[gi,fi])/dds)
-        grid = grid_objects[gi]
-        for fi in range(nf):
-            field = grid[field_names[fi]]
-            rv[fi] = field[ind[0], ind[1], ind[2]]
-        return rv
-    raise KeyError
-
-#@cython.cdivision(True)
-#@cython.boundscheck(False)
-#@cython.wraparound(False)
 def obtain_rvec(data):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
