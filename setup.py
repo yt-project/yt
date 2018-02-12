@@ -178,11 +178,16 @@ cython_extensions = [
     Extension("yt.utilities.lib.alt_ray_tracers",
               ["yt/utilities/lib/alt_ray_tracers.pyx"],
               libraries=std_libs),
+    Extension("yt.utilities.lib.misc_utilities",
+              ["yt/utilities/lib/misc_utilities.pyx"],
+              extra_compile_args=omp_args,
+              extra_link_args=omp_args,
+              libraries=std_libs),
 ]
 
 lib_exts = [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
-    "interpolators", "misc_utilities", "basic_octree", "image_utilities",
+    "interpolators", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "mesh_utilities",
     "amr_kdtools", "lenses", "distance_queue", "allocation_container"
 ]
@@ -396,7 +401,7 @@ setup(
     },
     cmdclass={'sdist': sdist, 'build_ext': build_ext},
     author="The yt project",
-    author_email="yt-dev@lists.spacepope.org",
+    author_email="yt-dev@python.org",
     url="http://yt-project.org/",
     license="BSD 3-Clause",
     zip_safe=False,

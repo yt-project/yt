@@ -23,8 +23,7 @@ from yt.utilities.math_utils import \
     get_sph_phi_component, \
     get_cyl_r_component, \
     get_cyl_z_component, \
-    get_cyl_theta_component, \
-    resize_vector
+    get_cyl_theta_component
 
 from yt.funcs import just_one
 
@@ -124,8 +123,8 @@ def create_vector_fields(registry, basename, field_units,
         return np.abs(data[ftype, "%s_spherical_radius" % basename])
 
     def _tangential(field, data):
-        return np.sqrt(data[ftype, "%s_magnitude" % basename]**2.0 -
-                       data[ftype, "%s_spherical_radius" % basename]**2.0)
+        return np.sqrt(data[ftype, "%s_spherical_theta" % basename]**2.0 +
+                       data[ftype, "%s_spherical_phi" % basename]**2.0)
 
     registry.add_field((ftype, "radial_%s" % basename), sampling_type="cell", 
                        function=_radial,
@@ -150,8 +149,8 @@ def create_vector_fields(registry, basename, field_units,
         normal = data.get_field_parameter("normal")
         vectors = obtain_rv_vec(data, (xn, yn, zn),
                                 "bulk_%s" % basename)
-        theta = resize_vector(data["index", "spherical_theta"], vectors)
-        phi = resize_vector(data["index", "spherical_phi"], vectors)
+        theta = data["index", "spherical_theta"]
+        phi = data["index", "spherical_phi"]
         return get_sph_theta_component(vectors, theta, phi, normal)
 
     registry.add_field((ftype, "%s_spherical_theta" % basename), sampling_type="cell", 
@@ -170,7 +169,7 @@ def create_vector_fields(registry, basename, field_units,
         normal = data.get_field_parameter("normal")
         vectors = obtain_rv_vec(data, (xn, yn, zn),
                                 "bulk_%s" % basename)
-        phi = resize_vector(data["index", "spherical_phi"], vectors)
+        phi = data["index", "spherical_phi"]
         return get_sph_phi_component(vectors, phi, normal)
 
     registry.add_field((ftype, "%s_spherical_phi" % basename), sampling_type="cell", 
@@ -234,7 +233,9 @@ def create_vector_fields(registry, basename, field_units,
 
     def _tangential_over_magnitude(field, data):
         tr = data[ftype, "tangential_%s" % basename] / \
-             data[ftype, "%s_magnitude" % basename]
+             np.sqrt(data[ftype, "%s_spherical_radius" % basename]**2.0 +
+                     data[ftype, "%s_spherical_theta" % basename]**2.0 +
+                     data[ftype, "%s_spherical_phi" % basename]**2.0)
         return np.abs(tr)
     registry.add_field((ftype, "tangential_over_%s_magnitude" % basename), sampling_type="cell", 
              function=_tangential_over_magnitude,
@@ -249,7 +250,7 @@ def create_vector_fields(registry, basename, field_units,
         normal = data.get_field_parameter("normal")
         vectors = obtain_rv_vec(data, (xn, yn, zn),
                                 "bulk_%s" % basename)
-        theta = resize_vector(data["index", 'cylindrical_theta'], vectors)
+        theta = data["index", 'cylindrical_theta']
         return get_cyl_r_component(vectors, theta, normal)
 
     registry.add_field((ftype, "%s_cylindrical_radius" % basename), sampling_type="cell", 
