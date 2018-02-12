@@ -33,10 +33,6 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.data_objects.particle_filters import add_particle_filter
-if PY3:
-    from io import BytesIO as IO
-else:
-    from yt.extern.six.moves import StringIO as IO
 
 from yt.utilities.physical_constants import mp, kb
 from .definitions import ramses_header, field_aliases, particle_families
@@ -115,21 +111,19 @@ class RAMSESDomainFile(object):
         return lvl_count
 
     @property
-    def buffered_amr_file(self):
-        if hasattr(self, '_buffered_amr_file'):
-            return self._buffered_amr_file
-        f = IO()
-        with open(self.amr_fn, "rb") as ff:
-            f.write(ff.read())
-        self._buffered_amr_file = f
+    def amr_file(self):
+        if hasattr(self, '_amr_file'):
+            self._amr_file.seek(0)
+            return self._amr_file
 
+        f = open(self.amr_fn, "rb")
+        self._amr_file = f
         f.seek(0)
-
         return f
 
     def _read_amr_header(self):
         hvals = {}
-        f = self.buffered_amr_file
+        f = self.amr_file
 
         f.seek(0)
 
@@ -172,7 +166,7 @@ class RAMSESDomainFile(object):
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
 
-        f = self.buffered_amr_file
+        f = self.amr_file
 
         f.seek(self.amr_offset)
 
@@ -226,6 +220,9 @@ class RAMSESDomainFile(object):
                     if n > 0: max_level = max(level - min_level, max_level)
         self.max_level = max_level
         self.oct_handler.finalize()
+
+        # Close AMR file
+        f.close()
 
     def _error_check(self, cpu, level, pos, n, ng, nn):
         # NOTE: We have the second conditional here because internally, it will
