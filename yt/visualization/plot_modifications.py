@@ -23,6 +23,10 @@ import re
 
 from functools import wraps
 
+from yt.analysis_modules.level_sets.clump_handling import \
+    Clump
+from yt.frontends.ytdata.data_structures import \
+    YTClumpContainer
 from yt.funcs import \
     mylog, iterable
 from yt.extern.six import add_metaclass
@@ -90,6 +94,7 @@ class PlotCallback(object):
         if len(coord) == 3:
             if not isinstance(coord, YTArray):
                 coord = plot.data.ds.arr(coord, 'code_length')
+            coord.convert_to_units('code_length')
             ax = plot.data.axis
             # if this is an on-axis projection or slice, then
             # just grab the appropriate 2 coords for the on-axis view
@@ -164,7 +169,7 @@ class PlotCallback(object):
 
         Parameters
         ----------
-        
+
         plot: a PlotMPL subclass
            The plot that we are converting coordinates for
 
@@ -440,7 +445,7 @@ class ContourCallback(PlotCallback):
                  plot_args=None, label=False, take_log=None,
                  label_args=None, text_args=None, data_source=None):
         PlotCallback.__init__(self)
-        def_plot_args = {'color':'k'}
+        def_plot_args = {'colors':'k'}
         def_text_args = {'color':'w'}
         self.ncont = ncont
         self.field = field
@@ -909,14 +914,23 @@ class ClumpContourCallback(PlotCallback):
         for i,clump in enumerate(reversed(self.clumps)):
             mylog.info("Pixelizing contour %s", i)
 
-            xf_copy = clump[xf].copy().in_units("code_length")
-            yf_copy = clump[yf].copy().in_units("code_length")
+            if isinstance(clump, Clump):
+                ftype = "index"
+            elif isinstance(clump, YTClumpContainer):
+                ftype = "grid"
+            else:
+                raise RuntimeError(
+                    "Unknown field type for object of type %s." %
+                    type(clump))
+
+            xf_copy = clump[ftype, xf].copy().in_units("code_length")
+            yf_copy = clump[ftype, yf].copy().in_units("code_length")
 
             temp = np.zeros((ny, nx), dtype="f8")
             pixelize_cartesian(temp, xf_copy, yf_copy,
-                                 clump[dxf].in_units("code_length")/2.0,
-                                 clump[dyf].in_units("code_length")/2.0,
-                                 clump[dxf].d*0.0+i+1, # inits inside Pixelize
+                                 clump[ftype, dxf].in_units("code_length")/2.0,
+                                 clump[ftype, dyf].in_units("code_length")/2.0,
+                                 clump[ftype, dxf].d*0.0+i+1, # inits inside Pixelize
                              (x0, x1, y0, y1), 0)
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, np.unique(buff),

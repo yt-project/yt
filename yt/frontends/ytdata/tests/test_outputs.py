@@ -25,6 +25,7 @@ from yt.frontends.ytdata.api import \
     YTProfileDataset, \
     save_as_dataset
 from yt.testing import \
+    assert_array_equal, \
     assert_allclose_units, \
     assert_equal, \
     assert_fname, \
@@ -144,6 +145,7 @@ def test_grid_datacontainer_data():
     frb = my_proj.to_frb(1.0, (800, 800))
     fn = frb.save_as_dataset(fields=["density"])
     frb_ds = load(fn)
+    assert_array_equal(frb["density"], frb_ds.data["density"])
     compare_unit_attributes(ds, frb_ds)
     assert isinstance(frb_ds, YTGridDataset)
     yield YTDataFieldTest(full_fn, "density", geometric=False)

@@ -610,8 +610,8 @@ Add the Current Time and/or Redshift
                                  time_format='t = {time:.0f} {units}', \
                                  time_unit=None, \
                                  redshift_format='z = {redshift:.2f}', \
-                                 use_inset_box=False, text_args=None, \
-                                 inset_box_args=None)
+                                 draw_inset_box=False, coord_system='axis', \
+                                 text_args=None, inset_box_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.TimestampCallback`.)
