@@ -44,7 +44,7 @@ answer_tests:
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
-  local_owls_001:
+  local_owls_002:
     - yt/frontends/owls/tests/test_outputs.py
 
   local_pw_020:
