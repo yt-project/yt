@@ -134,6 +134,18 @@ class astropy_imports(object):
             self._wcsaxes = wcsaxes
         return self._wcsaxes
 
+    _version = None
+    @property
+    def __version__(self):
+        if self._version is None:
+            try:
+                import astropy
+                version = astropy.__version__
+            except ImportError:
+                version = NotAModule(self._name)
+            self._version = version
+        return self._version
+
 _astropy = astropy_imports()
 
 class scipy_imports(object):
