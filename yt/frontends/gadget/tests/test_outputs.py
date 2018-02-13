@@ -76,3 +76,14 @@ def test_iso_collapse():
     for test in sph_answer(ds, 'snap_505', 2**17, iso_fields):
         test_iso_collapse.__name__ = test.description
         yield test
+
+
+@requires_ds(LE_SnapFormat2)
+def test_pid_uniqueness():
+    """
+    ParticleIDs should be unique.
+    """
+    ds = data_dir_load(LE_SnapFormat2)
+    ad = ds.all_data()
+    pid = ad['ParticleIDs']
+    assert len(pid) == len(set(pid.v))
