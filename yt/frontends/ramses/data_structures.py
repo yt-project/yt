@@ -76,7 +76,7 @@ class RAMSESDomainFile(object):
                           if FH.any_exist(ds)]
         self.field_handlers = field_handlers
         for fh in field_handlers:
-            mylog.debug('Detected particle type %s in domain_id=%s' % (fh.ftype, domain_id))
+            mylog.debug('Detected fluid type %s in domain_id=%s' % (fh.ftype, domain_id))
             fh.detect_fields(ds)
             # self._add_ftype(fh.ftype)
 
@@ -110,11 +110,29 @@ class RAMSESDomainFile(object):
                 lvl_count += fh._level_count
         return lvl_count
 
+    @property
+    def amr_file(self):
+        if hasattr(self, '_amr_file'):
+            self._amr_file.seek(0)
+            return self._amr_file
+
+        f = open(self.amr_fn, "rb")
+        self._amr_file = f
+        f.seek(0)
+        return f
+
     def _read_amr_header(self):
         hvals = {}
-        f = open(self.amr_fn, "rb")
+        f = self.amr_file
+
+        f.seek(0)
+
         for header in ramses_header(hvals):
             hvals.update(fpu.read_attrs(f, header))
+        # For speedup, skip reading of 'headl' and 'taill'
+        fpu.skip(f, 2)
+        hvals['numbl'] = fpu.read_vector(f, 'i')
+
         # That's the header, now we skip a few.
         hvals['numbl'] = np.array(hvals['numbl']).reshape(
             (hvals['nlevelmax'], hvals['ncpu']))
@@ -145,10 +163,13 @@ class RAMSESDomainFile(object):
                 self.ds.domain_left_edge, self.ds.domain_right_edge)
         root_nodes = self.amr_header['numbl'][self.ds.min_level,:].sum()
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
-        f = open(self.amr_fn, "rb")
-        f.seek(self.amr_offset)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
+
+        f = self.amr_file
+
+        f.seek(self.amr_offset)
+
         def _ng(c, l):
             if c < self.amr_header['ncpu']:
                 ng = self.amr_header['numbl'][l, c]
@@ -199,6 +220,9 @@ class RAMSESDomainFile(object):
                     if n > 0: max_level = max(level - min_level, max_level)
         self.max_level = max_level
         self.oct_handler.finalize()
+
+        # Close AMR file
+        f.close()
 
     def _error_check(self, cpu, level, pos, n, ng, nn):
         # NOTE: We have the second conditional here because internally, it will
