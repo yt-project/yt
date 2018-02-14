@@ -499,6 +499,9 @@ class GadgetHDF5Dataset(GadgetDataset):
             self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s * sqrt(a)')
         self.time_unit = self.quan(self._unit_base["UnitTime_in_s"], 's/h')
 
+        specific_energy_unit_cgs = self._unit_base["UnitEnergy_in_cgs"] / self._unit_base["UnitMass_in_g"]
+        self.specific_energy_unit = self.quan(specific_energy_unit_cgs, '(cm/s)**2')
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         need_groups = ['Header']
