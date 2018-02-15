@@ -36,6 +36,8 @@ from yt.utilities.physical_constants import \
 from yt.utilities.physical_ratios import \
     metallicity_sun
 
+from yt.utilities.misc_utilities import \
+    obtain_relative_velocity_vector
 
 @register_field_plugin
 def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
@@ -80,11 +82,8 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
              units = "")
 
     def _kin_energy(field, data):
-        bv = data.get_field_parameter('bulk_velocity')
-        v2 = ((data[ftype, "velocity_x"] - bv[0])**2.0 +
-              (data[ftype, "velocity_y"] - bv[1])**2.0 +
-              (data[ftype, "velocity_z"] - bv[2])**2.0)
-        return 0.5*data[ftype, "density"] * v2
+        v = obtain_relative_velocity_vector(data)
+        return 0.5 * data[ftype, "density"] * (v**2).sum(axis=0)
     registry.add_field((ftype, "kinetic_energy"), sampling_type="cell", 
                        function=_kin_energy, units=unit_system["pressure"],
                        validators=[ValidateParameter('bulk_velocity')])

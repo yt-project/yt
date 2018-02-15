@@ -27,28 +27,29 @@ from .vector_operations import \
     create_magnitude_field
 
 from yt.utilities.lib.misc_utilities import \
-    obtain_rvec, obtain_rv_vec
+    obtain_position_vector, \
+    obtain_relative_velocity_vector
 
 @register_field_plugin
 def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
     unit_system = registry.ds.unit_system
     def _specific_angular_momentum_x(field, data):
-        xv, yv, zv = obtain_rv_vec(data)
-        rv = obtain_rvec(data)
+        xv, yv, zv = obtain_relative_velocity_vector(data)
+        rv = obtain_position_vector(data)
         rv = np.rollaxis(rv, 0, len(rv.shape))
         rv = data.ds.arr(rv, input_units = data["index", "x"].units)
         return yv * rv[...,2] - zv * rv[...,1]
 
     def _specific_angular_momentum_y(field, data):
-        xv, yv, zv = obtain_rv_vec(data)
-        rv = obtain_rvec(data)
+        xv, yv, zv = obtain_relative_velocity_vector(data)
+        rv = obtain_position_vector(data)
         rv = np.rollaxis(rv, 0, len(rv.shape))
         rv = data.ds.arr(rv, input_units = data["index", "x"].units)
         return - (xv * rv[...,2] - zv * rv[...,0])
 
     def _specific_angular_momentum_z(field, data):
-        xv, yv, zv = obtain_rv_vec(data)
-        rv = obtain_rvec(data)
+        xv, yv, zv = obtain_relative_velocity_vector(data)
+        rv = obtain_position_vector(data)
         rv = np.rollaxis(rv, 0, len(rv.shape))
         rv = data.ds.arr(rv, input_units = data["index", "x"].units)
         return xv * rv[...,1] - yv * rv[...,0]

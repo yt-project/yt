@@ -16,7 +16,7 @@ General field-related functions.
 import numpy as np
 
 from yt.utilities.lib.misc_utilities import \
-    obtain_rvec
+    obtain_position_vector
 
 def get_radius(data, field_prefix, ftype):
     unit_system = data.ds.unit_system
@@ -49,7 +49,7 @@ def get_radius(data, field_prefix, ftype):
     return radius
 
 def get_periodic_rvec(data):
-    coords = obtain_rvec(data).d
+    coords = obtain_position_vector(data).d
     if sum(data.ds.periodicity) == 0: return coords
     le = data.ds.domain_left_edge.in_units("code_length").d
     dw = data.ds.domain_width.in_units("code_length").d

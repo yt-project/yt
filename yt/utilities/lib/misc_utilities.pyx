@@ -569,7 +569,7 @@ def get_box_grids_below_level(
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def obtain_rvec(data):
+def obtain_position_vector(data):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
     cdef np.ndarray[np.float64_t, ndim=1] xf
@@ -614,10 +614,9 @@ def obtain_rvec(data):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def obtain_rv_vec(data, field_names = ("velocity_x",
-                                       "velocity_y",
-                                       "velocity_z"),
-                  bulk_vector = "bulk_velocity"):
+def obtain_relative_velocity_vector(
+        data, field_names = ("velocity_x", "velocity_y", "velocity_z"),
+        bulk_vector = "bulk_velocity"):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
     cdef np.ndarray[np.float64_t, ndim=1] vxf

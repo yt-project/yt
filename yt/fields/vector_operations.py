@@ -29,7 +29,7 @@ from yt.funcs import \
     just_one, \
     handle_mks_cgs
 
-from yt.utilities.lib.misc_utilities import obtain_rv_vec
+from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 
 def create_magnitude_field(registry, basename, field_units,
                            ftype="gas", slice_info=None,
@@ -107,8 +107,8 @@ def create_vector_fields(registry, basename, field_units,
         *center*, and *bulk_* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        vectors = obtain_rv_vec(data, (xn, yn, zn),
-                                "bulk_%s" % basename)
+        vectors = obtain_relative_velocity_vector(
+            data, (xn, yn, zn), "bulk_%s" % basename)
         theta = data['index', 'spherical_theta']
         phi = data['index', 'spherical_phi']
         rv = get_sph_r_component(vectors, theta, phi, normal)
@@ -155,8 +155,8 @@ def create_vector_fields(registry, basename, field_units,
         *center*, and *bulk_* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        vectors = obtain_rv_vec(data, (xn, yn, zn),
-                                "bulk_%s" % basename)
+        vectors = obtain_relative_velocity_vector(
+            data, (xn, yn, zn), "bulk_%s" % basename)
         theta = data["index", "spherical_theta"]
         phi = data["index", "spherical_phi"]
         return get_sph_theta_component(vectors, theta, phi, normal)
@@ -175,8 +175,8 @@ def create_vector_fields(registry, basename, field_units,
         *center*, and *bulk_* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        vectors = obtain_rv_vec(data, (xn, yn, zn),
-                                "bulk_%s" % basename)
+        vectors = obtain_relative_velocity_vector(
+            data, (xn, yn, zn), "bulk_%s" % basename)
         phi = data["index", "spherical_phi"]
         return get_sph_phi_component(vectors, phi, normal)
 
@@ -260,8 +260,8 @@ def create_vector_fields(registry, basename, field_units,
         *center*, and *bulk_* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        vectors = obtain_rv_vec(data, (xn, yn, zn),
-                                "bulk_%s" % basename)
+        vectors = obtain_relative_velocity_vector(
+            data, (xn, yn, zn), "bulk_%s" % basename)
         theta = data["index", 'cylindrical_theta']
         return get_cyl_r_component(vectors, theta, normal)
 
@@ -294,8 +294,8 @@ def create_vector_fields(registry, basename, field_units,
         *center*, and *bulk_* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        vectors = obtain_rv_vec(data, (xn, yn, zn),
-                                "bulk_%s" % basename)
+        vectors = obtain_relative_velocity_vector(
+            data, (xn, yn, zn), "bulk_%s" % basename)
         theta = data["index", 'cylindrical_theta'].copy()
         theta = np.tile(theta, (3,) + (1,)*len(theta.shape))
         return get_cyl_theta_component(vectors, theta, normal)
@@ -330,7 +330,8 @@ def create_vector_fields(registry, basename, field_units,
         *center*, and *bulk_* field parameters.
         """
         normal = data.get_field_parameter("normal")
-        vectors = obtain_rv_vec(data, (xn, yn, zn), "bulk_%s" % basename)
+        vectors = obtain_relative_velocity_vector(
+            data, (xn, yn, zn), "bulk_%s" % basename)
         return get_cyl_z_component(vectors, normal)
 
     registry.add_field((ftype, "%s_cylindrical_z" % basename), sampling_type="cell", 
