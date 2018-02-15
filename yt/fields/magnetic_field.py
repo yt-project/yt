@@ -46,18 +46,13 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     u = registry[ftype,"magnetic_field_%s" % axis_names[0]].units
 
     def _magnetic_field_strength(field, data):
-        bm = handle_mks_cgs(
-            data.get_field_parameter('bulk_magnetic_field'), field.units)
+        xm = "relative_magnetic_field_%s" % axis_names[0]
+        ym = "relative_magnetic_field_%s" % axis_names[1]
+        zm = "relative_magnetic_field_%s" % axis_names[2]
 
-        xm = "magnetic_field_%s" % axis_names[0]
-        ym = "magnetic_field_%s" % axis_names[1]
-        zm = "magnetic_field_%s" % axis_names[2]
+        B2 = (data[ftype, xm])**2 + (data[ftype, ym])**2 + (data[ftype, zm])**2
 
-        B2 = ((data[ftype, xm] - bm[0])**2 +
-              (data[ftype, ym] - bm[1])**2 +
-              (data[ftype, zm] - bm[2])**2)
-
-        return np.sqrt(B2)
+        return handle_mks_cgs(np.sqrt(B2), field.units)
 
     registry.add_field((ftype,"magnetic_field_strength"),
                        sampling_type="cell",
@@ -90,14 +85,10 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     if registry.ds.geometry == "cartesian":
         def _magnetic_field_poloidal(field,data):
             normal = data.get_field_parameter("normal")
-            bm = handle_mks_cgs(
-                data.get_field_parameter("bulk_magnetic_field"), field.units)
 
-            Bfields = ustack([
-                data[ftype,'magnetic_field_x'] - bm[0],
-                data[ftype,'magnetic_field_y'] - bm[1],
-                data[ftype,'magnetic_field_z'] - bm[2]
-            ])
+            Bfields = ustack([data[ftype, 'relative_magnetic_field_x'],
+                              data[ftype, 'relative_magnetic_field_y'],
+                              data[ftype, 'relative_magnetic_field_z']])
 
             theta = data["index", 'spherical_theta']
             phi   = data["index", 'spherical_phi']
@@ -106,14 +97,10 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
         def _magnetic_field_toroidal(field,data):
             normal = data.get_field_parameter("normal")
-            bm = handle_mks_cgs(
-                data.get_field_parameter("bulk_magnetic_field"), field.units)
 
-            Bfields = ustack([
-                data[ftype,'magnetic_field_x'] - bm[0],
-                data[ftype,'magnetic_field_y'] - bm[1],
-                data[ftype,'magnetic_field_z'] - bm[2]
-            ])
+            Bfields = ustack([data[ftype,'relative_magnetic_field_x'],
+                              data[ftype,'relative_magnetic_field_y'],
+                              data[ftype,'relative_magnetic_field_z']])
 
             phi = data["index", 'spherical_phi']
             return get_sph_phi_component(Bfields, phi, normal)

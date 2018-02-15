@@ -80,9 +80,8 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                            validators=bv_validators)
 
     def _vorticity_x(field, data):
-        bv = data.get_field_parameter('bulk_velocity')
-        vz = data[ftype, "velocity_z"] - bv[2]
-        vy = data[ftype, "velocity_y"] - bv[1]
+        vz = data[ftype, "relative_velocity_z"]
+        vy = data[ftype, "relative_velocity_y"]
         f  = ((vz[sl_center,sl_right,sl_center] -
                vz[sl_center,sl_left,sl_center]) /
               (div_fac*just_one(data["index", "dy"])))
@@ -95,9 +94,8 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         return new_field
 
     def _vorticity_y(field, data):
-        bv = data.get_field_parameter('bulk_velocity')
-        vx = data[ftype, "velocity_x"] - bv[0]
-        vz = data[ftype, "velocity_z"] - bv[2]
+        vx = data[ftype, "relative_velocity_x"]
+        vz = data[ftype, "relative_velocity_z"]
         f  = ((vx[sl_center,sl_center,sl_right] -
                vx[sl_center,sl_center,sl_left]) /
               (div_fac*just_one(data["index", "dz"])))
@@ -110,9 +108,8 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         return new_field
 
     def _vorticity_z(field, data):
-        bv = data.get_field_parameter('bulk_velocity')
-        vx = data[ftype, "velocity_x"] - bv[0]
-        vy = data[ftype, "velocity_y"] - bv[1]
+        vx = data[ftype, "relative_velocity_x"]
+        vy = data[ftype, "relative_velocity_y"]
         f  = ((vy[sl_right,sl_center,sl_center] -
                vx[sl_left,sl_center,sl_center]) /
               (div_fac*just_one(data["index", "dx"])))
@@ -335,10 +332,9 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         (it's just like vorticity except add the derivative pairs instead
          of subtracting them)
         """
-        bv = data.get_field_parameter('bulk_velocity')
         if data.ds.dimensionality > 1:
-            vx = data[ftype, "velocity_x"] - bv[0]
-            vy = data[ftype, "velocity_y"] - bv[1]
+            vx = data[ftype, "relative_velocity_x"]
+            vy = data[ftype, "relative_velocity_y"]
             dvydx = ((vy[sl_right,sl_center,sl_center] -
                       vy[sl_left,sl_center,sl_center]) /
                     (div_fac*just_one(data["index", "dx"])))
@@ -348,7 +344,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
             f  = (dvydx + dvxdy)**2.0
             del dvydx, dvxdy
         if data.ds.dimensionality > 2:
-            vz = data[ftype, "velocity_z"] - bv[2]
+            vz = data[ftype, "relative_velocity_z"]
             dvzdy = ((vz[sl_center,sl_right,sl_center] -
                       vz[sl_center,sl_left,sl_center]) /
                     (div_fac*just_one(data["index", "dy"])))
@@ -390,7 +386,6 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         can be compared against the inverse of the local cell size (1/dx) 
         to determine if refinement should occur.
         """
-        
         return data[ftype, "shear"] / data[ftype, "sound_speed"]
 
     registry.add_field(
@@ -419,10 +414,9 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         Shear (Mach) = [(dvx + dvy)^2 + (dvz + dvy)^2 +
                         (dvx + dvz)^2  ]^(0.5) / c_sound
         """
-        bv = data.get_field_parameter('bulk_velocity')
         if data.ds.dimensionality > 1:
-            vx = data[ftype, "velocity_x"] - bv[0]
-            vy = data[ftype, "velocity_y"] - bv[1]
+            vx = data[ftype, "relative_velocity_x"]
+            vy = data[ftype, "relative_velocity_y"]
             dvydx = (vy[sl_right,sl_center,sl_center] -
                      vy[sl_left,sl_center,sl_center]) / div_fac
             dvxdy = (vx[sl_center,sl_right,sl_center] -
@@ -430,7 +424,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
             f  = (dvydx + dvxdy)**2.0
             del dvydx, dvxdy
         if data.ds.dimensionality > 2:
-            vz = data[ftype, "velocity_z"] - bv[2]
+            vz = data[ftype, "relative_velocity_z"]
             dvzdy = (vz[sl_center,sl_right,sl_center] -
                      vz[sl_center,sl_left,sl_center]) / div_fac
             dvydz = (vy[sl_center,sl_center,sl_right] -

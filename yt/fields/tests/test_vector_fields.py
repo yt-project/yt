@@ -47,3 +47,7 @@ def test_vector_component_conversions():
         )
 
         assert_allclose_units(vmag, vmag_sph)
+
+        for d in 'xyz':
+            assert_allclose_units(ad['velocity_%s' % d] - bulk[0],
+                                  ad['relative_velocity_%s' % d])
