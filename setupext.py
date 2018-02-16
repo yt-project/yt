@@ -59,7 +59,7 @@ def check_for_openmp():
     """
 
     # See https://bugs.python.org/issue25150
-    if sys.version_info[:3] == (3, 5, 0) or os.name == 'nt':
+    if sys.version_info[:3] == (3, 5, 0):
         return False
 
     # Create a temporary directory
