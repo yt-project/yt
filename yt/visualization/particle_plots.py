@@ -512,7 +512,8 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
         ax_field_template = 'particle_position_%s'
         xf = ax_field_template % ds.coordinates.axis_name[xax]
         yf = ax_field_template % ds.coordinates.axis_name[yax]
-        if (x_field[1], y_field[1]) == (xf, yf):
+        if (x_field[1], y_field[1]) == (xf, yf) \
+                or (x_field[1], y_field[1]) == (yf, xf):
             direction = axis
             break
 
