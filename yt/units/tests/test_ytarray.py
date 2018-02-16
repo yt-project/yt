@@ -658,7 +658,7 @@ def test_selecting():
 
 def test_iteration():
     """
-    Test that iterating over a YTArray returns a sequence of YTQuantity insances
+    Test that iterating over a YTArray returns a sequence of YTQuantity instances
     """
     a = np.arange(3)
     b = YTArray(np.arange(3), 'cm')
@@ -815,7 +815,8 @@ def unary_ufunc_comparison(ufunc, a):
     elif ufunc is np.invert:
         assert_raises(TypeError, ufunc, a)
     elif hasattr(np, 'isnat') and ufunc is np.isnat:
-        assert_raises(ValueError, ufunc, a)
+        # numpy 1.13 raises ValueError, numpy 1.14 and newer raise TypeError
+        assert_raises((TypeError, ValueError), ufunc, a)
     else:
         # There shouldn't be any untested ufuncs.
         assert_true(False)

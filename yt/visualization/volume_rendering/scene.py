@@ -332,7 +332,7 @@ class Scene(object):
             out = np.clip(out[:, :, :3] / max_val, 0.0, 1.0) * 255
             out = np.concatenate(
                 [out.astype('uint8'), alpha[..., None]], axis=-1)
-            # not sure why we need rot90, but this makes the orentation
+            # not sure why we need rot90, but this makes the orientation
             # match the png writer
             ax.imshow(np.rot90(out), origin='lower')
             canvas.print_figure(fname, dpi=100)

@@ -18,8 +18,12 @@ import tempfile
 import shutil
 from yt.testing import \
     fake_random_ds, \
-    assert_fname
-from yt.visualization.volume_rendering.api import volume_render, VolumeSource
+    assert_fname, \
+    fake_vr_orientation_test_ds
+from yt.visualization.volume_rendering.api import \
+    create_scene, \
+    volume_render, \
+    VolumeSource
 import numpy as np
 from unittest import TestCase
 
@@ -90,3 +94,15 @@ class RotationTest(TestCase):
             sc.camera.pitch(2*np.pi/nrot)
             sc.render()
             sc.save('test_rot_%04i.png' % i, sigma_clip=6.0)
+
+def test_annotations():
+    ds = fake_vr_orientation_test_ds(N=16)
+    sc = create_scene(ds)
+    sc.annotate_axes()
+    sc.annotate_domain(ds)
+    sc.render()
+    # ensure that there are actually red, green, blue, and white pixels
+    # in the image. see Issue #1595
+    im = sc._last_render
+    for c in ([1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1], [1, 1, 1, 1]):
+        assert np.where((im == c).all(axis=-1))[0].shape[0] > 0

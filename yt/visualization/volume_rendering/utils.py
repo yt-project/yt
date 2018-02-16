@@ -18,7 +18,7 @@ def data_source_or_all(data_source):
     if not isinstance(data_source, (YTSelectionContainer3D, type(None))):
         raise RuntimeError(
             "The data_source is not a valid 3D data container.\n"
-            "Expected an ojbect of type YTSelectionContainer3D but received "
+            "Expected an object of type YTSelectionContainer3D but received "
             "an object of type %s." % type(data_source))
     return data_source
 

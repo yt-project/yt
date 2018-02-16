@@ -111,7 +111,7 @@ Examples include :ref:`halo analysis <halo-analysis>` (including
 <light-cone-generator>`, :ref:`cosmological light rays <light-ray-generator>`,
 :ref:`synthetic absorption spectra <absorption_spectrum>`, :ref:`spectral
 emission distributions (SEDS) <synthetic_spectrum>`, :ref:`star formation
-rates <star_analysis>`, :ref:`synthetic x-ray obserservations
+rates <star_analysis>`, :ref:`synthetic x-ray observations
 <xray_emission_fields>`, and :ref:`synthetic sunyaev-zeldovich effect
 observations <sunyaev-zeldovich>`), :ref:`two-point correlations functions
 <two_point_functions>`, :ref:`identification of overdensities in arbitrary

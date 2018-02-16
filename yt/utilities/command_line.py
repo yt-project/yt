@@ -492,7 +492,7 @@ class YTBugreportCmd(YTCommand):
         print("simply be a misunderstanding that could be cleared up by")
         print("visiting the yt irc channel or getting advice on the email list:")
         print("   http://yt-project.org/irc.html")
-        print("   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org")
+        print("   https://mail.python.org/mm3/archives/list/yt-users@python.org/")
         print()
         summary = input("Press <enter> if you remain firm in your conviction to continue.")
         print()
@@ -779,7 +779,7 @@ class YTPastebinCmd(YTCommand):
                   help="Use syntax highlighter for the file in language"),
              dict(short="-L", longname="--languages", action="store_true",
                   default = False, dest="languages",
-                  help="Retrive a list of supported languages"),
+                  help="Retrieve a list of supported languages"),
              dict(short="-e", longname="--encoding", action="store",
                   default = 'utf-8', dest="encoding",
                   help="Specify the encoding of a file (default is "

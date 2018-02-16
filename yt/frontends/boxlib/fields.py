@@ -60,7 +60,7 @@ class WarpXFieldInfo(FieldInfoContainer):
         ("Bz", ("T", ["magnetic_field_z"], None)),
         ("Ex", ("V/m", ["electric_field_x"], None)),
         ("Ey", ("V/m", ["electric_field_y"], None)),
-        ("Ex", ("V/m", ["electric_field_z"], None)),
+        ("Ez", ("V/m", ["electric_field_z"], None)),
         ("jx", ("A", ["current_x"], None)),
         ("jy", ("A", ["current_y"], None)),
         ("jz", ("A", ["current_z"], None)),

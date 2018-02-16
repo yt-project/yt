@@ -22,7 +22,7 @@ That will take a slice along the x axis at the center of the domain.  The
 field, projection, weight and axis can all be specified on the command line.
 
 When you do this, it will spawn a micro-webserver on your localhost, and output
-the URL to connect to to standard output.  You can connect to it (or create an
+the URL to connect to standard output.  You can connect to it (or create an
 SSH tunnel to connect to it) and explore your data.  Double-clicking zooms, and
 dragging drags.
 

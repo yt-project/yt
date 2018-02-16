@@ -87,9 +87,6 @@ class Clump(TreeContainer):
         if parent is not None:
             self.data.parent = self.parent.data
 
-        if parent is not None:
-            self.data.parent = self.parent.data
-
         if validators is None:
             validators = []
         self.validators = validators
@@ -302,14 +299,18 @@ class Clump(TreeContainer):
             field_data = {}
             need_grid_positions = False
             for f in self.base.data._determine_fields(fields) + contour_fields:
-                field_data[f] = self.base[f]
                 if ds.field_info[f].particle_type:
                     if f[0] not in ptypes:
                         ptypes.append(f[0])
                     ftypes[f] = f[0]
                 else:
                     need_grid_positions = True
+                    if f[1] in ('x', 'y', 'z', 'dx', 'dy', 'dz'):
+                        # skip 'xyz' if a user passes that in because they
+                        # will be added to ftypes below
+                        continue
                     ftypes[f] = "grid"
+                field_data[f] = self.base[f]
 
             if len(ptypes) > 0:
                 for ax in "xyz":
@@ -457,6 +458,9 @@ def find_clumps(clump, min_val, max_val, d_clump):
                         "children to parent.") % 
                         (len(these_children),len(clump.children)))
             clump.children = these_children[0].children
+            for child in clump.children:
+                child.parent = clump
+                child.data.parent = clump.data
         else:
             mylog.info("%d of %d children survived, erasing children." %
                        (len(these_children),len(clump.children)))

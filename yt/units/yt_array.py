@@ -529,7 +529,7 @@ class YTArray(np.ndarray):
         """
 
         """
-        return super(YTArray, self).__str__()+' '+self.units.__str__()
+        return str(self.view(np.ndarray)) + ' ' + str(self.units)
 
     #
     # Start unit conversion methods
@@ -1380,7 +1380,13 @@ class YTArray(np.ndarray):
         metadata extracted in __reduce__ and then serialized by pickle.
         """
         super(YTArray, self).__setstate__(state[1:])
-        unit, lut = state[0]
+        try:
+            unit, lut = state[0]
+        except TypeError:
+            # this case happens when we try to load an old pickle file
+            # created before we serialized the unit symbol lookup table
+            # into the pickle file
+            unit, lut = str(state[0]), default_unit_symbol_lut.copy()
         # need to fix up the lut if the pickle was saved prior to PR #1728
         # when the pickle format changed
         if len(lut['m']) == 2:
@@ -1569,7 +1575,7 @@ def unorm(data, ord=None, axis=None, keepdims=False):
     return YTArray(norm, data.units)
 
 def udot(op1, op2):
-    """Matrix or vector dot product that preservs units
+    """Matrix or vector dot product that preserves units
 
     This is a wrapper around np.dot that preserves units.
     """

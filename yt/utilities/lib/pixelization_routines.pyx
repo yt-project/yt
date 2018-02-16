@@ -794,7 +794,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     vertices = <np.float64_t *> malloc(ndim * sizeof(np.float64_t) * nvertices)
     field_vals = <np.float64_t *> malloc(sizeof(np.float64_t) * num_field_vals)
 
-    # fill the image bounds and pixel size informaton here
+    # fill the image bounds and pixel size information here
     for i in range(ndim):
         pLE[i] = extents[i][0]
         pRE[i] = extents[i][1]

@@ -951,6 +951,8 @@ class Dataset(object):
         self.unit_registry.add("code_length", 1.0, dimensions.length)
         self.unit_registry.add("code_mass", 1.0, dimensions.mass)
         self.unit_registry.add("code_density", 1.0, dimensions.density)
+        self.unit_registry.add("code_specific_energy", 1.0,
+                               dimensions.energy / dimensions.mass)
         self.unit_registry.add("code_time", 1.0, dimensions.time)
         self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
@@ -1028,10 +1030,12 @@ class Dataset(object):
             self.mass_unit / (self.length_unit * (self.time_unit)**2))
         temperature_unit = getattr(self, "temperature_unit", 1.0)
         density_unit = getattr(self, "density_unit", self.mass_unit / self.length_unit**3)
+        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit**2)
         self.unit_registry.modify("code_velocity", vel_unit)
         self.unit_registry.modify("code_temperature", temperature_unit)
         self.unit_registry.modify("code_pressure", pressure_unit)
         self.unit_registry.modify("code_density", density_unit)
+        self.unit_registry.modify("code_specific_energy", specific_energy_unit)
         # domain_width does not yet exist
         if (self.domain_left_edge is not None and
             self.domain_right_edge is not None):

@@ -566,7 +566,18 @@ class BoxlibHierarchy(GridIndex):
                                                         is_checkpoint,
                                                         extra_field_names)
 
-        base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
+        num_parts = self.particle_headers[directory_name].num_particles
+        if self.ds._particle_type_counts is None:
+            self.ds._particle_type_counts = {}
+        self.ds._particle_type_counts[directory_name] = num_parts
+
+        base = os.path.join(self.ds.output_dir, directory_name)
+        if (len(glob.glob(os.path.join(base, "Level_?", "DATA_????"))) > 0):
+            base_particle_fn = os.path.join(base, "Level_%d", "DATA_%.4d")
+        elif (len(glob.glob(os.path.join(base, "Level_?", "DATA_?????"))) > 0):
+            base_particle_fn = os.path.join(base, "Level_%d", "DATA_%.5d")
+        else:
+            return
 
         gid = 0
         for lev, data in self.particle_headers[directory_name].data_map.items():
@@ -1326,7 +1337,10 @@ def _guess_pcast(vals):
             pcast = float
         else:
             pcast = int
-    vals = [pcast(value) for value in vals.split()]
+    if pcast == bool:
+        vals = [value=="T" for value in vals.split()]
+    else:
+        vals = [pcast(value) for value in vals.split()]
     if len(vals) == 1:
         vals = vals[0]
     return vals
@@ -1447,14 +1461,13 @@ class WarpXHierarchy(BoxlibHierarchy):
         # Additional WarpX particle information (used to set up species)
         self.warpx_header = WarpXHeader(self.ds.output_dir + "/WarpXHeader")
         
-        i = 0
         for key, val in self.warpx_header.data.items():
             if key.startswith("species_"):
+                i = int(key.split("_")[-1])
                 charge_name = 'particle%.1d_charge' % i
                 mass_name = 'particle%.1d_mass' % i
                 self.parameters[charge_name] = val[0]
                 self.parameters[mass_name] = val[1]
-                i = i + 1
                 
     def _detect_output_fields(self):
         super(WarpXHierarchy, self)._detect_output_fields()

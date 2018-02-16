@@ -53,6 +53,9 @@ def new_bin_profile1d(np.ndarray[np.intp_t, ndim=1] bins_x,
     for n in range(nb):
         bin = bins_x[n]
         wval = wsource[n]
+        # Skip field value entries where the weight field is zero
+        if wval == 0:
+            continue
         oldwr = wresult[bin]
         wresult[bin] += wval
         for fi in range(nf):
@@ -87,6 +90,9 @@ def new_bin_profile2d(np.ndarray[np.intp_t, ndim=1] bins_x,
         bin_x = bins_x[n]
         bin_y = bins_y[n]
         wval = wsource[n]
+        # Skip field value entries where the weight field is zero
+        if wval == 0:
+            continue
         oldwr = wresult[bin_x, bin_y]
         wresult[bin_x,bin_y] += wval
         for fi in range(nf):
@@ -123,6 +129,9 @@ def new_bin_profile3d(np.ndarray[np.intp_t, ndim=1] bins_x,
         bin_y = bins_y[n]
         bin_z = bins_z[n]
         wval = wsource[n]
+        # Skip field value entries where the weight field is zero
+        if wval == 0:
+            continue
         oldwr = wresult[bin_x, bin_y, bin_z]
         wresult[bin_x,bin_y,bin_z] += wval
         for fi in range(nf):

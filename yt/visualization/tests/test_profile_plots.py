@@ -144,7 +144,7 @@ ETC46 = "enzo_tiny_cosmology/DD0046/DD0046"
 
 @requires_file(ETC46)
 def test_profile_plot_multiple_field_multiple_plot():
-    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    ds = yt.load(ETC46)
     sphere = ds.sphere("max", (1.0, "Mpc"))
     profiles = []
     profiles.append(yt.create_profile(
@@ -160,3 +160,13 @@ def test_profile_plot_multiple_field_multiple_plot():
     plot = yt.ProfilePlot.from_profiles(profiles)
     with tempfile.NamedTemporaryFile(suffix='png') as f:
         plot.save(name=f.name)
+
+@requires_file(ETC46)
+def test_set_units():
+    ds = yt.load(ETC46)
+    sp = ds.sphere("max", (1.0, "Mpc"))
+    p1 = yt.ProfilePlot(sp, "radius", ("enzo", "Density"))
+    p2 = yt.PhasePlot(sp, ("enzo", "Density"), ("enzo", "Temperature"), "cell_mass")
+    # make sure we can set the units using the tuple without erroring out
+    p1.set_unit(("enzo", "Density"), "Msun/kpc**3")
+    p2.set_unit(("enzo", "Temperature"), "R")

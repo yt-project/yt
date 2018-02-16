@@ -261,7 +261,7 @@ and you can access the contents:
     for sto, dataset in dataset_series.piter(storage=my_dictionary):
         <process>
         sto.result = <some information processed for this dataset>
-        sto.result_id = <some identfier for this dataset>
+        sto.result_id = <some identifier for this dataset>
 
     print(my_dictionary)
 
@@ -491,7 +491,7 @@ Domain Decomposition
 ++++++++++++++++++++
 
 The various types of analysis that utilize domain decomposition use them in
-different enough ways that they are be discussed separately.
+different enough ways that they are discussed separately.
 
 **Halo-Finding**
 
@@ -605,7 +605,7 @@ Gordon, running on 128 processors.  This script goes through three phases:
    16 processors assigned to each output in the time series.
 #. Creating a big cube that will hold our results for this set of processors.
    Note that this will be only for each output considered by this processor,
-   and this cube will not necessarily be filled in in every cell.
+   and this cube will not necessarily be filled in every cell.
 #. For each output, distribute the grids to each of the sixteen processors
    working on that output.  Each of these takes the max of the ionized
    redshift in their zone versus the accumulation cube.

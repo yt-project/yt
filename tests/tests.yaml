@@ -35,18 +35,19 @@ answer_tests:
   local_gizmo_002:
     - yt/frontends/gizmo/tests/test_outputs.py
 
-  local_halos_004:
+  local_halos_006:
     - yt/analysis_modules/halo_analysis/tests/test_halo_finders.py  # [py2]
+    - yt/analysis_modules/halo_analysis/tests/test_halo_catalog.py
     - yt/analysis_modules/halo_finding/tests/test_rockstar.py  # [py2]
     - yt/frontends/ahf/tests/test_outputs.py
     - yt/frontends/owls_subfind/tests/test_outputs.py
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
-  local_owls_001:
+  local_owls_002:
     - yt/frontends/owls/tests/test_outputs.py
 
-  local_pw_018:
+  local_pw_021:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
@@ -76,7 +77,7 @@ answer_tests:
     - yt/visualization/tests/test_line_plots.py:test_line_plot
     - yt/visualization/tests/test_line_plots.py:test_multi_line_plot
 
-  local_boxlib_004:
+  local_boxlib_005:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
     - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
     - yt/frontends/boxlib/tests/test_outputs.py:test_star
@@ -100,10 +101,10 @@ answer_tests:
   local_ramses_001:
     - yt/frontends/ramses/tests/test_outputs.py
 
-  local_ytdata_002:
+  local_ytdata_003:
     - yt/frontends/ytdata
 
-  local_absorption_spectrum_005:
+  local_absorption_spectrum_006:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_novpec
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
@@ -116,6 +117,9 @@ answer_tests:
 
   local_particle_trajectory_000:
     - yt/data_objects/tests/test_particle_trajectories.py
+
+  local_light_cone_001:
+    - yt/analysis_modules/cosmological_observation/light_cone/tests/test_light_cone.py
 
 other_tests:
   unittests:

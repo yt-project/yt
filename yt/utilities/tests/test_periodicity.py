@@ -31,7 +31,7 @@ def test_periodicity():
     dist = euclidean_dist(a,b)
     assert_almost_equal(dist, 1.3856406460551021)
 
-    # Now test the more complicated cases where we're calculaing radii based 
+    # Now test the more complicated cases where we're calculating radii based 
     # on data objects
     ds = fake_random_ds(64)
 
