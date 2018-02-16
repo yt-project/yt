@@ -18,6 +18,7 @@ CCODE = """
 #include <omp.h>
 #include <stdio.h>
 int main() {
+  omp_set_num_threads(2);
   #pragma omp parallel
   printf("nthreads=%d\\n", omp_get_num_threads());
   return 0;
