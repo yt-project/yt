@@ -18,6 +18,7 @@ CCODE = """
 #include <omp.h>
 #include <stdio.h>
 int main() {
+  omp_set_num_threads(2);
   #pragma omp parallel
   printf("nthreads=%d\\n", omp_get_num_threads());
   return 0;
@@ -68,15 +69,8 @@ def check_for_openmp():
     tmp_dir = tempfile.mkdtemp()
     start_dir = os.path.abspath('.')
 
-    if os.name == 'nt':
-        # TODO: make this work with mingw
-        # AFAICS there's no easy way to get the compiler distutils
-        # will be using until compilation actually happens
-        compile_flag = '-openmp'
-        link_flag = ''
-    else:
-        compile_flag = '-fopenmp'
-        link_flag = '-fopenmp'
+    compile_flag = '-fopenmp'
+    link_flag = '-fopenmp'
 
     try:
         os.chdir(tmp_dir)
