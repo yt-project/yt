@@ -346,3 +346,26 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
             [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
             [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
             [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
+
+def test_particle_plot_instance():
+    """
+    Tests the type of plot instance returned by ParticlePlot.
+
+    If x_field and y_field are any combination of valid particle_position in x,
+    y or z axis,then ParticleProjectionPlot instance is expected.
+
+
+    """
+    ds = fake_particle_ds()
+    x_field = ('all', 'particle_position_x')
+    y_field = ('all', 'particle_position_y')
+    z_field = ('all', 'particle_velocity_x')
+
+    plot = ParticlePlot(ds, x_field, y_field)
+    assert isinstance(plot, ParticleProjectionPlot)
+
+    plot = ParticlePlot(ds, y_field, x_field)
+    assert isinstance(plot, ParticleProjectionPlot)
+
+    plot = ParticlePlot(ds, x_field, z_field)
+    assert isinstance(plot, ParticlePhasePlot)
