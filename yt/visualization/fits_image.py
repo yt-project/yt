@@ -125,10 +125,7 @@ class FITSImageData(object):
 
         wcs_unit = "%g*%s" % (self.length_unit.value, self.length_unit.units)
 
-        if current_time is None:
-            if ds is not None:
-                current_time = ds.current_time
-        self.current_time = current_time
+        self._fix_current_time(current_time)
 
         if width is None:
             width = 1.0
@@ -251,6 +248,16 @@ class FITSImageData(object):
             self.set_wcs(w)
         else:
             self.set_wcs(wcs)
+
+    def _fix_current_time(self, ds, current_time):
+        if current_time is None:
+            if ds is not None:
+                current_time = ds.current_time
+        elif isinstance(current_time, numeric_type):
+            current_time = YTQuantity(current_time, self.time_unit)
+        elif isinstance(current_time, tuple):
+            current_time = YTQuantity(current_time[0], current_time[1])
+        self.current_time = current_time
 
     def _set_units(self, ds, base_units):
         attrs = ('length_unit', 'mass_unit', 'time_unit', 
