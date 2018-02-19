@@ -21,9 +21,11 @@ from yt.units.yt_array import YTQuantity, YTArray
 from yt.units import dimensions
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
+from yt.visualization.volume_rendering.off_axis_projection import \
+    off_axis_projection
 import re
 import sys
+from numbers import Number as numeric_type
 
 class UnitfulHDU(object):
     def __init__(self, hdu):
@@ -43,8 +45,9 @@ class UnitfulHDU(object):
 
 class FITSImageData(object):
 
-    def __init__(self, data, fields=None, units=None, width=None, img_ctr=None,
-                 wcs=None):
+    def __init__(self, data, fields=None, length_unit=None, width=None, img_ctr=None,
+                 wcs=None, current_time=None, time_unit=None, mass_unit=None, 
+                 velocity_unit=None, magnetic_unit=None, **kwargs):
         r""" Initialize a FITSImageData object.
 
         FITSImageData contains a collection of FITS ImageHDU instances and
@@ -63,8 +66,9 @@ class FITSImageData(object):
             The field names for the data. If *fields* is none and *data* has
             keys, it will use these for the fields. If *data* is just a
             single array one field name must be specified.
-        units : string
-            The units of the WCS coordinates. Defaults to "cm".
+        length_unit : string
+            The units of the WCS coordinates and the length unit of the file. 
+            Defaults to "cm".
         width : float or YTQuantity
             The width of the image. Either a single value or iterable of values.
             If a float, assumed to be in *units*. Only used if this information 
@@ -76,6 +80,10 @@ class FITSImageData(object):
         wcs : `astropy.wcs.WCS` instance, optional
             Supply an AstroPy WCS instance. Will override automatic WCS
             creation from FixedResolutionBuffers and YTCoveringGrids.
+        time_unit : string
+            The default time units of the file. Defaults to "s".
+        mass_unit : string
+            The default time units of the file. Defaults to "g".
 
         Examples
         --------
@@ -103,15 +111,32 @@ class FITSImageData(object):
         self.fields = []
         self.field_units = {}
 
-        if units is None:
-            units = "cm"
+        if "units" in kwargs:
+            issue_deprecation_warning("The 'units' keyword argument has been replaced "
+                                      "by the 'length_unit' keyword argument and the "
+                                      "former has been deprecated. Setting 'length_unit' "
+                                      "to 'units'.")
+            length_unit = kwargs["units"]
+
+        ds = getattr(data, "ds", None)
+
+        self._set_units(ds, [length_unit, time_unit, mass_unit, velocity_unit,
+                             magnetic_unit])
+
+        wcs_unit = "%g*%s" % (self.length_unit.value, self.length_unit.units)
+
+        if current_time is None:
+            if ds is not None:
+                current_time = ds.current_time
+        self.current_time = current_time
+
         if width is None:
             width = 1.0
         if img_ctr is None:
-            img_ctr = np.array([0.0, 0.0, 0.0])
+            img_ctr = np.zeros(3)
 
-        exclude_fields = ['x','y','z','px','py','pz',
-                          'pdx','pdy','pdz','weight_field']
+        exclude_fields = ['x', 'y', 'z', 'px', 'py', 'pz',
+                          'pdx', 'pdy', 'pdz', 'weight_field']
 
         if isinstance(data, _astropy.pyfits.HDUList):
             self.hdulist = data
@@ -177,6 +202,14 @@ class FITSImageData(object):
                 hdu.name = name
                 hdu.header["btype"] = name
                 hdu.header["bunit"] = re.sub('()', '', self.field_units[name])
+                for unit in ("length", "time", "mass", "velocity", "magnetic"):
+                    key = "{}_unit".format(unit)
+                    value = getattr(self, key)
+                    hdu.header[key] = value.value
+                    hdu.comments[key] = value.units
+                if self.current_time is not None:
+                    hdu.header["current_time"] = self.current_time.value
+                    hdu.comments["current_time"] = self.current_time.units
                 self.hdulist.append(hdu)
 
         self.shape = self.hdulist[0].shape
@@ -189,24 +222,24 @@ class FITSImageData(object):
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
                 # construct the WCS object
-                dx = (img_data.bounds[1]-img_data.bounds[0]).to(units).v
-                dy = (img_data.bounds[3]-img_data.bounds[2]).to(units).v
+                dx = (img_data.bounds[1]-img_data.bounds[0]).to_value(wcs_unit)
+                dy = (img_data.bounds[3]-img_data.bounds[2]).to_value(wcs_unit)
                 dx /= self.shape[0]
                 dy /= self.shape[1]
-                xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).to(units).v
-                yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).to(units).v
+                xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).to_value(wcs_unit)
+                yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).to_value(wcs_unit)
                 center = [xctr, yctr]
                 cdelt = [dx, dy]
             elif isinstance(img_data, YTCoveringGrid):
-                cdelt = img_data.dds.to(units).v
-                center = 0.5*(img_data.left_edge+img_data.right_edge).to(units).v
+                cdelt = img_data.dds.to_value(wcs_unit)
+                center = 0.5*(img_data.left_edge+img_data.right_edge).to_value(wcs_unit)
             else:
-                # If img_data is just an array we use the width and img_ctr 
+                # If img_data is just an array we use the width and img_ctr
                 # parameters to determine the cell widths
                 if not iterable(width):
                     width = [width]*self.dimensionality
                 if isinstance(width[0], YTQuantity):
-                    cdelt = [wh.to(units).v/n for wh, n in zip(width, self.shape)]
+                    cdelt = [wh.to_value(wcs_unit)/n for wh, n in zip(width, self.shape)]
                 else:
                     cdelt = [float(wh)/n for wh, n in zip(width, self.shape)]
                 center = img_ctr[:self.dimensionality]
@@ -214,10 +247,34 @@ class FITSImageData(object):
             w.wcs.crval = center
             w.wcs.cdelt = cdelt
             w.wcs.ctype = ["linear"]*self.dimensionality
-            w.wcs.cunit = [units]*self.dimensionality
+            w.wcs.cunit = [wcs_unit]*self.dimensionality
             self.set_wcs(w)
         else:
             self.set_wcs(wcs)
+
+    def _set_units(self, ds, base_units):
+        attrs = ('length_unit', 'mass_unit', 'time_unit', 
+                 'velocity_unit', 'magnetic_unit')
+        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
+        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
+            if unit is None:
+                if ds is not None:
+                    u = getattr(ds, attr)
+                else:
+                    u = cgs_unit
+            else:
+                u = unit
+            if isinstance(u, string_types):
+                uq = YTQuantity(1.0, u)
+            elif isinstance(u, numeric_type):
+                uq = YTQuantity(u, cgs_unit)
+            elif isinstance(u, YTQuantity):
+                uq = u
+            elif isinstance(u, tuple):
+                uq = YTQuantity(u[0], u[1])
+            else:
+                raise RuntimeError("%s (%s) is invalid." % (attr, u))
+            setattr(self, attr, uq)
 
     def set_wcs(self, wcs, wcsname=None, suffix=None):
         """
