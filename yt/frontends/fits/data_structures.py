@@ -437,13 +437,12 @@ class FITSDataset(Dataset):
                                                [int(1)])
         self._determine_bbox()
 
-        # Get the simulation time
-        try:
-            self.current_time = self.parameters["time"]
-        except:
-            mylog.warning("Cannot find time")
-            self.current_time = 0.0
-            pass
+        # Get the current time
+        if "current_time" in self.primary_header:
+            self.current_time = self.quan(self.primary_header["current_time"],
+                                          self.primary_comments["current_time"])
+        else:
+            self.current_time = self.quan(0.0, "s")
 
         # For now we'll ignore these
         self.periodicity = (False,)*3
