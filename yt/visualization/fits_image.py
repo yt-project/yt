@@ -125,7 +125,7 @@ class FITSImageData(object):
 
         wcs_unit = "%g*%s" % (self.length_unit.value, self.length_unit.units)
 
-        self._fix_current_time(current_time)
+        self._fix_current_time(ds, current_time)
 
         if width is None:
             width = 1.0
