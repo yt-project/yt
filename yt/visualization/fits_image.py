@@ -260,6 +260,11 @@ class FITSImageData(object):
             if unit is None:
                 if ds is not None:
                     u = getattr(ds, attr)
+                elif attr == "velocity_unit":
+                    u = self.length_unit / self.time_unit
+                elif attr == "magnetic_unit":
+                    u = np.sqrt(4.0*np.pi * self.mass_unit /
+                                (self.time_unit**2 * self.length_unit))
                 else:
                     u = cgs_unit
             else:
