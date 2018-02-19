@@ -203,10 +203,10 @@ class FITSImageData(object):
                     key = "{}_unit".format(unit)
                     value = getattr(self, key)
                     hdu.header[key] = float(value.value)
-                    hdu.comments[key] = value.units
+                    hdu.header.comments[key] = value.units
                 if self.current_time is not None:
                     hdu.header["current_time"] = float(self.current_time.value)
-                    hdu.comments["current_time"] = self.current_time.units
+                    hdu.header.comments["current_time"] = self.current_time.units
                 self.hdulist.append(hdu)
 
         self.shape = self.hdulist[0].shape
