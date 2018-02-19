@@ -440,7 +440,7 @@ class FITSDataset(Dataset):
         # Get the current time
         if "current_time" in self.primary_header:
             self.current_time = self.quan(self.primary_header["current_time"],
-                                          self.primary_comments["current_time"])
+                                          self.primary_header.comments["current_time"])
         else:
             self.current_time = self.quan(0.0, "s")
 
@@ -541,7 +541,7 @@ class YTFITSDataset(FITSDataset):
         """
         for unit in ("length", "time", "mass", "velocity", "magnetic"):
             u = self.quan(self.primary_header["%s_unit" % unit],
-                          self.primary_comments["%s_unit" % unit])
+                          self.primary_header.comments["%s_unit" % unit])
             mylog.info("Found %s units of %s." % (unit, u))
             setdefaultattr(self, '%s_unit' % unit, u)
 
@@ -775,7 +775,6 @@ class EventsFITSDataset(SkyDataFITSDataset):
     def _determine_structure(self):
         self.first_image = 1
         self.primary_header = self._handle[self.first_image].header
-        self.primary_comments = self._handle[self.first_image].comments
         self.naxis = 2
 
     def _determine_wcs(self):
