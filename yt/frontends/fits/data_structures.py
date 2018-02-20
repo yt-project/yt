@@ -36,7 +36,7 @@ from yt.geometry.geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset
 from yt.units.unit_object import UnitParseError
-from yt.units.YTArray import YTQuantity
+from yt.units.yt_array import YTQuantity
 from yt.utilities.file_handler import \
     FITSFileHandler
 from yt.utilities.io_handler import \
