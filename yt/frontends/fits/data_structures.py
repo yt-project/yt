@@ -46,17 +46,12 @@ from .fields import FITSFieldInfo, \
 from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.funcs import issue_deprecation_warning
-from yt.units.unit_lookup_table import \
-    prefixable_units
 from yt.units import dimensions
 from yt.utilities.on_demand_imports import \
     _astropy, NotAModule
 
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
-delimiters = ["*", "/", "-", "^", "(", ")"]
-delimiters += [str(i) for i in range(10)]
-regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 
 spec_names = {"V": "Velocity",
               "F": "Frequency",
@@ -69,8 +64,8 @@ sky_prefixes.difference_update({"X", "Y", "LINEAR"})
 sky_prefixes = list(sky_prefixes)
 spec_prefixes = list(spec_names.keys())
 
-field_from_unit = {"Jy":"intensity",
-                   "K":"temperature"}
+field_from_unit = {"Jy": "intensity",
+                   "K": "temperature"}
 
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
@@ -144,15 +139,6 @@ class FITSHierarchy(GridIndex):
         self._ext_map = {}
         self._scale_map = {}
         dup_field_index = {}
-        # Since FITS header keywords are case-insensitive, we only pick a subset of
-        # prefixes, ones that we expect to end up in headers.
-        known_units = dict(
-            [(unit.lower(), unit) for unit in self.ds.unit_registry.lut]
-        )
-        for unit in list(known_units.values()):
-            if unit in prefixable_units:
-                for p in ["n","u","m","c","k"]:
-                    known_units[(p+unit).lower()] = p+unit
         # We create a field from each slice on the 4th axis
         if self.dataset.naxis == 4:
             naxis4 = self.dataset.primary_header["naxis4"]
