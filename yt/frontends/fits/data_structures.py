@@ -84,6 +84,7 @@ class FITSGrid(AMRGridPatch):
     def __repr__(self):
         return "FITSGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
+
 class FITSHierarchy(GridIndex):
 
     grid = FITSGrid
@@ -109,17 +110,16 @@ class FITSHierarchy(GridIndex):
                 return v
         return None
 
-    def _determine_image_units(self, header, known_units):
+    def _determine_image_units(self, header):
         try:
-            field_units = header["bunit"].lower().strip(" ").replace(" ", "")
             try:
                 # First let AstroPy attempt to figure the unit out
-                u = _astropy.units.Unit(field_units, format="fits")
+                u = _astropy.units.Unit(header["bunit"], format="fits")
                 u = str(YTQuantity.from_astropy(1.0*u).units)
             except ValueError:
                 try:
                     # Let yt try it by itself
-                    u = str(self.ds.quan(1.0, field_units).units)
+                    u = str(self.ds.quan(1.0, header["bunit"]).units)
                 except UnitParseError:
                     u = "dimensionless"
             return u
@@ -163,7 +163,7 @@ class FITSHierarchy(GridIndex):
                 if isinstance(hdu, _astropy.pyfits.BinTableHDU) or hdu.header["naxis"] == 0:
                     continue
                 if self._ensure_same_dims(hdu):
-                    units = self._determine_image_units(hdu.header, known_units)
+                    units = self._determine_image_units(hdu.header)
                     try:
                         # Grab field name from btype
                         fname = hdu.header["btype"]
