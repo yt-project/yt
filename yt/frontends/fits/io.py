@@ -81,17 +81,17 @@ class IOHandlerFITS(BaseIOHandler):
                 for g in chunk.objs:
                     start = ((g.LeftEdge-self.ds.domain_left_edge)/dx).d.astype("int")
                     end = start + g.ActiveDimensions
-                    slices = [slice(start[i],end[i]) for i in range(3)]
+                    slices = [slice(start[i], end[i]) for i in range(3)]
                     if self.ds.dimensionality == 2:
                         nx, ny = g.ActiveDimensions[:2]
                         nz = 1
                         data = np.zeros((nx,ny,nz))
-                        data[:,:,0] = ds.data[slices[1],slices[0]].transpose()
+                        data[:,:,0] = ds.data[slices[1], slices[0]].T
                     elif self.ds.naxis == 4:
                         idx = self.ds.index._axis_map[fname]
-                        data = ds.data[idx,slices[2],slices[1],slices[0]].transpose()
+                        data = ds.data[idx, slices[2], slices[1], slices[0]].T
                     else:
-                        data = ds.data[slices[2],slices[1],slices[0]].transpose()
+                        data = ds.data[slices[2], slices[1], slices[0]].T
                     if fname in self.ds.nan_mask:
                         data[np.isnan(data)] = self.ds.nan_mask[fname]
                     elif "all" in self.ds.nan_mask:
