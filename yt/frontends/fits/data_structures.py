@@ -36,6 +36,7 @@ from yt.geometry.geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset
 from yt.units.unit_object import UnitParseError
+from yt.units.YTArray import YTQuantity
 from yt.utilities.file_handler import \
     FITSFileHandler
 from yt.utilities.io_handler import \
@@ -114,7 +115,7 @@ class FITSHierarchy(GridIndex):
             try:
                 # First let AstroPy attempt to figure the unit out
                 u = _astropy.units.Unit(field_units, format="fits")
-                u = str(self.ds.quan.from_astropy(1.0*u).units)
+                u = str(YTQuantity.from_astropy(1.0*u).units)
             except ValueError:
                 try:
                     # Let yt try it by itself
