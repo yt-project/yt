@@ -14,7 +14,6 @@ import stat
 import numpy as np
 import numpy.core.defchararray as np_char
 import os
-import re
 import time
 import uuid
 import weakref
@@ -66,6 +65,7 @@ spec_prefixes = list(spec_names.keys())
 
 field_from_unit = {"Jy": "intensity",
                    "K": "temperature"}
+
 
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
@@ -255,6 +255,7 @@ class FITSHierarchy(GridIndex):
             gs = gfiles[fn]
             yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
                               cache = cache)
+
 
 def find_primary_header(fileh):
     # Sometimes the primary hdu doesn't have an image
@@ -505,12 +506,14 @@ class FITSDataset(Dataset):
     def close(self):
         self._handle.close()
 
+
 def find_axes(axis_names, prefixes):
     x = 0
     for p in prefixes:
         y = np_char.startswith(axis_names, p)
         x += np.any(y)
     return x
+
 
 class YTFITSDataset(FITSDataset):
     _field_info_class = YTFITSFieldInfo
@@ -528,12 +531,12 @@ class YTFITSDataset(FITSDataset):
     def _determine_bbox(self):
         dx = self.arr(self.wcs.wcs.cdelt, str(self.wcs.wcs.cunit[0])).v
         domain_left_edge = np.zeros(3)
-        domain_left_edge[:self.dimensionality] = self.wcs.wcs.crval/dx-(self.wcs.wcs.crpix-0.5)
-        domain_right_edge = domain_left_edge + self.domain_dimensions.astype('float64')
+        domain_left_edge[:self.dimensionality] = self.wcs.wcs.crval-dx*(self.wcs.wcs.crpix-0.5)
+        domain_right_edge = domain_left_edge + dx*self.domain_dimensions
 
         if self.dimensionality == 2:
-            domain_left_edge[-1] = 0.5
-            domain_right_edge[-1] = 1.5
+            domain_left_edge[-1] = 0.0
+            domain_right_edge[-1] = dx[0]
 
         self.domain_left_edge = domain_left_edge
         self.domain_right_edge = domain_right_edge
@@ -547,6 +550,7 @@ class YTFITSDataset(FITSDataset):
             isyt = fileh[0].header["WCSNAME"].strip() == "yt"
             fileh.close()
             return isyt
+
 
 class SkyDataFITSDataset(FITSDataset):
     _field_info_class = WCSFITSFieldInfo
