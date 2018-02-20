@@ -120,10 +120,13 @@ class FITSImageData(object):
 
         ds = getattr(data, "ds", None)
 
-        self._set_units(ds, [length_unit, time_unit, mass_unit, velocity_unit,
+        self._set_units(ds, [length_unit, mass_unit, time_unit, velocity_unit,
                              magnetic_unit])
 
-        wcs_unit = "%g*%s" % (self.length_unit.value, self.length_unit.units)
+        if self.length_unit.value == 1.0:
+            wcs_unit = str(self.length_unit.units)
+        else:
+            wcs_unit = "%g*%s" % wcs_unit
 
         self._fix_current_time(ds, current_time)
 
