@@ -217,10 +217,10 @@ class FITSImageData(object):
         if wcs is None:
             w = _astropy.pywcs.WCS(header=self.hdulist[0].header,
                                    naxis=self.dimensionality)
+            # FRBs and covering grids are special cases where
+            # we have coordinate information, so we take advantage
+            # of this and construct the WCS object
             if isinstance(img_data, FixedResolutionBuffer):
-                # FRBs are a special case where we have coordinate
-                # information, so we take advantage of this and
-                # construct the WCS object
                 dx = (img_data.bounds[1]-img_data.bounds[0]).to_value(wcs_unit)
                 dy = (img_data.bounds[3]-img_data.bounds[2]).to_value(wcs_unit)
                 dx /= self.shape[0]
