@@ -35,6 +35,7 @@ from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
+from yt.units.unit_object import UnitParseError
 from yt.utilities.file_handler import \
     FITSFileHandler
 from yt.utilities.io_handler import \
@@ -45,9 +46,7 @@ from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.funcs import issue_deprecation_warning
 from yt.units.unit_lookup_table import \
-    default_unit_symbol_lut, \
-    prefixable_units, \
-    unit_prefixes
+    prefixable_units
 from yt.units import dimensions
 from yt.utilities.on_demand_imports import \
     _astropy, NotAModule
@@ -112,22 +111,17 @@ class FITSHierarchy(GridIndex):
     def _determine_image_units(self, header, known_units):
         try:
             field_units = header["bunit"].lower().strip(" ").replace(" ", "")
-            # FITS units always return upper-case, so we need to get
-            # the right case by comparing against known units. This
-            # only really works for common units.
-            units = set(re.split(regex_pattern, field_units))
-            if '' in units: 
-                units.remove('')
-            n = int(0)
-            for unit in units:
-                if unit in known_units:
-                    field_units = field_units.replace(unit, known_units[unit])
-                    n += 1
-            if n != len(units) or n == 0:
-                field_units = "dimensionless"
-            if field_units[0] == "/":
-                field_units = "1%s" % field_units
-            return field_units
+            try:
+                # First let AstroPy attempt to figure the unit out
+                u = _astropy.units.Unit(field_units, format="fits")
+                u = str(self.ds.quan.from_astropy(1.0*u).units)
+            except ValueError:
+                try:
+                    # Let yt try it by itself
+                    u = str(self.ds.quan(1.0, field_units).units)
+                except UnitParseError:
+                    u = "dimensionless"
+            return u
         except KeyError:
             return "dimensionless"
 
@@ -310,8 +304,7 @@ def check_sky_coords(args, ndim):
     fileh = check_fits_valid(args)
     if fileh is not None:
         try:
-            if (len(fileh) > 1 and
-                fileh[1].name == "EVENTS" and ndim == 2):
+            if len(fileh) > 1 and fileh[1].name == "EVENTS" and ndim == 2:
                 fileh.close()
                 return True
             else:
