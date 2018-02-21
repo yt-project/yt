@@ -172,7 +172,7 @@ def test_set_units():
     p2.set_unit(("enzo", "Temperature"), "R")
 
 def test_set_labels():
-ds = fake_random_ds(16)
+    ds = fake_random_ds(16)
     ad = ds.all_data()
     plot = yt.ProfilePlot(ad, "radius", ["velocity_x", "density"], weight_field=None)
     # make sure we can set the labels without erroring out

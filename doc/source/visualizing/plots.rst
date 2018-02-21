@@ -1084,8 +1084,8 @@ The axis labels can be manipulated via the
 and a string with the desired label. The :meth:`~yt.visualization.profile_plotter.ProfilePlot.set_xlabel`
 function just accepts the desired label and applies this to all of the plots. 
 
-In the following example we create a plot of the average x velocity and density as a
-function of radius. The xlabel is set to "Radius" for all plots and the ylabel is set to
+In the following example we create a plot of the average x-velocity and density as a
+function of radius. The xlabel is set to "Radius", for all plots, and the ylabel is set to
 "velocity in x direction" for the x-velocity plot.
 
 .. python-script::
@@ -1095,7 +1095,7 @@ function of radius. The xlabel is set to "Radius" for all plots and the ylabel i
   ad = ds.all_data()
   plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
                    weight_field=None)
-   plot.set_xlabel(r"Radius")
+   plot.set_xlabel("Radius")
    plot.set_ylabel("x-velocity", "velocity in x direction")
    plot.save()
 
