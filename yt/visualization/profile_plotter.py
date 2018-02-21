@@ -212,8 +212,8 @@ class ProfilePlot(object):
 
     x_log = None
     y_log = None
-    x_title = {}
-    y_title = {}
+    x_title = None
+    y_title = None
     _plot_valid = False
 
     def __init__(self, data_source, x_field, y_fields,
@@ -387,6 +387,7 @@ class ProfilePlot(object):
                 field, = obj.profiles[0].data_source._determine_fields([field])
                 obj.y_log[field] = log
         obj.y_title = {}
+        obj.x_title = None
         obj.label = sanitize_label(labels, len(obj.profiles))
         if plot_specs is None:
             plot_specs = [dict() for p in obj.profiles]
@@ -508,12 +509,18 @@ class ProfilePlot(object):
 
     @invalidate_plot
     def set_ylabel(self, field, label):
-        """
+        """Sets a new ylabel for the specified fields
 
+        Parameters
+        ----------
+        field : string
+           The name of the field that is to be changed.
+
+        label : string
+           The label to be placed on the y-axis
         """
         if field == "all":
             for field in list(self.profiles[0].field_data.keys()):
-                print(field)
                 self.y_title[field] = label
         else:
             field, = self.profiles[0].data_source._determine_fields([field])
@@ -521,27 +528,19 @@ class ProfilePlot(object):
                 self.y_title[field] = label
             else:
                 raise KeyError("Field %s not in profile plot!" % (field))
-
-        _plot_valid = False
 
         return self
 
     @invalidate_plot
-    def set_xlabel(self, field, label):
-        """
+    def set_xlabel(self, label):
+        """Sets a new xlabel for all profiles
 
+        Parameters
+        ----------
+        label : string
+           The label to be placed on the x-axis
         """
-        if field == "all":
-            for field in list(self.profiles[0].field_data.keys()):
-                self.x_title[field] = label
-        else:
-            field, = self.profiles[0].data_source._determine_fields([field])
-            if field in self.profiles[0].field_data:
-                self.x_title[field] = label
-            else:
-                raise KeyError("Field %s not in profile plot!" % (field))
-
-        _plot_valid = False
+        self.x_title = label
 
         return self
 
@@ -706,7 +705,7 @@ class ProfilePlot(object):
         x_unit = profile.x.units
         y_unit = profile.field_units[field_y]
         fractional = profile.fractional
-        x_title = self.x_title.get(field_y, None) or self._get_field_label(field_x, xfi, x_unit)
+        x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
         y_title = self.y_title.get(field_y, None) or \
             self._get_field_label(field_y, yfi, y_unit, fractional)
 

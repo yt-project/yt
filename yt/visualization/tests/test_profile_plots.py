@@ -170,3 +170,11 @@ def test_set_units():
     # make sure we can set the units using the tuple without erroring out
     p1.set_unit(("enzo", "Density"), "Msun/kpc**3")
     p2.set_unit(("enzo", "Temperature"), "R")
+
+def test_set_labels():
+ds = fake_random_ds(16)
+    ad = ds.all_data()
+    plot = yt.ProfilePlot(ad, "radius", ["velocity_x", "density"], weight_field=None)
+    # make sure we can set the labels without erroring out
+    plot.set_ylabel("all", "test ylabel")
+    plot.set_xlabel("test xlabel")
