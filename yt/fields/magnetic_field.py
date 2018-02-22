@@ -206,7 +206,7 @@ def setup_current_density_vector_fields(registry, ftype = "gas", slice_info = No
     """
     Derived from vorticity calculation in fluid_vector_fields.py
     This function sets up the current density vector fields calculated by
-    Ampere's law: "curl B = j_factor * J" assuming E = 0.
+    Ampere's law: "curl B = j_factor * J" assuming no displacement current.
     """
     unit_system = registry.ds.unit_system
     #
@@ -230,45 +230,45 @@ def setup_current_density_vector_fields(registry, ftype = "gas", slice_info = No
                  dimensions.magnetic_field_mks/dimensions.length: mu_0}
 
     def _current_density_x(field, data):
-        f  = (data[ftype, "magnetic_field_z"][sl_center,sl_right,sl_center] -
-              data[ftype, "magnetic_field_z"][sl_center,sl_left,sl_center]) \
+        f  = (data[ftype, "relative_magnetic_field_z"][sl_center,sl_right,sl_center] -
+              data[ftype, "relative_magnetic_field_z"][sl_center,sl_left,sl_center]) \
               / (div_fac*just_one(data["index", "dy"]))
-        f -= (data[ftype, "magnetic_field_y"][sl_center,sl_center,sl_right] -
-              data[ftype, "magnetic_field_y"][sl_center,sl_center,sl_left]) \
+        f -= (data[ftype, "relative_magnetic_field_y"][sl_center,sl_center,sl_right] -
+              data[ftype, "relative_magnetic_field_y"][sl_center,sl_center,sl_left]) \
               / (div_fac*just_one(data["index", "dz"]))
-        new_field = data.ds.arr(np.zeros_like(data[ftype, "magnetic_field_z"],
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "relative_magnetic_field_z"],
                                               dtype=np.float64), f.units)
         new_field[sl_center, sl_center, sl_center] = f
         return new_field/j_factors[new_field.units.dimensions]
 
     def _current_density_y(field, data):
-        f  = (data[ftype, "magnetic_field_x"][sl_center,sl_center,sl_right] -
-              data[ftype, "magnetic_field_x"][sl_center,sl_center,sl_left]) \
+        f  = (data[ftype, "relative_magnetic_field_x"][sl_center,sl_center,sl_right] -
+              data[ftype, "relative_magnetic_field_x"][sl_center,sl_center,sl_left]) \
               / (div_fac*just_one(data["index", "dz"]))
-        f -= (data[ftype, "magnetic_field_z"][sl_right,sl_center,sl_center] -
-              data[ftype, "magnetic_field_z"][sl_left,sl_center,sl_center]) \
+        f -= (data[ftype, "relative_magnetic_field_z"][sl_right,sl_center,sl_center] -
+              data[ftype, "relative_magnetic_field_z"][sl_left,sl_center,sl_center]) \
               / (div_fac*just_one(data["index", "dx"]))
-        new_field = data.ds.arr(np.zeros_like(data[ftype, "magnetic_field_z"],
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "relative_magnetic_field_z"],
                                               dtype=np.float64), f.units)
         new_field[sl_center, sl_center, sl_center] = f
         return new_field/j_factors[new_field.units.dimensions]
 
     def _current_density_z(field, data):
-        f  = (data[ftype, "magnetic_field_y"][sl_right,sl_center,sl_center] -
-              data[ftype, "magnetic_field_y"][sl_left,sl_center,sl_center]) \
+        f  = (data[ftype, "relative_magnetic_field_y"][sl_right,sl_center,sl_center] -
+              data[ftype, "relative_magnetic_field_y"][sl_left,sl_center,sl_center]) \
               / (div_fac*just_one(data["index", "dx"]))
-        f -= (data[ftype, "magnetic_field_x"][sl_center,sl_right,sl_center] -
-              data[ftype, "magnetic_field_x"][sl_center,sl_left,sl_center]) \
+        f -= (data[ftype, "relative_magnetic_field_x"][sl_center,sl_right,sl_center] -
+              data[ftype, "relative_magnetic_field_x"][sl_center,sl_left,sl_center]) \
               / (div_fac*just_one(data["index", "dy"]))
-        new_field = data.ds.arr(np.zeros_like(data[ftype, "magnetic_field_z"],
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "relative_magnetic_field_z"],
                                               dtype=np.float64), f.units)
         new_field[sl_center, sl_center, sl_center] = f
         return new_field/j_factors[new_field.units.dimensions]
 
     curl_validators = [ValidateSpatial(1,
-                            [(ftype, "magnetic_field_x"),
-                             (ftype, "magnetic_field_y"),
-                             (ftype, "magnetic_field_z")])]
+                           [(ftype, "relative_magnetic_field_x"),
+                            (ftype, "relative_magnetic_field_y"),
+                            (ftype, "relative_magnetic_field_z")])]
     # Determine the correct unit for the current density
     if dimensions.current_mks in unit_system.base_units:
         current_density_unit = unit_system["current_mks"]/unit_system["length"]**2
