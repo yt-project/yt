@@ -373,6 +373,8 @@ def standard_particle_fields(registry, ptype,
         return pos
 
     for name in ["particle_position_relative", "relative_particle_position"]:
+        # TODO mark "particle_position_relative" as deprecated in a way
+        # that's visible to users
         registry.add_field(
             (ptype, name),
             sampling_type="particle",
@@ -399,6 +401,8 @@ def standard_particle_fields(registry, ptype,
         return vel
 
     for name in ["particle_velocity_relative", "relative_particle_velocity"]:
+        # TODO mark "particle_velocity_relative" as deprecated in a way
+        # that's visible to users
         registry.add_field(
             (ptype, name),
             sampling_type="particle",
