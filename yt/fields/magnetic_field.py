@@ -17,10 +17,11 @@ import numpy as np
 
 from yt.units import dimensions
 from yt.units.unit_object import Unit
-from yt.utilities.physical_constants import mu_0
+from yt.utilities.physical_constants import mu_0, c
 
 from yt.fields.derived_field import \
-    ValidateParameter
+    ValidateParameter, \
+    ValidateSpatial
 
 from .field_plugin_registry import \
     register_field_plugin
@@ -28,6 +29,13 @@ from .field_plugin_registry import \
 from yt.utilities.math_utils import \
     get_sph_theta_component, \
     get_sph_phi_component
+
+from .vector_operations import \
+    create_magnitude_field
+
+from yt.funcs import \
+    just_one
+
 
 mag_factors = {dimensions.magnetic_field_cgs: 4.0*np.pi,
                dimensions.magnetic_field_mks: mu_0}
@@ -48,26 +56,26 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
               data[ftype,"magnetic_field_%s" % axis_names[1]]**2 +
               data[ftype,"magnetic_field_%s" % axis_names[2]]**2)
         return np.sqrt(B2)
-    registry.add_field((ftype,"magnetic_field_strength"), sampling_type="cell", 
+    registry.add_field((ftype,"magnetic_field_strength"), sampling_type="cell",
                        function=_magnetic_field_strength,
                        units=u)
 
     def _magnetic_energy(field, data):
         B = data[ftype,"magnetic_field_strength"]
         return 0.5*B*B/mag_factors[B.units.dimensions]
-    registry.add_field((ftype, "magnetic_energy"), sampling_type="cell", 
+    registry.add_field((ftype, "magnetic_energy"), sampling_type="cell",
              function=_magnetic_energy,
              units=unit_system["pressure"])
 
     def _plasma_beta(field,data):
         return data[ftype,'pressure']/data[ftype,'magnetic_energy']
-    registry.add_field((ftype, "plasma_beta"), sampling_type="cell", 
+    registry.add_field((ftype, "plasma_beta"), sampling_type="cell",
              function=_plasma_beta,
              units="")
 
     def _magnetic_pressure(field,data):
         return data[ftype,'magnetic_energy']
-    registry.add_field((ftype, "magnetic_pressure"), sampling_type="cell", 
+    registry.add_field((ftype, "magnetic_pressure"), sampling_type="cell",
              function=_magnetic_pressure,
              units=unit_system["pressure"])
 
@@ -192,3 +200,86 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         registry.add_field((ftype,"magnetic_field_%s" % ax), sampling_type="cell", 
                            function=mag_field(fd),
                            units=unit_system[to_units.dimensions])
+
+@register_field_plugin
+def setup_current_density_vector_fields(registry, ftype = "gas", slice_info = None):
+    """
+    Derived from vorticity calculation in fluid_vector_fields.py
+    This function sets up the current density vector fields calculated by
+    Ampere's law: "curl B = j_factor * J" assuming E = 0.
+    """
+    unit_system = registry.ds.unit_system
+    #
+    # slice_info would be the left, the right, and the factor.
+    # For example, with the old Enzo-ZEUS fields, this would be:
+    # slice(None, -2, None)
+    # slice(1, -1, None)
+    # 1.0
+    # Otherwise, we default to a centered difference.
+    if slice_info is None:
+        sl_left = slice(None, -2, None)
+        sl_right = slice(2, None, None)
+        div_fac = 2.0
+    else:
+        sl_left, sl_right, div_fac = slice_info
+    sl_center = slice(1, -1, None)
+
+    # Constant factor in Ampere's law depends on the unit system
+    # curl B = j_factors * J
+    j_factors = {dimensions.magnetic_field_cgs/dimensions.length: 4.0*np.pi/c,
+                 dimensions.magnetic_field_mks/dimensions.length: mu_0}
+
+    def _current_density_x(field, data):
+        f  = (data[ftype, "magnetic_field_z"][sl_center,sl_right,sl_center] -
+              data[ftype, "magnetic_field_z"][sl_center,sl_left,sl_center]) \
+              / (div_fac*just_one(data["index", "dy"]))
+        f -= (data[ftype, "magnetic_field_y"][sl_center,sl_center,sl_right] -
+              data[ftype, "magnetic_field_y"][sl_center,sl_center,sl_left]) \
+              / (div_fac*just_one(data["index", "dz"]))
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "magnetic_field_z"],
+                                              dtype=np.float64), f.units)
+        new_field[sl_center, sl_center, sl_center] = f
+        return new_field/j_factors[new_field.units.dimensions]
+
+    def _current_density_y(field, data):
+        f  = (data[ftype, "magnetic_field_x"][sl_center,sl_center,sl_right] -
+              data[ftype, "magnetic_field_x"][sl_center,sl_center,sl_left]) \
+              / (div_fac*just_one(data["index", "dz"]))
+        f -= (data[ftype, "magnetic_field_z"][sl_right,sl_center,sl_center] -
+              data[ftype, "magnetic_field_z"][sl_left,sl_center,sl_center]) \
+              / (div_fac*just_one(data["index", "dx"]))
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "magnetic_field_z"],
+                                              dtype=np.float64), f.units)
+        new_field[sl_center, sl_center, sl_center] = f
+        return new_field/j_factors[new_field.units.dimensions]
+
+    def _current_density_z(field, data):
+        f  = (data[ftype, "magnetic_field_y"][sl_right,sl_center,sl_center] -
+              data[ftype, "magnetic_field_y"][sl_left,sl_center,sl_center]) \
+              / (div_fac*just_one(data["index", "dx"]))
+        f -= (data[ftype, "magnetic_field_x"][sl_center,sl_right,sl_center] -
+              data[ftype, "magnetic_field_x"][sl_center,sl_left,sl_center]) \
+              / (div_fac*just_one(data["index", "dy"]))
+        new_field = data.ds.arr(np.zeros_like(data[ftype, "magnetic_field_z"],
+                                              dtype=np.float64), f.units)
+        new_field[sl_center, sl_center, sl_center] = f
+        return new_field/j_factors[new_field.units.dimensions]
+
+    curl_validators = [ValidateSpatial(1,
+                            [(ftype, "magnetic_field_x"),
+                             (ftype, "magnetic_field_y"),
+                             (ftype, "magnetic_field_z")])]
+    # Determine the correct unit for the current density
+    if dimensions.current_mks in unit_system.base_units:
+        current_density_unit = unit_system["current_mks"]/unit_system["length"]**2
+    else:
+        current_density_unit = unit_system["current_cgs"]/unit_system["length"]**2
+    for ax in 'xyz':
+        n = "current_density_%s" % ax
+        registry.add_field((ftype, n), sampling_type="cell",
+                           function=eval("_%s" % n),
+                           units=current_density_unit,
+                           validators=curl_validators)
+    create_magnitude_field(registry, "current_density", current_density_unit,
+                           ftype=ftype, slice_info=slice_info,
+                           validators=curl_validators)
