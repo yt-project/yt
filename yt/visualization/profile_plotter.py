@@ -520,7 +520,7 @@ class ProfilePlot(object):
            The label to be placed on the y-axis
         """
         if field == "all":
-            for field in list(self.profiles[0].field_data.keys()):
+            for field in self.profiles[0].field_data:
                 self.y_title[field] = label
         else:
             field, = self.profiles[0].data_source._determine_fields([field])

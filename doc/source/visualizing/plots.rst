@@ -1090,11 +1090,11 @@ function of radius. The xlabel is set to "Radius", for all plots, and the ylabel
 
 .. python-script::
 
-  import yt
-  ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
-  ad = ds.all_data()
-  plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
-                   weight_field=None)
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
+   plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
+                    weight_field=None)
    plot.set_xlabel("Radius")
    plot.set_ylabel("x-velocity", "velocity in x direction")
    plot.save()
