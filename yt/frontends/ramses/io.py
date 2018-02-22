@@ -298,7 +298,7 @@ def _read_fluid_file_descriptor(fname):
                 if varname in mapping:
                     varname = mapping[varname]
                 else:
-                    varname = 'particle_%s' % varname
+                    varname = 'hydro_%s' % varname
 
                 fields.append((varname, dtype))
         else:
