@@ -43,7 +43,9 @@ def create_magnitude_field(registry, basename, field_units,
                            ftype="gas", slice_info=None,
                            validators=None, particle_type=False):
 
-    field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
+    axis_order = registry.ds.coordinates.axis_order
+
+    field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
 
     def _magnitude(field, data):
         fn = field_components[0]
@@ -73,15 +75,17 @@ def create_relative_field(registry, basename, field_units, ftype='gas',
                           slice_info=None, validators=None,
                           particle_type=False):
 
-    field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
+    axis_order = registry.ds.coordinates.axis_order
+
+    field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
 
     def relative_vector(ax):
-        ax_map = {'x': 0, 'y': 1, 'z': 2}
         def _relative_vector(field, data):
-            d = handle_mks_cgs(data[field_components[ax_map[ax]]], field.units)
+            iax = axis_order.index(ax)
+            d = handle_mks_cgs(data[field_components[iax]], field.units)
             bulk = handle_mks_cgs(get_bulk(data, basename, d.unit_quantity),
                                   field.units)
-            return d - bulk[ax_map[ax]]
+            return d - bulk[iax]
         return _relative_vector
 
     if particle_type is True:
@@ -89,7 +93,7 @@ def create_relative_field(registry, basename, field_units, ftype='gas',
     else:
         sampling_type = 'cell'
 
-    for d in 'xyz':
+    for d in axis_order:
         registry.add_field((ftype, "relative_%s_%s" % (basename, d)),
                            sampling_type=sampling_type,
                            function=relative_vector(d),
@@ -101,8 +105,9 @@ def create_squared_field(registry, basename, field_units,
                          ftype="gas", slice_info=None,
                          validators=None, particle_type=False):
 
-    field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in
-                        'xyz']
+    axis_order = registry.ds.coordinates.axis_order
+
+    field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
 
     def _squared(field, data):
         fn = field_components[0]
