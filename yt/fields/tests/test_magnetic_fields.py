@@ -50,3 +50,32 @@ def test_magnetic_fields():
     assert str(emag2.units) == str(dd2["magnetic_energy"].units)
 
     assert_almost_equal(emag1.in_cgs(), emag2.in_cgs())
+
+
+def test_current_density_fields():
+
+    ddims = (16,16,16)
+    data1 = {"magnetic_field_x":(np.random.random(size=ddims),"T"),
+             "magnetic_field_y":(np.random.random(size=ddims),"T"),
+             "magnetic_field_z":(np.random.random(size=ddims),"T")}
+    data2 = {}
+    for field in data1:
+        data2[field] = (data1[field][0]*1.0e4, "gauss")
+
+    ds1 = load_uniform_grid(data1, ddims, unit_system="cgs")
+    ds2 = load_uniform_grid(data2, ddims, unit_system="mks")
+
+    ds1.index
+    ds2.index
+
+    dd1 = ds1.all_data()
+    dd2 = ds2.all_data()
+
+    assert ds1.fields.gas.current_density_x.units == 'statA/cm**2'
+    assert ds1.fields.gas.current_density_magnitude.units == 'statA/cm**2'
+    assert ds2.fields.gas.current_density_x.units == 'A/m**2'
+    assert ds2.fields.gas.current_density_magnitude.units == 'A/m**2'
+
+    iz_cgs = dd1['current_density_z']*dd1['dx']*dd1['dy']
+    iz_mks = dd2['current_density_z']*dd2['dx']*dd2['dy']
+    assert_almost_equal(iz_cgs.to_equivalent('A', 'SI'), iz_mks)
