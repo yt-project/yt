@@ -719,6 +719,21 @@ value of the color map.
    slc.set_background_color('density', color='black')
    slc.save('black_background')
 
+If you would like to change the background for a plot and also hide the axes,
+you will need to make use of the ``draw_frame`` keyword argument for the ``hide_axes`` function. If you do not use this keyword argument, the call to
+``set_background_color`` will have no effect. Here is an example illustrating how to use the ``draw_frame`` keyword argument for ``hide_axes``:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   field = ('deposit', 'all_density')
+   slc = yt.ProjectionPlot(ds, 'z', field, width=(1.5, 'Mpc'))
+   slc.set_background_color(field)
+   slc.hide_axes(draw_frame=True)
+   slc.hide_colorbar()
+   slc.save('just_image')
+
 Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
 function makes it possible to set a custom colormap range.
 
@@ -1057,6 +1072,31 @@ negative, we set the scaling to be linear for this field.
    sp = ds.sphere('m', 10*u.kpc)
    plot = yt.ProfilePlot(sp, "radius", "x-velocity", weight_field=None)
    plot.set_log("x-velocity", False)
+   plot.save()
+
+Setting axis labels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The axis labels can be manipulated via the
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylabel` and
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_xlabel` functions.  The
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylabel` function accepts a field name 
+and a string with the desired label. The :meth:`~yt.visualization.profile_plotter.ProfilePlot.set_xlabel`
+function just accepts the desired label and applies this to all of the plots. 
+
+In the following example we create a plot of the average x-velocity and density as a
+function of radius. The xlabel is set to "Radius", for all plots, and the ylabel is set to
+"velocity in x direction" for the x-velocity plot.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
+   plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
+                    weight_field=None)
+   plot.set_xlabel("Radius")
+   plot.set_ylabel("x-velocity", "velocity in x direction")
    plot.save()
 
 Altering Line Properties

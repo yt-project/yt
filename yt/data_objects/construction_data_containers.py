@@ -730,13 +730,16 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if not iterable(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
-        for chunk in self._data_source.chunks(fields, "io"):
+        for chunk in parallel_objects(self._data_source.chunks(fields, "io")):
             input_fields = [chunk[field] for field in fields]
             # NOTE: This usage of "refine_by" is actually *okay*, because it's
             # being used with respect to iref, which is *already* scaled!
             fill_region(input_fields, output_fields, self.level,
                         self.global_startindex, chunk.icoords, chunk.ires,
                         domain_dims, refine_by)
+        if self.comm.size > 1:
+            for i in range(len(fields)):
+                output_fields[i] = self.comm.mpi_allreduce(output_fields[i], op="sum")
         for name, v in zip(fields, output_fields):
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)

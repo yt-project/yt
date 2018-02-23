@@ -133,7 +133,7 @@ default_unit_symbol_lut = {
     "solLum": (luminosity_sun_ergs_per_sec, dimensions.power, 0.0, r"L_\odot"),
     "dyn": (1.0, dimensions.force, 0.0, r"\rm{dyn}"),
     "sr": (1.0, dimensions.solid_angle, 0.0, r"\rm{sr}"),
-    "rad": (1.0, dimensions.solid_angle, 0.0, r"\rm{rad}"),
+    "rad": (1.0, dimensions.angle, 0.0, r"\rm{rad}"),
     "deg": (np.pi/180., dimensions.angle, 0.0, r"\rm{deg}"),
     "Fr":  (1.0, dimensions.charge_cgs, 0.0, r"\rm{Fr}"),
     "G": (1.0, dimensions.magnetic_field_cgs, 0.0, r"\rm{G}"),

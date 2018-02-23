@@ -368,6 +368,10 @@ class GadgetDataset(SPHDataset):
 
         if "specific_energy" in unit_base:
             specific_energy_unit = unit_base["specific_energy"]
+        elif "UnitEnergy_in_cgs" in unit_base and "UnitMass_in_g" in unit_base:
+            specific_energy_unit = \
+                unit_base["UnitEnergy_in_cgs"] / unit_base["UnitMass_in_g"]
+            specific_energy_unit = (specific_energy_unit, "(cm/s)**2")
         else:
             # Sane default
             specific_energy_unit = (1, "(km/s) ** 2")
@@ -522,12 +526,16 @@ class GadgetHDF5Dataset(GadgetDataset):
 
         # note the contents of the HDF5 Units group are in _unit_base
         # note the velocity stored on disk is sqrt(a) dx/dt
+        # physical velocity [cm/s] = a dx/dt = sqrt(a) * velocity_on_disk * UnitVelocity_in_cm_per_s
         self.length_unit = self.quan(
             self._unit_base["UnitLength_in_cm"], 'cmcm/h')
-        self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], 'g/h')
+        self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], 'g/h')      
         self.velocity_unit = self.quan(
-            self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s')
+            self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s * sqrt(a)')
         self.time_unit = self.quan(self._unit_base["UnitTime_in_s"], 's/h')
+        
+        specific_energy_unit_cgs = self._unit_base["UnitEnergy_in_cgs"] / self._unit_base["UnitMass_in_g"]
+        self.specific_energy_unit = self.quan(specific_energy_unit_cgs, '(cm/s)**2')
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

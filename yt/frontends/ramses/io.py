@@ -23,7 +23,10 @@ from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 import yt.utilities.fortran_utils as fpu
 from yt.utilities.lib.cosmology_time import \
     get_ramses_ages
+from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
+    YTFileNotParseable
 from yt.extern.six import PY3
+import re
 
 if PY3:
     from io import BytesIO as IO
@@ -31,7 +34,7 @@ else:
     from cStringIO import StringIO as IO
 
 def _ramses_particle_file_handler(fname, foffsets, data_types,
-                                  subset, fields):
+                                  subset, fields, count):
     '''General file handler, called by _read_particle_subset
 
     Parameters
@@ -41,11 +44,13 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
     foffsets: dict
         Offsets in file of the fields
     data_types: dict
-         Data type of the fields
+        Data type of the fields
     subset: ``RAMSESDomainSubset``
-         A RAMSES domain subset object
+        A RAMSES domain subset object
     fields: list of tuple
-         The fields to read
+        The fields to read
+    count: integer
+        The number of elements to count
     '''
     tr = {}
     with open(fname, "rb") as f:
@@ -53,6 +58,9 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
         # This means that no other conversions need to be applied to convert
         # positions into the same domain as the octs themselves.
         for field in sorted(fields, key=lambda a: foffsets[a]):
+            if count == 0:
+                tr[field] = np.empty(0, dtype=data_types[field])
+                continue
             f.seek(foffsets[field])
             dt = data_types[field]
             tr[field] = fpu.read_vector(f, dt)
@@ -75,19 +83,27 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"
 
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        # Chunks in this case will have affiliated domain subset objects
-        # Each domain subset will contain a hydro_offset array, which gives
-        # pointers to level-by-level hydro information
+    def _generic_fluid_handler(self, chunks, selector, fields, size, ftype):
         tr = defaultdict(list)
+
         for chunk in chunks:
             for subset in chunk.objs:
+                fname = None
+                for fh in subset.domain.field_handlers:
+                    if fh.ftype == ftype:
+                        file_handler = fh
+                        fname = fh.fname
+                        break
+
+                if fname is None:
+                    raise YTFieldTypeNotFound(ftype)
+
                 # Now we read the entire thing
-                f = open(subset.domain.hydro_fn, "rb")
+                with open(fname, "rb") as f:
+                    content = IO(f.read())
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                content = IO(f.read())
-                rv = subset.fill(content, fields, selector)
+                rv = subset.fill(content, fields, selector, file_handler)
                 for ft, f in fields:
                     d = rv.pop(f)
                     mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
@@ -96,6 +112,23 @@ class IOHandlerRAMSES(BaseIOHandler):
         d = {}
         for field in fields:
             d[field] = np.concatenate(tr.pop(field))
+
+        return d
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        d = {}
+
+        # Group fields by field type
+        for ft in set(f[0] for f in fields):
+            # Select the fields for the current reader
+            fields_subs = list(
+                filter(lambda f: f[0]==ft,
+                       fields))
+
+            newd = self._generic_fluid_handler(chunks, selector, fields_subs, size,
+                                               ft)
+            d.update(newd)
+
         return d
 
     def _read_particle_coords(self, chunks, ptf):
@@ -138,27 +171,138 @@ class IOHandlerRAMSES(BaseIOHandler):
         '''Read the particle files.'''
         tr = {}
 
-        # Sequential read depending on particle type (io or sink)
+        # Sequential read depending on particle type
         for ptype in set(f[0] for f in fields):
 
             # Select relevant fiels
             subs_fields = filter(lambda f: f[0] == ptype, fields)
 
-            if ptype == 'io':
-                fname = subset.domain.part_fn
-                foffsets = subset.domain.particle_field_offsets
-                data_types = subset.domain.particle_field_types
-
-            elif ptype == 'sink':
-                fname = subset.domain.sink_fn
-                foffsets = subset.domain.sink_field_offsets
-                data_types = subset.domain.sink_field_types
-
-            else:
-                # Raise here an exception
-                raise Exception('Unknown particle type %s' % ptype)
+            ok = False
+            for ph in subset.domain.particle_handlers:
+                if ph.ptype == ptype:
+                    fname = ph.fname
+                    foffsets = ph.field_offsets
+                    data_types = ph.field_types
+                    ok = True
+                    count = ph.local_particle_count
+                    break
+            if not ok:
+                raise YTFieldTypeNotFound(ptype)
 
             tr.update(_ramses_particle_file_handler(
-                fname, foffsets, data_types, subset, subs_fields))
+                fname, foffsets, data_types, subset, subs_fields,
+                count=count
+            ))
 
         return tr
+
+
+def _read_part_file_descriptor(fname):
+    """
+    Read a file descriptor and returns the array of the fields found.
+    """
+    VERSION_RE = re.compile('# version: *(\d+)')
+    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
+
+    # Mapping
+    mapping = [
+        ('position_x', 'particle_position_x'),
+        ('position_y', 'particle_position_y'),
+        ('position_z', 'particle_position_z'),
+        ('velocity_x', 'particle_velocity_x'),
+        ('velocity_y', 'particle_velocity_y'),
+        ('velocity_z', 'particle_velocity_z'),
+        ('mass', 'particle_mass'),
+        ('identity', 'particle_identity'),
+        ('levelp', 'particle_level'),
+        ('family', 'particle_family'),
+        ('tag', 'particle_tag')
+    ]
+    # Convert in dictionary
+    mapping = {k: v for k, v in mapping}
+
+    with open(fname, 'r') as f:
+        line = f.readline()
+        tmp = VERSION_RE.match(line)
+        mylog.info('Reading part file descriptor.')
+        if not tmp:
+            raise YTParticleOutputFormatNotImplemented()
+
+        version = int(tmp.group(1))
+
+        if version == 1:
+            # Skip one line (containing the headers)
+            line = f.readline()
+            fields = []
+            for i, line in enumerate(f.readlines()):
+                tmp = VAR_DESC_RE.match(line)
+                if not tmp:
+                    raise YTFileNotParseable(fname, i+1)
+
+                # ivar = tmp.group(1)
+                varname = tmp.group(2)
+                dtype = tmp.group(3)
+
+                if varname in mapping:
+                    varname = mapping[varname]
+                else:
+                    varname = 'particle_%s' % varname
+
+                fields.append((varname, dtype))
+        else:
+            raise YTParticleOutputFormatNotImplemented()
+
+    return fields
+
+def _read_fluid_file_descriptor(fname):
+    """
+    Read a file descriptor and returns the array of the fields found.
+    """
+    VERSION_RE = re.compile('# version: *(\d+)')
+    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
+
+    # Mapping
+    mapping = [
+        ('density', 'Density'),
+        ('velocity_x', 'x-velocity'),
+        ('velocity_y', 'y-velocity'),
+        ('velocity_z', 'z-velocity'),
+        ('pressure', 'Pressure'),
+        ('metallicity', 'Metallicity'),
+    ]
+    # Convert in dictionary
+    mapping = {k: v for k, v in mapping}
+
+    with open(fname, 'r') as f:
+        line = f.readline()
+        tmp = VERSION_RE.match(line)
+        mylog.info('Reading fluid file descriptor.')
+        if not tmp:
+            return []
+
+        version = int(tmp.group(1))
+
+        if version == 1:
+            # Skip one line (containing the headers)
+            line = f.readline()
+            fields = []
+            for i, line in enumerate(f.readlines()):
+                tmp = VAR_DESC_RE.match(line)
+                if not tmp:
+                    raise YTFileNotParseable(fname, i+1)
+
+                # ivar = tmp.group(1)
+                varname = tmp.group(2)
+                dtype = tmp.group(3)
+
+                if varname in mapping:
+                    varname = mapping[varname]
+                else:
+                    varname = 'particle_%s' % varname
+
+                fields.append((varname, dtype))
+        else:
+            mylog.error('Version %s', version)
+            raise YTParticleOutputFormatNotImplemented()
+
+    return fields

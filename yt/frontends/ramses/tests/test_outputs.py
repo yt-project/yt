@@ -49,6 +49,7 @@ def test_output_00080():
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
+
     assert_equal(ds.particle_type_counts, {'io': 1090895})
 
 @requires_file(output_00080)
@@ -171,7 +172,6 @@ def test_ramses_rt():
 
 ramses_sink = "ramses_sink_00016/output_00016/info_00016.txt"
 @requires_file(ramses_sink)
-@requires_file(ramsesNonCosmo)
 def test_ramses_sink():
     expected_fields = ["BH_bondi_accretion", "BH_eddington_accretion",
                        "BH_efficiency", "BH_esave",
@@ -204,3 +204,40 @@ def test_ramses_sink():
 
     for field in expected_fields:
         assert(('sink', 'field') not in ds.field_list)
+
+ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
+@requires_file(ramses_new_format)
+def test_new_format():
+    expected_particle_fields = [
+        ('star', 'particle_identity'),
+        ('star', 'particle_level'),
+        ('star', 'particle_mass'),
+        ('star', 'particle_metallicity'),
+        ('star', 'particle_position_x'),
+        ('star', 'particle_position_y'),
+        ('star', 'particle_position_z'),
+        ('star', 'particle_tag'),
+        ('star', 'particle_velocity_x'),
+        ('star', 'particle_velocity_y'),
+        ('star', 'particle_velocity_z')]
+
+    ds = yt.load(ramses_new_format)
+    ad = ds.all_data()
+
+    # Check all the expected fields exist and can be accessed
+    for f in expected_particle_fields:
+        assert(f in ds.derived_field_list)
+        ad[f]
+
+    # Check there is only stars with tag 0 (it should be right)
+    assert(all(ad['star', 'particle_family'] == 2))
+    assert(all(ad['star', 'particle_tag'] == 0))
+    assert(len(ad['star', 'particle_tag']) == 600)
+
+@requires_file(ramses_sink)
+def test_ramses_part_count():
+    ds = yt.load(ramses_sink)
+    pcount = ds.particle_type_counts
+
+    assert_equal(pcount['io'], 17132, err_msg='Got wrong number of io particle')
+    assert_equal(pcount['sink'], 8, err_msg='Got wrong number of sink particle')

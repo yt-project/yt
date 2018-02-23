@@ -347,8 +347,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         arr = np.fromfile(f, dtype=dt, count=count)
         if name in self._vector_fields:
             factor = self._vector_fields[name]
-            arr = arr.reshape((count//factor, factor), order="C")
-        return arr.astype(self._float_type)
+            arr = arr.reshape((count // factor, factor), order="C")
+        return arr
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         self._float_type = data_file.ds._validate_header(data_file.filename)[1]

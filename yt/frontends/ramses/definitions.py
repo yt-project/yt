@@ -41,11 +41,6 @@ def ramses_header(hvals):
                  ('timing', 5, 'd'),
                  ('mass_sph', 1, 'd') )
     yield next_set
-    tree_header = ( ('headl', hvals['nlevelmax'] * hvals['ncpu'], 'i'),
-                    ('taill', hvals['nlevelmax'] * hvals['ncpu'], 'i'),
-                    ('numbl', hvals['nlevelmax'] * hvals['ncpu'], 'i'),
-                  )
-    yield tree_header
 
 field_aliases = {
     'standard_five':     ('Density',
@@ -60,4 +55,15 @@ field_aliases = {
                           'Pressure',
                           'Metallicity'),
 
+}
+
+particle_families = {
+    'DM': 1,
+    'star': 2,
+    'cloud': 3,
+    'dust': 4,
+    'star_tracer': -2,
+    'cloud_tracer': -3,
+    'dust_tracer': -4,
+    'gas_tracer': 0
 }

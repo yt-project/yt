@@ -11,6 +11,7 @@ FITSImageData Class
 #-----------------------------------------------------------------------------
 from yt.extern.six import string_types
 import numpy as np
+from distutils.version import LooseVersion
 from yt.fields.derived_field import DerivedField
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -339,7 +340,10 @@ class FITSImageData(object):
             hdus = _astropy.pyfits.HDUList()
             for field in fields:
                 hdus.append(self.hdulist[field])
-        hdus.writeto(fileobj, clobber=clobber, **kwargs)
+        if LooseVersion(_astropy.__version__) < LooseVersion('2.0.0'):
+            hdus.writeto(fileobj, clobber=clobber, **kwargs)
+        else:
+            hdus.writeto(fileobj, overwrite=clobber, **kwargs)
 
     def to_glue(self, label="yt", data_collection=None):
         """

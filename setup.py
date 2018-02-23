@@ -15,7 +15,7 @@ from distutils.version import LooseVersion
 import pkg_resources
 
 
-if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 3):
+if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 4):
     print("yt currently supports Python 2.7 or versions newer than Python 3.4")
     print("certain features may fail unexpectedly and silently with older "
           "versions.")
@@ -192,11 +192,16 @@ cython_extensions = [
     Extension("yt.utilities.lib.alt_ray_tracers",
               ["yt/utilities/lib/alt_ray_tracers.pyx"],
               libraries=std_libs),
+    Extension("yt.utilities.lib.misc_utilities",
+              ["yt/utilities/lib/misc_utilities.pyx"],
+              extra_compile_args=omp_args,
+              extra_link_args=omp_args,
+              libraries=std_libs),
 ]
 
 lib_exts = [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
-    "interpolators", "misc_utilities", "basic_octree", "image_utilities",
+    "interpolators", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "mesh_utilities",
     "amr_kdtools", "lenses", "distance_queue", "allocation_container",
 ]
@@ -408,14 +413,16 @@ setup(
         'IPython>=1.0',
     ],
     extras_require = {
-        'hub':  ["girder_client"]
+        'hub':  ["girder_client"],
+        'mapserver': ["bottle"]
     },
     cmdclass={'sdist': sdist, 'build_ext': build_ext},
     author="The yt project",
-    author_email="yt-dev@lists.spacepope.org",
+    author_email="yt-dev@python.org",
     url="http://yt-project.org/",
     license="BSD 3-Clause",
     zip_safe=False,
     scripts=["scripts/iyt"],
     ext_modules=cython_extensions + extensions,
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*'
 )

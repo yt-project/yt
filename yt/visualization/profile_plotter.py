@@ -209,6 +209,7 @@ class ProfilePlot(object):
     Use set_line_property to change line properties of one or all profiles.
     
     """
+
     x_log = None
     y_log = None
     x_title = None
@@ -359,10 +360,13 @@ class ProfilePlot(object):
                 axes = self.axes[fname]
                 xscale, yscale = self._get_field_log(fname, profile)
                 xtitle, ytitle = self._get_field_title(fname, profile)
+
                 axes.set_xscale(xscale)
                 axes.set_yscale(yscale)
-                axes.set_xlabel(xtitle)
+
                 axes.set_ylabel(ytitle)
+                axes.set_xlabel(xtitle)
+
                 axes.set_ylim(*self.axes.ylim[fname])
                 axes.set_xlim(*self.axes.xlim)
                 if any(self.label):
@@ -383,6 +387,7 @@ class ProfilePlot(object):
                 field, = obj.profiles[0].data_source._determine_fields([field])
                 obj.y_log[field] = log
         obj.y_title = {}
+        obj.x_title = None
         obj.label = sanitize_label(labels, len(obj.profiles))
         if plot_specs is None:
             plot_specs = [dict() for p in obj.profiles]
@@ -499,6 +504,44 @@ class ProfilePlot(object):
                 self.y_log[field] = log
             else:
                 raise KeyError("Field %s not in profile plot!" % (field))
+        return self
+
+
+    @invalidate_plot
+    def set_ylabel(self, field, label):
+        """Sets a new ylabel for the specified fields
+
+        Parameters
+        ----------
+        field : string
+           The name of the field that is to be changed.
+
+        label : string
+           The label to be placed on the y-axis
+        """
+        if field == "all":
+            for field in self.profiles[0].field_data:
+                self.y_title[field] = label
+        else:
+            field, = self.profiles[0].data_source._determine_fields([field])
+            if field in self.profiles[0].field_data:
+                self.y_title[field] = label
+            else:
+                raise KeyError("Field %s not in profile plot!" % (field))
+
+        return self
+
+    @invalidate_plot
+    def set_xlabel(self, label):
+        """Sets a new xlabel for all profiles
+
+        Parameters
+        ----------
+        label : string
+           The label to be placed on the x-axis
+        """
+        self.x_title = label
+
         return self
 
     @invalidate_plot
