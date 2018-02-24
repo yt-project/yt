@@ -214,6 +214,7 @@ class ProfilePlot(object):
     y_log = None
     x_title = None
     y_title = None
+    plot_title = None
     _plot_valid = False
 
     def __init__(self, data_source, x_field, y_fields,
@@ -350,6 +351,12 @@ class ProfilePlot(object):
             return
         for f in self.axes:
             self.axes[f].cla()
+            if f in self._plot_text:
+                self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
+                                        self._plot_text[f],
+                                        fontproperties=self._font_properties,
+                                        **self._text_kwargs[f])
+
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
                 self.axes[field].plot(np.array(profile.x), np.array(field_data),
@@ -369,6 +376,10 @@ class ProfilePlot(object):
 
                 axes.set_ylim(*self.axes.ylim[fname])
                 axes.set_xlim(*self.axes.xlim)
+
+                if self.plot_title is not None:
+                    axes.set_title(self.plot_title)
+
                 if any(self.label):
                     axes.legend(loc="best")
         self._set_font_properties()
@@ -376,6 +387,11 @@ class ProfilePlot(object):
 
     @classmethod
     def _initialize_instance(cls, obj, profiles, labels, plot_specs, y_log):
+        obj._plot_text = {}
+        obj._text_xpos = {}
+        obj._text_ypos = {}
+        obj._text_kwargs = {}
+
         from matplotlib.font_manager import FontProperties
         obj._font_properties = FontProperties(family='stixgeneral', size=18)
         obj._font_color = None
@@ -710,6 +726,64 @@ class ProfilePlot(object):
             self._get_field_label(field_y, yfi, y_unit, fractional)
 
         return (x_title, y_title)
+
+    @invalidate_plot
+    def annotate_title(self, title):
+        r"""Set a title for the plot.
+
+        Parameters
+        ----------
+        title : str
+          The title to add.
+
+        Examples
+        --------
+
+        >>> plot.annotate_title("This is a particle plot")
+
+        """
+        self.plot_title = title
+        return self
+
+    def annotate_text(self, xpos=0.0, ypos=0.0, text=None, **text_kwargs):
+        r"""Allow the user to insert text onto the plot
+
+        The x-position and y-position must be given as well as the text string.
+        Add *text* tp plot at location *xpos*, *ypos* in plot coordinates
+        (see example below).
+
+        Parameters
+        ----------
+        field: str or tuple
+          The name of the field to add text to.
+        xpos: float
+          Position on plot in x-coordinates.
+        ypos: float
+          Position on plot in y-coordinates.
+        text: str
+          The text to insert onto the plot.
+        text_kwargs: dict
+          Dictionary of text keyword arguments to be passed to matplotlib
+
+        >>>  import yt
+        >>>  from yt.units import kpc
+        >>>  ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>  my_galaxy = ds.disk(ds.domain_center, [0.0, 0.0, 1.0], 10*kpc, 3*kpc)
+        >>>  plot = yt.ProfilePlot(my_galaxy, "density", ["temperature"])
+        >>>  plot.annotate_text(1e-26, 1e5, "This is annotated text in the plot area.")
+        >>>  plot.save()
+
+        """
+        for f in list(self.axes.keys()):
+            if self.plots[f].figure is not None and text is not None:
+                self.plots[f].axes.text(xpos, ypos, text,
+                                        fontproperties=self._font_properties,
+                                        **text_kwargs)
+            self._plot_text[f] = text
+            self._text_xpos[f] = xpos
+            self._text_ypos[f] = ypos
+            self._text_kwargs[f] = text_kwargs
+        return self
 
 class PhasePlot(ImagePlotContainer):
     r"""
