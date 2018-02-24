@@ -1654,7 +1654,7 @@ Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 Halo Catalog Data
 -----------------
 
-yt has support for reading halo catalogs produced by AHF, Rockstar and the inline
+yt has support for reading halo catalogs produced by the Amiga Halo Finder (AHF), Rockstar and the inline
 FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as
 particle datasets where each particle represents a single halo.  For example,
 this means that the `particle_mass` field refers to the mass of the halos.  For
@@ -1669,13 +1669,13 @@ to the other halo catalogs shown here.
 
 .. _ahf:
 
-AHF
-^^^
+Amiga Halo Finder
+^^^^^^^^^^^^^^^^^
 
-AHF halo catalogs are loaded by providing the path to the .parameter files.
-The corresponding .log and .AHF_halos files must exist for data loading to
-succeed. The field type for all fields is "halos". Some fields of note available
-from AHF are:
+Amiga Halo Finder (AHF) halo catalogs are loaded by providing the path to the
+.parameter files.  The corresponding .log and .AHF_halos files must exist for
+data loading to succeed. The field type for all fields is "halos". Some fields
+of note available from AHF are:
 
 +----------------+---------------------------+
 | AHF field      | yt field name             |
