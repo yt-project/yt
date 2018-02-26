@@ -188,3 +188,4 @@ def test_annotations():
     plot.annotate_text(1e-1, 1e1, "Annotated text",
                        horizontalalignment='left',
                        verticalalignment='center')
+    
