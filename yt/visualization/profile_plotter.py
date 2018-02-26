@@ -745,11 +745,12 @@ class ProfilePlot(object):
         self.plot_title = title
         return self
 
+    @invalidate_plot
     def annotate_text(self, xpos=0.0, ypos=0.0, text=None, **text_kwargs):
         r"""Allow the user to insert text onto the plot
 
         The x-position and y-position must be given as well as the text string.
-        Add *text* tp plot at location *xpos*, *ypos* in plot coordinates
+        Add *text* to plot at location *xpos*, *ypos* in plot coordinates
         (see example below).
 
         Parameters
@@ -775,10 +776,6 @@ class ProfilePlot(object):
 
         """
         for f in list(self.axes.keys()):
-            if self.plots[f].figure is not None and text is not None:
-                self.plots[f].axes.text(xpos, ypos, text,
-                                        fontproperties=self._font_properties,
-                                        **text_kwargs)
             self._plot_text[f] = text
             self._text_xpos[f] = xpos
             self._text_ypos[f] = ypos

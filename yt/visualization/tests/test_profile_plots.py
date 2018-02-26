@@ -178,3 +178,13 @@ def test_set_labels():
     # make sure we can set the labels without erroring out
     plot.set_ylabel("all", "test ylabel")
     plot.set_xlabel("test xlabel")
+
+def test_annotations():
+    ds = fake_random_ds(16)
+    ad = ds.all_data()
+    plot = yt.ProfilePlot(ad, "radius", ["velocity_x"], weight_field=None)
+    # make sure we can annotate without erroring out
+    plot.annotate_title("Velocity vs Radius Plot")
+    plot.annotate_text(1e-1, 1e1, "Annotated text",
+                       horizontalalignment='left',
+                       verticalalignment='center')

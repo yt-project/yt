@@ -1099,6 +1099,38 @@ function of radius. The xlabel is set to "Radius", for all plots, and the ylabel
    plot.set_ylabel("x-velocity", "velocity in x direction")
    plot.save()
 
+Annotating plot Title and Area
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Plot title can be set via the
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_title` function.
+It accepts a string argument which is the plot title.
+Plot area can be annotated at a desired (x,y) co-ordinate using
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_text`
+function. This function accepts the x-position, y-position and a text string to
+be annotated in the plot area. Further, a dictionary of text keyword arguments
+could be passed that are valid matplotlib keyword arguments.
+
+In the following example we create a plot and set the plot title and a text string in the plot area.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
+   plot = yt.ProfilePlot(ad, "density", ["temperature"], weight_field=None)
+   plot.annotate_title("Temperature vs Density Plot")
+   plot.annotate_text(1e-30, 1e7,"This is annotated text in the plot area.")
+   plot.show()
+
+This example shows a few keyword arguments that could be passed as well to
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_text` function.
+
+.. python-script::
+
+   plot.annotate_text(1e-30, 1e7,"This is annotated text in the plot area.",
+   					  horizontalalignment='left', verticalalignment='center'))
+
 Altering Line Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
