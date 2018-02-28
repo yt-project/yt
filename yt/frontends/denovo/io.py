@@ -1,5 +1,5 @@
 """
-Skeleton-specific IO functions
+Denovo-specific IO functions
 
 
 
@@ -15,11 +15,14 @@ Skeleton-specific IO functions
 
 from yt.utilities.io_handler import \
     BaseIOHandler
+from yt.utilities.on_demand_imports import _h5py as h5py
+import numpy as np
+from yt.utilities.logger import ytLogger as mylog
 
 
-class SkeletonIOHandler(BaseIOHandler):
+class IOHandlerDenovHDF5(BaseIOHandler):
     _particle_reader = False
-    _dataset_type = 'skeleton'
+    _dataset_type = 'denovo'
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).

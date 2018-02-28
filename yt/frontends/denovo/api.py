@@ -1,5 +1,5 @@
 """
-API for yt.frontends._skeleton
+API for Denovo frontend
 
 
 
@@ -14,12 +14,14 @@ API for yt.frontends._skeleton
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      SkeletonGrid, \
-      SkeletonHierarchy, \
-      SkeletonDataset
+      DenovoGrid, \
+      DenovoHierarchy, \
+      DenovoDataset
 
 from .fields import \
-      SkeletonFieldInfo
+      DenovoFieldInfo
 
 from .io import \
-      SkeletonIOHandler
+      IOHandlerDenovoHDF5
+
+from . import tests

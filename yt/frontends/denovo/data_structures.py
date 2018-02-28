@@ -1,5 +1,5 @@
 """
-Skeleton data structures
+Denovo data structures
 
 
 
@@ -16,6 +16,8 @@ Skeleton data structures
 import os
 import numpy as np
 import weakref
+from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.logger import ytLogger as mylog
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -23,10 +25,11 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
-from .fields import SkeletonFieldInfo
+
+from .fields import DenovoFieldInfo
 
 
-class SkeletonGrid(AMRGridPatch):
+class DenovoGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
@@ -37,13 +40,13 @@ class SkeletonGrid(AMRGridPatch):
         self.Level = level
 
     def __repr__(self):
-        return "SkeletonGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+        return "DenovoGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
 
-class SkeletonHierarchy(GridIndex):
-    grid = SkeletonGrid
+class DenovoHierarchy(GridIndex):
+    grid = DenovoGrid
 
-    def __init__(self, ds, dataset_type='skeleton'):
+    def __init__(self, ds, dataset_type='denovo'):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
@@ -89,14 +92,17 @@ class SkeletonHierarchy(GridIndex):
         pass
 
 
-class SkeletonDataset(Dataset):
-    _index_class = SkeletonHierarchy
-    _field_info_class = SkeletonFieldInfo
+class DenovoDataset(Dataset):
+    _index_class = DenovoHierarchy
+    _field_info_class = DenovoFieldInfo
+    _suffix = ".out.h5"
 
-    def __init__(self, filename, dataset_type='skeleton',
+    def __init__(self, filename,
+                 dataset_type='denovo',
                  storage_filename=None,
                  units_override=None):
-        self.fluid_types += ('skeleton',)
+
+        self.fluid_types += ('denovo',)
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
@@ -109,9 +115,9 @@ class SkeletonDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
         #
-        # self.length_unit = self.quan(1.0, "cm")
-        # self.mass_unit = self.quan(1.0, "g")
-        # self.time_unit = self.quan(1.0, "s")
+        self.length_unit = self.quan(1.0, "cm")
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
         # self.time_unit = self.quan(1.0, "s")
         #
         # These can also be set:
@@ -123,7 +129,6 @@ class SkeletonDataset(Dataset):
         # This needs to set up the following items.  Note that these are all
         # assumed to be in code units; domain_left_edge and domain_right_edge
         # will be converted to YTArray automatically at a later time.
-        # This includes the cosmological parameters.
         #
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME)
