@@ -220,7 +220,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
 
-        buff = np.zeros((size[1], size[0]), dtype="f8")
+        buff = np.zeros((size[0], size[1]), dtype="f8")
 
         finfo = self.ds._get_field_info(field)
         nodal_flag = finfo.nodal_flag
@@ -242,7 +242,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         indices = np.argsort(data_source['pdx'])[::-1].astype(np.int_)
-        buff = np.zeros((size[1], size[0]), dtype="f8")
+        buff = np.zeros((size[0], size[1]), dtype="f8")
         pixelize_off_axis_cartesian(buff,
                               data_source['x'], data_source['y'],
                               data_source['z'], data_source['px'],

@@ -413,8 +413,9 @@ class QuiverCallback(PlotCallback):
         y0, y1 = [p.to('code_length') for p in plot.ylim]
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        # See the note about rows/columns in the pixelizer for more information
-        # on why we choose the bounds we do
+        # See the note about rows/columns in the docstring for
+        # PlotWindow.set_buff_size for more information on why
+        # nx (ny) corresponds to the second (first) image dimension
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
         # periodicity
@@ -500,8 +501,9 @@ class ContourCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
 
-        # See the note about rows/columns in the pixelizer for more information
-        # on why we choose the bounds we do
+        # See the note about rows/columns in the docstring for
+        # PlotWindow.set_buff_size for more information on why
+        # nx (ny) corresponds to the second (first) image dimension
         numPoints_x = plot.image._A.shape[1]
         numPoints_y = plot.image._A.shape[0]
 
@@ -616,6 +618,9 @@ class GridBoundaryCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         (dx, dy) = self.pixel_scale(plot)
+        # See the note about rows/columns in the docstring for
+        # PlotWindow.set_buff_size for more information on why
+        # xpix (ypix) corresponds to the second (first) image dimension
         (ypix, xpix) = plot.image._A.shape
         ax = plot.data.axis
         px_index = plot.data.ds.coordinates.x_axis[ax]
@@ -720,8 +725,9 @@ class StreamlineCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        # See the note about rows/columns in the pixelizer for more information
-        # on why we choose the bounds we do
+        # See the note about rows/columns in the docstring for
+        # PlotWindow.set_buff_size for more information on why
+        # nx (ny) corresponds to the second (first) image dimension
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
         pixX = np.zeros((ny, nx), dtype="f8")
@@ -884,6 +890,9 @@ class CuttingQuiverCallback(PlotCallback):
         y0, y1 = [p.to('code_length') for p in plot.ylim]
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+        # See the note about rows/columns in the docstring for
+        # PlotWindow.set_buff_size for more information on why
+        # nx (ny) corresponds to the second (first) image dimension
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
         indices = np.argsort(plot.data['dx'])[::-1].astype(np.int_)
@@ -945,6 +954,9 @@ class ClumpContourCallback(PlotCallback):
         dxf = "d%s" % xf
         dyf = "d%s" % yf
 
+        # See the note about rows/columns in the docstring for
+        # PlotWindow.set_buff_size for more information on why
+        # nx (ny) corresponds to the second (first) image dimension
         ny, nx = plot.image._A.shape
         buff = np.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
@@ -2387,8 +2399,9 @@ class LineIntegralConvolutionCallback(PlotCallback):
         bounds = [x0,x1,y0,y1]
         extent = [xx0,xx1,yy0,yy1]
 
-        # We are feeding this size into the pixelizer, where it will properly
-        # set it in reverse order
+        # See the note about rows/columns in the docstring for
+        # PlotWindow.set_buff_size for more information on why
+        # nx (ny) corresponds to the second (first) image dimension
         nx = plot.image._A.shape[1]
         ny = plot.image._A.shape[0]
         pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
@@ -2475,6 +2488,9 @@ class CellEdgesCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+        # See the note about rows/columns in the docstring for
+        # PlotWindow.set_buff_size for more information on why
+        # nx (ny) corresponds to the second (first) image dimension
         nx = plot.image._A.shape[1]
         ny = plot.image._A.shape[0]
         aspect = float((y1 - y0) / (x1 - x0))

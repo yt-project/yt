@@ -35,6 +35,7 @@ from yt.visualization.api import \
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.units import kboltz
 from yt.frontends.stream.api import load_uniform_grid
+from yt.funcs import ensure_tuple
 from collections import OrderedDict
 
 def setup():
@@ -380,12 +381,27 @@ def test_on_off_compare():
 
     assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
 
-    sl_on.set_buff_size((800, 400))
-    sl_on._recreate_frb()
-    sl_off.set_buff_size((800, 400))
-    sl_off._recreate_frb()
+    for shape in [400, 800, (400, 800), (800, 400)]:
 
-    assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
+        sl_on.set_buff_size(shape)
+        sl_off.set_buff_size(shape)
+
+        on_dens = sl_on.frb['density']
+        off_dens = sl_off.frb['density']
+
+        assert_array_almost_equal(on_dens, off_dens)
+        assert_equal(on_dens.shape, off_dens.shape)
+        if len(ensure_tuple(shape)) == 1:
+            sh = (shape, shape)
+        else:
+            # matplotlib displays images with shapes (m, n) with
+            # m rows and n columns. Reversing the shape here means
+            # that if I do plot.set_buff_size((nx, ny)) where will
+            # be nx pixels along x (nx columns) and ny pixels along y
+            # (ny rows). In other words, this is a purposeful choice
+            # and shold not be changed.
+            sh = (shape[1], shape[0])
+        assert_equal(on_dens.shape, sh)
 
 def test_plot_particle_field_error():
     ds = fake_random_ds(32, particles=100)

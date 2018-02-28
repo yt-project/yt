@@ -262,9 +262,15 @@ class PlotWindow(ImagePlotContainer):
         else:
             bounds = self.xlim+self.ylim
 
+        # matplotlib displays images with shapes (m, n) with m rows
+        # and n columns. Reversing buff_size here means that if I do
+        # plot.set_buff_size((nx, ny)) where will be nx pixels along
+        # x (nx columns) and ny pixels along y (ny rows).
+        buff_size = (self.buff_size[1], self.buff_size[0])
+
         # Generate the FRB
         self.frb = self._frb_generator(self.data_source, bounds,
-                                       self.buff_size, self.antialias,
+                                       buff_size, self.antialias,
                                        periodic=self._periodic)
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
@@ -578,8 +584,17 @@ class PlotWindow(ImagePlotContainer):
         parameters
         ----------
         size : int or two element sequence of ints
-            The number of data elements in the buffer on the x and y axes.
-            If a scalar is provided,  then the buffer is assumed to be square.
+            The number of pixels in the image buffer along the x and y axes.
+            If a scalar is provided, then the buffer is assumed to be square.
+
+        .. note::
+
+            If the image buffer is accessed via the plot's frb attribute, the
+            image shape will be the *reverse* of the size specified here. For
+            example, after doing ``plot.set_buff_size((400, 800))`` you will
+            find that ``plot.frb[field].shape == (800, 400)``. This is set up
+            this way because matplotlib's imshow command displays images in
+            row-major order.
         """
         if iterable(size):
             self.buff_size = size

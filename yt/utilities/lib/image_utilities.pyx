@@ -26,8 +26,8 @@ def add_points_to_greyscale_image(
     cdef int xs = buffer.shape[0]
     cdef int ys = buffer.shape[1]
     for pi in range(np):
-        j = <int> (xs * px[pi])
-        i = <int> (ys * py[pi])
+        i = <int> (xs * py[pi])
+        j = <int> (ys * px[pi])
         buffer[i, j] += pv[pi]
         buffer_mask[i, j] = 1
     return
@@ -44,8 +44,8 @@ def add_points_to_image(
     cdef int v
     v = iclip(<int>(pv * 255), 0, 255)
     for pi in range(np):
-        j = <int> (xs * px[pi])
-        i = <int> (ys * py[pi])
+        i = <int> (xs * py[pi])
+        j = <int> (ys * px[pi])
         for k in range(3):
             buffer[i, j, k] = v
         buffer[i, j, 3] = 255
@@ -71,8 +71,8 @@ def add_rgba_points_to_image(
     cdef int ys = buffer.shape[1]
     #iv = iclip(<int>(pv * 255), 0, 255)
     for pi in range(npart):
-        j = <int> (xs * px[pi])
-        i = <int> (ys * py[pi])
+        i = <int> (xs * py[pi])
+        j = <int> (ys * px[pi])
         if i < 0 or j < 0 or i >= xs or j >= ys:
             continue
         for k in range(4):

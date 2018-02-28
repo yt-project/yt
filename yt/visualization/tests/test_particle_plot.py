@@ -24,12 +24,14 @@ from yt.visualization.tests.test_plotwindow import \
     WIDTH_SPECS, ATTR_ARGS
 from yt.convenience import load
 from yt.data_objects.particle_filters import add_particle_filter
+from yt.frontends.stream.data_structures import load_particles
 from yt.testing import \
     fake_particle_ds, \
     assert_array_almost_equal, \
     requires_file, \
     assert_allclose, \
-    assert_fname
+    assert_fname, \
+    assert_array_equal
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
@@ -369,3 +371,52 @@ def test_particle_plot_instance():
 
     plot = ParticlePlot(ds, x_field, z_field)
     assert isinstance(plot, ParticlePhasePlot)
+
+def test_projection_orientation():
+
+    npart = 7
+
+    # one particle at the origin, one particle along x-axis, two along y,
+    # three along z
+    data = {
+        'particle_position_x': (
+            np.array([0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]), 'cm'),
+        'particle_position_y': (
+            np.array([0.0, 0.0, 1.0, 2.0, 0.0, 0.0, 0.0]), 'cm'),
+        'particle_position_z': (
+            np.array([0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 3.0]), 'cm'),
+        'particle_mass': (np.ones(npart), 'g'),
+        'particle_velocity_x': (np.zeros(npart), 'cm/s'),
+        'particle_velocity_y': (np.zeros(npart), 'cm/s'),
+        'particle_velocity_z': (np.zeros(npart), 'cm/s'),
+    }
+
+    bbox = np.array([[-4, 4], [-4, 4], [-4, 4]])
+
+    ds = load_particles(data=data, length_unit=1.0, bbox=bbox)
+
+    ANSWERS = {
+        # 1 at origin, 3 particles along z and 2 particles along y
+        ('x', (100, 100)): ([50, 50, 50, 62, 75, 87], [50, 62, 75, 50, 50, 50]),
+        ('x', (100, 50 )): ([25, 25, 25, 31, 37, 43], [50, 62, 75, 50, 50, 50]),
+        ('x', (50 , 100)): ([50, 50, 50, 62, 75, 87], [25, 31, 37, 25, 25, 25]),
+
+        # 1 at origin, 3 particles long z and 1 particle along x
+        ('y', (100, 100)): ([50, 50, 50, 50, 62], [50, 62, 75, 87, 50]),
+        ('y', (100, 50 )): ([25, 25, 25, 25, 31], [50, 62, 75, 87, 50]),
+        ('y', (50 , 100)): ([50, 50, 50, 50, 62], [25, 31, 37, 43, 25]),
+
+        # 1 at origin, 2 particles along y and 1 particle along x
+        ('z', (100, 100)): ([50, 50, 62, 75], [50, 62, 50, 50]),
+        ('z', (100, 50 )): ([25, 25, 31, 37], [50, 62, 50, 50]),
+        ('z', (50 , 100)): ([50, 50, 62, 75], [25, 31, 25, 25]),
+    }
+
+    for shape in [(100, 100), (100, 50), (50, 100)]:
+        for ax in 'xyz':
+            p = ParticleProjectionPlot(ds, ax, 'particle_mass', origin='native')
+            p.set_buff_size(shape)
+            p.set_log('particle_mass', False)
+            p.set_zlim('particle_mass', 0, 4)
+            image = p.frb['io', 'particle_mass']
+            assert_array_equal(ANSWERS[ax, shape], np.where(np.isfinite(image)))
