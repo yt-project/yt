@@ -20,7 +20,7 @@ answer_tests:
   local_fits_002:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_008:
+  local_flash_009:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_001:
