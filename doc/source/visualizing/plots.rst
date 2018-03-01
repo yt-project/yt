@@ -1165,12 +1165,11 @@ To add annotations to a particular set of fields we need to pass in the list of 
    plot.annotate_text(1e-30, 1e7,"Annotation", ["field1", "field2"])
 
 
-To change the text annotated text properties, we need to pass the matplotlib ``axex.text`` arguments as follows:
+To change the text annotated text properties, we need to pass the matplotlib ``axes.text`` arguments as follows:
 
 .. code-block:: python
 
-plot.annotate_text(1e-30, 1e7,"Annotation", fontsize=20, bbox=dict(facecolor='red', alpha=0.5),
-                   horizontalalignment='center', verticalalignment='center')
+plot.annotate_text(1e-30, 1e7,"Annotation", fontsize=20, bbox=dict(facecolor='red', alpha=0.5), horizontalalignment='center', verticalalignment='center')
 
 
 The above example will set the fontsize of annotation to 20, add a bounding box of red color and center align
