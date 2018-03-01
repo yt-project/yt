@@ -1,1 +1,15 @@
-# This file is often empty.  It can hold definitions related to a frontend.
+"""
+Definitions specific to Denovo.
+
+
+None exist at this time.
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
