@@ -1169,8 +1169,8 @@ To change the text annotated text properties, we need to pass the matplotlib ``a
 
 .. code-block:: python
 
-plot.annotate_text(1e-30, 1e7,"Annotation", fontsize=20, bbox=dict(facecolor='red', alpha=0.5), horizontalalignment='center', verticalalignment='center')
-
+  plot.annotate_text(1e-30, 1e7,"Annotation", fontsize=20, bbox=dict(facecolor='red', alpha=0.5),
+                      horizontalalignment='center', verticalalignment='center')
 
 The above example will set the fontsize of annotation to 20, add a bounding box of red color and center align
 horizontally and vertically. The is just an example to modify the text properties, for further options please check
