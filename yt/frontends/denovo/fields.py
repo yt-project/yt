@@ -19,17 +19,25 @@ from yt.fields.field_info_container import \
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
 # optionally methods on it that get called which can be subclassed.
+#
+flux_units = "neutrons / code_length**2"
+angular_flux_units = "neutrons / code_length**2 / steradian "
+density_units = "code_mass / code_length**3"
+source_units = "neutrons"
 
 
 class DenovoFieldInfo(FieldInfoContainer):
     known_other_fields = (
-        # Each entry here is of the form
-        # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
+        ("source", (source_units, ["source_strength"], None)),
+        ("flux", (flux_units, ["scalar_flux"], r"\phi")),
+        ("uncflux", (flux_units, ["uncollided_flux"], r"\phi_{uncollided}")),
+        ("angular_flux", (angular_flux_units, [], r"\Psi")),
+        ("ww_lower", ("", ["ww_lower_bound"], None)),
     )
 
     known_particle_fields = (
-        # Identical form to above
-        # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
+        # At this time Denovo does not output particle fields, so there are no
+        # particle fields defined in this file.
     )
 
     def __init__(self, ds, field_list):
@@ -40,8 +48,15 @@ class DenovoFieldInfo(FieldInfoContainer):
         # Here we do anything that might need info about the dataset.
         # You can use self.alias, self.add_output_field (for on-disk fields)
         # and self.add_field (for derived fields).
+        params = self.ds.parameters
+        self.setup_energy_field()
+        setup_magnetic_field_al
         pass
 
+    def setup_flux_fields(self):
+        unit_system = self.ds.unit_system
+
     def setup_particle_fields(self, ptype):
+        # Becuase there are no particle types in Denovo, this is empty for now.
         super(DenovoFieldInfo, self).setup_particle_fields(ptype)
-        # This will get called for every particle type.
+
