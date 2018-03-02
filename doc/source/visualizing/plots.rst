@@ -1100,7 +1100,7 @@ function of radius. The xlabel is set to "Radius", for all plots, and the ylabel
    plot.save()
 
 Adding plot title
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
 
 Plot title can be set via the
 :meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_title` function.
@@ -1140,7 +1140,7 @@ field. Thus, allowing us the option to have different plot titles for different 
 
 
 Annotating plot with text
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Plots can be annotated at a desired (x,y) co-ordinate using :meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_text` function.
 This function accepts the x-position, y-position, a text string to
