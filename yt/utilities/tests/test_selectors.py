@@ -10,7 +10,8 @@ def setup():
 
 def test_point_selector():
     # generate fake amr data
-    ds = fake_random_ds(64, nprocs=51)
+    bbox = np.array([[-1.0, 1.0], [-1.0, 1.0], [-1.0, 1.0]])
+    ds = fake_random_ds(64, nprocs=51, bbox=bbox)
     assert(all(ds.periodicity))
 
     dd = ds.all_data()
