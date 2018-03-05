@@ -11,7 +11,7 @@ def setup():
 def test_point_selector():
     # generate fake amr data
     bbox = np.array([[-1.0, 1.0], [-1.0, 1.0], [-1.0, 1.0]])
-    ds = fake_random_ds(64, nprocs=51, bbox=bbox)
+    ds = fake_random_ds(16, nprocs=7, bbox=bbox)
     assert(all(ds.periodicity))
 
     dd = ds.all_data()
@@ -19,13 +19,13 @@ def test_point_selector():
     delta = 0.5*np.array([dd['d'+ax] for ax in 'xyz'])
     # ensure cell centers and corners always return one and
     # only one point object
-    for p in positions:
+    for p in positions.T:
         data = ds.point(p)
         assert_equal(data["ones"].shape[0], 1)
-    for p in positions - delta:
+    for p in (positions - delta).T:
         data = ds.point(p)
         assert_equal(data["ones"].shape[0], 1)
-    for p in positions + delta:
+    for p in (positions + delta).T:
         data = ds.point(p)
         assert_equal(data["ones"].shape[0], 1)
  
