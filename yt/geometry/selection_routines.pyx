@@ -643,6 +643,7 @@ cdef class PointSelector(SelectorObject):
 
     def __init__(self, dobj):
         cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
+        cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
         for i in range(3):
             self.p[i] = _ensure_code(dobj.p[i])
 
@@ -651,6 +652,8 @@ cdef class PointSelector(SelectorObject):
                 self.p[i] = np.fmod(self.p[i], self.domain_width[i])
                 if self.p[i] < DLE[i]:
                     self.p[i] += self.domain_width[i]
+                elif self.p[i] >= DRE[i]:
+                    self.p[i] -= self.domain_width[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
