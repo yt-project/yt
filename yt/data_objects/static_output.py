@@ -32,6 +32,7 @@ from yt.fields.derived_field import \
 from yt.funcs import \
     mylog, \
     set_intersection, \
+    setdefaultattr, \
     ensure_list
 from yt.utilities.cosmology import \
     Cosmology
@@ -535,7 +536,7 @@ class Dataset(object):
         if hasattr(self, "cosmological_simulation") and \
            getattr(self, "cosmological_simulation"):
             for a in ["current_redshift", "omega_lambda", "omega_matter",
-                      "hubble_constant"]:
+                      "omega_radiation", "hubble_constant"]:
                 if not hasattr(self, a):
                     mylog.error("Missing %s in parameter file definition!", a)
                     continue
@@ -1025,10 +1026,14 @@ class Dataset(object):
             w_0 = getattr(self, 'w_0', -1.0)
             w_a = getattr(self, 'w_a', 0.0)
 
+            # many frontends do not set this
+            setdefaultattr(self, "omega_radiation", 0.0)
+
             self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
                               omega_lambda=self.omega_lambda,
+                              omega_radiation=self.omega_radiation,
                               use_dark_factor = use_dark_factor,
                               w_0 = w_0, w_a = w_a)
             self.critical_density = \
