@@ -211,15 +211,18 @@ class ImagePlotMPL(PlotMPL):
         elif (cbnorm == 'symlog'):
             if cblinthresh is None:
                 cblinthresh = (data.max()-data.min())/10.
-            norm = matplotlib.colors.SymLogNorm(cblinthresh, vmin=data.min(), vmax=data.max())
+            norm = matplotlib.colors.SymLogNorm(
+                cblinthresh, vmin=float(data.min()), vmax=float(data.max()))
         extent = [float(e) for e in extent]
         # tuple colormaps are from palettable (or brewer2mpl)
         if isinstance(cmap, tuple):
             cmap = get_brewer_cmap(cmap)
-        self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
-                                      extent=extent, norm=norm, vmin=self.zmin,
-                                      aspect=aspect, vmax=self.zmax, cmap=cmap,
-                                      interpolation='nearest')
+        vmin = float(self.zmin) if self.zmax is not None else None
+        vmax = float(self.zmax) if self.zmax is not None else None
+        self.image = self.axes.imshow(
+            data.to_ndarray(), origin='lower', extent=extent, norm=norm,
+            vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
+            interpolation='nearest')
         if (cbnorm == 'symlog'):
             if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
                 formatter_kwargs = {}
