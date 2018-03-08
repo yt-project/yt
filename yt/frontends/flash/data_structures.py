@@ -232,11 +232,14 @@ class FLASHDataset(Dataset):
     def _set_code_unit_attributes(self):
 
         if 'unitsystem' in self.parameters:
-            if self['unitsystem'].lower() == "cgs":
+            # Some versions of FLASH inject quotes in the runtime parameters
+            # See issue #1721
+            us = self['unitsystem'].replace('\'', '').replace('"', '').lower()
+            if us == "cgs":
                 b_factor = 1.0
-            elif self['unitsystem'].lower() == "si":
+            elif us == "si":
                 b_factor = np.sqrt(4*np.pi/1e7)
-            elif self['unitsystem'].lower() == "none":
+            elif us == "none":
                 b_factor = np.sqrt(4*np.pi)
             else:
                 raise RuntimeError("Runtime parameter unitsystem with "
