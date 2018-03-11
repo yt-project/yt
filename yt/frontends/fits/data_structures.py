@@ -88,7 +88,7 @@ class FITSHierarchy(GridIndex):
         self.dataset_type = dataset_type
         self.field_indexes = {}
         self.dataset = weakref.proxy(ds)
-        # for now, the index file is the dataset!
+        # for now, the index file is the dataset
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self._handle = ds._handle
@@ -529,9 +529,10 @@ class YTFITSDataset(FITSDataset):
             setdefaultattr(self, '%s_unit' % unit, u)
 
     def _determine_bbox(self):
-        dx = self.arr(self.wcs.wcs.cdelt, str(self.wcs.wcs.cunit[0])).v
+        dx = np.zeros(3)
+        dx[:self.dimensionality] = self.wcs.wcs.cdelt
         domain_left_edge = np.zeros(3)
-        domain_left_edge[:self.dimensionality] = self.wcs.wcs.crval-dx*(self.wcs.wcs.crpix-0.5)
+        domain_left_edge[:self.dimensionality] = self.wcs.wcs.crval-dx[:self.dimensionality]*(self.wcs.wcs.crpix-0.5)
         domain_right_edge = domain_left_edge + dx*self.domain_dimensions
 
         if self.dimensionality == 2:
