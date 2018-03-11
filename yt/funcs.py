@@ -48,7 +48,7 @@ from functools import wraps
 
 def iterable(obj):
     """
-    Grabbed from Python Cookbook / matploblib.cbook.  Returns true/false for
+    Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
     *obj* iterable.
     """
     try: len(obj)
@@ -289,7 +289,7 @@ def insert_ipython(num_up=1):
     """
     Placed inside a function, this will insert an IPython interpreter at that
     current location.  This will enabled detailed inspection of the current
-    exeuction environment, as well as (optional) modification of that environment.
+    execution environment, as well as (optional) modification of that environment.
     *num_up* refers to how many frames of the stack get stripped off, and
     defaults to 1 so that this function itself is stripped off.
     """
@@ -506,47 +506,47 @@ def update_git(path):
         print("Try: pip install gitpython")
         return -1
     with open(os.path.join(path, "yt_updater.log"), "a") as f:
-        with git.Repo(path) as repo:
-            if repo.is_dirty(untracked_files=True):
-                print("Changes have been made to the yt source code so I won't ")
-                print("update the code. You will have to do this yourself.")
-                print("Here's a set of sample commands:")
-                print("")
-                print("    $ cd %s" % (path))
-                print("    $ git stash")
-                print("    $ git checkout master")
-                print("    $ git pull")
-                print("    $ git stash pop")
-                print("    $ %s setup.py develop" % (sys.executable))
-                print("")
-                return 1
-            if repo.active_branch.name != 'master':
-                print("yt repository is not tracking the master branch so I won't ")
-                print("update the code. You will have to do this yourself.")
-                print("Here's a set of sample commands:")
-                print("")
-                print("    $ cd %s" % (path))
-                print("    $ git checkout master")
-                print("    $ git pull")
-                print("    $ %s setup.py develop" % (sys.executable))
-                print("")
-                return 1
-            print("Updating the repository")
-            f.write("Updating the repository\n\n")
-            old_version = repo.git.rev_parse('HEAD', short=12)
-            try:
-                remote = repo.remotes.yt_upstream
-            except AttributeError:
-                remote = repo.create_remote(
-                    'yt_upstream', url='https://github.com/yt-project/yt')
-                remote.fetch()
-            master = repo.heads.master
-            master.set_tracking_branch(remote.refs.master)
-            master.checkout()
-            remote.pull()
-            new_version = repo.git.rev_parse('HEAD', short=12)
-            f.write('Updated from %s to %s\n\n' % (old_version, new_version))
-            rebuild_modules(path, f)
+        repo = git.Repo(path)
+        if repo.is_dirty(untracked_files=True):
+            print("Changes have been made to the yt source code so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
+            print("")
+            print("    $ cd %s" % (path))
+            print("    $ git stash")
+            print("    $ git checkout master")
+            print("    $ git pull")
+            print("    $ git stash pop")
+            print("    $ %s setup.py develop" % (sys.executable))
+            print("")
+            return 1
+        if repo.active_branch.name != 'master':
+            print("yt repository is not tracking the master branch so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
+            print("")
+            print("    $ cd %s" % (path))
+            print("    $ git checkout master")
+            print("    $ git pull")
+            print("    $ %s setup.py develop" % (sys.executable))
+            print("")
+            return 1
+        print("Updating the repository")
+        f.write("Updating the repository\n\n")
+        old_version = repo.git.rev_parse('HEAD', short=12)
+        try:
+            remote = repo.remotes.yt_upstream
+        except AttributeError:
+            remote = repo.create_remote(
+                'yt_upstream', url='https://github.com/yt-project/yt')
+            remote.fetch()
+        master = repo.heads.master
+        master.set_tracking_branch(remote.refs.master)
+        master.checkout()
+        remote.pull()
+        new_version = repo.git.rev_parse('HEAD', short=12)
+        f.write('Updated from %s to %s\n\n' % (old_version, new_version))
+        rebuild_modules(path, f)
     print('Updated successfully')
 
 def update_hg(path):
@@ -612,8 +612,8 @@ def get_git_version(path):
         print("Try: pip install gitpython")
         return None
     try:
-        with git.Repo(path) as repo:
-            return repo.git.rev_parse('HEAD', short=12)
+        repo = git.Repo(path)
+        return repo.git.rev_parse('HEAD', short=12)
     except git.InvalidGitRepositoryError:
         # path is not a git repository
         return None
@@ -642,7 +642,7 @@ def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
-    version = get_hg_version(path)
+    version = get_git_version(path)
     if version is None:
         return version
     else:
@@ -1141,3 +1141,11 @@ def parse_h5_attr(f, attr):
 def issue_deprecation_warning(msg):
     from numpy import VisibleDeprecationWarning
     warnings.warn(msg, VisibleDeprecationWarning, stacklevel=3)
+
+def obj_length(v):
+    if iterable(v):
+        return len(v)
+    else:
+        # If something isn't iterable, we return 0 
+        # to signify zero length (aka a scalar).
+        return 0

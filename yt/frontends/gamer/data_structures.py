@@ -30,6 +30,7 @@ from yt.data_objects.static_output import \
 from yt.utilities.file_handler import \
     HDF5FileHandler
 from .fields import GAMERFieldInfo
+from .definitions import geometry_parameters
 from yt.testing import assert_equal
 
 
@@ -101,6 +102,8 @@ class GAMERHierarchy(GridIndex):
                 = (grid_corner[ gid0:gid0 + num_grids_level ] + patch_scale)*convert2physical
 
             gid0 += num_grids_level
+        self.grid_left_edge += self.dataset.domain_left_edge
+        self.grid_right_edge += self.dataset.domain_left_edge
 
         # allocate all grid objects
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -141,10 +144,10 @@ class GAMERHierarchy(GridIndex):
 
         # validate the parent-children relationship in the debug mode
         if self.dataset._debug:
-            self._validate_parent_children_relasionship()
+            self._validate_parent_children_relationship()
 
     # for _debug mode only
-    def _validate_parent_children_relasionship(self):
+    def _validate_parent_children_relationship(self):
         mylog.info('Validating the parent-children relationship ...')
 
         father_list = self._handle["Tree/Father"].value
@@ -272,8 +275,10 @@ class GAMERDataset(Dataset):
         # simulation time and domain
         self.current_time      = parameters['Time'][0]
         self.dimensionality    = 3  # always 3D
-        self.domain_left_edge  = np.array([0.,0.,0.], dtype='float64')
-        self.domain_right_edge = parameters['BoxSize'].astype('float64')
+        self.domain_left_edge  = parameters.get("BoxEdgeL",
+                np.array([0.,0.,0.])).astype("f8")
+        self.domain_right_edge  = parameters.get("BoxEdgeR",
+                parameters["BoxSize"]).astype("f8")
         self.domain_dimensions = parameters['NX0'].astype('int64')
 
         # periodicity
@@ -303,6 +308,8 @@ class GAMERDataset(Dataset):
 
         # old data format (version < 2210) does not contain any information of code units
         self.parameters.setdefault('Opt__Unit', 0)
+
+        self.geometry = geometry_parameters[parameters.get("Coordinate", 1)]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

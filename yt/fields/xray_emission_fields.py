@@ -20,7 +20,11 @@ import os
 
 from yt.config import ytcfg
 from yt.fields.derived_field import DerivedField
-from yt.funcs import mylog, only_on_root, issue_deprecation_warning
+from yt.funcs import \
+    mylog, \
+    only_on_root, \
+    issue_deprecation_warning, \
+    parse_h5_attr
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
@@ -95,12 +99,12 @@ class XrayEmissivityIntegrator(object):
         only_on_root(mylog.info, "Loading emissivity data from %s." % filename)
         in_file = h5py.File(filename, "r")
         if "info" in in_file.attrs:
-            only_on_root(mylog.info, in_file.attrs["info"].decode('utf8'))
-        if in_file.attrs["version"] != data_version[table_type]:
+            only_on_root(mylog.info, parse_h5_attr(in_file, "info"))
+        if parse_h5_attr(in_file, "version") != data_version[table_type]:
             raise ObsoleteDataException(table_type)
         else:
             only_on_root(mylog.info, "X-ray '%s' emissivity data version: %s." % \
-                         (table_type, in_file.attrs["version"]))
+                         (table_type, parse_h5_attr(in_file, "version")))
 
         self.log_T = in_file["log_T"][:]
         self.emissivity_primordial = in_file["emissivity_primordial"][:]

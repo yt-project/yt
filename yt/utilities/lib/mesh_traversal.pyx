@@ -23,8 +23,6 @@ cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_scene as rtcs
 from .image_samplers cimport \
     ImageSampler
-from .lenses cimport \
-    ImageContainer
 from cython.parallel import prange, parallel, threadid
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.bounding_volume_hierarchy cimport BVH, Ray
@@ -63,15 +61,14 @@ cdef class EmbreeMeshSampler(ImageSampler):
 
         rtcs.rtcCommit(scene.scene_i)
         cdef int vi, vj, i, j
-        cdef ImageContainer *im = self.image
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
         cdef np.int64_t nx, ny, size
         cdef np.float64_t width[3]
         for i in range(3):
             width[i] = self.width[i]
-        nx = im.nv[0]
-        ny = im.nv[1]
+        nx = self.nv[0]
+        ny = self.nv[1]
         size = nx * ny
         cdef rtcr.RTCRay ray
         v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
@@ -80,7 +77,7 @@ cdef class EmbreeMeshSampler(ImageSampler):
             vj = j % ny
             vi = (j - vj) / ny
             vj = vj
-            self.vector_function(im, vi, vj, width, v_dir, v_pos)
+            self.vector_function(self, vi, vj, width, v_dir, v_pos)
             for i in range(3):
                 ray.org[i] = v_pos[i]
                 ray.dir[i] = v_dir[i]
@@ -93,9 +90,9 @@ cdef class EmbreeMeshSampler(ImageSampler):
             ray.time = 0
             ray.Ng[0] = 1e37  # we use this to track the hit distance
             rtcs.rtcIntersect(scene.scene_i, ray)
-            im.image[vi, vj, 0] = ray.time
-            im.image_used[vi, vj] = ray.primID
-            im.mesh_lines[vi, vj] = ray.instID
-            im.zbuffer[vi, vj] = ray.tfar
+            self.image[vi, vj, 0] = ray.time
+            self.image_used[vi, vj] = ray.primID
+            self.mesh_lines[vi, vj] = ray.instID
+            self.zbuffer[vi, vj] = ray.tfar
         free(v_pos)
         free(v_dir)

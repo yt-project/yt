@@ -25,8 +25,12 @@ from yt.frontends.ytdata.api import \
     YTProfileDataset, \
     save_as_dataset
 from yt.testing import \
+    assert_array_equal, \
     assert_allclose_units, \
-    assert_equal
+    assert_equal, \
+    assert_fname, \
+    fake_random_ds, \
+    requires_module
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
@@ -34,6 +38,9 @@ from yt.utilities.answer_testing.framework import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+from yt.visualization.plot_window import \
+    SlicePlot, \
+    ProjectionPlot
 from yt.visualization.profile_plotter import \
     ProfilePlot, \
     PhasePlot
@@ -115,19 +122,31 @@ def test_grid_datacontainer_data():
     curdir = os.getcwd()
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
+
     cg = ds.covering_grid(level=0, left_edge=[0.25]*3, dims=[16]*3)
     fn = cg.save_as_dataset(fields=["density", "particle_mass"])
     full_fn = os.path.join(tmpdir, fn)
     cg_ds = load(full_fn)
     compare_unit_attributes(ds, cg_ds)
     assert isinstance(cg_ds, YTGridDataset)
-
     yield YTDataFieldTest(full_fn, ("grid", "density"))
     yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
+
+    ag = ds.arbitrary_grid(left_edge=[0.25]*3, right_edge=[0.75]*3,
+                           dims=[16]*3)
+    fn = ag.save_as_dataset(fields=["density", "particle_mass"])
+    full_fn = os.path.join(tmpdir, fn)
+    ag_ds = load(full_fn)
+    compare_unit_attributes(ds, ag_ds)
+    assert isinstance(ag_ds, YTGridDataset)
+    yield YTDataFieldTest(full_fn, ("grid", "density"))
+    yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
+
     my_proj = ds.proj("density", "x", weight_field="density")
     frb = my_proj.to_frb(1.0, (800, 800))
     fn = frb.save_as_dataset(fields=["density"])
     frb_ds = load(fn)
+    assert_array_equal(frb["density"], frb_ds.data["density"])
     compare_unit_attributes(ds, frb_ds)
     assert isinstance(frb_ds, YTGridDataset)
     yield YTDataFieldTest(full_fn, "density", geometric=False)
@@ -221,5 +240,36 @@ def test_nonspatial_data():
     new_ds = load(full_fn)
     assert isinstance(new_ds, YTNonspatialDataset)
     yield YTDataFieldTest(full_fn, "density", geometric=False)
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+@requires_module('h5py')
+def test_plot_data():
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+    ds = fake_random_ds(16)
+
+    plot = SlicePlot(ds, 'z', 'density')
+    plot.data_source.save_as_dataset('slice.h5')
+    ds_slice = load('slice.h5')
+    p = SlicePlot(ds_slice, 'z', 'density')
+    fn = p.save()
+    assert_fname(fn[0])
+
+    plot = ProjectionPlot(ds, 'z', 'density')
+    plot.data_source.save_as_dataset('proj.h5')
+    ds_proj = load('slice.h5')
+    p = ProjectionPlot(ds_proj, 'z', 'density')
+    fn = p.save()
+    assert_fname(fn[0])
+
+    plot = SlicePlot(ds, [1, 1, 1], 'density')
+    plot.data_source.save_as_dataset('oas.h5')
+    ds_oas = load('oas.h5')
+    p = SlicePlot(ds_oas, [1, 1, 1], 'density')
+    fn = p.save()
+    assert_fname(fn[0])
+
     os.chdir(curdir)
     shutil.rmtree(tmpdir)

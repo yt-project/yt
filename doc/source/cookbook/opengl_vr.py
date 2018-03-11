@@ -14,7 +14,7 @@ collection = BlockCollection()
 dd = ds.all_data()
 collection.add_data(dd, "density")
 
-# Initiliaze basic Scene and pass the data
+# Initialize basic Scene and pass the data
 scene = SceneGraph()
 scene.add_collection(collection)
 

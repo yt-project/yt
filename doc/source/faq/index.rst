@@ -20,7 +20,7 @@ How can I tell what version of yt I'm using?
 If you run into problems with yt and you're writing to the mailing list
 or contacting developers on IRC, they will likely want to know what version of
 yt you're using.  Oftentimes, you'll want to know both the yt version,
-as well as the last changeset that was committed to the branch you're using.
+as well as the last changeset that was comitted to the branch you're using.
 To reveal this, go to a command line and type:
 
 .. code-block:: bash
@@ -28,25 +28,16 @@ To reveal this, go to a command line and type:
     $ yt version
 
     yt module located at:
-        /Users/username/src/yt-x86_64/src/yt-hg
-    The supplemental repositories are located at:
-        /Users/username/src/yt-x86_64/src/yt-supplemental
+        /Users/username/src/yt-conda/src/yt-git
 
-    The current version and changeset for the code is:
+    The current version of yt is:
 
     ---
-    Version = 2.7-dev
-    Changeset = 6bffc737a67a
+    Version = 3.4-dev
+    Changeset = 94033fca00e5
     ---
 
     This installation CAN be automatically updated.
-    yt dependencies were last updated on
-    Wed Dec  4 15:47:40 MST 2013
-
-    To update all dependencies, run "yt update --all".
-
-If the changeset is displayed followed by a "+", it means you have made
-modifications to the code since the last changeset.
 
 For more information on this topic, see :ref:`updating-yt`.
 
@@ -76,7 +67,7 @@ you need to rebuild the source.  You can do this automatically by running:
 .. code-block:: bash
 
     cd $YT_GIT
-    python setup.py develop
+    pip install -e .
 
 where ``$YT_GIT`` is the path to the yt git repository.
 

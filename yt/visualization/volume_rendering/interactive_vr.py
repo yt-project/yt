@@ -183,7 +183,7 @@ class TrackballCamera(IDVCamera):
 
     This class implements a basic "Trackball" or "Arcball" camera control system
     that allows for unconstrained 3D rotations without suffering from Gimbal lock.
-    Following Ken Shoemake's orginal C implementation (Graphics Gems IV, III.1)
+    Following Ken Shoemake's original C implementation (Graphics Gems IV, III.1)
     we project mouse movements onto the unit sphere and use quaternions to
     represent the corresponding rotation.
 
@@ -346,7 +346,7 @@ class BlockCollection(SceneComponent):
         self.set_shader("max_intensity.f")
         self.data_source = None
 
-        self.blocks = {} # A collection of PartionedGrid objects
+        self.blocks = {} # A collection of PartitionedGrid objects
         self.block_order = []
 
         self.gl_texture_names = []
@@ -785,7 +785,7 @@ class SceneGraph(ColorBarSceneComponent):
 
         # --- end texture init
 
-        # Set "fb_texture" as our colour attachement #0
+        # Set "fb_texture" as our colour attachment #0
         GL.glFramebufferTexture2D(
             GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D,
             self.fb_texture,

@@ -16,7 +16,7 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "3.4-dev"
+__version__ = "3.5.dev0"
 
 # First module imports
 import numpy as np # For modern purposes
@@ -103,13 +103,13 @@ from yt.visualization.api import \
     FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     write_bitmap, write_image, \
     apply_colormap, scale_image, write_projection, \
-    SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
-    ProjectionPlot, OffAxisProjectionPlot, \
+    SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, LinePlot, \
+    LineBuffer, ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, add_cmap, make_colormap, \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \
     ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
     FITSImageData, FITSSlice, FITSProjection, FITSOffAxisSlice, \
-    FITSOffAxisProjection
+    FITSOffAxisProjection, plot_2d
 
 from yt.visualization.volume_rendering.api import \
     volume_render, create_scene, ColorTransferFunction, TransferFunction, \

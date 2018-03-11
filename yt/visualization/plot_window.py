@@ -36,8 +36,6 @@ from .plot_container import \
     invalidate_data, invalidate_plot, apply_callback
 from .base_plot_types import CallbackWrapper
 
-from yt.data_objects.time_series import \
-    DatasetSeries
 from yt.data_objects.image_array import \
     ImageArray
 from yt.extern.six import string_types
@@ -45,28 +43,24 @@ from yt.frontends.ytdata.data_structures import \
     YTSpatialPlotDataset
 from yt.funcs import \
     mylog, iterable, ensure_list, \
-    fix_axis, fix_unitary
+    fix_axis, fix_unitary, obj_length
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
     UnitParseError
-from yt.units.unit_lookup_table import \
-    prefixable_units, latex_prefixes
 from yt.units.yt_array import \
     YTArray, YTQuantity
-from yt.utilities.definitions import \
-    formatted_length_unit_names
 from yt.utilities.math_utils import \
     ortho_find
 from yt.utilities.orientation import \
     Orientation
 from yt.utilities.exceptions import \
-    YTUnitNotRecognized, \
     YTCannotParseUnitDisplayName, \
-    YTUnitConversionError, \
     YTPlotCallbackError, \
     YTDataTypeUnsupported, \
-    YTInvalidFieldType
+    YTInvalidFieldType, \
+    YTUnitNotRecognized, \
+    YTUnitConversionError
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
@@ -130,6 +124,11 @@ def get_axes_unit(width, ds):
     return axes_unit
 
 def validate_mesh_fields(data_source, fields):
+    # this check doesn't make sense for ytdata plot datasets, which
+    # load mesh data as a particle field but nonetheless can still
+    # make plots with it
+    if isinstance(data_source.ds, YTSpatialPlotDataset):
+        return
     canonical_fields = data_source._determine_fields(fields)
     invalid_fields = []
     for field in canonical_fields:
@@ -142,7 +141,7 @@ def validate_mesh_fields(data_source, fields):
 
 class PlotWindow(ImagePlotContainer):
     r"""
-    A ploting mechanism based around the concept of a window into a
+    A plotting mechanism based around the concept of a window into a
     data source. It can have arbitrary fields, each of which will be
     centered on the same viewpoint, but will have individual zlimits.
 
@@ -169,6 +168,9 @@ class PlotWindow(ImagePlotContainer):
     window_size : float
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
+    window_size : float
+        The size of the window on the longest axis (in units of inches),
+        including the margins but not the colorbar.
     right_handed : boolean
         Whether the implicit east vector for the image generated is set to make a right
         handed coordinate system with a north vector and the normal vector, the
@@ -179,11 +181,6 @@ class PlotWindow(ImagePlotContainer):
                  periodic=True, origin='center-window', oblique=False, right_handed=True,
                  window_size=8.0, fields=None, fontsize=18, aspect=None,
                  setup=False):
-        if not hasattr(self, "ds"):
-            self.ds = data_source.ds
-            ts = self._initialize_dataset(self.ds)
-            self.ts = ts
-        self._axes_unit_names = None
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
@@ -191,6 +188,7 @@ class PlotWindow(ImagePlotContainer):
         self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
+        self._axes_unit_names = None
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
@@ -219,12 +217,6 @@ class PlotWindow(ImagePlotContainer):
                 self._field_transform[field] = linear_transform
         self.setup_callbacks()
         self._setup_plots()
-
-    def _initialize_dataset(self, ts):
-        if not isinstance(ts, DatasetSeries):
-            if not iterable(ts): ts = [ts]
-            ts = DatasetSeries(ts)
-        return ts
 
     def __iter__(self):
         for ds in self.ts:
@@ -384,7 +376,7 @@ class PlotWindow(ImagePlotContainer):
         equivalency : string, optional
            If set, the equivalency to use to convert the current units to
            the new requested unit. If None, the unit conversion will be done
-           without an equivelancy
+           without an equivalency
 
         equivalency_kwargs : string, optional
            Keyword arguments to be passed to the equivalency. Only used if
@@ -415,7 +407,7 @@ class PlotWindow(ImagePlotContainer):
             is typically represented by a '-' separated string or a tuple of
             strings. In the first index the y-location is given by 'lower',
             'upper', or 'center'. The second index is the x-location, given as
-            'left', 'right', or 'center'. Finally, the whether the origin is
+            'left', 'right', or 'center'. Finally, whether the origin is
             applied in 'domain' space, plot 'window' space or 'native'
             simulation coordinate system is given. For example, both
             'upper-right-domain' and ['upper', 'right', 'domain'] place the
@@ -741,7 +733,7 @@ class PWViewerMPL(PlotWindow):
         y_in_bounds = yc >= yllim and yc <= yrlim
 
         if not x_in_bounds and not y_in_bounds:
-            msg = ('orgin inputs not in bounds of specified coordinate sytem' +
+            msg = ('origin inputs not in bounds of specified coordinate sytem' +
                    'domain.')
             msg = msg.format(self.origin)
             raise RuntimeError(msg)
@@ -821,9 +813,11 @@ class PWViewerMPL(PlotWindow):
             cax = None
             draw_colorbar = True
             draw_axes = True
+            draw_frame = draw_axes
             if f in self.plots:
                 draw_colorbar = self.plots[f]._draw_colorbar
                 draw_axes = self.plots[f]._draw_axes
+                draw_frame = self.plots[f]._draw_frame
                 if self.plots[f].figure is not None:
                     fig = self.plots[f].figure
                     axes = self.plots[f].axes
@@ -856,59 +850,7 @@ class PWViewerMPL(PlotWindow):
                 ax = self.plots[f].axes
                 ax.invert_xaxis()
 
-            axes_unit_labels = ['', '']
-            comoving = False
-            hinv = False
-            for i, un in enumerate((unit_x, unit_y)):
-                unn = None
-                if hasattr(self.ds.coordinates, "image_units"):
-                    # This *forces* an override
-                    unn = self.ds.coordinates.image_units[axis_index][i]
-                elif hasattr(self.ds.coordinates, "default_unit_label"):
-                    axax = getattr(self.ds.coordinates,
-                                   "%s_axis" % ("xy"[i]))[axis_index]
-                    unn = self.ds.coordinates.default_unit_label.get(axax,
-                        None)
-                if unn is not None:
-                    axes_unit_labels[i] = r'\ \ \left('+unn+r'\right)'
-                    continue
-                # Use sympy to factor h out of the unit.  In this context 'un'
-                # is a string, so we call the Unit constructor.
-                expr = Unit(un, registry=self.ds.unit_registry).expr
-                h_expr = Unit('h', registry=self.ds.unit_registry).expr
-                # See http://docs.sympy.org/latest/modules/core.html#sympy.core.expr.Expr
-                h_power = expr.as_coeff_exponent(h_expr)[1]
-                # un is now the original unit, but with h factored out.
-                un = str(expr*h_expr**(-1*h_power))
-                un_unit = Unit(un, registry=self.ds.unit_registry)
-                cm = Unit('cm').expr
-                if str(un).endswith('cm') and cm not in un_unit.expr.atoms():
-                    comoving = True
-                    un = un[:-2]
-                # no length units besides code_length end in h so this is safe
-                if h_power == -1:
-                    hinv = True
-                elif h_power != 0:
-                    # It doesn't make sense to scale a position by anything
-                    # other than h**-1
-                    raise RuntimeError
-                if un not in ['1', 'u', 'unitary']:
-                    if un in formatted_length_unit_names:
-                        un = formatted_length_unit_names[un]
-                    else:
-                        un = Unit(un, registry=self.ds.unit_registry)
-                        un = un.latex_representation()
-                        if hinv:
-                            un = un + '\,h^{-1}'
-                        if comoving:
-                            un = un + '\,(1+z)^{-1}'
-                        pp = un[0]
-                        if pp in latex_prefixes:
-                            symbol_wo_prefix = un[1:]
-                            if symbol_wo_prefix in prefixable_units:
-                                un = un.replace(
-                                    pp, "{"+latex_prefixes[pp]+"}", 1)
-                    axes_unit_labels[i] = '\ \ ('+un+')'
+            axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
 
             if self.oblique:
                 labels = [r'$\rm{Image\ x'+axes_unit_labels[0]+'}$',
@@ -999,7 +941,7 @@ class PWViewerMPL(PlotWindow):
                 self.plots[f].cax.minorticks_off()
 
             if draw_axes is False:
-                self.plots[f]._toggle_axes(draw_axes)
+                self.plots[f]._toggle_axes(draw_axes, draw_frame)
 
             if draw_colorbar is False:
                 self.plots[f]._toggle_colorbar(draw_colorbar)
@@ -1036,7 +978,7 @@ class PWViewerMPL(PlotWindow):
     @invalidate_plot
     def annotate_clear(self, index=None):
         """
-        Clear callbacks from the plot.  If index is not set, clear all 
+        Clear callbacks from the plot.  If index is not set, clear all
         callbacks.  If index is set, clear that index (ie 0 is the first one
         created, 1 is the 2nd one created, -1 is the last one created, etc.)
         """
@@ -1051,7 +993,7 @@ class PWViewerMPL(PlotWindow):
         for f in self.fields:
             keys = self.frb.keys()
             for name, (args, kwargs) in self._callbacks:
-                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f,
                                       self._font_properties, self._font_color)
                 CallbackMaker = callback_registry[name]
                 callback = CallbackMaker(*args[1:], **kwargs)
@@ -1069,8 +1011,8 @@ class PWViewerMPL(PlotWindow):
 
     def hide_colorbar(self, field=None):
         """
-        Hides the colorbar for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Hides the colorbar for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.
 
         Parameters
@@ -1110,8 +1052,8 @@ class PWViewerMPL(PlotWindow):
 
     def show_colorbar(self, field=None):
         """
-        Shows the colorbar for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Shows the colorbar for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.  See hide_colorbar().
 
         Parameters
@@ -1127,10 +1069,10 @@ class PWViewerMPL(PlotWindow):
             self.plots[f].show_colorbar()
         return self
 
-    def hide_axes(self, field=None):
+    def hide_axes(self, field=None, draw_frame=False):
         """
-        Hides the axes for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Hides the axes for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.
 
         Parameters
@@ -1138,6 +1080,10 @@ class PWViewerMPL(PlotWindow):
 
         field : string, field tuple, or list of strings or field tuples (optional)
             The name of the field(s) that we want to hide the axes.
+
+        draw_frame : boolean
+            If True, the axes frame will still be drawn. Defaults to False.
+            See note below for more details.
 
         Examples
         --------
@@ -1158,18 +1104,25 @@ class PWViewerMPL(PlotWindow):
         >>> s.hide_axes()
         >>> s.hide_colorbar()
         >>> s.save()
+
+        Note
+        ----
+        By default, when removing the axes, the patch on which the axes are
+        drawn is disabled, making it impossible to later change e.g. the
+        background colour. To force the axes patch to be displayed while still 
+        hiding the axes, set the ``draw_frame`` keyword argument to ``True``.
         """
         if field is None:
             field = self.fields
         field = ensure_list(field)
         for f in field:
-            self.plots[f].hide_axes()
+            self.plots[f].hide_axes(draw_frame)
         return self
 
     def show_axes(self, field=None):
         """
-        Shows the axes for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Shows the axes for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.  See hide_axes().
 
         Parameters
@@ -1240,7 +1193,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          is typically represented by a '-' separated string or a tuple of
          strings. In the first index the y-location is given by 'lower',
          'upper', or 'center'. The second index is the x-location, given as
-         'left', 'right', or 'center'. Finally, the whether the origin is
+         'left', 'right', or 'center'. Finally, whether the origin is
          applied in 'domain' space, plot 'window' space or 'native'
          simulation coordinate system is given. For example, both
          'upper-right-domain' and ['upper', 'right', 'domain'] place the
@@ -1268,7 +1221,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
          (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
          ===============================================    ==================================
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
@@ -1283,7 +1236,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
 
     Examples
@@ -1304,9 +1257,6 @@ class AxisAlignedSlicePlot(PWViewerMPL):
                  origin='center-window', right_handed=True, fontsize=18, field_parameters=None,
                  window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
-        ts = self._initialize_dataset(ds)
-        self.ts = ts
-        ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
         (bounds, center, display_center) = \
             get_window_parameters(axis, center, width, ds)
@@ -1385,7 +1335,7 @@ class ProjectionPlot(PWViewerMPL):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
@@ -1395,7 +1345,7 @@ class ProjectionPlot(PWViewerMPL):
          is typically represented by a '-' separated string or a tuple of
          strings. In the first index the y-location is given by 'lower',
          'upper', or 'center'. The second index is the x-location, given as
-         'left', 'right', or 'center'. Finally, the whether the origin is
+         'left', 'right', or 'center'. Finally, whether the origin is
          applied in 'domain' space, plot 'window' space or 'native'
          simulation coordinate system is given. For example, both
          'upper-right-domain' and ['upper', 'right', 'domain'] place the
@@ -1438,7 +1388,7 @@ class ProjectionPlot(PWViewerMPL):
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     method : string
-         The method of projection.  Valid methods are: 
+         The method of projection.  Valid methods are:
 
          "integrate" with no weight_field specified : integrate the requested
          field along the line of sight.
@@ -1464,7 +1414,7 @@ class ProjectionPlot(PWViewerMPL):
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
 
     Examples
@@ -1486,11 +1436,8 @@ class ProjectionPlot(PWViewerMPL):
                  right_handed=True, fontsize=18, field_parameters=None, data_source=None,
                  method = "integrate", proj_style = None, window_size=8.0,
                  aspect=None):
-        ts = self._initialize_dataset(ds)
-        self.ts = ts
-        ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
-        # proj_style is deprecated, but if someone specifies then it trumps 
+        # proj_style is deprecated, but if someone specifies then it trumps
         # method.
         if proj_style is not None:
             method = proj_style
@@ -1512,14 +1459,17 @@ class ProjectionPlot(PWViewerMPL):
             if proj.axis != ds.parameters["axis"]:
                 raise RuntimeError("Original projection axis is %s." %
                                    ds.parameters["axis"])
-            proj.weight_field = proj._determine_fields(weight_field)[0]
+            if weight_field is not None:
+                proj.weight_field = proj._determine_fields(weight_field)[0]
+            else:
+                proj.weight_field = weight_field
         else:
             proj = ds.proj(fields, axis, weight_field=weight_field,
                            center=center, data_source=data_source,
                            field_parameters=field_parameters, method=method,
                            max_level=max_level)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
-                             right_handed=right_handed, fontsize=fontsize, window_size=window_size, 
+                             right_handed=right_handed, fontsize=fontsize, window_size=window_size,
                              aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -1574,7 +1524,7 @@ class OffAxisSlicePlot(PWViewerMPL):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
@@ -1593,7 +1543,7 @@ class OffAxisSlicePlot(PWViewerMPL):
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source : YTSelectionContainer Object
-         Object to be used for data selection.  Defaults ds.all_data(), a 
+         Object to be used for data selection.  Defaults ds.all_data(), a
          region covering the full domain.
     """
 
@@ -1718,7 +1668,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
          The name of the weighting field.  Set to None for no weight.
     max_level: int
          The maximum level to project to.
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
@@ -1748,7 +1698,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
          This should only be used for uniform resolution grid datasets, as other
          datasets may result in unphysical images.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     """
     _plot_type = 'OffAxisProjection'
@@ -1802,6 +1752,7 @@ class WindowPlotMPL(ImagePlotMPL):
         from matplotlib.ticker import ScalarFormatter
         self._draw_colorbar = True
         self._draw_axes = True
+        self._draw_frame = True
         self._fontsize = fontsize
         self._figure_size = figure_size
 
@@ -1863,7 +1814,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
         This specifies the normal vector to the slice.  If given as an integer
         or a coordinate string (0=x, 1=y, 2=z), this function will return an
         :class:`AxisAlignedSlicePlot` object.  If given as a sequence of floats,
-        this is interpretted as an off-axis vector and an
+        this is interpreted as an off-axis vector and an
         :class:`OffAxisSlicePlot` object is returned.
     fields : string
          The name of the field(s) to be plotted.
@@ -1904,7 +1855,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
@@ -2014,3 +1965,124 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             del kwargs['north_vector']
 
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)
+
+def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
+            origin='center-window', fontsize=18, field_parameters=None, 
+            window_size=8.0, aspect=None, data_source=None):
+    r"""Creates a plot of a 2D dataset
+
+    Given a ds object and a field name string, this will return a
+    PWViewerMPL object containing the plot.
+
+    The plot can be updated using one of the many helper functions
+    defined in PlotWindow.
+
+    Parameters
+    ----------
+    ds : `Dataset`
+         This is the dataset object corresponding to the
+         simulation output to be plotted.
+    fields : string
+         The name of the field(s) to be plotted.
+    center : A sequence of floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray. If a list or unitless array is supplied, code units are
+         assumed. For plot_2d, this keyword accepts a coordinate in two dimensions.
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable
+         x and y widths.  They are:
+
+         ==================================     =======================
+         format                                 example
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
+    origin : string or length 1, 2, or 3 sequence.
+         The location of the origin of the plot coordinate system. This
+         is typically represented by a '-' separated string or a tuple of
+         strings. In the first index the y-location is given by 'lower',
+         'upper', or 'center'. The second index is the x-location, given as
+         'left', 'right', or 'center'. Finally, whether the origin is
+         applied in 'domain' space, plot 'window' space or 'native'
+         simulation coordinate system is given. For example, both
+         'upper-right-domain' and ['upper', 'right', 'domain'] place the
+         origin in the upper right hand corner of domain space. If x or y
+         are not given, a value is inferred. For instance, 'left-domain'
+         corresponds to the lower-left hand corner of the simulation domain,
+         'center-domain' corresponds to the center of the simulation domain,
+         or 'center-window' for the center of the plot window. In the event
+         that none of these options place the origin in a desired location,
+         a sequence of tuples and a string specifying the
+         coordinate space can be given. If plain numeric types are input,
+         units of `code_length` are assumed. Further examples:
+
+         ===============================================    ==================================
+         format                                             example
+         ===============================================    ==================================
+         '{space}'                                          'domain'
+         '{xloc}-{space}'                                   'left-window'
+         '{yloc}-{space}'                                   'upper-domain'
+         '{yloc}-{xloc}-{space}'                            'lower-right-window'
+         ('{space}',)                                       ('window',)
+         ('{xloc}', '{space}')                              ('right', 'domain')
+         ('{yloc}', '{space}')                              ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
+         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
+         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
+         ===============================================    ==================================
+    axes_unit : string
+         The name of the unit for the tick labels on the x and y axes.
+         Defaults to None, which automatically picks an appropriate unit.
+         If axes_unit is '1', 'u', or 'unitary', it will not display the
+         units, and only show the axes name.
+    fontsize : integer
+         The size of the fonts for the axis, colorbar, and tick labels.
+    field_parameters : dictionary
+         A dictionary of field parameters than can be accessed by derived
+         fields.
+    data_source: YTSelectionContainer object
+         Object to be used for data selection. Defaults to ds.all_data(), a 
+         region covering the full domain
+    """
+    if ds.dimensionality != 2:
+        raise RuntimeError("plot_2d only plots 2D datasets!")
+    if ds.geometry in ["cartesian", "polar", "spectral_cube"]:
+        axis = "z"
+    elif ds.geometry == "cylindrical":
+        axis = "theta"
+    # Part of the convenience of plot_2d is to eliminate the use of the
+    # superfluous coordinate, so we do that also with the center argument
+    if not isinstance(center, string_types) and obj_length(center) == 2:
+        c0_string = isinstance(center[0], string_types)
+        c1_string = isinstance(center[1], string_types)
+        if not c0_string and not c1_string:
+            if obj_length(center[0]) == 2 and c1_string:
+                center = ds.arr(center[0], center[1])
+            elif not isinstance(center, YTArray):
+                center = ds.arr(center, 'code_length')
+            center.convert_to_units("code_length")
+        center = ds.arr([center[0], center[1], 
+                         ds.domain_center[2]])
+    return AxisAlignedSlicePlot(ds, axis, fields, center=center, width=width,
+                                axes_unit=axes_unit, origin=origin, 
+                                fontsize=fontsize,
+                                field_parameters=field_parameters, 
+                                window_size=window_size, aspect=aspect,
+                                data_source=data_source)

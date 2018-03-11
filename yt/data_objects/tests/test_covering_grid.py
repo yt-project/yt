@@ -149,3 +149,18 @@ def test_smoothed_covering_grid_2d_dataset():
     ds.periodicity = (True, True, True)
     scg = ds.smoothed_covering_grid(1, [0, 0, 0], [128, 128, 1])
     assert_equal(scg['density'].shape, [128, 128, 1])
+
+isogal = "IsolatedGalaxy/galaxy0030/galaxy0030"
+@requires_file(isogal)
+def test_arbitrary_grid_derived_field():
+    def _tracerf(field, data):
+        return data['Metal_Density']/data['gas', 'density']
+
+    ds = load(isogal)
+
+    ds.add_field(("gas", "tracerf"), function=_tracerf, units="dimensionless",
+                 take_log=False)
+
+    galgas = ds.arbitrary_grid([0.4, 0.4, 0.4], [0.99, 0.99, 0.99],
+                               dims=[32, 32, 32])
+    galgas['tracerf']

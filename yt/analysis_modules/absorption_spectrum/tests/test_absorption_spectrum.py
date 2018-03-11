@@ -58,7 +58,7 @@ def test_absorption_spectrum_cosmo():
 
     my_label = 'HI Lya'
     field = 'H_number_density'
-    wavelength = 1215.6700  # Angstromss
+    wavelength = 1215.6700  # Angstroms
     f_value = 4.164E-01
     gamma = 6.265e+08
     mass = 1.00794
@@ -118,7 +118,7 @@ def test_absorption_spectrum_non_cosmo():
 
     my_label = 'HI Lya'
     field = 'H_number_density'
-    wavelength = 1215.6700  # Angstromss
+    wavelength = 1215.6700  # Angstroms
     f_value = 4.164E-01
     gamma = 6.265e+08
     mass = 1.00794
@@ -170,7 +170,7 @@ def test_absorption_spectrum_non_cosmo_novpec():
 
     my_label = 'HI Lya'
     field = 'H_number_density'
-    wavelength = 1215.6700  # Angstromss
+    wavelength = 1215.6700  # Angstroms
     f_value = 4.164E-01
     gamma = 6.265e+08
     mass = 1.00794
@@ -220,7 +220,7 @@ def test_equivalent_width_conserved():
 
     my_label = 'HI Lya'
     field = 'H_number_density'
-    wave = 1215.6700  # Angstromss
+    wave = 1215.6700  # Angstroms
     f_value = 4.164E-01
     gamma = 6.265e+08
     mass = 1.00794
@@ -271,7 +271,7 @@ def test_absorption_spectrum_fits():
 
     my_label = 'HI Lya'
     field = 'H_number_density'
-    wavelength = 1215.6700  # Angstromss
+    wavelength = 1215.6700  # Angstroms
     f_value = 4.164E-01
     gamma = 6.265e+08
     mass = 1.00794
@@ -326,7 +326,7 @@ def test_absorption_spectrum_cosmo_sph():
 
     my_label = 'HI Lya'
     field = ('gas', 'H_number_density')
-    wavelength = 1215.6700  # Angstromss
+    wavelength = 1215.6700  # Angstroms
     f_value = 4.164E-01
     gamma = 6.265e+08
     mass = 1.00794
@@ -387,7 +387,7 @@ def test_absorption_spectrum_non_cosmo_sph():
 
     my_label = 'HI Lya'
     field = ('gas', 'H_number_density')
-    wavelength = 1215.6700  # Angstromss
+    wavelength = 1215.6700  # Angstroms
     f_value = 4.164E-01
     gamma = 6.265e+08
     mass = 1.00794
@@ -440,7 +440,7 @@ def test_absorption_spectrum_with_continuum():
 
     my_label = 'HI Lya'
     field = 'H_number_density'
-    wavelength = 1215.6700  # Angstromss
+    wavelength = 1215.6700  # Angstroms
     f_value = 4.164E-01
     gamma = 6.265e+08
     mass = 1.00794

@@ -23,6 +23,10 @@ import re
 
 from functools import wraps
 
+from yt.analysis_modules.level_sets.clump_handling import \
+    Clump
+from yt.frontends.ytdata.data_structures import \
+    YTClumpContainer
 from yt.funcs import \
     mylog, iterable
 from yt.extern.six import add_metaclass
@@ -47,6 +51,9 @@ def _verify_geometry(func):
     @wraps(func)
     def _check_geometry(self, plot):
         geom = plot.data.ds.coordinates.name
+        # append dimensionality info to cylindrical geometry
+        if geom == "cylindrical":
+            geom = "%s-%dd" % (geom, plot.data.ds.dimensionality)
         supp = self._supported_geometries
         cs = getattr(self, "coord_system", None)
         if supp is None or geom in supp:
@@ -90,6 +97,7 @@ class PlotCallback(object):
         if len(coord) == 3:
             if not isinstance(coord, YTArray):
                 coord = plot.data.ds.arr(coord, 'code_length')
+            coord.convert_to_units('code_length')
             ax = plot.data.axis
             # if this is an on-axis projection or slice, then
             # just grab the appropriate 2 coords for the on-axis view
@@ -164,7 +172,7 @@ class PlotCallback(object):
 
         Parameters
         ----------
-        
+
         plot: a PlotMPL subclass
            The plot that we are converting coordinates for
 
@@ -278,21 +286,25 @@ class VelocityCallback(PlotCallback):
     """
     Adds a 'quiver' plot of velocity to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* (see
-    matplotlib.axes.Axes.quiver for more info). if *normalize* is
-    True, the velocity fields will be scaled by their local
-    (in-plane) length, allowing morphological features to be more
-    clearly seen for fields with substantial variation in field
-    strength.
+    length unit using *scale_units* and *plot_args* allows you to 
+    pass in matplotlib arguments (see matplotlib.axes.Axes.quiver 
+    for more info). if *normalize* is True, the velocity fields 
+    will be scaled by their local (in-plane) length, allowing 
+    morphological features to be more clearly seen for fields 
+    with substantial variation in field strength.
     """
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
+    def __init__(self, factor=16, scale=None, scale_units=None, 
+                 normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
         self.scale_units = scale_units
         self.normalize = normalize
+        if plot_args is None:
+            plot_args = {}
+        self.plot_args = plot_args
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -301,7 +313,8 @@ class VelocityCallback(PlotCallback):
                                         "cutting_plane_velocity_y",
                                         self.factor, scale=self.scale,
                                         normalize=self.normalize,
-                                        scale_units=self.scale_units)
+                                        scale_units=self.scale_units,
+                                        plot_args=self.plot_args)
         else:
             ax = plot.data.axis
             (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
@@ -318,27 +331,32 @@ class VelocityCallback(PlotCallback):
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
-                                 normalize=self.normalize, bv_x=bv_x, bv_y=bv_y)
+                                 normalize=self.normalize, bv_x=bv_x, 
+                                 bv_y=bv_y, plot_args=self.plot_args)
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
     """
     Adds a 'quiver' plot of magnetic field to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* (see
-    matplotlib.axes.Axes.quiver for more info). if *normalize* is
-    True, the magnetic fields will be scaled by their local
-    (in-plane) length, allowing morphological features to be more
+    length unit using *scale_units* and *plot_args* allows you to pass 
+    in matplotlib arguments (see matplotlib.axes.Axes.quiver for more info).
+    if *normalize* is True, the magnetic fields will be scaled by their 
+    local (in-plane) length, allowing morphological features to be more
     clearly seen for fields with substantial variation in field strength.
     """
     _type_name = "magnetic_field"
-    _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
+    def __init__(self, factor=16, scale=None, scale_units=None, 
+                 normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.factor = factor
         self.scale  = scale
         self.scale_units = scale_units
         self.normalize = normalize
+        if plot_args is None:
+            plot_args = {}
+        self.plot_args = plot_args
 
     def __call__(self, plot):
         # Instantiation of these is cheap
@@ -347,27 +365,36 @@ class MagFieldCallback(PlotCallback):
                                         "cutting_plane_magnetic_field_y",
                                         self.factor, scale=self.scale, 
                                         scale_units=self.scale_units, 
-                                        normalize=self.normalize)
+                                        normalize=self.normalize,
+                                        plot_args=self.plot_args)
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
             yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
             axis_names = plot.data.ds.coordinates.axis_name
             xv = "magnetic_field_%s" % (axis_names[xax])
             yv = "magnetic_field_%s" % (axis_names[yax])
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, scale_units=self.scale_units, normalize=self.normalize)
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
+                                 scale_units=self.scale_units,
+                                 normalize=self.normalize, 
+                                 plot_args=self.plot_args)
         return qcb(plot)
 
 class QuiverCallback(PlotCallback):
     """
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
-    from the associated data, skipping every *factor* datapoints
+    from the associated data, skipping every *factor* datapoints.
     *scale* is the data units per arrow length unit using *scale_units*
-    (see matplotlib.axes.Axes.quiver for more info)
+    and *plot_args* allows you to pass in matplotlib arguments (see 
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is True, 
+    the fields will be scaled by their local (in-plane) length, allowing 
+    morphological features to be more clearly seen for fields with 
+    substantial variation in field strength.
     """
     _type_name = "quiver"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=False, bv_x=0, bv_y=0):
+                 scale_units=None, normalize=False, bv_x=0, bv_y=0,
+                 plot_args=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -377,10 +404,13 @@ class QuiverCallback(PlotCallback):
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
+        if plot_args is None:
+            plot_args = {}
+        self.plot_args = plot_args
 
     def __call__(self, plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
+        x0, x1 = [p.to('code_length') for p in plot.xlim]
+        y0, y1 = [p.to('code_length') for p in plot.ylim]
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         # See the note about rows/columns in the pixelizer for more information
@@ -421,7 +451,8 @@ class QuiverCallback(PlotCallback):
             nn = np.sqrt(pixX**2 + pixY**2)
             pixX /= nn
             pixY /= nn
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
+                          scale_units=self.scale_units, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
 
@@ -435,12 +466,12 @@ class ContourCallback(PlotCallback):
     queried.
     """
     _type_name = "contour"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, field, ncont=5, factor=4, clim=None,
                  plot_args=None, label=False, take_log=None,
                  label_args=None, text_args=None, data_source=None):
         PlotCallback.__init__(self)
-        def_plot_args = {'color':'k'}
+        def_plot_args = {'colors':'k'}
         def_text_args = {'color':'w'}
         self.ncont = ncont
         self.field = field
@@ -560,7 +591,7 @@ class GridBoundaryCallback(PlotCallback):
     can change the linewidth of the displayed grids.
     """
     _type_name = "grids"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
 
     def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False,
                  periodic=True, min_level=None, max_level=None,
@@ -632,7 +663,7 @@ class GridBoundaryCallback(PlotCallback):
             if self.edgecolors is not None:
                 edgecolors = colorConverter.to_rgba(
                     self.edgecolors, alpha=self.alpha)
-            else:  # use colormap if not explicity overridden by edgecolors
+            else:  # use colormap if not explicitly overridden by edgecolors
                 if self.cmap is not None:
                     color_bounds = [0,plot.data.ds.index.max_level]
                     edgecolors = apply_colormap(
@@ -671,7 +702,7 @@ class StreamlineCallback(PlotCallback):
     *field_color* is a field to be used to colormap the streamlines.
     """
     _type_name = "streamlines"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, field_x, field_y, factor=16,
                  density=1, field_color=None, plot_args=None):
         PlotCallback.__init__(self)
@@ -772,7 +803,7 @@ class LinePlotCallback(PlotCallback):
 
     """
     _type_name = "line"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, p1, p2, data_coords=False, coord_system="data",
                  plot_args=None):
         PlotCallback.__init__(self)
@@ -809,7 +840,7 @@ class ImageLineCallback(LinePlotCallback):
 
     """
     _type_name = "image_line"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, p1, p2, data_coords=False, coord_system='axis',
                  plot_args=None):
         super(ImageLineCallback, self).__init__(p1, p2, data_coords,
@@ -825,12 +856,18 @@ class CuttingQuiverCallback(PlotCallback):
     """
     Get a quiver plot on top of a cutting plane, using *field_x* and
     *field_y*, skipping every *factor* datapoint in the discretization.
+    *scale* is the data units per arrow length unit using *scale_units*
+    and *plot_args* allows you to pass in matplotlib arguments (see 
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is True, 
+    the fields will be scaled by their local (in-plane) length, allowing 
+    morphological features to be more clearly seen for fields with 
+    substantial variation in field strength.
     """
     _type_name = "cquiver"
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=None):
+                 scale_units=None, normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -838,10 +875,13 @@ class CuttingQuiverCallback(PlotCallback):
         self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
+        if plot_args is None:
+            plot_args = {}
+        self.plot_args = plot_args
 
     def __call__(self, plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
+        x0, x1 = [p.to('code_length') for p in plot.xlim]
+        y0, y1 = [p.to('code_length') for p in plot.ylim]
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         nx = plot.image._A.shape[1] // self.factor
@@ -872,7 +912,8 @@ class CuttingQuiverCallback(PlotCallback):
             pixX /= nn
             pixY /= nn
 
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
+                          scale_units=self.scale_units, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
 
@@ -881,7 +922,7 @@ class ClumpContourCallback(PlotCallback):
     Take a list of *clumps* and plot them as a set of contours.
     """
     _type_name = "clumps"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, clumps, plot_args=None):
         self.clumps = clumps
         if plot_args is None: plot_args = {}
@@ -909,14 +950,23 @@ class ClumpContourCallback(PlotCallback):
         for i,clump in enumerate(reversed(self.clumps)):
             mylog.info("Pixelizing contour %s", i)
 
-            xf_copy = clump[xf].copy().in_units("code_length")
-            yf_copy = clump[yf].copy().in_units("code_length")
+            if isinstance(clump, Clump):
+                ftype = "index"
+            elif isinstance(clump, YTClumpContainer):
+                ftype = "grid"
+            else:
+                raise RuntimeError(
+                    "Unknown field type for object of type %s." %
+                    type(clump))
+
+            xf_copy = clump[ftype, xf].copy().in_units("code_length")
+            yf_copy = clump[ftype, yf].copy().in_units("code_length")
 
             temp = np.zeros((ny, nx), dtype="f8")
             pixelize_cartesian(temp, xf_copy, yf_copy,
-                                 clump[dxf].in_units("code_length")/2.0,
-                                 clump[dyf].in_units("code_length")/2.0,
-                                 clump[dxf].d*0.0+i+1, # inits inside Pixelize
+                                 clump[ftype, dxf].in_units("code_length")/2.0,
+                                 clump[ftype, dyf].in_units("code_length")/2.0,
+                                 clump[ftype, dxf].d*0.0+i+1, # inits inside Pixelize
                              (x0, x1, y0, y1), 0)
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, np.unique(buff),
@@ -1003,7 +1053,7 @@ class ArrowCallback(PlotCallback):
 
     """
     _type_name = "arrow"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, pos, code_size=None, length=0.03, width=0.0001,
                  head_width=0.01, head_length=0.01,
                  starting_pos=None, coord_system='data', plot_args=None):
@@ -1115,7 +1165,7 @@ class MarkerAnnotateCallback(PlotCallback):
 
     """
     _type_name = "marker"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
         def_plot_args = {'color':'w', 's':50}
         self.pos = pos
@@ -1184,7 +1234,7 @@ class SphereCallback(PlotCallback):
 
     """
     _type_name = "sphere"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, center, radius, circle_args=None,
                  text=None, coord_system='data', text_args=None):
         def_text_args = {'color':'white'}
@@ -1295,7 +1345,7 @@ class TextLabelCallback(PlotCallback):
     >>> s.save()
     """
     _type_name = "text"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, pos, text, data_coords=False, coord_system='data',
                  text_args=None, inset_box_args=None):
         def_text_args = {'color':'white'}
@@ -1335,7 +1385,7 @@ class PointAnnotateCallback(TextLabelCallback):
 
     """
     _type_name = "point"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, pos, text, data_coords=False, coord_system='data',
                  text_args=None, inset_box_args=None):
         super(PointAnnotateCallback, self).__init__(pos, text, data_coords,
@@ -1506,7 +1556,7 @@ class ParticleCallback(PlotCallback):
     _type_name = "particles"
     region = None
     _descriptor = None
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1,
                  ptype='all', minimum_mass=None, alpha=1.0):
         PlotCallback.__init__(self)
@@ -1686,7 +1736,7 @@ class MeshLinesCallback(PlotCallback):
             elif num_dims == 2 and num_verts == 4:
                 coords, indices = self.promote_2d_to_3d(coords, indices, plot)
 
-            tri_indices = triangulate_indices(indices)
+            tri_indices = triangulate_indices(indices.astype(np.int_))
             points = coords[tri_indices]
         
             tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
@@ -1698,7 +1748,7 @@ class TriangleFacetsCallback(PlotCallback):
     Intended for representing a slice of a triangular faceted
     geometry in a slice plot.
 
-    Uses a set of *triangle_vertices* to find all trangles the plane of a
+    Uses a set of *triangle_vertices* to find all triangles the plane of a
     SlicePlot intersects with. The lines between the intersection points
     of the triangles are then added to the plot to create an outline
     of the geometry represented by the triangles.
@@ -1818,7 +1868,7 @@ class TimestampCallback(PlotCallback):
     >>> s.annotate_timestamp()
     """
     _type_name = "timestamp"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True,
                  redshift=False, time_format="t = {time:.1f} {units}",
                  time_unit=None, redshift_format="z = {redshift:.2f}",
@@ -2271,7 +2321,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
     """
     Add the line integral convolution to the plot for vector fields
     visualization. Two component of vector fields needed to be provided
-    (i.e., velocity_x and velocity_y, magentic_field_x and magnetic_field_y).
+    (i.e., velocity_x and velocity_y, magnetic_field_x and magnetic_field_y).
 
     Parameters
     ----------
@@ -2315,7 +2365,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
                                              lim=(0.5,0.65))
     """
     _type_name = "line_integral_convolution"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, field_x, field_y, texture=None, kernellen=50.,
                  lim=(0.5,0.6), cmap='binary', alpha=0.8, const_alpha=False):
         PlotCallback.__init__(self)
@@ -2411,7 +2461,7 @@ class CellEdgesCallback(PlotCallback):
     >>> s.save()
     """
     _type_name = "cell_edges"
-    _supported_geometries = ("cartesian", "spectral_cube")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, line_width=0.002, alpha = 1.0, color='black'):
         from matplotlib.colors import ColorConverter
         conv = ColorConverter()

@@ -25,7 +25,7 @@ class SmallFlashSuite:
                             self.ds.domain_width[0] * 0.25)
         dd["velocity_divergence"]
 
-    def time_gas_quantites(self):
+    def time_gas_quantities(self):
         dd = self.ds.all_data()
         dd.quantities.extrema("density")
         dd.quantities.extrema(["velocity_x", "velocity_y", "velocity_z"])

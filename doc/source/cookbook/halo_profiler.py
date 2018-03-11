@@ -6,7 +6,7 @@ from yt.analysis_modules.halo_analysis.api import HaloCatalog
 data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
 halos_ds = yt.load('rockstar_halos/halos_0.0.bin')
 
-# Instantiate a catalog using those two paramter files
+# Instantiate a catalog using those two parameter files
 hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
 
 # Filter out less massive halos

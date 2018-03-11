@@ -153,6 +153,7 @@ class YTDataContainer(object):
         self._default_field_parameters = {
             'center': self.ds.arr(np.zeros(3, dtype='float64'), 'cm'),
             'bulk_velocity': self.ds.arr(np.zeros(3, dtype='float64'), 'cm/s'),
+            'bulk_magnetic_field': self.ds.arr(np.zeros(3, dtype='float64'), 'G'),
             'normal': self.ds.arr([0.0, 0.0, 1.0], ''),
         }
         if field_parameters is None: field_parameters = {}

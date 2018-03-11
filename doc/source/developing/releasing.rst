@@ -20,7 +20,7 @@ from the version number used. Version numbers should follow the scheme
   These releases happen when new features are deemed ready to be merged into the
   ``stable`` branch and should not happen on a regular schedule. Minor releases
   can also include fixes for bugs if the fix is determined to be too invasive
-  for a bugfix release. Minor releases should *not* inlucde
+  for a bugfix release. Minor releases should *not* include
   backwards-incompatible changes and should not change APIs.  If an API change
   is deemed to be necessary, the old API should continue to function but might
   trigger deprecation warnings. Minor releases should happen by merging the
@@ -52,10 +52,14 @@ bugfix releases by simply merging from the development ``master`` branch into
 the ``stable`` branch.  Instead, we manually cherry-pick bugfixes from the from
 ``master`` branch onto the ``stable`` branch.
 
-If the pull request contains merge commits, you must take care to *not* backport
-commits that merge with the main line of development on the ``master`` branch. Doing
-so may bring unrelated changes, including new features, into a bugfix
-release.
+You may find the ``pr_backport.py`` script located in the ``scripts`` folder at
+the root of the repository to be helpful. This script uses the github API to
+find the list of pull requests made since the last release and prompts the user
+to backport each pull request individually. Note that the backport process is
+fully manual. The easiest way to do it is to download the diff for the pull
+request (the URL for the diff is printed out by the backport script) and then
+use ``git apply`` to apply the patch for the pull request to a local copy of yt
+with the ``stable`` branch checked out.
 
 Once you've finished backporting push your work to Github. Once you've pushed to
 your fork, you will be able to issue a pull request containing the backported

@@ -107,22 +107,32 @@ One of the most common questions asked of data is, what is the value *at this
 specific point*.  While there are several ways to find out the answer to this
 question, a few helper routines are provided as well.  To identify the
 finest-resolution (i.e., most canonical) data at a given point, use
-:meth:`~yt.data_objects.index.AMRHierarchy.find_field_value_at_point`.
-This accepts a position (in coordinates of the domain) and returns the field
-values for one or multiple fields.
+the point data object::
 
-To identify all the grids that intersect a given point, the function
-:meth:`~yt.data_objects.index.AMRHierarchy.find_point` will return indices
-and objects that correspond to it.  For instance:
+  from yt.units import kpc
+  point_obj = ds.point([30, 75, 80]*kpc)
+  density_at_point = point_obj['gas', 'density']
 
-.. code-block:: python
+The point data object works just like any other yt data object. It is special
+because it is the only zero-dimensional data object: it will only return data at
+the exact point specified when creating the point data object. For more
+information about yt data objects, see :ref:`Data-objects`.
 
-   gs, gi = ds.find_point((0.5, 0.6, 0.9))
-   for g in gs:
-       print(g.Level, g.LeftEdge, g.RightEdge)
+If you need to find field values at many points, the
+:meth:`~yt.data_objects.static_output.Dataset.find_field_values_at_points`
+function may be more efficient. This function returns a nested list of field
+values at multiple points in the simulation volume. For example, if one wanted
+to find the value of a mesh field at the location of the particles in a
+simulation, one could do::
 
-Note that this doesn't just return the canonical output, but also all of the
-parent grids that overlap with that point.
+  ad = ds.all_data()
+  ppos = ad['all', 'particle_position']
+  ppos_den_vel = ds.find_field_values_at_points(
+      ['density', 'velocity_x'], ppos)
+
+In this example, ``ppos_den_vel`` will be a list of arrays. The first array will
+contain the density values at the particle positions, the second will contain
+the x velocity values at the particle positions.
 
 .. _examining-grid-data-in-a-fixed-resolution-array:
 
@@ -254,6 +264,6 @@ and ``PartType1``, while Enzo data, which usually only has one particle type,
 will only have a particle named ``io``.
 
 Finally, one can see the number of each particle type by inspecting
-``ds.particle_type_counts``. This will be a dictionary mappying the names of
+``ds.particle_type_counts``. This will be a dictionary mapping the names of
 particle types in ``ds.particle_types_raw`` to the number of each particle type
 in a simulation output.

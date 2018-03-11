@@ -206,7 +206,7 @@ class ThermalPhotonModel(PhotonModel):
                     if cn == 0: continue
                     # The rather verbose form of the few next statements is a
                     # result of code optimization and shouldn't be changed
-                    # without checking for perfomance degradation. See
+                    # without checking for performance degradation. See
                     # https://bitbucket.org/yt_analysis/yt/pull-requests/1766
                     # for details.
                     if self.method == "invert_cdf":
@@ -224,7 +224,7 @@ class ThermalPhotonModel(PhotonModel):
                         tot_spec *= norm_factor
                         eidxs = self.prng.choice(nchan, size=cn, p=tot_spec)
                         cell_e = emid[eidxs]
-                    energies[ei:ei+cn] = cell_e
+                    energies[int(ei):int(ei + cn)] = cell_e
                     cell_counter += 1
                     pbar.update(cell_counter)
                     ei += cn

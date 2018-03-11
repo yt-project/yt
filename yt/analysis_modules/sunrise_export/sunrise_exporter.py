@@ -122,7 +122,7 @@ def export_to_sunrise_from_halolist(ds,fni,star_particle_type,
         both of which are assumed to be in unitary length units.
     frvir (optional) : float
         Ensure that CoM +/- frvir*Rvir is contained within each domain
-    domains_list (optiona): dict of halos
+    domains_list (optional): dict of halos
         Organize halos into a dict of domains. Keys are DLE/DRE tuple
         values are a list of halos
     """
@@ -221,7 +221,7 @@ def prepare_octree(ds,ile,start_level=0,debug=True,dd=None,center=None):
         grids[g.id] = og
         #how many refinement cells will we have?
         #measure the 'volume' of each mesh, but many
-        #cells do not exist. an overstimate
+        #cells do not exist. an overestimate
         levels_all[g.Level] += g.ActiveDimensions.prod()
         #how many leaves do we have?
         #this overestimates. a child of -1 means no child,
@@ -442,7 +442,7 @@ def round_ncells_wide(dds,fle,fre,nwide=None):
     width = 0.0
     if nwide is None:
         #expand until borders are included and
-        #we have an equaly-sized, non-zero box
+        #we have an equally-sized, non-zero box
         idxq,out=False,True
         while not out or not idxq:
             cfle,cfre = fc-width, fc+width

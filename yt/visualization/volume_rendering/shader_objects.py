@@ -23,6 +23,7 @@ from yt.utilities.exceptions import \
     YTInvalidShaderType, \
     YTUnknownUniformKind, \
     YTUnknownUniformSize
+from yt.units.yt_array import YTQuantity
 
 known_shaders = {}
 
@@ -83,7 +84,7 @@ class ShaderProgram(object):
         # but we will not be using that here.
         if isinstance(value, int):
             return GL.glUniform1i
-        elif isinstance(value, float):
+        elif isinstance(value, (YTQuantity, float)):
             return GL.glUniform1f
         else:
             kind = value.dtype.kind
@@ -241,7 +242,7 @@ class NoOpFragmentShader(FragmentShader):
 
 class PassthroughFragmentShader(FragmentShader):
     '''A first pass fragment shader that performs no operation. Used for debug
-    puproses. It's distinct from NoOpFragmentShader, because of the number of
+    purposes. It's distinct from NoOpFragmentShader, because of the number of
     uniforms'''
     _source = "passthrough.fragmentshader"
     _shader_name = "passthrough.f"
@@ -260,7 +261,7 @@ class TransferFunctionFragmentShader(FragmentShader):
     _shader_name = "transfer_function.f"
 
 class DefaultVertexShader(VertexShader):
-    '''A first pass vertex shader that tranlates the location of vertices from
+    '''A first pass vertex shader that translates the location of vertices from
     the world coordinates to the viewing plane coordinates'''
     _source = "default.vertexshader"
     _shader_name = "default.v"

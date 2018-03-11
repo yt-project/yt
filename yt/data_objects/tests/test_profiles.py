@@ -1,6 +1,8 @@
 import yt
 import numpy as np
 
+from yt.data_objects.particle_filters import \
+    add_particle_filter
 from yt.data_objects.profiles import \
     Profile1D, \
     Profile2D, \
@@ -10,7 +12,8 @@ from yt.testing import \
     fake_random_ds, \
     assert_equal, \
     assert_raises, \
-    assert_rel_equal
+    assert_rel_equal, \
+    requires_file
 from yt.utilities.exceptions import \
     YTIllDefinedProfile
 from yt.visualization.profile_plotter import \
@@ -124,6 +127,19 @@ def test_profiles():
         p3d.add_fields(["ones"])
         assert_equal(p3d["ones"], np.ones((nb,nb,nb)))
 
+        p2d = create_profile(dd, ('gas', 'density'), ('gas', 'temperature'),
+                             weight_field=('gas', 'cell_mass'),
+                             extrema={'density': (None, rma*e2)})
+        assert_equal(p2d.x_bins[0], rmi - np.spacing(rmi))
+        assert_equal(p2d.x_bins[-1], rma*e2)
+
+        p2d = create_profile(dd, ('gas', 'density'), ('gas', 'temperature'),
+                             weight_field=('gas', 'cell_mass'),
+                             extrema={'density': (rmi*e2, None)})
+        assert_equal(p2d.x_bins[0], rmi*e2)
+        assert_equal(p2d.x_bins[-1], rma + np.spacing(rma))
+
+
 extrema_s = {'particle_position_x': (0, 1)}
 logs_s = {'particle_position_x': False}
 
@@ -218,5 +234,70 @@ def test_particle_profile_negative_field():
         ad,
         ["particle_position_x", "particle_position_y"],
         "particle_velocity_x",
+        logs = {'particle_position_x': True,
+                'particle_position_y': True,
+                'particle_position_z': True},
         weight_field=None)
     assert profile['particle_velocity_x'].min() < 0
+    assert profile.x_bins.min() > 0
+    assert profile.y_bins.min() > 0
+
+    profile = yt.create_profile(
+        ad,
+        ["particle_position_x", "particle_position_y"],
+        "particle_velocity_x",
+        weight_field=None)
+    assert profile['particle_velocity_x'].min() < 0
+    assert profile.x_bins.min() < 0
+    assert profile.y_bins.min() < 0
+
+    # can't use CIC deposition with log-scaled bin fields
+    with assert_raises(RuntimeError):
+        yt.create_profile(
+            ad,
+            ["particle_position_x", "particle_position_y"],
+            "particle_velocity_x",
+            logs = {'particle_position_x': True,
+                    'particle_position_y': False,
+                    'particle_position_z': False},
+            weight_field=None, deposition='cic')
+
+    # can't use CIC deposition with accumulation or fractional
+    with assert_raises(RuntimeError):
+        yt.create_profile(
+            ad,
+            ["particle_position_x", "particle_position_y"],
+            "particle_velocity_x",
+            logs = {'particle_position_x': False,
+                    'particle_position_y': False,
+                    'particle_position_z': False},
+            weight_field=None, deposition='cic',
+            accumulation=True, fractional=True)
+
+@requires_file("IsolatedGalaxy/galaxy0030/galaxy0030")
+def test_profile_zero_weight():
+    def DMparticles(pfilter, data):
+        filter = data[(pfilter.filtered_type, "particle_type")] == 1
+        return filter
+
+    def DM_in_cell_mass(field, data):
+        return data['deposit', 'DM_density']*data['index', 'cell_volume']
+
+    add_particle_filter("DM", function=DMparticles,
+                        filtered_type='io', requires=["particle_type"])
+
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+    ds.add_particle_filter('DM')
+
+    ds.add_field(("gas", "DM_cell_mass"), units="g", function=DM_in_cell_mass,
+                 sampling_type='cell')
+
+    sp = ds.sphere(ds.domain_center, (10, 'kpc'))
+
+    profile = yt.create_profile(sp,
+                                [("gas", "density")],
+                                [("gas", "temperature")],
+                                weight_field=("gas", "DM_cell_mass"))
+
+    assert not np.any(np.isnan(profile['gas', 'temperature']))

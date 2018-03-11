@@ -387,7 +387,7 @@ class Halo(object):
         Returns
         -------
         radius : float
-            The virial raius in code units of the particles in the halo.  -1
+            The virial radius in code units of the particles in the halo.  -1
             if not virialized.
 
         Examples
@@ -1281,7 +1281,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
 
         def haloCmp(h1, h2):
             def cmp(a, b):
-                return (a > b) - (a < b)
+                return (a > b) ^ (a < b)
             c = cmp(h1.total_mass(), h2.total_mass())
             if c != 0:
                 return -1 * c
@@ -1332,7 +1332,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         r"""Write out the names of the HDF5 files containing halo particle data
         to a text file.
 
-        This function wirtes out the names of all the HDF5 files that would
+        This function writes out the names of all the HDF5 files that would
         contain halo particle data.  Only the root processor writes out.
 
         Parameters
@@ -1445,7 +1445,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         used when dm_only is set to True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
-        with duplicated particles for halo finidng to work. This number
+        with duplicated particles for halo finding to work. This number
         must be no smaller than the radius of the largest halo in the box
         in code units. Default = 0.02.
     total_mass : float
@@ -1574,7 +1574,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         used when dm_only is set to True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
-        with duplicated particles for halo finidng to work. This number
+        with duplicated particles for halo finding to work. This number
         must be no smaller than the radius of the largest halo in the box
         in code units. Default = 0.02.
 

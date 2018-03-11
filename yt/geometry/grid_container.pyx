@@ -17,6 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.math cimport rint
+from yt.utilities.lib.bitarray cimport bitarray
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

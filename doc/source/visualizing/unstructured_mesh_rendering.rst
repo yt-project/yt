@@ -22,9 +22,9 @@ most recent development version of yt from our channel:
 
     conda install -c http://use.yt/with_conda/ yt
 
-Alternatively, you can install yt from source using the ``install_script.sh`` 
-script. Be sure to set the INST_CONDA, INST_YT_SOURCE, INST_EMBREE, 
-and INST_NETCDF4 flags to 1 at the top of the script. The ``install_script.sh`` 
+Alternatively, you can install yt from source using the ``install_script.sh``
+script. Be sure to set the ``INST_YT_SOURCE``, ``INST_EMBREE``, and
+``INST_NETCDF4`` flags to 1 at the top of the script. The ``install_script.sh``
 script can be downloaded by doing:
 
 .. code-block:: bash
@@ -87,7 +87,7 @@ provided EMBREE_DIR is not set. An example embree.cfg file could like this:
 
 We recommend one of the later two methods, especially
 if you plan on re-compiling the cython extensions regularly. Note that none of this is
-neccessary if you installed embree into a location that is in your default path, such
+necessary if you installed embree into a location that is in your default path, such
 as /usr/local.
 
 Examples

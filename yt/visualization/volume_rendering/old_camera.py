@@ -617,10 +617,7 @@ class Camera(ParallelAnalysisInterface):
                 np.array(self.width, dtype='float64'), self.transfer_function, self.sub_samples)
         return args, {'lens_type': 'plane-parallel'}
 
-    star_trees = None
     def get_sampler(self, args, kwargs):
-        if self.star_trees is not None:
-            kwargs = {'star_list': self.star_trees}
         if self.use_light:
             if self.light_dir is None:
                 self.set_default_light_dir()
@@ -1310,7 +1307,7 @@ class PerspectiveCamera(Camera):
             else:
                 # The corner is on the backwards, then put it outside of the
                 # image It can not be simply removed because it may connect to
-                # other corner within the image, which produces visible domian
+                # other corner within the image, which produces visible domain
                 # boundary line
                 sight_length = np.sqrt(self.width[0]**2+self.width[1]**2) / \
                                np.sqrt(1 - sight_angle_cos**2)

@@ -30,7 +30,6 @@ from yt.funcs import \
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
-from yt.units import YTQuantity
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
@@ -567,7 +566,18 @@ class BoxlibHierarchy(GridIndex):
                                                         is_checkpoint,
                                                         extra_field_names)
 
-        base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
+        num_parts = self.particle_headers[directory_name].num_particles
+        if self.ds._particle_type_counts is None:
+            self.ds._particle_type_counts = {}
+        self.ds._particle_type_counts[directory_name] = num_parts
+
+        base = os.path.join(self.ds.output_dir, directory_name)
+        if (len(glob.glob(os.path.join(base, "Level_?", "DATA_????"))) > 0):
+            base_particle_fn = os.path.join(base, "Level_%d", "DATA_%.4d")
+        elif (len(glob.glob(os.path.join(base, "Level_?", "DATA_?????"))) > 0):
+            base_particle_fn = os.path.join(base, "Level_%d", "DATA_%.5d")
+        else:
+            return
 
         gid = 0
         for lev, data in self.particle_headers[directory_name].data_map.items():
@@ -780,7 +790,7 @@ class BoxlibDataset(Dataset):
             # We use a default of two, as Nyx doesn't always output this value
             ref_factors = [2] * (self._max_level + 1)
         # We can't vary refinement factors based on dimension, or whatever else
-        # they are vaied on.  In one curious thing, I found that some Castro 3D
+        # they are varied on.  In one curious thing, I found that some Castro 3D
         # data has only two refinement factors, which I don't know how to
         # understand.
         self.ref_factors = ref_factors
@@ -1046,8 +1056,8 @@ class CastroDataset(BoxlibDataset):
     _field_info_class = CastroFieldInfo
 
     def __init__(self, output_dir,
-                 cparam_filename='inputs',
-                 fparam_filename='probin',
+                 cparam_filename=None,
+                 fparam_filename=None,
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
@@ -1130,8 +1140,8 @@ class MaestroDataset(BoxlibDataset):
     _field_info_class = MaestroFieldInfo
 
     def __init__(self, output_dir,
-                 cparam_filename='inputs',
-                 fparam_filename='probin',
+                 cparam_filename=None,
+                 fparam_filename=None,
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
@@ -1224,8 +1234,8 @@ class NyxDataset(BoxlibDataset):
     _field_info_class = NyxFieldInfo
 
     def __init__(self, output_dir,
-                 cparam_filename='inputs',
-                 fparam_filename='probin',
+                 cparam_filename=None,
+                 fparam_filename=None,
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
@@ -1327,7 +1337,10 @@ def _guess_pcast(vals):
             pcast = float
         else:
             pcast = int
-    vals = [pcast(value) for value in vals.split()]
+    if pcast == bool:
+        vals = [value=="T" for value in vals.split()]
+    else:
+        vals = [pcast(value) for value in vals.split()]
     if len(vals) == 1:
         vals = vals[0]
     return vals
@@ -1354,32 +1367,86 @@ def _get_active_dimensions(box):
 
 
 def _read_header(raw_file, field):
-    header_file = raw_file + field + "_H"
-    with open(header_file, "r") as f:
+    level_files = glob.glob(raw_file + 'Level_*')
+    level_files.sort()
+
+    all_boxes = []
+    all_file_names = []
+    all_offsets = []
+
+    for level_file in level_files:
+        header_file = level_file + "/" + field + "_H"
+        with open(header_file, "r") as f:
         
-        # skip the first five lines
-        for _ in range(5):
-            f.readline()
+            # skip the first five lines
+            for _ in range(5):
+                f.readline()
 
-        # read boxes
-        boxes = []
-        for line in f:
-            clean_line = line.strip().split()
-            if clean_line == [')']:
-                break
-            lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
-            boxes.append((lo_corner, hi_corner, node_type))
-
-        # read the file and offset position for the corresponding box
-        file_names = []
-        offsets = []
-        for line in f:
-            if line.startswith("FabOnDisk:"):
+            # read boxes
+            boxes = []
+            for line in f:
                 clean_line = line.strip().split()
-                file_names.append(clean_line[1])
-                offsets.append(int(clean_line[2]))
+                if clean_line == [')']:
+                    break
+                lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
+                boxes.append((lo_corner, hi_corner, node_type))
 
-    return boxes, file_names, offsets
+            # read the file and offset position for the corresponding box
+            file_names = []
+            offsets = []
+            for line in f:
+                if line.startswith("FabOnDisk:"):
+                    clean_line = line.strip().split()
+                    file_names.append(clean_line[1])
+                    offsets.append(int(clean_line[2]))
+
+            all_boxes += boxes
+            all_file_names += file_names
+            all_offsets += offsets
+
+    return all_boxes, all_file_names, all_offsets
+
+
+class WarpXHeader(object):
+    def __init__(self, header_fn):
+        self.data = {}
+        with open(header_fn, "r") as f:
+            self.data["Checkpoint_version"] = int(f.readline().strip().split()[-1])
+            
+            self.data["num_levels"] = int(f.readline().strip().split()[-1])
+            self.data["istep"]      = [int(num) for num in f.readline().strip().split()]
+            self.data["nsubsteps"]  = [int(num) for num in f.readline().strip().split()]
+            
+            self.data["t_new"] = [float(num) for num in f.readline().strip().split()]
+            self.data["t_old"] = [float(num) for num in f.readline().strip().split()]
+            self.data["dt"]    = [float(num) for num in f.readline().strip().split()]
+            
+            self.data["moving_window_x"] = float(f.readline().strip().split()[-1])
+
+            #  not all datasets will have is_synchronized
+            line = f.readline().strip().split()
+            if (len(line) == 1):                
+                self.data["is_synchronized"] = bool(line[-1])
+                self.data["prob_lo"] = [float(num) for num in f.readline().strip().split()]
+            else:
+                self.data["is_synchronized"] = True                
+                self.data["prob_lo"] = [float(num) for num in line]
+                            
+            self.data["prob_hi"] = [float(num) for num in f.readline().strip().split()]
+            
+            for _ in range(self.data["num_levels"]):
+                num_boxes = int(f.readline().strip().split()[0][1:])
+                for __ in range(num_boxes):
+                    f.readline()
+                f.readline()
+                
+            i = 0
+            line = f.readline()
+            while line:
+                line = line.strip().split()
+                self.data["species_%d" % i] = [float(val) for val in line]
+                i = i + 1
+                line = f.readline()
 
 
 class WarpXHierarchy(BoxlibHierarchy):
@@ -1392,34 +1459,22 @@ class WarpXHierarchy(BoxlibHierarchy):
             self._read_particles(ptype, is_checkpoint)
         
         # Additional WarpX particle information (used to set up species)
-        with open(self.ds.output_dir + "/WarpXHeader", 'r') as f:
-
-            # skip to the end, where species info is written out
-            line = f.readline()
-            while line and line != ')\n':
-                line = f.readline()
-            line = f.readline()
-
-            # Read in the species information
-            species_id = 0
-            while line:
-                line = line.strip().split()
-                charge = YTQuantity(float(line[0]), "C")
-                mass = YTQuantity(float(line[1]), "kg")
-                charge_name = 'particle%.1d_charge' % species_id
-                mass_name = 'particle%.1d_mass' % species_id
-                self.parameters[charge_name] = charge
-                self.parameters[mass_name] = mass
-                line = f.readline()
-                species_id += 1
-    
+        self.warpx_header = WarpXHeader(self.ds.output_dir + "/WarpXHeader")
+        
+        for key, val in self.warpx_header.data.items():
+            if key.startswith("species_"):
+                i = int(key.split("_")[-1])
+                charge_name = 'particle%.1d_charge' % i
+                mass_name = 'particle%.1d_mass' % i
+                self.parameters[charge_name] = val[0]
+                self.parameters[mass_name] = val[1]
+                
     def _detect_output_fields(self):
         super(WarpXHierarchy, self)._detect_output_fields()
 
         # now detect the optional, non-cell-centered fields
-        self.raw_file = self.ds.output_dir + "/raw_fields/Level_0/"
-        self.ds.fluid_types += ("raw",)
-        self.raw_fields = _read_raw_field_names(self.raw_file)
+        self.raw_file = self.ds.output_dir + "/raw_fields/"
+        self.raw_fields = _read_raw_field_names(self.raw_file + 'Level_0/')
         self.field_list += [('raw', f) for f in self.raw_fields]
         self.raw_field_map = {}
         self.ds.nodal_flags = {}
@@ -1452,6 +1507,10 @@ class WarpXDataset(BoxlibDataset):
                  storage_filename=None,
                  units_override=None,
                  unit_system="mks"):
+
+        self.default_fluid_type = "mesh"
+        self.default_field = ("mesh", "density")
+        self.fluid_types = ("mesh", "index", "raw")
 
         super(WarpXDataset, self).__init__(output_dir,
                                            cparam_filename,

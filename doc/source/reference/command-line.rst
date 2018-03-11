@@ -98,7 +98,7 @@ Well, that looks pretty bad!  What has happened here is that the center of the
 domain only has some minor shifts in density, so the plot is essentially
 incomprehensible.  Let's try it again, but instead of slicing, let's project.
 This is a line integral through the domain, and for the density field this
-becomes a column density.:
+becomes a column density:
 
 .. code-block:: bash
 
@@ -108,13 +108,20 @@ Now that looks much better!  Note that all three axes' projections appear
 nearly indistinguishable, because of how the two spheres are located in the
 domain.  We could center our domain on one of the spheres and take a slice, as
 well.  Now let's see what the domain looks like with grids overlaid, using the
-``--show-grids`` option.:
+``--show-grids`` option:
 
 .. code-block:: bash
 
   $ yt plot --show-grids -p DD0010/moving7_0010
 
-We can now see all the grids in the field of view.
+We can now see all the grids in the field of view. If you want to
+annotate your plot with a scale bar, you can use the
+``--show-scale-bar`` option:
+
+.. code-block:: bash
+
+  $ yt plot --show-scale-bar -p DD0010/moving7_0010
+
 
 Command-line subcommand summary
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -175,6 +182,20 @@ STDOUT for local use.  See :ref:`pastebin` for more information.
 .. code-block:: bash
 
    yt pastebin_grab 1768
+
+upload
+++++++
+
+Upload a file to a public curldrop instance. Curldrop is a simple web
+application that allows you to upload and download files straight from your
+Terminal with an http client like e.g. curl. It was initially developed by
+`Kevin Kennell <https://github.com/kennell/curldrop>`_ and later forked and
+adjusted for yt’s needs. After a successful upload you will receive a url that
+can be used to share the data with other people.
+
+.. code-block:: bash
+
+   yt upload my_file.tar.gz
 
 plot
 ++++

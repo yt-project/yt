@@ -321,7 +321,7 @@ class YTNoAPIKey(YTException):
         self.config_name = config_name
 
     def __str__(self):
-        return "You need to set an API key for %s in ~/.yt/config as %s" % (
+        return "You need to set an API key for %s in ~/.config/yt/ytrc as %s" % (
             self.service, self.config_name)
 
 class YTTooManyVertices(YTException):
@@ -392,6 +392,17 @@ class YTIllDefinedFilter(YTException):
         return "Filter '%s' ill-defined.  Applied to shape %s but is shape %s." % (
             self.filter, self.s1, self.s2)
 
+class YTIllDefinedParticleFilter(YTException):
+    def __init__(self, filter, missing):
+        self.filter = filter
+        self.missing = missing
+
+    def __str__(self):
+        msg = ("\nThe fields\n\t{},\nrequired by the \"{}\" particle filter, "
+               "are not defined for this dataset.")
+        f = self.filter
+        return msg.format("\n".join([str(m) for m in self.missing]), f.name)
+
 class YTIllDefinedBounds(YTException):
     def __init__(self, lb, ub):
         self.lb = lb
@@ -412,6 +423,19 @@ class YTObjectNotImplemented(YTException):
         v  = r"The object type '%s' is not implemented for the dataset "
         v += r"'%s'."
         return v % (self.obj_name, self.ds)
+
+class YTParticleOutputFormatNotImplemented(YTException):
+    def __str__(self):
+        return "The particle output format is not supported."
+
+class YTFileNotParseable(YTException):
+    def __init__(self, fname, line):
+        self.fname = fname
+        self.line = line
+
+    def __str__(self):
+        v = r"Error while parsing file %s at line %s"
+        return v % (self.fname, self.line)
 
 class YTRockstarMultiMassNotSupported(YTException):
     def __init__(self, mi, ma, ptype):
@@ -660,4 +684,55 @@ class YTIllDefinedAMR(YTException):
             "Grids on the level {} are not properly aligned with cell edges "
             "on the parent level ({} axis)"
         ).format(self.level, self.axis)
+        return msg
+
+class YTInconsistentGridFieldShape(YTException):
+    def __init__(self, shapes):
+        self.shapes = shapes
+
+    def __str__(self):
+        msg = "Not all grid-based fields have the same shape!\n"
+        for name, shape in self.shapes:
+            msg += "    Field {} has shape {}.\n".format(name, shape)
+        return msg
+
+class YTInconsistentParticleFieldShape(YTException):
+    def __init__(self, ptype, shapes):
+        self.ptype = ptype
+        self.shapes = shapes
+
+    def __str__(self):
+        msg = (
+            "Not all fields with field type '{}' have the same shape!\n"
+        ).format(self.ptype)
+        for name, shape in self.shapes:
+            field = (self.ptype, name)
+            msg += "    Field {} has shape {}.\n".format(field, shape)
+        return msg
+
+class YTInconsistentGridFieldShapeGridDims(YTException):
+    def __init__(self, shapes, grid_dims):
+        self.shapes = shapes
+        self.grid_dims = grid_dims
+
+    def __str__(self):
+        msg = "Not all grid-based fields match the grid dimensions! "
+        msg += "Grid dims are {}, ".format(self.grid_dims)
+        msg += "and the following fields have shapes that do not match them:\n"
+        for name, shape in self.shapes:
+            if shape != self.grid_dims:
+                msg += "    Field {} has shape {}.\n".format(name, shape)
+        return msg
+
+class YTCommandRequiresModule(YTException):
+    def __init__(self, module):
+        self.module = module
+
+    def __str__(self):
+        msg = "This command requires \"%s\" to be installed.\n\n" % self.module
+        msg += "Please install \"%s\" with the package manager " % self.module
+        msg += "appropriate for your python environment, e.g.:\n"
+        msg += "  conda install %s\n" % self.module
+        msg += "or:\n"
+        msg += "  pip install %s\n" % self.module
         return msg

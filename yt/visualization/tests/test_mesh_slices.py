@@ -17,11 +17,13 @@ import shutil
 import numpy as np
 import yt
 from yt.testing import fake_tetrahedral_ds
-from yt.testing import fake_hexahedral_ds
+from yt.testing import fake_hexahedral_ds, small_fake_hexahedral_ds
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
     GenericImageTest
+from yt.utilities.lib.geometry_utils import triangle_plane_intersect
+from yt.utilities.lib.mesh_triangulation import triangulate_indices
 
 
 def setup():
@@ -67,10 +69,6 @@ def test_multi_region():
         yield compare(ds, field, "answers_multi_region_%s_%s" % (field[0], field[1]))
 
 def test_mesh_slices():
-    # This test is temporarily disabled because it is seg faulty,
-    # see #1394
-    return
-    
     # Perform I/O in safe place instead of yt main dir
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
@@ -99,3 +97,24 @@ def test_mesh_slices():
     os.chdir(curdir)
     # clean up
     shutil.rmtree(tmpdir)
+
+def test_perfect_element_intersection():
+    # This test tests mesh line annotation where a z=0 slice
+    # perfectly intersects the top of a hexahedral element with node
+    # z-coordinates containing both -0 and +0. Before
+    # https://github.com/yt-project/yt/pull/1437 this test falsely
+    # yielded three annotation lines, whereas the correct result is four
+    # corresponding to the four edges of the top hex face.
+
+    ds = small_fake_hexahedral_ds()
+    indices = ds.index.meshes[0].connectivity_indices
+    coords = ds.index.meshes[0].connectivity_coords
+    tri_indices = triangulate_indices(indices)
+    tri_coords = coords[tri_indices]
+    lines = triangle_plane_intersect(2, 0, tri_coords)
+    non_zero_lines = 0
+    for i in range(lines.shape[0]):
+        norm = np.linalg.norm(lines[i][0] - lines[i][1])
+        if norm > 1e-8:
+            non_zero_lines += 1
+    np.testing.assert_equal(non_zero_lines, 4)

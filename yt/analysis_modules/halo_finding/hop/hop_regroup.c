@@ -22,7 +22,7 @@ http://www.sns.ias.edu/~eisenste/hop/hop_doc.html */
  
 /* #define MINDENS (-FLT_MAX/3.0) */
 #define MINDENS (-1.e+30/3.0)
-/* This is the most negative density that can be accomodated.  Note
+/* This is the most negative density that can be accommodated.  Note
 that MINDENS*2.0 is referenced in the code and so must be properly
 represented by the machine.  There's no reason for this to be close to
 the actual minimum of the density. */

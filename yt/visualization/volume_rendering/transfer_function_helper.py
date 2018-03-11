@@ -121,7 +121,7 @@ class TransferFunctionHelper(object):
         """
         if self.bounds is None:
             mylog.info('Calculating data bounds. This may take a while.' +
-                       '  Set the TranferFunctionHelper.bounds to avoid this.')
+                       '  Set the TransferFunctionHelper.bounds to avoid this.')
             self.set_bounds()
 
         if self.log:
@@ -138,7 +138,7 @@ class TransferFunctionHelper(object):
         """Setup a default colormap
 
         Creates a ColorTransferFunction including 10 gaussian layers whose
-        colors smaple the 'spectral' colormap. Also attempts to scale the
+        colors sample the 'spectral' colormap. Also attempts to scale the
         transfer function to produce a natural contrast ratio.
 
         """

@@ -1047,6 +1047,7 @@ class BoxSource(LineSource):
         The right edge coordinates of the box.
     color : array-like of shape (4,), float, optional
         The colors (including alpha) to use for the lines.
+        Default is black with an alpha of 1.0.
 
     Examples
     --------
@@ -1205,7 +1206,10 @@ class CoordinateVectorSource(OpaqueSource):
     Parameters
     ----------
     colors: array-like of shape (3,4), optional
-        The x, y, z RGBA values to use to draw the vectors.
+        The RGBA values to use to draw the x, y, and z vectors. The default is 
+        [[1, 0, 0, alpha], [0, 1, 0, alpha], [0, 0, 1, alpha]]  where ``alpha``
+        is set by the parameter below. If ``colors`` is set then ``alpha`` is 
+        ignored.
     alpha : float, optional
         The opacity of the vectors.
 
@@ -1236,7 +1240,6 @@ class CoordinateVectorSource(OpaqueSource):
             colors[2, 2] = 1.0  # z is blue
             colors[:, 3] = alpha
         self.colors = colors
-        self.color_stride = 2
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
@@ -1317,15 +1320,14 @@ class CoordinateVectorSource(OpaqueSource):
         py = py.astype('int64')
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors.astype('float64'),
-                   self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors.astype('float64'))
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
             zlines(empty, z, px[0, :], py[0, :], dz[0, :],
-                   self.colors.astype('float64'), self.color_stride)
+                   self.colors.astype('float64'))
             zlines(empty, z, px[1, :], py[1, :], dz[1, :],
-                   self.colors.astype('float64'), self.color_stride)
+                   self.colors.astype('float64'))
 
         # Set the new zbuffer
         self.zbuffer = zbuffer

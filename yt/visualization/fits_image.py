@@ -11,6 +11,8 @@ FITSImageData Class
 #-----------------------------------------------------------------------------
 from yt.extern.six import string_types
 import numpy as np
+from distutils.version import LooseVersion
+from yt.fields.derived_field import DerivedField
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGrid
@@ -21,6 +23,23 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 import re
+import sys
+
+class UnitfulHDU(object):
+    def __init__(self, hdu):
+        self.hdu = hdu
+        self.header = self.hdu.header
+        self.name = self.header["BTYPE"]
+        self.units = self.header["BUNIT"]
+        self.shape = self.hdu.shape
+
+    @property
+    def data(self):
+        return YTArray(self.hdu.data, self.units)
+
+    def __repr__(self):
+        im_shape = " x ".join([str(s) for s in self.shape])
+        return "FITSImage: %s (%s, %s)" % (self.name, im_shape, self.units)
 
 class FITSImageData(object):
 
@@ -76,6 +95,9 @@ class FITSImageData(object):
         >>> f_deg.writeto("temp.fits")
         """
 
+        self.fields = []
+        self.field_units = {}
+
         if units is None:
             units = "cm"
         if width is None:
@@ -83,6 +105,27 @@ class FITSImageData(object):
 
         exclude_fields = ['x','y','z','px','py','pz',
                           'pdx','pdy','pdz','weight_field']
+
+        if isinstance(data, _astropy.pyfits.HDUList):
+            self.hdulist = data
+            for hdu in data:
+                self.fields.append(hdu.header["btype"])
+                self.field_units[hdu.header["btype"]] = hdu.header['bunit']
+
+            self.shape = self.hdulist[0].shape
+            self.dimensionality = len(self.shape)
+            wcs_names = [key for key in self.hdulist[0].header 
+                         if "WCSNAME" in key]
+            for name in wcs_names:
+                if name == "WCSNAME":
+                    key = ' '
+                else:
+                    key = name[-1]
+                w = _astropy.pywcs.WCS(header=self.hdulist[0].header,
+                                       key=key, naxis=self.dimensionality)
+                setattr(self, "wcs"+key.strip().lower(), w)
+
+            return
 
         self.hdulist = _astropy.pyfits.HDUList()
 
@@ -95,65 +138,68 @@ class FITSImageData(object):
                 fields = list(img_data.keys())
         elif isinstance(data, np.ndarray):
             if fields is None:
-                mylog.warning("No field name given for this array. Calling it 'image_data'.")
+                mylog.warning("No field name given for this array. "
+                              "Calling it 'image_data'.")
                 fn = 'image_data'
                 fields = [fn]
             else:
                 fn = fields[0]
             img_data = {fn: data}
 
-        self.fields = []
         for fd in fields:
             if isinstance(fd, tuple):
                 self.fields.append(fd[1])
+            elif isinstance(fd, DerivedField):
+                self.fields.append(fd.name[1])
             else:
                 self.fields.append(fd)
 
         first = True
-        self.field_units = {}
-        for key in fields:
-            if key not in exclude_fields:
-                if hasattr(img_data[key], "units"):
-                    self.field_units[key] = img_data[key].units
+        for name, field in zip(self.fields, fields):
+            if name not in exclude_fields:
+                if hasattr(img_data[field], "units"):
+                    self.field_units[name] = str(img_data[field].units)
                 else:
-                    self.field_units[key] = "dimensionless"
-                mylog.info("Making a FITS image of field %s" % key)
+                    self.field_units[name] = "dimensionless"
+                mylog.info("Making a FITS image of field %s" % name)
                 if first:
-                    hdu = _astropy.pyfits.PrimaryHDU(np.array(img_data[key]))
+                    hdu = _astropy.pyfits.PrimaryHDU(np.array(img_data[field]))
                     first = False
                 else:
-                    hdu = _astropy.pyfits.ImageHDU(np.array(img_data[key]))
-                hdu.name = key
-                hdu.header["btype"] = key
-                if hasattr(img_data[key], "units"):
-                    hdu.header["bunit"] = re.sub('()', '', str(img_data[key].units))
+                    hdu = _astropy.pyfits.ImageHDU(np.array(img_data[field]))
+                hdu.name = name
+                hdu.header["btype"] = name
+                hdu.header["bunit"] = re.sub('()', '', self.field_units[name])
                 self.hdulist.append(hdu)
 
         self.shape = self.hdulist[0].shape
         self.dimensionality = len(self.shape)
 
         if wcs is None:
-            w = _astropy.pywcs.WCS(header=self.hdulist[0].header, naxis=self.dimensionality)
+            w = _astropy.pywcs.WCS(header=self.hdulist[0].header,
+                                   naxis=self.dimensionality)
             if isinstance(img_data, FixedResolutionBuffer):
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
                 # construct the WCS object
-                dx = (img_data.bounds[1]-img_data.bounds[0]).in_units(units).v/self.shape[0]
-                dy = (img_data.bounds[3]-img_data.bounds[2]).in_units(units).v/self.shape[1]
-                xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).in_units(units).v
-                yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units).v
+                dx = (img_data.bounds[1]-img_data.bounds[0]).to(units).v
+                dy = (img_data.bounds[3]-img_data.bounds[2]).to(units).v
+                dx /= self.shape[0]
+                dy /= self.shape[1]
+                xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).to(units).v
+                yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).to(units).v
                 center = [xctr, yctr]
-                cdelt = [dx,dy]
+                cdelt = [dx, dy]
             elif isinstance(img_data, YTCoveringGrid):
-                cdelt = img_data.dds.in_units(units).v
-                center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units).v
+                cdelt = img_data.dds.to(units).v
+                center = 0.5*(img_data.left_edge+img_data.right_edge).to(units).v
             else:
-                # If img_data is just an array, we assume the center is the origin
-                # and use the image width to determine the cell widths
+                # If img_data is just an array, we assume the center is the 
+                # origin and use the image width to determine the cell widths
                 if not iterable(width):
                     width = [width]*self.dimensionality
                 if isinstance(width[0], YTQuantity):
-                    cdelt = [wh.in_units(units).v/n for wh, n in zip(width, self.shape)]
+                    cdelt = [wh.to(units).v/n for wh, n in zip(width, self.shape)]
                 else:
                     cdelt = [float(wh)/n for wh, n in zip(width, self.shape)]
                 center = [0.0]*self.dimensionality
@@ -203,7 +249,7 @@ class FITSImageData(object):
             self.hdulist[idx].header[key] = value
 
     def update_all_headers(self, key, value):
-        mylog.warning("update_all_headers is deprecated. "+
+        mylog.warning("update_all_headers is deprecated. "
                       "Use update_header('all', key, value) instead.")
         self.update_header("all", key, value)
 
@@ -214,16 +260,61 @@ class FITSImageData(object):
         return key in self.fields
 
     def values(self):
-        return [self.hdulist[k] for k in self.fields]
+        return [self[k] for k in self.fields]
 
     def items(self):
-        return [(k, self.hdulist[k]) for k in self.fields]
+        return [(k, self[k]) for k in self.fields]
 
     def __getitem__(self, item):
-        return self.hdulist[item]
+        return UnitfulHDU(self.hdulist[item])
 
-    def info(self):
-        return self.hdulist.info()
+    def __repr__(self):
+        return str([self[k] for k in self.keys()])
+
+    def info(self, output=None):
+        """
+        Summarize the info of the HDUs in this `FITSImageData`
+        instance.
+
+        Note that this function prints its results to the console---it
+        does not return a value.
+
+        Parameters
+        ----------
+        output : file, boolean, optional
+            A file-like object to write the output to.  If `False`, does not
+            output to a file and instead returns a list of tuples representing
+            the FITSImageData info.  Writes to ``sys.stdout`` by default.
+        """
+        hinfo = self.hdulist.info(output=False)
+        num_cols = len(hinfo[0])
+        if output is None:
+            output = sys.stdout
+        if num_cols == 8:
+            header = 'No.    Name      Ver    Type      Cards   Dimensions   Format     Units'
+            format = '{:3d}  {:10}  {:3} {:11}  {:5d}   {}   {}   {}'
+        else:
+            header = 'No.    Name         Type      Cards   Dimensions   Format     Units'
+            format = '{:3d}  {:10}  {:11}  {:5d}   {}   {}   {}'
+        if self.hdulist._file is None:
+            name = '(No file associated with this FITSImageData)'
+        else:
+            name = self.hdulist._file.name
+        results = ['Filename: {}'.format(name), header]
+        for line in hinfo:
+            units = self.field_units[self.hdulist[line[0]].header['btype']]
+            summary = tuple(list(line[:-1]) + [units])
+            if output:
+                results.append(format.format(*summary))
+            else:
+                results.append(summary)
+
+        if output:
+            output.write('\n'.join(results))
+            output.write('\n')
+            output.flush()
+        else:
+            return results[2:]
 
     @parallel_root_only
     def writeto(self, fileobj, fields=None, clobber=False, **kwargs):
@@ -249,7 +340,10 @@ class FITSImageData(object):
             hdus = _astropy.pyfits.HDUList()
             for field in fields:
                 hdus.append(self.hdulist[field])
-        hdus.writeto(fileobj, clobber=clobber, **kwargs)
+        if LooseVersion(_astropy.__version__) < LooseVersion('2.0.0'):
+            hdus.writeto(fileobj, clobber=clobber, **kwargs)
+        else:
+            hdus.writeto(fileobj, overwrite=clobber, **kwargs)
 
     def to_glue(self, label="yt", data_collection=None):
         """
@@ -276,8 +370,8 @@ class FITSImageData(object):
     def to_aplpy(self, **kwargs):
         """
         Use APLpy (http://aplpy.github.io) for plotting. Returns an
-        `aplpy.FITSFigure` instance. All keyword arguments are passed to the
-        `aplpy.FITSFigure` constructor.
+        `aplpy.FITSFigure` instance. All keyword arguments are passed 
+        to the `aplpy.FITSFigure` constructor.
         """
         import aplpy
         return aplpy.FITSFigure(self.hdulist, **kwargs)
@@ -285,9 +379,9 @@ class FITSImageData(object):
     def get_data(self, field):
         """
         Return the data array of the image corresponding to *field*
-        with units attached.
+        with units attached. Deprecated.
         """
-        return YTArray(self.hdulist[field].data, self.field_units[field])
+        return self[field].data
 
     def set_unit(self, field, units):
         """
@@ -296,7 +390,8 @@ class FITSImageData(object):
         if field not in self.keys():
             raise KeyError("%s not an image!" % field)
         idx = self.fields.index(field)
-        new_data = YTArray(self.hdulist[idx].data, self.field_units[field]).in_units(units)
+        new_data = YTArray(self.hdulist[idx].data, 
+                           self.field_units[field]).to(units)
         self.hdulist[idx].data = new_data.v
         self.hdulist[idx].header["bunit"] = units
         self.field_units[field] = units
@@ -311,10 +406,13 @@ class FITSImageData(object):
             raise KeyError("%s not an image!" % key)
         idx = self.fields.index(key)
         im = self.hdulist.pop(idx)
-        data = YTArray(im.data, self.field_units[key])
         self.field_units.pop(key)
         self.fields.remove(key)
-        return FITSImageData(data, fields=key, wcs=self.wcs)
+        data = _astropy.pyfits.HDUList([im])
+        return FITSImageData(data)
+
+    def close(self):
+        self.hdulist.close()
 
     @classmethod
     def from_file(cls, filename):
@@ -327,12 +425,8 @@ class FITSImageData(object):
         filename : string
             The name of the file to open.
         """
-        f = _astropy.pyfits.open(filename)
-        data = {}
-        for hdu in f:
-            data[hdu.header["btype"]] = YTArray(hdu.data, hdu.header["bunit"])
-        f.close()
-        return cls(data, wcs=_astropy.pywcs.WCS(header=hdu.header))
+        f = _astropy.pyfits.open(filename, lazy_load_hdus=False)
+        return cls(f)
 
     @classmethod
     def from_images(cls, image_list):
@@ -347,14 +441,20 @@ class FITSImageData(object):
         """
         w = image_list[0].wcs
         img_shape = image_list[0].shape
-        data = {}
-        for image in image_list:
-            assert_same_wcs(w, image.wcs)
-            if img_shape != image.shape:
+        data = []
+        first = True
+        for fid in image_list:
+            assert_same_wcs(w, fid.wcs)
+            if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
-            for key in image.keys():
-                data[key] = image.get_data(key)
-        return cls(data, wcs=w)
+            for hdu in fid.hdulist:
+                if first:
+                    data.append(hdu)
+                    first = False
+                else:
+                    data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
+        data = _astropy.pyfits.HDUList(data)
+        return cls(data)
 
     def create_sky_wcs(self, sky_center, sky_scale,
                        ctype=["RA---TAN","DEC--TAN"],
@@ -394,7 +494,8 @@ class FITSImageData(object):
         else:
             scaleq = YTQuantity(sky_scale[0],sky_scale[1])
         if scaleq.units.dimensions != dimensions.angle/dimensions.length:
-            raise RuntimeError("sky_scale %s not in correct dimensions of angle/length!" % sky_scale)
+            raise RuntimeError("sky_scale %s not in correct " % sky_scale +
+                               "dimensions of angle/length!")
         deltas = old_wcs.wcs.cdelt
         units = [str(unit) for unit in old_wcs.wcs.cunit]
         new_dx = (YTQuantity(-deltas[0], units[0])*scaleq).in_units("deg")
@@ -458,33 +559,26 @@ def construct_image(ds, axis, data_source, center, width=None, image_res=None):
         else:
             nx, ny = image_res, image_res
     dx = width[0]/nx
+    dy = width[1]/ny
     crpix = [0.5*(nx+1), 0.5*(ny+1)]
-    if hasattr(ds, "wcs") and not iterable(axis):
-        # This is a FITS dataset, so we use it to construct the WCS
-        cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
-        ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
-        cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
-        ctr_pix = center.in_units("code_length")[:ds.dimensionality].v
-        crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1, ds.dimensionality))[0]
-        crval = [crval[idx] for idx in axis_wcs[axis]]
+    if unit == "unitary":
+        unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
+    elif unit == "code_length":
+        unit = ds.get_smallest_appropriate_unit(ds.quan(1.0, "code_length"))
+    unit = sanitize_fits_unit(unit)
+    cunit = [unit]*2
+    ctype = ["LINEAR"]*2
+    cdelt = [dx.in_units(unit), dy.in_units(unit)]
+    if iterable(axis):
+        crval = center.in_units(unit)
     else:
-        if unit == "unitary":
-            unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
-        elif unit == "code_length":
-            unit = ds.get_smallest_appropriate_unit(ds.quan(1.0,"code_length"))
-        unit = sanitize_fits_unit(unit)
-        cunit = [unit]*2
-        ctype = ["LINEAR"]*2
-        cdelt = [dx.in_units(unit)]*2
-        if iterable(axis):
-            crval = center.in_units(unit)
-        else:
-            crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
+        crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
     if hasattr(data_source, 'to_frb'):
         if iterable(axis):
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
         else:
-            frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
+            frb = data_source.to_frb(width[0], (nx, ny), center=center,
+                                     height=width[1])
     else:
         frb = None
     w = _astropy.pywcs.WCS(naxis=2)
@@ -537,14 +631,14 @@ class FITSSlice(FITSImageData):
         The fields to slice
     center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
+         left blank, the plot is centered on the middle of the domain. If set 
+         to 'max' or 'm', the center will be located at the maximum of the
          ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+         field is supported by providing a tuple such as ("min","temperature")
+         or ("max","dark_matter_density"). Units can be specified by passing in
+         *center* as a tuple containing a coordinate and string unit name or by
+         passing in a YTArray. If a list or unitless array is supplied, code 
+         units are assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -566,15 +660,17 @@ class FITSSlice(FITSImageData):
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
     image_res : an int or 2-tuple of ints
-        Specify the resolution of the resulting image. If not provided, it will be
-        determined based on the minimum cell size of the dataset.
+        Specify the resolution of the resulting image. If not provided, it will
+        be determined based on the minimum cell size of the dataset.
     """
-    def __init__(self, ds, axis, fields, center="c", width=None, image_res=None, **kwargs):
+    def __init__(self, ds, axis, fields, center="c", width=None, 
+                 image_res=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
-        w, frb = construct_image(ds, axis, slc, dcenter, width=width, image_res=image_res)
+        w, frb = construct_image(ds, axis, slc, dcenter, width=width, 
+                                 image_res=image_res)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
 
 
@@ -594,14 +690,14 @@ class FITSProjection(FITSImageData):
         The field used to weight the projection.
     center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
+         left blank, the plot is centered on the middle of the domain. If set 
+         to 'max' or 'm', the center will be located at the maximum of the
          ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+         field is supported by providing a tuple such as ("min","temperature") 
+         or ("max","dark_matter_density"). Units can be specified by passing in
+         *center* as a tuple containing a coordinate and string unit name or by
+         passing in a YTArray. If a list or unitless array is supplied, code 
+         units are assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -623,8 +719,8 @@ class FITSProjection(FITSImageData):
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
     image_res : an int or 2-tuple of ints
-        Specify the resolution of the resulting image. If not provided, it will be
-        determined based on the minimum cell size of the dataset.
+        Specify the resolution of the resulting image. If not provided, it will
+        be determined based on the minimum cell size of the dataset.
     """
     def __init__(self, ds, axis, fields, center="c", width=None,
                  weight_field=None, image_res=None, **kwargs):
@@ -632,7 +728,8 @@ class FITSProjection(FITSImageData):
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
-        w, frb = construct_image(ds, axis, prj, dcenter, width=width, image_res=image_res)
+        w, frb = construct_image(ds, axis, prj, dcenter, width=width, 
+                                 image_res=image_res)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
 
 class FITSOffAxisSlice(FITSImageData):
@@ -652,11 +749,11 @@ class FITSOffAxisSlice(FITSImageData):
         left blank, the plot is centered on the middle of the domain. If set to
         'max' or 'm', the center will be located at the maximum of the
         ('gas', 'density') field. Centering on the max or min of a specific
-        field is supported by providing a tuple such as ("min","temperature") or
-        ("max","dark_matter_density"). Units can be specified by passing in *center*
-        as a tuple containing a coordinate and string unit name or by passing
-        in a YTArray. If a list or unitless array is supplied, code units are
-        assumed.
+        field is supported by providing a tuple such as ("min","temperature") 
+        or ("max","dark_matter_density"). Units can be specified by passing in 
+        *center* as a tuple containing a coordinate and string unit name or by 
+        passing in a YTArray. If a list or unitless array is supplied, code 
+        units are assumed.
     width : tuple or a float.
         Width can have four different formats to support windows with variable
         x and y widths.  They are:
@@ -684,13 +781,14 @@ class FITSOffAxisSlice(FITSImageData):
         option sets the orientation of the slicing plane.  If not
         set, an arbitrary grid-aligned north-vector is chosen.
     """
-    def __init__(self, ds, normal, fields, center='c', width=None, image_res=512,
-                 north_vector=None):
+    def __init__(self, ds, normal, fields, center='c', width=None,
+                 image_res=512, north_vector=None):
         fields = ensure_list(fields)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         cut = ds.cutting(normal, center, north_vector=north_vector)
         center = ds.arr([0.0] * 2, 'code_length')
-        w, frb = construct_image(ds, normal, cut, center, width=width, image_res=image_res)
+        w, frb = construct_image(ds, normal, cut, center, width=width,
+                                 image_res=image_res)
         super(FITSOffAxisSlice, self).__init__(frb, fields=fields, wcs=w)
 
 
@@ -709,14 +807,14 @@ class FITSOffAxisProjection(FITSImageData):
         The name of the field(s) to be plotted.
     center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set to
-         'max' or 'm', the center will be located at the maximum of the
+         left blank, the plot is centered on the middle of the domain. If set 
+         to 'max' or 'm', the center will be located at the maximum of the
          ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") or
-         ("max","dark_matter_density"). Units can be specified by passing in *center*
-         as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+         field is supported by providing a tuple such as ("min","temperature") 
+         or ("max","dark_matter_density"). Units can be specified by passing in
+         *center* as a tuple containing a coordinate and string unit name or by
+         passing in a YTArray. If a list or unitless array is supplied, code 
+         units are assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -745,9 +843,6 @@ class FITSOffAxisProjection(FITSImageData):
          The name of the weighting field.  Set to None for no weight.
     image_res : an int or 2-tuple of ints
         Specify the resolution of the resulting image. 
-    depth_res : integer
-        Deprecated, this is still in the function signature for API
-        compatibility
     north_vector : a sequence of floats
         A vector defining the 'up' direction in the plot.  This
         option sets the orientation of the slicing plane.  If not
@@ -767,11 +862,12 @@ class FITSOffAxisProjection(FITSImageData):
         This should only be used for uniform resolution grid datasets, as other
         datasets may result in unphysical images.
     data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
-        If specified, this will be the data source used for selecting regions to project.
+        If specified, this will be the data source used for selecting regions 
+        to project.
     """
     def __init__(self, ds, normal, fields, center='c', width=(1.0, 'unitary'),
-                 weight_field=None, image_res=512, depth_res=256, data_source=None,
-                 north_vector=None, depth=(1.0,"unitary"), no_ghost=False, method='integrate'):
+                 weight_field=None, image_res=512, data_source=None,
+                 north_vector=None, depth=(1.0, "unitary"), method='integrate'):
         fields = ensure_list(fields)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         buf = {}
@@ -785,9 +881,9 @@ class FITSOffAxisProjection(FITSImageData):
         else:
             source = data_source
         for field in fields:
-            buf[field] = off_axis_projection(source, center, normal, wd, res, field,
-                                             no_ghost=no_ghost, north_vector=north_vector,
-                                             method=method, weight=weight_field).swapaxes(0, 1)
+            buf[field] = off_axis_projection(source, center, normal, wd,
+                                             res, field, north_vector=north_vector,
+                                             method=method, weight=weight_field).swapaxes(0,1)
         center = ds.arr([0.0] * 2, 'code_length')
         w, not_an_frb = construct_image(ds, normal, buf, center, width=width, image_res=image_res)
         super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w)

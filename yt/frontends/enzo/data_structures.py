@@ -30,7 +30,6 @@ from yt.funcs import \
     ensure_tuple, \
     get_pbar, \
     setdefaultattr
-from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -65,28 +64,6 @@ class EnzoGrid(AMRGridPatch):
         self._children_ids = []
         self._parent_id = -1
         self.Level = -1
-
-    def _guess_properties_from_parent(self):
-        """
-        We know that our grid boundary occurs on the cell boundary of our
-        parent.  This can be a very expensive process, but it is necessary
-        in some indexs, where yt is unable to generate a completely
-        space-filling tiling of grids, possibly due to the finite accuracy in a
-        standard Enzo index file.
-        """
-        rf = self.ds.refine_by
-        my_ind = self.id - self._id_offset
-        self.dds = self.Parent.dds/rf
-        ParentLeftIndex = np.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
-        self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
-        self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
-        self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dds
-        self.index.grid_left_edge[my_ind,:] = self.LeftEdge
-        self.index.grid_right_edge[my_ind,:] = self.RightEdge
-        self._child_mask = None
-        self._child_index_mask = None
-        self._child_indices = None
-        self._setup_dx()
 
     def set_filename(self, filename):
         """
@@ -380,13 +357,10 @@ class EnzoHierarchy(GridIndex):
         mylog.info("Finished rebuilding")
 
     def _populate_grid_objects(self):
-        reconstruct = ytcfg.getboolean("yt","reconstruct_index")
         for g,f in izip(self.grids, self.filenames):
             g._prepare_grid()
             g._setup_dx()
             g.set_filename(f[0])
-            if reconstruct:
-                if g.Parent is not None: g._guess_properties_from_parent()
         del self.filenames # No longer needed.
         self.max_level = self.grid_levels.max()
 
@@ -410,6 +384,9 @@ class EnzoHierarchy(GridIndex):
                 if ptype not in _fields: continue
                 for field in (str(f) for f in node[ptype]):
                     _fields[ptype].append(field)
+                    sh = node[ptype][field].shape
+                    if len(sh) > 1:
+                        self.io._array_fields[field] = (sh[1], )
                 fields += [(ptype, field) for field in _fields.pop(ptype)]
             handle.close()
         return set(fields)
@@ -694,7 +671,7 @@ class EnzoDataset(Dataset):
         to the index to pre-determine the style of data-output.  However,
         it is not strictly necessary.  Optionally you may specify a
         *parameter_override* dictionary that will override anything in the
-        paarmeter file and a *conversion_override* dictionary that consists
+        parameter file and a *conversion_override* dictionary that consists
         of {fieldname : conversion_to_cgs} that will override the #DataCGS.
         """
         self.fluid_types += ("enzo",)
@@ -807,7 +784,7 @@ class EnzoDataset(Dataset):
 
     def _parse_enzo2_parameter_file(self, f):
         for line in (l.strip() for l in f):
-            if len(line) < 2: continue
+            if (len(line) < 2) or ("=" not in line): continue
             param, vals = (i.strip() for i in line.split("=",1))
             # First we try to decipher what type of value it is.
             vals = vals.split()
