@@ -69,9 +69,5 @@ def test_OWLS_particlefilter(os33):
     ds.add_particle_filter('gas_cold')
 
     mask = (ad['PartType0','Temperature'] <= 1e5)
-    try:
-        if len(ad['PartType0','Temperature'][mask]) != len(ad['gas_cold','Temperature']):
-            raise NameError('Error in particle selection.')
-    except:
-        raise NameError('Error in setting particle filter.')
+    assert ad['PartType0','Temperature'][mask].shape == ad['gas_cold','Temperature'].shape
 
