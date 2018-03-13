@@ -37,12 +37,10 @@ from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelDummy, \
     ParallelAnalysisInterface, \
     parallel_blocking_call
 
 
-@add_metaclass(ParallelDummy)
 class Halo(object):
     """
     A data source that returns particle information about the members of a
@@ -1534,7 +1532,6 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         HOPHaloList.__init__(self, self._data_source,
             threshold * total_mass / sub_mass, dm_only, ptype=self.ptype)
         self._parse_halolist(total_mass / sub_mass)
-        self._join_halolists()
 
 
 class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
@@ -1643,7 +1640,6 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         FOFHaloList.__init__(self, self._data_source, linking_length, dm_only,
                              redshift=self.redshift, ptype=self.ptype)
         self._parse_halolist(1.)
-        self._join_halolists()
 
 HaloFinder = HOPHaloFinder
 
