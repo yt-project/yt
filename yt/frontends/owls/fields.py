@@ -106,8 +106,6 @@ class OWLSFieldInfo(SPHFieldInfo):
             ftype='star'
         elif ptype == 'PartType5':
             ftype='BH'
-        elif ptype == 'all':
-            ftype='all'
         else:
             # to avoid errors while creating particle filters
             ftype=ptype
