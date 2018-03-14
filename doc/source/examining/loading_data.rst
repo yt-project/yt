@@ -700,9 +700,9 @@ upon being loaded into yt it is automatically decomposed into grids:
 
    level  # grids         # cells     # cells^3
    ----------------------------------------------
-     0	     512	  981940800       994
+     0       512          981940800       994
    ----------------------------------------------
-             512	  981940800
+             512          981940800
 
 yt will generate its own domain decomposition, but the number of grids can be
 set manually by passing the ``nprocs`` parameter to the ``load`` call:
@@ -786,9 +786,9 @@ upon being loaded into yt it is automatically decomposed into grids:
 
    level  # grids         # cells     # cells^3
    ----------------------------------------------
-     0	     512	  981940800       994
+     0       512          981940800       994
    ----------------------------------------------
-             512	  981940800
+             512          981940800
 
 For 3D spectral-cube data, the decomposition into grids will be done along the
 spectral axis since this will speed up many common operations for this
@@ -1403,8 +1403,8 @@ three-dimensional grid fields:
 
    data = dict(Density = dens,
                particle_position_x = posx_arr,
-	           particle_position_y = posy_arr,
-	           particle_position_z = posz_arr)
+                   particle_position_y = posy_arr,
+                   particle_position_z = posz_arr)
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
    ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
@@ -1457,8 +1457,8 @@ the hexahedral cells, and thus should have the shape,
 .. code-block:: python
 
    bbox = numpy.array([[numpy.min(xgrid),numpy.max(xgrid)],
-	               [numpy.min(ygrid),numpy.max(ygrid)],
-	               [numpy.min(zgrid),numpy.max(zgrid)]])
+                       [numpy.min(ygrid),numpy.max(ygrid)],
+                       [numpy.min(zgrid),numpy.max(zgrid)]])
    data = {"density" : arr}
    ds = yt.load_hexahedral_mesh(data,conn,coords,1.0,bbox=bbox)
 
@@ -2035,8 +2035,8 @@ It is possible to provide extra arguments to the load function when loading RAMS
           fields = ["Density",
                     "x-velocity", "y-velocity", "z-velocity",
                     "Pressure", "my-awesome-field"]
-	  ds = yt.load('output_00123/info_00123.txt', fields=fields)
-	  'my-awesome-field' in ds.field_list  # is True
+          ds = yt.load('output_00123/info_00123.txt', fields=fields)
+          'my-awesome-field' in ds.field_list  # is True
 
 
 ``extra_particle_fields``
@@ -2073,20 +2073,20 @@ It is possible to provide extra arguments to the load function when loading RAMS
       .. code-block:: python
 
           import yt
-	  # Only load a small cube of size (0.1)**3
-	  bbox = [[0., 0., 0.], [0.1, 0.1, 0.1]]
-	  ds = yt.load('output_00001/info_00001.txt', bbox=bbox)
+          # Only load a small cube of size (0.1)**3
+          bbox = [[0., 0., 0.], [0.1, 0.1, 0.1]]
+          ds = yt.load('output_00001/info_00001.txt', bbox=bbox)
 
-	  # See the note below for the following examples
-	  ds.right_edge == [1, 1, 1]             # is True
+          # See the note below for the following examples
+          ds.right_edge == [1, 1, 1]             # is True
 
-	  ad = ds.all_data()
-	  ad['particle_position_x'].max() > 0.1  # _may_ be True
+          ad = ds.all_data()
+          ad['particle_position_x'].max() > 0.1  # _may_ be True
 
-	  bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
-	  bb['particle_position_x'].max() < 0.1  # is True
+          bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
+          bb['particle_position_x'].max() < 0.1  # is True
       .. note::
-	 When using the bbox argument, yt will read all the CPUs
+         When using the bbox argument, yt will read all the CPUs
          intersecting with the subbox. However it may also read some
          data *outside* the selected region. This is due to the fact
          that domains have a complicated shape when using Hilbert
@@ -2095,8 +2095,8 @@ It is possible to provide extra arguments to the load function when loading RAMS
          the selected region, you may want to use ``ds.box(…)``.
 
       .. note::
-	 The ``bbox`` feature is only available for datasets using
-	 Hilbert ordering.
+         The ``bbox`` feature is only available for datasets using
+         Hilbert ordering.
 
 Adding custom particle fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
