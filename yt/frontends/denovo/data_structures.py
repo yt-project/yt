@@ -103,22 +103,30 @@ class DenovoDataset(Dataset):
                  units_override=None):
 
         self.fluid_types += ('denovo',)
-        Dataset.__init__(self, filename, dataset_type,
+        self._handle = HDF5FileHandler(filename)
+        self.dataset_type = dataset_type
+
+        self.geometry = 'cartesian'
+
+        super(DenovoDataset, self).__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
+        self.cosmological_simulation = False
+
+        self.parameters["HydroMethod"] = 'denovo'
+        self.parameters
         # refinement factor between a grid and its subgrid
         # self.refine_by = 2
 
     def _set_code_unit_attributes(self):
-        # This is where quantities are created that represent the various
-        # on-disk units.  These are the currently available quantities which
-        # should be set, along with examples of how to set them to standard
-        # values.
         #
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
-        # self.time_unit = self.quan(1.0, "s")
+        # For now set the length mass and time units to what we expect.
+        # Denovo does not currently output what units the flux is in.
+        #
+        #
+        setdefaultattr(self, 'length_unit', self.quan(length_unit, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(length_unit, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(length_unit, "s"))
         #
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
@@ -126,32 +134,47 @@ class DenovoDataset(Dataset):
         pass
 
     def _parse_parameter_file(self):
-        # This needs to set up the following items.  Note that these are all
-        # assumed to be in code units; domain_left_edge and domain_right_edge
-        # will be converted to YTArray automatically at a later time.
         #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
-        #   self.parameters             <= full of code-specific items of use
-        #   self.domain_left_edge       <= array of float64
-        #   self.domain_right_edge      <= array of float64
-        #   self.dimensionality         <= int
-        #   self.domain_dimensions      <= array of int64
-        #   self.periodicity            <= three-element tuple of booleans
-        #   self.current_time           <= simulation time in code units
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        self.parameters             <= full of code-specific items of use
+        self.domain_left_edge       <= array of float64
+        self.domain_right_edge      <= array of float64
+        self.dimensionality         <= int
+        self.domain_dimensions      <= array of int64
+
+        # We know that Denovo datasets are never periodic, so periodicity will
+        # be set to false.
+        self.periodicity = (False, False, False)
+
+        # There is no time-dependence in the denovo solutions at this time, so
+        # this will be set to 0.0
+        self.current_time = 0.0
         #
-        # We also set up cosmological information.  Set these to zero if
-        # non-cosmological.
+        # The next few paramaters are set to 0 because Denovo is a
+        # non-cosmological simulation tool.
         #
-        #   self.cosmological_simulation    <= int, 0 or 1
-        #   self.current_redshift           <= float
-        #   self.omega_lambda               <= float
-        #   self.omega_matter               <= float
-        #   self.hubble_constant            <= float
+        self.cosmological_simulation = 0
+        self.current_redshift = 0
+        self.omega_lambda = 0
+        self.omega_matter = 0
+        self.hubble_constant = 0
         pass
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        # This accepts a filename or a set of arguments and returns True or
-        # False depending on if the file is of the type requested.
+
+        warn_h5py(args[0])
+
+        try:
+            fileh = h5py.File(args[0], 'r')
+
+            # for now check that denovo is in the solution file. This will need
+            # to be updated for fwd/adjoint runs in the future with multiple
+            # arguments for a valid dataset.
+            valid = "denovo" in fileh["/"]
+            fileh.close()
+            return valid
+        except:
+            pass
         return False

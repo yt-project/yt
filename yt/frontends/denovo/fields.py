@@ -49,12 +49,18 @@ class DenovoFieldInfo(FieldInfoContainer):
         # You can use self.alias, self.add_output_field (for on-disk fields)
         # and self.add_field (for derived fields).
         params = self.ds.parameters
-        self.setup_energy_field()
-        setup_magnetic_field_al
+        self.setup_flux_field()
         pass
 
-    def setup_flux_fields(self):
+    def setup_flux_field(self):
+        # Right now I feel that it would be more intuitive to a new user to
+        # have flux fields loaded in a descriptive field, however, I might
+        # change this if we load in materials information, or ww information,
+        # which probably shouldn't be added to this function.
         unit_system = self.ds.unit_system
+        params = self.ds.parameters
+
+        super(DenovoFieldInfo, self).setup_flux_fields(fluxtype)
 
     def setup_particle_fields(self, ptype):
         # Becuase there are no particle types in Denovo, this is empty for now.
