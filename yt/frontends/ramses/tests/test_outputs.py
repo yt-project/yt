@@ -244,7 +244,7 @@ def test_ramses_part_count():
     assert_equal(pcount['sink'], 8, err_msg='Got wrong number of sink particle')
 
 @requires_file(ramsesCosmo)
-def test_custom_def():
+def test_custom_particle_def():
     ytcfg.add_section('ramses-particles')
     ytcfg['ramses-particles', 'fields'] = '''particle_position_x, d
          particle_position_y, d
@@ -260,8 +260,14 @@ def test_custom_def():
     '''
     ds = yt.load(ramsesCosmo)
 
+    def check_unit(array, unit):
+        assert str(array.in_cgs().units) == unit
+
     try:
         assert ('io', 'particle_birth_time') in ds.derived_field_list
         assert ('io', 'particle_foobar') in ds.derived_field_list
+
+        check_unit(ds.r['io', 'particle_birth_time'], 's')
+        check_unit(ds.r['io', 'particle_foobar'], 'dimensionless')
     finally:
         ytcfg.remove_section('ramses-particles')
