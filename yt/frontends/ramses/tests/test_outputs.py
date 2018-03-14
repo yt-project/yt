@@ -248,15 +248,15 @@ def test_custom_particle_def():
     ytcfg.add_section('ramses-particles')
     ytcfg['ramses-particles', 'fields'] = '''particle_position_x, d
          particle_position_y, d
-	 particle_position_z, d
-	 particle_velocity_x, d
-	 particle_velocity_y, d
-	 particle_velocity_z, d
-	 particle_mass, d
-	 particle_identifier, i
-	 particle_refinement_level, I
-	 particle_birth_time, d
-	 particle_foobar, d
+         particle_position_z, d
+         particle_velocity_x, d
+         particle_velocity_y, d
+         particle_velocity_z, d
+         particle_mass, d
+         particle_identifier, i
+         particle_refinement_level, I
+         particle_birth_time, d
+         particle_foobar, d
     '''
     ds = yt.load(ramsesCosmo)
 
