@@ -2101,15 +2101,68 @@ It is possible to provide extra arguments to the load function when loading RAMS
 
 Adding custom particle fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+It is possible to teach yt which particle fields are located in the
+files using yt configuration. For example to add support by default
+for ``birth_time`` and ``metallicity`` in your particle files, one
+would add
 
-It is possible to add support for particle fields. For this, one
-should tweak
-:func:`~yt.frontends.ramses.io._read_part_file_descriptor` to include
-the field as well as its data type to the assoc list, following the
-convention from
-`python struct module <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
-For example, to add support for a longint field named
-``my_custom_field``, one would add ``('my_custom_field', 'l')`` to ``assoc``.
+.. code-block:: none
+
+   [ramses-particles]
+   fields = particle_position_x, d
+	    particle_position_y, d
+	    particle_position_z, d
+	    particle_velocity_x, d
+	    particle_velocity_y, d
+	    particle_velocity_z, d
+	    particle_mass, d
+	    particle_identifier, i
+	    particle_refinement_level, I
+	    particle_birth_time, d
+	    particle_metallicity, d
+
+where the first element of each line is the name the field will have
+in the dataset and the second item is the kind (``d`` for double
+precision, ``i`` for integer following `python convention
+<https://docs.python.org/3.5/library/struct.html#format-characters>`_). See
+:ref:`configuration` for more information.
+
+
+Adding custom fluid fields
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+It is also possible to teach yt which fluid fields are located in the
+files using yt configuration (see :ref:`configuration`). For example
+to add support by default for ``metallicity`` and
+``refinement_scalar`` for your fluid files, one would add
+
+.. code-block:: none
+
+   [ramses-hydro]
+   fields = Density
+	    x-velocity
+	    y-velocity
+	    z-velocity
+	    Pressure
+	    Metallicity
+	    Refinement-scalar
+
+
+Customizing the particle type association
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In verions of RAMSES more recent than December 2017, particles carry
+along a ``family`` array. The value of this array gives the kind of
+the particle, e.g. 1 for dark matter. It is possible to customize the
+association between particle type and family by customizing the yt
+config (see :ref:`configuration`), adding
+
+.. code-block:: none
+
+   [ramses-families]
+   gas_tracer = 100
+   star_tracer = 101
+   dm = 0
+   star = 1
+
 
 
 .. _loading-sph-data:
