@@ -5,56 +5,18 @@
 <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.2.0/leaflet.js"></script>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/leaflet/1.2.0/leaflet.css" />
 <script type="text/javascript" src="//ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
-<script type="text/javascript">
-  $(document).ready(function() {
-      // initialize the map on the "map" div with a given center and zoom
-    $("#map").width($(window).width());
-    $("#map").height($(window).height());
 
-    $.getJSON('/list', function(data) {
-	var layers = [],
-	    layer_groups = [],
-	    default_layer = [null];
-	var layer_group = {};
+<script type="text/javascript" src="static/Leaflet.Coordinates-0.1.5.src.js"></script>
+<link rel="stylesheet" href="static/Leaflet.Coordinates-0.1.5.css" />
 
-	// Loop over field types
-	for (var type in data['data']) {
-	    var dtype = data['data'][type];
-
-	    // Loop over fields of given type
-	    for (var field in dtype) {
-		var loc = dtype[field]
-		var field = loc[0],
-		    active = loc[1],
-		    url = 'map/' + field[0] + ',' + field[1] + '/{z}/{x}/{y}.png';
-
-		// Create new layer
-		var layer = new L.TileLayer(url, {id: 'MapID', maxzoom: 18});
-
-		// Create readable name
-		human_name = field.join(' ');
-
-		// Store it
-		layers.push(layer);
-		layer_group[human_name] = layer;
-		if (active) {
-		    default_layer[0] = layer;
-		}
-	    }
-	}
-	var map = new L.Map('map', {
-	    center: new L.LatLng(0.0, 0.0),
-	    zoom: 2,
-	    layers: default_layer
-	});
-
-	L.control.layers(layer_group).addTo(map);
-    });
-
-})
-</script>
-</HEAD>
-<BODY>
-  <DIV id="map" style="height: 512px; width: 512px;"></div>
-</BODY>
-</HTML>
+<script type="text/javascript" src="static/map.js"></script>
+<style>
+body {
+    margin: 0;
+}
+</style>
+</head>
+<body>
+  <div id="map" style="height: 500px; width: 500px;"></div>
+</body>
+</html>
