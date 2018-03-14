@@ -3,8 +3,9 @@ import yt.utilities.fortran_utils as fpu
 import glob
 from yt.extern.six import add_metaclass
 from yt.funcs import mylog
-import numpy as np
+from yt.config import ytcfg
 
+import numpy as np
 from .io import _read_fluid_file_descriptor
 
 FIELD_HANDLERS = set()
@@ -44,6 +45,8 @@ class FieldFileHandler(object):
     fname = None  # The name of the file(s)
     attrs = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
+    config_field = None  # Name of the config section (if any)
+
     file_descriptor = None # The name of the file descriptor (if any)
 
     # These properties are computed dynamically
@@ -205,6 +208,8 @@ class HydroFieldFileHandler(FieldFileHandler):
     ftype = 'ramses'
     fname = 'hydro_{iout:05d}.out{icpu:05d}'
     file_descriptor = 'hydro_file_descriptor.txt'
+    config_field = 'ramses-hydro'
+
     attrs = ( ('ncpu', 1, 'i'),
               ('nvar', 1, 'i'),
               ('ndim', 1, 'i'),
@@ -243,17 +248,30 @@ class HydroFieldFileHandler(FieldFileHandler):
         nvar = hvals['nvar']
 
         ok = False
+
+        # Either the fields are given by dataset
         if ds._fields_in_file is not None:
             fields = list(ds._fields_in_file)
             ok = True
         elif os.path.exists(fname_desc):
+            # Or there is an hydro file descriptor
             mylog.debug('Reading hydro file descriptor.')
             # For now, we can only read double precision fields
             fields = [e[0] for e in _read_fluid_file_descriptor(fname_desc)]
 
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
+        elif cls.config_field and ytcfg.has_section(cls.config_field):
+            # Or this is given by the config
+            cfg = ytcfg.get(cls.config_field, 'fields')
+            known_fields = []
+            for field in (_.strip() for _ in cfg.split('\n') if _.strip() != ''):
+                known_fields.append(field.strip())
+            fields = known_fields
 
+            ok = True
+
+        # Else, attempt autodetection
         if not ok:
             foldername  = os.path.abspath(os.path.dirname(ds.parameter_filename))
             rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
@@ -309,6 +327,8 @@ class HydroFieldFileHandler(FieldFileHandler):
 class RTFieldFileHandler(FieldFileHandler):
     ftype = 'ramses-rt'
     fname = 'rt_{iout:05d}.out{icpu:05d}'
+    config_field = 'ramses-rt'
+
     attrs = ( ('ncpu', 1, 'i'),
               ('nvar', 1, 'i'),
               ('ndim', 1, 'i'),
