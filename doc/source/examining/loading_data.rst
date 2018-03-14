@@ -2105,7 +2105,7 @@ There are three way to make yt detect all the particle fields. For example, if y
 
 1. ``yt.load`` method. Whenever loading a dataset, add the extra particle fields as a keyword argument to the ``yt.load`` call.
 
-  .. code-block:: python
+   .. code-block:: python
 
       import yt
       epf = [('particle_birth_time', 'd'), ('particle_metallicity', 'd')]
@@ -2118,36 +2118,36 @@ There are three way to make yt detect all the particle fields. For example, if y
 
    .. code-block:: none
 
-       [ramses-particles]
-       fields = particle_position_x, d
-                particle_position_y, d
-                particle_position_z, d
-                particle_velocity_x, d
-                particle_velocity_y, d
-                particle_velocity_z, d
-                particle_mass, d
-                particle_identifier, i
-                particle_refinement_level, I
-                particle_birth_time, d
-                particle_metallicity, d
+      [ramses-particles]
+      fields = particle_position_x, d
+               particle_position_y, d
+               particle_position_z, d
+               particle_velocity_x, d
+               particle_velocity_y, d
+               particle_velocity_z, d
+               particle_mass, d
+               particle_identifier, i
+               particle_refinement_level, I
+               particle_birth_time, d
+               particle_metallicity, d
 
 3. New RAMSES way. Recent versions of RAMSES automatically write in their output an ``hydro_file_descriptor.txt`` file that gives information about which field is where. If you wish, you can simply create such a file in the folder containing the ``info_xxxxx.txt`` file
 
-    .. code-block:: none
+   .. code-block:: none
 
-        # version:  1
-        # ivar, variable_name, variable_type
-         1, position_x, d
-         2, position_y, d
-         3, position_z, d
-         4, velocity_x, d
-         5, velocity_y, d
-         6, velocity_z, d
-         7, mass, d
-         8, identity, i
-         9, levelp, i
-        10, birth_time, d
-        11, metallicity, d
+      # version:  1
+      # ivar, variable_name, variable_type
+       1, position_x, d
+       2, position_y, d
+       3, position_z, d
+       4, velocity_x, d
+       5, velocity_y, d
+       6, velocity_z, d
+       7, mass, d
+       8, identity, i
+       9, levelp, i
+      10, birth_time, d
+      11, metallicity, d
 
    It is important to note that this file should not end with an empty line (but in this case with ``11, metallicity, d``).
 
@@ -2163,42 +2163,42 @@ There are three way to make yt detect all the particle fields. For example, if y
 
 1. ``yt.load`` method. Whenever loading a dataset, add the extra particle fields as a keyword argument to the ``yt.load`` call.
 
-    .. code-block:: python
+   .. code-block:: python
 
-        import yt
-        fields = ["Density",
-                  "x-velocity", "y-velocity", "z-velocity",
-                  "Pressure", "Metallicity", "Scalar_01"]
-	ds = yt.load('output_00123/info_00123.txt', fields=fields)
-	('ramses', 'Metallicity') in ds.field_list  # is True
-	('ramses', 'Scalar_01') in ds.field_list  # is True
+      import yt
+      fields = ["Density",
+                "x-velocity", "y-velocity", "z-velocity",
+                "Pressure", "Metallicity", "Scalar_01"]
+      ds = yt.load('output_00123/info_00123.txt', fields=fields)
+      ('ramses', 'Metallicity') in ds.field_list  # is True
+      ('ramses', 'Scalar_01') in ds.field_list  # is True
 
 2. yt config method. If you don't want to pass the arguments for each call of ``yt.load``, you can add in your configuration
 
    .. code-block:: none
 
-       [ramses-hydro]
-       fields = Density
-                x-velocity
-		y-velocity
-		z-velocity
-		Pressure
-		Metallicity
-		Scalar_01
+      [ramses-hydro]
+      fields = Density
+               x-velocity
+               y-velocity
+               z-velocity
+               Pressure
+               Metallicity
+               Scalar_01
 
 3. New RAMSES way. Recent versions of RAMSES automatically write in their output an ``hydro_file_descriptor.txt`` file that gives information about which field is where. If you wish, you can simply create such a file in the folder containing the ``info_xxxxx.txt`` file
 
-    .. code-block:: none
+   .. code-block:: none
 
-        # version:  1
-        # ivar, variable_name, variable_type
-         1, density, d
-         2, velocity_x, d
-         3, velocity_y, d
-         4, velocity_z, d
-         5, pressure, d
-         6, metallicity, d
-	 7, scalar_01
+      # version:  1
+      # ivar, variable_name, variable_type
+       1, density, d
+       2, velocity_x, d
+       3, velocity_y, d
+       4, velocity_z, d
+       5, pressure, d
+       6, metallicity, d
+       7, scalar_01
 
    It is important to note that this file should not end with an empty line (but in this case with ``11, metallicity, d``).
 
