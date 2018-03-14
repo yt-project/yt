@@ -2200,7 +2200,7 @@ There are three way to make yt detect all the particle fields. For example, if y
        6, metallicity, d
        7, scalar_01
 
-   It is important to note that this file should not end with an empty line (but in this case with `` 7, scalar_01, d``).
+   It is important to note that this file should not end with an empty line (but in this case with ``_7, scalar_01, d``. Note that the ``_`` stands for a space).
 
 Customizing the particle type association
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
