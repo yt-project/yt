@@ -19,7 +19,6 @@ import math
 import numpy as np
 import os.path as path
 from functools import cmp_to_key
-from yt.extern.six import add_metaclass
 from yt.extern.six.moves import zip as izip
 
 from yt.config import ytcfg
