@@ -202,13 +202,17 @@ class FITSImageData(object):
                 hdu.header["btype"] = name
                 hdu.header["bunit"] = re.sub('()', '', self.field_units[name])
                 for unit in ("length", "time", "mass", "velocity", "magnetic"):
-                    key = "{}_unit".format(unit)
+                    if unit == "magnetic":
+                        short_unit = "b"
+                    else:
+                        short_unit = unit[0]
+                    key = "{}unit".format(short_unit)
                     value = getattr(self, key)
                     hdu.header[key] = float(value.value)
                     hdu.header.comments[key] = value.units
                 if self.current_time is not None:
-                    hdu.header["current_time"] = float(self.current_time.value)
-                    hdu.header.comments["current_time"] = self.current_time.units
+                    hdu.header["time"] = float(self.current_time.value)
+                    hdu.header.comments["time"] = self.current_time.units
                 self.hdulist.append(hdu)
 
         self.shape = self.hdulist[0].shape
