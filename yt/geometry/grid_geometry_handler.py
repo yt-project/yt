@@ -302,10 +302,9 @@ class GridIndex(Index):
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge,
                                             self.grid_levels)
-            grids = list(sorted(self.grids[gi], key = _gsort))
-            dobj._chunk_info = np.empty(len(grids), dtype='object')
-            for i, g in enumerate(grids):
-                dobj._chunk_info[i] = g
+            dobj._chunk_info = np.empty(gi.sum(), dtype='object')
+            for i, gi in enumerate(self.grid_tree.grid_order()):
+                dobj._chunk_info[i] = self.grids[gi]
         # These next two lines, when uncommented, turn "on" the fast index.
         if dobj._type_name != "grid":
             fast_index = self.grid_tree.selector()
@@ -364,7 +363,10 @@ class GridIndex(Index):
         gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         fast_index = dobj._current_chunk._fast_index
+        file_order = []
         for g in gobjs:
+            if g.filename not in file_order:
+                file_order.append(g.filename)
             gfiles[g.filename].append(g)
         # We can apply a heuristic here to make sure we aren't loading too
         # many grids all at once.
@@ -384,7 +386,7 @@ class GridIndex(Index):
             size = self._grid_chunksize
         else:
             raise RuntimeError("%s is an invalid value for the 'chunk_sizing' argument." % chunk_sizing)
-        for fn in sorted(gfiles):
+        for fn in file_order:
             gs = gfiles[fn]
             for grids in (gs[pos:pos + size] for pos
                           in range(0, len(gs), size)):

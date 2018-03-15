@@ -99,6 +99,25 @@ cdef class GridTree:
                 self.root_grids[k] = self.grids[i] 
                 k = k + 1
 
+    cdef np.uint64_t _visit_grid(self, GridTreeNode* grid, np.uint64_t[:] order,
+                          np.uint64_t index):
+        cdef int i
+        order[index] = grid.index
+        index += 1
+        for i in range(grid.num_children):
+            index = self._visit_grid(grid.children[i], order, index)
+        return index
+
+    def grid_order(self):
+        indices = np.empty(self.num_grids, dtype="uint64")
+        cdef GridTreeNode *grid, *child
+        cdef np.uint64_t i, j
+        cdef np.uint64_t index = 0
+        for i in range(self.num_root_grids):
+            grid = &self.root_grids[i]
+            index = self._visit_grid(grid, indices, index)
+        return indices
+
     def selector(self, np.uint8_t[:] grid_mask = None):
         return GridTreeSelector(self, grid_mask)
 
