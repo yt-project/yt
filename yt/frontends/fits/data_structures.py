@@ -419,9 +419,9 @@ class FITSDataset(Dataset):
         self._determine_bbox()
 
         # Get the current time
-        if "current_time" in self.primary_header:
-            self.current_time = self.quan(self.primary_header["current_time"],
-                                          self.primary_header.comments["current_time"])
+        if "time" in self.primary_header:
+            self.current_time = self.quan(self.primary_header["time"],
+                                          self.primary_header.comments["time"])
         else:
             self.current_time = self.quan(0.0, "s")
 
@@ -526,8 +526,12 @@ class YTFITSDataset(FITSDataset):
         Generates the conversion to various physical _units based on the parameter file
         """
         for unit in ("length", "time", "mass", "velocity", "magnetic"):
-            u = self.quan(self.primary_header["%s_unit" % unit],
-                          self.primary_header.comments["%s_unit" % unit])
+            if unit == "magnetic":
+                short_unit = "b"
+            else:
+                short_unit = unit[0]
+            u = self.quan(self.primary_header["%sunit" % short_unit],
+                          self.primary_header.comments["%sunit" % short_unit])
             mylog.info("Found %s units of %s." % (unit, u))
             setdefaultattr(self, '%s_unit' % unit, u)
 
