@@ -1,3 +1,4 @@
+FAIL EARLY
 import os
 import glob
 import sys
