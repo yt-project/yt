@@ -431,10 +431,13 @@ then
     elif [ $MYARCH = "x86_64"  ]
     then
         MINICONDA_ARCH="x86_64"
+    elif [ $MYARCH = "ppc64le"  ]
+    then
+        MINICONDA_ARCH="ppc64le"
     else
         echo "Not sure which architecture you are running."
         echo "Going with x86_64 architecture."
-        MINICONDA_OS="Linux-x86_64"
+        MINICONDA_ARCH="x86_64"
     fi
 else
     echo "The yt install script is not supported on the ${MYOS}"
