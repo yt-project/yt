@@ -167,17 +167,18 @@ class ParticleGenerator(object):
                                 grid.dds[0])
         pbar.finish()
 
-    def apply_to_stream(self, overwrite=False, clobber=None):
+    def apply_to_stream(self, overwrite=False, **kwargs):
         """
         Apply the particles to a grid-based stream dataset. If particles 
         already exist, and overwrite=False, do not overwrite them, but add 
         the new ones to them.
         """
-        if clobber is not None:
-            issue_deprecation_warning("The \"clobber\" keyword argument has been "
-                                      "replaced by the \"overwrite\" argument and "
-                                      "will be removed in a future release.")
-            overwrite = clobber
+        if "clobber" in kwargs:
+            issue_deprecation_warning("The \"clobber\" keyword argument "
+                                      "is deprecated. Use the \"overwrite\" "
+                                      "argument, which has the same effect, "
+                                      "instead.")
+            overwrite = kwargs.pop("clobber")
         grid_data = []
         for i, g in enumerate(self.ds.index.grids):
             data = {}
