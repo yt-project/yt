@@ -418,7 +418,7 @@ def create_fits_file(ds,fn, refined,output,particle_data,fle,fre):
     hls = [phdu, st_table, mg_table,md_table]
     hls.append(particle_data)
     hdus = pyfits.HDUList(hls)
-    hdus.writeto(fn, clobber=True)
+    hdus.writeto(fn, overwrite=True)
 
 def nearest_power(x):
     #round to the nearest power of 2
