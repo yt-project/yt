@@ -33,7 +33,7 @@ class DenovoGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        AMRGridPatch.__init__(self, id, filename=index.index_filename,
+        super(DenovoGrid, self).__init__(id, filename=index.index_filename,
                               index=index)
         self.Parent = None
         self.Children = []
@@ -54,7 +54,7 @@ class DenovoHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        GridIndex.__init__(self, ds, dataset_type)
+        super(DenovoHierarchy, self).__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
@@ -108,7 +108,7 @@ class DenovoDataset(Dataset):
 
         self.geometry = 'cartesian'
 
-        super(DenovoDataset, self).__init__(self, filename, dataset_type,
+        super(DenovoDataset, self).__init__(filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
