@@ -15,7 +15,9 @@ import os
 import numpy as np
 import tempfile
 from yt.testing import \
-    fake_random_ds, assert_equal
+    assert_equal, \
+    fake_amr_ds, \
+    fake_random_ds
 from yt.units.unit_object import Unit
 
 
@@ -101,3 +103,13 @@ def test_slice_over_outer_boundary():
     slc = ds.slice(2, 1.0)
     slc["density"]
     assert_equal(slc["density"].size, 0)
+
+def test_slice_region_data_source():
+    ds = fake_amr_ds()
+    ad = ds.all_data()
+    slc = ds.slice(2, 0.5, data_source=ad)
+    assert slc['grid_level'].max() == 4
+    ad = ds.all_data()
+    ad.max_level = 2
+    slc = ds.slice(2, 0.5, data_source=ad)
+    assert slc['grid_level'].max() == 2

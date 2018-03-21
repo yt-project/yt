@@ -1999,7 +1999,7 @@ cdef class ComposeSelector(SelectorObject):
                      np.ndarray[np.float64_t, ndim=2] left_edges,
                      np.ndarray[np.float64_t, ndim=2] right_edges,
                      np.ndarray[np.int32_t, ndim=2] levels):
-        return np.logical_or(
+        return np.logical_and(
                     self.selector1.select_grids(left_edges, right_edges, levels),
                     self.selector2.select_grids(left_edges, right_edges, levels))
 
