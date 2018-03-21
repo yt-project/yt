@@ -58,7 +58,7 @@ def test_OWLSDataset():
     
     
 @requires_ds(os33)
-def test_OWLS_particlefilter(os33):
+def test_OWLS_particlefilter():
     ds = data_dir_load(os33)
     ad = ds.all_data()
     def cold_gas(pfilter, data):
