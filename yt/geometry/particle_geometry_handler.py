@@ -149,7 +149,8 @@ class ParticleIndex(Index):
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
             self._initialize_refined_index()
-            if not dont_cache:
+            wdir = os.path.dirname(fname)
+            if not dont_cache and os.access(wdir, os.W_OK):
                 self.regions.save_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
             
