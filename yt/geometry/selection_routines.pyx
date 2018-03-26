@@ -116,8 +116,14 @@ cdef class SelectorObject:
         self._hash_initialized = 0
         cdef np.float64_t [:] DLE
         cdef np.float64_t [:] DRE
-        self.min_level = getattr(dobj, "min_level")
-        self.max_level = getattr(dobj, "max_level")
+        min_level = getattr(dobj, "min_level", None)
+        max_level = getattr(dobj, "max_level", None)
+        if min_level is None:
+            min_level = 0
+        if max_level is None:
+            max_level = 99
+        self.min_level = min_level
+        self.max_level = max_level
         self.overlap_cells = 0
 
         ds = getattr(dobj, 'ds', None)

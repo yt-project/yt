@@ -1504,7 +1504,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     @property
     def max_level(self):
         if self._max_level is None:
-            return self.ds.max_level
+            try:
+                return self.ds.max_level
+            except AttributeError:
+                return None
         return self._max_level
 
     @max_level.setter
@@ -1520,9 +1523,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
     @property
     def min_level(self):
-        if self._min_level is not None:
-            return self._min_level
-        return self.ds.min_level
+        if self._min_level is None:
+            try:
+                return self.ds.max_level
+            except AttributeError:
+                return None
+        return self._min_level
 
     @min_level.setter
     def min_level(self, value):
