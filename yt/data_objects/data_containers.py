@@ -1512,9 +1512,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
     @max_level.setter
     def max_level(self, value):
-        if value < self.min_level:
-            raise RuntimeError(
-                "Cannot set data object max_level to be less than min_level")
         if self._selector is not None:
             del self._selector
             self._selector = None
@@ -1535,9 +1532,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
     @min_level.setter
     def min_level(self, value):
-        if value > self.max_level:
-            raise RuntimeError(
-                "Cannot set data object min_level to be greater than max_level")
         if self._selector is not None:
             del self._selector
             self._selector = None
