@@ -1528,7 +1528,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     def min_level(self):
         if self._min_level is None:
             try:
-                return self.ds.min_level
+                return 0
             except AttributeError:
                 return None
         return self._min_level
