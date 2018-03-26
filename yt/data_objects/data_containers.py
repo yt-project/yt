@@ -1186,6 +1186,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _current_chunk = None
     _data_source = None
     _dimensionality = None
+    _max_level = None
+    _min_level = None
 
     def __init__(self, ds, field_parameters, data_source=None):
         ParallelAnalysisInterface.__init__(self)
@@ -1204,7 +1206,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
     @property
     def selector(self):
-        if self._selector is not None: return self._selector
+        if self._selector is not None:
+            return self._selector
         s_module = getattr(self, '_selector_module',
                            yt.geometry.selection_routines)
         sclass = getattr(s_module,
@@ -1497,6 +1500,40 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         return self._current_chunk.fcoords_vertex
+
+    @property
+    def max_level(self):
+        if self._max_level is None:
+            return self.ds.max_level
+        return self._max_level
+
+    @max_level.setter
+    def max_level(self, value):
+        if value < self.min_level:
+            raise RuntimeError(
+                "Cannot set data object max_level to be less than min_level")
+        if self._selector is not None:
+            del self._selector
+            self._selector = None
+        self.field_data.clear()
+        self._max_level = value
+
+    @property
+    def min_level(self):
+        if self._min_level is not None:
+            return self._min_level
+        return self.ds.min_level
+
+    @min_level.setter
+    def min_level(self, value):
+        if value > self.max_level:
+            raise RuntimeError(
+                "Cannot set data object min_level to be greater than max_level")
+        if self._selector is not None:
+            del self._selector
+            self._selector = None
+        self.field_data.clear()
+        self._min_level = value
 
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False
