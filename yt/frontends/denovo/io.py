@@ -24,18 +24,25 @@ class IOHandlerDenovHDF5(BaseIOHandler):
     _particle_reader = False
     _dataset_type = 'denovo'
 
+    def _read_field_names(self, grid):
+        # This function is used to pull in all of the fields from the Denovo
+        # file relevant to what we can plot here.
+
+        if grid.filename is None:
+            return []
+        f = h5py.File(grid.filename, "r")
+        try:
+
+
+
     def _read_particle_coords(self, chunks, ptf):
-        # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
-        # chunks is a list of chunks, and ptf is a dict where the keys are
-        # ptypes and the values are lists of fields.
+        # At this time Denovo has no particles, so this function will not
+        # return particle coords.
         pass
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        # This gets called after the arrays have been allocated.  It needs to
-        # yield ((ptype, field), data) where data is the masked results of
-        # reading ptype, field and applying the selector to the data read in.
-        # Selector objects have a .select_points(x,y,z) that returns a mask, so
-        # you need to do your masking here.
+        # At this time Denovo has no particle fields, so this function
+        # will not return any particle fields.
         pass
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
