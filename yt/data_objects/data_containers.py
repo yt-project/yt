@@ -1518,6 +1518,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._selector is not None:
             del self._selector
             self._selector = None
+        self._current_chunk = None
+        self.size = None
+        self.shape = None
         self.field_data.clear()
         self._max_level = value
 
@@ -1525,7 +1528,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     def min_level(self):
         if self._min_level is None:
             try:
-                return self.ds.max_level
+                return self.ds.min_level
             except AttributeError:
                 return None
         return self._min_level
@@ -1539,6 +1542,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             del self._selector
             self._selector = None
         self.field_data.clear()
+        self.size = None
+        self.shape = None
+        self._current_chunk = None
         self._min_level = value
 
 class YTSelectionContainer0D(YTSelectionContainer):
