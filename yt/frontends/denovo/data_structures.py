@@ -161,10 +161,19 @@ class DenovoDataset(Dataset):
         """
 
         loads in all of the parameters located in the 'denovo' group that are
-        not groups themselves and do not start with mesh.
+        not groups themselves and are not flux or source fields.
 
         """
 
+        for key,val in self._handle["/denovo"].items():
+            if isinstance(val, h5py.Dataset):
+                # skip the fields that will be stored elsewhere
+                if any([key == 'flux', key == 'source']):
+                    pass
+                else:
+                    self.parameters[key]=val.value
+
+        return self.parameters
 
 
     def _load_domain_edge():
@@ -175,14 +184,23 @@ class DenovoDataset(Dataset):
 
         """
 
-        mylog.info("Loading domain boundaries")
+        mylog.info("calculating domain boundaries")
 
-        if "mesh_x" not in self.parameters:
-            try:
+        if 'mesh_x' in self.parameters:
+            left_edge = [self.parameters['mesh_x'].min(),
+            self.parameters['mesh_y'].min(),
+            self.parameters['mesh_z'].min()]
 
+            right_edge = [self.parameters['mesh_x'].max(),
+            self.parameters['mesh_y'].max(),
+            self.parameters['mesh_z'].max()]
 
-        with self._handle.open_ds() as ds:
-            t
+        else:
+            left_edge = []
+            right_edge = []
+
+        return left_edge, right_edge
+
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
