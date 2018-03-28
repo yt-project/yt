@@ -29,67 +29,83 @@ from yt.data_objects.static_output import \
 from .fields import DenovoFieldInfo
 
 
-class DenovoGrid(AMRGridPatch):
-    _id_offset = 0
+# class DenovoGrid(AMRGridPatch):
+#     _id_offset = 0
+#
+#     def __init__(self, id, index, level):
+#         super(DenovoGrid, self).__init__(id, filename=index.index_filename,
+#                               index=index)
+#         self.Parent = None
+#         self.Children = []
+#         self.Level = level
+#
+#     def __repr__(self):
+#         return "DenovoGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
-    def __init__(self, id, index, level):
-        super(DenovoGrid, self).__init__(id, filename=index.index_filename,
-                              index=index)
-        self.Parent = None
-        self.Children = []
-        self.Level = level
+class DenovoMesh(SemiStructuredMesh):
+    _connectivity_length = 8
+    _index_offset = 1
 
-    def __repr__(self):
-        return "DenovoGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
-
-class DenovoHierarchy(GridIndex):
-    grid = DenovoGrid
+class DenovoHierarchy(UnstructuredIndex):
 
     def __init__(self, ds, dataset_type='denovo'):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
+
         # for now, the index file is the dataset!
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
+        self._fhandle = h5py.File(self.index_filename, 'r')
+
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
         super(DenovoHierarchy, self).__init__(ds, dataset_type)
 
+    def _initialize_mesh(self):
+        from yt.frontends.stream.data_structures import hexahedral_connectivity
+        coords, conn = hexahedral_connectivity(ds.paramaters.mesh_x,
+                ds.parameters.mesh_y, ds.parameters.mesh_z)
+        self.meshes = [DenovoMesh(0, self.index_filename, conn, coords, self)]
+
+
     def _detect_output_fields(self):
-        # This needs to set a self.field_list that contains all the available,
-        # on-disk fields. No derived fields should be defined here.
-        # NOTE: Each should be a tuple, where the first element is the on-disk
-        # fluid type or particle type.  Convention suggests that the on-disk
-        # fluid type is usually the dataset_type and the on-disk particle type
-        # (for a single population of particles) is "io".
-        pass
+
+        self.field_list = [("denovo", key) for key, val in
+                self._fhandle['/denovo/db/hdf5_db'].items() if val.value]
+
+        # right now we don't want to read in a few of these fields, so we'll
+        # manually delete them here until later.
+        #
+        if ('denovo','angular_mesh') in self.field_list:
+            self.field_list.remove('denovo','angular_mesh')
+        self.field_list.remove('denovo','block')
 
     def _count_grids(self):
-        # This needs to set self.num_grids
-        pass
+        self.num_grids=1
 
-    def _parse_index(self):
-        # This needs to fill the following arrays, where N is self.num_grids:
-        #   self.grid_left_edge         (N, 3) <= float64
-        #   self.grid_right_edge        (N, 3) <= float64
-        #   self.grid_dimensions        (N, 3) <= int
-        #   self.grid_particle_count    (N, 1) <= int
-        #   self.grid_levels            (N, 1) <= int
-        #   self.grids                  (N, 1) <= grid objects
-        #   self.max_level = self.grid_levels.max()
-        pass
+    # not sure if this is needed since it's not in the hexahedral OR Moab
+    # Hierarchy classes.
+    # def _parse_index(self):
+    #     # This needs to fill the following arrays, where N is self.num_grids:
+    #     #   self.grid_left_edge         (N, 3) <= float64
+    #     #   self.grid_right_edge        (N, 3) <= float64
+    #     #   self.grid_dimensions        (N, 3) <= int
+    #     #   self.grid_particle_count    (N, 1) <= int
+    #     #   self.grid_levels            (N, 1) <= int
+    #     #   self.grids                  (N, 1) <= grid objects
+    #     #   self.max_level = self.grid_levels.max()
+    #     pass
 
-    def _populate_grid_objects(self):
-        # For each grid, this must call:
-        #   grid._prepare_grid()
-        #   grid._setup_dx()
-        # This must also set:
-        #   grid.Children <= list of child grids
-        #   grid.Parent   <= parent grid
-        # This is handled by the frontend because often the children must be
-        # identified.
-        pass
+    # def _populate_grid_objects(self):
+    #     # For each grid, this must call:
+    #     #   grid._prepare_grid()
+    #     #   grid._setup_dx()
+    #     # This must also set:
+    #     #   grid.Children <= list of child grids
+    #     #   grid.Parent   <= parent grid
+    #     # This is handled by the frontend because often the children must be
+    #     # identified.
+    #     pass
 
 
 class DenovoDataset(Dataset):
