@@ -26,6 +26,7 @@ from yt.utilities.answer_testing.framework import \
     create_obj
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.config import ytcfg
+from yt.frontends.ramses.field_handlers import HydroFieldFileHandler
 import os
 import yt
 
@@ -296,3 +297,31 @@ def test_custom_hydro_def():
         check_unit(ds.r['ramses', 'Bar'], 'dimensionless')
     finally:
         ytcfg.remove_section('ramses-hydro')
+
+@requires_file(ramses_sink)
+@requires_file(output_00080)
+def test_ramses_field_detection():
+    ds1 = yt.load(ramses_rt)
+
+    # Check that the fields are detected in a lazy way
+    assert HydroFieldFileHandler.detected_fields is None
+
+    # Now they are detected !
+    ds1.index
+    P1 = HydroFieldFileHandler.parameters
+    assert HydroFieldFileHandler.detected_fields is not None
+    fields_1 = set(HydroFieldFileHandler.detected_fields.copy())
+
+    # Check the right number of variables has been loaded
+    assert P1['nvar'] == 10
+    assert len(fields_1) == P1['nvar']
+
+    # Now low another dataset
+    ds2 = yt.load(output_00080)
+    ds2.index
+    P2 = HydroFieldFileHandler.parameters
+    fields_2 = set(HydroFieldFileHandler.detected_fields.copy())
+
+    # Check the right number of variables has been loaded
+    assert P2['nvar'] == 6
+    assert len(fields_2) == P2['nvar']
