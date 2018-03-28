@@ -111,12 +111,11 @@ class DenovoDataset(Dataset):
         super(DenovoDataset, self).__init__(filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
-        self.cosmological_simulation = False
+        self.filename=filename
 
-        self.parameters["HydroMethod"] = 'denovo'
-        self.parameters
-        # refinement factor between a grid and its subgrid
-        # self.refine_by = 2
+        # Note for later: if this is set in _parse_parameter_file, does it need
+        # to be set here?
+        self.cosmological_simulation = False
 
     def _set_code_unit_attributes(self):
         #
@@ -128,20 +127,17 @@ class DenovoDataset(Dataset):
         setdefaultattr(self, 'mass_unit', self.quan(length_unit, "g"))
         setdefaultattr(self, 'time_unit', self.quan(length_unit, "s"))
         #
-        # These can also be set:
-        # self.velocity_unit = self.quan(1.0, "cm/s")
-        # self.magnetic_unit = self.quan(1.0, "gauss")
         pass
 
     def _parse_parameter_file(self):
         #
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        self.parameters             <= full of code-specific items of use
-        self.domain_left_edge       <= array of float64
-        self.domain_right_edge      <= array of float64
-        self.dimensionality         <= int
-        self.domain_dimensions      <= array of int64
+        self._handle = h5py.File(self.parameter_filename, "r")
+        self.parameters = self._load_parameters()
+        self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
+        self.domain_dimensions = self.domain_right_edge - self.domain_left_edge
+        self.dimensionality = len(self.domain_dimensions)
 
         # We know that Denovo datasets are never periodic, so periodicity will
         # be set to false.
@@ -160,6 +156,33 @@ class DenovoDataset(Dataset):
         self.omega_matter = 0
         self.hubble_constant = 0
         pass
+
+    def _load_parameters():
+        """
+
+        loads in all of the parameters located in the 'denovo' group that are
+        not groups themselves and do not start with mesh.
+
+        """
+
+
+
+    def _load_domain_edge():
+        """
+
+        Loads the boundaries for the domain edge using the min and max values
+        obtained from the x, y, and z meshes.
+
+        """
+
+        mylog.info("Loading domain boundaries")
+
+        if "mesh_x" not in self.parameters:
+            try:
+
+
+        with self._handle.open_ds() as ds:
+            t
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
