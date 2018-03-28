@@ -52,7 +52,7 @@ class FieldFileHandler(object):
     # These properties are computed dynamically
     field_offsets = None     # Mapping from field to offset in file
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
-
+    detected_fields = None   # Detected fields in file
     def __init__(self, domain):
         '''
         Initalize an instance of the class. This automatically sets
@@ -228,6 +228,8 @@ class HydroFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
+        if cls.detected_fields:
+            return cls.detected_fields
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
@@ -278,10 +280,12 @@ class HydroFieldFileHandler(FieldFileHandler):
             if rt_flag: # rt run
                 if nvar < 10:
                     mylog.info('Detected RAMSES-RT file WITHOUT IR trapping.')
+
                     fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure",
                               "Metallicity", "HII", "HeII", "HeIII"]
                 else:
                     mylog.info('Detected RAMSES-RT file WITH IR trapping.')
+
                     fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR",
                               "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
             else:
@@ -321,6 +325,7 @@ class HydroFieldFileHandler(FieldFileHandler):
         if count_extra > 0:
             mylog.debug('Detected %s extra fluid fields.' % count_extra)
         cls.field_list = [(cls.ftype, e) for e in fields]
+        cls.detected_fields = fields
 
         return fields
 
@@ -349,6 +354,8 @@ class RTFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
+        if cls.detected_fields:
+            return cls.detected_fields
         fname = ds.parameter_filename.replace('info_', 'info_rt_')
 
         rheader = {}
@@ -385,6 +392,7 @@ class RTFieldFileHandler(FieldFileHandler):
             fields.extend([t % (ng + 1) for t in tmp])
 
         cls.field_list = [(cls.ftype, e) for e in fields]
+        cls.detected_fields = fields
         return fields
 
     @classmethod
