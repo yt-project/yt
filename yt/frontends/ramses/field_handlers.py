@@ -234,7 +234,7 @@ class HydroFieldFileHandler(FieldFileHandler):
         # This is to force the redetection of the fields when changing
         # dataset.
         if cls.detected_fields and cls.ds == ds:
-            return cls.detected_fields
+            return cls.detected_fields.copy()
         cls.ds = ds
 
         num = os.path.basename(ds.parameter_filename).split("."
@@ -365,8 +365,9 @@ class RTFieldFileHandler(FieldFileHandler):
         # object.
         # This is to force the redetection of the fields when changing
         # dataset.
+        print(cls.detected_fields)
         if cls.detected_fields and cls.ds == ds:
-            return cls.detected_fields
+            return cls.detected_fields.copy()
         cls.ds = ds
 
         fname = ds.parameter_filename.replace('info_', 'info_rt_')
