@@ -224,7 +224,7 @@ def _read_part_file_descriptor(fname):
     with open(fname, 'r') as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.info('Reading part file descriptor.')
+        mylog.debug('Reading part file descriptor %s.' % fname)
         if not tmp:
             raise YTParticleOutputFormatNotImplemented()
 
@@ -276,7 +276,7 @@ def _read_fluid_file_descriptor(fname):
     with open(fname, 'r') as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.info('Reading fluid file descriptor.')
+        mylog.debug('Reading fluid file descriptor %s.' % fname)
         if not tmp:
             return []
 
