@@ -53,6 +53,7 @@ class FieldFileHandler(object):
     field_offsets = None     # Mapping from field to offset in file
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
     detected_fields = None   # Detected fields in file
+    ds = None                # Weak reference to the dataset
     def __init__(self, domain):
         '''
         Initalize an instance of the class. This automatically sets
@@ -228,8 +229,14 @@ class HydroFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
-        if cls.detected_fields:
+        # Important: here we also detect that the dataset is the same
+        # object.
+        # This is to force the redetection of the fields when changing
+        # dataset.
+        if cls.detected_fields and cls.ds == ds:
             return cls.detected_fields
+        cls.ds = ds
+
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
@@ -354,8 +361,14 @@ class RTFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
-        if cls.detected_fields:
+        # Important: here we also detect that the dataset is the same
+        # object.
+        # This is to force the redetection of the fields when changing
+        # dataset.
+        if cls.detected_fields and cls.ds == ds:
             return cls.detected_fields
+        cls.ds = ds
+
         fname = ds.parameter_filename.replace('info_', 'info_rt_')
 
         rheader = {}
