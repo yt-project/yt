@@ -365,7 +365,6 @@ class RTFieldFileHandler(FieldFileHandler):
         # object.
         # This is to force the redetection of the fields when changing
         # dataset.
-        print(cls.detected_fields)
         if cls.detected_fields and cls.ds == ds:
             return cls.detected_fields.copy()
         cls.ds = ds
