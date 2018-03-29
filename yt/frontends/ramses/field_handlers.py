@@ -145,10 +145,10 @@ class FieldFileHandler(object):
         '''
         Get the detected fields from the register.
         '''
-        if cls.ftype in DETECTED_FIELDS:
-            d = DETECTED_FIELDS[cls.ftype]
-            if ds.unique_identifier in d:
-                return d[ds.unique_identifier]
+        if ds.unique_identifier in DETECTED_FIELDS:
+            d = DETECTED_FIELDS[ds.unique_identifier]
+            if cls.ftype in d:
+                return d[cls.ftype]
 
         return None
 
@@ -158,11 +158,11 @@ class FieldFileHandler(object):
         '''
         Store the detected fields into the register.
         '''
-        if cls.ftype not in DETECTED_FIELDS:
-            DETECTED_FIELDS[cls.ftype] = {}
+        if ds.unique_identifier not in DETECTED_FIELDS:
+            DETECTED_FIELDS[ds.unique_identifier] = {}
 
-        DETECTED_FIELDS[cls.ftype].update({
-            ds.unique_identifier: fields
+        DETECTED_FIELDS[ds.unique_identifier].update({
+            cls.ftype: fields
         })
 
 
