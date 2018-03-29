@@ -202,6 +202,10 @@ class FieldDetector(defaultdict):
         'x_hat': '',
         'y_hat': '',
         'z_hat': '',
+        'omega_baryon': '',
+        'virial_radius': 'cm',
+        'observer_redshift': '',
+        'source_redshift': '',
         }
 
     def get_field_parameter(self, param, default = 0.0):
@@ -239,7 +243,7 @@ class FieldDetector(defaultdict):
         return self.ds.arr(arr, input_units = units)
 
     def has_field_parameter(self, param):
-        return True
+        return param in self.fp_units
 
     @property
     def fcoords(self):
