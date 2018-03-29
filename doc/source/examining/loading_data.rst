@@ -700,9 +700,9 @@ upon being loaded into yt it is automatically decomposed into grids:
 
    level  # grids         # cells     # cells^3
    ----------------------------------------------
-     0	     512	  981940800       994
+     0       512          981940800       994
    ----------------------------------------------
-             512	  981940800
+             512          981940800
 
 yt will generate its own domain decomposition, but the number of grids can be
 set manually by passing the ``nprocs`` parameter to the ``load`` call:
@@ -786,9 +786,9 @@ upon being loaded into yt it is automatically decomposed into grids:
 
    level  # grids         # cells     # cells^3
    ----------------------------------------------
-     0	     512	  981940800       994
+     0       512          981940800       994
    ----------------------------------------------
-             512	  981940800
+             512          981940800
 
 For 3D spectral-cube data, the decomposition into grids will be done along the
 spectral axis since this will speed up many common operations for this
@@ -1403,8 +1403,8 @@ three-dimensional grid fields:
 
    data = dict(Density = dens,
                particle_position_x = posx_arr,
-	           particle_position_y = posy_arr,
-	           particle_position_z = posz_arr)
+                   particle_position_y = posy_arr,
+                   particle_position_z = posz_arr)
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
    ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
@@ -1457,8 +1457,8 @@ the hexahedral cells, and thus should have the shape,
 .. code-block:: python
 
    bbox = numpy.array([[numpy.min(xgrid),numpy.max(xgrid)],
-	               [numpy.min(ygrid),numpy.max(ygrid)],
-	               [numpy.min(zgrid),numpy.max(zgrid)]])
+                       [numpy.min(ygrid),numpy.max(ygrid)],
+                       [numpy.min(zgrid),numpy.max(zgrid)]])
    data = {"density" : arr}
    ds = yt.load_hexahedral_mesh(data,conn,coords,1.0,bbox=bbox)
 
@@ -2035,8 +2035,8 @@ It is possible to provide extra arguments to the load function when loading RAMS
           fields = ["Density",
                     "x-velocity", "y-velocity", "z-velocity",
                     "Pressure", "my-awesome-field"]
-	  ds = yt.load('output_00123/info_00123.txt', fields=fields)
-	  'my-awesome-field' in ds.field_list  # is True
+          ds = yt.load('output_00123/info_00123.txt', fields=fields)
+          'my-awesome-field' in ds.field_list  # is True
 
 
 ``extra_particle_fields``
@@ -2073,20 +2073,20 @@ It is possible to provide extra arguments to the load function when loading RAMS
       .. code-block:: python
 
           import yt
-	  # Only load a small cube of size (0.1)**3
-	  bbox = [[0., 0., 0.], [0.1, 0.1, 0.1]]
-	  ds = yt.load('output_00001/info_00001.txt', bbox=bbox)
+          # Only load a small cube of size (0.1)**3
+          bbox = [[0., 0., 0.], [0.1, 0.1, 0.1]]
+          ds = yt.load('output_00001/info_00001.txt', bbox=bbox)
 
-	  # See the note below for the following examples
-	  ds.right_edge == [1, 1, 1]             # is True
+          # See the note below for the following examples
+          ds.right_edge == [1, 1, 1]             # is True
 
-	  ad = ds.all_data()
-	  ad['particle_position_x'].max() > 0.1  # _may_ be True
+          ad = ds.all_data()
+          ad['particle_position_x'].max() > 0.1  # _may_ be True
 
-	  bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
-	  bb['particle_position_x'].max() < 0.1  # is True
+          bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
+          bb['particle_position_x'].max() < 0.1  # is True
       .. note::
-	 When using the bbox argument, yt will read all the CPUs
+         When using the bbox argument, yt will read all the CPUs
          intersecting with the subbox. However it may also read some
          data *outside* the selected region. This is due to the fact
          that domains have a complicated shape when using Hilbert
@@ -2095,21 +2095,129 @@ It is possible to provide extra arguments to the load function when loading RAMS
          the selected region, you may want to use ``ds.box(…)``.
 
       .. note::
-	 The ``bbox`` feature is only available for datasets using
-	 Hilbert ordering.
+         The ``bbox`` feature is only available for datasets using
+         Hilbert ordering.
+
+Adding custom particle fields
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+There are three way to make yt detect all the particle fields. For example, if you wish to make yt detect the birth time and metallicity of your particles, use one of these methods
+
+1. ``yt.load`` method. Whenever loading a dataset, add the extra particle fields as a keyword argument to the ``yt.load`` call.
+
+   .. code-block:: python
+
+      import yt
+      epf = [('particle_birth_time', 'd'), ('particle_metallicity', 'd')]
+      ds = yt.load('dataset', extra_particle_fields=epf)
+
+      ('io', 'particle_birth_time') in ds.derived_field_list  # is True
+      ('io', 'particle_metallicity') in ds.derived_field_list  # is True
+
+2. yt config method. If you don't want to pass the arguments for each call of ``yt.load``, you can add in your configuration
+
+   .. code-block:: none
+
+      [ramses-particles]
+      fields = particle_position_x, d
+               particle_position_y, d
+               particle_position_z, d
+               particle_velocity_x, d
+               particle_velocity_y, d
+               particle_velocity_z, d
+               particle_mass, d
+               particle_identifier, i
+               particle_refinement_level, I
+               particle_birth_time, d
+               particle_metallicity, d
+
+3. New RAMSES way. Recent versions of RAMSES automatically write in their output an ``hydro_file_descriptor.txt`` file that gives information about which field is where. If you wish, you can simply create such a file in the folder containing the ``info_xxxxx.txt`` file
+
+   .. code-block:: none
+
+      # version:  1
+      # ivar, variable_name, variable_type
+       1, position_x, d
+       2, position_y, d
+       3, position_z, d
+       4, velocity_x, d
+       5, velocity_y, d
+       6, velocity_z, d
+       7, mass, d
+       8, identity, i
+       9, levelp, i
+      10, birth_time, d
+      11, metallicity, d
+
+   It is important to note that this file should not end with an empty line (but in this case with ``11, metallicity, d``).
+
+.. note::
+
+   The kind (``i``, ``d``, ``I``, ...) of the field follow the `python convention <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
 
 
 Adding custom particle fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It is possible to add support for particle fields. For this, one
-should tweak
-:func:`~yt.frontends.ramses.io._read_part_file_descriptor` to include
-the field as well as its data type to the assoc list, following the
-convention from
-`python struct module <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
-For example, to add support for a longint field named
-``my_custom_field``, one would add ``('my_custom_field', 'l')`` to ``assoc``.
+There are three way to make yt detect all the particle fields. For example, if you wish to make yt detect the metallicity and a passive field (e.g. for a zoom-in simulation), use one of these methods
+
+1. ``yt.load`` method. Whenever loading a dataset, add the extra particle fields as a keyword argument to the ``yt.load`` call.
+
+   .. code-block:: python
+
+      import yt
+      fields = ["Density",
+                "x-velocity", "y-velocity", "z-velocity",
+                "Pressure", "Metallicity", "Scalar_01"]
+      ds = yt.load('output_00123/info_00123.txt', fields=fields)
+      ('ramses', 'Metallicity') in ds.field_list  # is True
+      ('ramses', 'Scalar_01') in ds.field_list  # is True
+
+2. yt config method. If you don't want to pass the arguments for each call of ``yt.load``, you can add in your configuration
+
+   .. code-block:: none
+
+      [ramses-hydro]
+      fields = Density
+               x-velocity
+               y-velocity
+               z-velocity
+               Pressure
+               Metallicity
+               Scalar_01
+
+3. New RAMSES way. Recent versions of RAMSES automatically write in their output an ``hydro_file_descriptor.txt`` file that gives information about which field is where. If you wish, you can simply create such a file in the folder containing the ``info_xxxxx.txt`` file
+
+   .. code-block:: none
+
+      # version:  1
+      # ivar, variable_name, variable_type
+       1, density, d
+       2, velocity_x, d
+       3, velocity_y, d
+       4, velocity_z, d
+       5, pressure, d
+       6, metallicity, d
+       7, scalar_01
+
+   It is important to note that this file should not end with an empty line (but in this case with ``_7, scalar_01, d``. Note that the ``_`` stands for a space).
+
+Customizing the particle type association
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+In verions of RAMSES more recent than December 2017, particles carry
+along a ``family`` array. The value of this array gives the kind of
+the particle, e.g. 1 for dark matter. It is possible to customize the
+association between particle type and family by customizing the yt
+config (see :ref:`configuration`), adding
+
+.. code-block:: none
+
+   [ramses-families]
+   gas_tracer = 100
+   star_tracer = 101
+   dm = 0
+   star = 1
+
 
 
 .. _loading-sph-data:

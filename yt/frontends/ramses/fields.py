@@ -89,7 +89,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_velocity_y", (vel_units, [], None)),
         ("particle_velocity_z", (vel_units, [], None)),
         ("particle_mass", ("code_mass", [], None)),
-        ("particle_identifier", ("", ["particle_index"], None)),
+        ("particle_identity", ("", ["particle_index"], None)),
         ("particle_refinement_level", ("", [], None)),
         ("particle_age", ("code_time", ['age'], None)),
         ("particle_birth_time", ("code_time", ['age'], None)),
