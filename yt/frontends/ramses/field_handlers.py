@@ -16,6 +16,7 @@ def get_field_handlers():
 def register_field_handler(ph):
     FIELD_HANDLERS.add(ph)
 
+DETECTED_FIELDS = {}
 
 class RAMSESFieldFileHandlerRegistry(type):
     """
@@ -52,8 +53,6 @@ class FieldFileHandler(object):
     # These properties are computed dynamically
     field_offsets = None     # Mapping from field to offset in file
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
-    detected_fields = None   # Detected fields in file
-    ds = None                # Weak reference to the dataset
     def __init__(self, domain):
         '''
         Initalize an instance of the class. This automatically sets
@@ -141,6 +140,32 @@ class FieldFileHandler(object):
         # this function must be implemented by subclasses
         raise NotImplementedError
 
+    @classmethod
+    def get_detected_fields(cls, ds):
+        '''
+        Get the detected fields from the register.
+        '''
+        if cls.ftype in DETECTED_FIELDS:
+            d = DETECTED_FIELDS[cls.ftype]
+            if ds.unique_identifier in d:
+                return d[ds.unique_identifier]
+
+        return None
+
+
+    @classmethod
+    def set_detected_fields(cls, ds, fields):
+        '''
+        Store the detected fields into the register.
+        '''
+        if cls.ftype not in DETECTED_FIELDS:
+            DETECTED_FIELDS[cls.ftype] = {}
+
+        DETECTED_FIELDS[cls.ftype].update({
+            ds.unique_identifier: fields
+        })
+
+
     @property
     def level_count(self):
         '''
@@ -160,7 +185,7 @@ class FieldFileHandler(object):
         By default, it skips the header (as defined by `cls.attrs`)
         and computes the offset at each level.
 
-        It should be generic enough for most of the cases, but it the
+        It should be generic enough for most of the cases, but if the
         *structure* of your fluid file is non-canonial, change this.
         '''
 
@@ -229,13 +254,10 @@ class HydroFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
-        # Important: here we also detect that the dataset is the same
-        # object.
-        # This is to force the redetection of the fields when changing
-        # dataset.
-        if cls.detected_fields and cls.ds == ds:
-            return cls.detected_fields.copy()
-        cls.ds = ds
+        # Try to get the detected fields
+        detected_fields = cls.get_detected_fields(ds)
+        if detected_fields:
+            return detected_fields
 
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
@@ -332,7 +354,8 @@ class HydroFieldFileHandler(FieldFileHandler):
         if count_extra > 0:
             mylog.debug('Detected %s extra fluid fields.' % count_extra)
         cls.field_list = [(cls.ftype, e) for e in fields]
-        cls.detected_fields = fields
+
+        cls.set_detected_fields(ds, fields)
 
         return fields
 
@@ -361,13 +384,11 @@ class RTFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
-        # Important: here we also detect that the dataset is the same
-        # object.
-        # This is to force the redetection of the fields when changing
-        # dataset.
-        if cls.detected_fields and cls.ds == ds:
-            return cls.detected_fields.copy()
-        cls.ds = ds
+        # Try to get the detected fields
+        detected_fields = cls.get_detected_fields(ds)
+        if detected_fields:
+            return detected_fields
+
 
         fname = ds.parameter_filename.replace('info_', 'info_rt_')
 
@@ -405,7 +426,8 @@ class RTFieldFileHandler(FieldFileHandler):
             fields.extend([t % (ng + 1) for t in tmp])
 
         cls.field_list = [(cls.ftype, e) for e in fields]
-        cls.detected_fields = fields
+
+        cls.set_detected_fields(ds, fields)
         return fields
 
     @classmethod
