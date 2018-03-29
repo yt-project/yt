@@ -1099,6 +1099,83 @@ function of radius. The xlabel is set to "Radius", for all plots, and the ylabel
    plot.set_ylabel("x-velocity", "velocity in x direction")
    plot.save()
 
+Adding plot title
+~~~~~~~~~~~~~~~~~
+
+Plot title can be set via the
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_title` function.
+It accepts a string argument which is the plot title and an optional ``field`` parameter which specifies
+the field for which plot title should be added. ``field`` could be a string or a list of string.
+If ``field`` is not passed, plot title will be added for the fields.
+
+In the following example we create a plot and set the plot title.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
+   plot = yt.ProfilePlot(ad, "density", ["temperature"], weight_field=None)
+   plot.annotate_title("Temperature vs Density Plot")
+   plot.save()
+
+Another example where we create plots from profile. By specifying the fields we can add plot title to a
+specific plot.
+
+.. python-script::
+
+   import yt
+   ds = yt.load('enzo_tiny_cosmology/DD0046/DD0046')
+   sphere = ds.sphere("max", (1.0, "Mpc"))
+   profiles = []
+   profiles.append(yt.create_profile(sphere, ["radius"], fields=["density"],n_bins=64))
+   profiles.append(yt.create_profile(sphere, ["radius"], fields=["dark_matter_density"],n_bins=64))
+   plot = yt.ProfilePlot.from_profiles(profiles)
+   plot.annotate_title("Plot Title: Density", "density")
+   plot.annotate_title("Plot Title: Dark Matter Density", "dark_matter_density")
+   plot.save()
+
+Here, ``plot.annotate_title("Plot Title: Density", "density")`` will only set the plot title for the ``"density"``
+field. Thus, allowing us the option to have different plot titles for different fields.
+
+
+Annotating plot with text
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Plots can be annotated at a desired (x,y) co-ordinate using :meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_text` function.
+This function accepts the x-position, y-position, a text string to
+be annotated in the plot area, and an optional list of fields for annotating plots with the specified field.
+Furthermore, any keyword argument accepted by the matplotlib ``axes.text`` function could also be passed which will can be useful to change fontsize, text-alignment, text-color or other such properties of annotated text.
+
+In the following example we create a plot and add a simple annotation.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
+   plot = yt.ProfilePlot(ad, "density", ["temperature"], weight_field=None)
+   plot.annotate_text(1e-30, 1e7,"Annotated Text")
+   plot.save()
+
+To add annotations to a particular set of fields we need to pass in the list of fields as follows:
+
+.. code-block:: python
+
+   plot.annotate_text(1e-30, 1e7,"Annotation", ["field1", "field2"])
+
+
+To change the text annotated text properties, we need to pass the matplotlib ``axes.text`` arguments as follows:
+
+.. code-block:: python
+
+  plot.annotate_text(1e-30, 1e7,"Annotation", fontsize=20, bbox=dict(facecolor='red', alpha=0.5),
+                      horizontalalignment='center', verticalalignment='center')
+
+The above example will set the fontsize of annotation to 20, add a bounding box of red color and center align
+horizontally and vertically. The is just an example to modify the text properties, for further options please check
+`matplotlib.axes.Axes.text <https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.text.html>`_.
+
 Altering Line Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
 

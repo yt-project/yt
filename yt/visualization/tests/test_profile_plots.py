@@ -178,3 +178,32 @@ def test_set_labels():
     # make sure we can set the labels without erroring out
     plot.set_ylabel("all", "test ylabel")
     plot.set_xlabel("test xlabel")
+
+class TestAnnotations(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        ds = fake_random_ds(16)
+        ad = ds.all_data()
+        cls.fields = ["velocity_x", "velocity_y", "velocity_z"]
+        cls.plot = yt.ProfilePlot(ad, "radius", cls.fields, weight_field=None)
+
+    def test_annotations(self):
+        # make sure we can annotate without erroring out
+        # annotate the plot with only velocity_x
+        self.plot.annotate_title("velocity_x plot", self.fields[0])
+        self.plot.annotate_text(1e-1, 1e1, "Annotated velocity_x")
+
+        # annotate the plots with velocity_y and velocity_z with
+        # the same annotations
+        self.plot.annotate_title("Velocity Plots (Y or Z)", self.fields[1:])
+        self.plot.annotate_text(1e-1, 1e1, "Annotated vel_y, vel_z", self.fields[1:])
+        self.plot.save()
+
+    def test_annotations_wrong_fields(self):
+        from yt.utilities.exceptions import YTFieldNotFound
+        with self.assertRaises(YTFieldNotFound):
+            self.plot.annotate_title("velocity_x plot",  "wrong_field_name")
+
+        with self.assertRaises(YTFieldNotFound):
+            self.plot.annotate_text(1e-1, 1e1, "Annotated text", "wrong_field_name")
