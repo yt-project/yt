@@ -18,6 +18,7 @@ from collections import defaultdict
 from yt.units.yt_array import YTArray
 from .field_exceptions import \
     NeedsGridType, \
+    NeedsParameter, \
     NeedsParameterValue
 
 class FieldDetector(defaultdict):
@@ -37,7 +38,10 @@ class FieldDetector(defaultdict):
         self.LeftEdge = [0.0, 0.0, 0.0]
         self.RightEdge = [1.0, 1.0, 1.0]
         self.dds = np.ones(3, "float64")
-        self.field_parameters = field_parameters
+        if field_parameters is None:
+            self.field_parameters = {}
+        else:
+            self.field_parameters = field_parameters
         class fake_dataset(defaultdict):
             pass
 
@@ -87,6 +91,8 @@ class FieldDetector(defaultdict):
         else:
             field = item
         finfo = self.ds._get_field_info(*field)
+        params = finfo._get_needed_parameters(self)
+        self.field_parameters.update(params)
         # For those cases where we are guessing the field type, we will
         # need to re-update -- otherwise, our item will always not have the
         # field type.  This can lead to, for instance, "unknown" particle
@@ -99,7 +105,9 @@ class FieldDetector(defaultdict):
                 vv = finfo(self)
             except NeedsGridType as exc:
                 ngz = exc.ghost_zones
-                nfd = FieldDetector(self.nd + ngz * 2, ds = self.ds)
+                nfd = FieldDetector(
+                    self.nd + ngz * 2, ds = self.ds,
+                    field_parameters=self.field_parameters.copy())
                 nfd._num_ghost_zones = ngz
                 vv = finfo(nfd)
                 if ngz > 0: vv = vv[ngz:-ngz, ngz:-ngz, ngz:-ngz]
@@ -123,8 +131,10 @@ class FieldDetector(defaultdict):
                             del finfo.validators[i]
 
                     for pv in npv.parameter_values[param]:
+                        fps = self.field_parameters.copy()
+                        fps[param] = pv
                         nfd = FieldDetector(self.nd, ds=self.ds,
-                                            field_parameters={param: pv})
+                                            field_parameters=fps)
                         vv = finfo(nfd)
                         for i in nfd.requested:
                             if i not in self.requested:
@@ -243,7 +253,7 @@ class FieldDetector(defaultdict):
         return self.ds.arr(arr, input_units = units)
 
     def has_field_parameter(self, param):
-        return param in self.fp_units
+        return param in self.field_parameters
 
     @property
     def fcoords(self):

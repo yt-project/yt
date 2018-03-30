@@ -211,6 +211,19 @@ class DerivedField(object):
             e[self.name]
         return e
 
+    def _get_needed_parameters(self, fd):
+        params = []
+        values = []
+        for val in self.validators:
+            if isinstance(val, ValidateParameter):
+                params.extend(val.parameters)
+                if val.parameter_values is not None:
+                    values.extend(val.parameter_values)
+                else:
+                    values.extend(
+                        [fd.get_field_parameter(fp) for fp in val.parameters])
+        return dict(zip(params, values))
+
     _unit_registry = None
     @contextlib.contextmanager
     def unit_registry(self, data):
