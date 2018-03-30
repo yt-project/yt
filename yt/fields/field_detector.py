@@ -17,9 +17,7 @@ import numpy as np
 from collections import defaultdict
 from yt.units.yt_array import YTArray
 from .field_exceptions import \
-    NeedsGridType, \
-    NeedsParameter, \
-    NeedsParameterValue
+    NeedsGridType
 
 class FieldDetector(defaultdict):
     Level = 1
@@ -91,7 +89,7 @@ class FieldDetector(defaultdict):
         else:
             field = item
         finfo = self.ds._get_field_info(*field)
-        params = finfo._get_needed_parameters(self)
+        params, permute_params = finfo._get_needed_parameters(self)
         self.field_parameters.update(params)
         # For those cases where we are guessing the field type, we will
         # need to re-update -- otherwise, our item will always not have the
@@ -102,7 +100,12 @@ class FieldDetector(defaultdict):
         item = self.ds._last_freq
         if finfo is not None and finfo._function.__name__ != 'NullFunc':
             try:
-                vv = finfo(self)
+                for param, param_v in permute_params.items():
+                    for v in param_v:
+                        self.field_parameters[param] = v
+                        vv = finfo(self)
+                if not permute_params:
+                    vv = finfo(self)
             except NeedsGridType as exc:
                 ngz = exc.ghost_zones
                 nfd = FieldDetector(
@@ -116,34 +119,6 @@ class FieldDetector(defaultdict):
                 for i in nfd.requested_parameters:
                     if i not in self.requested_parameters:
                         self.requested_parameters.append(i)
-            except NeedsParameterValue as npv:
-                # redo field detection with a new FieldDetector, ensuring
-                # all needed field parameter values are set
-                for param in npv.parameter_values:
-                    # temporarily remove any ValidateParameter instances for
-                    # this field to avoid infinitely re-raising
-                    # NeedsParameterValue exceptions
-                    saved_validators = []
-                    for i, validator in enumerate(finfo.validators):
-                        params = getattr(validator, 'parameters', [])
-                        if param in params:
-                            saved_validators.append(validator)
-                            del finfo.validators[i]
-
-                    for pv in npv.parameter_values[param]:
-                        fps = self.field_parameters.copy()
-                        fps[param] = pv
-                        nfd = FieldDetector(self.nd, ds=self.ds,
-                                            field_parameters=fps)
-                        vv = finfo(nfd)
-                        for i in nfd.requested:
-                            if i not in self.requested:
-                                self.requested.append(i)
-                        for i in nfd.requested_parameters:
-                            if i not in self.requested_parameters:
-                                self.requested_parameters.append(i)
-
-                    finfo.validators.extend(saved_validators)
             if vv is not None:
                 if not self.flat: self[item] = vv
                 else: self[item] = vv.ravel()

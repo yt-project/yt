@@ -219,6 +219,29 @@ In this case, we already know what the ``center`` of the sphere is, so we do
 not set it. Also, note that ``center`` and ``bulk_velocity`` need to be
 :class:`~yt.units.yt_array.YTArray` objects with units.
 
+If you are writing a derived field that uses a field parameter that changes the
+behavior of the field depending on the value of the field parameter, you can
+make yt test to make sure the field handles all possible values for the field
+parameter using the ``ValidateParameter`` field validator.
+
+For example, let's write a field that depends on a field parameter named ``'axis'``::
+
+.. code-block:: python
+
+   def my_axis_field(field, data):
+       axis = data.get_field_parameter('axis')
+       if axis == 0:
+           return data['x-velocity']
+       elif axis == 1:
+           return data['y-velocity']
+       elif axis == 2:
+           return data['z-velocity']
+       else:
+           raise ValueError
+
+   ds.add_field('my_axis_field', function=my_axis_field, units='cm/s',
+                validators=[ValidateParameter("axis", {"axis": [0, 1, 2]})])
+
 Other examples for creating derived fields can be found in the cookbook recipe
 :ref:`cookbook-simple-derived-fields`.
 
