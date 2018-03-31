@@ -26,7 +26,6 @@ from yt.utilities.answer_testing.framework import \
     create_obj
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.config import ytcfg
-from yt.frontends.ramses.field_handlers import HydroFieldFileHandler
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 import os
 import yt
@@ -303,8 +302,7 @@ def test_custom_hydro_def():
 @requires_file(output_00080)
 def test_ramses_field_detection():
     # Empty the detected fields cache
-    for k in DETECTED_FIELDS.keys():
-        DETECTED_FIELDS.drop(k)
+    DETECTED_FIELDS.clear()
 
     ds1 = yt.load(ramses_rt)
 
