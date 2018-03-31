@@ -194,20 +194,20 @@ transparent and simple example).
                 function=_my_radial_velocity,
                 units="cm/s",
                 take_log=False,
-                validators=[ValidateParameter('center'),
-                            ValidateParameter('bulk_velocity')])
+                validators=[ValidateParameter(['center', 'bulk_velocity'])])
 
-Note that we have added a few parameters below the main function; we specify
-that we do not wish to display this field as logged, that we require both
-``bulk_velocity`` and ``center`` to be present in a given data object we wish
-to calculate this for, and we say that it should not be displayed in a
-drop-down box of fields to display. This is done through the parameter
-*validators*, which accepts a list of :class:`~yt.fields.derived_field.FieldValidator`
-objects. These objects define the way in which the field is generated, and
-when it is able to be created. In this case, we mandate that parameters
-``center`` and ``bulk_velocity`` are set before creating the field. These are
-set via :meth:`~yt.data_objects.data_containers.set_field_parameter`, which can
-be called on any object that has fields:
+Note that we have added a few optional arguments to ``yt.add_field``; we specify
+that we do not wish to display this field as logged, that we require both the
+``bulk_velocity`` and ``center`` field parameters to be present in a given data
+object we wish to calculate this for, and we say that it should not be displayed
+in a drop-down box of fields to display. This is done through the parameter
+*validators*, which accepts a list of
+:class:`~yt.fields.derived_field.FieldValidator` objects. These objects define
+the way in which the field is generated, and when it is able to be created. In
+this case, we mandate that parameters ``center`` and ``bulk_velocity`` are set
+before creating the field. These are set via
+:meth:`~yt.data_objects.data_containers.set_field_parameter`, which can be
+called on any object that has fields:
 
 .. code-block:: python
 
@@ -218,6 +218,43 @@ be called on any object that has fields:
 In this case, we already know what the ``center`` of the sphere is, so we do
 not set it. Also, note that ``center`` and ``bulk_velocity`` need to be
 :class:`~yt.units.yt_array.YTArray` objects with units.
+
+If you are writing a derived field that uses a field parameter that changes the
+behavior of the field depending on the value of the field parameter, you can
+make yt test to make sure the field handles all possible values for the field
+parameter using a special form of the ``ValidateParameter`` field validator. In
+particular, ``ValidateParameter`` supports an optional second argument, which
+takes a dictionary mapping from parameter names to parameter values that
+you would like yt to test. This is useful when a field will select different
+fields to access based on the value of a field parameter. This option allows you
+to force yt to select *all* needed dependent fields for your derived field
+definition at field detection time. This can avoid errors related to missing fields.
+
+For example, let's write a field that depends on a field parameter named ``'axis'``:
+
+.. code-block:: python
+
+   def my_axis_field(field, data):
+       axis = data.get_field_parameter('axis')
+       if axis == 0:
+           return data['x-velocity']
+       elif axis == 1:
+           return data['y-velocity']
+       elif axis == 2:
+           return data['z-velocity']
+       else:
+           raise ValueError
+
+   ds.add_field('my_axis_field', function=my_axis_field, units='cm/s',
+                validators=[ValidateParameter("axis", {"axis": [0, 1, 2]})])
+
+In this example, we've told yt's field system that the data object we are
+querying ``my_axis_field`` must have the ``axis`` field parameter set. In
+addition, it forces yt to recognize that this field might depend on any one of
+``x-velocity``, ``y-velocity``, or ``z-velocity``. By specifying that ``axis``
+might be 0, 1, or 2 in the ``ValidataParameter`` call, this ensures that this
+field will only be valid and available for datasets that have all three fields
+available.
 
 Other examples for creating derived fields can be found in the cookbook recipe
 :ref:`cookbook-simple-derived-fields`.
