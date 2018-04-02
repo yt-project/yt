@@ -165,6 +165,10 @@ class FieldFileHandler(object):
             cls.ftype: fields
         })
 
+    @classmethod
+    def purge_detected_fields(cls, ds):
+        if ds.unique_identifier in DETECTED_FIELDS:
+            DETECTED_FIELDS.pop(ds.unique_identifier)
 
     @property
     def level_count(self):

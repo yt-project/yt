@@ -462,8 +462,10 @@ class RAMSESDataset(Dataset):
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
         for FH in get_field_handlers():
+            FH.purge_detected_fields(self)
             if FH.any_exist(self):
                 self.fluid_types += (FH.ftype, )
+
         self.storage_filename = storage_filename
 
 
