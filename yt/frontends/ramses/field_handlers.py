@@ -167,6 +167,11 @@ class FieldFileHandler(object):
 
     @classmethod
     def purge_detected_fields(cls, ds):
+        '''Purge the list of fields.
+
+        This should be called on dataset creation to force the field
+        detection to be called.
+        '''
         if ds.unique_identifier in DETECTED_FIELDS:
             DETECTED_FIELDS.pop(ds.unique_identifier)
 
