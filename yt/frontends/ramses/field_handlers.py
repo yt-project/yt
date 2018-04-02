@@ -143,7 +143,7 @@ class FieldFileHandler(object):
     @classmethod
     def get_detected_fields(cls, ds):
         '''
-        Get the detected fields from the register.
+        Get the detected fields from the registry.
         '''
         if ds.unique_identifier in DETECTED_FIELDS:
             d = DETECTED_FIELDS[ds.unique_identifier]
@@ -156,7 +156,7 @@ class FieldFileHandler(object):
     @classmethod
     def set_detected_fields(cls, ds, fields):
         '''
-        Store the detected fields into the register.
+        Store the detected fields into the registry.
         '''
         if ds.unique_identifier not in DETECTED_FIELDS:
             DETECTED_FIELDS[ds.unique_identifier] = {}
@@ -167,7 +167,8 @@ class FieldFileHandler(object):
 
     @classmethod
     def purge_detected_fields(cls, ds):
-        '''Purge the list of fields.
+        '''
+        Purge the registry.
 
         This should be called on dataset creation to force the field
         detection to be called.
@@ -195,7 +196,7 @@ class FieldFileHandler(object):
         and computes the offset at each level.
 
         It should be generic enough for most of the cases, but if the
-        *structure* of your fluid file is non-canonial, change this.
+        *structure* of your fluid file is non-canonical, change this.
         '''
 
         if getattr(self, '_offset', None) is not None:

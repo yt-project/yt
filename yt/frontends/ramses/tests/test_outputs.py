@@ -301,9 +301,6 @@ def test_custom_hydro_def():
 @requires_file(ramses_sink)
 @requires_file(output_00080)
 def test_ramses_field_detection():
-    # Empty the detected fields cache
-    DETECTED_FIELDS.clear()
-
     ds1 = yt.load(ramses_rt)
 
     assert 'ramses' not in DETECTED_FIELDS
@@ -318,7 +315,7 @@ def test_ramses_field_detection():
     assert P1['nvar'] == 10
     assert len(fields_1) == P1['nvar']
 
-    # Now low another dataset
+    # Now load another dataset
     ds2 = yt.load(output_00080)
     ds2.index
     P2 = HydroFieldFileHandler.parameters
