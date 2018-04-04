@@ -1,6 +1,6 @@
 import subprocess
 import sys
-from sphinx.util.compat import Directive
+from docutils.parsers.rst import Directive
 
 def setup(app):
     app.add_directive('yt_showfields', ShowFields)
