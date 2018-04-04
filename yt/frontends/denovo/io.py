@@ -22,7 +22,7 @@ from yt.utilities.logger import ytLogger as mylog
 def field_dname(field_name):
     return "/denovo/{0}".format(field_name)
 
-class IOHandlerDenovHDF5(BaseIOHandler):
+class IOHandlerDenovoHDF5(BaseIOHandler):
     _particle_reader = False
     _dataset_type = 'denovo'
 

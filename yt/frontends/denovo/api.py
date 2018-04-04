@@ -14,7 +14,7 @@ API for Denovo frontend
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      DenovoGrid, \
+      DenovoMesh, \
       DenovoHierarchy, \
       DenovoDataset
 

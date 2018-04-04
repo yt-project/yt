@@ -48,8 +48,10 @@ class DenovoFieldInfo(FieldInfoContainer):
         # Here we do anything that might need info about the dataset.
         # You can use self.alias, self.add_output_field (for on-disk fields)
         # and self.add_field (for derived fields).
-        params = self.ds.parameters
-        self.setup_flux_field()
+        # unit_system = self.ds.unit_system
+        # params = self.ds.parameters
+        # self.setup_flux_field()
+        # This might be where we set up the energy group-specific fields.
         pass
 
     def setup_flux_field(self):
@@ -57,12 +59,14 @@ class DenovoFieldInfo(FieldInfoContainer):
         # have flux fields loaded in a descriptive field, however, I might
         # change this if we load in materials information, or ww information,
         # which probably shouldn't be added to this function.
-        unit_system = self.ds.unit_system
-        params = self.ds.parameters
+        # unit_system = self.ds.unit_system
+        # params = self.ds.parameters
 
-        super(DenovoFieldInfo, self).setup_flux_fields(fluxtype)
+        # super(DenovoFieldInfo, self).setup_flux_fields(fluxtype)
+        pass
 
     def setup_particle_fields(self, ptype):
         # Becuase there are no particle types in Denovo, this is empty for now.
-        super(DenovoFieldInfo, self).setup_particle_fields(ptype)
+        # super(DenovoFieldInfo, self).setup_particle_fields(ptype)
+        pass
 
