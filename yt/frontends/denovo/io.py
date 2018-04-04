@@ -19,19 +19,25 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 from yt.utilities.logger import ytLogger as mylog
 
+def field_dname(field_name):
+    return "/denovo/{0}".format(field_name)
 
 class IOHandlerDenovHDF5(BaseIOHandler):
     _particle_reader = False
     _dataset_type = 'denovo'
 
+    def __init__(self,ds):
+        super(IOHandlerDenovoHDF5, self).__init__(ds)
+        self._handle = ds._handle
+        try:
+            self.groups = ds.paramaters['mesh_g']
+        except KeyError:
+            self.groups = False
+
     def _read_field_names(self, grid):
         # This function is used to pull in all of the fields from the Denovo
         # file relevant to what we can plot here.
-
-        if grid.filename is None:
-            return []
-        f = h5py.File(grid.filename, "r")
-        try:
+        pass
 
 
 
@@ -59,7 +65,29 @@ class IOHandlerDenovHDF5(BaseIOHandler):
         # Fortran-like input array with the dimension (z,y,x), a matrix
         # transpose is required (e.g., using np_array.transpose() or
         # np_array.swapaxes(0,2)).
-        pass
+
+        chunks = list(chunks)
+        assert(len(chunks) == 1)
+
+        fhandle = self._handle
+        rv = {}
+        for field in fields:
+            ftype, fname = field
+            rv[field] = np.empty(size, dtype=fhandle[field_dname(fname)].dtype)
+            ngrids = sum(len(chunk.onjs) for chunk in chunks)
+            mylog.debug("Reading %s cells of %s fields in %s blocks",
+                    size, [fname for ft, fn in fields], ngrids)
+        for field in fields:
+            ftype, fname = field
+            # right now only pull in 0th group of the flux to see if things
+            # work.
+            ds = np.array(fhandle[field_dname(fname)][0,:],
+                    dtype="float64").transpose()
+            ind = 0
+            for chunk in chunks:
+                for g in chunk.objs:
+                    ind += g.select(selector, ds, rv[field], ind) # caches
+        return rv
 
     def _read_chunk_data(self, chunk, fields):
         # This reads the data from a single chunk without doing any selection,
