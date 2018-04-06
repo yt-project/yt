@@ -33,6 +33,10 @@ from .plot_container import \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
     create_profile
+from yt.data_objects.static_output import \
+    Dataset
+from yt.data_objects.data_containers import \
+    YTSelectionContainer
 from yt.frontends.ytdata.data_structures import \
     YTProfileDataset
 from yt.utilities.exceptions import \
@@ -118,6 +122,15 @@ def sanitize_label(label, nprofiles):
 
     return label
 
+def data_object_or_all_data(data_source):
+    if isinstance(data_source, Dataset):
+        data_source = data_source.all_data()
+
+    if not isinstance(data_source, YTSelectionContainer):
+        raise RuntimeError("data_source must be a yt selection data object")
+
+    return data_source
+
 class ProfilePlot(object):
     r"""
     Create a 1d profile plot from a data source or from a list 
@@ -135,7 +148,8 @@ class ProfilePlot(object):
     ----------
     data_source : YTSelectionContainer Object
         The data object to be profiled, such as all_data, region, or 
-        sphere.
+        sphere. If a dataset is passed in instead, an all_data data object
+        is generated internally from the dataset.
     x_field : str
         The binning field for the profile.
     y_fields : str or list
@@ -221,6 +235,8 @@ class ProfilePlot(object):
                  accumulation=False, fractional=False,
                  label=None, plot_spec=None,
                  x_log=None, y_log=None):
+
+        data_source = data_object_or_all_data(data_source)
 
         if x_log is None:
             logs = None
@@ -833,7 +849,8 @@ class PhasePlot(ImagePlotContainer):
     ----------
     data_source : YTSelectionContainer Object
         The data object to be profiled, such as all_data, region, or 
-        sphere.
+        sphere. If a dataset is passed in instead, an all_data data object
+        is generated internally from the dataset.
     x_field : str
         The x binning field for the profile.
     y_field : str
@@ -897,6 +914,8 @@ class PhasePlot(ImagePlotContainer):
                  weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
                  fontsize=18, figure_size=8.0):
+
+        data_source = data_object_or_all_data(data_source)
 
         if isinstance(data_source.ds, YTProfileDataset):
             profile = data_source.ds.profile
