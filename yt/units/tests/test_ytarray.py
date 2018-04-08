@@ -677,6 +677,8 @@ def test_fix_length():
     new_length = fix_length(length, ds=ds)
     assert_equal(YTQuantity(10, 'cm'), new_length)
 
+    assert_raises(RuntimeError, fix_length, (length, 'code_length'), ds)
+
 def test_code_unit_combinations():
     """
     Test comparing code units coming from different datasets
