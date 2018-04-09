@@ -20,10 +20,10 @@ from yt.fields.field_info_container import \
 # container subclass here will define which fields it knows about.  There are
 # optionally methods on it that get called which can be subclassed.
 #
-flux_units = "neutrons / code_length**2"
-angular_flux_units = "neutrons / code_length**2 / steradian "
+flux_units = " 1 / code_length**2"
+angular_flux_units = " 1 / code_length**2 / steradian "
 density_units = "code_mass / code_length**3"
-source_units = "neutrons"
+source_units = "1"
 
 
 class DenovoFieldInfo(FieldInfoContainer):

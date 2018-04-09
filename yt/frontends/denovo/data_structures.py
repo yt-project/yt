@@ -18,6 +18,8 @@ import numpy as np
 import weakref
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.file_handler import HDF5FileHandler
+from yt.funcs import setdefaultattr
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -67,8 +69,10 @@ class DenovoHierarchy(UnstructuredIndex):
 
     def _initialize_mesh(self):
         from yt.frontends.stream.data_structures import hexahedral_connectivity
-        coords, conn = hexahedral_connectivity(ds.paramaters.mesh_x,
-                ds.parameters.mesh_y, ds.parameters.mesh_z)
+        coords, conn =hexahedral_connectivity(
+                self.dataset.parameters['mesh_x'],
+                self.dataset.parameters['mesh_y'],
+                self.dataset.parameters['mesh_z'])
         self.meshes = [DenovoMesh(0, self.index_filename, conn, coords, self)]
 
 
@@ -81,8 +85,8 @@ class DenovoHierarchy(UnstructuredIndex):
         # manually delete them here until later.
         #
         if ('denovo','angular_mesh') in self.field_list:
-            self.field_list.remove('denovo','angular_mesh')
-        self.field_list.remove('denovo','block')
+            self.field_list.remove(('denovo','angular_mesh'))
+        self.field_list.remove(('denovo','block'))
 
     def _count_grids(self):
         self.num_grids=1
@@ -143,16 +147,16 @@ class DenovoDataset(Dataset):
         # Denovo does not currently output what units the flux is in.
         #
         #
-        setdefaultattr(self, 'length_unit', self.quan(length_unit, "cm"))
-        setdefaultattr(self, 'mass_unit', self.quan(length_unit, "g"))
-        setdefaultattr(self, 'time_unit', self.quan(length_unit, "s"))
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
         #
         pass
 
     def _parse_parameter_file(self):
         #
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+        self.unique_identifier = self.parameter_filename
+        # int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self._handle = h5py.File(self.parameter_filename, "r")
         self.parameters = self._load_parameters()
         self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
@@ -167,7 +171,7 @@ class DenovoDataset(Dataset):
         # this will be set to 0.0
         self.current_time = 0.0
         #
-        # The next few paramaters are set to 0 because Denovo is a
+        # The next few parameters are set to 0 because Denovo is a
         # non-cosmological simulation tool.
         #
         self.cosmological_simulation = 0
@@ -177,7 +181,7 @@ class DenovoDataset(Dataset):
         self.hubble_constant = 0
         pass
 
-    def _load_parameters():
+    def _load_parameters(self):
         """
 
         loads in all of the parameters located in the 'denovo' group that are
@@ -196,7 +200,7 @@ class DenovoDataset(Dataset):
         return self.parameters
 
 
-    def _load_domain_edge():
+    def _load_domain_edge(self):
         """
 
         Loads the boundaries for the domain edge using the min and max values
@@ -207,13 +211,13 @@ class DenovoDataset(Dataset):
         mylog.info("calculating domain boundaries")
 
         if 'mesh_x' in self.parameters:
-            left_edge = [self.parameters['mesh_x'].min(),
+            left_edge = np.array([self.parameters['mesh_x'].min(),
             self.parameters['mesh_y'].min(),
-            self.parameters['mesh_z'].min()]
+            self.parameters['mesh_z'].min()])
 
-            right_edge = [self.parameters['mesh_x'].max(),
+            right_edge = np.array([self.parameters['mesh_x'].max(),
             self.parameters['mesh_y'].max(),
-            self.parameters['mesh_z'].max()]
+            self.parameters['mesh_z'].max()])
 
         else:
             left_edge = []
@@ -225,7 +229,7 @@ class DenovoDataset(Dataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
 
-        warn_h5py(args[0])
+        # warn_h5py(args[0])
 
         try:
             fileh = h5py.File(args[0], 'r')

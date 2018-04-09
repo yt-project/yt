@@ -30,7 +30,7 @@ class IOHandlerDenovoHDF5(BaseIOHandler):
         super(IOHandlerDenovoHDF5, self).__init__(ds)
         self._handle = ds._handle
         try:
-            self.groups = ds.paramaters['mesh_g']
+            self.groups = ds.parameters['mesh_g']
         except KeyError:
             self.groups = False
 
