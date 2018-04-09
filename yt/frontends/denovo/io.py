@@ -74,7 +74,7 @@ class IOHandlerDenovoHDF5(BaseIOHandler):
         for field in fields:
             ftype, fname = field
             rv[field] = np.empty(size, dtype=fhandle[field_dname(fname)].dtype)
-            ngrids = sum(len(chunk.onjs) for chunk in chunks)
+            ngrids = sum(len(chunk.objs) for chunk in chunks)
             mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [fname for ft, fn in fields], ngrids)
         for field in fields:
