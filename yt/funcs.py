@@ -751,12 +751,8 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
-def fix_length(length, ds=None):
-    assert ds is not None
-    if ds is not None:
-        registry = ds.unit_registry
-    else:
-        registry = None
+def fix_length(length, ds):
+    registry = ds.unit_registry
     if isinstance(length, YTArray):
         if registry is not None:
             length.units.registry = registry
@@ -765,7 +761,9 @@ def fix_length(length, ds=None):
         return YTArray(length, 'code_length', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
     unit_is_string = isinstance(length[1], string_types)
-    if length_valid_tuple and unit_is_string:
+    length_is_number = (isinstance(length[0], numeric_type) and not
+                        isinstance(length[0], YTArray))
+    if length_valid_tuple and unit_is_string and length_is_number:
         return YTArray(*length, registry=registry)
     else:
         raise RuntimeError("Length %s is invalid" % str(length))
@@ -880,8 +878,12 @@ def ensure_dir(path):
 
 def validate_width_tuple(width):
     if not iterable(width) or len(width) != 2:
-        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
-    if not isinstance(width[0], numeric_type) and isinstance(width[1], string_types):
+        raise YTInvalidWidthError(
+            "width (%s) is not a two element tuple" % width)
+    is_numeric = isinstance(width[0], numeric_type)
+    length_has_units = isinstance(width[0], YTArray)
+    unit_is_string = isinstance(width[1], string_types)
+    if not is_numeric or length_has_units and unit_is_string:
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)
