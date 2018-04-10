@@ -50,7 +50,7 @@ from .fields import DenovoFieldInfo
 
 class DenovoMesh(SemiStructuredMesh):
     _connectivity_length = 8
-    _index_offset = 1
+    _index_offset = 0
 
 class DenovoHierarchy(UnstructuredIndex):
 
