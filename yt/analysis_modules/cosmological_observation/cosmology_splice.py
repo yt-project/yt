@@ -169,8 +169,7 @@ class CosmologySplice(object):
 
                 if current_slice["redshift"] < z_target:
                     need_fraction = self.cosmology.comoving_radial_distance(
-                        current_slice["redshift"],
-                        cosmology_splice[-1]["redshift"]) / \
+                        current_slice["redshift"], z) / \
                         self.simulation.box_size
                     raise RuntimeError(
                         ("Cannot create cosmology splice: " +
