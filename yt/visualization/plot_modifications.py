@@ -23,6 +23,8 @@ import re
 
 from functools import wraps
 
+from numbers import Number
+
 from yt.analysis_modules.level_sets.clump_handling import \
     Clump
 from yt.frontends.ytdata.data_structures import \
@@ -1871,7 +1873,7 @@ class TimestampCallback(PlotCallback):
     def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True,
                  redshift=False, time_format="t = {time:.1f} {units}",
                  time_unit=None, redshift_format="z = {redshift:.2f}",
-                 draw_inset_box=False, coord_system='axis',
+                 draw_inset_box=False, coord_system='axis', time_offset=None,
                  text_args=None, inset_box_args=None):
 
         def_text_args = {'color':'white', 'horizontalalignment':'center',
@@ -1888,6 +1890,7 @@ class TimestampCallback(PlotCallback):
         self.redshift_format = redshift_format
         self.time_unit = time_unit
         self.coord_system = coord_system
+        self.time_offset = time_offset
         if text_args is None: text_args = def_text_args
         self.text_args = text_args
         if inset_box_args is None: inset_box_args = def_inset_box_args
@@ -1935,6 +1938,12 @@ class TimestampCallback(PlotCallback):
                                             plot.ds.current_time,
                                             quantity='time')
             t = plot.ds.current_time.in_units(self.time_unit)
+            if self.time_offset is not None:
+                if isinstance(self.time_offset, tuple):
+                    toffset = plot.ds.quan(self.time_offset[0], self.time_offset[1])
+                elif isinstance(self.time_offset, Number):
+                    toffset = plot.ds.quan(self.time_offset, self.time_unit)
+                t -= toffset.in_units(self.time_unit)
             self.text += self.time_format.format(time=float(t),
                                                  units=self.time_unit)
 
@@ -2050,9 +2059,9 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
-                 max_frac=0.16, min_frac=0.015, coord_system='axis',
-                 text_args=None, size_bar_args=None, draw_inset_box=False,
-                 inset_box_args=None):
+                 format="{scale} {units}", max_frac=0.16, min_frac=0.015, 
+                 coord_system='axis', text_args=None, size_bar_args=None, 
+                 draw_inset_box=False, inset_box_args=None):
 
         def_size_bar_args = {
             'pad': 0.05,
@@ -2077,6 +2086,7 @@ class ScaleCallback(PlotCallback):
         self.max_frac = max_frac
         self.min_frac = min_frac
         self.coord_system = coord_system
+        self.format = format
         if size_bar_args is None:
             self.size_bar_args = def_size_bar_args
         else:
@@ -2131,7 +2141,7 @@ class ScaleCallback(PlotCallback):
             self.coeff = max_scale.v
             self.unit = max_scale.units
         self.scale = YTQuantity(self.coeff, self.unit)
-        text = "{scale} {units}".format(scale=int(self.coeff), units=self.unit)
+        text = self.format.format(scale=int(self.coeff), units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
         size_vertical = self.size_bar_args.pop(
