@@ -203,7 +203,7 @@ class FITSImageData(object):
                 hdu.header["bunit"] = re.sub('()', '', self.field_units[name])
                 for unit in ("length", "time", "mass", "velocity", "magnetic"):
                     if unit == "magnetic":
-                        short_unit = "b"
+                        short_unit = "bf"
                     else:
                         short_unit = unit[0]
                     key = "{}unit".format(short_unit)

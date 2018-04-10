@@ -527,7 +527,7 @@ class YTFITSDataset(FITSDataset):
         """
         for unit in ("length", "time", "mass", "velocity", "magnetic"):
             if unit == "magnetic":
-                short_unit = "b"
+                short_unit = "bf"
             else:
                 short_unit = unit[0]
             u = self.quan(self.primary_header["%sunit" % short_unit],
