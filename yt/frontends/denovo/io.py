@@ -81,8 +81,8 @@ class IOHandlerDenovoHDF5(BaseIOHandler):
             ftype, fname = field
             # right now only pull in 0th group of the flux to see if things
             # work.
-            ds = np.array(fhandle[field_dname(fname)][0,:],
-                    dtype="float64").transpose()
+            ds = np.array(fhandle[field_dname(fname)][0,...],
+                    dtype="float64").transpose().copy()
             ind = 0
             for chunk in chunks:
                 for g in chunk.objs:
