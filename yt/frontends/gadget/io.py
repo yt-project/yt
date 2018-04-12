@@ -68,8 +68,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 y = f["/%s/Coordinates" % ptype][si:ei, 1].astype("float64")
                 z = f["/%s/Coordinates" % ptype][si:ei, 2].astype("float64")
                 if ptype == self.ds._sph_ptype:
-                    hsml = f[
-                        "/%s/SmoothingLength" % ptype][si:ei].astype("float64")
+                    pdtype = f["/%s/Coordinates" % ptype].dtype
+                    pshape = f["/%s/Coordinates" % ptype].shape
+                    hsml = self._get_smoothing_length(data_file, pdtype, pshape)
                 else:
                     hsml = 0.0
                 yield ptype, (x, y, z), hsml
@@ -102,16 +103,22 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         with h5py.File(data_file.filename, "r") as f:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
             pcount = np.clip(pcount - si, 0, ei - si)
-            ds = f[ptype]["SmoothingLength"][si:ei,...]
-            dt = ds.dtype.newbyteorder("N") # Native
-            if position_dtype is not None and dt < position_dtype:
-                # Sometimes positions are stored in double precision
-                # but smoothing lengths are stored in single precision.
-                # In these cases upcast smoothing length to double precision
-                # to avoid ValueErrors when we pass these arrays to Cython.
-                dt = position_dtype
-            hsml = np.empty(ds.shape, dtype=dt)
-            hsml[:] = ds
+            if "SmoothingLength" not in f[ptype]:
+                hsml = f[ptype]["Masses"][si:ei,...]/f[ptype]["Density"][si:ei,...]
+                hsml *= 3.0/(4.0*np.pi)
+                hsml **= (1./3.)
+                hsml *= 2.5
+            else:
+                ds = f[ptype]["SmoothingLength"][si:ei,...]
+                dt = ds.dtype.newbyteorder("N") # Native
+                if position_dtype is not None and dt < position_dtype:
+                    # Sometimes positions are stored in double precision
+                    # but smoothing lengths are stored in single precision.
+                    # In these cases upcast smoothing length to double precision
+                    # to avoid ValueErrors when we pass these arrays to Cython.
+                    dt = position_dtype
+                hsml = np.empty(ds.shape, dtype=dt)
+                hsml[:] = ds
             return hsml
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -129,6 +136,11 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 g = f["/%s" % ptype]
                 if getattr(selector, 'is_all_data', False):
                     mask = slice(None, None, None)
+                coords = g["Coordinates"][si:ei].astype("float64")
+                if ptype == 'PartType0':
+                    hsmls = self._get_smoothing_length(data_file,
+                                                       g["Coordinates"].dtype, 
+                                                       g["Coordinates"].shape)
                 else:
                     coords = g["Coordinates"][si:ei].astype("float64")
                     if ptype == 'PartType0':
@@ -141,13 +153,11 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 if mask is None:
                     continue
                 for field in field_list:
-
                     if field in ("Mass", "Masses") and \
                             ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
                         ind = self._known_ptypes.index(ptype)
                         data[:] = self.ds["Massarr"][ind]
-
                     elif field in self._element_names:
                         rfield = 'ElementAbundance/' + field
                         data = g[rfield][si:ei][mask, ...]
@@ -157,6 +167,8 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     elif field.startswith("Chemistry_"):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["ChemistryAbundances"][si:ei, col][mask]
+                    elif field == "smoothing_length":
+                        data = hsmls[mask].astype("float64")
                     else:
                         data = g[field][si:ei][mask, ...]
 
@@ -222,7 +234,8 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     if len(g[kk].shape) > 1:
                         self._vector_fields[kk] = g[kk].shape[1]
                     fields.append((ptype, str(kk)))
-
+        if "SmoothingLength" not in f["PartType0"]:
+            fields.append(("PartType0", "smoothing_length"))
         f.close()
         return fields, {}
 
