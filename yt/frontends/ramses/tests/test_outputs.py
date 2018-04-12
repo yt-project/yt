@@ -296,3 +296,16 @@ def test_custom_hydro_def():
         check_unit(ds.r['ramses', 'Bar'], 'dimensionless')
     finally:
         ytcfg.remove_section('ramses-hydro')
+
+@requires_file(output_00080)
+def test_grav_detection():
+    ds = yt.load(output_00080)
+
+    # Test detection
+    for k in 'xyz':
+        assert ('gravity', '%s-acceleration' % k) in ds.field_list
+        assert ('gas', 'acceleration_%s' % k) in ds.derived_field_list
+
+    # Test access
+    for k in 'xyz':
+        ds.r['gas', 'acceleration_%s' % k]
