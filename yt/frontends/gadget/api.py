@@ -17,7 +17,9 @@ API for Gadget frontend
 from .data_structures import \
     GadgetDataset, \
     GadgetHDF5Dataset, \
-    GadgetFieldInfo
+    ArepoHDF5Dataset, \
+    GadgetFieldInfo, \
+    ArepoFieldInfo
 
 from .io import \
     IOHandlerGadgetBinary, \
