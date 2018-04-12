@@ -33,7 +33,7 @@ ra_units = "code_length / code_time**2"
 rho_units = "code_density"
 vel_units = "code_velocity"
 pressure_units = "code_pressure"
-ener_units = "code_mass * code_velocity**2 / code_time**2"
+ener_units = "code_mass * code_velocity**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
 flux_unit = "1 / code_length**2 / code_time"
 number_density_unit = "1 / code_length**3"
@@ -80,6 +80,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("HII",  ("", ["H_p1_fraction"], None)),
         ("HeII", ("", ["He_p1_fraction"], None)),
         ("HeIII",("", ["He_p2_fraction"], None)),
+        ("x-acceleration", (ra_units, ['acceleration_x'], None)),
+        ("y-acceleration", (ra_units, ['acceleration_y'], None)),
+        ("z-acceleration", (ra_units, ['acceleration_z'], None)),
+        ("Potential", (ener_units, ['potential'], None))
     )
     known_particle_fields = (
         ("particle_position_x", ("code_length", [], None)),

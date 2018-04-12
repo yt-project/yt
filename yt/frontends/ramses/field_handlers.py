@@ -324,6 +324,58 @@ class HydroFieldFileHandler(FieldFileHandler):
 
         return fields
 
+class GravFieldFileHandler(FieldFileHandler):
+    ftype = 'gravity'
+    fname = 'grav_{iout:05d}.out{icpu:05d}'
+    config_field = 'ramses-grav'
+
+    attrs = ( ('ncpu', 1, 'i'),
+              ('nvar', 1, 'i'),
+              ('nlevelmax', 1, 'i'),
+              ('nboundary', 1, 'i')
+    )
+
+    @classmethod
+    def any_exist(cls, ds):
+        files = os.path.join(
+            os.path.split(ds.parameter_filename)[0],
+            'grav_?????.out00001')
+        ret = len(glob.glob(files)) == 1
+
+        cls._any_exist = ret
+        return ret
+
+    @classmethod
+    def detect_fields(cls, ds):
+        ndim = ds.dimensionality
+        iout = int(str(ds).split('_')[1])
+        basedir = os.path.split(ds.parameter_filename)[0]
+        fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
+        with open(fname, 'rb') as f:
+            cls.parameters = fpu.read_attrs(f, cls.attrs)
+
+        nvar = cls.parameters['nvar']
+        ndim = ds.dimensionality
+
+        if nvar == ndim + 1:
+            fields = ['potential'] + ['%s-acceleration' % k for k in 'xyz'[:ndim]]
+            ndetected = ndim
+        else:
+            fields = ['%s-acceleration' % k for k in 'xyz'[:ndim]]
+            ndetected = ndim
+
+        if ndetected != nvar:
+            mylog.warning('Detected %s extra gravity fields.',
+                          nvar-ndetected)
+
+            for i in range(nvar-ndetected):
+                fields.append('var%s' % i)
+
+        cls.field_list = [(cls.ftype, e) for e in fields]
+
+        return fields
+
+
 class RTFieldFileHandler(FieldFileHandler):
     ftype = 'ramses-rt'
     fname = 'rt_{iout:05d}.out{icpu:05d}'
