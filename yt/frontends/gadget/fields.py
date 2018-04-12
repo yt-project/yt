@@ -99,3 +99,15 @@ class GadgetFieldInfo(SPHFieldInfo):
         # in the FieldInfoContainer base class has already hapenned at this
         # point
         self.alias(('gas', 'temperature'), (ptype, 'Temperature'))
+
+        # For now, we hardcode num_neighbors.  We should make this configurable
+        # in the future.
+        num_neighbors = 64
+        add_volume_weighted_smoothed_field(
+            ptype, "particle_position", "particle_mass", "smoothing_length",
+            "density", "Temperature", self, num_neighbors)
+
+
+class ArepoFieldInfo(GadgetFieldInfo):
+    known_particle_fields = GadgetFieldInfo.known_particle_fields + \
+                            (("smoothing_length", ("code_length", [], None)),)

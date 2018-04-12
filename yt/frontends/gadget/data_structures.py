@@ -38,7 +38,8 @@ from .definitions import \
     SNAP_FORMAT_2_OFFSET
 
 from .fields import \
-    GadgetFieldInfo
+    GadgetFieldInfo, \
+    ArepoFieldInfo
 
 def _fix_unit_ordering(unit):
     if isinstance(unit[0], string_types):
@@ -649,4 +650,23 @@ class GadgetHDF5Dataset(GadgetDataset):
         except (IOError, KeyError, ImportError):
             pass
 
+        return valid
+
+class ArepoHDF5Dataset(GadgetHDF5Dataset):
+    _field_info_class = ArepoFieldInfo
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        need_groups = ['Header', 'Config']
+        veto_groups = ['FOF', 'Group', 'Subhalo']
+        valid = True
+        try:
+            fh = h5py.File(args[0], mode='r')
+            valid = all(ng in fh["/"] for ng in need_groups) and \
+                    not any(vg in fh["/"] for vg in veto_groups) and \
+                    ("VORONOI" in fh["/Config"].attrs.keys() or
+                     "AMR" in fh["/Config"].attrs.keys())
+            fh.close()
+        except:
+            valid = False
+            pass
         return valid
