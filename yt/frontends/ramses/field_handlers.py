@@ -167,6 +167,9 @@ class FieldFileHandler(object):
             return self._offset
 
         nvar = self.parameters['nvar']
+        ndim = self.domain.ds.dimensionality
+        twotondim = 2**ndim
+
         with open(self.fname, 'rb') as f:
             # Skip headers
             nskip = len(self.attrs)
@@ -198,7 +201,7 @@ class FieldFileHandler(object):
                     if cpu + 1 == self.domain_id and level >= min_level:
                         offset[level - min_level] = f.tell()
                         level_count[level - min_level] = hvals['file_ncache']
-                    skipped = fpu.skip(f, 8 * nvar)
+                    skipped = fpu.skip(f, twotondim * nvar)
         self._offset = offset
         self._level_count = level_count
         return self._offset
