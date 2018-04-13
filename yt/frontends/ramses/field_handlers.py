@@ -226,7 +226,6 @@ class HydroFieldFileHandler(FieldFileHandler):
             os.path.split(ds.parameter_filename)[0],
             'hydro_?????.out?????')
         ret = len(glob.glob(files)) > 0
-        cls._any_exist = ret
         return ret
 
     @classmethod
@@ -345,7 +344,6 @@ class GravFieldFileHandler(FieldFileHandler):
             'grav_?????.out00001')
         ret = len(glob.glob(files)) == 1
 
-        cls._any_exist = ret
         return ret
 
     @classmethod
@@ -399,7 +397,6 @@ class RTFieldFileHandler(FieldFileHandler):
             'info_rt_?????.txt')
         ret = len(glob.glob(files)) == 1
 
-        cls._any_exist = ret
         return ret
 
     @classmethod
