@@ -82,38 +82,15 @@ class DenovoHierarchy(UnstructuredIndex):
                 self._fhandle['/denovo/db/hdf5_db'].items() if val.value]
 
         # right now we don't want to read in a few of these fields, so we'll
-        # manually delete them here until later.
-        #
+        # manually delete them here until support can be added for them
+        # later.
+
         if ('denovo','angular_mesh') in self.field_list:
             self.field_list.remove(('denovo','angular_mesh'))
         self.field_list.remove(('denovo','block'))
 
     def _count_grids(self):
         self.num_grids=1
-
-    # not sure if this is needed since it's not in the hexahedral OR Moab
-    # Hierarchy classes.
-    # def _parse_index(self):
-    #     # This needs to fill the following arrays, where N is self.num_grids:
-    #     #   self.grid_left_edge         (N, 3) <= float64
-    #     #   self.grid_right_edge        (N, 3) <= float64
-    #     #   self.grid_dimensions        (N, 3) <= int
-    #     #   self.grid_particle_count    (N, 1) <= int
-    #     #   self.grid_levels            (N, 1) <= int
-    #     #   self.grids                  (N, 1) <= grid objects
-    #     #   self.max_level = self.grid_levels.max()
-    #     pass
-
-    # def _populate_grid_objects(self):
-    #     # For each grid, this must call:
-    #     #   grid._prepare_grid()
-    #     #   grid._setup_dx()
-    #     # This must also set:
-    #     #   grid.Children <= list of child grids
-    #     #   grid.Parent   <= parent grid
-    #     # This is handled by the frontend because often the children must be
-    #     # identified.
-    #     pass
 
 
 class DenovoDataset(Dataset):
@@ -142,11 +119,12 @@ class DenovoDataset(Dataset):
         self.cosmological_simulation = False
 
     def _set_code_unit_attributes(self):
-        #
+
         # For now set the length mass and time units to what we expect.
-        # Denovo does not currently output what units the flux is in.
-        #
-        #
+        # Denovo does not currently output what units the flux is in
+        # explicitly, but these units are implied.
+
+
         setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
         setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
         setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
@@ -156,7 +134,6 @@ class DenovoDataset(Dataset):
     def _parse_parameter_file(self):
         #
         self.unique_identifier = self.parameter_filename
-        # int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self._handle = h5py.File(self.parameter_filename, "r")
         self.parameters = self._load_parameters()
         self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
@@ -170,10 +147,10 @@ class DenovoDataset(Dataset):
         # There is no time-dependence in the denovo solutions at this time, so
         # this will be set to 0.0
         self.current_time = 0.0
-        #
+
         # The next few parameters are set to 0 because Denovo is a
         # non-cosmological simulation tool.
-        #
+
         self.cosmological_simulation = 0
         self.current_redshift = 0
         self.omega_lambda = 0

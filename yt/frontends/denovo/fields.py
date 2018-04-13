@@ -16,10 +16,6 @@ Denovo-specific fields
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
-# We need to specify which fields we might have in our dataset.  The field info
-# container subclass here will define which fields it knows about.  There are
-# optionally methods on it that get called which can be subclassed.
-#
 flux_units = " 1 / code_length**2"
 angular_flux_units = " 1 / code_length**2 / steradian "
 density_units = "code_mass / code_length**3"
@@ -63,6 +59,5 @@ class DenovoFieldInfo(FieldInfoContainer):
 
     def setup_particle_fields(self, ptype):
         # Becuase there are no particle types in Denovo, this is empty for now.
-        # super(DenovoFieldInfo, self).setup_particle_fields(ptype)
         pass
 
