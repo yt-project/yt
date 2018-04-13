@@ -64,14 +64,25 @@ class IOHandlerDenovoHDF5(BaseIOHandler):
                     size, [fname for ft, fn in fields], ngrids)
         for field in fields:
             ftype, fname = field
-            # right now only pull in 0th group of the flux to see if things
-            # work.
-            ds = np.array(fhandle[field_dname(fname)][0,...],
-                    dtype="float64").transpose().copy()
-            ind = 0
-            for chunk in chunks:
-                for g in chunk.objs:
-                    ind += g.select(selector, ds, rv[field], ind) # caches
+            if 'egroup' in ftype:
+                # trying to get the energy group number from the egroup string
+                # isn't that pretty, but it works for now.
+                group_no = int(ftype.split('_')[-1])
+                mylog.info("trying to read in energy group {}".format(group_no))
+                ds = np.array(fhandle[field_dname(fname)][group_no,...],
+                        dtype="float64").transpose().copy()
+                ind = 0
+                for chunk in chunks:
+                    for g in chunk.objs:
+                        ind += g.select(selector, ds, rv[field], ind) # caches
+            else:
+                ds = np.array(fhandle[field_dname(fname)][...],
+                        dtype="float64").transpose().copy()
+                ind = 0
+                for chunk in chunks:
+                    for g in chunk.objs:
+                        ind += g.select(selector, ds, rv[field], ind) # caches
+
         return rv
 
     def _read_chunk_data(self, chunk, fields):

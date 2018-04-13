@@ -34,20 +34,6 @@ from yt.data_objects.static_output import \
 
 from .fields import DenovoFieldInfo
 
-
-# class DenovoGrid(AMRGridPatch):
-#     _id_offset = 0
-#
-#     def __init__(self, id, index, level):
-#         super(DenovoGrid, self).__init__(id, filename=index.index_filename,
-#                               index=index)
-#         self.Parent = None
-#         self.Children = []
-#         self.Level = level
-#
-#     def __repr__(self):
-#         return "DenovoGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
-
 class DenovoMesh(SemiStructuredMesh):
     _connectivity_length = 8
     _index_offset = 0
@@ -78,16 +64,46 @@ class DenovoHierarchy(UnstructuredIndex):
 
     def _detect_output_fields(self):
 
-        self.field_list = [("denovo", key) for key, val in
-                self._fhandle['/denovo/db/hdf5_db'].items() if val.value]
+        if 'mesh_g' in self.dataset.parameters:
+            num_groups = len(self.dataset.parameters['mesh_g'])
+        else:
+            num_groups = 0
 
-        # right now we don't want to read in a few of these fields, so we'll
-        # manually delete them here until support can be added for them
-        # later.
+        mylog.debug("There are {} energy groups".format(num_groups))
 
-        if ('denovo','angular_mesh') in self.field_list:
-            self.field_list.remove(('denovo','angular_mesh'))
-        self.field_list.remove(('denovo','block'))
+
+        # Here we will create the output fields. If an energy group mesh
+        # exists, we'll create several energy group field types with field
+        # names that are associated with the mesh data in the denovo output
+        # file.
+        if num_groups > 0:
+            self.field_list = []
+            for group in self.dataset.parameters['mesh_g']:
+                self._create_group_fields(group)
+
+        # If an energy group mesh does not exist, then the mesh data will be
+        # contained in a 'denovo' field type, rather than an energy group field
+        # type.
+        else:
+            self.field_list = [("denovo", key) for key, val in
+                    self._fhandle['/denovo/db/hdf5_db'].items() if val.value]
+
+            # right now we don't want to read in a few of these fields, so we'll
+            # manually delete them here until support can be added for them
+            # later.
+
+            if ('denovo','angular_mesh') in self.field_list:
+                self.field_list.remove(('denovo','angular_mesh'))
+            self.field_list.remove(('denovo','block'))
+
+
+    def _create_group_fields(self, group_number):
+        field_type = 'egroup_%03i' %group_number
+        self.field_list.extend([(field_type, key) for key, val in
+                self._fhandle['/denovo/db/hdf5_db'].items() if val.value])
+        if (field_type, 'angular_mesh') in self.field_list:
+            self.field_list.remove((field_type, 'angular_mesh'))
+        self.field_list.remove((field_type, 'block'))
 
     def _count_grids(self):
         self.num_grids=1
