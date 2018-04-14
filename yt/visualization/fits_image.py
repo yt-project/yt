@@ -331,8 +331,9 @@ class FITSImageData(object):
         clobber : overwrite, optional
             Whether or not to overwrite a previously existing file.
             Default: False
-        All other keyword arguments are passed to the `writeto`
-        method of `astropy.io.fits.HDUList`.
+
+        Additional keyword arguments are passed to
+        :meth:`~astropy.io.fits.HDUList.writeto`.
         """
         if "clobber" in kwargs:
             issue_deprecation_warning("The \"clobber\" keyword argument "

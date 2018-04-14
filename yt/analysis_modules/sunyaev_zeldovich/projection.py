@@ -367,6 +367,9 @@ class SZProjection(object):
         overwrite : boolean, optional
             If the file already exists, do we overwrite?
 
+        Additional keyword arguments are passed to
+        :meth:`~astropy.io.fits.HDUList.writeto`.
+
         Examples
         --------
         >>> # This example just writes out a FITS file with kpc coords
