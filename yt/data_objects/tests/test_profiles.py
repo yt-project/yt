@@ -10,6 +10,7 @@ from yt.data_objects.profiles import \
     create_profile
 from yt.testing import \
     fake_random_ds, \
+    fake_sph_orientation_ds, \
     assert_equal, \
     assert_raises, \
     assert_rel_equal, \
@@ -301,3 +302,9 @@ def test_profile_zero_weight():
                                 weight_field=("gas", "DM_cell_mass"))
 
     assert not np.any(np.isnan(profile['gas', 'temperature']))
+
+def test_profile_sph_data():
+    ds = fake_sph_orientation_ds()
+    # test we create a profile without raising YTIllDefinedProfile
+    yt.create_profile(ds.all_data(), ['density', 'temperature'],
+                      ['kinetic_energy'], weight_field=None)
