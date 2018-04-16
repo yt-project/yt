@@ -1943,6 +1943,9 @@ class TimestampCallback(PlotCallback):
                     toffset = plot.ds.quan(self.time_offset[0], self.time_offset[1])
                 elif isinstance(self.time_offset, Number):
                     toffset = plot.ds.quan(self.time_offset, self.time_unit)
+                elif not isinstance(self.time_offset, YTQuantity):
+                    raise RuntimeError("'time_offset' must be a float, tuple, or"
+                                       "YTQuantity!")
                 t -= toffset.in_units(self.time_unit)
             self.text += self.time_format.format(time=float(t),
                                                  units=self.time_unit)
