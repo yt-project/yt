@@ -15,7 +15,7 @@ Gizmo-specific fields
 #-----------------------------------------------------------------------------
 
 from yt.fields.magnetic_field import \
-    setup_particle_magnetic_field_aliases
+    setup_magnetic_field_aliases
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.fields.particle_fields import \
@@ -140,4 +140,6 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
         magnetic_field = "MagneticField"
         if (ptype, magnetic_field) in self.field_list:
-            setup_particle_magnetic_field_aliases(self, ptype, magnetic_field)
+            setup_magnetic_field_aliases(
+                self, ptype, magnetic_field, ftype=ptype
+            )
