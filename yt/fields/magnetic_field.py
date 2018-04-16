@@ -171,9 +171,9 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     r"""
     This routine sets up special aliases between dataset-specific magnetic fields
-    and the default magnetic fields in yt so that unit conversions between different
-    unit systems can be handled properly. This is only called from the `setup_fluid_fields`
-    method of a frontend's :class:`FieldInfoContainer` instance.
+    and the default magnetic fields in yt for grid datasets so that unit conversions
+    between different unit systems can be handled properly. This is only called from the
+    `setup_fluid_fields` method of a frontend's :class:`FieldInfoContainer` instance.
 
     Parameters
     ----------
@@ -194,11 +194,61 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     ...             setup_magnetic_field_aliases
     ...         setup_magnetic_field_aliases(self, "chombo", ["bx%s" % ax for ax in [1,2,3]])
     """
-    unit_system = registry.ds.unit_system
     ds_fields = [(ds_ftype, fd) for fd in ds_fields]
-    if ds_fields[0] not in registry:
+    convert, units = _setup_magnet_unit_conversion(registry, ds_fields[0])
+    def mag_field(fd):
+        def _mag_field(field, data):
+            return convert(data[fd])
+        return _mag_field
+    for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields):
+        registry.add_field((ftype,"magnetic_field_%s" % ax),
+                           sampling_type="cell", 
+                           function=mag_field(fd),
+                           units=units)
+
+def setup_particle_magnetic_field_aliases(registry, ds_ptype, ds_field):
+    r"""
+    This routine sets up special aliases between dataset-specific magnetic fields
+    and the default magnetic fields in yt for particle datasets so that unit conversions
+    between different unit systems can be handled properly. This is only called from the `setup_fluid_fields` method of a frontend's :class:`FieldInfoContainer` instance.
+
+    Parameters
+    ----------
+    registry : :class:`FieldInfoContainer`
+        The field registry that these definitions will be installed into.
+    ds_ptype : string
+        The particle type for the fields we're going to alias, e.g. "PartType0", etc.
+    ds_field : string
+        The field that will be aliased. We assume this is a vector field, and
+        alias it into its x, y, z components.
+
+    Examples
+    --------
+    >>> class GizmoFieldInfo(GadgetFieldInfo):
+    ...     def setup_gas_particle_fields(self):
+    ...         from yt.fields.magnetic_field import \
+    ...             setup_particle_magnetic_field_aliases
+    ...         setup_particle_magnetic_field_aliases(self, "PartType0",
+    ...                                               "MagneticField")
+    """
+    ds_field = (ds_ptype, ds_field)
+    convert, units = _setup_magnet_unit_conversion(registry, ds_field)
+    def mag_field(ax):
+        def _mag_field(field, data):
+            return convert(data[ds_field][:, 'xyz'.index(ax)])
+        return _mag_field
+    for ax in registry.ds.coordinates.axis_order:
+        registry.add_field((ds_ptype, "particle_magnetic_field_%s" % ax),
+                           sampling_type="particle", 
+                           function=mag_field(ax),
+                           units=units)
+
+def _setup_magnet_unit_conversion(registry, ds_field):
+    """Figure out the unit conversion to use for the magnetic field."""
+    unit_system = registry.ds.unit_system
+    if ds_field not in registry:
         return
-    from_units = Unit(registry[ds_fields[0]].units,
+    from_units = Unit(registry[ds_field].units,
                       registry=registry.ds.unit_registry)
     if dimensions.current_mks in unit_system.base_units:
         to_units = unit_system["magnetic_field_mks"]
@@ -210,12 +260,5 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         convert = lambda x: x.in_units(to_units)
     else:
         convert = lambda x: x.to_equivalent(to_units, equiv)
-    def mag_field(fd):
-        def _mag_field(field, data):
-            return convert(data[fd])
-        return _mag_field
-    for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields):
-        registry.add_field((ftype,"magnetic_field_%s" % ax),
-                           sampling_type="cell", 
-                           function=mag_field(fd),
-                           units=unit_system[to_units.dimensions])
+    units = unit_system[to_units.dimensions]
+    return convert, units
