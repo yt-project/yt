@@ -195,6 +195,8 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     ...         setup_magnetic_field_aliases(self, "chombo", ["bx%s" % ax for ax in [1,2,3]])
     """
     ds_fields = [(ds_ftype, fd) for fd in ds_fields]
+    if ds_fields[0] not in registry:
+        return
     convert, units = _setup_magnet_unit_conversion(registry, ds_fields[0])
     def mag_field(fd):
         def _mag_field(field, data):
@@ -232,6 +234,8 @@ def setup_particle_magnetic_field_aliases(registry, ds_ptype, ds_field):
     ...                                               "MagneticField")
     """
     ds_field = (ds_ptype, ds_field)
+    if ds_field not in registry:
+        return
     convert, units = _setup_magnet_unit_conversion(registry, ds_field)
     def mag_field(ax):
         def _mag_field(field, data):
@@ -246,8 +250,6 @@ def setup_particle_magnetic_field_aliases(registry, ds_ptype, ds_field):
 def _setup_magnet_unit_conversion(registry, ds_field):
     """Figure out the unit conversion to use for the magnetic field."""
     unit_system = registry.ds.unit_system
-    if ds_field not in registry:
-        return
     from_units = Unit(registry[ds_field].units,
                       registry=registry.ds.unit_registry)
     if dimensions.current_mks in unit_system.base_units:
