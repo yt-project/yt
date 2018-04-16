@@ -1852,7 +1852,9 @@ class TimestampCallback(PlotCallback):
 
     time_offset : float, (value, unit) tuple, or YTQuantity, optional
         Apply an offset to the time shown in the annotation from the
-        value of the current time. Default: None, meaning no offset.
+        value of the current time. If a scalar value with no units is
+        passed in, the value of the *time_unit* kwarg is used for the
+        units. Default: None, meaning no offset.
 
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
@@ -2019,11 +2021,12 @@ class ScaleCallback(PlotCallback):
         The image location of the scale bar in the plot coordinate system.
         Setting pos overrides the corner parameter.
 
-    format : string, optional
+    scalebar_text_format : string, optional
         This specifies the format of the scalebar value assuming "scale" is the
         numerical value and "unit" is units of the scale (e.g. 'cm', 'kpc', etc.)
         The scale can be specified to arbitrary precision according to printf
-        formatting codes. Example: "Length = {scale:.2f} {units}".
+        formatting codes. The format string must only specify "scale" and "units".
+        Example: "Length = {scale:.2f} {units}". Default: "{scale} {units}"
 
     min_frac, max_frac: float, optional
         The minimum/maximum fraction of the axis width for the scale bar to
@@ -2075,9 +2078,9 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
-                 format="{scale} {units}", max_frac=0.16, min_frac=0.015, 
-                 coord_system='axis', text_args=None, size_bar_args=None, 
-                 draw_inset_box=False, inset_box_args=None):
+                 scale_text_format="{scale} {units}", max_frac=0.16, 
+                 min_frac=0.015, coord_system='axis', text_args=None, 
+                 size_bar_args=None, draw_inset_box=False, inset_box_args=None):
 
         def_size_bar_args = {
             'pad': 0.05,
@@ -2102,7 +2105,7 @@ class ScaleCallback(PlotCallback):
         self.max_frac = max_frac
         self.min_frac = min_frac
         self.coord_system = coord_system
-        self.format = format
+        self.scale_text_format = scale_text_format
         if size_bar_args is None:
             self.size_bar_args = def_size_bar_args
         else:
@@ -2157,7 +2160,8 @@ class ScaleCallback(PlotCallback):
             self.coeff = max_scale.v
             self.unit = max_scale.units
         self.scale = YTQuantity(self.coeff, self.unit)
-        text = self.format.format(scale=int(self.coeff), units=self.unit)
+        text = self.scale_text_format.format(scale=int(self.coeff), 
+                                             units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
         size_vertical = self.size_bar_args.pop(
