@@ -982,11 +982,21 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     units = sanitize_field_tuple_keys(units, data_source)
     extrema = sanitize_field_tuple_keys(extrema, data_source)
     logs = sanitize_field_tuple_keys(logs, data_source)
-
     if any(is_pfield) and not all(is_pfield):
-        raise YTIllDefinedProfile(
-            bin_fields, data_source._determine_fields(fields), wf, is_pfield)
-    elif len(bin_fields) == 1:
+        if hasattr(data_source.ds, '_sph_ptype'):
+            is_local = [data_source.ds.field_info[f].sampling_type == "local"
+                        for f in bin_fields + fields]
+            is_local_or_pfield = [pf or lf for (pf, lf) in
+                                  zip(is_pfield, is_local)]
+            if not all(is_local_or_pfield):
+                raise YTIllDefinedProfile(
+                    bin_fields, data_source._determine_fields(fields), wf,
+                    is_pfield)
+        else:
+            raise YTIllDefinedProfile(
+                bin_fields, data_source._determine_fields(fields), wf,
+                is_pfield)
+    if len(bin_fields) == 1:
         cls = Profile1D
     elif len(bin_fields) == 2 and all(is_pfield):
         if deposition == 'cic':
