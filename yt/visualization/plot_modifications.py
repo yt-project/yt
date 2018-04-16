@@ -1880,10 +1880,13 @@ class TimestampCallback(PlotCallback):
                  draw_inset_box=False, coord_system='axis', time_offset=None,
                  text_args=None, inset_box_args=None):
 
-        def_text_args = {'color':'white', 'horizontalalignment':'center',
-                         'verticalalignment':'top'}
-        def_inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black',
-                              'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
+        def_text_args = {'color': 'white',
+                         'horizontalalignment': 'center',
+                         'verticalalignment': 'top'}
+        def_inset_box_args = {'boxstyle': 'square,pad=0.3',
+                              'facecolor': 'black',
+                              'linewidth': 3,
+                              'edgecolor': 'white', 'alpha': 0.5}
 
         # Set position based on corner argument.
         self.pos = (x_pos, y_pos)
