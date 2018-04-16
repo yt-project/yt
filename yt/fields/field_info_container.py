@@ -381,7 +381,6 @@ class FieldInfoContainer(dict):
                 if field in self._show_field_errors:
                     raise
                 if type(e) != YTFieldNotFound:
-                    print(type(e), e)
                     # if we're doing field tests, raise an error
                     # see yt.fields.tests.test_fields
                     if hasattr(self.ds, '_field_test_dataset'):

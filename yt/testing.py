@@ -471,6 +471,7 @@ def fake_sph_orientation_ds():
         'particle_velocity_z': (np.zeros(npart), 'cm/s'),
         'smoothing_length': (0.25*np.ones(npart), 'cm'),
         'density': (np.ones(npart), 'g/cm**3'),
+        'temperature': (np.ones(npart), 'K'),
     }
 
     bbox = np.array([[-4, 4], [-4, 4], [-4, 4]])
