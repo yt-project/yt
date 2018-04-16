@@ -1850,6 +1850,10 @@ class TimestampCallback(PlotCallback):
 
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
+    time_offset : float, (value, unit) tuple, or YTQuantity, optional
+        Apply an offset to the time shown in the annotation from the
+        value of the current time. Default: None, meaning no offset.
+
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: ``{'color':'white',
@@ -2011,6 +2015,12 @@ class ScaleCallback(PlotCallback):
     pos : 2- or 3-element tuples, lists, or arrays, optional
         The image location of the scale bar in the plot coordinate system.
         Setting pos overrides the corner parameter.
+
+    format : string, optional
+        This specifies the format of the scalebar value assuming "scale" is the
+        numerical value and "unit" is units of the scale (e.g. 'cm', 'kpc', etc.)
+        The scale can be specified to arbitrary precision according to printf
+        formatting codes. Example: "Length = {scale:.2f} {units}".
 
     min_frac, max_frac: float, optional
         The minimum/maximum fraction of the axis width for the scale bar to
