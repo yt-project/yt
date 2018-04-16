@@ -622,8 +622,8 @@ Add the Current Time and/or Redshift
 
 .. function:: annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left',\
                                  time=True, redshift=False, \
-                                 time_format='t = {time:.0f} {units}', \
-                                 time_unit=None, \
+                                 time_format='t = {time:.1f} {units}', \
+                                 time_unit=None, time_offset=None, \
                                  redshift_format='z = {redshift:.2f}', \
                                  draw_inset_box=False, coord_system='axis', \
                                  text_args=None, inset_box_args=None)
@@ -635,8 +635,9 @@ Add the Current Time and/or Redshift
     location in the image (either in a present corner, or by specifying (x,y)
     image coordinates with the x_pos, y_pos arguments.  If no time_units are
     specified, it will automatically choose appropriate units.  It allows for
-    custom formatting of the time and redshift information, as well as the
-    specification of an inset box around the text.
+    custom formatting of the time and redshift information, the specification
+    of an inset box around the text, and changing the value of the timestamp
+    via a constant offset.
 
 .. python-script::
 
@@ -650,11 +651,14 @@ Add the Current Time and/or Redshift
 
 Add a Physical Scale Bar
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. function:: annotate_scale(corner='lower_right', coeff=None, \
-                             unit=None, pos=None, max_frac=0.16, \
-                             min_frac=0.015, coord_system='axis', \
-                             text_args=None, size_bar_args=None, \
-                             draw_inset_box=False, inset_box_args=None)
+                             unit=None, pos=None, 
+                             scale_text_format="{scale} {units}", \
+                             max_frac=0.16, min_frac=0.015, \
+                             coord_system='axis', text_args=None, \
+                             size_bar_args=None, draw_inset_box=False, \
+                             inset_box_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ScaleCallback`.)
@@ -670,7 +674,8 @@ Add a Physical Scale Bar
     dictionary accepts matplotlib's font_properties arguments to override
     the default font_properties for the current plot.  The size_bar_args
     dictionary accepts keyword arguments for the AnchoredSizeBar class in
-    matplotlib's axes_grid toolkit.
+    matplotlib's axes_grid toolkit. Finally, the format of the scale bar text
+    can be adjusted using the scale_text_format keyword argument.
 
 .. python-script::
 
