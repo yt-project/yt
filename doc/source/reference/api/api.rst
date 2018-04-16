@@ -171,6 +171,7 @@ These classes and functions enable yt's symbolic unit handling system.
    ~yt.units.yt_array.udot
    ~yt.units.yt_array.uvstack
    ~yt.units.yt_array.uhstack
+   ~yt.units.yt_array.ustack
 
 Frontends
 ---------
@@ -294,6 +295,16 @@ Halo Catalogs
 
 .. autosummary::
 
+   ~yt.frontends.ahf.data_structures.AHFHalosDataset
+   ~yt.frontends.ahf.fields.AHFHalosFieldInfo
+   ~yt.frontends.ahf.io.IOHandlerAHFHalos
+   ~yt.frontends.gadget_fof.data_structures.GadgetFOFDataset
+   ~yt.frontends.gadget_fof.data_structures.GadgetFOFHDF5File
+   ~yt.frontends.gadget_fof.data_structures.GadgetFOFHaloDataset
+   ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHDF5
+   ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHaloHDF5
+   ~yt.frontends.gadget_fof.fields.GadgetFOFFieldInfo
+   ~yt.frontends.gadget_fof.fields.GadgetFIFHaloFieldInfo
    ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
    ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
    ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo

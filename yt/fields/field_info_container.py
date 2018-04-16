@@ -150,7 +150,7 @@ class FieldInfoContainer(dict):
 
     def setup_smoothed_fields(self, ptype, num_neighbors = 64, ftype = "gas"):
         # We can in principle compute this, but it is not yet implemented.
-        if (ptype, "density") not in self:
+        if (ptype, "density") not in self or not hasattr(self.ds, '_sph_ptype'):
             return
         new_aliases = []
         for ptype2, alias_name in list(self):
@@ -381,6 +381,7 @@ class FieldInfoContainer(dict):
                 if field in self._show_field_errors:
                     raise
                 if type(e) != YTFieldNotFound:
+                    print(type(e), e)
                     # if we're doing field tests, raise an error
                     # see yt.fields.tests.test_fields
                     if hasattr(self.ds, '_field_test_dataset'):

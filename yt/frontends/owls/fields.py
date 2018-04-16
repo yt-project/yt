@@ -125,9 +125,9 @@ class OWLSFieldInfo(SPHFieldInfo):
         # not sure why yet.
         #-------------------------------------------------------
         if ptype == 'PartType0':
-            ftype='gas'
+            ftype = 'gas'
         else:
-            ftype=ptype
+            ftype = ptype
 
         super(OWLSFieldInfo,self).setup_particle_fields(
             ptype, num_neighbors=self._num_neighbors, ftype=ftype)

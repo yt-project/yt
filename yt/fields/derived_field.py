@@ -26,7 +26,6 @@ from .field_exceptions import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter, \
-    NeedsParameterValue, \
     FieldUnitsError
 from .field_detector import \
     FieldDetector
@@ -219,6 +218,20 @@ class DerivedField(object):
             e[self.name]
         return e
 
+    def _get_needed_parameters(self, fd):
+        params = []
+        values = []
+        permute_params = {}
+        vals = [v for v in self.validators if isinstance(v, ValidateParameter)]
+        for val in vals:
+            if val.parameter_values is not None:
+                permute_params.update(val.parameter_values)
+            else:
+                params.extend(val.parameters)
+                values.extend(
+                    [fd.get_field_parameter(fp) for fp in val.parameters])
+        return dict(zip(params, values)), permute_params
+
     _unit_registry = None
     @contextlib.contextmanager
     def unit_registry(self, data):
@@ -380,9 +393,6 @@ class ValidateParameter(FieldValidator):
         self.parameter_values = parameter_values
     def __call__(self, data):
         doesnt_have = []
-        if self.parameter_values is not None:
-            if isinstance(data, FieldDetector):
-                raise NeedsParameterValue(self.parameter_values)
         for p in self.parameters:
             if not data.has_field_parameter(p):
                 doesnt_have.append(p)

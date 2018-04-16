@@ -25,6 +25,7 @@ from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     create_obj
 from yt.frontends.ramses.api import RAMSESDataset
+from yt.config import ytcfg
 import os
 import yt
 
@@ -241,3 +242,57 @@ def test_ramses_part_count():
 
     assert_equal(pcount['io'], 17132, err_msg='Got wrong number of io particle')
     assert_equal(pcount['sink'], 8, err_msg='Got wrong number of sink particle')
+
+@requires_file(ramsesCosmo)
+def test_custom_particle_def():
+    ytcfg.add_section('ramses-particles')
+    ytcfg['ramses-particles', 'fields'] = '''particle_position_x, d
+         particle_position_y, d
+         particle_position_z, d
+         particle_velocity_x, d
+         particle_velocity_y, d
+         particle_velocity_z, d
+         particle_mass, d
+         particle_identifier, i
+         particle_refinement_level, I
+         particle_birth_time, d
+         particle_foobar, d
+    '''
+    ds = yt.load(ramsesCosmo)
+
+    def check_unit(array, unit):
+        assert str(array.in_cgs().units) == unit
+
+    try:
+        assert ('io', 'particle_birth_time') in ds.derived_field_list
+        assert ('io', 'particle_foobar') in ds.derived_field_list
+
+        check_unit(ds.r['io', 'particle_birth_time'], 's')
+        check_unit(ds.r['io', 'particle_foobar'], 'dimensionless')
+    finally:
+        ytcfg.remove_section('ramses-particles')
+
+@requires_file(ramsesCosmo)
+def test_custom_hydro_def():
+    ytcfg.add_section('ramses-hydro')
+    ytcfg['ramses-hydro', 'fields'] = '''
+    Density
+    x-velocity
+    y-velocity
+    z-velocity
+    Foo
+    Bar
+    '''
+    ds = yt.load(ramsesCosmo)
+
+    def check_unit(array, unit):
+        assert str(array.in_cgs().units) == unit
+
+    try:
+        assert ('ramses', 'Foo') in ds.derived_field_list
+        assert ('ramses', 'Bar') in ds.derived_field_list
+
+        check_unit(ds.r['ramses', 'Foo'], 'dimensionless')
+        check_unit(ds.r['ramses', 'Bar'], 'dimensionless')
+    finally:
+        ytcfg.remove_section('ramses-hydro')
