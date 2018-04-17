@@ -153,7 +153,7 @@ class DenovoDataset(Dataset):
         self._handle = h5py.File(self.parameter_filename, "r")
         self.parameters = self._load_parameters()
         self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
-        self.domain_dimensions = self.domain_right_edge - self.domain_left_edge
+        self.domain_dimensions = np.array([2,2,2])
         self.dimensionality = len(self.domain_dimensions)
         self._load_energy_fluid_types()
 
@@ -186,7 +186,8 @@ class DenovoDataset(Dataset):
         for key,val in self._handle["/denovo"].items():
             if isinstance(val, h5py.Dataset):
                 # skip the fields that will be stored elsewhere
-                if any([key == 'flux', key == 'source']):
+                if any([key == 'flux', key == 'source', key == 'angular_flux',
+                    key == 'block']):
                     pass
                 else:
                     self.parameters[key]=val.value
@@ -249,4 +250,5 @@ class DenovoDataset(Dataset):
             return valid
         except:
             pass
+
         return False

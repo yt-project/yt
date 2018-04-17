@@ -68,7 +68,8 @@ class IOHandlerDenovoHDF5(BaseIOHandler):
                 # trying to get the energy group number from the egroup string
                 # isn't that pretty, but it works for now.
                 group_no = int(ftype.split('_')[-1])
-                mylog.info("trying to read in energy group {}".format(group_no))
+                mylog.debug("reading in {} data for energy group {}".format(fname,
+                        group_no))
                 ds = np.array(fhandle[field_dname(fname)][group_no,...],
                         dtype="float64").transpose().copy()
                 ind = 0
