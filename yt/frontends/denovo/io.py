@@ -76,7 +76,7 @@ class IOHandlerDenovoHDF5(BaseIOHandler):
                     for g in chunk.objs:
                         ind += g.select(selector, ds, rv[field], ind) # caches
             else:
-                ds = np.array(fhandle[field_dname(fname)][...],
+                ds = np.array(fhandle[field_dname(fname)][0,...],
                         dtype="float64").transpose().copy()
                 ind = 0
                 for chunk in chunks:

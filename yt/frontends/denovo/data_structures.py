@@ -155,6 +155,7 @@ class DenovoDataset(Dataset):
         self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
         self.domain_dimensions = self.domain_right_edge - self.domain_left_edge
         self.dimensionality = len(self.domain_dimensions)
+        self._load_energy_fluid_types()
 
         # We know that Denovo datasets are never periodic, so periodicity will
         # be set to false.
@@ -192,6 +193,19 @@ class DenovoDataset(Dataset):
 
         return self.parameters
 
+    def _load_energy_fluid_types(self):
+        """
+
+        checks to see if mesh data is binned by energy, creates fluid types
+        that correspond with energy bins if they do.
+
+        """
+
+        if len(self.parameters['mesh_g']) > 0:
+            for group_number in self.parameters['mesh_g']:
+                self.fluid_types += ('egroup_%03i' %group_number,)
+        else:
+            return
 
     def _load_domain_edge(self):
         """
