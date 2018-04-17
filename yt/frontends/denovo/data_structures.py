@@ -21,14 +21,10 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.file_handler import HDF5FileHandler
 from yt.funcs import setdefaultattr
 
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
 from yt.data_objects.unstructured_mesh import \
     SemiStructuredMesh
 from yt.geometry.unstructured_mesh_handler import \
     UnstructuredIndex
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
 from yt.data_objects.static_output import \
     Dataset
 
