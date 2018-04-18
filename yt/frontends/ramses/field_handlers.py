@@ -16,6 +16,7 @@ def get_field_handlers():
 def register_field_handler(ph):
     FIELD_HANDLERS.add(ph)
 
+DETECTED_FIELDS = {}
 
 class RAMSESFieldFileHandlerRegistry(type):
     """
@@ -52,7 +53,6 @@ class FieldFileHandler(object):
     # These properties are computed dynamically
     field_offsets = None     # Mapping from field to offset in file
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
-
     def __init__(self, domain):
         '''
         Initalize an instance of the class. This automatically sets
@@ -140,6 +140,42 @@ class FieldFileHandler(object):
         # this function must be implemented by subclasses
         raise NotImplementedError
 
+    @classmethod
+    def get_detected_fields(cls, ds):
+        '''
+        Get the detected fields from the registry.
+        '''
+        if ds.unique_identifier in DETECTED_FIELDS:
+            d = DETECTED_FIELDS[ds.unique_identifier]
+            if cls.ftype in d:
+                return d[cls.ftype]
+
+        return None
+
+
+    @classmethod
+    def set_detected_fields(cls, ds, fields):
+        '''
+        Store the detected fields into the registry.
+        '''
+        if ds.unique_identifier not in DETECTED_FIELDS:
+            DETECTED_FIELDS[ds.unique_identifier] = {}
+
+        DETECTED_FIELDS[ds.unique_identifier].update({
+            cls.ftype: fields
+        })
+
+    @classmethod
+    def purge_detected_fields(cls, ds):
+        '''
+        Purge the registry.
+
+        This should be called on dataset creation to force the field
+        detection to be called.
+        '''
+        if ds.unique_identifier in DETECTED_FIELDS:
+            DETECTED_FIELDS.pop(ds.unique_identifier)
+
     @property
     def level_count(self):
         '''
@@ -159,8 +195,8 @@ class FieldFileHandler(object):
         By default, it skips the header (as defined by `cls.attrs`)
         and computes the offset at each level.
 
-        It should be generic enough for most of the cases, but it the
-        *structure* of your fluid file is non-canonial, change this.
+        It should be generic enough for most of the cases, but if the
+        *structure* of your fluid file is non-canonical, change this.
         '''
 
         if getattr(self, '_offset', None) is not None:
@@ -228,6 +264,11 @@ class HydroFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
+        # Try to get the detected fields
+        detected_fields = cls.get_detected_fields(ds)
+        if detected_fields:
+            return detected_fields
+
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
@@ -278,10 +319,12 @@ class HydroFieldFileHandler(FieldFileHandler):
             if rt_flag: # rt run
                 if nvar < 10:
                     mylog.info('Detected RAMSES-RT file WITHOUT IR trapping.')
+
                     fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure",
                               "Metallicity", "HII", "HeII", "HeIII"]
                 else:
                     mylog.info('Detected RAMSES-RT file WITH IR trapping.')
+
                     fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR",
                               "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
             else:
@@ -322,6 +365,8 @@ class HydroFieldFileHandler(FieldFileHandler):
             mylog.debug('Detected %s extra fluid fields.' % count_extra)
         cls.field_list = [(cls.ftype, e) for e in fields]
 
+        cls.set_detected_fields(ds, fields)
+
         return fields
 
 class RTFieldFileHandler(FieldFileHandler):
@@ -349,6 +394,12 @@ class RTFieldFileHandler(FieldFileHandler):
 
     @classmethod
     def detect_fields(cls, ds):
+        # Try to get the detected fields
+        detected_fields = cls.get_detected_fields(ds)
+        if detected_fields:
+            return detected_fields
+
+
         fname = ds.parameter_filename.replace('info_', 'info_rt_')
 
         rheader = {}
@@ -385,6 +436,8 @@ class RTFieldFileHandler(FieldFileHandler):
             fields.extend([t % (ng + 1) for t in tmp])
 
         cls.field_list = [(cls.ftype, e) for e in fields]
+
+        cls.set_detected_fields(ds, fields)
         return fields
 
     @classmethod
