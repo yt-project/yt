@@ -39,6 +39,7 @@ class DenovoIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type='denovo'):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
+        self._load_energy_fluid_types()
 
         # for now, the index file is the dataset!
         self.index_filename = self.dataset.parameter_filename
@@ -92,6 +93,20 @@ class DenovoIndex(UnstructuredIndex):
                 self.field_list.remove(('denovo','angular_mesh'))
             self.field_list.remove(('denovo','block'))
 
+
+    def _load_energy_fluid_types(self):
+        """
+
+        checks to see if mesh data is binned by energy, creates fluid types
+        that correspond with energy bins if they do.
+
+        """
+
+        if len(self.dataset.parameters['mesh_g']) > 0:
+            for group_number in self.dataset.parameters['mesh_g']:
+                self.dataset.fluid_types += ('egroup_%03i' %group_number,)
+        else:
+            return
 
     def _create_group_fields(self, group_number):
         field_type = 'egroup_%03i' %group_number
@@ -151,7 +166,6 @@ class DenovoDataset(Dataset):
         self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
         self.domain_dimensions = np.array([2,2,2])
         self.dimensionality = len(self.domain_dimensions)
-        self._load_energy_fluid_types()
 
         # We know that Denovo datasets are never periodic, so periodicity will
         # be set to false.
@@ -189,20 +203,6 @@ class DenovoDataset(Dataset):
                     self.parameters[key]=val.value
 
         return self.parameters
-
-    def _load_energy_fluid_types(self):
-        """
-
-        checks to see if mesh data is binned by energy, creates fluid types
-        that correspond with energy bins if they do.
-
-        """
-
-        if len(self.parameters['mesh_g']) > 0:
-            for group_number in self.parameters['mesh_g']:
-                self.fluid_types += ('egroup_%03i' %group_number,)
-        else:
-            return
 
     def _load_domain_edge(self):
         """
