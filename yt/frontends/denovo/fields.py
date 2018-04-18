@@ -24,11 +24,11 @@ source_units = "1"
 
 class DenovoFieldInfo(FieldInfoContainer):
     known_other_fields = (
-        ("source", (source_units, ["source_strength"], None)),
-        ("flux", (flux_units, ["scalar_flux"], r"\phi")),
-        ("uncflux", (flux_units, ["uncollided_flux"], r"\phi_{uncollided}")),
+        ("source", (source_units, [], None)),
+        ("flux", (flux_units, [], r"\phi")),
+        ("uncflux", (flux_units, [], r"\phi_{uncollided}")),
         ("angular_flux", (angular_flux_units, [], r"\Psi")),
-        ("ww_lower", ("", ["ww_lower_bound"], None)),
+        ("ww_lower", ("", [], None)),
     )
 
     known_particle_fields = (
