@@ -68,7 +68,6 @@ class RAMSESDomainFile(object):
             setattr(self, "%s_fn" % t, basename % t)
         self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
-        # self._read_hydro_header()
 
         # Autodetect field files
         field_handlers = [FH(self)
@@ -462,9 +461,22 @@ class RAMSESDataset(Dataset):
         self._bbox = bbox
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
+
+        # Add the particle types
+        ptypes = []
+        for PH in get_particle_handlers():
+            if PH.any_exist(self):
+                ptypes.append(PH.ptype)
+
+        ptypes = tuple(ptypes)
+        self.particle_types = self.particle_types_raw = ptypes
+
+        # Add the fluid types
         for FH in get_field_handlers():
+            FH.purge_detected_fields(self)
             if FH.any_exist(self):
                 self.fluid_types += (FH.ftype, )
+
         self.storage_filename = storage_filename
 
 
@@ -615,15 +627,6 @@ class RAMSESDataset(Dataset):
                              self.t_frw[iage-1]*(age-self.tau_frw[iage  ])/(self.tau_frw[iage-1]-self.tau_frw[iage])
 
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
-
-        # Add the particle types
-        ptypes = []
-        for PH in get_particle_handlers():
-            if PH.any_exist(self):
-                ptypes.append(PH.ptype)
-
-        ptypes = tuple(ptypes)
-        self.particle_types = self.particle_types_raw = ptypes
 
 
 

@@ -22,7 +22,8 @@ from yt.testing import \
     fake_random_ds, \
     assert_array_almost_equal, \
     requires_file, \
-    assert_fname
+    assert_fname, \
+    assert_allclose_units
 from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
 from yt.visualization.tests.test_plotwindow import \
@@ -178,6 +179,22 @@ def test_set_labels():
     # make sure we can set the labels without erroring out
     plot.set_ylabel("all", "test ylabel")
     plot.set_xlabel("test xlabel")
+
+def test_create_from_dataset():
+    ds = fake_random_ds(16)
+    plot1 = yt.ProfilePlot(ds, "radius", ["velocity_x", "density"],
+                           weight_field=None)
+    plot2 = yt.ProfilePlot(ds.all_data(), "radius", ["velocity_x", "density"],
+                           weight_field=None)
+    assert_allclose_units(
+        plot1.profiles[0]['density'], plot2.profiles[0]['density'])
+    assert_allclose_units(
+        plot1.profiles[0]['velocity_x'], plot2.profiles[0]['velocity_x'])
+
+    plot1 = yt.PhasePlot(ds, 'density', 'velocity_x', 'cell_mass')
+    plot2 = yt.PhasePlot(ds.all_data(), 'density', 'velocity_x', 'cell_mass')
+    assert_allclose_units(
+        plot1.profile['cell_mass'], plot2.profile['cell_mass'])
 
 class TestAnnotations(unittest.TestCase):
 

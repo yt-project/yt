@@ -196,7 +196,7 @@ associated social events, and one-to-one interactions.
 
 The yt Community Code of Conduct was adapted from the
 `Astropy Community Code of Conduct
-<http://www.astropy.org/about.html#codeofconduct>`_,
+<http://www.astropy.org/code_of_conduct.html>`_,
 which was partially inspired by the PSF code of conduct.
 
 .. _contributing-code:

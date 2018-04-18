@@ -39,12 +39,8 @@ VERSION = "3.5.dev0"
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
 
-try:
-    import pypandoc
-    long_description = pypandoc.convert_file('README.md', 'rst')
-except (ImportError, IOError):
-    with open('README.md') as file:
-        long_description = file.read()
+with open('README.md') as file:
+    long_description = file.read()
 
 if check_for_openmp() is True:
     omp_args = ['-fopenmp']
@@ -361,6 +357,7 @@ setup(
     version=VERSION,
     description="An analysis and visualization toolkit for volumetric data",
     long_description = long_description,
+    long_description_content_type='text/markdown',
     classifiers=["Development Status :: 5 - Production/Stable",
                  "Environment :: Console",
                  "Intended Audience :: Science/Research",

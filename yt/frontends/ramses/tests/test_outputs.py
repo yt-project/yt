@@ -26,6 +26,7 @@ from yt.utilities.answer_testing.framework import \
     create_obj
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.config import ytcfg
+from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 import os
 import yt
 
@@ -309,3 +310,30 @@ def test_grav_detection():
     # Test access
     for k in 'xyz':
         ds.r['gas', 'acceleration_%s' % k]
+
+@requires_file(ramses_sink)
+@requires_file(output_00080)
+def test_ramses_field_detection():
+    ds1 = yt.load(ramses_rt)
+
+    assert 'ramses' not in DETECTED_FIELDS
+
+    # Now they are detected !
+    ds1.index
+    P1 = HydroFieldFileHandler.parameters
+    assert DETECTED_FIELDS[ds1.unique_identifier]['ramses'] is not None
+    fields_1 = set(DETECTED_FIELDS[ds1.unique_identifier]['ramses'])
+
+    # Check the right number of variables has been loaded
+    assert P1['nvar'] == 10
+    assert len(fields_1) == P1['nvar']
+
+    # Now load another dataset
+    ds2 = yt.load(output_00080)
+    ds2.index
+    P2 = HydroFieldFileHandler.parameters
+    fields_2 = set(DETECTED_FIELDS[ds2.unique_identifier]['ramses'])
+
+    # Check the right number of variables has been loaded
+    assert P2['nvar'] == 6
+    assert len(fields_2) == P2['nvar']
