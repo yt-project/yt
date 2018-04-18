@@ -15,7 +15,7 @@ API for Denovo frontend
 
 from .data_structures import \
       DenovoMesh, \
-      DenovoHierarchy, \
+      DenovoIndex, \
       DenovoDataset
 
 from .fields import \

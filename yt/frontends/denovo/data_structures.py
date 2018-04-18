@@ -34,7 +34,7 @@ class DenovoMesh(SemiStructuredMesh):
     _connectivity_length = 8
     _index_offset = 0
 
-class DenovoHierarchy(UnstructuredIndex):
+class DenovoIndex(UnstructuredIndex):
 
     def __init__(self, ds, dataset_type='denovo'):
         self.dataset_type = dataset_type
@@ -47,7 +47,7 @@ class DenovoHierarchy(UnstructuredIndex):
 
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        super(DenovoHierarchy, self).__init__(ds, dataset_type)
+        super(DenovoIndex, self).__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
         from yt.frontends.stream.data_structures import hexahedral_connectivity
@@ -106,7 +106,7 @@ class DenovoHierarchy(UnstructuredIndex):
 
 
 class DenovoDataset(Dataset):
-    _index_class = DenovoHierarchy
+    _index_class = DenovoIndex
     _field_info_class = DenovoFieldInfo
     _suffix = ".out.h5"
 
@@ -122,7 +122,7 @@ class DenovoDataset(Dataset):
         self.geometry = 'cartesian'
 
         super(DenovoDataset, self).__init__(filename, dataset_type,
-                         units_override=units_override)
+                units_override=units_override)
         self.storage_filename = storage_filename
         self.filename=filename
 
@@ -241,7 +241,7 @@ class DenovoDataset(Dataset):
             # for now check that denovo is in the solution file. This will need
             # to be updated for fwd/adjoint runs in the future with multiple
             # arguments for a valid dataset.
-            valid = "denovo" in fileh["/"]
+            valid = "denovo" in fileh["/"] or "denovo-forward" in fileh["/"]
             fileh.close()
             return valid
         except:
