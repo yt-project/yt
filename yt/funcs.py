@@ -860,7 +860,11 @@ def get_output_filename(name, keyword, suffix):
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
-    ensure_dir(my_dir)
+    # If path is a file in the current directory, like "test.txt", then my_dir
+    # would be an empty string, resulting in FileNotFoundError when passed to
+    # ensure_dir. Let's avoid that.
+    if my_dir:
+        ensure_dir(my_dir)
 
 def ensure_dir(path):
     r"""Parallel safe directory maker."""
