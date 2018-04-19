@@ -250,6 +250,7 @@ intersphinx_mapping = {'http://docs.python.org/': None,
                        'http://ipython.org/ipython-doc/stable/': None,
                        'http://docs.scipy.org/doc/numpy/': None,
                        'http://matplotlib.org/': None,
+                       'http://docs.astropy.org/en/stable': None,
                        }
 
 if not on_rtd:

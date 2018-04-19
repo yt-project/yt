@@ -782,7 +782,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         Examples
         --------
         >>> cube.write_to_gdf("clumps.h5", ["density","temperature"], nprocs=16,
-        ...                   clobber=True)
+        ...                   overwrite=True)
         """
         data = {}
         for field in fields:
