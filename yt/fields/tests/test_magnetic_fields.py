@@ -1,4 +1,5 @@
 import numpy as np
+import yt
 from yt.utilities.physical_constants import mu_0
 from yt.testing import assert_almost_equal
 from yt.frontends.stream.api import load_uniform_grid
@@ -7,6 +8,9 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
 
+gizmo_mhd = "gizmo_mhd_mwdisk/gizmo_mhd_mwdisk.hdf5"
+
+@requires_ds(gizmo_mhd, big_data=True)
 def test_magnetic_fields():
 
     ddims = (16,16,16)
@@ -19,12 +23,15 @@ def test_magnetic_fields():
 
     ds1 = load_uniform_grid(data1, ddims, unit_system="cgs")
     ds2 = load_uniform_grid(data2, ddims, unit_system="mks")
+    ds3 = yt.load(gizmo_mhd, bounding_box=[[-400, 400]]*3, unit_system="code")
 
     ds1.index
     ds2.index
+    ds3.index
 
     dd1 = ds1.all_data()
     dd2 = ds2.all_data()
+    dd3 = ds3.all_data()
 
     assert ds1.fields.gas.magnetic_field_strength.units == "gauss"
     assert ds1.fields.gas.magnetic_field_poloidal.units == "gauss"
@@ -32,6 +39,7 @@ def test_magnetic_fields():
     assert ds2.fields.gas.magnetic_field_strength.units == "T"
     assert ds2.fields.gas.magnetic_field_poloidal.units == "T"
     assert ds2.fields.gas.magnetic_field_toroidal.units == "T"
+    assert ds3.fields.PartType0.particle_magnetic_field.units == "code_magnetic"
 
     emag1 = (dd1["magnetic_field_x"]**2 +
              dd1["magnetic_field_y"]**2 +
