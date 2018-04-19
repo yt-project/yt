@@ -120,7 +120,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
              ("index", "cell_volume")])
 
     def pixelize(self, dimension, data_source, field, bounds, size,
-                 antialias = True, periodic = True, weight_field = None):
+                 antialias = True, periodic = True):
         """
         Method for pixelizing datasets in preparation for
         two-dimensional image plots. Relies on several sampling
@@ -175,8 +175,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
         elif self.axis_id.get(dimension, dimension) < 3:
             return self._ortho_pixelize(data_source, field, bounds, size,
-                                        antialias, dimension, periodic, 
-                                        weight_field)
+                                        antialias, dimension, periodic)
         else:
             return self._oblique_pixelize(data_source, field, bounds, size,
                                           antialias)
@@ -233,7 +232,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
-                        dim, periodic, weight_field=None):
+                        dim, periodic):
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
         from yt.data_objects.selection_data_containers import \
@@ -293,11 +292,12 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         chunk[ptype, 'density'].in_units('g/cm**3'),
                         chunk[field].in_units(ounits),
                         bnds)
-                if weight_field is not None:
+                if data_source.weight_field is not None:
+                    weight = data_source.weight_field
                     weight_buff = np.zeros(size, dtype='float64')
-                    wounits = data_source.ds.field_info[weight_field].output_units
+                    wounits = data_source.ds.field_info[weight].output_units
                     for chunk in proj_reg.chunks([], 'io'):
-                        data_source._initialize_projected_units([weight_field], chunk)
+                        data_source._initialize_projected_units([weight], chunk)
                         pixelize_sph_kernel_projection(
                             weight_buff,
                             chunk[ptype, px_name].in_units('cm'),
@@ -305,7 +305,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, 'smoothing_length'].in_units('cm'),
                             chunk[ptype, 'particle_mass'].in_units('g'),
                             chunk[ptype, 'density'].in_units('g/cm**3'),
-                            chunk[weight_field].in_units(ounits),
+                            chunk[weight].in_units(ounits),
                             bnds)
                     buff /= weight_buff
             elif isinstance(data_source, YTSlice):
