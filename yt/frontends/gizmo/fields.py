@@ -14,10 +14,10 @@ Gizmo-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.fields.magnetic_field import \
-    setup_magnetic_field_aliases
 from yt.fields.field_info_container import \
     FieldInfoContainer
+from yt.fields.magnetic_field import \
+    setup_magnetic_field_aliases
 from yt.fields.particle_fields import \
     add_volume_weighted_smoothed_field
 from yt.fields.species_fields import \
