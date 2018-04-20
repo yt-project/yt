@@ -74,4 +74,4 @@ def test_gizmo_mhd():
     for axis in 'xyz':
         f = ad[ptype, fmag + '_' + axis]
         assert str(f.units) == 'code_magnetic'
-        assert f.shape == (409013, 1)
+        assert f.shape == (409013,)
