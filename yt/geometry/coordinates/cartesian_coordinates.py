@@ -312,6 +312,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[field].in_units(ounits),
                             bnds, kernel_name="cubic",
                             weight_field=chunk[weight].in_units(wounits))
+                    mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
+                                (weight, size[0], size[1]))
                     for chunk in proj_reg.chunks([], 'io'):
                         data_source._initialize_projected_units([weight], chunk)
                         pixelize_sph_kernel_projection(
