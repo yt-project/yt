@@ -963,7 +963,8 @@ def pixelize_sph_kernel_projection(
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
         bounds,
-        kernel_name="cubic"):
+        kernel_name="cubic",
+        weight_field=None):
 
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
@@ -971,6 +972,10 @@ def pixelize_sph_kernel_projection(
     cdef np.float64_t qxy2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
     cdef int index, i, j
+    cdef np.float64_t[:] _weight_field
+
+    if weight_field is not None:
+        _weight_field = weight_field
 
     xsize, ysize = buff.shape[0], buff.shape[1]
 
@@ -1007,7 +1012,10 @@ def pixelize_sph_kernel_projection(
             ih_j2 = 1.0/h_j2
             
             w_j = pmass[j] / pdens[j] / hsml[j]**3
-            coeff = w_j * hsml[j] * quantity_to_smooth[j]
+            if weight_field is None:
+                coeff = w_j * hsml[j] * quantity_to_smooth[j]
+            else:
+                coeff = w_j * hsml[j] * quantity_to_smooth[j] * _weight_field[j]
 
             # Now we know which pixels to deposit onto for this particle,
             # so loop over them and add this particle's contribution
