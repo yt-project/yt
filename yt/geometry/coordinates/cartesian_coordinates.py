@@ -268,6 +268,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
             py_name = 'particle_position_%s' % self.axis_name[self.y_axis[dim]]
             if isinstance(data_source, YTKDTreeProj):
+                weight = data_source.weight_field
                 le = data_source.data_source.left_edge.in_units('code_length')
                 re = data_source.data_source.right_edge.in_units('code_length')
                 le[self.x_axis[dim]] = bounds[0]
@@ -281,17 +282,50 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 bnds = data_source.ds.arr(
                     bounds, 'code_length').in_units('cm').tolist()
                 buff = np.zeros(size, dtype='float64')
-                for chunk in proj_reg.chunks([], 'io'):
-                    data_source._initialize_projected_units([field], chunk)
-                    pixelize_sph_kernel_projection(
-                        buff,
-                        chunk[ptype, px_name].in_units('cm'),
-                        chunk[ptype, py_name].in_units('cm'),
-                        chunk[ptype, 'smoothing_length'].in_units('cm'),
-                        chunk[ptype, 'particle_mass'].in_units('g'),
-                        chunk[ptype, 'density'].in_units('g/cm**3'),
-                        chunk[field].in_units(ounits),
-                        bnds)
+                if weight is None:
+                    for chunk in proj_reg.chunks([], 'io'):
+                        data_source._initialize_projected_units([field], chunk)
+                        pixelize_sph_kernel_projection(
+                            buff,
+                            chunk[ptype, px_name].in_units('cm'),
+                            chunk[ptype, py_name].in_units('cm'),
+                            chunk[ptype, 'smoothing_length'].in_units('cm'),
+                            chunk[ptype, 'particle_mass'].in_units('g'),
+                            chunk[ptype, 'density'].in_units('g/cm**3'),
+                            chunk[field].in_units(ounits),
+                            bnds)
+                # if there is a weight field, take two projections:
+                # one of field*weight, the other of just weight, and divide them
+                else:
+                    weight_buff = np.zeros(size, dtype='float64')
+                    wounits = data_source.ds.field_info[weight].output_units
+                    for chunk in proj_reg.chunks([], 'io'):
+                        data_source._initialize_projected_units([field], chunk)
+                        data_source._initialize_projected_units([weight], chunk)
+                        pixelize_sph_kernel_projection(
+                            buff,
+                            chunk[ptype, px_name].in_units('cm'),
+                            chunk[ptype, py_name].in_units('cm'),
+                            chunk[ptype, 'smoothing_length'].in_units('cm'),
+                            chunk[ptype, 'particle_mass'].in_units('g'),
+                            chunk[ptype, 'density'].in_units('g/cm**3'),
+                            chunk[field].in_units(ounits),
+                            bnds, kernel_name="cubic",
+                            weight_field=chunk[weight].in_units(wounits))
+                    mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
+                                (weight, size[0], size[1]))
+                    for chunk in proj_reg.chunks([], 'io'):
+                        data_source._initialize_projected_units([weight], chunk)
+                        pixelize_sph_kernel_projection(
+                            weight_buff,
+                            chunk[ptype, px_name].in_units('cm'),
+                            chunk[ptype, py_name].in_units('cm'),
+                            chunk[ptype, 'smoothing_length'].in_units('cm'),
+                            chunk[ptype, 'particle_mass'].in_units('g'),
+                            chunk[ptype, 'density'].in_units('g/cm**3'),
+                            chunk[weight].in_units(wounits),
+                            bnds)
+                    buff /= weight_buff
             elif isinstance(data_source, YTSlice):
                 buff = np.zeros(size, dtype='float64')
                 for chunk in data_source.chunks([], 'io'):
