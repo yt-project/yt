@@ -56,7 +56,11 @@ def test_gizmo_mhd():
     """
     Magnetic fields should be loaded correctly when they are present.
     """
-    ds = data_dir_load(gmhd, kwargs={'bounding_box': [[-400, 400]] * 3})
+    kwargs = {
+        'bounding_box': [[-400, 400]] * 3,
+        'unit_system': 'code'
+    }
+    ds = data_dir_load(gmhd, kwargs=kwargs)
     ad = ds.all_data()
     ptype = 'PartType0'
 
