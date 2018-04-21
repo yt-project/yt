@@ -262,6 +262,7 @@ class RAMSESDomainSubset(OctreeSubset):
     _block_reorder = "F"
 
     def fill(self, content, fields, selector, file_handler):
+        twotondim = 2**self.ds.dimensionality
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
@@ -283,8 +284,8 @@ class RAMSESDomainSubset(OctreeSubset):
             tmp = {}
             # Initalize temporary data container for io
             for field in all_fields:
-                tmp[field] = np.empty((nc, 8), dtype="float64")
-            for i in range(8):
+                tmp[field] = np.empty((nc, twotondim), dtype="float64")
+            for i in range(twotondim):
                 # Read the selected fields
                 for field in all_fields:
                     if field not in fields:
