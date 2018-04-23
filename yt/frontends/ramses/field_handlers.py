@@ -410,9 +410,10 @@ class GravFieldFileHandler(FieldFileHandler):
             fields = ['%s-acceleration' % k for k in 'xyz'[:ndim]]
             ndetected = ndim
 
-        if ndetected != nvar:
+        if ndetected != nvar and not ds._warned_extra_fields['gravity']:
             mylog.warning('Detected %s extra gravity fields.',
                           nvar-ndetected)
+            ds._warned_extra_fields['gravity'] = True
 
             for i in range(nvar-ndetected):
                 fields.append('var%s' % i)

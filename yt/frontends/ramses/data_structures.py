@@ -19,6 +19,7 @@ import os
 import numpy as np
 import stat
 import weakref
+from collections import defaultdict
 
 from yt.extern.six import string_types
 from yt.funcs import \
@@ -460,8 +461,9 @@ class RAMSESDataset(Dataset):
                       its value.
         '''
         self._fields_in_file = fields
+        # By default, extra fields have not triggered a warning
+        self._warned_extra_fields = defaultdict(lambda: False)
         self._extra_particle_fields = extra_particle_fields
-        self._warn_extra_fields = False
         self.force_cosmological = cosmological
         self._bbox = bbox
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,

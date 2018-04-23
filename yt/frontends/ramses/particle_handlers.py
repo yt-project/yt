@@ -241,12 +241,12 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             _pfields[ptype, field] = vtype
             fpu.skip(f, 1)
 
-        if iextra > 0 and not self.ds._warn_extra_fields:
-            self.ds._warn_extra_fields = True
+        if iextra > 0 and not self.ds._warned_extra_fields['io']:
             w = ("Detected %s extra particle fields assuming kind "
                  "`double`. Consider using the `extra_particle_fields` "
                  "keyword argument if you have unexpected behavior.")
             mylog.warning(w % iextra)
+            self.ds._warned_extra_fields['io'] = True
 
         self.field_offsets = field_offsets
         self.field_types = _pfields
