@@ -187,7 +187,13 @@ def off_axis_projection(data_source, center, normal_vector,
     mylog.debug("Casting rays")
 
     for i, (grid, mask) in enumerate(data_source.blocks):
-        data = [(grid[f] * mask).astype("float64") for f in fields]
+        data = []
+        for f in fields:
+            # strip units before multiplying by mask for speed
+            grid_data = grid[f]
+            units = grid_data.units
+            data.append(data_source.ds.arr(
+                grid_data.d*mask, units, dtype='float64'))
         pg = PartitionedGrid(
             grid.id, data,
             mask.astype('uint8'),
