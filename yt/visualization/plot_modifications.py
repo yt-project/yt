@@ -145,17 +145,20 @@ class PlotCallback(object):
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
 
-        x0 = np.array(np.tile(plot.xlim[0],ncoord))
-        x1 = np.array(np.tile(plot.xlim[1],ncoord))
+        x0 = np.array(np.tile(plot.xlim[0].to('code_length'),ncoord))
+        x1 = np.array(np.tile(plot.xlim[1].to('code_length'),ncoord))
         xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
         xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
 
-        y0 = np.array(np.tile(plot.ylim[0],ncoord))
-        y1 = np.array(np.tile(plot.ylim[1],ncoord))
+        y0 = np.array(np.tile(plot.ylim[0].to('code_length'),ncoord))
+        y1 = np.array(np.tile(plot.ylim[1].to('code_length'),ncoord))
         yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
         yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
 
-        ccoord = np.array(coord)
+        try:
+            ccoord = np.array(coord.to('code_length'))
+        except AttributeError:
+            ccoord = np.array(coord)
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
