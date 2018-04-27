@@ -220,7 +220,7 @@ def _read_part_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile('# version: *(\d+)')
+    VERSION_RE = re.compile(r'# version: *(\d+)')
     VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping
@@ -277,7 +277,7 @@ def _read_fluid_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile('# version: *(\d+)')
+    VERSION_RE = re.compile(r'# version: *(\d+)')
     VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping
