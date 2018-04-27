@@ -7,6 +7,7 @@ from yt.config import ytcfg
 
 import numpy as np
 from .io import _read_fluid_file_descriptor
+from .io_utils import read_offset
 
 FIELD_HANDLERS = set()
 
@@ -216,42 +217,16 @@ class FieldFileHandler(object):
         if getattr(self, '_offset', None) is not None:
             return self._offset
 
-        nvar = self.parameters['nvar']
-        ndim = self.domain.ds.dimensionality
-        twotondim = 2**ndim
-
         with open(self.fname, 'rb') as f:
             # Skip headers
             nskip = len(self.attrs)
             fpu.skip(f, nskip)
-
-            # It goes: level, CPU, 8-variable (1 cube)
             min_level = self.domain.ds.min_level
-            n_levels = self.domain.amr_header['nlevelmax'] - min_level
-            offset = np.zeros(n_levels, dtype='int64')
-            offset -= 1
-            level_count = np.zeros(n_levels, dtype='int64')
-            skipped = []
-            amr_header = self.domain.amr_header
-            for level in range(amr_header['nlevelmax']):
-                for cpu in range(amr_header['nboundary'] +
-                                 amr_header['ncpu']):
-                    header = ( ('file_ilevel', 1, 'I'),
-                               ('file_ncache', 1, 'I') )
-                    try:
-                        hvals = fpu.read_attrs(f, header, "=")
-                    except AssertionError:
-                        mylog.error(
-                            "You are running with the wrong number of fields. "
-                            "If you specified these in the load command, check the array length. "
-                            "In this file there are %s hydro fields." % skipped)
-                        raise
-                    if hvals['file_ncache'] == 0: continue
-                    assert(hvals['file_ilevel'] == level+1)
-                    if cpu + 1 == self.domain_id and level >= min_level:
-                        offset[level - min_level] = f.tell()
-                        level_count[level - min_level] = hvals['file_ncache']
-                    skipped = fpu.skip(f, twotondim * nvar)
+
+            offset, level_count = read_offset(
+                f, min_level, self.domain.domain_id, self.parameters['nvar'],
+                self.domain.amr_header)
+
         self._offset = offset
         self._level_count = level_count
         return self._offset

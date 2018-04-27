@@ -84,15 +84,8 @@ def read_offset(f, int min_level, int domain_id, int nvar, headers):
     level_count = np.zeros(n_levels, dtype=np.int64)
     for ilevel in range(nlevelmax):
         for cpu in range(ncpu_and_bound):
-            # try:
             file_ilevel = fpu.read_vector(f, 'I')
             file_ncache = fpu.read_vector(f, 'I')
-            # except AssertionError:
-            #     mylog.error(
-            #         "You are running with the wrong number of fields. "
-            #         "If you specified these in the load command, check the array length. "
-            #         "In this file there are %s hydro fields." % skipped)
-            #     raise
             if file_ncache == 0: continue
             assert(file_ilevel == ilevel+1)
             if cpu + 1 == domain_id and ilevel >= min_level:
