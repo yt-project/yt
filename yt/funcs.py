@@ -39,6 +39,7 @@ from numbers import Number as numeric_type
 
 from yt.extern.six.moves import urllib
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.lru_cache import lru_cache
 from yt.utilities.exceptions import \
     YTInvalidWidthError, \
     YTEquivalentDimsError
@@ -892,9 +893,13 @@ def validate_width_tuple(width):
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)
 
+_first_cap_re = re.compile('(.)([A-Z][a-z]+)')
+_all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
+@lru_cache(maxsize=128, typed=False)
 def camelcase_to_underscore(name):
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    s1 = _first_cap_re.sub(r'\1_\2', name)
+    return _all_cap_re.sub(r'\1_\2', s1).lower()
 
 def set_intersection(some_list):
     if len(some_list) == 0: return set([])
