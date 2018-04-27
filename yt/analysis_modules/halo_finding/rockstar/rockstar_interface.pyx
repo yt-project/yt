@@ -180,7 +180,7 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     cdef np.ndarray[np.float64_t, ndim=1] arr
     cdef unsigned long long pi,fi,i
     cdef np.int64_t local_parts = 0
-    ds = rh.ds = rh.tsl.next()
+    ds = rh.ds = next(rh.tsl)
 
     SCALE_NOW = 1.0/(ds.current_redshift+1.0)
     # First we need to find out how many this reader is going to read in
