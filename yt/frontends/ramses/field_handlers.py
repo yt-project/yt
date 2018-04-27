@@ -55,7 +55,7 @@ class FieldFileHandler(object):
     # These properties are computed dynamically
     field_offsets = None     # Mapping from field to offset in file
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
-    def __init__(self, domain, groupsize=None):
+    def __init__(self, domain):
         '''
         Initalize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
