@@ -1,5 +1,6 @@
 from yt.testing import \
     assert_array_equal, \
+    fake_amr_ds, \
     fake_random_ds
 from yt.units import cm
 
@@ -15,3 +16,16 @@ def test_box_creation():
     dens_no_units = reg['density']
 
     assert_array_equal(dens_units, dens_no_units)
+
+def test_max_level_min_level_semantics():
+    ds = fake_amr_ds()
+    ad = ds.all_data()
+    assert ad['grid_level'].max() == 4
+    ad.max_level = 2
+    assert ad['grid_level'].max() == 2
+    ad.max_level = 8
+    assert ad['grid_level'].max() == 4
+    ad.min_level = 2
+    assert ad['grid_level'].min() == 2
+    ad.min_level = 0
+    assert ad['grid_level'].min() == 0
