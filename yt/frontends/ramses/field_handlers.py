@@ -55,7 +55,7 @@ class FieldFileHandler(object):
     # These properties are computed dynamically
     field_offsets = None     # Mapping from field to offset in file
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
-    def __init__(self, domain):
+    def __init__(self, domain, groupsize=None):
         '''
         Initalize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
@@ -68,15 +68,29 @@ class FieldFileHandler(object):
         self.domain_id = domain.domain_id
         ds = domain.ds
         basename = os.path.abspath(
-              os.path.dirname(ds.parameter_filename))
+              ds.root_folder)
         iout = int(
             os.path.basename(ds.parameter_filename)
             .split(".")[0].
             split("_")[1])
 
-        self.fname = os.path.join(
-            basename,
-            self.fname.format(iout=iout, icpu=domain.domain_id))
+        if ds.num_groups > 0:
+            igroup = ((domain.domain_id-1) // ds.group_size) + 1
+            full_path = os.path.join(
+                basename,
+                'group_{:05d}'.format(igroup),
+                self.fname.format(iout=iout, icpu=domain.domain_id))
+        else:
+            full_path = os.path.join(
+                basename,
+                self.fname.format(iout=iout, icpu=domain.domain_id))
+
+        if os.path.exists(full_path):
+            self.fname = full_path
+        else:
+            raise FileNotFoundError(
+                'Could not find fluid file (type: %s). Tried %s' %
+                (self.ftype, full_path))
 
         if self.file_descriptor is not None:
             self.file_descriptor = os.path.join(

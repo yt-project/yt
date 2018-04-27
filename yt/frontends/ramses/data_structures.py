@@ -20,6 +20,7 @@ import numpy as np
 import stat
 import weakref
 from collections import defaultdict
+from glob import glob
 
 from yt.extern.six import string_types
 from yt.funcs import \
@@ -62,11 +63,19 @@ class RAMSESDomainFile(object):
 
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
+        rootdir = ds.root_folder
         basedir = os.path.abspath(
             os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (
             basedir, num, domain_id)
         part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
+        if ds.num_groups > 0:
+            igroup = ((domain_id-1) // ds.group_size) + 1
+            basename = "%s/group_%05i/%%s_%s.out%05i" % (
+                rootdir, igroup, num, domain_id)
+        else:
+            basename = "%s/%%s_%s.out%05i" % (
+                basedir, num, domain_id)
         for t in ['grav', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
         self._part_file_descriptor = part_file_descriptor
@@ -83,7 +92,7 @@ class RAMSESDomainFile(object):
             # self._add_ftype(fh.ftype)
 
         # Autodetect particle files
-        particle_handlers = [PH(ds, domain_id)
+        particle_handlers = [PH(ds, self)
                              for PH in get_particle_handlers()
                              if PH.any_exist(ds)]
         self.particle_handlers = particle_handlers
@@ -376,12 +385,25 @@ class RAMSESDataset(Dataset):
         cosmological: If set to None, automatically detect cosmological simulation. If a boolean, force
                       its value.
         '''
+
         self._fields_in_file = fields
         # By default, extra fields have not triggered a warning
         self._warned_extra_fields = defaultdict(lambda: False)
         self._extra_particle_fields = extra_particle_fields
         self.force_cosmological = cosmological
         self._bbox = bbox
+
+        # Infer if the output is organized in groups
+        root_folder, group_folder = os.path.split(os.path.split(filename)[0])
+
+        if group_folder == 'group_00001':
+            # Count the number of groups
+            self.num_groups = len(glob(os.path.join(root_folder, 'group_?????')))
+            self.root_folder = root_folder
+        else:
+            self.root_folder = os.path.split(filename)[0]
+            self.num_groups = 0
+
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
 
@@ -499,6 +521,7 @@ class RAMSESDataset(Dataset):
             for n in range(rheader['ncpu']):
                 dom, mi, ma = f.readline().split()
                 self.hilbert_indices[int(dom)] = (float(mi), float(ma))
+        f.close()
 
         if rheader['ordering type'] != 'hilbert' and self.bbox:
             raise NotImplementedError(
@@ -533,8 +556,6 @@ class RAMSESDataset(Dataset):
             self.omega_matter = rheader["omega_m"]
             self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level - 1
-        f.close()
-
 
         if self.cosmological_simulation == 0:
             self.current_time = self.parameters['time']
@@ -550,6 +571,9 @@ class RAMSESDataset(Dataset):
                              self.t_frw[iage-1]*(age-self.tau_frw[iage  ])/(self.tau_frw[iage-1]-self.tau_frw[iage])
 
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
+
+        if self.num_groups > 0:
+            self.group_size = rheader['ncpu'] // self.num_groups
 
 
 
