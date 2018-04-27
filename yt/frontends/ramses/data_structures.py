@@ -50,6 +50,8 @@ from yt.arraytypes import blankRecordArray
 from yt.utilities.lib.cosmology_time import \
     friedman
 
+from .io_utils import read_amr
+
 class RAMSESDomainFile(object):
     _last_mask = None
     _last_selector_id = None
@@ -167,89 +169,16 @@ class RAMSESDomainFile(object):
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
 
         f = self.amr_file
-
         f.seek(self.amr_offset)
 
-        def _ng(c, l):
-            if c < self.amr_header['ncpu']:
-                ng = self.amr_header['numbl'][l, c]
-            else:
-                ng = self.ngridbound[c - self.amr_header['ncpu'] +
-                                self.amr_header['nboundary']*l]
-            return ng
         min_level = self.ds.min_level
-        # yt max level is not the same as the RAMSES one.
-        # yt max level is the maximum number of additional refinement levels
-        # so for a uni grid run with no refinement, it would be 0.
-        # So we initially assume that.
-        max_level = 0
-        nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
-        for level in range(self.amr_header['nlevelmax']):
-            # Easier if do this 1-indexed
-            for cpu in range(self.amr_header['nboundary'] + self.amr_header['ncpu']):
-                #ng is the number of octs on this level on this domain
-                ng = _ng(cpu, level)
-                if ng == 0: continue
-                ind = fpu.read_vector(f, "I").astype("int64")  # NOQA
-                fpu.skip(f, 2)
-                pos = np.empty((ng, 3), dtype='float64')
-                pos[:,0] = fpu.read_vector(f, "d") - nx
-                pos[:,1] = fpu.read_vector(f, "d") - ny
-                pos[:,2] = fpu.read_vector(f, "d") - nz
-                #pos *= self.ds.domain_width
-                #pos += self.dataset.domain_left_edge
-                fpu.skip(f, 31)
-                #parents = fpu.read_vector(f, "I")
-                #fpu.skip(f, 6)
-                #children = np.empty((ng, 8), dtype='int64')
-                #for i in range(8):
-                #    children[:,i] = fpu.read_vector(f, "I")
-                #cpu_map = np.empty((ng, 8), dtype="int64")
-                #for i in range(8):
-                #    cpu_map[:,i] = fpu.read_vector(f, "I")
-                #rmap = np.empty((ng, 8), dtype="int64")
-                #for i in range(8):
-                #    rmap[:,i] = fpu.read_vector(f, "I")
-                # We don't want duplicate grids.
-                # Note that we're adding *grids*, not individual cells.
-                if level >= min_level:
-                    assert(pos.shape[0] == ng)
-                    n = self.oct_handler.add(cpu + 1, level - min_level, pos,
-                                count_boundary = 1)
-                    self._error_check(cpu, level, pos, n, ng, (nx, ny, nz))
-                    if n > 0: max_level = max(level - min_level, max_level)
+        max_level = read_amr(f, self.amr_header, self.ngridbound, min_level, self.oct_handler)
+
         self.max_level = max_level
         self.oct_handler.finalize()
 
         # Close AMR file
         f.close()
-
-    def _error_check(self, cpu, level, pos, n, ng, nn):
-        # NOTE: We have the second conditional here because internally, it will
-        # not add any octs in that case.
-        if n == ng or cpu + 1 > self.oct_handler.num_domains:
-            return
-        # This is where we now check for issues with creating the new octs, and
-        # we attempt to determine what precisely is going wrong.
-        # These are all print statements.
-        print("We have detected an error with the construction of the Octree.")
-        print("  The number of Octs to be added :  %s" % ng)
-        print("  The number of Octs added       :  %s" % n)
-        print("  Level                          :  %s" % level)
-        print("  CPU Number (0-indexed)         :  %s" % cpu)
-        for i, ax in enumerate('xyz'):
-            print("  extent [%s]                     :  %s %s" % \
-            (ax, pos[:,i].min(), pos[:,i].max()))
-        print("  domain left                    :  %s" % \
-            (self.ds.domain_left_edge,))
-        print("  domain right                   :  %s" % \
-            (self.ds.domain_right_edge,))
-        print("  offset applied                 :  %s %s %s" % \
-            (nn[0], nn[1], nn[2]))
-        print("AMR Header:")
-        for key in sorted(self.amr_header):
-            print("   %-30s: %s" % (key, self.amr_header[key]))
-        raise RuntimeError
 
     def included(self, selector):
         if getattr(selector, "domain_id", None) is not None:
