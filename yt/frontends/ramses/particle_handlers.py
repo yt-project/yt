@@ -1,6 +1,5 @@
 import os
 import yt.utilities.fortran_utils as fpu
-import glob
 from yt.extern.six import add_metaclass
 from yt.funcs import mylog
 from yt.config import ytcfg
@@ -8,6 +7,7 @@ from yt.config import ytcfg
 from .io import _read_part_file_descriptor
 
 PARTICLE_HANDLERS = set()
+PRESENT_PART_FILES = {}
 
 def get_particle_handlers():
     return PARTICLE_HANDLERS
@@ -52,7 +52,6 @@ class ParticleFileHandler(object):
     field_offsets = None     # Mapping from field to offset in file
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
     local_particle_count = None  # The number of particle in the domain
-
 
     def __init__(self, ds, domain_id):
         '''
@@ -131,9 +130,21 @@ class ParticleFileHandler(object):
         the RAMSES Dataset structure to determine if the particle type
         (e.g. regular particles) exists.
         '''
-        # this function must be implemented by subclasses
-        raise NotImplementedError
+        if (ds.unique_identifier, cls.ptype) in PRESENT_PART_FILES:
+            return PRESENT_PART_FILES[(ds.unique_identifier, cls.ptype)]
 
+        iout = int(
+            os.path.basename(ds.parameter_filename)
+            .split(".")[0]
+            .split("_")[1])
+
+        fname = os.path.join(
+            os.path.split(ds.parameter_filename)[0],
+            cls.fname.format(iout=iout, icpu=1))
+        exists = os.path.exists(fname)
+        PRESENT_PART_FILES[(ds.unique_identifier, cls.ptype)] = exists
+
+        return exists
 
     def read_header(self):
         '''
@@ -179,14 +190,6 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         ("particle_mass", "d"),
         ("particle_identity", "i"),
         ("particle_refinement_level", "I")]
-
-    @classmethod
-    def any_exist(cls, ds):
-        files = os.path.join(
-            os.path.split(ds.parameter_filename)[0],
-            'part_?????.out?????')
-        ret = len(glob.glob(files)) > 0
-        return ret
 
     def read_header(self):
         if not self.exists:
@@ -284,14 +287,6 @@ class SinkParticleFileHandler(ParticleFileHandler):
         ("BH_spin_z", "d"),
         ("BH_spin", "d"),
         ("BH_efficiency", "d")]
-
-    @classmethod
-    def any_exist(cls, ds):
-        files = os.path.join(
-            os.path.split(ds.parameter_filename)[0],
-            'sink_?????.out?????')
-        ret = len(glob.glob(files)) > 0
-        return ret
 
     def read_header(self):
         if not self.exists:

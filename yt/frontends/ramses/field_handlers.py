@@ -16,6 +16,7 @@ def get_field_handlers():
 def register_field_handler(ph):
     FIELD_HANDLERS.add(ph)
 
+PRESENT_FIELD_FILES = {}
 DETECTED_FIELDS = {}
 
 class RAMSESFieldFileHandlerRegistry(type):
@@ -122,8 +123,21 @@ class FieldFileHandler(object):
         the RAMSES Dataset structure to determine if the particle type
         (e.g. regular particles) exists.
         '''
-        # this function must be implemented by subclasses
-        raise NotImplementedError
+        if (ds.unique_identifier, cls.ftype) in PRESENT_FIELD_FILES:
+            return PRESENT_FIELD_FILES[(ds.unique_identifier, cls.ftype)]
+
+        iout = int(
+            os.path.basename(ds.parameter_filename)
+            .split(".")[0]
+            .split("_")[1])
+
+        fname = os.path.join(
+            os.path.split(ds.parameter_filename)[0],
+            cls.fname.format(iout=iout, icpu=1))
+        exists = os.path.exists(fname)
+        PRESENT_FIELD_FILES[(ds.unique_identifier, cls.ftype)] = exists
+
+        return exists
 
     @classmethod
     def detect_fields(cls, ds):
@@ -257,14 +271,6 @@ class HydroFieldFileHandler(FieldFileHandler):
               ('gamma', 1, 'd'))
 
     @classmethod
-    def any_exist(cls, ds):
-        files = os.path.join(
-            os.path.split(ds.parameter_filename)[0],
-            'hydro_?????.out?????')
-        ret = len(glob.glob(files)) > 0
-        return ret
-
-    @classmethod
     def detect_fields(cls, ds):
         # Try to get the detected fields
         detected_fields = cls.get_detected_fields(ds)
@@ -383,15 +389,6 @@ class GravFieldFileHandler(FieldFileHandler):
     )
 
     @classmethod
-    def any_exist(cls, ds):
-        files = os.path.join(
-            os.path.split(ds.parameter_filename)[0],
-            'grav_?????.out00001')
-        ret = len(glob.glob(files)) == 1
-
-        return ret
-
-    @classmethod
     def detect_fields(cls, ds):
         ndim = ds.dimensionality
         iout = int(str(ds).split('_')[1])
@@ -435,15 +432,6 @@ class RTFieldFileHandler(FieldFileHandler):
               ('nboundary', 1, 'i'),
               ('gamma', 1, 'd')
     )
-
-    @classmethod
-    def any_exist(cls, ds):
-        files = os.path.join(
-            os.path.split(ds.parameter_filename)[0],
-            'info_rt_?????.txt')
-        ret = len(glob.glob(files)) == 1
-
-        return ret
 
     @classmethod
     def detect_fields(cls, ds):
