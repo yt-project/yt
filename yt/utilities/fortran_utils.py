@@ -44,7 +44,7 @@ def read_attrs(f, attrs,endian='='):
     f : File object
         An open file object.  Should have been opened in mode rb.
     attrs : iterable of iterables
-        This object should be an iterable of one of the formats: 
+        This object should be an iterable of one of the formats:
         [ (attr_name, count, struct type), ... ].
         [ ((name1,name2,name3),count, vector type]
         [ ((name1,name2,name3),count, 'type type type']
@@ -107,7 +107,7 @@ def read_cattrs(f, attrs, endian='='):
     f : File object
         An open file object.  Should have been opened in mode rb.
     attrs : iterable of iterables
-        This object should be an iterable of one of the formats: 
+        This object should be an iterable of one of the formats:
         [ (attr_name, count, struct type), ... ].
         [ ((name1,name2,name3),count, vector type]
         [ ((name1,name2,name3),count, 'type type type']
@@ -195,7 +195,7 @@ def read_vector(f, d, endian='='):
 
 def skip(f, n=1, endian='='):
     r"""This function accepts a file pointer and skips a Fortran unformatted
-    record. Optionally check that the skip was done correctly by checking 
+    record. Optionally check that the skip was done correctly by checking
     the pad bytes.
 
     Parameters
@@ -220,14 +220,15 @@ def skip(f, n=1, endian='='):
     >>> skip(f, 3)
     """
     skipped = []
+    fmt = endian+"I"
+    fmt_size = struct.calcsize(fmt)
     for i in range(n):
-        fmt = endian+"I"
-        size = f.read(struct.calcsize(fmt))
-        s1= struct.unpack(fmt, size)[0]
-        f.seek(s1+ struct.calcsize(fmt), os.SEEK_CUR)
-        s2= struct.unpack(fmt, size)[0]
-        assert s1==s2 
-        skipped.append(s1/struct.calcsize(fmt))
+        size = f.read(fmt_size)
+        s1 = struct.unpack(fmt, size)[0]
+        f.seek(s1 + fmt_size, os.SEEK_CUR)
+        s2 = struct.unpack(fmt, size)[0]
+        assert s1 == s2
+        skipped.append(s1/fmt_size)
     return skipped
 
 def peek_record_size(f,endian='='):
@@ -299,4 +300,3 @@ def read_record(f, rspec, endian='='):
         vv[a] = vals[pos:pos+n]
         pos += n
     return vv
-
