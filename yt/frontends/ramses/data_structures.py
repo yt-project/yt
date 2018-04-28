@@ -50,7 +50,7 @@ from yt.arraytypes import blankRecordArray
 from yt.utilities.lib.cosmology_time import \
     friedman
 
-from .io_utils import read_amr
+from .io_utils import read_amr, fill_hydro
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -192,7 +192,7 @@ class RAMSESDomainSubset(OctreeSubset):
     _block_reorder = "F"
 
     def fill(self, content, fields, selector, file_handler):
-        twotondim = 2**self.ds.dimensionality
+        ndim = self.ds.dimensionality
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
@@ -202,28 +202,16 @@ class RAMSESDomainSubset(OctreeSubset):
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
         levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
             selector, self.domain_id, cell_count)
+
         # Initializing data container
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
 
-        # Loop over levels
-        for level, offset in enumerate(file_handler.offset):
-            if offset == -1: continue
-            content.seek(offset)
-            nc = file_handler.level_count[level]
-            tmp = {}
-            # Initalize temporary data container for io
-            for field in all_fields:
-                tmp[field] = np.empty((nc, twotondim), dtype="float64")
-            for i in range(twotondim):
-                # Read the selected fields
-                for field in all_fields:
-                    if field not in fields:
-                        fpu.skip(content)
-                    else:
-                        tmp[field][:,i] = fpu.read_vector(content, 'd') # i-th cell
 
-            oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, tmp)
+        fill_hydro(content, file_handler.offset,
+                   file_handler.level_count, levels, cell_inds,
+                   file_inds, ndim, all_fields, fields, tr,
+                   oct_handler)
         return tr
 
 class RAMSESIndex(OctreeIndex):
