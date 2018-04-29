@@ -39,17 +39,17 @@ def read_amr(f, headers, np.ndarray[np.int64_t, ndim=1] ngridbound,
             if ng == 0:
                 continue
             # ind = fpu.read_vector(f, "I").astype("int64")  # NOQA
-            fpu.skip(f, 3)
+            f.skip(3)
 
             # Reallocate memory if requred
             if ng > pos.shape[0]:
                 pos = np.empty((ng, 3), dtype="d")
 
-            pos[:ng, 0] = fpu.read_vector(f, "d") - nx
-            pos[:ng, 1] = fpu.read_vector(f, "d") - ny
-            pos[:ng, 2] = fpu.read_vector(f, "d") - nz
+            pos[:ng, 0] = f.read_vector("d") - nx
+            pos[:ng, 1] = f.read_vector("d") - ny
+            pos[:ng, 2] = f.read_vector("d") - nz
 
-            fpu.skip(f, 31)
+            f.skip(31)
             # Note that we're adding *grids*, not individual cells.
             if ilevel >= min_level:
                 n = oct_handler.add(icpu + 1, ilevel - min_level, pos[:ng, :],

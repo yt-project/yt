@@ -42,7 +42,7 @@ from .fields import \
 from .hilbert import get_cpu_list
 from .particle_handlers import get_particle_handlers
 from .field_handlers import get_field_handlers
-import yt.utilities.fortran_utils as fpu
+from yt.utilities.cython_fortran_utils import FortranFile as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
 from yt.arraytypes import blankRecordArray
@@ -118,7 +118,7 @@ class RAMSESDomainFile(object):
             self._amr_file.seek(0)
             return self._amr_file
 
-        f = open(self.amr_fn, "rb")
+        f = fpu(self.amr_fn)
         self._amr_file = f
         f.seek(0)
         return f
@@ -126,27 +126,26 @@ class RAMSESDomainFile(object):
     def _read_amr_header(self):
         hvals = {}
         f = self.amr_file
-
         f.seek(0)
 
         for header in ramses_header(hvals):
-            hvals.update(fpu.read_attrs(f, header))
+            hvals.update(f.read_attrs(header))
         # For speedup, skip reading of 'headl' and 'taill'
-        fpu.skip(f, 2)
-        hvals['numbl'] = fpu.read_vector(f, 'i')
+        f.skip(2)
+        hvals['numbl'] = f.read_vector('i')
 
         # That's the header, now we skip a few.
         hvals['numbl'] = np.array(hvals['numbl']).reshape(
             (hvals['nlevelmax'], hvals['ncpu']))
-        fpu.skip(f)
+        f.skip()
         if hvals['nboundary'] > 0:
-            fpu.skip(f, 2)
-            self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
+            f.skip(2)
+            self.ngridbound = f.read_vector('i').astype("int64")
         else:
             self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
-        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )  # NOQA
-        ordering = fpu.read_vector(f, 'c')  # NOQA
-        fpu.skip(f, 4)
+        free_mem = f.read_attrs((('free_mem', 5, 'i'), ) )  # NOQA
+        ordering = f.read_vector('c')  # NOQA
+        f.skip(4)
         # Now we're at the tree itself
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals

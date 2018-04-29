@@ -219,7 +219,7 @@ def skip(f, n=1, endian='='):
     >>> f = open("fort.3", "rb")
     >>> skip(f, 3)
     """
-    skipped = []
+    skipped = np.zeros(n, dtype=np.int32)
     fmt = endian+"I"
     fmt_size = struct.calcsize(fmt)
     for i in range(n):
@@ -228,7 +228,7 @@ def skip(f, n=1, endian='='):
         f.seek(s1 + fmt_size, os.SEEK_CUR)
         s2 = struct.unpack(fmt, size)[0]
         assert s1 == s2
-        skipped.append(s1/fmt_size)
+        skipped[i] = s1/fmt_size
     return skipped
 
 def peek_record_size(f,endian='='):

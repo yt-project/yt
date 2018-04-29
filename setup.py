@@ -182,6 +182,9 @@ cython_extensions = [
     Extension("yt.frontends.ramses.io_utils",
               ["yt/frontends/ramses/io_utils.pyx"],
               libraries=std_libs),
+    Extension("yt.utilities.cython_fortran_utils",
+              ["yt/utilities/cython_fortran_utils.pyx"],
+              libraries=std_libs),
 ]
 
 lib_exts = [
