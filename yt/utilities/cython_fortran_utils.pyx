@@ -9,8 +9,6 @@ cdef DOUBLE_SIZE = sizeof(double)
 
 
 cdef class FortranFile:
-    cdef FILE* cfile
-
     def __init__(self, str fname):
         self.cfile = fopen(fname.encode('utf-8'), 'r')
 
@@ -32,7 +30,7 @@ cdef class FortranFile:
         else:
             return struct.calcsize(dtype)
 
-    def read_vector(self, str dtype):
+    cpdef np.ndarray read_vector(self, str dtype):
         cdef int s1, s2, size
         cdef np.ndarray data
 
@@ -45,7 +43,7 @@ cdef class FortranFile:
 
         return data
 
-    def read_attrs(self, object attrs):
+    cpdef dict read_attrs(self, object attrs):
         cdef str dtype
         cdef int n
         cdef dict data
@@ -73,8 +71,8 @@ cdef class FortranFile:
         pos = ftell(self.cfile)
         return pos
 
-    def seek(self, int pos, int whence=SEEK_SET):
+    cpdef void seek(self, int pos, int whence=SEEK_SET):
         fseek(self.cfile, pos, whence)
 
-    def close(self):
+    cpdef void close(self):
         fclose(self.cfile)

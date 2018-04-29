@@ -199,6 +199,7 @@ class RAMSESDomainSubset(OctreeSubset):
         fields = [f for ft, f in fields]
         tr = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
+
         levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
             selector, self.domain_id, cell_count)
 

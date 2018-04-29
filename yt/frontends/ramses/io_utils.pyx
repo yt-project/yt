@@ -2,16 +2,15 @@ cimport cython
 cimport numpy as np
 import numpy as np
 import yt.utilities.fortran_utils as fpu
-
-from yt.geometry.oct_container import \
-    RAMSESOctreeContainer
+from yt.utilities.cython_fortran_utils cimport FortranFile
+cimport yt.geometry.oct_container as oc
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def read_amr(f, headers, np.ndarray[np.int64_t, ndim=1] ngridbound,
+def read_amr(FortranFile f, headers, np.ndarray[np.int64_t, ndim=1] ngridbound,
              int min_level,
-             oct_handler,
+             oc.RAMSESOctreeContainer oct_handler
 ):
 
     cdef int ncpu, nboundary, max_level, nlevelmax, ncpu_and_bound
@@ -106,7 +105,7 @@ def fill_hydro(f,
                np.ndarray[np.int64_t, ndim=1] file_inds,
                int ndim, list all_fields, list fields,
                dict tr,
-               oct_handler):
+               oc.RAMSESOctreeContainer oct_handler):
     cdef int ilevel, offset, ifield, nfields, noffset
     cdef dict tmp
     cdef str field
