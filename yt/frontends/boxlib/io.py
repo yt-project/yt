@@ -130,7 +130,6 @@ class IOHandlerBoxlib(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         for chunk in chunks: # These should be organized by grid filename
-            f = None
             for g in chunk.objs:
                 for ptype, field_list in sorted(ptf.items()):
                     npart = g._pdata[ptype]["NumberOfParticles"]
@@ -141,46 +140,45 @@ class IOHandlerBoxlib(BaseIOHandler):
                     offset = g._pdata[ptype]["offset"]
                     pheader = self.ds.index.particle_headers[ptype]
 
-                    if f is None:
-                        f = open(fn, "rb")
+                    with open(fn, "rb") as f:
+                        # read in the position fields for selection
+                        f.seek(offset + 
+                               pheader.particle_int_dtype.itemsize * npart)
+                        rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
+                        x = np.asarray(rdata[0::pheader.num_real], dtype=np.float64)
+                        y = np.asarray(rdata[1::pheader.num_real], dtype=np.float64)
+                        if (g.ds.dimensionality == 2):
+                            z = np.ones_like(y)
+                            z *= 0.5*(g.LeftEdge[2] + g.RightEdge[2])
+                        else:
+                            z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
 
-                    # read in the position fields for selection
-                    f.seek(offset + 
-                           pheader.particle_int_dtype.itemsize * npart)
-                    rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
-                    x = np.asarray(rdata[0::pheader.num_real], dtype=np.float64)
-                    y = np.asarray(rdata[1::pheader.num_real], dtype=np.float64)
-                    if (g.ds.dimensionality == 2):
-                        z = np.ones_like(y)
-                        z *= 0.5*(g.LeftEdge[2] + g.RightEdge[2])
-                    else:
-                        z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
+                        if selector is None:
+                            # This only ever happens if the call is made from
+                            # _read_particle_coords.
+                            yield ptype, (x, y, z)
+                            continue
+                        mask = selector.select_points(x, y, z, 0.0)
+                        if mask is None: continue
+                        for field in field_list:
+                            # handle the case that this is an integer field
+                            int_fnames = [fname for _, fname in pheader.known_int_fields]
+                            if field in int_fnames:
+                                ind = int_fnames.index(field)
+                                f.seek(offset)
+                                idata = np.fromfile(f, pheader.int_type, \
+                                                    pheader.num_int * npart)
+                                data = np.asarray(idata[ind::pheader.num_int], \
+                                                  dtype=np.float64)
+                                yield (ptype, field), data[mask].flatten()
 
-                    if selector is None:
-                        # This only ever happens if the call is made from
-                        # _read_particle_coords.
-                        yield ptype, (x, y, z)
-                        continue
-                    mask = selector.select_points(x, y, z, 0.0)
-                    if mask is None: continue
-                    for field in field_list:
-                        # handle the case that this is an integer field
-                        int_fnames = [fname for _, fname in pheader.known_int_fields]
-                        if field in int_fnames:
-                            ind = int_fnames.index(field)
-                            f.seek(offset)
-                            idata = np.fromfile(f, pheader.int_type, pheader.num_int * npart)
-                            data = np.asarray(idata[ind::pheader.num_int], dtype=np.float64)
-                            yield (ptype, field), data[mask].flatten()
-
-                        # handle case that this is a real field
-                        real_fnames = [fname for _, fname in pheader.known_real_fields]
-                        if field in real_fnames:
-                            ind = real_fnames.index(field)
-                            
-                            data = np.asarray(rdata[ind::pheader.num_real], dtype=np.float64)
-                            yield (ptype, field), data[mask].flatten()
-            if f: f.close()
+                            # handle case that this is a real field
+                            real_fnames = [fname for _, fname in pheader.known_real_fields]
+                            if field in real_fnames:
+                                ind = real_fnames.index(field)                            
+                                data = np.asarray(rdata[ind::pheader.num_real], \
+                                                  dtype=np.float64)
+                                yield (ptype, field), data[mask].flatten()
 
 class IOHandlerOrion(IOHandlerBoxlib):
     _dataset_type = "orion_native"
