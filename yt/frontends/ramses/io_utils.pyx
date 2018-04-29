@@ -7,6 +7,7 @@ from yt.geometry.oct_container cimport RAMSESOctreeContainer
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+@cython.nonecheck(False)
 def read_amr(FortranFile f, dict headers,
              np.ndarray[np.int64_t, ndim=1] ngridbound, int min_level,
              RAMSESOctreeContainer oct_handler):
@@ -59,6 +60,7 @@ def read_amr(FortranFile f, dict headers,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+@cython.nonecheck(False)
 def read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict headers):
 
     cdef np.ndarray[np.int64_t, ndim=1] offset, level_count
@@ -84,7 +86,10 @@ def read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict head
             file_ilevel = f.read_vector('i')
             file_ncache = f.read_vector('i')
             if file_ncache == 0: continue
-            assert(file_ilevel == ilevel+1)
+
+            if file_ilevel != ilevel+1:
+                raise Exception()
+
             if icpu + 1 == domain_id and ilevel >= min_level:
                 offset[ilevel - min_level] = f.tell()
                 level_count[ilevel - min_level] = file_ncache
@@ -95,6 +100,7 @@ def read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict head
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+@cython.nonecheck(False)
 def fill_hydro(FortranFile f,
                np.ndarray[np.int64_t, ndim=1] offsets,
                np.ndarray[np.int64_t, ndim=1] level_count,
