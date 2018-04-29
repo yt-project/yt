@@ -1,17 +1,15 @@
 cimport cython
 cimport numpy as np
 import numpy as np
-import yt.utilities.fortran_utils as fpu
 from yt.utilities.cython_fortran_utils cimport FortranFile
-cimport yt.geometry.oct_container as oc
+from yt.geometry.oct_container cimport RAMSESOctreeContainer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def read_amr(FortranFile f, headers, np.ndarray[np.int64_t, ndim=1] ngridbound,
-             int min_level,
-             oc.RAMSESOctreeContainer oct_handler
-):
+def read_amr(FortranFile f, dict headers,
+             np.ndarray[np.int64_t, ndim=1] ngridbound, int min_level,
+             RAMSESOctreeContainer oct_handler):
 
     cdef int ncpu, nboundary, max_level, nlevelmax, ncpu_and_bound
     cdef double nx, ny, nz
@@ -61,7 +59,7 @@ def read_amr(FortranFile f, headers, np.ndarray[np.int64_t, ndim=1] ngridbound,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def read_offset(f, int min_level, int domain_id, int nvar, headers):
+def read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict headers):
 
     cdef np.ndarray[np.int64_t, ndim=1] offset, level_count
     cdef int ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
@@ -83,21 +81,21 @@ def read_offset(f, int min_level, int domain_id, int nvar, headers):
     level_count = np.zeros(n_levels, dtype=np.int64)
     for ilevel in range(nlevelmax):
         for icpu in range(ncpu_and_bound):
-            file_ilevel = fpu.read_vector(f, 'I')
-            file_ncache = fpu.read_vector(f, 'I')
+            file_ilevel = f.read_vector('i')
+            file_ncache = f.read_vector('i')
             if file_ncache == 0: continue
             assert(file_ilevel == ilevel+1)
             if icpu + 1 == domain_id and ilevel >= min_level:
                 offset[ilevel - min_level] = f.tell()
                 level_count[ilevel - min_level] = file_ncache
-            fpu.skip(f, twotondim * nvar)
+            f.skip(twotondim * nvar)
 
     return offset, level_count
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def fill_hydro(f,
+def fill_hydro(FortranFile f,
                np.ndarray[np.int64_t, ndim=1] offsets,
                np.ndarray[np.int64_t, ndim=1] level_count,
                np.ndarray[np.uint8_t, ndim=1] levels,
@@ -105,7 +103,7 @@ def fill_hydro(f,
                np.ndarray[np.int64_t, ndim=1] file_inds,
                int ndim, list all_fields, list fields,
                dict tr,
-               oc.RAMSESOctreeContainer oct_handler):
+               RAMSESOctreeContainer oct_handler):
     cdef int ilevel, offset, ifield, nfields, noffset
     cdef dict tmp
     cdef str field
@@ -134,8 +132,8 @@ def fill_hydro(f,
             for ifield in range(nfields):
                 # for field in all_fields:
                 if not mask[ifield]:
-                    fpu.skip(f)
+                    f.skip()
                 else:
-                    tmp[all_fields[ifield]][:, i] = fpu.read_vector(f, 'd') # i-th cell
+                    tmp[all_fields[ifield]][:, i] = f.read_vector('d') # i-th cell
 
         oct_handler.fill_level(ilevel, levels, cell_inds, file_inds, tr, tmp)

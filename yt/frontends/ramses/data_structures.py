@@ -190,7 +190,7 @@ class RAMSESDomainSubset(OctreeSubset):
     _domain_offset = 1
     _block_reorder = "F"
 
-    def fill(self, content, fields, selector, file_handler):
+    def fill(self, fd, fields, selector, file_handler):
         ndim = self.ds.dimensionality
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
@@ -207,8 +207,7 @@ class RAMSESDomainSubset(OctreeSubset):
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
 
-
-        fill_hydro(content, file_handler.offset,
+        fill_hydro(fd, file_handler.offset,
                    file_handler.level_count, levels, cell_inds,
                    file_inds, ndim, all_fields, fields, tr,
                    oct_handler)

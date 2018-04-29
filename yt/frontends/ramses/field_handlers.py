@@ -1,5 +1,6 @@
 import os
 import yt.utilities.fortran_utils as fpu
+from yt.utilities.cython_fortran_utils import FortranFile
 import glob
 from yt.extern.six import add_metaclass
 from yt.funcs import mylog
@@ -8,6 +9,7 @@ from yt.config import ytcfg
 import numpy as np
 from .io import _read_fluid_file_descriptor
 from .io_utils import read_offset
+
 
 FIELD_HANDLERS = set()
 
@@ -217,15 +219,18 @@ class FieldFileHandler(object):
         if getattr(self, '_offset', None) is not None:
             return self._offset
 
-        with open(self.fname, 'rb') as f:
-            # Skip headers
-            nskip = len(self.attrs)
-            fpu.skip(f, nskip)
-            min_level = self.domain.ds.min_level
+        f = FortranFile(self.fname)
 
-            offset, level_count = read_offset(
-                f, min_level, self.domain.domain_id, self.parameters['nvar'],
-                self.domain.amr_header)
+        # Skip headers
+        nskip = len(self.attrs)
+        f.skip(nskip)
+        min_level = self.domain.ds.min_level
+
+        offset, level_count = read_offset(
+            f, min_level, self.domain.domain_id, self.parameters['nvar'],
+            self.domain.amr_header)
+
+        f.close()
 
         self._offset = offset
         self._level_count = level_count

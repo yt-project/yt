@@ -21,6 +21,7 @@ from yt.utilities.io_handler import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 import yt.utilities.fortran_utils as fpu
+from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTFileNotParseable
 from yt.extern.six import PY3
@@ -118,11 +119,12 @@ class IOHandlerRAMSES(BaseIOHandler):
                     raise YTFieldTypeNotFound(ftype)
 
                 # Now we read the entire thing
-                with open(fname, "rb") as f:
-                    content = IO(f.read())
+                fd = FortranFile(fname)
+                # with open(fname, "rb") as f:
+                #     content = IO(f.read())
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
-                rv = subset.fill(content, fields, selector, file_handler)
+                rv = subset.fill(fd, fields, selector, file_handler)
                 for ft, f in fields:
                     d = rv.pop(f)
                     mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
