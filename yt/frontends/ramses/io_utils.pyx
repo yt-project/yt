@@ -65,7 +65,7 @@ cpdef read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict he
 
     cdef np.ndarray[np.int64_t, ndim=1] offset, level_count
     cdef int ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
-    cdef int file_ilevel, file_ncache, ilevel, icpu
+    cdef int file_ilevel, file_ncache, ilevel, icpu, skip_len
 
     numbl = headers['numbl']
     ndim = headers['ndim']
@@ -76,6 +76,8 @@ cpdef read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict he
 
     ncpu_and_bound = nboundary + ncpu
     twotondim = 2**ndim
+
+    skip_len = twotondim * nvar
 
     # It goes: level, CPU, 8-variable (1 cube)
     offset = np.zeros(n_levels, dtype=np.int64)
@@ -97,7 +99,7 @@ cpdef read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict he
             if icpu + 1 == domain_id and ilevel >= min_level:
                 offset[ilevel - min_level] = f.tell()
                 level_count[ilevel - min_level] = file_ncache
-            f.skip(twotondim * nvar)
+            f.skip(skip_len)
 
     return offset, level_count
 
