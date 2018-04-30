@@ -43,6 +43,16 @@ cdef class FortranFile:
 
         return data
 
+    cpdef int read_int(self):
+        cdef int s1, s2, size=sizeof(int)
+        cdef int data
+
+        fread(&s1, INT_SIZE, 1, self.cfile)
+        fread(&data, size, s1 // size, self.cfile)
+        fread(&s2, INT_SIZE, 1, self.cfile)
+
+        return data
+
     cpdef dict read_attrs(self, object attrs):
         cdef str dtype
         cdef int n
@@ -66,8 +76,8 @@ cdef class FortranFile:
 
         return data
 
-    cpdef int tell(self):
-        cdef int pos
+    cpdef long tell(self):
+        cdef long pos
         pos = ftell(self.cfile)
         return pos
 

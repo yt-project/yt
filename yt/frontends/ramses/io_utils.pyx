@@ -61,7 +61,7 @@ def read_amr(FortranFile f, dict headers,
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.nonecheck(False)
-def read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict headers):
+cpdef read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict headers):
 
     cdef np.ndarray[np.int64_t, ndim=1] offset, level_count
     cdef int ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
@@ -81,10 +81,14 @@ def read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict head
     offset = np.zeros(n_levels, dtype=np.int64)
     offset -= 1
     level_count = np.zeros(n_levels, dtype=np.int64)
+
+    cdef long[:] level_count_view = level_count
+    cdef long[:] offset_view = offset
+
     for ilevel in range(nlevelmax):
         for icpu in range(ncpu_and_bound):
-            file_ilevel = f.read_vector('i')
-            file_ncache = f.read_vector('i')
+            file_ilevel = f.read_int()
+            file_ncache = f.read_int()
             if file_ncache == 0: continue
 
             if file_ilevel != ilevel+1:
