@@ -21,11 +21,13 @@ from yt.data_objects.profiles import create_profile
 from yt.testing import \
     fake_random_ds, \
     assert_array_almost_equal, \
-    requires_file
+    requires_file, \
+    assert_fname, \
+    assert_allclose_units
 from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
 from yt.visualization.tests.test_plotwindow import \
-    assert_fname, TEST_FLNMS
+    TEST_FLNMS
 from yt.utilities.answer_testing.framework import \
     PhasePlotAttributeTest, \
     requires_ds, \
@@ -59,13 +61,12 @@ def test_phase_plot_attributes():
     z_field = 'cell_mass'
     decimals = 12
     ds = data_dir_load(g30)
-    for ax in 'xyz':
-        for attr_name in ATTR_ARGS.keys():
-            for args in ATTR_ARGS[attr_name]:
-                test = PhasePlotAttributeTest(ds, x_field, y_field, z_field, 
-                                               attr_name, args, decimals)
-                test_phase_plot_attributes.__name__ = test.description
-                yield test
+    for attr_name in ATTR_ARGS.keys():
+        for args in ATTR_ARGS[attr_name]:
+            test = PhasePlotAttributeTest(ds, x_field, y_field, z_field, 
+                                          attr_name, args, decimals)
+            test_phase_plot_attributes.__name__ = test.description
+            yield test
 
 class TestProfilePlotSave(unittest.TestCase):
 
@@ -144,7 +145,7 @@ ETC46 = "enzo_tiny_cosmology/DD0046/DD0046"
 
 @requires_file(ETC46)
 def test_profile_plot_multiple_field_multiple_plot():
-    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    ds = yt.load(ETC46)
     sphere = ds.sphere("max", (1.0, "Mpc"))
     profiles = []
     profiles.append(yt.create_profile(
@@ -160,3 +161,66 @@ def test_profile_plot_multiple_field_multiple_plot():
     plot = yt.ProfilePlot.from_profiles(profiles)
     with tempfile.NamedTemporaryFile(suffix='png') as f:
         plot.save(name=f.name)
+
+@requires_file(ETC46)
+def test_set_units():
+    ds = yt.load(ETC46)
+    sp = ds.sphere("max", (1.0, "Mpc"))
+    p1 = yt.ProfilePlot(sp, "radius", ("enzo", "Density"))
+    p2 = yt.PhasePlot(sp, ("enzo", "Density"), ("enzo", "Temperature"), "cell_mass")
+    # make sure we can set the units using the tuple without erroring out
+    p1.set_unit(("enzo", "Density"), "Msun/kpc**3")
+    p2.set_unit(("enzo", "Temperature"), "R")
+
+def test_set_labels():
+    ds = fake_random_ds(16)
+    ad = ds.all_data()
+    plot = yt.ProfilePlot(ad, "radius", ["velocity_x", "density"], weight_field=None)
+    # make sure we can set the labels without erroring out
+    plot.set_ylabel("all", "test ylabel")
+    plot.set_xlabel("test xlabel")
+
+def test_create_from_dataset():
+    ds = fake_random_ds(16)
+    plot1 = yt.ProfilePlot(ds, "radius", ["velocity_x", "density"],
+                           weight_field=None)
+    plot2 = yt.ProfilePlot(ds.all_data(), "radius", ["velocity_x", "density"],
+                           weight_field=None)
+    assert_allclose_units(
+        plot1.profiles[0]['density'], plot2.profiles[0]['density'])
+    assert_allclose_units(
+        plot1.profiles[0]['velocity_x'], plot2.profiles[0]['velocity_x'])
+
+    plot1 = yt.PhasePlot(ds, 'density', 'velocity_x', 'cell_mass')
+    plot2 = yt.PhasePlot(ds.all_data(), 'density', 'velocity_x', 'cell_mass')
+    assert_allclose_units(
+        plot1.profile['cell_mass'], plot2.profile['cell_mass'])
+
+class TestAnnotations(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        ds = fake_random_ds(16)
+        ad = ds.all_data()
+        cls.fields = ["velocity_x", "velocity_y", "velocity_z"]
+        cls.plot = yt.ProfilePlot(ad, "radius", cls.fields, weight_field=None)
+
+    def test_annotations(self):
+        # make sure we can annotate without erroring out
+        # annotate the plot with only velocity_x
+        self.plot.annotate_title("velocity_x plot", self.fields[0])
+        self.plot.annotate_text(1e-1, 1e1, "Annotated velocity_x")
+
+        # annotate the plots with velocity_y and velocity_z with
+        # the same annotations
+        self.plot.annotate_title("Velocity Plots (Y or Z)", self.fields[1:])
+        self.plot.annotate_text(1e-1, 1e1, "Annotated vel_y, vel_z", self.fields[1:])
+        self.plot.save()
+
+    def test_annotations_wrong_fields(self):
+        from yt.utilities.exceptions import YTFieldNotFound
+        with self.assertRaises(YTFieldNotFound):
+            self.plot.annotate_title("velocity_x plot",  "wrong_field_name")
+
+        with self.assertRaises(YTFieldNotFound):
+            self.plot.annotate_text(1e-1, 1e1, "Annotated text", "wrong_field_name")

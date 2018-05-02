@@ -152,7 +152,7 @@ class ParticleProjectionPlot(PWViewerMPL):
          space, plot 'window' space or 'native' simulation coordinate system
          is given. For example, both 'upper-right-domain' and ['upper',
          'right', 'domain'] both place the origin in the upper right hand
-         corner of domain space. If x or y are not given, a value is inffered.
+         corner of domain space. If x or y are not given, a value is inferred.
          For instance, 'left-domain' corresponds to the lower-left hand corner
          of the simulation domain, 'center-domain' corresponds to the center
          of the simulation domain, or 'center-window' for the center of the
@@ -175,6 +175,11 @@ class ParticleProjectionPlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    window_size : float
+        The size of the window on the longest axis (in units of inches),
+        including the margins but not the colorbar.
+    aspect : float
+         The aspect ratio of the plot.  Set to None for 1.
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
@@ -342,8 +347,8 @@ class ParticlePhasePlot(PhasePlot):
                                         figure_size)
 
 
-def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
-                 kwargs):
+def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
+                 **kwargs):
     r"""
     A factory function for
     :class:`yt.visualization.particle_plots.ParticleProjectionPlot`
@@ -352,13 +357,15 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
     plots, the distinction being determined by the fields passed in.
 
     If the x_field and y_field combination corresponds to a valid, right-handed
-    spatial plot, an 'ParticleProjectionPlot` will be returned. This plot
+    spatial plot, an ``ParticleProjectionPlot`` will be returned. This plot
     object can be updated using one of the many helper functions defined in
-    PlotWindow.
+    ``PlotWindow``.
 
     If the x_field and y_field combo do not correspond to a valid
-    'ParticleProjectionPlot`, then a `ParticlePhasePlot`. This object can be
-    modified by its own set of  helper functions defined in PhasePlot.
+    ``ParticleProjectionPlot``, then a ``ParticlePhasePlot``. This object can be
+    modified by its own set of  helper functions defined in PhasePlot. We note
+    below which arguments are only accepted by ``ParticleProjectionPlot`` and
+    which arguments are only accepted by ``ParticlePhasePlot``.
 
     Parameters
     ----------
@@ -381,6 +388,103 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
          The color that will indicate the particle locations
          on the plot. This argument is ignored if z_fields is
          not None. Default is 'b'.
+    weight_field : string
+         The name of the weighting field.  Set to None for no weight.
+    fontsize : integer
+         The size of the fonts for the axis, colorbar, and tick labels.
+    data_source : YTSelectionContainer Object
+         Object to be used for data selection.  Defaults to a region covering
+         the entire simulation.
+    center : A sequence of floats, a string, or a tuple.
+         The coordinate of the center of the image. If set to 'c', 'center' or
+         left blank, the plot is centered on the middle of the domain. If set to
+         'max' or 'm', the center will be located at the maximum of the
+         ('gas', 'density') field. Centering on the max or min of a specific
+         field is supported by providing a tuple such as ("min","temperature") or
+         ("max","dark_matter_density"). Units can be specified by passing in *center*
+         as a tuple containing a coordinate and string unit name or by passing
+         in a YTArray. If a list or unitless array is supplied, code units are
+         assumed. This argument is only accepted by ``ParticleProjectionPlot``.
+    width : tuple or a float.
+         Width can have four different formats to support windows with variable
+         x and y widths.  They are:
+
+         ==================================     =======================
+         format                                 example
+         ==================================     =======================
+         (float, string)                        (10,'kpc')
+         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+         float                                  0.2
+         (float, float)                         (0.2, 0.3)
+         ==================================     =======================
+
+         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
+         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
+         window that is 10 kiloparsecs wide along the x axis and 15
+         kiloparsecs wide along the y axis.  In the other two examples, code
+         units are assumed, for example (0.2, 0.3) requests a plot that has an
+         x width of 0.2 and a y width of 0.3 in code units.  If units are
+         provided the resulting plot axis labels will use the supplied units.
+         This argument is only accepted by ``ParticleProjectionPlot``.
+    depth : A tuple or a float
+         A tuple containing the depth to project through and the string
+         key of the unit: (width, 'unit').  If set to a float, code units
+         are assumed. Defaults to the entire domain. This argument is only 
+         accepted by ``ParticleProjectionPlot``.
+    axes_unit : A string
+         The name of the unit for the tick labels on the x and y axes.
+         Defaults to None, which automatically picks an appropriate unit.
+         If axes_unit is '1', 'u', or 'unitary', it will not display the
+         units, and only show the axes name.
+    origin : string or length 1, 2, or 3 sequence of strings
+         The location of the origin of the plot coordinate system.  This is
+         represented by '-' separated string or a tuple of strings.  In the
+         first index the y-location is given by 'lower', 'upper', or 'center'.
+         The second index is the x-location, given as 'left', 'right', or
+         'center'.  Finally, the whether the origin is applied in 'domain'
+         space, plot 'window' space or 'native' simulation coordinate system
+         is given. For example, both 'upper-right-domain' and ['upper',
+         'right', 'domain'] both place the origin in the upper right hand
+         corner of domain space. If x or y are not given, a value is inferred.
+         For instance, 'left-domain' corresponds to the lower-left hand corner
+         of the simulation domain, 'center-domain' corresponds to the center
+         of the simulation domain, or 'center-window' for the center of the
+         plot window. Further examples:
+
+         ==================================     ============================
+         format                                 example
+         ==================================     ============================
+         '{space}'                              'domain'
+         '{xloc}-{space}'                       'left-window'
+         '{yloc}-{space}'                       'upper-domain'
+         '{yloc}-{xloc}-{space}'                'lower-right-window'
+         ('{space}',)                           ('window',)
+         ('{xloc}', '{space}')                  ('right', 'domain')
+         ('{yloc}', '{space}')                  ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
+         ==================================     ============================
+
+         This argument is only accepted by ``ParticleProjectionPlot``.
+    window_size : float
+         The size of the window on the longest axis (in units of inches),
+         including the margins but not the colorbar. This argument is only 
+         accepted by ``ParticleProjectionPlot``.
+    aspect : float
+         The aspect ratio of the plot.  Set to None for 1. This argument is 
+         only accepted by ``ParticleProjectionPlot``.
+    x_bins : int
+        The number of bins in x field for the mesh. Defaults to 800. This
+        argument is only accepted by ``ParticlePhasePlot``.
+    y_bins : int
+        The number of bins in y field for the mesh. Defaults to 800. This
+        argument is only accepted by ``ParticlePhasePlot``.
+    deposition : str
+        Either 'ngp' or 'cic'. Controls what type of interpolation will be 
+        used to deposit the particle z_fields onto the mesh. Defaults to 'ngp'.
+        This argument is only accepted by ``ParticlePhasePlot``.
+    figure_size : int
+        Size in inches of the image. Defaults to 8 (product an 8x8 inch figure).
+        This argument is only accepted by ``ParticlePhasePlot``.
 
     Examples
     --------
@@ -394,10 +498,11 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
     ...                     color='g')
 
     """
-
-    ad = ds.all_data()
-    x_field = ad._determine_fields(x_field)[0]
-    y_field = ad._determine_fields(y_field)[0]
+    dd = kwargs.get('data_source', None)
+    if dd is None:
+        dd = ds.all_data()
+    x_field = dd._determine_fields(x_field)[0]
+    y_field = dd._determine_fields(y_field)[0]
 
     direction = 3
     # try potential axes for a ParticleProjectionPlot:
@@ -407,7 +512,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
         ax_field_template = 'particle_position_%s'
         xf = ax_field_template % ds.coordinates.axis_name[xax]
         yf = ax_field_template % ds.coordinates.axis_name[yax]
-        if (x_field[1], y_field[1]) == (xf, yf):
+        if (x_field[1], y_field[1]) in [(xf, yf), (yf, xf)]:
             direction = axis
             break
 
@@ -419,5 +524,5 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
     # Does not correspond to any valid PlotWindow-style plot,
     # use ParticlePhasePlot instead
     else:
-        return ParticlePhasePlot(ad, x_field, y_field,
+        return ParticlePhasePlot(dd, x_field, y_field,
                                  z_fields, color, *args, **kwargs)

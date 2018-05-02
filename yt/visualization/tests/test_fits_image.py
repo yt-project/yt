@@ -44,13 +44,13 @@ def test_fits_image():
     prj_frb = prj.to_frb((0.5, "unitary"), 128)
 
     fid1 = FITSImageData(prj_frb, fields=["density","temperature"], units="cm")
-    fits_prj = FITSProjection(ds, "z", ["density","temperature"], image_res=128,
+    fits_prj = FITSProjection(ds, "z", [ds.fields.gas.density,"temperature"], image_res=128,
                               width=(0.5,"unitary"))
 
     assert_equal(fid1["density"].data, fits_prj["density"].data)
     assert_equal(fid1["temperature"].data, fits_prj["temperature"].data)
 
-    fid1.writeto("fid1.fits", clobber=True)
+    fid1.writeto("fid1.fits", overwrite=True)
     new_fid1 = FITSImageData.from_file("fid1.fits")
 
     assert_equal(fid1["density"].data, new_fid1["density"].data)
@@ -71,7 +71,7 @@ def test_fits_image():
     slc_frb = slc.to_frb((0.5, "unitary"), 128)
 
     fid2 = FITSImageData(slc_frb, fields=["density","temperature"], units="cm")
-    fits_slc = FITSSlice(ds, "z", ["density","temperature"], image_res=128,
+    fits_slc = FITSSlice(ds, "z", ["density",("gas","temperature")], image_res=128,
                          width=(0.5,"unitary"))
 
     assert_equal(fid2["density"].data, fits_slc["density"].data)
@@ -87,7 +87,7 @@ def test_fits_image():
     cut = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
     cut_frb = cut.to_frb((0.5, "unitary"), 128)
 
-    fid3 = FITSImageData(cut_frb, fields=["density","temperature"], units="cm")
+    fid3 = FITSImageData(cut_frb, fields=[("gas","density"), ds.fields.gas.temperature], units="cm")
     fits_cut = FITSOffAxisSlice(ds, [0.1, 0.2, -0.9], ["density","temperature"],
                                 image_res=128, center=[0.5, 0.42, 0.6],
                                 width=(0.5,"unitary"))
@@ -96,7 +96,7 @@ def test_fits_image():
     assert_equal(fid3["temperature"].data, fits_cut["temperature"].data)
 
     fid3.create_sky_wcs([30.,45.], (1.0,"arcsec/kpc"))
-    fid3.writeto("fid3.fits", clobber=True)
+    fid3.writeto("fid3.fits", overwrite=True)
     new_fid3 = FITSImageData.from_file("fid3.fits")
     assert_same_wcs(fid3.wcs, new_fid3.wcs)
     assert new_fid3.wcs.wcs.cunit[0] == "deg"

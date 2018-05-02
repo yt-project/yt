@@ -17,6 +17,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.on_demand_imports import NotAModule
 from contextlib import contextmanager
 
+
 def valid_hdf5_signature(fn):
     signature = b'\x89HDF\r\n\x1a\n'
     try:
@@ -63,6 +64,7 @@ class HDF5FileHandler(object):
         if self.handle is not None:
             self.handle.close()
 
+
 class FITSFileHandler(HDF5FileHandler):
     def __init__(self, filename):
         from yt.utilities.on_demand_imports import _astropy
@@ -99,7 +101,12 @@ def valid_netcdf_classic_signature(filename):
 
 
 def warn_netcdf(fn):
-    needs_netcdf = valid_netcdf_classic_signature(fn)
+    # There are a few variants of the netCDF format.
+    classic = valid_netcdf_classic_signature(fn)
+    # NetCDF-4 Classic files are HDF5 files constrained to the Classic
+    # data model used by netCDF-3.
+    netcdf4_classic = valid_hdf5_signature(fn) and fn.endswith(('.nc', '.nc4'))
+    needs_netcdf = classic or netcdf4_classic
     from yt.utilities.on_demand_imports import _netCDF4 as netCDF4
     if needs_netcdf and isinstance(netCDF4.Dataset, NotAModule):
         raise RuntimeError("This appears to be a netCDF file, but the "

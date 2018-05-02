@@ -116,8 +116,14 @@ cdef class SelectorObject:
         self._hash_initialized = 0
         cdef np.float64_t [:] DLE
         cdef np.float64_t [:] DRE
-        self.min_level = getattr(dobj, "min_level", 0)
-        self.max_level = getattr(dobj, "max_level", 99)
+        min_level = getattr(dobj, "min_level", None)
+        max_level = getattr(dobj, "max_level", None)
+        if min_level is None:
+            min_level = 0
+        if max_level is None:
+            max_level = 99
+        self.min_level = min_level
+        self.max_level = max_level
         self.overlap_cells = 0
 
         ds = getattr(dobj, 'ds', None)
@@ -642,14 +648,18 @@ cdef class PointSelector(SelectorObject):
     cdef np.float64_t p[3]
 
     def __init__(self, dobj):
+        cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
+        cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
         for i in range(3):
             self.p[i] = _ensure_code(dobj.p[i])
 
             # ensure the point lies in the domain
             if self.periodicity[i]:
                 self.p[i] = np.fmod(self.p[i], self.domain_width[i])
-                if self.p[i] < 0.0:
+                if self.p[i] < DLE[i]:
                     self.p[i] += self.domain_width[i]
+                elif self.p[i] >= DRE[i]:
+                    self.p[i] -= self.domain_width[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -920,15 +930,12 @@ cdef class RegionSelector(SelectorObject):
             return 0
         if level == self.max_level:
             this_level = 1
-        cdef int si[3]
-        cdef int ei[3]
-        #print self.left_edge[0], self.left_edge[1], self.left_edge[2],
-        #print self.right_edge[0], self.right_edge[1], self.right_edge[2],
-        #print self.right_edge_shift[0], self.right_edge_shift[1], self.right_edge_shift[2]
+        cdef np.int64_t si[3]
+        cdef np.int64_t ei[3]
         if not self.check_period:
             for i in range(3):
-                si[i] = <int> ((self.left_edge[i] - left_edge[i])/dds[i])
-                ei[i] = <int> ((self.right_edge[i] - left_edge[i])/dds[i])
+                si[i] = <np.int64_t> ((self.left_edge[i] - left_edge[i])/dds[i])
+                ei[i] = <np.int64_t> ((self.right_edge[i] - left_edge[i])/dds[i])
                 si[i] = iclip(si[i] - 1, 0, dim[i])
                 ei[i] = iclip(ei[i] + 1, 0, dim[i])
         else:
@@ -1426,7 +1433,8 @@ cdef class RaySelector(SelectorObject):
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef int i
         cdef int total = 0
-        cdef IntegrationAccumulator ia
+        cdef IntegrationAccumulator *ia
+        ia = <IntegrationAccumulator *> malloc(sizeof(IntegrationAccumulator))
         cdef VolumeContainer vc
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
         t = np.zeros(gobj.ActiveDimensions, dtype="float64")
@@ -1445,13 +1453,14 @@ cdef class RaySelector(SelectorObject):
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
             vc.dims[i] = dt.shape[i]
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
         for i in range(dt.shape[0]):
             for j in range(dt.shape[1]):
                 for k in range(dt.shape[2]):
                     if dt[i, j, k] >= 0:
                         mask[i, j, k] = 1
                         total += 1
+        free(ia)
         if total == 0: return None
         return mask.astype("bool")
 
@@ -1463,7 +1472,8 @@ cdef class RaySelector(SelectorObject):
         cdef np.ndarray[np.float64_t, ndim=1] tr, dtr
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef int i, j, k, ni
-        cdef IntegrationAccumulator ia
+        cdef IntegrationAccumulator *ia
+        ia = <IntegrationAccumulator *> malloc(sizeof(IntegrationAccumulator))
         cdef VolumeContainer vc
         t = np.zeros(gobj.ActiveDimensions, dtype="float64")
         dt = np.zeros(gobj.ActiveDimensions, dtype="float64") - 1
@@ -1481,7 +1491,7 @@ cdef class RaySelector(SelectorObject):
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
             vc.dims[i] = dt.shape[i]
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
         tr = np.zeros(ia.hits, dtype="float64")
         dtr = np.zeros(ia.hits, dtype="float64")
         ni = 0
@@ -1494,6 +1504,7 @@ cdef class RaySelector(SelectorObject):
                         ni += 1
         if not (ni == ia.hits):
             print ni, ia.hits
+        free(ia)
         return dtr, tr
 
     @cython.boundscheck(False)
@@ -1507,7 +1518,8 @@ cdef class RaySelector(SelectorObject):
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.float64_t pos
-        cdef IntegrationAccumulator ia
+        cdef IntegrationAccumulator *ia
+        ia = <IntegrationAccumulator *> malloc(sizeof(IntegrationAccumulator))
         cdef np.ndarray[np.float64_t, ndim=2] coords
         cdef np.ndarray[np.int64_t, ndim=2] indices
         indices = mesh.connectivity_indices
@@ -1543,11 +1555,12 @@ cdef class RaySelector(SelectorObject):
                 vc.idds[j] = 1.0/vc.dds[j]
                 vc.dims[j] = 1
             t[0,0,0] = dt[0,0,0] = -1
-            walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+            walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
             if dt[0,0,0] >= 0:
                 tr[ni] = t[0,0,0]
                 dtr[ni] = dt[0,0,0]
                 ni += 1
+        free(ia)
         return dtr, tr
 
     cdef int select_point(self, np.float64_t pos[3]) nogil:
@@ -1563,26 +1576,31 @@ cdef class RaySelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
-        cdef int i
-        cdef np.uint8_t cm = 1
+        cdef int i, rv
         cdef VolumeContainer vc
-        cdef IntegrationAccumulator ia
-        cdef np.float64_t dt, t
+        cdef IntegrationAccumulator *ia
+        ia = <IntegrationAccumulator *> malloc(sizeof(IntegrationAccumulator))
+        cdef np.float64_t dt[1]
+        cdef np.float64_t t[1]
+        cdef np.uint8_t cm[1]
         for i in range(3):
             vc.left_edge[i] = left_edge[i]
             vc.right_edge[i] = right_edge[i]
             vc.dds[i] = right_edge[i] - left_edge[i]
             vc.idds[i] = 1.0/vc.dds[i]
             vc.dims[i] = 1
-        t = dt = 0.0
-        ia.t = &t
-        ia.dt = &dt
-        ia.child_mask = &cm
+        t[0] = dt[0] = 0.0
+        cm[0] = 1
+        ia.t = t
+        ia.dt = dt
+        ia.child_mask = cm
         ia.hits = 0
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
+        rv = 0
         if ia.hits > 0:
-            return 1
-        return 0
+            rv = 1
+        free(ia)
+        return rv
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1982,6 +2000,8 @@ cdef class ComposeSelector(SelectorObject):
     def __init__(self, dobj, selector1, selector2):
         self.selector1 = selector1
         self.selector2 = selector2
+        self.min_level = max(selector1.min_level, selector2.min_level)
+        self.max_level = min(selector1.max_level, selector2.max_level)
 
     def select_grids(self,
                      np.ndarray[np.float64_t, ndim=2] left_edges,

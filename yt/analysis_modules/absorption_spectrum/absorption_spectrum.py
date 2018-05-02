@@ -81,7 +81,7 @@ class AbsorptionSpectrum(object):
         f_value  : float
            line f-value.
         gamma : float
-           line gamme value.
+           line gamma value.
         atomic_mass : float
            mass of atom in amu.
         """
@@ -471,7 +471,7 @@ class AbsorptionSpectrum(object):
                             (thermal_width < self.bin_width).sum(),
                             n_absorbers)
 
-            # provide a progress bar with information about lines processsed
+            # provide a progress bar with information about lines processed
             pbar = get_pbar("Adding line - %s [%f A]: " % \
                             (line['label'], line['wavelength']), n_absorbers)
 
@@ -626,7 +626,7 @@ class AbsorptionSpectrum(object):
         col3 = pyfits.Column(name='flux', format='E', array=self.flux_field)
         cols = pyfits.ColDefs([col1, col2, col3])
         tbhdu = pyfits.BinTableHDU.from_columns(cols)
-        tbhdu.writeto(filename, clobber=True)
+        tbhdu.writeto(filename, overwrite=True)
 
     @parallel_root_only
     def _write_spectrum_hdf5(self, filename):

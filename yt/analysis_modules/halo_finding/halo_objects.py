@@ -19,7 +19,6 @@ import math
 import numpy as np
 import os.path as path
 from functools import cmp_to_key
-from yt.extern.six import add_metaclass
 from yt.extern.six.moves import zip as izip
 
 from yt.config import ytcfg
@@ -37,12 +36,10 @@ from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelDummy, \
     ParallelAnalysisInterface, \
     parallel_blocking_call
 
 
-@add_metaclass(ParallelDummy)
 class Halo(object):
     """
     A data source that returns particle information about the members of a
@@ -387,7 +384,7 @@ class Halo(object):
         Returns
         -------
         radius : float
-            The virial raius in code units of the particles in the halo.  -1
+            The virial radius in code units of the particles in the halo.  -1
             if not virialized.
 
         Examples
@@ -1332,7 +1329,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         r"""Write out the names of the HDF5 files containing halo particle data
         to a text file.
 
-        This function wirtes out the names of all the HDF5 files that would
+        This function writes out the names of all the HDF5 files that would
         contain halo particle data.  Only the root processor writes out.
 
         Parameters
@@ -1445,7 +1442,7 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         used when dm_only is set to True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
-        with duplicated particles for halo finidng to work. This number
+        with duplicated particles for halo finding to work. This number
         must be no smaller than the radius of the largest halo in the box
         in code units. Default = 0.02.
     total_mass : float
@@ -1534,7 +1531,6 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         HOPHaloList.__init__(self, self._data_source,
             threshold * total_mass / sub_mass, dm_only, ptype=self.ptype)
         self._parse_halolist(total_mass / sub_mass)
-        self._join_halolists()
 
 
 class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
@@ -1574,7 +1570,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         used when dm_only is set to True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
-        with duplicated particles for halo finidng to work. This number
+        with duplicated particles for halo finding to work. This number
         must be no smaller than the radius of the largest halo in the box
         in code units. Default = 0.02.
 
@@ -1643,7 +1639,6 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         FOFHaloList.__init__(self, self._data_source, linking_length, dm_only,
                              redshift=self.redshift, ptype=self.ptype)
         self._parse_halolist(1.)
-        self._join_halolists()
 
 HaloFinder = HOPHaloFinder
 

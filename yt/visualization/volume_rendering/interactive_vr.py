@@ -220,7 +220,7 @@ class TrackballCamera(IDVCamera):
 
     This class implements a basic "Trackball" or "Arcball" camera control system
     that allows for unconstrained 3D rotations without suffering from Gimbal lock.
-    Following Ken Shoemake's orginal C implementation (Graphics Gems IV, III.1)
+    Following Ken Shoemake's original C implementation (Graphics Gems IV, III.1)
     we project mouse movements onto the unit sphere and use quaternions to
     represent the corresponding rotation.
 

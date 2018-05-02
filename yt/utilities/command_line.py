@@ -43,6 +43,7 @@ from yt.funcs import \
 from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib, input
 from yt.extern.six.moves.urllib.parse import urlparse
+from yt.extern.tqdm import tqdm
 from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
@@ -50,7 +51,7 @@ from yt.visualization.plot_window import \
 from yt.utilities.metadata import get_metadata
 from yt.utilities.configure import set_config
 from yt.utilities.exceptions import \
-    YTOutputNotIdentified, YTFieldNotParseable
+    YTOutputNotIdentified, YTFieldNotParseable, YTCommandRequiresModule
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
@@ -59,17 +60,17 @@ if ytcfg.getboolean("yt","loadfieldplugins"):
 
 _default_colormap = ytcfg.get("yt", "default_colormap")
 
-def _fix_ds(arg):
+def _fix_ds(arg, *args, **kwargs):
     if os.path.isdir("%s" % arg) and \
         os.path.exists("%s/%s" % (arg,arg)):
-        ds = load("%s/%s" % (arg,arg))
+        ds = load("%s/%s" % (arg,arg), *args, **kwargs)
     elif os.path.isdir("%s.dir" % arg) and \
         os.path.exists("%s.dir/%s" % (arg,arg)):
-        ds = load("%s.dir/%s" % (arg,arg))
+        ds = load("%s.dir/%s" % (arg,arg), *args, **kwargs)
     elif arg.endswith(".index"):
-        ds = load(arg[:-10])
+        ds = load(arg[:-10], *args, **kwargs)
     else:
-        ds = load(arg)
+        ds = load(arg, *args, **kwargs)
     return ds
 
 def _add_arg(sc, arg):
@@ -129,16 +130,13 @@ def _print_installation_information(path):
         print("Changeset = %s" % vstring.strip())
     print("---")
     return vstring
-    
+
 
 def _get_girder_client():
     try:
         import girder_client
     except ImportError:
-        print("this command requires girder_client to be installed")
-        print("Please install them using your python package manager, e.g.:")
-        print("   pip install girder_client --user")
-        sys.exit()
+        raise YTCommandRequiresModule('girder_client')
     if not ytcfg.get("yt", "hub_api_key"):
         print("Before you can access the yt Hub you need an API key")
         print("In order to obtain one, either register by typing:")
@@ -151,6 +149,25 @@ def _get_girder_client():
     gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
     return gc
 
+
+class FileStreamer:
+    final_size = None
+    next_sent = 0
+    chunksize = 100*1024
+
+    def __init__(self, f, final_size = None):
+        location = f.tell()
+        f.seek(0, os.SEEK_END)
+        self.final_size = f.tell() - location
+        f.seek(location)
+        self.f = f
+
+    def __iter__(self):
+        with tqdm(total=self.final_size, desc='Uploading file',
+                  unit='B', unit_scale=True) as pbar:
+            while self.f.tell() < self.final_size:
+                yield self.f.read(self.chunksize)
+                pbar.update(self.chunksize)
 
 _subparsers = {None: subparsers}
 _subparsers_description = {
@@ -175,7 +192,7 @@ class YTCommandSubtype(type):
                     title=cls.subparser, dest=cls.subparser)
             sp = _subparsers[cls.subparser]
             for name in names:
-                sc = sp.add_parser(name, description=cls.description, 
+                sc = sp.add_parser(name, description=cls.description,
                                    help=cls.description)
                 sc.set_defaults(func=cls.run)
                 for arg in cls.args:
@@ -475,7 +492,7 @@ class YTBugreportCmd(YTCommand):
         print("simply be a misunderstanding that could be cleared up by")
         print("visiting the yt irc channel or getting advice on the email list:")
         print("   http://yt-project.org/irc.html")
-        print("   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org")
+        print("   https://mail.python.org/mm3/archives/list/yt-users@python.org/")
         print()
         summary = input("Press <enter> if you remain firm in your conviction to continue.")
         print()
@@ -572,10 +589,7 @@ class YTHubRegisterCmd(YTCommand):
         try:
             import requests
         except ImportError:
-            print("yt {} requires requests to be installed".format(self.name))
-            print("Please install them using your python package manager, e.g.:")
-            print("   pip install requests --user")
-            sys.exit()
+            raise YTCommandRequiresModule('requests')
         if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
             print("{} . Delete this if you want to force a".format(CURRENT_CONFIG_FILE))
@@ -623,7 +637,7 @@ class YTHubRegisterCmd(YTCommand):
                     password=password1, lastName=last_name, admin=False)
         hub_url = ytcfg.get("yt", "hub_url")
         req = requests.post(hub_url + "/user", data=data)
-      
+
         if req.ok:
             headers = {'Girder-Token': req.json()['authToken']['token']}
         else:
@@ -639,7 +653,7 @@ class YTHubRegisterCmd(YTCommand):
 
         print("Storing API key in configuration file")
         set_config("yt", "hub_api_key", apiKey)
-        
+
         print()
         print("SUCCESS!")
         print()
@@ -711,13 +725,13 @@ class YTLoadCmd(YTCommand):
         IPython.embed(config=cfg,user_ns=local_ns)
 
 class YTMapserverCmd(YTCommand):
-    args = ("proj", "field", "weight",
+    args = ("proj", "field", "weight", "linear", "center", "width", "cmap",
             dict(short="-a", longname="--axis", action="store", type=int,
-                 dest="axis", default=0, help="Axis (4 for all three)"),
+                 dest="axis", default=0, help="Axis"),
             dict(short ="-o", longname="--host", action="store", type=str,
-                   dest="host", default=None, help="IP Address to bind on"),
-            "ds",
-            )
+                 dest="host", default=None, help="IP Address to bind on"),
+            dict(short='ds', nargs=1, type=str, help='The dataset to load.')
+    )
 
     name = "mapserver"
     description = \
@@ -727,23 +741,49 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
-        if sys.version_info >= (3,0,0):
-            print("yt mapserver is disabled for Python 3.")
-            return -1
-        ds = args.ds
-        if args.axis == 4:
+        from yt.visualization.mapserver.pannable_map import PannableMapServer
+        from yt.frontends.ramses.data_structures import RAMSESDataset
+
+        # For RAMSES datasets, use the bbox feature to make the dataset load faster
+        if RAMSESDataset._is_valid(args.ds) and args.center and args.width:
+            kwa = dict(bbox= [[c - args.width/2 for c in args.center],
+                              [c + args.width/2 for c in args.center]])
+        else:
+            kwa = dict()
+
+        ds = _fix_ds(args.ds, **kwa)
+        if args.center and args.width:
+            center = args.center
+            width = args.width
+            ad = ds.box(left_edge = [c - args.width/2 for c in args.center],
+                        right_edge = [c + args.width/2 for c in args.center])
+        else:
+            center = [0.5]*3
+            width = 1.0
+            ad = ds.all_data()
+
+        if args.axis >= 4:
             print("Doesn't work with multiple axes!")
             return
         if args.projection:
-            p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight)
+            p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight, data_source=ad,
+                               center=center, width=width)
         else:
-            p = SlicePlot(ds, args.axis, args.field)
-        from yt.visualization.mapserver.pannable_map import PannableMapServer
-        PannableMapServer(p.data_source, args.field)
-        import yt.extern.bottle as bottle
+            p = SlicePlot(ds, args.axis, args.field, data_source=ad,
+                               center=center, width=width)
+        p.set_log('all', args.takelog)
+        p.set_cmap('all', args.cmap)
+
+        PannableMapServer(p.data_source, args.field, args.takelog, args.cmap)
+        try:
+            import bottle
+        except ImportError:
+            raise ImportError(
+                "The mapserver functionality requires the bottle "
+                "package to be installed. Please install using `pip "
+                "install bottle`."
+            )
         bottle.debug(True)
-        bottle_dir = os.path.dirname(bottle.__file__)
-        sys.path.append(bottle_dir)
         if args.host is not None:
             colonpl = args.host.find(":")
             if colonpl >= 0:
@@ -751,10 +791,9 @@ class YTMapserverCmd(YTCommand):
                 args.host = args.host[:colonpl]
             else:
                 port = 8080
-            bottle.run(server='rocket', host=args.host, port=port)
+            bottle.run(server='auto', host=args.host, port=port)
         else:
-            bottle.run(server='rocket')
-        sys.path.remove(bottle_dir)
+            bottle.run(server='auto')
 
 
 class YTPastebinCmd(YTCommand):
@@ -765,7 +804,7 @@ class YTPastebinCmd(YTCommand):
                   help="Use syntax highlighter for the file in language"),
              dict(short="-L", longname="--languages", action="store_true",
                   default = False, dest="languages",
-                  help="Retrive a list of supported languages"),
+                  help="Retrieve a list of supported languages"),
              dict(short="-e", longname="--encoding", action="store",
                   default = 'utf-8', dest="encoding",
                   help="Specify the encoding of a file (default is "
@@ -808,7 +847,7 @@ class YTPastebinGrabCmd(YTCommand):
 class YTHubStartNotebook(YTCommand):
     args = (
         dict(dest="folderId", default=ytcfg.get("yt", "hub_sandbox"),
-             nargs="?", 
+             nargs="?",
              help="(Optional) Hub folder to mount inside the Notebook"),
     )
     description = \
@@ -868,7 +907,10 @@ class YTPlotCmd(YTCommand):
             dict(short="-fu", longname="--field-unit",
                  action="store", type=str,
                  dest="field_unit", default=None,
-                 help="Desired field units"))
+                 help="Desired field units"),
+            dict(longname='--show-scale-bar',
+                 action='store_true',
+                 help="Annotate the plot with the scale"))
 
     name = "plot"
 
@@ -918,6 +960,8 @@ class YTPlotCmd(YTCommand):
                 plt.annotate_grids()
             if args.time:
                 plt.annotate_timestamp()
+            if args.show_scale_bar:
+                plt.annotate_scale()
 
             if args.field_unit:
                 plt.set_unit(args.field, args.field_unit)
@@ -968,7 +1012,7 @@ class YTNotebookCmd(YTCommand):
             )
     description = \
         """
-        Start the Jupyter Notebook locally. 
+        Start the Jupyter Notebook locally.
         """
     def __call__(self, args):
         kwargs = {}
@@ -986,7 +1030,7 @@ class YTNotebookCmd(YTCommand):
             pw = IPython.lib.passwd()
             print("If you would like to use this password in the future,")
             print("place a line like this inside the [yt] section in your")
-            print("yt configuration file at ~/.yt/config")
+            print("yt configuration file at ~/.config/yt/ytrc")
             print()
             print("notebook_password = %s" % pw)
             print()
@@ -1159,6 +1203,29 @@ class YTUploadImageCmd(YTCommand):
             pprint.pprint(rv)
 
 
+class YTUploadFileCmd(YTCommand):
+    args = (dict(short="file", type=str),)
+    description = \
+        """
+        Upload a file to yt's curldrop.
+
+        """
+    name = "upload"
+
+    def __call__(self, args):
+        try:
+            import requests
+        except ImportError:
+            raise YTCommandRequiresModule('requests')
+
+        fs = iter(FileStreamer(open(args.file, 'rb')))
+        upload_url = ytcfg.get("yt", "curldrop_upload_url")
+        r = requests.put(upload_url + "/" + os.path.basename(args.file),
+                         data=fs)
+        print()
+        print(r.text)
+
+
 class YTConfigGetCmd(YTCommand):
     subparser = 'config'
     name = 'get'
@@ -1267,7 +1334,7 @@ class YTDownloadData(YTCommand):
     args = (
         dict(short="filename", action="store", type=str,
              help="The name of the file to download", nargs='?',
-             default=''), 
+             default=''),
         dict(short="location", action="store", type=str, nargs='?',
              help="The location in which to place the file, can be "
                   "\"supp_data_dir\", \"test_data_dir\", or any valid "
@@ -1281,8 +1348,8 @@ class YTDownloadData(YTCommand):
     )
     description = \
         """
-        Download a file from http://yt-project.org/data and save it to a 
-        particular location. Files can be saved to the locations provided 
+        Download a file from http://yt-project.org/data and save it to a
+        particular location. Files can be saved to the locations provided
         by the "test_data_dir" or "supp_data_dir" configuration entries, or
         any valid path to a location on disk.
         """

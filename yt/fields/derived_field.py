@@ -13,6 +13,7 @@ Derived field base class.
 
 import contextlib
 import inspect
+import re
 import warnings
 
 from yt.extern.six import string_types, PY2
@@ -24,7 +25,6 @@ from .field_exceptions import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter, \
-    NeedsParameterValue, \
     FieldUnitsError
 from .field_detector import \
     FieldDetector
@@ -144,6 +144,8 @@ class DerivedField(object):
                 self.units = units
         elif isinstance(units, Unit):
             self.units = str(units)
+        elif isinstance(units, bytes):
+            self.units = units.decode("utf-8")
         else:
             raise FieldUnitsError("Cannot handle units '%s' (type %s)." \
                                   "Please provide a string or Unit " \
@@ -207,6 +209,20 @@ class DerivedField(object):
         else:
             e[self.name]
         return e
+
+    def _get_needed_parameters(self, fd):
+        params = []
+        values = []
+        permute_params = {}
+        vals = [v for v in self.validators if isinstance(v, ValidateParameter)]
+        for val in vals:
+            if val.parameter_values is not None:
+                permute_params.update(val.parameter_values)
+            else:
+                params.extend(val.parameters)
+                values.extend(
+                    [fd.get_field_parameter(fp) for fp in val.parameters])
+        return dict(zip(params, values)), permute_params
 
     _unit_registry = None
     @contextlib.contextmanager
@@ -292,6 +308,51 @@ class DerivedField(object):
         s += ")"
         return s
 
+    def _is_ion(self):
+        p = re.compile("_p[0-9]+_")
+        result = False
+        if p.search(self.name[1]) is not None:
+            result = True
+        return result
+
+    def _ion_to_label(self):
+        pnum2rom = {
+            "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
+            "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
+            "10":"XI", "11":"XII", "12":"XIII", "13":"XIV", "14":"XV",
+            "15":"XVI", "16":"XVII", "17":"XVIII", "18":"XIX", "19":"XX"}
+
+        p = re.compile("_p[0-9]+_")
+        m = p.search(self.name[1])
+        if m is not None:
+            pstr = m.string[m.start()+1:m.end()-1]
+            segments = self.name[1].split("_")
+            for i,s in enumerate(segments):
+                segments[i] = s.capitalize()
+                if s == pstr:
+                    ipstr = i
+            element = segments[ipstr-1]
+            roman = pnum2rom[pstr[1:]]
+            label = element + '\ ' + roman + '\ ' + \
+                '\ '.join(segments[ipstr+1:])
+        else:
+            label = self.name[1]
+        return label
+
+    def get_latex_display_name(self):
+        label = self.display_name
+        if label is None:
+            if self._is_ion():
+                fname = self._ion_to_label()
+                label = r'$\rm{'+fname.replace('_','\ ')+r'}$'
+            else:
+                label = r'$\rm{'+self.name[1].replace('_','\ ').title()+r'}$'
+        elif label.find('$') == -1:
+            label = label.replace(' ','\ ')
+            label = r'$\rm{'+label+r'}$'
+        return label
+
+
 class FieldValidator(object):
     pass
 
@@ -308,9 +369,6 @@ class ValidateParameter(FieldValidator):
         self.parameter_values = parameter_values
     def __call__(self, data):
         doesnt_have = []
-        if self.parameter_values is not None:
-            if isinstance(data, FieldDetector):
-                raise NeedsParameterValue(self.parameter_values)
         for p in self.parameters:
             if not data.has_field_parameter(p):
                 doesnt_have.append(p)
@@ -361,6 +419,7 @@ class ValidateSpatial(FieldValidator):
         FieldValidator.__init__(self)
         self.ghost_zones = ghost_zones
         self.fields = fields
+
     def __call__(self, data):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure

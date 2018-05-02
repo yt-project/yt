@@ -1,7 +1,7 @@
 import numpy as np
 from yt.utilities.lib.particle_mesh_operations import \
     CICSample_3
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, issue_deprecation_warning
 from yt.units.yt_array import uconcatenate
 from yt.extern.six import string_types
 
@@ -167,22 +167,28 @@ class ParticleGenerator(object):
                                 grid.dds[0])
         pbar.finish()
 
-    def apply_to_stream(self, clobber=False):
+    def apply_to_stream(self, overwrite=False, **kwargs):
         """
         Apply the particles to a grid-based stream dataset. If particles 
-        already exist, and clobber=False, do not overwrite them, but add 
+        already exist, and overwrite=False, do not overwrite them, but add 
         the new ones to them.
         """
+        if "clobber" in kwargs:
+            issue_deprecation_warning("The \"clobber\" keyword argument "
+                                      "is deprecated. Use the \"overwrite\" "
+                                      "argument, which has the same effect, "
+                                      "instead.")
+            overwrite = kwargs.pop("clobber")
         grid_data = []
         for i, g in enumerate(self.ds.index.grids):
             data = {}
             number_of_particles = self.NumberOfParticles[i]
-            if not clobber:
+            if not overwrite:
                 number_of_particles += g.NumberOfParticles
             grid_particles = self.get_for_grid(g)
             for field in self.field_list:
                 if number_of_particles > 0:
-                    if g.NumberOfParticles > 0 and not clobber and \
+                    if g.NumberOfParticles > 0 and not overwrite and \
                         field in self.ds.field_list:
                         # We have particles in this grid, we're not
                         # overwriting them, and the field is in the field

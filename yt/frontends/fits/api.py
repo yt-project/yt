@@ -13,7 +13,11 @@ API for yt.frontends.fits
 from .data_structures import \
       FITSGrid, \
       FITSHierarchy, \
-      FITSDataset
+      FITSDataset, \
+      SpectralCubeFITSHierarchy, \
+      SpectralCubeFITSDataset, \
+      SkyDataFITSDataset, \
+      EventsFITSDataset
 
 from .fields import \
       FITSFieldInfo

@@ -151,7 +151,7 @@ Keyword Arguments
   checked by hand.
   Default : 0.86.
 
-* **primoridal_index** (*float*)
+* **primordial_index** (*float*)
   This is the index of the mass power spectrum before modification by
   the transfer function. A value of 1 corresponds to the scale-free
   primordial spectrum. This is not always stored in the dataset and

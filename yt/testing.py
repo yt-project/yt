@@ -18,6 +18,7 @@ from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it
 import numpy as np
+import functools
 import importlib
 import os
 import unittest
@@ -199,7 +200,6 @@ def fake_random_ds(
     for field, offset, u in zip(fields, offsets, units):
         v = (prng.random_sample(ndims) - offset) * peak_value
         if field[0] == "all":
-            data['number_of_particles'] = v.size
             v = v.ravel()
         data[field] = (v, u)
     if particles:
@@ -217,7 +217,6 @@ def fake_random_ds(
             for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
                 data['io', f] = (prng.random_sample(size=particles) - 0.5, 'cm/s')
             data['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
-        data['number_of_particles'] = particles
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs,
                            unit_system=unit_system, bbox=bbox)
     return ug
@@ -259,7 +258,6 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0):
             for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
                 gdata['io', f] = (prng.random_sample(particles) - 0.5, 'cm/s')
             gdata['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
-            gdata['number_of_particles'] = particles
         data.append(gdata)
     bbox = np.array([LE, RE]).T
     return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox)
@@ -581,8 +579,20 @@ def requires_file(req_file):
         else:
             return ffalse
 
+def disable_dataset_cache(func):
+    @functools.wraps(func)
+    def newfunc(*args, **kwargs):
+        restore_cfg_state = False
+        if ytcfg.get("yt", "skip_dataset_cache") == "False":
+            ytcfg["yt","skip_dataset_cache"] = "True"
+        rv = func(*args, **kwargs)
+        if restore_cfg_state:
+            ytcfg["yt","skip_dataset_cache"] = "False"
+        return rv
+    return newfunc
+
+@disable_dataset_cache
 def units_override_check(fn):
-    ytcfg["yt","skip_dataset_cache"] = "True"
     units_list = ["length","time","mass","velocity",
                   "magnetic","temperature"]
     ds1 = load(fn)
@@ -596,7 +606,6 @@ def units_override_check(fn):
             units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
     del ds1
     ds2 = load(fn, units_override=units_override)
-    ytcfg["yt","skip_dataset_cache"] = "False"
     assert(len(ds2.units_override) > 0)
     for u in units_list:
         unit_attr = getattr(ds2, "%s_unit" % u, None)
@@ -847,7 +856,7 @@ def check_results(func):
     ... def field_checker(dd, field_name):
     ...     return dd[field_name]
 
-    >>> field_cheker(ds.all_data(), 'density', result_basename='density')
+    >>> field_checker(ds.all_data(), 'density', result_basename='density')
 
     """
     def compute_results(func):
@@ -973,7 +982,7 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
         Array obtained (possibly with attached units)
     desired : array-like
         Array to compare with (possibly with attached units)
-    rtol : float, oprtional
+    rtol : float, optional
         Relative tolerance, defaults to 1e-7
     atol : float or quantity, optional
         Absolute tolerance. If units are attached, they must be consistent
@@ -1019,3 +1028,30 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
     at = at.value
 
     return assert_allclose(act, des, rt, at, **kwargs)
+
+def assert_fname(fname):
+    """Function that checks file type using libmagic"""
+    if fname is None:
+        return
+
+    with open(fname, 'rb') as fimg:
+        data = fimg.read()
+    image_type = ''
+
+    # see http://www.w3.org/TR/PNG/#5PNG-file-signature
+    if data.startswith(b'\211PNG\r\n\032\n'):
+        image_type = '.png'
+    # see http://www.mathguide.de/info/tools/media-types/image/jpeg
+    elif data.startswith(b'\377\330'):
+        image_type = '.jpeg'
+    elif data.startswith(b'%!PS-Adobe'):
+        data_str = data.decode("utf-8", "ignore")
+        if 'EPSF' in data_str[:data_str.index('\n')]:
+            image_type = '.eps'
+        else:
+            image_type = '.ps'
+    elif data.startswith(b'%PDF'):
+        image_type = '.pdf'
+
+    return image_type == os.path.splitext(fname)[1]
+

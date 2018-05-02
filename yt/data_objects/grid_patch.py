@@ -21,8 +21,6 @@ from six import string_types
 from yt.config import ytcfg
 from yt.data_objects.data_containers import \
     YTSelectionContainer
-from yt.data_objects.field_data import \
-    YTFieldData
 from yt.funcs import iterable
 from yt.geometry.selection_routines import convert_mask_to_indices
 import yt.geometry.particle_deposit as particle_deposit
@@ -58,8 +56,7 @@ class AMRGridPatch(YTSelectionContainer):
     OverlappingSiblings = None
 
     def __init__(self, id, filename=None, index=None):
-        self.field_data = YTFieldData()
-        self.field_parameters = {}
+        super(AMRGridPatch, self).__init__(index.dataset, None)
         self.id = id
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.ds = index.dataset
@@ -69,8 +66,6 @@ class AMRGridPatch(YTSelectionContainer):
         self._last_mask = None
         self._last_count = -1
         self._last_selector_id = None
-        self._current_particle_type = 'all'
-        self._current_fluid_type = self.ds.default_fluid_type
 
     def get_global_startindex(self):
         """
@@ -100,8 +95,10 @@ class AMRGridPatch(YTSelectionContainer):
         finfo = self.ds._get_field_info(*fields[0])
         if not finfo.particle_type:
             num_nodes = 2**sum(finfo.nodal_flag)
-            new_shape = list(self.ActiveDimensions) + [num_nodes]
-            return np.squeeze(tr.reshape(new_shape))
+            new_shape = list(self.ActiveDimensions)
+            if num_nodes > 1:
+                new_shape += [num_nodes]
+            return tr.reshape(new_shape)
         return tr
 
     def convert(self, datatype):

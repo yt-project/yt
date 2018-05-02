@@ -39,7 +39,10 @@ from numbers import Number as numeric_type
 
 from yt.extern.six.moves import urllib
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.exceptions import YTInvalidWidthError
+from yt.utilities.lru_cache import lru_cache
+from yt.utilities.exceptions import \
+    YTInvalidWidthError, \
+    YTEquivalentDimsError
 from yt.extern.tqdm import tqdm
 from yt.units.yt_array import YTArray, YTQuantity
 from functools import wraps
@@ -48,7 +51,7 @@ from functools import wraps
 
 def iterable(obj):
     """
-    Grabbed from Python Cookbook / matploblib.cbook.  Returns true/false for
+    Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
     *obj* iterable.
     """
     try: len(obj)
@@ -289,7 +292,7 @@ def insert_ipython(num_up=1):
     """
     Placed inside a function, this will insert an IPython interpreter at that
     current location.  This will enabled detailed inspection of the current
-    exeuction environment, as well as (optional) modification of that environment.
+    execution environment, as well as (optional) modification of that environment.
     *num_up* refers to how many frames of the stack get stripped off, and
     defaults to 1 so that this function itself is stripped off.
     """
@@ -506,47 +509,47 @@ def update_git(path):
         print("Try: pip install gitpython")
         return -1
     with open(os.path.join(path, "yt_updater.log"), "a") as f:
-        with git.Repo(path) as repo:
-            if repo.is_dirty(untracked_files=True):
-                print("Changes have been made to the yt source code so I won't ")
-                print("update the code. You will have to do this yourself.")
-                print("Here's a set of sample commands:")
-                print("")
-                print("    $ cd %s" % (path))
-                print("    $ git stash")
-                print("    $ git checkout master")
-                print("    $ git pull")
-                print("    $ git stash pop")
-                print("    $ %s setup.py develop" % (sys.executable))
-                print("")
-                return 1
-            if repo.active_branch.name != 'master':
-                print("yt repository is not tracking the master branch so I won't ")
-                print("update the code. You will have to do this yourself.")
-                print("Here's a set of sample commands:")
-                print("")
-                print("    $ cd %s" % (path))
-                print("    $ git checkout master")
-                print("    $ git pull")
-                print("    $ %s setup.py develop" % (sys.executable))
-                print("")
-                return 1
-            print("Updating the repository")
-            f.write("Updating the repository\n\n")
-            old_version = repo.git.rev_parse('HEAD', short=12)
-            try:
-                remote = repo.remotes.yt_upstream
-            except AttributeError:
-                remote = repo.create_remote(
-                    'yt_upstream', url='https://github.com/yt-project/yt')
-                remote.fetch()
-            master = repo.heads.master
-            master.set_tracking_branch(remote.refs.master)
-            master.checkout()
-            remote.pull()
-            new_version = repo.git.rev_parse('HEAD', short=12)
-            f.write('Updated from %s to %s\n\n' % (old_version, new_version))
-            rebuild_modules(path, f)
+        repo = git.Repo(path)
+        if repo.is_dirty(untracked_files=True):
+            print("Changes have been made to the yt source code so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
+            print("")
+            print("    $ cd %s" % (path))
+            print("    $ git stash")
+            print("    $ git checkout master")
+            print("    $ git pull")
+            print("    $ git stash pop")
+            print("    $ %s setup.py develop" % (sys.executable))
+            print("")
+            return 1
+        if repo.active_branch.name != 'master':
+            print("yt repository is not tracking the master branch so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
+            print("")
+            print("    $ cd %s" % (path))
+            print("    $ git checkout master")
+            print("    $ git pull")
+            print("    $ %s setup.py develop" % (sys.executable))
+            print("")
+            return 1
+        print("Updating the repository")
+        f.write("Updating the repository\n\n")
+        old_version = repo.git.rev_parse('HEAD', short=12)
+        try:
+            remote = repo.remotes.yt_upstream
+        except AttributeError:
+            remote = repo.create_remote(
+                'yt_upstream', url='https://github.com/yt-project/yt')
+            remote.fetch()
+        master = repo.heads.master
+        master.set_tracking_branch(remote.refs.master)
+        master.checkout()
+        remote.pull()
+        new_version = repo.git.rev_parse('HEAD', short=12)
+        f.write('Updated from %s to %s\n\n' % (old_version, new_version))
+        rebuild_modules(path, f)
     print('Updated successfully')
 
 def update_hg(path):
@@ -612,8 +615,8 @@ def get_git_version(path):
         print("Try: pip install gitpython")
         return None
     try:
-        with git.Repo(path) as repo:
-            return repo.git.rev_parse('HEAD', short=12)
+        repo = git.Repo(path)
+        return repo.git.rev_parse('HEAD', short=12)
     except git.InvalidGitRepositoryError:
         # path is not a git repository
         return None
@@ -642,7 +645,7 @@ def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
-    version = get_hg_version(path)
+    version = get_git_version(path)
     if version is None:
         return version
     else:
@@ -749,12 +752,8 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
-def fix_length(length, ds=None):
-    assert ds is not None
-    if ds is not None:
-        registry = ds.unit_registry
-    else:
-        registry = None
+def fix_length(length, ds):
+    registry = ds.unit_registry
     if isinstance(length, YTArray):
         if registry is not None:
             length.units.registry = registry
@@ -763,7 +762,9 @@ def fix_length(length, ds=None):
         return YTArray(length, 'code_length', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
     unit_is_string = isinstance(length[1], string_types)
-    if length_valid_tuple and unit_is_string:
+    length_is_number = (isinstance(length[0], numeric_type) and not
+                        isinstance(length[0], YTArray))
+    if length_valid_tuple and unit_is_string and length_is_number:
         return YTArray(*length, registry=registry)
     else:
         raise RuntimeError("Length %s is invalid" % str(length))
@@ -860,7 +861,11 @@ def get_output_filename(name, keyword, suffix):
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
-    ensure_dir(my_dir)
+    # If path is a file in the current directory, like "test.txt", then my_dir
+    # would be an empty string, resulting in FileNotFoundError when passed to
+    # ensure_dir. Let's avoid that.
+    if my_dir:
+        ensure_dir(my_dir)
 
 def ensure_dir(path):
     r"""Parallel safe directory maker."""
@@ -878,15 +883,23 @@ def ensure_dir(path):
 
 def validate_width_tuple(width):
     if not iterable(width) or len(width) != 2:
-        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
-    if not isinstance(width[0], numeric_type) and isinstance(width[1], string_types):
+        raise YTInvalidWidthError(
+            "width (%s) is not a two element tuple" % width)
+    is_numeric = isinstance(width[0], numeric_type)
+    length_has_units = isinstance(width[0], YTArray)
+    unit_is_string = isinstance(width[1], string_types)
+    if not is_numeric or length_has_units and unit_is_string:
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)
 
+_first_cap_re = re.compile('(.)([A-Z][a-z]+)')
+_all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
+@lru_cache(maxsize=128, typed=False)
 def camelcase_to_underscore(name):
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    s1 = _first_cap_re.sub(r'\1_\2', name)
+    return _all_cap_re.sub(r'\1_\2', s1).lower()
 
 def set_intersection(some_list):
     if len(some_list) == 0: return set([])
@@ -1138,9 +1151,9 @@ def parse_h5_attr(f, attr):
     else:
         return val
 
-def issue_deprecation_warning(msg):
+def issue_deprecation_warning(msg, stacklevel=3):
     from numpy import VisibleDeprecationWarning
-    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=3)
+    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
 
 def obj_length(v):
     if iterable(v):
@@ -1149,3 +1162,10 @@ def obj_length(v):
         # If something isn't iterable, we return 0 
         # to signify zero length (aka a scalar).
         return 0
+
+def handle_mks_cgs(values, field_units):
+    try:
+        values = values.to(field_units)
+    except YTEquivalentDimsError as e:
+        values = values.to_equivalent(e.new_units, e.base)
+    return values

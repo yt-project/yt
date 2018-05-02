@@ -27,8 +27,7 @@ from yt import *
 # also attempt to parse the command line and set up the global state of various
 # operations.  The variable unparsed_args is not used internally but is
 # provided as a convenience for users who wish to parse arguments in scripts.
-# See http://lists.spacepope.org/pipermail/yt-dev-spacepope.org/2011-December/
-#     001727.html
+# https://mail.python.org/mm3/archives/list/yt-dev@python.org/thread/L6AQPJ3OIMJC5SNKVM7CJG32YVQZRJWA/
 import yt.startup_tasks as __startup_tasks
 unparsed_args = __startup_tasks.unparsed_args
 

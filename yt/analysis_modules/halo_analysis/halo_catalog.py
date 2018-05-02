@@ -20,6 +20,7 @@ from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
     ensure_dir, \
+    get_pbar, \
     mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, \
@@ -130,6 +131,7 @@ class HaloCatalog(ParallelAnalysisInterface):
                 data_source = data_ds.all_data()
         self.data_source = data_source
 
+        self.finder_method_name = finder_method
         if finder_kwargs is None:
             finder_kwargs = {}
         if finder_method is not None:
@@ -418,8 +420,20 @@ class HaloCatalog(ParallelAnalysisInterface):
             # Add all of the default quantities that all halos must have
             self.add_default_quantities('all')
 
-        my_index = np.argsort(self.data_source["all", "particle_identifier"])
-        for i in parallel_objects(my_index, njobs=njobs, dynamic=dynamic):
+        halo_index = np.argsort(self.data_source["all", "particle_identifier"])
+        # If we have just run hop or fof, halos are already divided amongst processors.
+        if self.finder_method_name in ["hop", "fof"]:
+            my_index = halo_index
+            nhalos = self.comm.mpi_allreduce(halo_index.size, op="sum")
+        else:
+            my_index = parallel_objects(halo_index, njobs=njobs, dynamic=dynamic)
+            nhalos = halo_index.size
+
+        my_i = 0
+        my_n = self.comm.size
+        pbar = get_pbar("Creating catalog", nhalos, parallel=True)
+        for i in my_index:
+            my_i += min(my_n, nhalos - my_i)
             new_halo = Halo(self)
             halo_filter = True
             for action_type, action in self.actions:
@@ -427,7 +441,9 @@ class HaloCatalog(ParallelAnalysisInterface):
                     action(new_halo)
                 elif action_type == "filter":
                     halo_filter = action(new_halo)
-                    if not halo_filter: break
+                    if not halo_filter:
+                        pbar.update(my_i)
+                        break
                 elif action_type == "quantity":
                     key, quantity = action
                     if quantity in self.halos_ds.field_info:
@@ -441,13 +457,16 @@ class HaloCatalog(ParallelAnalysisInterface):
 
             if halo_filter:
                 for quantity in new_halo.quantities.values():
-                    quantity.convert_to_base()
+                    if hasattr(quantity, "units"):
+                        quantity.convert_to_base()
                 self.catalog.append(new_halo.quantities)
 
             if save_halos and halo_filter:
                 self.halo_list.append(new_halo)
             else:
                 del new_halo
+
+            pbar.update(my_i)
 
         self.catalog.sort(key=lambda a:a['particle_identifier'].to_ndarray())
         if save_catalog:

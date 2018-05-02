@@ -1,6 +1,13 @@
 # encoding: utf-8
 """
 GLFW-based input hook, inspired by the IPython pyglet inputhook.
+
+Original Authors
+----------------
+
+* Nicolas P. Rougier
+* Fernando Perez
+
 """
 
 # ----------------------------------------------------------------------------

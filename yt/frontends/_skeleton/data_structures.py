@@ -25,10 +25,12 @@ from yt.data_objects.static_output import \
     Dataset
 from .fields import SkeletonFieldInfo
 
+
 class SkeletonGrid(AMRGridPatch):
     _id_offset = 0
+
     def __init__(self, id, index, level):
-        AMRGridPatch.__init__(self, id, filename=index.index_filename,
+        super(SkeletonGrid, self).__init__(self, id, filename=index.index_filename,
                               index=index)
         self.Parent = None
         self.Children = []
@@ -36,6 +38,7 @@ class SkeletonGrid(AMRGridPatch):
 
     def __repr__(self):
         return "SkeletonGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+
 
 class SkeletonHierarchy(GridIndex):
     grid = SkeletonGrid
@@ -48,7 +51,7 @@ class SkeletonHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        GridIndex.__init__(self, ds, dataset_type)
+        super(SkeletonHierarchy, self).__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
@@ -85,6 +88,7 @@ class SkeletonHierarchy(GridIndex):
         # identified.
         pass
 
+
 class SkeletonDataset(Dataset):
     _index_class = SkeletonHierarchy
     _field_info_class = SkeletonFieldInfo
@@ -93,7 +97,7 @@ class SkeletonDataset(Dataset):
                  storage_filename=None,
                  units_override=None):
         self.fluid_types += ('skeleton',)
-        Dataset.__init__(self, filename, dataset_type,
+        super(SkeletonDataset, self).__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
@@ -146,5 +150,3 @@ class SkeletonDataset(Dataset):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
         return False
-
-

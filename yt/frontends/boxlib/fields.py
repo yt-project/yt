@@ -13,11 +13,14 @@ BoxLib code fields
 
 import string
 import re
+import numpy as np
 
 from yt.utilities.physical_constants import \
-    boltzmann_constant_cgs, amu_cgs
+    boltzmann_constant_cgs, amu_cgs, c
 from yt.fields.field_info_container import \
     FieldInfoContainer
+from yt.units import YTQuantity
+
 
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_time * code_length**2)"
@@ -54,25 +57,28 @@ def _temperature(field, data):
 class WarpXFieldInfo(FieldInfoContainer):
 
     known_other_fields = (
-        ("Bx", ("T", ["magnetic_field_x"], None)),
-        ("By", ("T", ["magnetic_field_y"], None)),
-        ("Bz", ("T", ["magnetic_field_z"], None)),
-        ("Ex", ("V/m", ["electric_field_x"], None)),
-        ("Ey", ("V/m", ["electric_field_y"], None)),
-        ("Ex", ("V/m", ["electric_field_z"], None)),
-        ("jx", ("A", ["current_x"], None)),
-        ("jy", ("A", ["current_y"], None)),
-        ("jz", ("A", ["current_z"], None)),
+        ("Bx", ("T",   ["magnetic_field_x", "B_x"], None)),
+        ("By", ("T",   ["magnetic_field_y", "B_y"], None)),
+        ("Bz", ("T",   ["magnetic_field_z", "B_z"], None)),
+        ("Ex", ("V/m", ["electric_field_x", "E_x"], None)),
+        ("Ey", ("V/m", ["electric_field_y", "E_y"], None)),
+        ("Ez", ("V/m", ["electric_field_z", "E_z"], None)),
+        ("jx", ("A",   ["current_x", "Jx", "J_x"],  None)),
+        ("jy", ("A",   ["current_y", "Jy", "J_y"],  None)),
+        ("jz", ("A",   ["current_z", "Jz", "J_z"],  None)),
     )
 
     known_particle_fields = (
-        ("particle_weight", ("", [], None)),
+        ("particle_weight", ("", ["particle_weighting"], None)),
         ("particle_position_x", ("m", [], None)),
         ("particle_position_y", ("m", [], None)),
         ("particle_position_z", ("m", [], None)),
         ("particle_velocity_x", ("m/s", [], None)),
         ("particle_velocity_y", ("m/s", [], None)),
         ("particle_velocity_z", ("m/s", [], None)),
+        ("particle_momentum_x", ("kg*m/s", [], None)),
+        ("particle_momentum_y", ("kg*m/s", [], None)),
+        ("particle_momentum_z", ("kg*m/s", [], None)),
     )
 
     extra_union_fields = (
@@ -89,11 +95,19 @@ class WarpXFieldInfo(FieldInfoContainer):
             finfo = self.__getitem__(('raw', field))
             finfo.nodal_flag = ds.nodal_flags[field]
 
+    def setup_fluid_fields(self):
+        for field in self.known_other_fields:
+            fname = field[0]
+            self.alias(("mesh", fname), ('boxlib', fname))
+
+    def setup_fluid_aliases(self):
+        super(WarpXFieldInfo, self).setup_fluid_aliases("mesh")
+
     def setup_particle_fields(self, ptype):
 
         def get_mass(field, data):
             species_mass = data.ds.index.parameters[ptype + '_mass']
-            return data["particle_weight"]*species_mass
+            return data["particle_weight"]*YTQuantity(species_mass, 'kg')
 
         self.add_field((ptype, "particle_mass"), sampling_type="particle",
                        function=get_mass,
@@ -101,12 +115,43 @@ class WarpXFieldInfo(FieldInfoContainer):
 
         def get_charge(field, data):
             species_charge = data.ds.index.parameters[ptype + '_charge']
-            return data["particle_weight"]*species_charge
+            return data["particle_weight"]*YTQuantity(species_charge, 'C')
 
         self.add_field((ptype, "particle_charge"), sampling_type="particle",
                        function=get_charge,
                        units="C")
 
+        def get_energy(field, data):
+            p2 = data[ptype, 'particle_momentum_x']**2 + \
+                 data[ptype, 'particle_momentum_y']**2 + \
+                 data[ptype, 'particle_momentum_z']**2
+            return np.sqrt(p2 * c**2 + data[ptype, 'particle_mass']**2 * c**4)
+
+        self.add_field((ptype, "particle_energy"), sampling_type="particle",
+                       function=get_energy,
+                       units="J")
+
+        def get_velocity_x(field, data):
+            return c**2 * data[ptype, 'particle_momentum_x'] / data[ptype, 'particle_energy']
+
+        def get_velocity_y(field, data):
+            return c**2 * data[ptype, 'particle_momentum_y'] / data[ptype, 'particle_energy']
+
+        def get_velocity_z(field, data):
+            return c**2 * data[ptype, 'particle_momentum_z'] / data[ptype, 'particle_energy']
+            
+        self.add_field((ptype, "particle_velocity_x"), sampling_type="particle",
+                       function=get_velocity_x,
+                       units="m/s")
+
+        self.add_field((ptype, "particle_velocity_y"), sampling_type="particle",
+                       function=get_velocity_y,
+                       units="m/s")
+
+        self.add_field((ptype, "particle_velocity_z"), sampling_type="particle",
+                       function=get_velocity_z,
+                       units="m/s")
+                                    
         super(WarpXFieldInfo, self).setup_particle_fields(ptype)
 
 

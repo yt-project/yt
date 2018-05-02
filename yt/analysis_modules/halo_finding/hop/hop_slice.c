@@ -94,7 +94,7 @@ int f77read(FILE *f, void *p, int maxbytes)
 }
  
 /* =================================================================== */
-/* The following are public-domain routines from Numerical Repices in C,
+/* The following are public-domain routines from Numerical Recipes in C,
 2nd edition, by Press, Teulkolsky, Vetterling, & Flannery, 1992, Cambridge
 Univ. Press */
  

@@ -25,7 +25,7 @@ Npixels = 512
 
 # Create the off axis projection.
 # Setting no_ghost to False speeds up the process, but makes a
-# slighly lower quality image.
+# slightly lower quality image.
 image = yt.off_axis_projection(ds, c, L, W, Npixels, "density", no_ghost=False)
 
 # Write out the final image and give it a name

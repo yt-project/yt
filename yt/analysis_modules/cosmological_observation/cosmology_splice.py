@@ -168,14 +168,16 @@ class CosmologySplice(object):
                         break
 
                 if current_slice["redshift"] < z_target:
+                    need_fraction = self.cosmology.comoving_radial_distance(
+                        current_slice["redshift"], z) / \
+                        self.simulation.box_size
                     raise RuntimeError(
                         ("Cannot create cosmology splice: " +
                          "Getting from z = %f to %f requires " +
                          "max_box_fraction = %f, but max_box_fraction "
                          "is set to %f") %
-                         (z, z_target, (z - current_slice["redshift"]) /
-                          cosmology_splice[-1]["dz_max"],
-                          max_box_fraction))
+                         (z, current_slice["redshift"],
+                          need_fraction, max_box_fraction))
 
                 cosmology_splice.append(current_slice)
                 z = current_slice["redshift"]
@@ -183,7 +185,7 @@ class CosmologySplice(object):
 
         # Make light ray using maximum number of datasets (minimum spacing).
         else:
-            # Sort data outputs by proximity to current redsfhit.
+            # Sort data outputs by proximity to current redshift.
             self.splice_outputs.sort(key=lambda obj:np.abs(far_redshift -
                                                            obj['redshift']))
             # For first data dump, choose closest to desired redshift.

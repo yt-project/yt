@@ -122,6 +122,30 @@ class astropy_imports(object):
             self._time = time
         return self._time
 
+    _wcsaxes = None
+    @property
+    def wcsaxes(self):
+        if self._wcsaxes is None:
+            try:
+                import astropy.visualization.wcsaxes as wcsaxes
+                self.log
+            except ImportError:
+                wcsaxes = NotAModule(self._name)
+            self._wcsaxes = wcsaxes
+        return self._wcsaxes
+
+    _version = None
+    @property
+    def __version__(self):
+        if self._version is None:
+            try:
+                import astropy
+                version = astropy.__version__
+            except ImportError:
+                version = NotAModule(self._name)
+            self._version = version
+        return self._version
+
 _astropy = astropy_imports()
 
 class scipy_imports(object):
@@ -298,6 +322,19 @@ class h5py_imports(object):
                 h5f = NotAModule(self._name)
             self._h5f = h5f
         return self._h5f
+
+    _h5p = None
+    @property
+    def h5p(self):
+        if self._err:
+            raise self._err
+        if self._h5p is None:
+            try:
+                import h5py.h5p as h5p
+            except ImportError:
+                h5p = NotAModule(self._name)
+            self._h5p = h5p
+        return self._h5p
 
     _h5d = None
     @property

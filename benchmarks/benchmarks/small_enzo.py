@@ -40,7 +40,7 @@ class SmallEnzoSuite:
         dd.quantities.extrema("particle_velocity_magnitude")
         dd.quantities.extrema(["particle_velocity_%s" % ax for ax in 'xyz'])
 
-    def time_gas_quantites(self):
+    def time_gas_quantities(self):
         dd = self.ds.all_data()
         dd.quantities.extrema("density")
         dd.quantities.extrema(["velocity_x", "velocity_y", "velocity_z"])

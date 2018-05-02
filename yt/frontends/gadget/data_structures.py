@@ -202,10 +202,25 @@ class GadgetDataset(SPHDataset):
 
         self.cosmological_simulation = 1
 
-        self.current_redshift = hvals["Redshift"]
-        self.omega_lambda = hvals["OmegaLambda"]
-        self.omega_matter = hvals["Omega0"]
-        self.hubble_constant = hvals["HubbleParam"]
+        try:
+            self.current_redshift = hvals["Redshift"]
+        except KeyError:
+            # Probably not a cosmological dataset, we should just set
+            # z = 0 and let the user know
+            self.current_redshift = 0.0
+            only_on_root(
+                mylog.info, "Redshift is not set in Header. Assuming z=0.")
+
+        try:
+            self.omega_lambda = hvals["OmegaLambda"]
+            self.omega_matter = hvals["Omega0"]
+            self.hubble_constant = hvals["HubbleParam"]
+        except KeyError:
+            # If these are not set it is definitely not a cosmological dataset.
+            self.omega_lambda = 0.0
+            self.omega_matter = 1.0  # Just in case somebody asks for it.
+            # Hubble is set below for Omega Lambda = 0.
+
         # According to the Gadget manual, OmegaLambda will be zero for
         # non-cosmological datasets.  However, it may be the case that
         # individuals are running cosmological simulations *without* Lambda, in
@@ -322,6 +337,18 @@ class GadgetDataset(SPHDataset):
             vel_unit = self.velocity_unit
         self.time_unit = self.length_unit / vel_unit
 
+        if "specific_energy" in unit_base:
+            specific_energy_unit = unit_base["specific_energy"]
+        elif "UnitEnergy_in_cgs" in unit_base and "UnitMass_in_g" in unit_base:
+            specific_energy_unit = \
+                unit_base["UnitEnergy_in_cgs"] / unit_base["UnitMass_in_g"]
+            specific_energy_unit = (specific_energy_unit, "(cm/s)**2")
+        else:
+            # Sane default
+            specific_energy_unit = (1, "(km/s) ** 2")
+        specific_energy_unit = _fix_unit_ordering(specific_energy_unit)
+        self.specific_energy_unit = self.quan(*specific_energy_unit)
+
     @staticmethod
     def _validate_header(filename):
         '''
@@ -348,7 +375,7 @@ class GadgetDataset(SPHDataset):
         except struct.error:
             f.close()
             return False, 1
-        # Use value to check endianess
+        # Use value to check endianness
         if rhead == 256:
             endianswap = '<'
         elif rhead == 65536:
@@ -468,12 +495,16 @@ class GadgetHDF5Dataset(GadgetDataset):
 
         # note the contents of the HDF5 Units group are in _unit_base
         # note the velocity stored on disk is sqrt(a) dx/dt
+        # physical velocity [cm/s] = a dx/dt = sqrt(a) * velocity_on_disk * UnitVelocity_in_cm_per_s
         self.length_unit = self.quan(
             self._unit_base["UnitLength_in_cm"], 'cmcm/h')
-        self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], 'g/h')
+        self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], 'g/h')      
         self.velocity_unit = self.quan(
-            self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s')
+            self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s * sqrt(a)')
         self.time_unit = self.quan(self._unit_base["UnitTime_in_s"], 's/h')
+        
+        specific_energy_unit_cgs = self._unit_base["UnitEnergy_in_cgs"] / self._unit_base["UnitMass_in_g"]
+        self.specific_energy_unit = self.quan(specific_energy_unit_cgs, '(cm/s)**2')
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

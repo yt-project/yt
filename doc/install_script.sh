@@ -431,10 +431,13 @@ then
     elif [ $MYARCH = "x86_64"  ]
     then
         MINICONDA_ARCH="x86_64"
+    elif [ $MYARCH = "ppc64le"  ]
+    then
+        MINICONDA_ARCH="ppc64le"
     else
         echo "Not sure which architecture you are running."
         echo "Going with x86_64 architecture."
-        MINICONDA_OS="Linux-x86_64"
+        MINICONDA_ARCH="x86_64"
     fi
 else
     echo "The yt install script is not supported on the ${MYOS}"
@@ -665,7 +668,7 @@ echo "    http://yt-project.org/"
 echo "    http://yt-project.org/data/      (Sample data)"
 echo "    http://yt-project.org/doc/       (Docs)"
 echo
-echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
+echo "    https://mail.python.org/mm3/archives/list/yt-users@python.org/"
 echo
 echo "You must now prepend the following folder to your PATH environment variable:"
 echo 

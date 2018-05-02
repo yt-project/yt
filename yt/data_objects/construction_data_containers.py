@@ -342,6 +342,10 @@ class YTQuadTreeProj(YTSelectionContainer2D):
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)
+        # if there's less than nprocs chunks, units won't be initialized
+        # on all processors, so sync with _projected_units on rank 0
+        projected_units = self.comm.mpi_bcast(self._projected_units)
+        self._projected_units = projected_units
         # Note that this will briefly double RAM usage
         if self.method == "mip":
             merge_style = -1
@@ -690,13 +694,16 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if not iterable(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
-        for chunk in self._data_source.chunks(fields, "io"):
+        for chunk in parallel_objects(self._data_source.chunks(fields, "io")):
             input_fields = [chunk[field] for field in fields]
             # NOTE: This usage of "refine_by" is actually *okay*, because it's
             # being used with respect to iref, which is *already* scaled!
             fill_region(input_fields, output_fields, self.level,
                         self.global_startindex, chunk.icoords, chunk.ires,
                         domain_dims, refine_by)
+        if self.comm.size > 1:
+            for i in range(len(fields)):
+                output_fields[i] = self.comm.mpi_allreduce(output_fields[i], op="sum")
         for name, v in zip(fields, output_fields):
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)
@@ -775,7 +782,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         Examples
         --------
         >>> cube.write_to_gdf("clumps.h5", ["density","temperature"], nprocs=16,
-        ...                   clobber=True)
+        ...                   overwrite=True)
         """
         data = {}
         for field in fields:
@@ -844,16 +851,17 @@ class YTArbitraryGrid(YTCoveringGrid):
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
-        assert(len(fields) == 1)
-        field = fields[0]
-        dest = np.zeros(self.ActiveDimensions, dtype="float64")
-        for chunk in self._data_source.chunks(fields, "io"):
-            fill_region_float(chunk.fcoords, chunk.fwidth, chunk[field],
-                              self.left_edge, self.right_edge, dest, 1,
-                              self.ds.domain_width,
-                              int(any(self.ds.periodicity)))
-        fi = self.ds._get_field_info(field)
-        self[field] = self.ds.arr(dest, fi.units)
+        # It may be faster to adapt fill_region_float to fill multiple fields
+        # instead of looping here
+        for field in fields:
+            dest = np.zeros(self.ActiveDimensions, dtype="float64")
+            for chunk in self._data_source.chunks(fields, "io"):
+                fill_region_float(chunk.fcoords, chunk.fwidth, chunk[field],
+                                  self.left_edge, self.right_edge, dest, 1,
+                                  self.ds.domain_width,
+                                  int(any(self.ds.periodicity)))
+            fi = self.ds._get_field_info(field)
+            self[field] = self.ds.arr(dest, fi.units)
 
 
 class LevelState(object):
@@ -1854,7 +1862,7 @@ class YTSurface(YTSelectionContainer3D):
         SketchFab.com.  It requires an API key, which can be found on your
         SketchFab.com dashboard.  You can either supply the API key to this
         routine directly or you can place it in the variable
-        "sketchfab_api_key" in your ~/.yt/config file.  This function is
+        "sketchfab_api_key" in your ~/.config/yt/ytrc file.  This function is
         parallel-safe.
 
         Parameters

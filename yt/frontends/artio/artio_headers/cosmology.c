@@ -247,7 +247,7 @@ void cosmology_fill_table_piece(CosmologyParameters *c, int istart, int n)
       x = c->aUni[i]/aeq;
 
       c->tPhys[i] = tPhysFac*2*x*x*(2+sqrt(x+1))/(3*pow(1+sqrt(x+1),2.0));
-      c->dPlus[i] = aeq*(x + 2.0/3.0 + (6*sqrt(1+x)+(2+3*x)*log(x)-2*(2+3*x)*log(1+sqrt(1+x)))/(log(64.0)-9));  /* long last term is the decaying mode generated after euality; it is very small for x > 10, I keep ot just for completeness; */
+      c->dPlus[i] = aeq*(x + 2.0/3.0 + (6*sqrt(1+x)+(2+3*x)*log(x)-2*(2+3*x)*log(1+sqrt(1+x)))/(log(64.0)-9));  /* long last term is the decaying mode generated after equality; it is very small for x > 10, I keep ot just for completeness; */
       c->qPlus[i] = c->aUni[i]*cosmology_mu(c,c->aUni[i])*(1 + ((2+6*x)/(x*sqrt(1+x))+3*log(x)-6*log(1+sqrt(1+x)))/(log(64)-9)); /* this is a^2*dDPlus/dt/H0 */
 
       c->aBox[i] = c->aUni[i]*cosmology_dc_factor(c,c->dPlus[i]);
