@@ -457,15 +457,17 @@ class OctreeSubsetBlockSlicePosition(object):
 
     @property
     def LeftEdge(self):
-        LE = (self.block_slice._fcoords[0,0,0,self.ind,:]
-            - self.block_slice._fwidth[0,0,0,self.ind,:]*0.5)
-        return LE
+        LE = (self.block_slice._fcoords[0,0,0,self.ind,:].d
+            - self.block_slice._fwidth[0,0,0,self.ind,:].d*0.5)
+        return self.block_slice.octree_subset.ds.arr(
+            LE, self.block_slice._fcoords.units)
 
     @property
     def RightEdge(self):
-        RE = (self.block_slice._fcoords[-1,-1,-1,self.ind,:]
-            + self.block_slice._fwidth[-1,-1,-1,self.ind,:]*0.5)
-        return RE
+        RE = (self.block_slice._fcoords[-1,-1,-1,self.ind,:].d
+            + self.block_slice._fwidth[-1,-1,-1,self.ind,:].d*0.5)
+        return self.block_slice.octree_subset.ds.arr(
+            RE, self.block_slice._fcoords.units)
 
     @property
     def dds(self):
