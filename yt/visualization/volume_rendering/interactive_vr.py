@@ -181,15 +181,29 @@ class IDVCamera(traitlets.HasTraits):
     orientation = traittypes.Array(np.zeros(4)).valid(
             ndarray_shape(4), ndarray_ro())
 
+    held = traitlets.Bool(False)
+
+    @contextlib.contextmanager
+    def hold_traits(self, func):
+        # for some reason, hold_trait_notifications doesn't seem to work here.
+        # So, we use this to block.
+        if not self.held:
+            self.held = True
+            func()
+            self.held = False
+        yield
+
+
     @traitlets.default("up")
     def _default_up(self):
         return np.array([0.0, 1.0, 0.0])
 
     @traitlets.observe('position', 'focus', 'up', 'fov', 'near_plane',
-            'far_plane', 'aspect_ratio')
+            'far_plane', 'aspect_ratio', 'orientation')
     def compute_matrices(self, change = None):
         '''Regenerate all position, view and projection matrices of the camera.'''
-        self._compute_matrices()
+        with self.hold_traits(self._compute_matrices):
+            pass
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
         '''Change camera orientation matrix using delta of mouse's cursor position
@@ -271,8 +285,8 @@ class TrackballCamera(IDVCamera):
     def _compute_matrices(self):
         rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
         dp = np.linalg.norm(self.position - self.focus)*rotation_matrix[2]
-        #self.position = dp + self.focus
-        #self.up = rotation_matrix[1]
+        self.position = dp + self.focus
+        self.up = rotation_matrix[1]
 
         self.view_matrix = get_lookat_matrix(self.position,
                                              self.focus,
