@@ -27,6 +27,7 @@ import time
 import traitlets
 import string
 import contextlib
+import traittypes
 
 from yt import write_bitmap
 from yt.config import \
@@ -123,7 +124,24 @@ class YTPositionTrait(traitlets.TraitType):
             self.error(obj, value)
         return value.astype("f4")
 
-class IDVCamera(object):
+def ndarray_shape(*dimensions):
+    # http://traittypes.readthedocs.io/en/latest/api_documentation.html
+    def validator(trait, value):
+        if value.shape != dimensions:
+            raise traitlets.TraitError('Expected an of shape %s and got and array with shape %s' % (dimensions, value.shape))
+        else:
+            return value
+    return validator
+
+def ndarray_ro():
+    def validator(trait, value):
+        if value.flags["WRITEABLE"]:
+            value = value.copy()
+            value.flags["WRITEABLE"] = False
+        return value
+    return validator
+
+class IDVCamera(traitlets.HasTraits):
     '''Camera object used in the Interactive Data Visualization
 
     Parameters
@@ -145,31 +163,33 @@ class IDVCamera(object):
         The ratio between the height and the width of the camera's fov.
 
     '''
-    def __init__(self,
-                 position=(0.0, 0.0, 1.0),
-                 focus=(0.0, 0.0, 0.0),
-                 up=(0.0, 1.0, 0.0),
-                 fov=45.0, near_plane=0.01, far_plane=20.0,
-                 aspect_ratio=8.0/6.0):
-        self.position = np.array(position)
-        self.focus = np.array(focus)
-        self.up = np.array(up)
-        self.fov = fov
-        self.near_plane = near_plane
-        self.far_plane = far_plane
-        self.aspect_ratio = aspect_ratio
-        
-        # set cmap
-        cmap = cm.get_cmap(ytcfg.get("yt", "default_colormap"))
-        self.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
-        self.view_matrix = np.zeros((4, 4), dtype=np.float32)
-        self.projection_matrix = np.zeros((4, 4), dtype=np.float32)
-        self.orientation = np.zeros((4, 4), dtype=np.float32)
-        self.proj_func = get_perspective_matrix
+    # We have to be careful about some of these, as it's possible in-place
+    # operations won't trigger our observation.
+    position = YTPositionTrait([0.0, 0.0, 1.0])
+    focus = YTPositionTrait([0.0, 0.0, 0.0])
+    up = traittypes.Array(np.array([0.0, 0.0, 1.0])).valid(
+            ndarray_shape(3), ndarray_ro())
+    fov = traitlets.Float(45.0)
+    near_plane = traitlets.Float(0.01)
+    far_plane = traitlets.Float(20.0)
+    aspect_ratio = traitlets.Float(8.0/6.0)
 
-    def compute_matrices(self):
+    projection_matrix = traittypes.Array(np.zeros((4,4))).valid(
+            ndarray_shape(4,4), ndarray_ro())
+    view_matrix = traittypes.Array(np.zeros((4,4))).valid(
+            ndarray_shape(4,4), ndarray_ro())
+    orientation = traittypes.Array(np.zeros(4)).valid(
+            ndarray_shape(4), ndarray_ro())
+
+    @traitlets.default("up")
+    def _default_up(self):
+        return np.array([0.0, 1.0, 0.0])
+
+    @traitlets.observe('position', 'focus', 'up', 'fov', 'near_plane',
+            'far_plane', 'aspect_ratio')
+    def compute_matrices(self, change = None):
         '''Regenerate all position, view and projection matrices of the camera.'''
-        pass
+        self._compute_matrices()
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
         '''Change camera orientation matrix using delta of mouse's cursor position
@@ -189,32 +209,6 @@ class IDVCamera(object):
         '''
         pass
 
-    def get_viewpoint(self):
-        return self.position
-
-    def get_view_matrix(self):
-        return self.view_matrix
-
-    def get_projection_matrix(self):
-        return self.projection_matrix
-
-    def update_cmap_minmax(self, minval, maxval, iflog):
-        '''Update camera's colormap bounds
-
-        Parameters
-        ----------
-        
-        minval: float
-            min color limit used for image scaling
-        maxval: float
-            max color limit used for image scaling
-        iflog: boolean
-            Set to True if colormap is using log scale, False for linear scale.
-        '''
-        self.cmap_log = iflog
-        self.cmap_min = minval
-        self.cmap_max = maxval
-
 class TrackballCamera(IDVCamera):
     """
 
@@ -229,22 +223,18 @@ class TrackballCamera(IDVCamera):
 
     """
 
-    def __init__(self, position=(0.0, 0.0, 1.0), focus=(0.0, 0.0, 0.0),
-                 up=(0.0, 1.0, 0.0), fov=45.0, near_plane=0.01, far_plane=20.0,
-                 aspect_ratio=8.0/6.0):
+    @property
+    def proj_func(self):
+        return get_perspective_matrix
 
-        super(TrackballCamera, self).__init__(position=position, focus=focus,
-                                              up=up, fov=fov, 
-                                              near_plane=near_plane,
-                                              far_plane=far_plane,
-                                              aspect_ratio=aspect_ratio)
-
-        self.view_matrix = get_lookat_matrix(self.position,
-                                             self.focus,
-                                             self.up)
-
+    @traitlets.default('orientation')
+    def _orientation_default(self):
         rotation_matrix = self.view_matrix[0:3,0:3]
-        self.orientation = rotation_matrix_to_quaternion(rotation_matrix)
+        return rotation_matrix_to_quaternion(rotation_matrix)
+
+    @traitlets.default('view_matrix')
+    def _default_view_matrix(self):
+        return get_lookat_matrix(self.position, self.focus, self.up)
 
     def _map_to_surface(self, mouse_x, mouse_y):
         # right now this just maps to the surface of the unit sphere
@@ -278,11 +268,11 @@ class TrackballCamera(IDVCamera):
 
         self.orientation = quaternion_mult(self.orientation, q)
 
-    def compute_matrices(self):
+    def _compute_matrices(self):
         rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
         dp = np.linalg.norm(self.position - self.focus)*rotation_matrix[2]
-        self.position = dp + self.focus
-        self.up = rotation_matrix[1]
+        #self.position = dp + self.focus
+        #self.up = rotation_matrix[1]
 
         self.view_matrix = get_lookat_matrix(self.position,
                                              self.focus,
@@ -717,9 +707,9 @@ class BlockRendering(SceneComponent):
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
         shader_program._set_uniform("projection",
-                cam.get_projection_matrix())
+                cam.projection_matrix)
         shader_program._set_uniform("modelview",
-                cam.get_view_matrix())
+                cam.view_matrix)
         shader_program._set_uniform("viewport",
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
         shader_program._set_uniform("camera_pos",
@@ -776,9 +766,9 @@ class BlockOutline(SceneAnnotation):
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
         shader_program._set_uniform("projection",
-                cam.get_projection_matrix())
+                cam.projection_matrix)
         shader_program._set_uniform("modelview",
-                cam.get_view_matrix())
+                cam.view_matrix)
         shader_program._set_uniform("viewport",
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
         shader_program._set_uniform("camera_pos",
@@ -801,9 +791,9 @@ class BoxAnnotation(SceneAnnotation):
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
         shader_program._set_uniform("projection",
-                cam.get_projection_matrix())
+                cam.projection_matrix)
         shader_program._set_uniform("modelview",
-                cam.get_view_matrix())
+                cam.view_matrix)
         shader_program._set_uniform("viewport",
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
         shader_program._set_uniform("camera_pos",
