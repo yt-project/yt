@@ -314,7 +314,7 @@ class Texture3D(Texture):
 class VertexAttribute(traitlets.HasTraits):
     name = traitlets.CUnicode("attr")
     id = traitlets.CInt(-1)
-    data = traittypes.Array()
+    data = traittypes.Array(None, allow_none = True)
     each = traitlets.CInt(-1)
     opengl_type = traitlets.CInt(GL.GL_FLOAT)
 
@@ -349,7 +349,7 @@ class VertexAttribute(traitlets.HasTraits):
 class VertexArray(traitlets.HasTraits):
     name = traitlets.CUnicode("vertex")
     id = traitlets.CInt(-1)
-    indices = traittypes.Array()
+    indices = traittypes.Array(None, allow_none = True)
     index_id = traitlets.CInt(-1)
     attributes = traitlets.List(trait=traitlets.Instance(VertexAttribute))
     each = traitlets.CInt(-1)

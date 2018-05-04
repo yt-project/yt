@@ -723,10 +723,10 @@ class BoxData(SceneData):
             name = "model_vertex",
             data = data.astype("f4")))
         N = data.size // 4
-        le = np.concatenate([self.left_edge.copy() for _ in range(N)])
-        re = np.concatenate([self.right_edge.copy() for _ in range(N)])
+        le = np.concatenate([[self.left_edge.copy()] for _ in range(N)])
+        re = np.concatenate([[self.right_edge.copy()] for _ in range(N)])
         dds = self.right_edge - self.left_edge
-        dds = np.concatenate([dds.copy() for _ in range(N)])
+        dds = np.concatenate([[dds.copy()] for _ in range(N)])
         va.attributes.append(VertexAttribute(
             name = "in_left_edge", data = le.astype('f4')))
         va.attributes.append(VertexAttribute(
