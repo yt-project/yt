@@ -32,6 +32,10 @@ import traittypes
 from yt import write_bitmap
 from yt.config import \
     ytcfg
+from yt.utilities.traitlets_support import \
+    YTPositionTrait, \
+    ndarray_shape, \
+    ndarray_ro
 from yt.utilities.math_utils import \
     get_translate_matrix, \
     get_scale_matrix, \
@@ -111,36 +115,6 @@ def compute_box_geometry(left_edge, right_edge):
     transformed_box = bbox_vertices.dot(scale.T).dot(move.T).astype("float32")
     return transformed_box
 
-class YTPositionTrait(traitlets.TraitType):
-    default_value = None
-    info_text = "A position in code_length"
-
-    def validate(self, obj, value):
-        if isinstance(value, (tuple, list)):
-            value = np.array(value)
-        if hasattr(value, "in_units"):
-            value = value.in_units("unitary").d
-        if not isinstance(value, np.ndarray):
-            self.error(obj, value)
-        return value.astype("f4")
-
-def ndarray_shape(*dimensions):
-    # http://traittypes.readthedocs.io/en/latest/api_documentation.html
-    def validator(trait, value):
-        if value.shape != dimensions:
-            raise traitlets.TraitError('Expected an of shape %s and got and array with shape %s' % (dimensions, value.shape))
-        else:
-            return value
-    return validator
-
-def ndarray_ro():
-    def validator(trait, value):
-        if value.flags["WRITEABLE"]:
-            value = value.copy()
-            value.flags["WRITEABLE"] = False
-        return value
-    return validator
-
 class IDVCamera(traitlets.HasTraits):
     '''Camera object used in the Interactive Data Visualization
 
@@ -186,13 +160,13 @@ class IDVCamera(traitlets.HasTraits):
     @contextlib.contextmanager
     def hold_traits(self, func):
         # for some reason, hold_trait_notifications doesn't seem to work here.
-        # So, we use this to block.
+        # So, we use this to block.  We also do not want to pass the
+        # notifications once completed.
         if not self.held:
             self.held = True
             func()
             self.held = False
         yield
-
 
     @traitlets.default("up")
     def _default_up(self):

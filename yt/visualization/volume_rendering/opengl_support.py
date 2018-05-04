@@ -17,8 +17,12 @@ in Interactive Data Visualization
 import OpenGL.GL as GL
 from contextlib import contextmanager
 import traitlets
+import traittypes
 import numpy as np
 import matplotlib.cm as cm
+from yt.utilities.traitlets_support import \
+        ndarray_shape, \
+        ndarray_ro
 
 try:
     from contextlib import ExitStack
@@ -159,7 +163,7 @@ TEX_TARGETS = {i: getattr(GL, "GL_TEXTURE%s" % i) for i in range(10)}
 
 class Texture(traitlets.HasTraits):
     texture_name = traitlets.CInt(-1)
-    data = traitlets.Instance(np.ndarray)
+    data = traittypes.Array(None, allow_none=True)
     channels = GLValue("r32f")
     min_filter = GLValue("linear")
     mag_filter = GLValue("linear")
@@ -310,7 +314,7 @@ class Texture3D(Texture):
 class VertexAttribute(traitlets.HasTraits):
     name = traitlets.CUnicode("attr")
     id = traitlets.CInt(-1)
-    data = traitlets.Instance(np.ndarray)
+    data = traittypes.Array()
     each = traitlets.CInt(-1)
     opengl_type = traitlets.CInt(GL.GL_FLOAT)
 
@@ -345,7 +349,7 @@ class VertexAttribute(traitlets.HasTraits):
 class VertexArray(traitlets.HasTraits):
     name = traitlets.CUnicode("vertex")
     id = traitlets.CInt(-1)
-    indices = traitlets.Instance(np.ndarray, allow_none = True)
+    indices = traittypes.Array()
     index_id = traitlets.CInt(-1)
     attributes = traitlets.List(trait=traitlets.Instance(VertexAttribute))
     each = traitlets.CInt(-1)
