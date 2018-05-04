@@ -19,7 +19,7 @@ def test_magnetic_fields():
 
     ds1 = load_uniform_grid(data1, ddims, unit_system="cgs")
     ds2 = load_uniform_grid(data2, ddims, unit_system="mks")
-    # By default, code units are cgs units
+    # For this test dataset, code units are cgs units
     ds3 = load_uniform_grid(data2, ddims, unit_system="code")
 
     ds1.index

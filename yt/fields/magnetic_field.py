@@ -213,8 +213,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     else:
         # Otherwise, we assume a particle dataset
         sampling_type = "particle"
-        ds_field = ds_fields
-        ds_field = (ds_ftype, ds_field)
+        ds_field = (ds_ftype, ds_fields)
     if ds_field not in registry:
         return
 
