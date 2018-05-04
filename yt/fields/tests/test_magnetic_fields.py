@@ -19,12 +19,16 @@ def test_magnetic_fields():
 
     ds1 = load_uniform_grid(data1, ddims, unit_system="cgs")
     ds2 = load_uniform_grid(data2, ddims, unit_system="mks")
+    # For this test dataset, code units are cgs units
+    ds3 = load_uniform_grid(data2, ddims, unit_system="code")
 
     ds1.index
     ds2.index
+    ds3.index
 
     dd1 = ds1.all_data()
     dd2 = ds2.all_data()
+    dd3 = ds3.all_data()
 
     assert ds1.fields.gas.magnetic_field_strength.units == "gauss"
     assert ds1.fields.gas.magnetic_field_poloidal.units == "gauss"
@@ -32,6 +36,9 @@ def test_magnetic_fields():
     assert ds2.fields.gas.magnetic_field_strength.units == "T"
     assert ds2.fields.gas.magnetic_field_poloidal.units == "T"
     assert ds2.fields.gas.magnetic_field_toroidal.units == "T"
+    assert ds3.fields.gas.magnetic_field_strength.units == "code_magnetic"
+    assert ds3.fields.gas.magnetic_field_poloidal.units == "code_magnetic"
+    assert ds3.fields.gas.magnetic_field_toroidal.units == "code_magnetic"
 
     emag1 = (dd1["magnetic_field_x"]**2 +
              dd1["magnetic_field_y"]**2 +
@@ -43,10 +50,18 @@ def test_magnetic_fields():
              dd2["magnetic_field_z"]**2)/(2.0*mu_0)
     emag2.convert_to_units("Pa")
 
+    emag3 = (dd3["magnetic_field_x"]**2 +
+             dd3["magnetic_field_y"]**2 +
+             dd3["magnetic_field_z"]**2)/(8.0*np.pi)
+    emag3.convert_to_units("code_pressure")
+
     assert_almost_equal(emag1, dd1["magnetic_energy"])
     assert_almost_equal(emag2, dd2["magnetic_energy"])
+    assert_almost_equal(emag3, dd3["magnetic_energy"])
 
     assert str(emag1.units) == str(dd1["magnetic_energy"].units)
     assert str(emag2.units) == str(dd2["magnetic_energy"].units)
+    assert str(emag3.units) == str(dd3["magnetic_energy"].units)
 
     assert_almost_equal(emag1.in_cgs(), emag2.in_cgs())
+    assert_almost_equal(emag1.in_cgs(), emag3.in_cgs())

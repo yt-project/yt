@@ -126,9 +126,11 @@ class FieldDetector(defaultdict):
         elif finfo is not None and finfo.particle_type:
             if "particle_position" in (item, item[1]) or \
                "particle_velocity" in (item, item[1]) or \
+               "particle_magnetic_field" in (item, item[1]) or \
                "Velocity" in (item, item[1]) or \
                "Velocities" in (item, item[1]) or \
-               "Coordinates" in (item, item[1]):
+               "Coordinates" in (item, item[1]) or \
+               "MagneticField" in (item, item[1]):
                 # A vector
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 3)),

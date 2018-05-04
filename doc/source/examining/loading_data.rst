@@ -1645,6 +1645,11 @@ may load Gizmo datasets as Gadget depending on the circumstances, but this
 should not pose a problem in most situations.  FIRE outputs will be loaded
 accordingly due to the number of metallicity fields found (11 or 17).
 
+If ``("PartType0", "MagneticField")`` is present in the output, it would be
+loaded and aliased to ``("PartType0", "particle_magnetic_field")``. The
+corresponding component field like ``("PartType0", "particle_magnetic_field_x")``
+would be added automatically.
+
 For Gizmo outputs written as raw binary outputs, you may have to specify
 a bounding box, field specification, and units as are done for standard
 Gadget outputs.  See :ref:`loading-gadget-data` for more information.
