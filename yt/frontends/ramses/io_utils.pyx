@@ -3,6 +3,7 @@ cimport numpy as np
 import numpy as np
 from yt.utilities.cython_fortran_utils cimport FortranFile
 from yt.geometry.oct_container cimport RAMSESOctreeContainer
+from yt.utilities.exceptions import YTIllDefinedAMRData
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -91,10 +92,14 @@ cpdef read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict he
         for icpu in range(ncpu_and_bound):
             file_ilevel = f.read_int()
             file_ncache = f.read_int()
-            if file_ncache == 0: continue
+            if file_ncache == 0:
+                continue
 
             if file_ilevel != ilevel+1:
-                raise Exception()
+                raise YTIllDefinedAMRData(
+                    'Cannot read offsets in file %s. The level read '
+                    'from data (%s) is not coherent with the excepted (%s)',
+                    f.name, file_ilevel, ilevel)
 
             if icpu + 1 == domain_id and ilevel >= min_level:
                 offset[ilevel - min_level] = f.tell()
