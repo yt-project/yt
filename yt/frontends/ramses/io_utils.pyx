@@ -92,7 +92,7 @@ cpdef read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict he
 
     skip_len = twotondim * nvar
 
-    # It goes: level, CPU, 8-variable (1 cube)
+    # It goes: level, CPU, 8-variable (1 oct)
     offset = np.zeros(n_levels, dtype=np.int64)
     offset -= 1
     level_count = np.zeros(n_levels, dtype=np.int64)
