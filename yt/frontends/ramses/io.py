@@ -27,11 +27,6 @@ from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatN
 from yt.extern.six import PY3
 import re
 
-if PY3:
-    from io import BytesIO as IO
-else:
-    from cStringIO import StringIO as IO
-
 def convert_ramses_ages(ds, conformal_ages):
     tf = ds.t_frw
     dtau = ds.dtau

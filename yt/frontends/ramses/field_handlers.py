@@ -6,7 +6,6 @@ from yt.extern.six import add_metaclass
 from yt.funcs import mylog
 from yt.config import ytcfg
 
-import numpy as np
 from .io import _read_fluid_file_descriptor
 from .io_utils import read_offset
 
