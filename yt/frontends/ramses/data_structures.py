@@ -498,30 +498,33 @@ class RAMSESDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # We now execute the same logic Oliver's code does
         rheader = {}
-        f = open(self.parameter_filename)
-        def read_rhs(cast):
+
+        def read_rhs(f, cast):
             line = f.readline().replace('\n', '')
             p, v = line.split("=")
             rheader[p.strip()] = cast(v.strip())
-        for i in range(6): read_rhs(int)
-        f.readline()
-        for i in range(11): read_rhs(float)
-        f.readline()
-        read_rhs(str)
-        # This next line deserves some comment.  We specify a min_level that
-        # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
-        # one-indexed, but it also does refer to the *oct* dimensions -- so
-        # this means that a levelmin of 1 would have *1* oct in it.  So a
-        # levelmin of 2 would have 8 octs at the root mesh level.
-        self.min_level = rheader['levelmin'] - 1
-        # Now we read the hilbert indices
-        self.hilbert_indices = {}
-        if rheader['ordering type'] == "hilbert":
-            f.readline() # header
-            for n in range(rheader['ncpu']):
-                dom, mi, ma = f.readline().split()
-                self.hilbert_indices[int(dom)] = (float(mi), float(ma))
-        f.close()
+
+        with open(self.parameter_filename) as f:
+            for i in range(6):
+                read_rhs(f, int)
+            f.readline()
+            for i in range(11):
+                read_rhs(f, float)
+            f.readline()
+            read_rhs(f, str)
+            # This next line deserves some comment.  We specify a min_level that
+            # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
+            # one-indexed, but it also does refer to the *oct* dimensions -- so
+            # this means that a levelmin of 1 would have *1* oct in it.  So a
+            # levelmin of 2 would have 8 octs at the root mesh level.
+            self.min_level = rheader['levelmin'] - 1
+            # Now we read the hilbert indices
+            self.hilbert_indices = {}
+            if rheader['ordering type'] == "hilbert":
+                f.readline() # header
+                for n in range(rheader['ncpu']):
+                    dom, mi, ma = f.readline().split()
+                    self.hilbert_indices[int(dom)] = (float(mi), float(ma))
 
         if rheader['ordering type'] != 'hilbert' and self.bbox:
             raise NotImplementedError(
