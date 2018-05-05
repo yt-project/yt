@@ -120,8 +120,6 @@ class IOHandlerRAMSES(BaseIOHandler):
 
                 # Now we read the entire thing
                 fd = FortranFile(fname)
-                # with open(fname, "rb") as f:
-                #     content = IO(f.read())
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
                 rv = subset.fill(fd, fields, selector, file_handler)
