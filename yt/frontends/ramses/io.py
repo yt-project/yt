@@ -24,7 +24,6 @@ import yt.utilities.fortran_utils as fpu
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTFileNotParseable
-from yt.extern.six import PY3
 import re
 
 def convert_ramses_ages(ds, conformal_ages):
