@@ -116,7 +116,7 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
             if file_ilevel != ilevel+1:
                 raise YTIllDefinedAMRData(
                     'Cannot read offsets in file %s. The level read '
-                    'from data (%s) is not coherent with the excepted (%s)',
+                    'from data (%s) is not coherent with the expected (%s)',
                     f.name, file_ilevel, ilevel)
 
             if icpu + 1 == domain_id and ilevel >= min_level:
