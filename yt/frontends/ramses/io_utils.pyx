@@ -15,10 +15,11 @@ def read_amr(FortranFile f, dict headers,
 
     cdef int ncpu, nboundary, max_level, nlevelmax, ncpu_and_bound
     cdef double nx, ny, nz
-    cdef int ilevel, icpu, ng, n
+    cdef int ilevel, icpu, ng, n, ndim, buffer_size, skip_len
     cdef np.ndarray[np.int32_t, ndim=2] numbl
     cdef np.ndarray[np.float64_t, ndim=2] pos
 
+    ndim = headers['ndim']
     numbl = headers['numbl']
     nboundary = headers['nboundary']
     nx, ny, nz = (((i-1.0)/2.0) for i in headers['nx'])
@@ -28,6 +29,14 @@ def read_amr(FortranFile f, dict headers,
     ncpu_and_bound = nboundary + ncpu
 
     pos = np.empty((0, 3), dtype=np.float64)
+    buffer_size = 0
+    # Compute number of fields to skip. This should be 31 in 3 dimensions
+    skip_len = (1          # father index
+                + 2*ndim   # neighbor index
+                + 2**ndim  # son index
+                + 2**ndim  # cpu map
+                + 2**ndim  # refinement map
+    )
     for ilevel in range(nlevelmax):
         for icpu in range(ncpu_and_bound):
             if icpu < ncpu:
@@ -37,18 +46,21 @@ def read_amr(FortranFile f, dict headers,
 
             if ng == 0:
                 continue
-            # ind = fpu.read_vector(f, "I").astype("int64")  # NOQA
+            # Skip grid index, 'next' and 'prev' arrays (they are used
+            # to build the linked list in RAMSES)
             f.skip(3)
 
-            # Reallocate memory if requred
-            if ng > pos.shape[0]:
+            # Allocate more memory if required
+            if ng > buffer_size:
                 pos = np.empty((ng, 3), dtype="d")
+                buffer_size = ng
 
             pos[:ng, 0] = f.read_vector("d") - nx
             pos[:ng, 1] = f.read_vector("d") - ny
             pos[:ng, 2] = f.read_vector("d") - nz
 
-            f.skip(31)
+            # Skip father, neighbor, son, cpu map and refinement map
+            f.skip(skip_len)
             # Note that we're adding *grids*, not individual cells.
             if ilevel >= min_level:
                 n = oct_handler.add(icpu + 1, ilevel - min_level, pos[:ng, :],
