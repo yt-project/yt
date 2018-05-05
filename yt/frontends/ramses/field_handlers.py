@@ -1,12 +1,16 @@
 import os
 from yt.utilities.cython_fortran_utils import FortranFile
 import glob
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, PY2
 from yt.funcs import mylog
 from yt.config import ytcfg
 
 from .io import _read_fluid_file_descriptor
 from .io_utils import read_offset
+
+
+if PY2:
+    FileNotFoundError = IOError
 
 
 FIELD_HANDLERS = set()

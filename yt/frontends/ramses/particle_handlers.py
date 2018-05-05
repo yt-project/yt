@@ -1,9 +1,8 @@
 import os
 from yt.utilities.cython_fortran_utils import FortranFile
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, PY2
 from yt.funcs import mylog
 from yt.config import ytcfg
-from yt.extern.six import PY2
 
 from .io import _read_part_file_descriptor
 
