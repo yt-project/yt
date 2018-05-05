@@ -4,23 +4,22 @@ import cython
 from libc.stdio cimport *
 import struct
 
-cdef INT_SIZE = sizeof(int)
-cdef DOUBLE_SIZE = sizeof(double)
-
+cdef INT32_SIZE = sizeof(np.int32_t)
+cdef DOUBLE_SIZE = sizeof(np.float64_t)
 
 cdef class FortranFile:
     def __init__(self, str fname):
         self.cfile = fopen(fname.encode('utf-8'), 'r')
 
-    cpdef void skip(self, int n=1):
-        cdef int s1, s2, i
+    cpdef void skip(self, INT64_t n=1):
+        cdef INT32_t s1, s2, i
 
         for i in range(n):
-            fread(&s1, INT_SIZE, 1, self.cfile)
+            fread(&s1, INT32_SIZE, 1, self.cfile)
             fseek(self.cfile, s1, SEEK_CUR)
-            fread(&s2, INT_SIZE, 1, self.cfile)
+            fread(&s2, INT32_SIZE, 1, self.cfile)
 
-    cdef int get_size(self, str dtype):
+    cdef INT64_t get_size(self, str dtype):
         if dtype == 'i':
             return 4
         elif dtype == 'd':
@@ -32,25 +31,25 @@ cdef class FortranFile:
             return struct.calcsize(dtype)
 
     cpdef np.ndarray read_vector(self, str dtype):
-        cdef int s1, s2, size
+        cdef INT32_t s1, s2, size
         cdef np.ndarray data
 
         size = self.get_size(dtype)
 
-        fread(&s1, INT_SIZE, 1, self.cfile)
+        fread(&s1, INT32_SIZE, 1, self.cfile)
         data = np.empty(s1 // size, dtype=dtype)
         fread(<void *>data.data, size, s1 // size, self.cfile)
-        fread(&s2, INT_SIZE, 1, self.cfile)
+        fread(&s2, INT32_SIZE, 1, self.cfile)
 
         return data
 
-    cpdef int read_int(self):
-        cdef int s1, s2, size=sizeof(int)
-        cdef int data
+    cpdef INT32_t read_int(self):
+        cdef INT32_t s1, s2
+        cdef INT32_t data
 
-        fread(&s1, INT_SIZE, 1, self.cfile)
-        fread(&data, size, s1 // size, self.cfile)
-        fread(&s2, INT_SIZE, 1, self.cfile)
+        fread(&s1, INT32_SIZE, 1, self.cfile)
+        fread(&data, INT32_SIZE, s1 // INT32_SIZE, self.cfile)
+        fread(&s2, INT32_SIZE, 1, self.cfile)
 
         return data
 
@@ -77,12 +76,12 @@ cdef class FortranFile:
 
         return data
 
-    cpdef long tell(self):
-        cdef long pos
+    cpdef INT64_t tell(self):
+        cdef INT64_t pos
         pos = ftell(self.cfile)
         return pos
 
-    cpdef void seek(self, int pos, int whence=SEEK_SET):
+    cpdef void seek(self, INT64_t pos, INT64_t whence=SEEK_SET):
         fseek(self.cfile, pos, whence)
 
     cpdef void close(self):

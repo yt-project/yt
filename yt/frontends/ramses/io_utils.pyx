@@ -5,17 +5,22 @@ from yt.utilities.cython_fortran_utils cimport FortranFile
 from yt.geometry.oct_container cimport RAMSESOctreeContainer
 from yt.utilities.exceptions import YTIllDefinedAMRData
 
+ctypedef np.int32_t INT32_t
+ctypedef np.int64_t INT64_t
+ctypedef np.float64_t DOUBLE_t
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.nonecheck(False)
 def read_amr(FortranFile f, dict headers,
-             np.ndarray[np.int64_t, ndim=1] ngridbound, int min_level,
+             np.ndarray[np.int64_t, ndim=1] ngridbound, INT64_t min_level,
              RAMSESOctreeContainer oct_handler):
 
-    cdef int ncpu, nboundary, max_level, nlevelmax, ncpu_and_bound
-    cdef double nx, ny, nz
-    cdef int ilevel, icpu, ng, n, ndim, buffer_size, skip_len
+    cdef INT64_t ncpu, nboundary, max_level, nlevelmax, ncpu_and_bound
+    cdef DOUBLE_t nx, ny, nz
+    cdef INT64_t ilevel, icpu, n, ndim, skip_len
+    cdef INT32_t ng, buffer_size
     cdef np.ndarray[np.int32_t, ndim=2] numbl
     cdef np.ndarray[np.float64_t, ndim=2] pos
 
@@ -74,11 +79,12 @@ def read_amr(FortranFile f, dict headers,
 @cython.wraparound(False)
 @cython.cdivision(True)
 @cython.nonecheck(False)
-cpdef read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict headers):
+cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers):
 
     cdef np.ndarray[np.int64_t, ndim=1] offset, level_count
-    cdef int ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
-    cdef int file_ilevel, file_ncache, ilevel, icpu, skip_len
+    cdef INT64_t ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
+    cdef INT64_t ilevel, icpu, skip_len
+    cdef INT32_t file_ilevel, file_ncache
 
     numbl = headers['numbl']
     ndim = headers['ndim']
@@ -97,8 +103,8 @@ cpdef read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict he
     offset -= 1
     level_count = np.zeros(n_levels, dtype=np.int64)
 
-    cdef long[:] level_count_view = level_count
-    cdef long[:] offset_view = offset
+    cdef np.int64_t[:] level_count_view = level_count
+    cdef np.int64_t[:] offset_view = offset
 
     for ilevel in range(nlevelmax):
         for icpu in range(ncpu_and_bound):
@@ -115,7 +121,7 @@ cpdef read_offset(FortranFile f, int min_level, int domain_id, int nvar, dict he
 
             if icpu + 1 == domain_id and ilevel >= min_level:
                 offset[ilevel - min_level] = f.tell()
-                level_count[ilevel - min_level] = file_ncache
+                level_count[ilevel - min_level] = <INT64_t> file_ncache
             f.skip(skip_len)
 
     return offset, level_count
@@ -130,13 +136,14 @@ def fill_hydro(FortranFile f,
                np.ndarray[np.uint8_t, ndim=1] levels,
                np.ndarray[np.uint8_t, ndim=1] cell_inds,
                np.ndarray[np.int64_t, ndim=1] file_inds,
-               int ndim, list all_fields, list fields,
+               INT64_t ndim, list all_fields, list fields,
                dict tr,
                RAMSESOctreeContainer oct_handler):
-    cdef int ilevel, offset, ifield, nfields, noffset
+    cdef INT64_t ilevel, ifield, nfields, noffset
+    cdef INT64_t offset
     cdef dict tmp
     cdef str field
-    cdef int twotondim, i
+    cdef INT64_t twotondim, i
     cdef np.ndarray[np.uint8_t, ndim=1] mask
 
     twotondim = 2**ndim
