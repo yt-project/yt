@@ -159,7 +159,6 @@ def fill_hydro(FortranFile f,
         for i in range(twotondim):
             # Read the selected fields
             for ifield in range(nfields):
-                # for field in all_fields:
                 if not mask[ifield]:
                     f.skip()
                 else:
