@@ -28,6 +28,7 @@ cdef class FortranFile:
         elif dtype == 'f':
             return 4
         else:
+            # Fallback to struct to compute the size
             return struct.calcsize(dtype)
 
     cpdef np.ndarray read_vector(self, str dtype):
