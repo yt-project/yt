@@ -134,7 +134,6 @@ class GizmoFieldInfo(GadgetFieldInfo):
         def _metal_density_field(field, data):
             return data[ptype, "metallicity"] * data[ptype, "density"]
         self.add_field((ptype, "metal_density"),
-                       #sampling_type="particle",
                        sampling_type="local",
                        function=_metal_density_field,
                        units=self.ds.unit_system["density"])
