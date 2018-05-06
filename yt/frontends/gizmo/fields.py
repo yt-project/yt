@@ -130,3 +130,12 @@ class GizmoFieldInfo(GadgetFieldInfo):
                     "smoothing_length", "density", field,
                     self, num_neighbors)
                 self.alias(("gas", field), (ptype, field))
+
+        def _metal_density_field(field, data):
+            return data[ptype, "metallicity"] * data[ptype, "density"]
+        self.add_field((ptype, "metal_density"),
+                       #sampling_type="particle",
+                       sampling_type="local",
+                       function=_metal_density_field,
+                       units=self.ds.unit_system["density"])
+        self.alias(("gas", "metal_density"), (ptype, "metal_density"))
