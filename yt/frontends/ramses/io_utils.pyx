@@ -42,6 +42,8 @@ def read_amr(FortranFile f, dict headers,
                 + 2**ndim  # cpu map
                 + 2**ndim  # refinement map
     )
+    # Initialize values
+    max_level = 0
     for ilevel in range(nlevelmax):
         for icpu in range(ncpu_and_bound):
             if icpu < ncpu:
@@ -155,7 +157,8 @@ def fill_hydro(FortranFile f,
     # Loop over levels
     for ilevel in range(noffset):
         offset = offsets[ilevel]
-        if offset == -1: continue
+        if offset == -1:
+            continue
         f.seek(offset)
         nc = level_count[ilevel]
         tmp = {}
