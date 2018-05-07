@@ -10,7 +10,7 @@ cdef DOUBLE_SIZE = sizeof(np.float64_t)
 cdef class FortranFile:
     def __cinit__(self, str fname):
         self.cfile = fopen(fname.encode('utf-8'), 'r')
-        self._opened = True
+        self._closed = False
 
     def __enter__(self):
         return self
@@ -21,10 +21,17 @@ cdef class FortranFile:
     cpdef void skip(self, INT64_t n=1):
         cdef INT32_t s1, s2, i
 
+        if self._closed:
+            raise ValueError("Read of closed file.")
+
         for i in range(n):
             fread(&s1, INT32_SIZE, 1, self.cfile)
             fseek(self.cfile, s1, SEEK_CUR)
             fread(&s2, INT32_SIZE, 1, self.cfile)
+
+            if s1 != s2:
+                raise IOError('Sizes do not agree in the header and footer for '
+                              'this record - check header dtype')
 
     cdef INT64_t get_size(self, str dtype):
         if dtype == 'i':
@@ -33,20 +40,35 @@ cdef class FortranFile:
             return 8
         elif dtype == 'f':
             return 4
+        elif dtype == 'l':
+            return 8
         else:
-            # Fallback to struct to compute the size
+            # Fallback to (slow) struct to compute the size
             return struct.calcsize(dtype)
 
     cpdef np.ndarray read_vector(self, str dtype):
         cdef INT32_t s1, s2, size
         cdef np.ndarray data
 
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
+
         size = self.get_size(dtype)
 
         fread(&s1, INT32_SIZE, 1, self.cfile)
+
+        # Check record is compatible with data type
+        if s1 % size != 0:
+            raise ValueError('Size obtained (%s) does not match with the expected '
+                             'size (%s) of multi-item record', s1, size)
+
         data = np.empty(s1 // size, dtype=dtype)
         fread(<void *>data.data, size, s1 // size, self.cfile)
         fread(&s2, INT32_SIZE, 1, self.cfile)
+
+        if s1 != s2:
+            raise IOError('Sizes do not agree in the header and footer for '
+                          'this record - check header dtype')
 
         return data
 
@@ -54,9 +76,21 @@ cdef class FortranFile:
         cdef INT32_t s1, s2
         cdef INT32_t data
 
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
+
         fread(&s1, INT32_SIZE, 1, self.cfile)
+
+        if s1 % INT32_SIZE != 0:
+            raise ValueError('Size obtained (%s) does not match with the expected '
+                             'size (%s) of multi-item record', s1, INT32_SIZE)
+
         fread(&data, INT32_SIZE, s1 // INT32_SIZE, self.cfile)
         fread(&s2, INT32_SIZE, 1, self.cfile)
+
+        if s1 != s2:
+            raise IOError('Sizes do not agree in the header and footer for '
+                          'this record - check header dtype')
 
         return data
 
@@ -66,6 +100,9 @@ cdef class FortranFile:
         cdef dict data
         cdef key
         cdef np.ndarray tmp
+
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
 
         data = {}
 
@@ -85,16 +122,23 @@ cdef class FortranFile:
 
     cpdef INT64_t tell(self):
         cdef INT64_t pos
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
+
         pos = ftell(self.cfile)
         return pos
 
     cpdef void seek(self, INT64_t pos, INT64_t whence=SEEK_SET):
+        if self._closed:
+            raise ValueError("I/O operation on closed file.")
         fseek(self.cfile, pos, whence)
 
     cpdef void close(self):
+        if self._closed:
+            return
         fclose(self.cfile)
-        self._opened = False
+        self._closed = True
 
     def __dealloc__(self):
-        if self._opened:
+        if not self._closed:
             self.close()

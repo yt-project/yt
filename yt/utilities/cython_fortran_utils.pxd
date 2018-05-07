@@ -7,7 +7,7 @@ ctypedef np.float64_t DOUBLE_t
 
 cdef class FortranFile:
     cdef FILE* cfile
-    cdef bint _opened
+    cdef bint _closed
 
     cpdef void skip(self, INT64_t n=*)
     cdef INT64_t get_size(self, str dtype)
