@@ -21,7 +21,8 @@ cdef class FortranFile:
     Since the assumed record header is an signed integer on 32bit, it
     will overflow at 2**31=2147483648 elements.
 
-    This module has been inspired by scipy's FortranFile.
+    This module has been inspired by scipy's FortranFile, especially
+    the docstrings.
     """
     def __cinit__(self, str fname):
         self.cfile = fopen(fname.encode('utf-8'), 'r')
@@ -160,9 +161,9 @@ cdef class FortranFile:
 
         fread(&s1, INT32_SIZE, 1, self.cfile)
 
-        if s1 % INT32_SIZE != 0:
+        if s1 != INT32_SIZE != 0:
             raise ValueError('Size obtained (%s) does not match with the expected '
-                             'size (%s) of multi-item record', s1, INT32_SIZE)
+                             'size (%s) of record', s1, INT32_SIZE)
 
         fread(&data, INT32_SIZE, s1 // INT32_SIZE, self.cfile)
         fread(&s2, INT32_SIZE, 1, self.cfile)
@@ -177,11 +178,12 @@ cdef class FortranFile:
         """This function reads from that file according to a
         definition of attributes, returning a dictionary.
 
-        Fortran unformatted files provide total bytesize at the beginning and end
-        of a record.  By correlating the components of that record with attribute
-        names, we construct a dictionary that gets returned.  Note that this
-        function is used for reading sequentially-written records.  If you have
-        many written that were written simultaneously, see read_record.
+        Fortran unformatted files provide total bytesize at the
+        beginning and end of a record. By correlating the components
+        of that record with attribute names, we construct a dictionary
+        that gets returned. Note that this function is used for
+        reading sequentially-written records. If you have many written
+        that were written simultaneously.
 
         Parameters
         ----------
@@ -261,6 +263,9 @@ cdef class FortranFile:
         """
         if self._closed:
             raise ValueError("I/O operation on closed file.")
+        if whence < 0 or whence > 2:
+            raise ValueError("whence argument can be 0, 1, or 2. Got %s", whence)
+
         fseek(self.cfile, pos, whence)
         return self.tell()
 
