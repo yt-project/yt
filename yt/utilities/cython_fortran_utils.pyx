@@ -33,7 +33,7 @@ cdef class FortranFile:
                 raise IOError('Sizes do not agree in the header and footer for '
                               'this record - check header dtype')
 
-        return s1
+        return 0
 
     cdef INT64_t get_size(self, str dtype):
         if dtype == 'i':
