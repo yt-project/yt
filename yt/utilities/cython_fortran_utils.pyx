@@ -126,7 +126,7 @@ cdef class FortranFile:
         # Check record is compatible with data type
         if s1 % size != 0:
             raise ValueError('Size obtained (%s) does not match with the expected '
-                             'size (%s) of multi-item record', s1, size)
+                             'size (%s) of multi-item record' % (s1, size))
 
         data = np.empty(s1 // size, dtype=dtype)
         fread(<void *>data.data, size, s1 // size, self.cfile)
@@ -163,7 +163,7 @@ cdef class FortranFile:
 
         if s1 != INT32_SIZE != 0:
             raise ValueError('Size obtained (%s) does not match with the expected '
-                             'size (%s) of record', s1, INT32_SIZE)
+                             'size (%s) of record' % (s1, INT32_SIZE))
 
         fread(&data, INT32_SIZE, s1 // INT32_SIZE, self.cfile)
         fread(&s2, INT32_SIZE, 1, self.cfile)
@@ -264,7 +264,7 @@ cdef class FortranFile:
         if self._closed:
             raise ValueError("I/O operation on closed file.")
         if whence < 0 or whence > 2:
-            raise ValueError("whence argument can be 0, 1, or 2. Got %s", whence)
+            raise ValueError("whence argument can be 0, 1, or 2. Got %s" % whence)
 
         fseek(self.cfile, pos, whence)
         return self.tell()
