@@ -8,6 +8,21 @@ cdef INT32_SIZE = sizeof(np.int32_t)
 cdef DOUBLE_SIZE = sizeof(np.float64_t)
 
 cdef class FortranFile:
+    """This class provides facilities to interact with files written
+    in fortran-record format.  Since this is a non-standard file
+    format, whose contents depend on the compiler and the endianness
+    of the machine, caution is advised. This code will assume that the
+    record header is written as a 32bit (4byte) signed integer. The
+    code also assumes that the records use the system's local
+    endianness.
+
+    Notes
+    -----
+    Since the assumed record header is an signed integer on 32bit, it
+    will overflow at 2**31=2147483648 elements.
+
+    This module has been inspired by scipy's FortranFile.
+    """
     def __cinit__(self, str fname):
         self.cfile = fopen(fname.encode('utf-8'), 'r')
         self._closed = False
@@ -19,6 +34,18 @@ cdef class FortranFile:
         self.close()
 
     cpdef INT64_t skip(self, INT64_t n=1) except -1:
+        """Skip records.
+
+        Parameters
+        ----------
+        - n : integer
+            The number of records to skip
+
+        Returns
+        -------
+        value : int
+            Returns 0 on success.
+        """
         cdef INT32_t s1, s2, i
 
         if self._closed:
@@ -36,6 +63,24 @@ cdef class FortranFile:
         return 0
 
     cdef INT64_t get_size(self, str dtype):
+        """Return the size of an element given its datatype.
+
+        Parameters
+        ----------
+        dtype : str
+           The dtype, see note for details about the values of dtype.
+
+        Returns
+        -------
+        size : int
+           The size in byte of the dtype
+
+        Note:
+        -----
+        See
+        https://docs.python.org/3.5/library/struct.html#format-characters
+        for details about the formatting characters.
+        """
         if dtype == 'i':
             return 4
         elif dtype == 'd':
@@ -49,6 +94,24 @@ cdef class FortranFile:
             return struct.calcsize(dtype)
 
     cpdef np.ndarray read_vector(self, str dtype):
+        """Reads a record from the file and return it as numpy array.
+
+        Parameters
+        ----------
+        d : data type
+            This is the datatype (from the struct module) that we should read.
+
+        Returns
+        -------
+        tr : numpy.ndarray
+            This is the vector of values read from the file.
+
+        Examples
+        --------
+        >>> f = FortranFile("fort.3")
+        >>> rv = f.read_vector("d")  # Read a float64 array
+        >>> rv = f.read_vector("i")  # Read an int32 array
+        """
         cdef INT32_t s1, s2, size
         cdef np.ndarray data
 
@@ -75,6 +138,20 @@ cdef class FortranFile:
         return data
 
     cpdef INT32_t read_int(self) except? -1:
+        """Reads a single int32 from the file and return it.
+
+        Returns
+        -------
+        data : int32
+            The value.
+
+        Examples
+        --------
+        >>> f = FortranFile("fort.3")
+        >>> rv = f.read_vector("d")  # Read a float64 array
+        >>> rv = f.read_vector("i")  # Read an int32 array
+        """
+
         cdef INT32_t s1, s2
         cdef INT32_t data
 
@@ -97,6 +174,37 @@ cdef class FortranFile:
         return data
 
     def read_attrs(self, object attrs):
+        """This function reads from that file according to a
+        definition of attributes, returning a dictionary.
+
+        Fortran unformatted files provide total bytesize at the beginning and end
+        of a record.  By correlating the components of that record with attribute
+        names, we construct a dictionary that gets returned.  Note that this
+        function is used for reading sequentially-written records.  If you have
+        many written that were written simultaneously, see read_record.
+
+        Parameters
+        ----------
+        attrs : iterable of iterables
+            This object should be an iterable of one of the formats:
+            [ (attr_name, count, struct type), ... ].
+            [ ((name1,name2,name3),count, vector type]
+            [ ((name1,name2,name3),count, 'type type type']
+
+        Returns
+        -------
+        values : dict
+            This will return a dict of iterables of the components of the values in
+            the file.
+
+        Examples
+        --------
+
+        >>> header = [ ("ncpu", 1, "i"), ("nfiles", 2, "i") ]
+        >>> f = FortranFile("fort.3")
+        >>> rv = f.read_attrs(header)
+        """
+
         cdef str dtype
         cdef int n
         cdef dict data
@@ -123,6 +231,7 @@ cdef class FortranFile:
         return data
 
     cpdef INT64_t tell(self) except -1:
+        """Return current stream position."""
         cdef INT64_t pos
 
         if self._closed:
@@ -132,12 +241,34 @@ cdef class FortranFile:
         return pos
 
     cpdef INT64_t seek(self, INT64_t pos, INT64_t whence=SEEK_SET) except -1:
+        """Change stream position.
+
+        Parameters
+        ----------
+        pos : int
+            Change the stream position to the given byte offset. The offset is
+            interpreted relative to the position indicated by whence.
+        whence : int
+            Determine how pos is interpreted. Can by any of
+            * 0 -- start of stream (the default); offset should be zero or positive
+            * 1 -- current stream position; offset may be negative
+            * 2 -- end of stream; offset is usually negative
+
+        Returns
+        -------
+        pos : int
+            The new absolute position.
+        """
         if self._closed:
             raise ValueError("I/O operation on closed file.")
         fseek(self.cfile, pos, whence)
         return self.tell()
 
     cpdef void close(self):
+        """Close the file descriptor.
+
+        This method has no effect if the file is already closed.
+        """
         if self._closed:
             return
         fclose(self.cfile)
