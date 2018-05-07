@@ -18,7 +18,7 @@ cdef class FortranFile:
     def __exit__(self, type, value, traceback):
         self.close()
 
-    cpdef void skip(self, INT64_t n=1):
+    cpdef INT64_t skip(self, INT64_t n=1) except -1:
         cdef INT32_t s1, s2, i
 
         if self._closed:
@@ -32,6 +32,8 @@ cdef class FortranFile:
             if s1 != s2:
                 raise IOError('Sizes do not agree in the header and footer for '
                               'this record - check header dtype')
+
+        return s1
 
     cdef INT64_t get_size(self, str dtype):
         if dtype == 'i':
@@ -72,7 +74,7 @@ cdef class FortranFile:
 
         return data
 
-    cpdef INT32_t read_int(self):
+    cpdef INT32_t read_int(self) except? -1:
         cdef INT32_t s1, s2
         cdef INT32_t data
 
@@ -94,7 +96,7 @@ cdef class FortranFile:
 
         return data
 
-    cpdef dict read_attrs(self, object attrs):
+    def read_attrs(self, object attrs):
         cdef str dtype
         cdef int n
         cdef dict data
@@ -120,18 +122,20 @@ cdef class FortranFile:
 
         return data
 
-    cpdef INT64_t tell(self):
+    cpdef INT64_t tell(self) except -1:
         cdef INT64_t pos
+
         if self._closed:
             raise ValueError("I/O operation on closed file.")
 
         pos = ftell(self.cfile)
         return pos
 
-    cpdef void seek(self, INT64_t pos, INT64_t whence=SEEK_SET):
+    cpdef INT64_t seek(self, INT64_t pos, INT64_t whence=SEEK_SET) except -1:
         if self._closed:
             raise ValueError("I/O operation on closed file.")
         fseek(self.cfile, pos, whence)
+        return self.tell()
 
     cpdef void close(self):
         if self._closed:
