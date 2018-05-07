@@ -218,18 +218,16 @@ class FieldFileHandler(object):
         if getattr(self, '_offset', None) is not None:
             return self._offset
 
-        f = FortranFile(self.fname)
+        with FortranFile(self.fname) as fd:
 
-        # Skip headers
-        nskip = len(self.attrs)
-        f.skip(nskip)
-        min_level = self.domain.ds.min_level
+            # Skip headers
+            nskip = len(self.attrs)
+            fd.skip(nskip)
+            min_level = self.domain.ds.min_level
 
-        offset, level_count = read_offset(
-            f, min_level, self.domain.domain_id, self.parameters['nvar'],
-            self.domain.amr_header)
-
-        f.close()
+            offset, level_count = read_offset(
+                fd, min_level, self.domain.domain_id, self.parameters['nvar'],
+                self.domain.amr_header)
 
         self._offset = offset
         self._level_count = level_count

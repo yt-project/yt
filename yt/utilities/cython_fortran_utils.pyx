@@ -8,8 +8,15 @@ cdef INT32_SIZE = sizeof(np.int32_t)
 cdef DOUBLE_SIZE = sizeof(np.float64_t)
 
 cdef class FortranFile:
-    def __init__(self, str fname):
+    def __cinit__(self, str fname):
         self.cfile = fopen(fname.encode('utf-8'), 'r')
+        self._opened = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.close()
 
     cpdef void skip(self, INT64_t n=1):
         cdef INT32_t s1, s2, i
@@ -86,3 +93,8 @@ cdef class FortranFile:
 
     cpdef void close(self):
         fclose(self.cfile)
+        self._opened = False
+
+    def __dealloc__(self):
+        if self._opened:
+            self.close()

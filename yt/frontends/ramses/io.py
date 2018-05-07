@@ -113,11 +113,10 @@ class IOHandlerRAMSES(BaseIOHandler):
                     raise YTFieldTypeNotFound(ftype)
 
                 # Now we read the entire thing
-                fd = FortranFile(fname)
-                # This contains the boundary information, so we skim through
-                # and pick off the right vectors
-                rv = subset.fill(fd, fields, selector, file_handler)
-                fd.close()
+                with FortranFile(fname) as fd:
+                    # This contains the boundary information, so we skim through
+                    # and pick off the right vectors
+                    rv = subset.fill(fd, fields, selector, file_handler)
                 for ft, f in fields:
                     d = rv.pop(f)
                     mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
