@@ -31,7 +31,7 @@ from yt.utilities.physical_constants import \
     mh
 from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator
-import yt.utilities.fortran_utils as fpu
+from yt.utilities.cython_fortran_utils import FortranFile
 from .field_handlers import RTFieldFileHandler
 
 b_units = "code_magnetic"
@@ -254,13 +254,13 @@ class RAMSESFieldInfo(FieldInfoContainer):
                            units=self.ds.unit_system['number_density'])
         avals = {}
         tvals = {}
-        with open(filename, "rb") as f:
-            n1, n2 = fpu.read_vector(f, 'i')
+        with FortranFile(filename) as fd:
+            n1, n2 = fd.read_vector('i')
             n = n1 * n2
             for ax in _cool_axes:
-                avals[ax] = fpu.read_vector(f, 'd')
+                avals[ax] = fd.read_vector('d')
             for tname in _cool_arrs:
-                var = fpu.read_vector(f, 'd')
+                var = fd.read_vector('d')
                 if var.size == n1*n2:
                     tvals[tname] = var.reshape((n1, n2), order='F')
                 else:

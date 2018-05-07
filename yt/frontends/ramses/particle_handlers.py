@@ -1,5 +1,5 @@
 import os
-import yt.utilities.fortran_utils as fpu
+from yt.utilities.cython_fortran_utils import FortranFile
 from yt.extern.six import add_metaclass
 from yt.funcs import mylog
 from yt.config import ytcfg
@@ -197,13 +197,14 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             self.field_types = {}
             self.local_particle_count = 0
             return
-        f = open(self.fname, "rb")
-        f.seek(0, os.SEEK_END)
-        flen = f.tell()
-        f.seek(0)
+
+        fd = FortranFile(self.fname)
+        fd.seek(0, os.SEEK_END)
+        flen = fd.tell()
+        fd.seek(0)
         hvals = {}
         attrs = self.attrs
-        hvals.update(fpu.read_attrs(f, attrs))
+        hvals.update(fd.read_attrs(attrs))
         self.header = hvals
         self.local_particle_count = hvals['npart']
         extra_particle_fields = self.ds._extra_particle_fields
@@ -229,20 +230,22 @@ class DefaultParticleFileHandler(ParticleFileHandler):
 
         # Read offsets
         for field, vtype in particle_fields:
-            if f.tell() >= flen: break
-            field_offsets[ptype, field] = f.tell()
+            if fd.tell() >= flen: break
+            field_offsets[ptype, field] = fd.tell()
             _pfields[ptype, field] = vtype
-            fpu.skip(f, 1)
+            fd.skip(1)
 
         iextra = 0
-        while f.tell() < flen:
+        while fd.tell() < flen:
             iextra += 1
             field, vtype = ('particle_extra_field_%i' % iextra, 'd')
             particle_fields.append((field, vtype))
 
-            field_offsets[ptype, field] = f.tell()
+            field_offsets[ptype, field] = fd.tell()
             _pfields[ptype, field] = vtype
-            fpu.skip(f, 1)
+            fd.skip(1)
+
+        fd.close()
 
         if iextra > 0 and not self.ds._warned_extra_fields['io']:
             w = ("Detected %s extra particle fields assuming kind "
@@ -294,15 +297,15 @@ class SinkParticleFileHandler(ParticleFileHandler):
             self.field_types = {}
             self.local_particle_count = 0
             return
-        f = open(self.fname, "rb")
-        f.seek(0, os.SEEK_END)
-        flen = f.tell()
-        f.seek(0)
+        fd = FortranFile(self.fname)
+        fd.seek(0, os.SEEK_END)
+        flen = fd.tell()
+        fd.seek(0)
         hvals = {}
         # Read the header of the file
         attrs = self.attrs
 
-        hvals.update(fpu.read_attrs(f, attrs))
+        hvals.update(fd.read_attrs(attrs))
         self._header = hvals
 
         # This is somehow a trick here: we only want one domain to
@@ -336,9 +339,10 @@ class SinkParticleFileHandler(ParticleFileHandler):
         self.fields = []
         for field, vtype in fields:
             self.fields.append(field)
-            if f.tell() >= flen: break
-            field_offsets[self.ptype, field] = f.tell()
+            if fd.tell() >= flen: break
+            field_offsets[self.ptype, field] = fd.tell()
             _pfields[self.ptype, field] = vtype
-            fpu.skip(f, 1)
+            fd.skip(1)
         self.field_offsets = field_offsets
         self.field_types = _pfields
+        fd.close()

@@ -1,5 +1,4 @@
 import os
-import yt.utilities.fortran_utils as fpu
 from yt.utilities.cython_fortran_utils import FortranFile
 import glob
 from yt.extern.six import add_metaclass
@@ -264,9 +263,9 @@ class HydroFieldFileHandler(FieldFileHandler):
         fname = basename % 'hydro'
         fname_desc = os.path.join(basepath, cls.file_descriptor)
 
-        f = open(fname, 'rb')
         attrs = cls.attrs
-        hvals = fpu.read_attrs(f, attrs)
+        with FortranFile(fname) as fd:
+            hvals = fd.read_attrs(attrs)
         cls.parameters = hvals
 
         # Store some metadata
@@ -371,8 +370,8 @@ class GravFieldFileHandler(FieldFileHandler):
         iout = int(str(ds).split('_')[1])
         basedir = os.path.split(ds.parameter_filename)[0]
         fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
-        with open(fname, 'rb') as f:
-            cls.parameters = fpu.read_attrs(f, cls.attrs)
+        with FortranFile(fname) as fd:
+            cls.parameters = fd.read_attrs(cls.attrs)
 
         nvar = cls.parameters['nvar']
         ndim = ds.dimensionality
@@ -445,8 +444,8 @@ class RTFieldFileHandler(FieldFileHandler):
         iout = int(str(ds).split('_')[1])
         basedir = os.path.split(ds.parameter_filename)[0]
         fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
-        with open(fname, 'rb') as f:
-            cls.parameters = fpu.read_attrs(f, cls.attrs)
+        with FortranFile(fname) as fd:
+            cls.parameters = fd.read_attrs(cls.attrs)
 
         fields = []
         for ng in range(ngroups):

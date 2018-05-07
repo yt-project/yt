@@ -20,7 +20,6 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
-import yt.utilities.fortran_utils as fpu
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTFileNotParseable
@@ -72,7 +71,7 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
     '''
     tr = {}
     ds = subset.domain.ds
-    with open(fname, "rb") as f:
+    with FortranFile(fname) as fd:
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
         # positions into the same domain as the octs themselves.
@@ -80,9 +79,9 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
             if count == 0:
                 tr[field] = np.empty(0, dtype=data_types[field])
                 continue
-            f.seek(foffsets[field])
+            fd.seek(foffsets[field])
             dt = data_types[field]
-            tr[field] = fpu.read_vector(f, dt)
+            tr[field] = fd.read_vector(dt)
             if field[1].startswith("particle_position"):
                 np.divide(tr[field], ds["boxlen"], tr[field])
             if ds.cosmological_simulation and field[1] == "particle_birth_time":
