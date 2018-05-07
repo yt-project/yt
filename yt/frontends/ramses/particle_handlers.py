@@ -171,14 +171,14 @@ class DefaultParticleFileHandler(ParticleFileHandler):
     file_descriptor = 'part_file_descriptor.txt'
     config_field = 'ramses-particles'
 
-    attrs = ( ('ncpu', 1, 'I'),
-              ('ndim', 1, 'I'),
-              ('npart', 1, 'I'),
-              ('localseed', 4, 'I'),
-              ('nstar_tot', 1, 'I'),
+    attrs = ( ('ncpu', 1, 'i'),
+              ('ndim', 1, 'i'),
+              ('npart', 1, 'i'),
+              ('localseed', 4, 'i'),
+              ('nstar_tot', 1, 'i'),
               ('mstar_tot', 1, 'd'),
               ('mstar_lost', 1, 'd'),
-              ('nsink', 1, 'I') )
+              ('nsink', 1, 'i') )
 
     known_fields = [
         ("particle_position_x", "d"),
@@ -189,7 +189,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         ("particle_velocity_z", "d"),
         ("particle_mass", "d"),
         ("particle_identity", "i"),
-        ("particle_refinement_level", "I")]
+        ("particle_refinement_level", "i")]
 
     def read_header(self):
         if not self.exists:
@@ -265,8 +265,8 @@ class SinkParticleFileHandler(ParticleFileHandler):
     file_descriptor = 'sink_file_descriptor.txt'
     config_field = 'ramses-sink-particles'
 
-    attrs = (('nsink', 1, 'I'),
-             ('nindsink', 1, 'I'))
+    attrs = (('nsink', 1, 'i'),
+             ('nindsink', 1, 'i'))
 
     known_fields = [
         ("particle_identifier", "i"),
