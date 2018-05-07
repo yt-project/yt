@@ -117,6 +117,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                 # This contains the boundary information, so we skim through
                 # and pick off the right vectors
                 rv = subset.fill(fd, fields, selector, file_handler)
+                fd.close()
                 for ft, f in fields:
                     d = rv.pop(f)
                     mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
