@@ -2021,13 +2021,6 @@ class ScaleCallback(PlotCallback):
         The image location of the scale bar in the plot coordinate system.
         Setting pos overrides the corner parameter.
 
-    scalebar_text_format : string, optional
-        This specifies the format of the scalebar value assuming "scale" is the
-        numerical value and "unit" is units of the scale (e.g. 'cm', 'kpc', etc.)
-        The scale can be specified to arbitrary precision according to printf
-        formatting codes. The format string must only specify "scale" and "units".
-        Example: "Length = {scale:.2f} {units}". Default: "{scale} {units}"
-
     min_frac, max_frac: float, optional
         The minimum/maximum fraction of the axis width for the scale bar to
         extend. A value of 1 would allow the scale bar to extend across the
@@ -2066,6 +2059,12 @@ class ScaleCallback(PlotCallback):
         object that represents the inset box.
         Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
 
+    scale_text_format : string, optional
+        This specifies the format of the scalebar value assuming "scale" is the
+        numerical value and "unit" is units of the scale (e.g. 'cm', 'kpc', etc.)
+        The scale can be specified to arbitrary precision according to printf
+        formatting codes. The format string must only specify "scale" and "units".
+        Example: "Length = {scale:.2f} {units}". Default: "{scale} {units}"
 
     Example
     -------
@@ -2078,9 +2077,9 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
-                 scale_text_format="{scale} {units}", max_frac=0.16, 
-                 min_frac=0.015, coord_system='axis', text_args=None, 
-                 size_bar_args=None, draw_inset_box=False, inset_box_args=None):
+                 max_frac=0.16, min_frac=0.015, coord_system='axis', 
+                 text_args=None, size_bar_args=None, draw_inset_box=False, 
+                 inset_box_args=None, scale_text_format="{scale} {units}"):
 
         def_size_bar_args = {
             'pad': 0.05,
