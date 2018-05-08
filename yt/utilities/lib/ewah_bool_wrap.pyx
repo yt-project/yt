@@ -1492,7 +1492,7 @@ cdef class BoolArrayCollectionUncompressed:
             cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         cdef np.uint64_t i2
-        cdef ewah_bool_array barr = ewah_coll[0][i1]
+        cdef ewah_bool_array *barr = &ewah_coll[0][i1]
         for i2 in range(self.nele2):
             if arr[i2] == 1:
                 ewah_refn[i1] = 1
