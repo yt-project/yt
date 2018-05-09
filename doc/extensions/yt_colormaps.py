@@ -3,7 +3,7 @@
 #  2. This script is added to the document in a literalinclude
 #  3. Any _static images found will be added
 
-from sphinx.util.compat import Directive
+from docutils.parsers.rst import Directive
 from docutils.parsers.rst import directives
 import os, glob, shutil
 

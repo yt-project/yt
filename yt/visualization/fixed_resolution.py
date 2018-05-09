@@ -296,8 +296,8 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
-    def export_fits(self, filename, fields=None, clobber=False,
-                    other_keys=None, units="cm"):
+    def export_fits(self, filename, fields=None, overwrite=False,
+                    other_keys=None, units="cm", **kwargs):
         r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
@@ -310,7 +310,7 @@ class FixedResolutionBuffer(object):
         fields : list of strings
             These fields will be pixelized and output. If "None", the keys of the
             FRB will be used.
-        clobber : boolean
+        overwrite : boolean
             If the file exists, this governs whether we will overwrite.
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
@@ -336,7 +336,7 @@ class FixedResolutionBuffer(object):
         if other_keys is not None:
             for k,v in other_keys.items():
                 fib.update_all_headers(k,v)
-        fib.writeto(filename, clobber=clobber)
+        fib.writeto(filename, overwrite=overwrite, **kwargs)
 
     def export_dataset(self, fields=None, nprocs=1):
         r"""Export a set of pixelized fields to an in-memory dataset that can be

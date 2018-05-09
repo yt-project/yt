@@ -17,6 +17,14 @@ import os
 import numpy as np
 
 from yt import units
+from yt.fields.field_detector import \
+    FieldDetector
+from yt.fields.field_info_container import \
+    FieldInfoContainer
+from yt.frontends.ramses.io import \
+    convert_ramses_ages
+from yt.funcs import \
+    issue_deprecation_warning
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     mass_hydrogen_cgs, \
@@ -24,8 +32,6 @@ from yt.utilities.physical_constants import \
 from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator
 import yt.utilities.fortran_utils as fpu
-from yt.fields.field_info_container import \
-    FieldInfoContainer
 from .field_handlers import RTFieldFileHandler
 
 b_units = "code_magnetic"
@@ -33,7 +39,7 @@ ra_units = "code_length / code_time**2"
 rho_units = "code_density"
 vel_units = "code_velocity"
 pressure_units = "code_pressure"
-ener_units = "code_mass * code_velocity**2 / code_time**2"
+ener_units = "code_mass * code_velocity**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
 flux_unit = "1 / code_length**2 / code_time"
 number_density_unit = "1 / code_length**3"
@@ -80,6 +86,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("HII",  ("", ["H_p1_fraction"], None)),
         ("HeII", ("", ["He_p1_fraction"], None)),
         ("HeIII",("", ["He_p2_fraction"], None)),
+        ("x-acceleration", (ra_units, ['acceleration_x'], None)),
+        ("y-acceleration", (ra_units, ['acceleration_y'], None)),
+        ("z-acceleration", (ra_units, ['acceleration_z'], None)),
+        ("Potential", (ener_units, ['potential'], None))
     )
     known_particle_fields = (
         ("particle_position_x", ("code_length", [], None)),
@@ -89,10 +99,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_velocity_y", (vel_units, [], None)),
         ("particle_velocity_z", (vel_units, [], None)),
         ("particle_mass", ("code_mass", [], None)),
-        ("particle_identifier", ("", ["particle_index"], None)),
+        ("particle_identity", ("", ["particle_index"], None)),
         ("particle_refinement_level", ("", [], None)),
-        ("particle_age", ("code_time", ['age'], None)),
         ("particle_birth_time", ("code_time", ['age'], None)),
+        ("conformal_birth_time", ("", [], None)),
         ("particle_metallicity", ("", [], None)),
         ("particle_family", ("", [], None)),
         ("particle_tag", ("", [], None))
@@ -107,7 +117,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_velocity_z", (vel_units, [], None)),
         ("particle_mass", ("code_mass", [], None)),
         ("particle_identifier", ("", ["particle_index"], None)),
-        ("particle_age", ("code_time", ['age'], None)),
+        ("particle_birth_time", ("code_time", ['age'], None)),
         ("BH_real_accretion", ("code_mass/code_time", [], None)),
         ("BH_bondi_accretion", ("code_mass/code_time", [], None)),
         ("BH_eddington_accretion", ("code_mass/code_time", [], None)),
@@ -121,6 +131,36 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("BH_spin", (ang_mom_units, [], None)),
         ("BH_efficiency", ("", [], None))
     )
+
+    def setup_particle_fields(self, ptype):
+        super(RAMSESFieldInfo, self).setup_particle_fields(ptype)
+        def particle_age(field, data):
+            msg = ("The RAMSES particle_age field has been deprecated since "
+                   "it did not actually represent particle ages in all "
+                   "cases. To get the time when a particle was formed use "
+                   "the particle_birth_time field instead. To get the "
+                   "age of a star particle, use the star_age field")
+            if not isinstance(data, FieldDetector):
+                issue_deprecation_warning(msg, stacklevel=2)
+            if data.ds.cosmological_simulation:
+                conformal_age = data[ptype, 'conformal_birth_time']
+                ret = convert_ramses_ages(data.ds, conformal_age)
+                return data.ds.arr(ret, 'code_time')
+            else:
+                return data[ptype, 'particle_birth_time']
+        self.add_field((ptype, 'particle_age'), sampling_type='particle',
+                       function=particle_age,
+                       units=self.ds.unit_system['time'])
+        def star_age(field, data):
+            if data.ds.cosmological_simulation:
+                conformal_age = data[ptype, 'conformal_birth_time']
+                formation_time = convert_ramses_ages(data.ds, conformal_age)
+                formation_time = data.ds.arr(formation_time, 'code_time')
+            else:
+                formation_time = data['particle_birth_time']
+            return data.ds.current_time - formation_time
+        self.add_field((ptype, 'star_age'), sampling_type='particle',
+                       function=star_age, units=self.ds.unit_system['time'])
 
     def setup_fluid_fields(self):
         def _temperature(field, data):

@@ -19,6 +19,7 @@ import os
 import numpy as np
 import stat
 import weakref
+from collections import defaultdict
 
 from yt.extern.six import string_types
 from yt.funcs import \
@@ -68,7 +69,6 @@ class RAMSESDomainFile(object):
             setattr(self, "%s_fn" % t, basename % t)
         self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
-        # self._read_hydro_header()
 
         # Autodetect field files
         field_handlers = [FH(self)
@@ -263,6 +263,7 @@ class RAMSESDomainSubset(OctreeSubset):
     _block_reorder = "F"
 
     def fill(self, content, fields, selector, file_handler):
+        twotondim = 2**self.ds.dimensionality
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
@@ -284,8 +285,8 @@ class RAMSESDomainSubset(OctreeSubset):
             tmp = {}
             # Initalize temporary data container for io
             for field in all_fields:
-                tmp[field] = np.empty((nc, 8), dtype="float64")
-            for i in range(8):
+                tmp[field] = np.empty((nc, twotondim), dtype="float64")
+            for i in range(twotondim):
                 # Read the selected fields
                 for field in all_fields:
                     if field not in fields:
@@ -331,6 +332,11 @@ class RAMSESIndex(OctreeIndex):
                 dsl.update(set(ph.field_offsets.keys()))
 
         self.particle_field_list = list(dsl)
+        cosmo = self.ds.cosmological_simulation
+        for f in self.particle_field_list[:]:
+            if f[1] == 'particle_birth_time' and cosmo:
+                self.particle_field_list.append(
+                    (f[0], 'conformal_birth_time'))
 
         # Get the detected fields
         dsl = set([])
@@ -455,15 +461,29 @@ class RAMSESDataset(Dataset):
                       its value.
         '''
         self._fields_in_file = fields
+        # By default, extra fields have not triggered a warning
+        self._warned_extra_fields = defaultdict(lambda: False)
         self._extra_particle_fields = extra_particle_fields
-        self._warn_extra_fields = False
         self.force_cosmological = cosmological
         self._bbox = bbox
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
+
+        # Add the particle types
+        ptypes = []
+        for PH in get_particle_handlers():
+            if PH.any_exist(self):
+                ptypes.append(PH.ptype)
+
+        ptypes = tuple(ptypes)
+        self.particle_types = self.particle_types_raw = ptypes
+
+        # Add the fluid types
         for FH in get_field_handlers():
+            FH.purge_detected_fields(self)
             if FH.any_exist(self):
                 self.fluid_types += (FH.ftype, )
+
         self.storage_filename = storage_filename
 
 
@@ -614,15 +634,6 @@ class RAMSESDataset(Dataset):
                              self.t_frw[iage-1]*(age-self.tau_frw[iage  ])/(self.tau_frw[iage-1]-self.tau_frw[iage])
 
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
-
-        # Add the particle types
-        ptypes = []
-        for PH in get_particle_handlers():
-            if PH.any_exist(self):
-                ptypes.append(PH.ptype)
-
-        ptypes = tuple(ptypes)
-        self.particle_types = self.particle_types_raw = ptypes
 
 
 

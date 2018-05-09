@@ -33,6 +33,10 @@ from .plot_container import \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
     create_profile
+from yt.data_objects.static_output import \
+    Dataset
+from yt.data_objects.data_containers import \
+    YTSelectionContainer
 from yt.frontends.ytdata.data_structures import \
     YTProfileDataset
 from yt.utilities.exceptions import \
@@ -118,6 +122,15 @@ def sanitize_label(label, nprofiles):
 
     return label
 
+def data_object_or_all_data(data_source):
+    if isinstance(data_source, Dataset):
+        data_source = data_source.all_data()
+
+    if not isinstance(data_source, YTSelectionContainer):
+        raise RuntimeError("data_source must be a yt selection data object")
+
+    return data_source
+
 class ProfilePlot(object):
     r"""
     Create a 1d profile plot from a data source or from a list 
@@ -135,7 +148,8 @@ class ProfilePlot(object):
     ----------
     data_source : YTSelectionContainer Object
         The data object to be profiled, such as all_data, region, or 
-        sphere.
+        sphere. If a dataset is passed in instead, an all_data data object
+        is generated internally from the dataset.
     x_field : str
         The binning field for the profile.
     y_fields : str or list
@@ -221,6 +235,8 @@ class ProfilePlot(object):
                  accumulation=False, fractional=False,
                  label=None, plot_spec=None,
                  x_log=None, y_log=None):
+
+        data_source = data_object_or_all_data(data_source)
 
         if x_log is None:
             logs = None
@@ -350,6 +366,12 @@ class ProfilePlot(object):
             return
         for f in self.axes:
             self.axes[f].cla()
+            if f in self._plot_text:
+                self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
+                                        self._plot_text[f],
+                                        fontproperties=self._font_properties,
+                                        **self._text_kwargs[f])
+
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
                 self.axes[field].plot(np.array(profile.x), np.array(field_data),
@@ -369,6 +391,10 @@ class ProfilePlot(object):
 
                 axes.set_ylim(*self.axes.ylim[fname])
                 axes.set_xlim(*self.axes.xlim)
+
+                if fname in self._plot_title:
+                    axes.set_title(self._plot_title[fname])
+
                 if any(self.label):
                     axes.legend(loc="best")
         self._set_font_properties()
@@ -376,6 +402,12 @@ class ProfilePlot(object):
 
     @classmethod
     def _initialize_instance(cls, obj, profiles, labels, plot_specs, y_log):
+        obj._plot_title = {}
+        obj._plot_text = {}
+        obj._text_xpos = {}
+        obj._text_ypos = {}
+        obj._text_kwargs = {}
+
         from matplotlib.font_manager import FontProperties
         obj._font_properties = FontProperties(family='stixgeneral', size=18)
         obj._font_color = None
@@ -711,6 +743,97 @@ class ProfilePlot(object):
 
         return (x_title, y_title)
 
+    @invalidate_plot
+    def annotate_title(self, title, field='all'):
+        r"""Set a title for the plot.
+
+        Parameters
+        ----------
+        title : str
+          The title to add.
+        field : str or list of str
+          The field name for which title needs to be set.
+
+        Examples
+        --------
+        >>> # To set title for all the fields:
+        >>> plot.annotate_title("This is a Profile Plot")
+
+        >>> # To set title for specific fields:
+        >>> plot.annotate_title("Profile Plot for Temperature", "temperature")
+
+        >>> # Setting same plot title for both the given fields
+        >>> plot.annotate_title("Profile Plot: Temperature-Dark Matter Density",
+                                ["temperature", "dark_matter_density"])
+
+        """
+        if field is 'all':
+            fields = list(self.axes.keys())
+        else:
+            fields = ensure_list(field)
+        for profile in self.profiles:
+            for field in profile.data_source._determine_fields(fields):
+                if field in profile.field_map:
+                    field = profile.field_map[field]
+                self._plot_title[field] = title
+        return self
+
+    @invalidate_plot
+    def annotate_text(self, xpos=0.0, ypos=0.0, text=None, field='all', **text_kwargs):
+        r"""Allow the user to insert text onto the plot
+
+        The x-position and y-position must be given as well as the text string.
+        Add *text* to plot at location *xpos*, *ypos* in plot coordinates for
+        the given fields or by default for all fields.
+        (see example below).
+
+        Parameters
+        ----------
+        xpos: float
+          Position on plot in x-coordinates.
+        ypos: float
+          Position on plot in y-coordinates.
+        text: str
+          The text to insert onto the plot.
+        field: str or tuple
+          The name of the field to add text to.
+        text_kwargs: dict
+          Dictionary of text keyword arguments to be passed to matplotlib
+
+        >>>  import yt
+        >>>  from yt.units import kpc
+        >>>  ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>  my_galaxy = ds.disk(ds.domain_center, [0.0, 0.0, 1.0], 10*kpc, 3*kpc)
+        >>>  plot = yt.ProfilePlot(my_galaxy, "density", ["temperature"])
+
+        >>>  # Annotate text for all the fields
+        >>>  plot.annotate_text(1e-26, 1e5, "This is annotated text in the plot area.")
+        >>>  plot.save()
+
+        >>>  # Annotate text for a given field
+        >>>  plot.annotate_text(1e-26, 1e5, "Annotated text", "Temperature")
+        >>>  plot.save()
+
+        >>>  # Annotate text for multiple fields
+        >>>  fields = ["temperature", "density"]
+        >>>  plot.annotate_text(1e-26, 1e5, "Annotated text", fields)
+        >>>  plot.save()
+
+        """
+        if field is 'all':
+            fields = list(self.axes.keys())
+        else:
+            fields = ensure_list(field)
+        for profile in self.profiles:
+            for field in profile.data_source._determine_fields(fields):
+                if field in profile.field_map:
+                    field = profile.field_map[field]
+                self._plot_text[field] = text
+                self._text_xpos[field] = xpos
+                self._text_ypos[field] = ypos
+                self._text_kwargs[field] = text_kwargs
+        return self
+
 class PhasePlot(ImagePlotContainer):
     r"""
     Create a 2d profile (phase) plot from a data source or from 
@@ -726,7 +849,8 @@ class PhasePlot(ImagePlotContainer):
     ----------
     data_source : YTSelectionContainer Object
         The data object to be profiled, such as all_data, region, or 
-        sphere.
+        sphere. If a dataset is passed in instead, an all_data data object
+        is generated internally from the dataset.
     x_field : str
         The x binning field for the profile.
     y_field : str
@@ -790,6 +914,8 @@ class PhasePlot(ImagePlotContainer):
                  weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
                  fontsize=18, figure_size=8.0):
+
+        data_source = data_object_or_all_data(data_source)
 
         if isinstance(data_source.ds, YTProfileDataset):
             profile = data_source.ds.profile

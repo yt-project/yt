@@ -21,8 +21,6 @@ from yt.utilities.io_handler import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 import yt.utilities.fortran_utils as fpu
-from yt.utilities.lib.cosmology_time import \
-    get_ramses_ages
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTFileNotParseable
 from yt.extern.six import PY3
@@ -32,6 +30,31 @@ if PY3:
     from io import BytesIO as IO
 else:
     from cStringIO import StringIO as IO
+
+def convert_ramses_ages(ds, conformal_ages):
+    tf = ds.t_frw
+    dtau = ds.dtau
+    tauf = ds.tau_frw
+    tsim = ds.time_simu
+    h100 = ds.hubble_constant
+    nOver2 = ds.n_frw/2
+    unit_t = ds.parameters['unit_t']
+    t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc) / unit_t
+
+    # calculate index into lookup table (n_frw elements in
+    # lookup table)
+    dage =  1 + (10*conformal_ages/dtau)
+    dage = np.minimum(dage, nOver2 + (dage - nOver2)/10.)
+    iage = np.array(dage, dtype=np.int32)
+
+    # linearly interpolate physical times from tf and tauf lookup
+    # tables.
+    t = ((tf[iage]*(conformal_ages - tauf[iage - 1]) /
+          (tauf[iage] - tauf[iage - 1])))
+    t = t + ((tf[iage-1]*(conformal_ages - tauf[iage]) /
+              (tauf[iage-1]-tauf[iage])))
+    return (tsim - t)*t_scale
+
 
 def _ramses_particle_file_handler(fname, foffsets, data_types,
                                   subset, fields, count):
@@ -53,6 +76,7 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
         The number of elements to count
     '''
     tr = {}
+    ds = subset.domain.ds
     with open(fname, "rb") as f:
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
@@ -65,18 +89,13 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
             dt = data_types[field]
             tr[field] = fpu.read_vector(f, dt)
             if field[1].startswith("particle_position"):
-                np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
-            cosmo = subset.domain.ds.cosmological_simulation
-            if cosmo == 1 and field[1] == "particle_age":
-                tf = subset.domain.ds.t_frw
-                dtau = subset.domain.ds.dtau
-                tauf = subset.domain.ds.tau_frw
-                tsim = subset.domain.ds.time_simu
-                h100 = subset.domain.ds.hubble_constant
-                nOver2 = subset.domain.ds.n_frw/2
-                t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
-                ages = tr[field]
-                tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))
+                np.divide(tr[field], ds["boxlen"], tr[field])
+            if ds.cosmological_simulation and field[1] == "particle_birth_time":
+                conformal_age = tr[field]
+                tr[field] = convert_ramses_ages(ds, conformal_age)
+                # arbitrarily set particles with zero conformal_age to zero
+                # particle_age. This corresponds to DM particles.
+                tr[field][conformal_age == 0] = 0
     return tr
 
 
@@ -189,6 +208,13 @@ class IOHandlerRAMSES(BaseIOHandler):
             if not ok:
                 raise YTFieldTypeNotFound(ptype)
 
+            cosmo = self.ds.cosmological_simulation
+            if (ptype, 'particle_birth_time') in foffsets and cosmo:
+                foffsets[ptype, 'conformal_birth_time'] = \
+                    foffsets[ptype, 'particle_birth_time']
+                data_types[ptype, 'conformal_birth_time'] = \
+                    data_types[ptype, 'particle_birth_time']
+
             tr.update(_ramses_particle_file_handler(
                 fname, foffsets, data_types, subset, subs_fields,
                 count=count
@@ -224,7 +250,7 @@ def _read_part_file_descriptor(fname):
     with open(fname, 'r') as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.info('Reading part file descriptor.')
+        mylog.debug('Reading part file descriptor %s.' % fname)
         if not tmp:
             raise YTParticleOutputFormatNotImplemented()
 
@@ -276,7 +302,7 @@ def _read_fluid_file_descriptor(fname):
     with open(fname, 'r') as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.info('Reading fluid file descriptor.')
+        mylog.debug('Reading fluid file descriptor %s.' % fname)
         if not tmp:
             return []
 

@@ -106,8 +106,9 @@ class OWLSFieldInfo(SPHFieldInfo):
             ftype='star'
         elif ptype == 'PartType5':
             ftype='BH'
-        elif ptype == 'all':
-            ftype='all'
+        else:
+            # to avoid errors while creating particle filters
+            ftype=ptype
 
         super(OWLSFieldInfo,self).setup_particle_fields(
             ptype, num_neighbors=self._num_neighbors, ftype=ftype)

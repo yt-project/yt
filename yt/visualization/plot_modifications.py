@@ -1357,7 +1357,6 @@ class TextLabelCallback(PlotCallback):
                           "the keyword coord_system='data' instead.")
         if text_args is None: text_args = def_text_args
         self.text_args = text_args
-        if inset_box_args is None: inset_box_args = {}
         self.inset_box_args = inset_box_args
         self.coord_system = coord_system
         self.transform = None
@@ -1895,7 +1894,7 @@ class TimestampCallback(PlotCallback):
         self.inset_box_args = inset_box_args
 
         # if inset box is not desired, set inset_box_args to {}
-        if not draw_inset_box: self.inset_box_args = {}
+        if not draw_inset_box: self.inset_box_args = None
 
     def __call__(self, plot):
         # Setting pos overrides corner argument

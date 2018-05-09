@@ -3,8 +3,9 @@ import yt.utilities.fortran_utils as fpu
 import glob
 from yt.extern.six import add_metaclass
 from yt.funcs import mylog
-import numpy as np
+from yt.config import ytcfg
 
+import numpy as np
 from .io import _read_fluid_file_descriptor
 
 FIELD_HANDLERS = set()
@@ -15,6 +16,7 @@ def get_field_handlers():
 def register_field_handler(ph):
     FIELD_HANDLERS.add(ph)
 
+DETECTED_FIELDS = {}
 
 class RAMSESFieldFileHandlerRegistry(type):
     """
@@ -44,12 +46,13 @@ class FieldFileHandler(object):
     fname = None  # The name of the file(s)
     attrs = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
+    config_field = None  # Name of the config section (if any)
+
     file_descriptor = None # The name of the file descriptor (if any)
 
     # These properties are computed dynamically
     field_offsets = None     # Mapping from field to offset in file
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
-
     def __init__(self, domain):
         '''
         Initalize an instance of the class. This automatically sets
@@ -137,6 +140,42 @@ class FieldFileHandler(object):
         # this function must be implemented by subclasses
         raise NotImplementedError
 
+    @classmethod
+    def get_detected_fields(cls, ds):
+        '''
+        Get the detected fields from the registry.
+        '''
+        if ds.unique_identifier in DETECTED_FIELDS:
+            d = DETECTED_FIELDS[ds.unique_identifier]
+            if cls.ftype in d:
+                return d[cls.ftype]
+
+        return None
+
+
+    @classmethod
+    def set_detected_fields(cls, ds, fields):
+        '''
+        Store the detected fields into the registry.
+        '''
+        if ds.unique_identifier not in DETECTED_FIELDS:
+            DETECTED_FIELDS[ds.unique_identifier] = {}
+
+        DETECTED_FIELDS[ds.unique_identifier].update({
+            cls.ftype: fields
+        })
+
+    @classmethod
+    def purge_detected_fields(cls, ds):
+        '''
+        Purge the registry.
+
+        This should be called on dataset creation to force the field
+        detection to be called.
+        '''
+        if ds.unique_identifier in DETECTED_FIELDS:
+            DETECTED_FIELDS.pop(ds.unique_identifier)
+
     @property
     def level_count(self):
         '''
@@ -156,14 +195,17 @@ class FieldFileHandler(object):
         By default, it skips the header (as defined by `cls.attrs`)
         and computes the offset at each level.
 
-        It should be generic enough for most of the cases, but it the
-        *structure* of your fluid file is non-canonial, change this.
+        It should be generic enough for most of the cases, but if the
+        *structure* of your fluid file is non-canonical, change this.
         '''
 
         if getattr(self, '_offset', None) is not None:
             return self._offset
 
         nvar = self.parameters['nvar']
+        ndim = self.domain.ds.dimensionality
+        twotondim = 2**ndim
+
         with open(self.fname, 'rb') as f:
             # Skip headers
             nskip = len(self.attrs)
@@ -195,7 +237,7 @@ class FieldFileHandler(object):
                     if cpu + 1 == self.domain_id and level >= min_level:
                         offset[level - min_level] = f.tell()
                         level_count[level - min_level] = hvals['file_ncache']
-                    skipped = fpu.skip(f, 8 * nvar)
+                    skipped = fpu.skip(f, twotondim * nvar)
         self._offset = offset
         self._level_count = level_count
         return self._offset
@@ -205,6 +247,8 @@ class HydroFieldFileHandler(FieldFileHandler):
     ftype = 'ramses'
     fname = 'hydro_{iout:05d}.out{icpu:05d}'
     file_descriptor = 'hydro_file_descriptor.txt'
+    config_field = 'ramses-hydro'
+
     attrs = ( ('ncpu', 1, 'i'),
               ('nvar', 1, 'i'),
               ('ndim', 1, 'i'),
@@ -218,11 +262,15 @@ class HydroFieldFileHandler(FieldFileHandler):
             os.path.split(ds.parameter_filename)[0],
             'hydro_?????.out?????')
         ret = len(glob.glob(files)) > 0
-        cls._any_exist = ret
         return ret
 
     @classmethod
     def detect_fields(cls, ds):
+        # Try to get the detected fields
+        detected_fields = cls.get_detected_fields(ds)
+        if detected_fields:
+            return detected_fields
+
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
         testdomain = 1 # Just pick the first domain file to read
@@ -243,27 +291,42 @@ class HydroFieldFileHandler(FieldFileHandler):
         nvar = hvals['nvar']
 
         ok = False
+
+        # Either the fields are given by dataset
         if ds._fields_in_file is not None:
             fields = list(ds._fields_in_file)
             ok = True
         elif os.path.exists(fname_desc):
+            # Or there is an hydro file descriptor
             mylog.debug('Reading hydro file descriptor.')
             # For now, we can only read double precision fields
             fields = [e[0] for e in _read_fluid_file_descriptor(fname_desc)]
 
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
+        elif cls.config_field and ytcfg.has_section(cls.config_field):
+            # Or this is given by the config
+            cfg = ytcfg.get(cls.config_field, 'fields')
+            known_fields = []
+            for field in (_.strip() for _ in cfg.split('\n') if _.strip() != ''):
+                known_fields.append(field.strip())
+            fields = known_fields
 
+            ok = True
+
+        # Else, attempt autodetection
         if not ok:
             foldername  = os.path.abspath(os.path.dirname(ds.parameter_filename))
             rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
             if rt_flag: # rt run
                 if nvar < 10:
                     mylog.info('Detected RAMSES-RT file WITHOUT IR trapping.')
+
                     fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure",
                               "Metallicity", "HII", "HeII", "HeIII"]
                 else:
                     mylog.info('Detected RAMSES-RT file WITH IR trapping.')
+
                     fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR",
                               "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
             else:
@@ -304,11 +367,67 @@ class HydroFieldFileHandler(FieldFileHandler):
             mylog.debug('Detected %s extra fluid fields.' % count_extra)
         cls.field_list = [(cls.ftype, e) for e in fields]
 
+        cls.set_detected_fields(ds, fields)
+
         return fields
+
+class GravFieldFileHandler(FieldFileHandler):
+    ftype = 'gravity'
+    fname = 'grav_{iout:05d}.out{icpu:05d}'
+    config_field = 'ramses-grav'
+
+    attrs = ( ('ncpu', 1, 'i'),
+              ('nvar', 1, 'i'),
+              ('nlevelmax', 1, 'i'),
+              ('nboundary', 1, 'i')
+    )
+
+    @classmethod
+    def any_exist(cls, ds):
+        files = os.path.join(
+            os.path.split(ds.parameter_filename)[0],
+            'grav_?????.out00001')
+        ret = len(glob.glob(files)) == 1
+
+        return ret
+
+    @classmethod
+    def detect_fields(cls, ds):
+        ndim = ds.dimensionality
+        iout = int(str(ds).split('_')[1])
+        basedir = os.path.split(ds.parameter_filename)[0]
+        fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
+        with open(fname, 'rb') as f:
+            cls.parameters = fpu.read_attrs(f, cls.attrs)
+
+        nvar = cls.parameters['nvar']
+        ndim = ds.dimensionality
+
+        if nvar == ndim + 1:
+            fields = ['potential'] + ['%s-acceleration' % k for k in 'xyz'[:ndim]]
+            ndetected = ndim
+        else:
+            fields = ['%s-acceleration' % k for k in 'xyz'[:ndim]]
+            ndetected = ndim
+
+        if ndetected != nvar and not ds._warned_extra_fields['gravity']:
+            mylog.warning('Detected %s extra gravity fields.',
+                          nvar-ndetected)
+            ds._warned_extra_fields['gravity'] = True
+
+            for i in range(nvar-ndetected):
+                fields.append('var%s' % i)
+
+        cls.field_list = [(cls.ftype, e) for e in fields]
+
+        return fields
+
 
 class RTFieldFileHandler(FieldFileHandler):
     ftype = 'ramses-rt'
     fname = 'rt_{iout:05d}.out{icpu:05d}'
+    config_field = 'ramses-rt'
+
     attrs = ( ('ncpu', 1, 'i'),
               ('nvar', 1, 'i'),
               ('ndim', 1, 'i'),
@@ -324,11 +443,16 @@ class RTFieldFileHandler(FieldFileHandler):
             'info_rt_?????.txt')
         ret = len(glob.glob(files)) == 1
 
-        cls._any_exist = ret
         return ret
 
     @classmethod
     def detect_fields(cls, ds):
+        # Try to get the detected fields
+        detected_fields = cls.get_detected_fields(ds)
+        if detected_fields:
+            return detected_fields
+
+
         fname = ds.parameter_filename.replace('info_', 'info_rt_')
 
         rheader = {}
@@ -365,6 +489,8 @@ class RTFieldFileHandler(FieldFileHandler):
             fields.extend([t % (ng + 1) for t in tmp])
 
         cls.field_list = [(cls.ftype, e) for e in fields]
+
+        cls.set_detected_fields(ds, fields)
         return fields
 
     @classmethod

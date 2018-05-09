@@ -849,10 +849,10 @@ class Dataset(object):
 
         # This may be slow because it creates a data object for each point
         for field_index, field in enumerate(fields):
-            funit = self._get_field_info[field].units
+            funit = self._get_field_info(field).units
             out.append(self.arr(np.empty((len(coords),)), funit))
             for coord_index, coord in enumerate(coords):
-                out[field_index][coord_index] = self.point(coord)[fields]
+                out[field_index][coord_index] = self.point(coord)[field]
         if len(fields) == 1:
             return out[0]
         else:

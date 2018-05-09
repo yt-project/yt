@@ -3,6 +3,7 @@ import yt.utilities.fortran_utils as fpu
 import glob
 from yt.extern.six import add_metaclass
 from yt.funcs import mylog
+from yt.config import ytcfg
 
 from .io import _read_part_file_descriptor
 
@@ -45,11 +46,13 @@ class ParticleFileHandler(object):
 
     attrs = None  # The attributes of the header
     known_fields = None  # A list of tuple containing the field name and its type
+    config_field = None  # Name of the config section (if any)
 
     # These properties are computed dynamically
     field_offsets = None     # Mapping from field to offset in file
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
     local_particle_count = None  # The number of particle in the domain
+
 
     def __init__(self, ds, domain_id):
         '''
@@ -78,6 +81,15 @@ class ParticleFileHandler(object):
             self.file_descriptor = os.path.join(
                 basename,
                 self.file_descriptor)
+
+        # Attempt to read the list of fields from the config file
+        if self.config_field and ytcfg.has_section(self.config_field):
+            cfg = ytcfg.get(self.config_field, 'fields')
+            known_fields = []
+            for c in (_.strip() for _ in cfg.split('\n') if _.strip() != ''):
+                field, field_type = (_.strip() for _ in c.split(','))
+                known_fields.append((field, field_type))
+            self.known_fields = known_fields
 
     @property
     def exists(self):
@@ -146,6 +158,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
     ptype = 'io'
     fname = 'part_{iout:05d}.out{icpu:05d}'
     file_descriptor = 'part_file_descriptor.txt'
+    config_field = 'ramses-particles'
 
     attrs = ( ('ncpu', 1, 'I'),
               ('ndim', 1, 'I'),
@@ -164,9 +177,8 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         ("particle_velocity_y", "d"),
         ("particle_velocity_z", "d"),
         ("particle_mass", "d"),
-        ("particle_identifier", "i"),
+        ("particle_identity", "i"),
         ("particle_refinement_level", "I")]
-
 
     @classmethod
     def any_exist(cls, ds):
@@ -191,6 +203,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         hvals.update(fpu.read_attrs(f, attrs))
         self.header = hvals
         self.local_particle_count = hvals['npart']
+        extra_particle_fields = self.ds._extra_particle_fields
 
         if self.has_part_descriptor:
             particle_fields = (
@@ -199,8 +212,12 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         else:
             particle_fields = list(self.known_fields)
 
-            if self.ds._extra_particle_fields is not None:
-                particle_fields += self.ds._extra_particle_fields
+            if extra_particle_fields is not None:
+                particle_fields += extra_particle_fields
+
+        if hvals["nstar_tot"] > 0 and extra_particle_fields is not None:
+            particle_fields += [("particle_birth_time", "d"),
+                                ("particle_metallicity", "d")]
 
         field_offsets = {}
         _pfields = {}
@@ -224,12 +241,12 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             _pfields[ptype, field] = vtype
             fpu.skip(f, 1)
 
-        if iextra > 0 and not self.ds._warn_extra_fields:
-            self.ds._warn_extra_fields = True
+        if iextra > 0 and not self.ds._warned_extra_fields['io']:
             w = ("Detected %s extra particle fields assuming kind "
                  "`double`. Consider using the `extra_particle_fields` "
                  "keyword argument if you have unexpected behavior.")
             mylog.warning(w % iextra)
+            self.ds._warned_extra_fields['io'] = True
 
         self.field_offsets = field_offsets
         self.field_types = _pfields
@@ -240,6 +257,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
     ptype = 'sink'
     fname = 'sink_{iout:05d}.out{icpu:05d}'
     file_descriptor = 'sink_file_descriptor.txt'
+    config_field = 'ramses-sink-particles'
 
     attrs = (('nsink', 1, 'I'),
              ('nindsink', 1, 'I'))
@@ -253,7 +271,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
         ("particle_velocity_x", "d"),
         ("particle_velocity_y", "d"),
         ("particle_velocity_z", "d"),
-        ("particle_age", "d"),
+        ("particle_birth_time", "d"),
         ("BH_real_accretion", "d"),
         ("BH_bondi_accretion", "d"),
         ("BH_eddington_accretion", "d"),

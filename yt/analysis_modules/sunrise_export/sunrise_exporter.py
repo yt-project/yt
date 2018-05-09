@@ -14,16 +14,12 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-try:
-    import pyfits
-except ImportError:
-    pass
-
 import os
 import time
 import numpy as np
 
 import yt.utilities.lib.api as amr_utils
+from yt.utilities.on_demand_imports import _astropy as astropy
 
 from yt import add_field
 from yt.funcs import get_pbar, mylog
@@ -349,6 +345,7 @@ def RecurseOctreeDepthFirstHilbert(cell_index, #integer (rep as a float) on the 
 
 def create_fits_file(ds,fn, refined,output,particle_data,fle,fre):
     #first create the grid structure
+    pyfits = astropy.pyfits
     structure = pyfits.Column("structure", format="B", array=refined.astype("bool"))
     cols = pyfits.ColDefs([structure])
     st_table = pyfits.new_table(cols)
@@ -418,7 +415,7 @@ def create_fits_file(ds,fn, refined,output,particle_data,fle,fre):
     hls = [phdu, st_table, mg_table,md_table]
     hls.append(particle_data)
     hdus = pyfits.HDUList(hls)
-    hdus.writeto(fn, clobber=True)
+    hdus.writeto(fn, overwrite=True)
 
 def nearest_power(x):
     #round to the nearest power of 2
@@ -490,6 +487,7 @@ def prepare_star_particles(ds,star_type,pos=None,vel=None, age=None,
                           radius = None,
                           fle=[0.,0.,0.],fre=[1.,1.,1.],
                           dd=None):
+    pyfits = astropy.pyfits
     if dd is None:
         dd = ds.all_data()
     idxst = dd["particle_type"] == star_type

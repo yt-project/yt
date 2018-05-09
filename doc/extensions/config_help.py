@@ -1,7 +1,7 @@
 import re
 import subprocess
 from docutils import statemachine
-from sphinx.util.compat import Directive
+from docutils.parsers.rst import Directive
 
 def setup(app):
     app.add_directive('config_help', GetConfigHelp)
