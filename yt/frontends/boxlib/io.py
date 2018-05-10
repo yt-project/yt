@@ -32,9 +32,9 @@ def _remove_raw(all_fields, raw_fields):
 class IOHandlerBoxlib(BaseIOHandler):
 
     _dataset_type = "boxlib_native"
-    _array_fields = ()
 
     def __init__(self, ds, *args, **kwargs):
+        super(IOHandlerBoxlib, self).__init__(ds)
         self.ds = ds
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
