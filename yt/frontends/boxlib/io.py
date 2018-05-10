@@ -37,6 +37,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         super(IOHandlerBoxlib, self).__init__(ds)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
+        chunks = list(chunks)
         if any(( not (ftype == "boxlib" or ftype == 'raw') for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
