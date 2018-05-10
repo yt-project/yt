@@ -158,16 +158,17 @@ class IOHandlerBoxlib(BaseIOHandler):
                             yield ptype, (x, y, z)
                             continue
                         mask = selector.select_points(x, y, z, 0.0)
-                        if mask is None: continue
+                        if mask is None:
+                            continue
                         for field in field_list:
                             # handle the case that this is an integer field
                             int_fnames = [fname for _, fname in pheader.known_int_fields]
                             if field in int_fnames:
                                 ind = int_fnames.index(field)
                                 f.seek(offset)
-                                idata = np.fromfile(f, pheader.int_type, \
+                                idata = np.fromfile(f, pheader.int_type,
                                                     pheader.num_int * npart)
-                                data = np.asarray(idata[ind::pheader.num_int], \
+                                data = np.asarray(idata[ind::pheader.num_int],
                                                   dtype=np.float64)
                                 yield (ptype, field), data[mask].flatten()
 
@@ -175,7 +176,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                             real_fnames = [fname for _, fname in pheader.known_real_fields]
                             if field in real_fnames:
                                 ind = real_fnames.index(field)                            
-                                data = np.asarray(rdata[ind::pheader.num_real], \
+                                data = np.asarray(rdata[ind::pheader.num_real],
                                                   dtype=np.float64)
                                 yield (ptype, field), data[mask].flatten()
 
