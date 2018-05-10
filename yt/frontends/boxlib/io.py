@@ -37,7 +37,6 @@ class IOHandlerBoxlib(BaseIOHandler):
         super(IOHandlerBoxlib, self).__init__(ds)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        chunks = list(chunks)
         if any(( not (ftype == "boxlib" or ftype == 'raw') for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
@@ -127,7 +126,6 @@ class IOHandlerBoxlib(BaseIOHandler):
             yield rv
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        chunks = list(chunks)
         for chunk in chunks: # These should be organized by grid filename
             for g in chunk.objs:
                 for ptype, field_list in sorted(ptf.items()):
