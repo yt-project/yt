@@ -1441,6 +1441,21 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self._locked = False
 
     @contextmanager
+    def _ds_hold(self, new_ds):
+        old_ds = self.ds
+        old_index = self._index
+        self.ds = new_ds
+        self._index = new_ds.index
+        old_chunk_info = self._chunk_info
+        self._chunk_info = None
+        self._index._identify_base_chunk(self)
+        with self._chunked_read(None):
+            yield
+        self._index = old_index
+        self.ds = old_ds
+        self._chunk_info = old_chunk_info
+
+    @contextmanager
     def _chunked_read(self, chunk):
         # There are several items that need to be swapped out
         # field_data, size, shape
