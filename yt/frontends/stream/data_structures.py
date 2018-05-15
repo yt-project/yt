@@ -1805,7 +1805,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     Examples
     --------
 
-    Load a simple mesh consistent of two tets.
+    Load a simple mesh consisting of two tets.
 
       >>> # Coordinates for vertices of two tetrahedra
       >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5],
