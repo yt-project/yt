@@ -1767,7 +1767,11 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     node_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 2D numpy arrays,
         representing data defined at element vertices. For multiple meshes,
-        this must be a list of dicts.
+        this must be a list of dicts.  Note that these are not the values as a
+        function of the coordinates, but of the connectivity.  Their shape
+        should be the same as the connectivity.  This means that if the data is
+        in the shape of the coordinates, you may need to reshape them using the
+        `connectivity` array as an index.
     elem_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 1D numpy arrays, where
         each array has a length equal to the number of elements. The data
@@ -1796,6 +1800,9 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
         can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
+
+    Examples
+    --------
 
     >>> # Coordinates for vertices of two tetrahedra
     >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5], [0.5, 1, 0.5],
