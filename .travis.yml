@@ -72,7 +72,8 @@ install:
 
 script:
   - |
-    nosetests --with-coverage --cover-tests --cover-inclusive --cover-erase --cover-html --nologcapture --with-timer -sv --cover-package=yt
+    nosetests -c nose.cfg yt
+    coverage report
 
 after_success:
   - coveralls
