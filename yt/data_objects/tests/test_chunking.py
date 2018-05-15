@@ -4,7 +4,6 @@ from yt.testing import \
     assert_true
 from yt.units.yt_array import \
     uconcatenate
-import weakref
 
 def _get_dobjs(c):
     dobjs = [("sphere", ("center", (1.0, "unitary"))),
@@ -45,13 +44,13 @@ def test_ds_hold():
     ds1 = fake_random_ds(64)
     ds2 = fake_random_ds(128)
     dd = ds1.all_data()
-    assert_true(dd.ds == ds1) # dd.ds is a weakref, so can't use "is"
+    assert_true(hash(dd.ds) == hash(ds1)) # dd.ds is a weakref, so can't use "is"
     assert_true(dd.index is ds1.index)
     assert_equal(dd["ones"].size, 64**3)
     with dd._ds_hold(ds2):
-        assert_true(dd.ds == ds2)
+        assert_true(hash(dd.ds) == hash(ds2))
         assert_true(dd.index is ds2.index)
         assert_equal(dd["ones"].size, 128**3)
-    assert_true(dd.ds == ds1) 
+    assert_true(hash(dd.ds) == hash(ds1)) 
     assert_true(dd.index is ds1.index)
     assert_equal(dd["ones"].size, 64**3)
