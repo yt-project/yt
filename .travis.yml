@@ -72,4 +72,7 @@ install:
 
 script:
   - |
-    nosetests --nologcapture --with-timer -sv yt
+    nosetests --with-coverage --cover-tests --cover-inclusive --cover-erase --cover-html --nologcapture --with-timer -sv --cover-package=yt
+
+after_success:
+  - coveralls
