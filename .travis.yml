@@ -68,13 +68,14 @@ install:
     pip install --upgrade wheel
     pip install --upgrade setuptools
     # Install dependencies
-    pip install mock $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $COVERALLS nose nose-timer
+    pip install mock $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $COVERALLS $COVERAGE nose nose-timer
     # install yt
     pip install -e .
 
 script:
   - |
     nosetests -c nose.cfg yt
+    coverage report
 
 after_success:
   - coveralls
