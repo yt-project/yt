@@ -21,7 +21,6 @@ from yt.utilities.lib.mesh_utilities import \
 
 from yt.data_objects.data_containers import \
     YTSelectionContainer
-import yt.geometry.particle_deposit as particle_deposit
 
 class UnstructuredMesh(YTSelectionContainer):
     # This is a base class, not meant to be used directly.

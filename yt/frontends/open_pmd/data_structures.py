@@ -445,12 +445,8 @@ class OpenPMDDataset(Dataset):
             itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
             regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
             if path is "":
-<<<<<<< HEAD
                 mylog.warning("For file based iterations, please use absolute file paths!")
                 pass
-=======
-                mylog.warning("open_pmd - For file based iterations, please use absolute file paths!")
->>>>>>> [lgtm] delete unnecessary pass statements
             for filename in listdir(path):
                 if match(regex, filename):
                     iterations.append(filename)
