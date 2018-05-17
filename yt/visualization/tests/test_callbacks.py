@@ -525,7 +525,7 @@ def test_grids_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_grids(alpha=0.7, min_pix=10, min_pix_ids=30,
-            draw_ids=True, periodic=False, min_level=2,
+            draw_ids=True, id_loc="upper right", periodic=False, min_level=2,
             max_level=3, cmap="gist_stern")
         p.save(prefix)
 
@@ -539,7 +539,7 @@ def test_grids_callback():
         ds = fake_amr_ds(fields = ("density",), geometry="spherical")
         p = SlicePlot(ds, "r", "density")
         p.annotate_grids(alpha=0.7, min_pix=10, min_pix_ids=30,
-            draw_ids=True, periodic=False, min_level=2,
+            draw_ids=True, id_loc="upper right", periodic=False, min_level=2,
             max_level=3, cmap="gist_stern")
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
