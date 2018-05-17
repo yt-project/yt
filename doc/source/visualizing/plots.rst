@@ -600,6 +600,7 @@ two element tuples.
 
 Flipping the plot view axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 By default, all :class:`~yt.visualization.plot_window.PlotWindow` objects plot
 with the assumption that the eastern direction on the plot forms a right handed
 coordinate system with the ``normal`` and ``north_vector`` for the system, whether
