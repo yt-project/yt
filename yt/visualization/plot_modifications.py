@@ -692,7 +692,7 @@ class GridBoundaryCallback(PlotCallback):
                     np.logical_and(levels >= min_level, levels <= max_level))
 
             if self.id_loc and not self.draw_ids:
-                warnings.warn("Supplied id_loc but draw_ids is False. Not drawing grid ids")
+                mylog.warn("Supplied id_loc but draw_ids is False. Not drawing grid ids")
 
             if self.draw_ids:
                 id_loc = self.id_loc.lower()
@@ -723,7 +723,7 @@ class GridBoundaryCallback(PlotCallback):
                             right_edge_y[i] - (12 * (yy1 - yy0) / ypix),
                             "%d" % block_ids[i], clip_on=True)
                 else:
-                    warnings.warn("Unrecognized id_loc; defaulting to lower left")
+                    mylog.warn("Unrecognized id_loc; defaulting to lower left")
                     for i in np.where(visible_ids)[0]:
                         plot._axes.text(
                             left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
