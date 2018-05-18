@@ -695,37 +695,33 @@ class GridBoundaryCallback(PlotCallback):
                 mylog.warn("Supplied id_loc but draw_ids is False. Not drawing grid ids")
 
             if self.draw_ids:
-                id_loc = self.id_loc.lower()
-                if id_loc == "lower left":
-                    for i in np.where(visible_ids)[0]:
-                        plot._axes.text(
-                            left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
-                            left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
-                            "%d" % block_ids[i], clip_on=True)
-                elif id_loc == "lower right":
-                    for i in np.where(visible_ids)[0]:
-                        plot._axes.text(
-                            right_edge_x[i] - ((10*len(str(block_ids[i]))-2) \
-                                                * (xx1 - xx0) / xpix),
-                            left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
-                            "%d" % block_ids[i], clip_on=True)
-                elif id_loc == "upper left":
-                    for i in np.where(visible_ids)[0]:
-                        plot._axes.text(
-                            left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
-                            right_edge_y[i] - (12 * (yy1 - yy0) / ypix),
-                            "%d" % block_ids[i], clip_on=True)
-                elif id_loc == "upper right":
-                    for i in np.where(visible_ids)[0]:
-                        plot._axes.text(
-                            right_edge_x[i] - ((10*len(str(block_ids[i]))-2) \
-                                                * (xx1 - xx0) / xpix),
-                            right_edge_y[i] - (12 * (yy1 - yy0) / ypix),
-                            "%d" % block_ids[i], clip_on=True)
-                else:
-                    raise RuntimeError("Unrecognized id_loc value ('%s'). " 
-                                "Allowed values are 'lower left', lower right', "
-                                "'upper left', and 'upper right'." % self.id_loc)
+                id_loc = self.id_loc.lower() # Make case-insensitive
+                plot_ids = np.where(visible_ids)[0]
+                x = np.empty(plot_ids.size)
+                y = np.empty(plot_ids.size)
+                for i,n in enumerate(plot_ids):
+                    if id_loc == "lower left":
+                        x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
+                        y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
+                    elif id_loc == "lower right":
+                        x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
+                                                   * (xx1 - xx0) / xpix)
+                        y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
+                    elif id_loc == "upper left":
+                        x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
+                        y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
+                    elif id_loc == "upper right":
+                        x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
+                                                   * (xx1 - xx0) / xpix)
+                        y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
+                    else:
+                        raise RuntimeError(
+                               "Unrecognized id_loc value ('%s'). "
+                               "Allowed values are 'lower left', lower right', "
+                               "'upper left', and 'upper right'." % self.id_loc
+                               )
+                    plot._axes.text(x[i], y[i],
+                                    "%d" % block_ids[n], clip_on=True)
 
 class StreamlineCallback(PlotCallback):
     """
