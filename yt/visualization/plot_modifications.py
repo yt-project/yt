@@ -588,14 +588,16 @@ class GridBoundaryCallback(PlotCallback):
     edgecolors='#00FFFF', or edgecolor='0.3', where the last is a float in 0-1
     scale indicating gray).  Note that setting edgecolors overrides cmap if you
     have both set to non-None values.  Cutoff for display is at min_pix
-    wide. draw_ids puts the grid id in the corner of the grid.  (Not so great in
-    projections...).  One can set min and maximum level of grids to display, and
+    wide. draw_ids puts the grid id a the corner of the grid (but its not so 
+    great in projections...).  id_loc determines which corner holds the grid id.
+    One can set min and maximum level of grids to display, and
     can change the linewidth of the displayed grids.
     """
     _type_name = "grids"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
 
-    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False,
+    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, 
+                 draw_ids=False, id_loc="lower left",
                  periodic=True, min_level=None, max_level=None,
                  cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
         PlotCallback.__init__(self)
@@ -603,6 +605,7 @@ class GridBoundaryCallback(PlotCallback):
         self.min_pix = min_pix
         self.min_pix_ids = min_pix_ids
         self.draw_ids = draw_ids  # put grid numbers in the corner.
+        self.id_loc = id_loc
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
@@ -685,16 +688,42 @@ class GridBoundaryCallback(PlotCallback):
                 linewidth=self.linewidth)
             plot._axes.add_collection(grid_collection)
 
-            if self.draw_ids:
-                visible_ids = np.logical_and(
+            visible_ids = np.logical_and(
                     np.logical_and(xwidth > self.min_pix_ids,
                                    ywidth > self.min_pix_ids),
                     np.logical_and(levels >= min_level, levels <= max_level))
-                for i in np.where(visible_ids)[0]:
-                    plot._axes.text(
-                        left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
-                        left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
-                        "%d" % block_ids[i], clip_on=True)
+
+            if self.id_loc and not self.draw_ids:
+                mylog.warn("Supplied id_loc but draw_ids is False. Not drawing grid ids")
+
+            if self.draw_ids:
+                id_loc = self.id_loc.lower() # Make case-insensitive
+                plot_ids = np.where(visible_ids)[0]
+                x = np.empty(plot_ids.size)
+                y = np.empty(plot_ids.size)
+                for i,n in enumerate(plot_ids):
+                    if id_loc == "lower left":
+                        x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
+                        y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
+                    elif id_loc == "lower right":
+                        x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
+                                                   * (xx1 - xx0) / xpix)
+                        y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
+                    elif id_loc == "upper left":
+                        x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
+                        y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
+                    elif id_loc == "upper right":
+                        x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
+                                                   * (xx1 - xx0) / xpix)
+                        y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
+                    else:
+                        raise RuntimeError(
+                               "Unrecognized id_loc value ('%s'). "
+                               "Allowed values are 'lower left', lower right', "
+                               "'upper left', and 'upper right'." % self.id_loc
+                               )
+                    plot._axes.text(x[i], y[i],
+                                    "%d" % block_ids[n], clip_on=True)
 
 class StreamlineCallback(PlotCallback):
     """

@@ -267,7 +267,8 @@ Overplot Grids
 ~~~~~~~~~~~~~~
 
 .. function:: annotate_grids(self, alpha=0.7, min_pix=1, min_pix_ids=20, \
-                             draw_ids=False, periodic=True, min_level=None, \
+                             draw_ids=False, id_loc="lower left", \
+                             periodic=True, min_level=None, \
                              max_level=None, cmap='B-W Linear_r', \
                              edgecolors=None, linewidth=1.0)
 
@@ -276,7 +277,8 @@ Overplot Grids
 
    Adds grid boundaries to a plot, optionally with alpha-blending via the
    ``alpha`` keyword. Cuttoff for display is at ``min_pix`` wide. ``draw_ids``
-   puts the grid id in the corner of the grid.  (Not so great in projections...)
+   puts the grid id in the ``id_loc`` corner of the grid. (``id_loc`` can be
+   upper/lower left/right. ``draw_ids`` is not so great in projections...)
 
 .. python-script::
 
