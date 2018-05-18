@@ -723,12 +723,9 @@ class GridBoundaryCallback(PlotCallback):
                             right_edge_y[i] - (12 * (yy1 - yy0) / ypix),
                             "%d" % block_ids[i], clip_on=True)
                 else:
-                    mylog.warn("Unrecognized id_loc; defaulting to lower left")
-                    for i in np.where(visible_ids)[0]:
-                        plot._axes.text(
-                            left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
-                            left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
-                            "%d" % block_ids[i], clip_on=True)
+                    raise RuntimeError("Unrecognized id_loc value ('%s'). " 
+                                "Allowed values are 'lower left', lower right', "
+                                "'upper left', and 'upper right'." % self.id_loc)
 
 class StreamlineCallback(PlotCallback):
     """
