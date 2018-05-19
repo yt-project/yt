@@ -155,7 +155,7 @@ class EnzoPHierarchy(GridIndex):
     def _parse_index(self):
         self.grids = np.empty(self.num_grids, dtype='object')
 
-        pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
+        pbar = get_pbar("Parsing Hierarchy", self.num_grids)
         f = open(self.ds.parameter_filename, "r")
         fblock_size = 32768
         f.seek(0, 2)
@@ -179,12 +179,31 @@ class EnzoPHierarchy(GridIndex):
                 nnl = buff.find("\n", bnl)
                 line = buff[bnl:nnl]
                 block_name, block_file = line.split()
-                level, left, right = get_block_info(block_name)
 
-                rbindex = get_root_block_id(block_name)
-                rbid = rbindex[0] * rbdim[1:].prod() + \
-                  rbindex[1] * rbdim[2:].prod() + rbindex[2]
+                # The B__ block is a negative refinement level
+                # that cannot be used.
+                if "0" not in block_name and "1" not in block_name:
+                    level = -1
+                    left = self.ds.domain_left_edge.d
+                    right = self.ds.domain_right_edge.d
+                else:
+                    level, left, right = get_block_info(block_name)
+                    rbindex = get_root_block_id(block_name)
+                    rbid = rbindex[0] * rbdim[1:].prod() + \
+                      rbindex[1] * rbdim[2:].prod() + rbindex[2]
+
+                # There are also blocks at lower level than the
+                # real root blocks. These can be ignored.
                 if level == 0:
+                    check_root = get_root_blocks(block_name).prod()
+                    if check_root < nroot_blocks:
+                        level = -1
+
+                if level == -1:
+                    grid_id = child_id
+                    parent_id = -1
+                    child_id += 1
+                elif level == 0:
                     grid_id = rbid
                     parent_id = -1
                 else:
