@@ -28,6 +28,7 @@ class EnzoPIOHandler(BaseIOHandler):
     _dataset_type = "enzo_p"
     _base = slice(None)
     _field_dtype = "float64"
+    _sep = None
 
     def __init__(self, *args, **kwargs):
         super(EnzoPIOHandler, self).__init__(*args, **kwargs)
@@ -54,12 +55,22 @@ class EnzoPIOHandler(BaseIOHandler):
                 continue
             # mesh fields are "field <name>"
             if name.startswith("field"):
-                dummy, fname = name.split(" ", 1)
+                if self._sep is None:
+                    if " " in name:
+                        self._sep = " "
+                    else:
+                        self._sep = "_"
+                _, fname = name.split(self._sep, 1)
                 fields.append(("enzop", fname))
                 dtypes.add(v.dtype)
             # particle fields are "particle <type> <name>"
             else:
-                dummy, ftype, fname = name.split(" ", 2)
+                if self._sep is None:
+                    if " " in name:
+                        self._sep = " "
+                    else:
+                        self._sep = "_"
+                _, ftype, fname = name.split(self._sep, 2)
                 fields.append((ftype, fname))
                 ptypes.add(ftype)
                 dtypes.add(v.dtype)
@@ -92,16 +103,19 @@ class EnzoPIOHandler(BaseIOHandler):
                 if f is None:
                     f = h5py.File(g.filename, "r")
                 if g.particle_count is None:
+                    fnstr = "%s/%s" % \
+                      (g.block_name, self._sep.join(["particle", "%s", "%s"]))
                     g.particle_count = \
-                      dict((ptype, f.get("%s/particle %s %s" %
-                            (g.block_name, ptype, self.sample_pfields[ptype])).size)
+                      dict((ptype, f.get(fnstr %
+                            (ptype, self.sample_pfields[ptype])).size)
                             for ptype in self.sample_pfields)
                     g.total_particles = sum(g.particle_count.values())
                 if g.total_particles == 0:
                     continue
                 group = f.get(g.block_name)
                 for ptype, field_list in sorted(ptf.items()):
-                    pn = "particle %s %%s" % ptype
+                    pn = self._sep.join(
+                        ["particle", ptype, "%s"])
                     if g.particle_count[ptype] == 0:
                         continue
                     coords = \
@@ -154,7 +168,7 @@ class EnzoPIOHandler(BaseIOHandler):
         else:
             close = False
         ftype, fname = field
-        node = "/%s/field %s" % (obj.block_name, fname)
+        node = "/%s/field%s%s" % (obj.block_name, self._sep, fname)
         dg = h5py.h5d.open(fid, b(node))
         rdata = np.empty(self.ds.grid_dimensions[:self.ds.dimensionality],
                          dtype=self._field_dtype)
