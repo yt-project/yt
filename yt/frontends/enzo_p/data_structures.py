@@ -365,6 +365,9 @@ class EnzoPDataset(Dataset):
                                omega_lambda=self.omega_lambda)
             else:
                 self.cosmological_simulation = 0
+        else:
+            self.cosmological_simulation = 0
+
 
         fh = h5py.File(os.path.join(self.directory, fn0), "r")
         self.domain_left_edge  = fh.attrs["lower"]
