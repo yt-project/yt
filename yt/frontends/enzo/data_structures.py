@@ -25,6 +25,8 @@ import re
 from collections import defaultdict
 from yt.extern.six.moves import zip as izip
 
+from yt.frontends.enzo.misc import \
+    cosmology_get_units
 from yt.funcs import \
     ensure_list, \
     ensure_tuple, \
@@ -40,8 +42,6 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.fields.field_info_container import \
     NullFunc
-from yt.utilities.physical_ratios import \
-    rho_crit_g_cm3_h2, cm_per_mpc
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.pyparselibconfig import libconfig
 
@@ -884,12 +884,13 @@ class EnzoDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         if self.cosmological_simulation:
-            k = self.cosmology_get_units()
+            k = cosmology_get_units(
+                self.hubble_constant, self.omega_matter,
+                self.parameters["CosmologyComovingBoxSize"],
+                self.parameters["CosmologyInitialRedshift"],
+                self.current_redshift)
             # Now some CGS values
-            box_size = self.parameters.get("CosmologyComovingBoxSize", None)
-            if box_size is None:
-                box_size = self.parameters["Physics"]["Cosmology"]\
-                    ["CosmologyComovingBoxSize"]
+            box_size = self.parameters["CosmologyComovingBoxSize"]
             setdefaultattr(self, 'length_unit', self.quan(box_size, "Mpccm/h"))
             setdefaultattr(
                 self, 'mass_unit',
@@ -921,34 +922,6 @@ class EnzoDataset(Dataset):
                                 (self.time_unit**2 * self.length_unit))
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
         setdefaultattr(self, 'magnetic_unit', self.quan(magnetic_unit, "gauss"))
-
-    def cosmology_get_units(self):
-        """
-        Return an Enzo-fortran style dictionary of units to feed into custom
-        routines.  This is typically only necessary if you are interacting
-        with fortran code.
-        """
-        k = {}
-        k["utim"] = 2.52e17/np.sqrt(self.omega_matter)\
-                       / self.hubble_constant \
-                       / (1+self.parameters["CosmologyInitialRedshift"])**1.5
-        k["urho"] = rho_crit_g_cm3_h2 * self.omega_matter \
-                        * self.hubble_constant**2 \
-                        * (1.0 + self.current_redshift)**3
-        k["uxyz"] = cm_per_mpc * \
-               self.parameters["CosmologyComovingBoxSize"] / \
-               self.hubble_constant / \
-               (1.0 + self.current_redshift)
-        k["uaye"] = 1.0/(1.0 + self.parameters["CosmologyInitialRedshift"])
-        k["uvel"] = 1.225e7*self.parameters["CosmologyComovingBoxSize"] \
-                      *np.sqrt(self.omega_matter) \
-                      *np.sqrt(1+ self.parameters["CosmologyInitialRedshift"])
-        k["utem"] = 1.88e6 * (self.parameters["CosmologyComovingBoxSize"]**2) \
-                      * self.omega_matter \
-                      * (1.0 + self.parameters["CosmologyInitialRedshift"])
-        k["aye"]  = (1.0 + self.parameters["CosmologyInitialRedshift"]) / \
-               (1.0 + self.current_redshift)
-        return k
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
