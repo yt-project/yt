@@ -27,12 +27,16 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.fields.field_info_container import \
     NullFunc
+from yt.frontends.enzo.misc import \
+    cosmology_get_units
 from yt.funcs import \
     ensure_tuple, \
     get_pbar, \
     setdefaultattr
 from yt.geometry.grid_geometry_handler import \
     GridIndex
+from yt.utilities.cosmology import \
+    Cosmology
 from yt.utilities.logger import \
     ytLogger as mylog
 
@@ -332,6 +336,35 @@ class EnzoPDataset(Dataset):
         if os.path.exists(lcfn):
             with (open(lcfn, "r")) as lf:
                 self.parameters = libconf.load(lf)
+            cosmo = nested_dict_get(
+                self.parameters, ("Physics", "cosmology"))
+            if cosmo is not None:
+                self.cosmological_simulation = 1
+                co_pars = ["hubble_constant_now", "omega_matter_now",
+                           "omega_lambda_now", "comoving_box_size",
+                           "initial_redshift"]
+                co_dict = \
+                  dict((attr, nested_dict_get(self.parameters,
+                    ("Physics", "cosmology", attr))) for attr in co_pars)
+                for attr in ["hubble_constant",
+                             "omega_matter",
+                             "omega_lambda"]:
+                    setattr(self, attr, co_dict["%s_now" % attr])
+
+                # Current redshift is not stored, so it's not possible
+                # to set all cosmological units yet.
+                # Get the time units and use that to figure out redshift.
+                k = cosmology_get_units(
+                    self.hubble_constant, self.omega_matter,
+                    co_dict["comoving_box_size"],
+                    co_dict["initial_redshift"], 0)
+                setdefaultattr(
+                    self, 'time_unit', self.quan(k['utim'], 's'))
+                co = Cosmology(hubble_constant=self.hubble_constant,
+                               omega_matter=self.omega_matter,
+                               omega_lambda=self.omega_lambda)
+            else:
+                self.cosmological_simulation = 0
 
         fh = h5py.File(os.path.join(self.directory, fn0), "r")
         self.domain_left_edge  = fh.attrs["lower"]
@@ -349,30 +382,47 @@ class EnzoPDataset(Dataset):
         self.domain_dimensions = root_blocks * self.active_grid_dimensions
         fh.close()
 
+        if self.cosmological_simulation:
+            self.current_redshift = \
+              co.z_from_t(self.current_time * self.time_unit)
+
         self.periodicity += (False, ) * (3 - self.dimensionality)
         self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
 
-        # WIP hard-coded for now
-        self.cosmological_simulation = 0
         self.unique_identifier = \
           str(int(os.stat(self.parameter_filename)[stat.ST_CTIME]))
 
     def _set_code_unit_attributes(self):
-        p = self.parameters
-        for d, u in zip(("length", "time"),
-                        ("cm", "s")):
-            val = nested_dict_get(p, ("Units", d), default=1)
-            setdefaultattr(self, '%s_unit' % d, self.quan(val, u))
-        mass = nested_dict_get(p, ("Units", "mass"))
-        if mass is None:
-            density = nested_dict_get(p, ("Units", "density"))
-            if density is not None:
-                mass = density * self.length_unit**3
-            else:
-                mass = 1
-        setdefaultattr(self, 'mass_unit', self.quan(mass, "g"))
-        setdefaultattr(self, 'velocity_unit',
-                       self.length_unit / self.time_unit)
+        if self.cosmological_simulation:
+            box_size = \
+              self.parameters["Physics"]["cosmology"]["comoving_box_size"]
+            k = cosmology_get_units(
+                self.hubble_constant, self.omega_matter, box_size,
+                self.parameters["Physics"]["cosmology"]["initial_redshift"],
+                self.current_redshift)
+            # Now some CGS values
+            setdefaultattr(self, 'length_unit', self.quan(box_size, "Mpccm/h"))
+            setdefaultattr(
+                self, 'mass_unit',
+                self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3)
+            setdefaultattr(self, 'velocity_unit', self.quan(k['uvel'], 'cm/s'))
+        else:
+            p = self.parameters
+            for d, u in zip(("length", "time"),
+                            ("cm", "s")):
+                val = nested_dict_get(p, ("Units", d), default=1)
+                setdefaultattr(self, '%s_unit' % d, self.quan(val, u))
+            mass = nested_dict_get(p, ("Units", "mass"))
+            if mass is None:
+                density = nested_dict_get(p, ("Units", "density"))
+                if density is not None:
+                    mass = density * self.length_unit**3
+                else:
+                    mass = 1
+            setdefaultattr(self, 'mass_unit', self.quan(mass, "g"))
+            setdefaultattr(self, 'velocity_unit',
+                           self.length_unit / self.time_unit)
+
         magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                 (self.time_unit**2 * self.length_unit))
         magnetic_unit = np.float64(magnetic_unit.in_cgs())

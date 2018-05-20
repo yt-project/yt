@@ -82,7 +82,7 @@ class EnzoPFieldInfo(FieldInfoContainer):
 
         if "mass" in names:
             val = constants[names.index("mass")][2]
-            val = self.ds.quan(val, "g")
+            val = self.ds.quan(val, self.ds.mass_unit)
 
             def _pmass(field, data):
                 return val * data[ptype, "particle_ones"]
