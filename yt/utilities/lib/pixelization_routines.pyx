@@ -577,8 +577,8 @@ def pixelize_aitoff(np.float64_t[:] theta,
                     np.float64_t theta_offset = 0.0,
                     np.float64_t phi_offset = 0.0):
     # http://paulbourke.net/geometry/transformationprojection/
-    # longitude is -pi to pi
-    # latitude is -pi/2 to pi/2
+    # (theta) longitude is -pi to pi
+    # (phi) latitude is -pi/2 to pi/2
     # z^2 = 1 + cos(latitude) cos(longitude/2)
     # x = cos(latitude) sin(longitude/2) / z
     # y = sin(latitude) / z
