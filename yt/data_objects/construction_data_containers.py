@@ -1761,8 +1761,8 @@ class YTSurface(YTSelectionContainer3D):
             if sample_type == "face" and \
                 color_field not in self.field_data:
                 self[color_field]
-            elif sample_type == "vertex" and \
-                color_field not in self.vertex_data:
+            elif (sample_type == "vertex" and
+                  color_field not in self.vertex_samples):
                 self.get_data(color_field, sample_type, no_ghost=no_ghost)
         self._export_ply(filename, bounds, color_field, color_map, color_log,
                          sample_type)
