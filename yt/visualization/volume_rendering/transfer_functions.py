@@ -540,7 +540,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
         xticks *= (self.alpha.x.size-1) / (self.alpha.x[-1] - self.alpha.x[0])
         if len(xticks) > 5:
-            xticks = xticks[::len(xticks)/5]
+            xticks = xticks[::len(xticks)//5]
         ax.xaxis.set_ticks(xticks)
         def x_format(x, pos):
             return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0])
@@ -594,7 +594,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
         xticks *= (self.alpha.x.size-1) / (self.alpha.x[-1] - self.alpha.x[0])
         if len(xticks) > 5:
-            xticks = xticks[::len(xticks)/5]
+            xticks = xticks[::len(xticks)//5]
 
         # Add colorbar limits to the ticks (May not give ideal results)
         xticks = np.append(visible[0], xticks)
