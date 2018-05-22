@@ -60,6 +60,9 @@ class ExporterTests(TestCase):
         surf = ds.surface(dd, 'x', 0.51)
         surf.export_ply('my_ply.ply', bounds=[(0, 1), (0, 1), (0, 1)])
         assert os.path.exists('my_ply.ply')
+        surf.export_ply('my_ply2.ply', bounds=[(0, 1), (0, 1), (0, 1)],
+                        sample_type='vertex', color_field='density')
+        assert os.path.exists('my_ply2.ply')
 
     @requires_file(ISOGAL)
     def test_export_obj(self):
