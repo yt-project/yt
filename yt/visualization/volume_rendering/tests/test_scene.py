@@ -106,3 +106,5 @@ def test_annotations():
     im = sc._last_render
     for c in ([1, 0, 0, 1], [0, 1, 0, 1], [0, 0, 1, 1], [1, 1, 1, 1]):
         assert np.where((im == c).all(axis=-1))[0].shape[0] > 0
+    sc[0].tfh.tf.add_layers(10, colormap='cubehelix')
+    sc.save_annotated('test_scene_annotated.png', text_annotate=[[(.1, 1.05), "test_string"]])
