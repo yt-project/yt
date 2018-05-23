@@ -227,8 +227,8 @@ def test_particle_phase_plot_semantics():
                         ('Gas', 'density'),
                         ('Gas', 'temperature'),
                         ('Gas', 'particle_mass'))
-    plot.set_log('density', True)
-    plot.set_log('temperature', True)
+    plot.set_log(('Gas', 'density'), True)
+    plot.set_log(('Gas', 'temperature'), True)
     p = plot.profile
 
     # bin extrema are field extrema
@@ -246,8 +246,8 @@ def test_particle_phase_plot_semantics():
     dylogybins = logybins[1:] - logybins[:-1]
     assert_allclose(dylogybins, dylogybins[0])
 
-    plot.set_log('density', False)
-    plot.set_log('temperature', False)
+    plot.set_log(('Gas', 'density'), False)
+    plot.set_log(('Gas', 'temperature'), False)
     p = plot.profile
 
     # bin extrema are field extrema
