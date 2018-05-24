@@ -4,7 +4,6 @@ from yt.testing import \
     assert_true
 from yt.units.yt_array import \
     uconcatenate
-import weakref
 
 def _get_dobjs(c):
     dobjs = [("sphere", ("center", (1.0, "unitary"))),
