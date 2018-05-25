@@ -1010,7 +1010,7 @@ def solution_radius(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def knn_direct(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
+def knn_direct(np.ndarray[np.float64_t, ndim=2] P, np.uint64_t k, np.uint64_t i,
                np.ndarray[np.uint64_t, ndim=1] idx, return_dist = False, 
                return_rad = False):
     """Directly compute the k nearest neighbors by sorting on distance.

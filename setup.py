@@ -1,5 +1,4 @@
 import os
-import platform
 import glob
 import sys
 from sys import platform as _platform
@@ -344,8 +343,6 @@ package manager for your python environment.""" %
         import cykdtree
         self.include_dirs.append(numpy.get_include())
         self.include_dirs.append(cykdtree.get_include())
-        if platform.system() == "Windows" and sys.version_info[:2] == (2, 7):
-            self.include_dirs.append('yt/utilities/lib/windows')
 
 class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython
