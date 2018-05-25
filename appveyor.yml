@@ -30,6 +30,9 @@ install:
 
     # Install specified version of numpy and dependencies
     - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib flake8 mock"
+    # HACK, FIXME BEFORE MERGING
+    - "pip install https://github.com/cykdtree/cykdtree/archive/master.zip"
+    # install yt
     - "pip install -e ."
 
 # Not a .NET project
