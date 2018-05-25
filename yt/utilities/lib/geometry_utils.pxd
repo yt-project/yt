@@ -97,7 +97,7 @@ cdef inline int compare_floats_morton(np.float64_t p[3], np.float64_t q[3]):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline np.float64_t euclidean_distance(np.float64_t p[3], np.float64_t q[3]):
+cdef inline np.float64_t euclidean_distance(np.float64_t[:] p, np.float64_t[:] q):
     cdef int j
     cdef np.float64_t d
     d = 0.0

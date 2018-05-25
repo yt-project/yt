@@ -365,16 +365,17 @@ def test_dist():
 def test_knn_direct(seed=1):
     from yt.utilities.lib.geometry_utils import knn_direct
     np.random.seed(seed)
-    k = 5
-    N = 2*k
+    k = 64
+    N = 1e5
     idx = np.arange(N,dtype=np.uint64)
     rad = np.arange(N,dtype=np.float64)
     pos = np.vstack(3*[rad**2/3.0]).T
     sort_shf = np.arange(N,dtype=np.uint64)
-    np.random.shuffle(sort_shf)
-    sort_ans = np.argsort(sort_shf)[:k]
-    sort_out = knn_direct(pos[sort_shf,:], k, sort_ans[0], idx)
-    assert_array_equal(sort_out,sort_ans)
+    for i in range(20):
+        np.random.shuffle(sort_shf)
+        sort_ans = np.argsort(sort_shf)[:k]
+        sort_out = knn_direct(pos[sort_shf,:], k, sort_ans[0], idx)
+        assert_array_equal(sort_out,sort_ans)
 
 # TODO: test of quadtree (.pxd)
 

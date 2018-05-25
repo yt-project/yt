@@ -1032,25 +1032,25 @@ def knn_direct(np.ndarray[np.float64_t, ndim=2] P, np.uint64_t k, np.uint64_t i,
 
     """
     cdef int j,m
-    #cdef np.ndarray[np.float64_t, ndim=1] dist
-    cdef np.ndarray[long, ndim=1] sort_fwd
-    cdef np.float64_t ipos[3]
-    cdef np.float64_t jpos[3]
-    dist = np.zeros(len(idx),dtype=[('dist','float64'),('ind','int64')])
-    for m in range(3): ipos[m] = P[i,m]
+    cdef np.int64_t[:] sort_fwd
+    cdef np.float64_t[:] ipos
+    cdef np.float64_t[:] jpos
+    cdef np.float64_t[:] dist = np.zeros(len(idx), dtype='float64')
+    ipos = np.zeros(3)
+    jpos = np.zeros(3)
+    for m in range(3):
+        ipos[m] = P[i,m]
     for j in range(len(idx)):
-        for m in range(3): jpos[m] = P[idx[j],m]
-        dist['dist'][j] = euclidean_distance(ipos,jpos)
-        dist['ind'][j] = idx[j]
-    # TODO: this can be done more efficiently for just appending a few
-    # values. Possibly sort addition first and then make a collective pass
-    sort_fwd = np.argsort(dist,order=('dist','ind'))[:k]#.astype(np.uint64)
+        for m in range(3):
+            jpos[m] = P[idx[j],m]
+        dist[j] = euclidean_distance(ipos, jpos)
+    sort_fwd = np.argsort(dist, kind='mergesort')[:k]
     if return_dist:
-        return idx[sort_fwd],dist['dist'][sort_fwd]
+        return np.array(idx)[sort_fwd], np.array(dist)[sort_fwd]
     elif return_rad:
-        return idx[sort_fwd],dist['dist'][sort_fwd][k-1]
+        return np.array(idx)[sort_fwd], np.array(dist)[sort_fwd][k-1]
     else:
-        return idx[sort_fwd]
+        return np.array(idx)[sort_fwd]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
