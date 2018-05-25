@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <iso646.h> // mostly for Microsoft compilers
 #include <limits.h>
-#include <platform_dep.h>
+#include <stdint.h> // part of Visual Studio 2010 and better
 
 #include <cassert>
 #include <iostream>
