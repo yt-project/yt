@@ -25,6 +25,10 @@
 #include <algorithm>
 #include <sstream>
 
+#if defined(_WIN64)
+#include <intrin.h>
+#endif
+
 // taken from stackoverflow
 #ifndef NDEBUG
 #   define ASSERT(condition, message) \
