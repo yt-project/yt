@@ -90,7 +90,7 @@ class FixedResolutionBuffer(object):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
-        self.buff_size = buff_size
+        self.buff_size = (int(buff_size[0]), int(buff_size[1]))
         self.antialias = antialias
         self.data = {}
         self._filters = []
