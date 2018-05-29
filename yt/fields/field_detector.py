@@ -139,12 +139,16 @@ class FieldDetector(defaultdict):
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 4)),
                           finfo.units, registry=self.ds.unit_registry)
-
             else:
                 # Not a vector
                 self[item] = \
                   YTArray(np.ones(self.NumberOfParticles),
                           finfo.units, registry=self.ds.unit_registry)
+            if item == ('STAR', 'BIRTH_TIME'):
+                # hack for the artio frontend so we pass valid times to
+                # the artio functions for calculating physical times
+                # from internal times
+                self[item] *= -0.1
             self.requested.append(item)
             return self[item]
         self.requested.append(item)
