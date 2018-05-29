@@ -103,22 +103,22 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         with h5py.File(data_file.filename, "r") as f:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
             pcount = np.clip(pcount - si, 0, ei - si)
-            if "SmoothingLength" not in f[ptype]:
-                hsml = f[ptype]["Masses"][si:ei,...]/f[ptype]["Density"][si:ei,...]
-                hsml *= 3.0/(4.0*np.pi)
-                hsml **= (1./3.)
-                hsml *= 2.5
+            if self._dataset_type == "arepo_hdf5":
+                ds = f[ptype]["Masses"][si:ei,...]/f[ptype]["Density"][si:ei,...]
+                ds *= 3.0/(4.0*np.pi)
+                ds **= (1./3.)
+                ds *= 2.5
             else:
                 ds = f[ptype]["SmoothingLength"][si:ei,...]
-                dt = ds.dtype.newbyteorder("N") # Native
-                if position_dtype is not None and dt < position_dtype:
-                    # Sometimes positions are stored in double precision
-                    # but smoothing lengths are stored in single precision.
-                    # In these cases upcast smoothing length to double precision
-                    # to avoid ValueErrors when we pass these arrays to Cython.
-                    dt = position_dtype
-                hsml = np.empty(ds.shape, dtype=dt)
-                hsml[:] = ds
+            dt = ds.dtype.newbyteorder("N") # Native
+            if position_dtype is not None and dt < position_dtype:
+                # Sometimes positions are stored in double precision
+                # but smoothing lengths are stored in single precision.
+                # In these cases upcast smoothing length to double precision
+                # to avoid ValueErrors when we pass these arrays to Cython.
+                dt = position_dtype
+            hsml = np.empty(ds.shape, dtype=dt)
+            hsml[:] = ds
             return hsml
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -243,10 +243,13 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     if len(g[kk].shape) > 1:
                         self._vector_fields[kk] = g[kk].shape[1]
                     fields.append((ptype, str(kk)))
-        if "SmoothingLength" not in f["PartType0"]:
+        if self._dataset_type == "arepo_hdf5":
             fields.append(("PartType0", "smoothing_length"))
         f.close()
         return fields, {}
+
+class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
+    _dataset_type = "arepo_hdf5"
 
 
 ZeroMass = object()
