@@ -654,6 +654,20 @@ class GadgetHDF5Dataset(GadgetDataset):
 
 class ArepoHDF5Dataset(GadgetHDF5Dataset):
     _field_info_class = ArepoFieldInfo
+    def __init__(self, filename, dataset_type="arepo_hdf5",
+                 unit_base=None,
+                 index_order=None,
+                 index_filename=None,
+                 kernel_name=None,
+                 bounding_box=None,
+                 units_override=None,
+                 unit_system="cgs"):
+        super(ArepoHDF5Dataset, self).__init__(
+            filename, dataset_type=dataset_type, unit_base=unit_base,
+            index_order=index_order, index_filename=index_filename,
+            kernel_name=kernel_name, bounding_box=bounding_box,
+            units_override=units_override, unit_system=unit_system)
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         need_groups = ['Header', 'Config']
