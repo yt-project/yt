@@ -129,7 +129,8 @@ class EnzoPIOHandler(BaseIOHandler):
                         # _read_particle_coords.
                         yield ptype, coords
                         continue
-                    mask = selector.select_points(*coords, 0.0)
+                    coords += (0.0,)
+                    mask = selector.select_points(*coords)
                     if mask is None:
                         continue
                     for field in field_list:

@@ -13,7 +13,10 @@ Data structures for Enzo
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from __future__ import absolute_import
+
 from yt.utilities.on_demand_imports import _h5py as h5py
+import io
 import weakref
 import numpy as np
 import os
@@ -22,6 +25,8 @@ import string
 import time
 import re
 
+from yt.utilities.on_demand_imports import \
+    _libconf as libconf
 from collections import defaultdict
 from yt.extern.six.moves import zip as izip
 
@@ -43,7 +48,6 @@ from yt.data_objects.static_output import \
 from yt.fields.field_info_container import \
     NullFunc
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.pyparselibconfig import libconfig
 
 from .fields import \
     EnzoFieldInfo
@@ -737,7 +741,7 @@ class EnzoDataset(Dataset):
         dictionaries.
         """
         # Let's read the file
-        with open(self.parameter_filename, "r") as f:
+        with io.open(self.parameter_filename, "r") as f:
             line = f.readline().strip()
             f.seek(0)
             if line == "Internal:":
@@ -746,7 +750,7 @@ class EnzoDataset(Dataset):
                 self._parse_enzo2_parameter_file(f)
 
     def _parse_enzo3_parameter_file(self, f):
-        self.parameters = p = libconfig(f)
+        self.parameters = p = libconf.load(f)
         sim = p["SimulationControl"]
         internal = p["Internal"]
         phys = p["Physics"]

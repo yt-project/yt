@@ -13,10 +13,13 @@ Data structures for Enzo-P
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from __future__ import absolute_import
+
 from yt.utilities.on_demand_imports import \
     _h5py as h5py
 from yt.utilities.on_demand_imports import \
     _libconf as libconf
+import io as io
 import numpy as np
 import os
 import stat
@@ -277,7 +280,7 @@ class EnzoPHierarchy(GridIndex):
             ptypes = None
         self.field_list = list(self.comm.mpi_bcast(field_list))
         self.dataset.particle_types = list(self.comm.mpi_bcast(ptypes))
-        self.dataset.particle_types_raw = self.dataset.particle_types.copy()
+        self.dataset.particle_types_raw = self.dataset.particle_types[:]
 
 class EnzoPDataset(Dataset):
     """
@@ -334,7 +337,7 @@ class EnzoPDataset(Dataset):
         pfn = self.parameter_filename
         lcfn = pfn[:pfn.rfind(self._suffix)] + ".libconfig"
         if os.path.exists(lcfn):
-            with (open(lcfn, "r")) as lf:
+            with io.open(lcfn, "r") as lf:
                 self.parameters = libconf.load(lf)
             cosmo = nested_dict_get(
                 self.parameters, ("Physics", "cosmology"))
