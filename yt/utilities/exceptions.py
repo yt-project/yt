@@ -686,6 +686,9 @@ class YTIllDefinedAMR(YTException):
         ).format(self.level, self.axis)
         return msg
 
+class YTIllDefinedAMRData(YTException):
+    pass
+
 class YTInconsistentGridFieldShape(YTException):
     def __init__(self, shapes):
         self.shapes = shapes

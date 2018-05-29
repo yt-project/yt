@@ -179,6 +179,13 @@ cython_extensions = [
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
               libraries=std_libs),
+    Extension("yt.frontends.ramses.io_utils",
+              ["yt/frontends/ramses/io_utils.pyx"],
+              include_dirs=["yt/utilities/lib"],
+              libraries=std_libs),
+    Extension("yt.utilities.cython_fortran_utils",
+              ["yt/utilities/cython_fortran_utils.pyx"],
+              libraries=std_libs),
 ]
 
 lib_exts = [
