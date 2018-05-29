@@ -461,16 +461,16 @@ class Scene(object):
             canvas = self.canvas
 
         self._render_figure.canvas = canvas
-
-        self._render_figure.savefig(fname, facecolor='black',
-                                    bbox_inches='tight', pad_inches=0)
+        self._render_figure.tight_layout()
+        self._render_figure.savefig(fname, facecolor='black', pad_inches=0)
 
     def _show_mpl(self, im, sigma_clip=None, dpi=100):
         from matplotlib.figure import Figure
         s = im.shape
         self._render_figure = Figure(figsize=(s[1]/float(dpi), s[0]/float(dpi)))
         self._render_figure.clf()
-        ax = self._render_figure.add_axes([0, 0, 1, 1])
+        ax = self._render_figure.add_subplot(111)
+        ax.set_position([0, 0, 1, 1])
 
         if sigma_clip is not None:
             nz = im[im > 0.0]
