@@ -558,11 +558,12 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                 r_i += 0.5*dx
             theta_i += dthetamin
 
-cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
-                                np.float64_t *x, np.float64_t *y):
+cdef int aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
+                               np.float64_t *x, np.float64_t *y) except -1:
     cdef np.float64_t z = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2.0))
     x[0] = math.cos(phi) * math.sin(theta / 2.0) / z
     y[0] = math.sin(phi) / z
+    return 0
 
 @cython.cdivision(True)
 @cython.boundscheck(False)

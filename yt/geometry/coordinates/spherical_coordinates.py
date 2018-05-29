@@ -114,8 +114,8 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
-        buff = pixelize_aitoff(data_source["px"], data_source["pdx"],
-                               data_source["py"], data_source["pdy"],
+        buff = pixelize_aitoff(data_source["py"], data_source["pdy"],
+                               data_source["px"], data_source["pdx"],
                                size, data_source[field], None,
                                None, theta_offset = 0,
                                phi_offset = 0).transpose()
