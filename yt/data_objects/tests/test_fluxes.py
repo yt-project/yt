@@ -106,7 +106,7 @@ def test_correct_output_unit_fake_ds():
 
 def test_radius_surface():
     # see #1407
-    ds = fake_random_ds(64, nprocs=4, particles=16**3)
+    ds = fake_random_ds(64, nprocs=4, particles=16**3, length_unit=10.0)
     reg = ds.all_data()
     sp = ds.sphere(ds.domain_center, (0.5, 'code_length'))
     for obj in [reg, sp]:
@@ -116,7 +116,5 @@ def test_radius_surface():
                 surface.surface_area.v, 4*np.pi*rad**2, decimal=2)
             verts = surface.vertices
             for i in range(3):
-                assert_almost_equal(
-                    verts[i, :].min().v, 0.5-rad, decimal=2)
-                assert_almost_equal(
-                    verts[i, :].max().v, 0.5+rad, decimal=2)
+                assert_almost_equal(verts[i, :].min().v, 0.5-rad, decimal=2)
+                assert_almost_equal(verts[i, :].max().v, 0.5+rad, decimal=2)
