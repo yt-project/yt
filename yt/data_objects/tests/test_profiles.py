@@ -1,24 +1,13 @@
 import yt
 import numpy as np
 
-from yt.data_objects.particle_filters import \
-    add_particle_filter
-from yt.data_objects.profiles import \
-    Profile1D, \
-    Profile2D, \
-    Profile3D, \
+from yt.data_objects.particle_filters import add_particle_filter
+from yt.data_objects.profiles import Profile1D, Profile2D, Profile3D,\
     create_profile
-from yt.testing import \
-    fake_random_ds, \
-    assert_equal, \
-    assert_raises, \
-    assert_rel_equal, \
-    requires_file
-from yt.utilities.exceptions import \
-    YTIllDefinedProfile
-from yt.visualization.profile_plotter import \
-    ProfilePlot, \
-    PhasePlot
+from yt.testing import fake_random_ds, fake_particle_ds, assert_equal,\
+    assert_raises, assert_rel_equal
+from yt.utilities.exceptions import YTIllDefinedProfile
+from yt.visualization.profile_plotter import ProfilePlot, PhasePlot
 
 _fields = ("density", "temperature", "dinosaurs", "tribbles")
 _units = ("g/cm**3", "K", "dyne", "erg")
@@ -274,7 +263,6 @@ def test_particle_profile_negative_field():
             weight_field=None, deposition='cic',
             accumulation=True, fractional=True)
 
-@requires_file("IsolatedGalaxy/galaxy0030/galaxy0030")
 def test_profile_zero_weight():
     def DMparticles(pfilter, data):
         filter = data[(pfilter.filtered_type, "particle_type")] == 1
@@ -285,8 +273,16 @@ def test_profile_zero_weight():
 
     add_particle_filter("DM", function=DMparticles,
                         filtered_type='io', requires=["particle_type"])
-
-    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    _fields = ("particle_position_x", "particle_position_y",
+               "particle_position_z", "particle_mass", "particle_velocity_x",
+               "particle_velocity_y", "particle_velocity_z", "particle_type",
+               "density", "temperature")
+    _units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s', 'dimensionless',
+              'g/cm**3','K')
+    _negative = (False, False, False, False, True, True, True, False, False,
+                 False)
+    ds = fake_particle_ds(fields=_fields, units=_units, negative=_negative,
+                          npart=16 ** 2, length_unit=1.0)
 
     ds.add_particle_filter('DM')
 
