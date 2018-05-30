@@ -6,9 +6,7 @@ import numpy as np
 
 from unittest import TestCase
 
-from yt.testing import fake_random_ds, assert_almost_equal, assert_equal, \
-    requires_file
-from yt.convenience import load
+from yt.testing import fake_random_ds, assert_almost_equal, assert_equal
 
 def setup():
     from yt.config import ytcfg
@@ -35,8 +33,6 @@ def test_sampling():
         vert_shape = surf.vertices.shape
         assert_equal(dens.shape[0], vert_shape[1]//vert_shape[0])
         assert_equal(str(dens.units), 'g/cm**3')
-
-ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
 
 class ExporterTests(TestCase):
 
@@ -99,18 +95,8 @@ class ExporterTests(TestCase):
         assert os.path.exists('my_galaxy_emis.obj')
         assert os.path.exists('my_galaxy_emis.mtl')
 
-@requires_file(ISOGAL)
-def test_correct_output_unit():
-    # see issue #1368
-    ds = load(ISOGAL)
-    x = y = z = .5
-    sp1 = ds.sphere((x,y,z), (300, 'kpc'))
-    Nmax = sp1.max('HI_Density')
-    sur = ds.surface(sp1,"HI_Density", .5*Nmax)
-    sur['x'][0]
-
 def test_correct_output_unit_fake_ds():
-    # implementing test_correct_output_unit() with fake dataset
+    # see issue #1368
     ds = fake_random_ds(64, nprocs=4, particles=16**3)
     x = y = z = .5
     sp1 = ds.sphere((x, y, z), (300, 'kpc'))
