@@ -72,13 +72,16 @@ install:
     # install yt
     pip install -e .
 
+script: coverage run $(which nosetests) -c nose.cfg yt
+
+stages:
+  - lint
+  - test
+
 jobs:
   include:
     - stage: lint
       script: flake8 yt/
-
-    - stage: test
-      script: coverage run $(which nosetests) -c nose.cfg yt
 
 after_success:
   - codecov
