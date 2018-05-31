@@ -76,8 +76,8 @@ jobs:
   include:
     - stage: lint
       script: flake8 .
-    - stage: test
-      script: coverage run $(which nosetests) -c nose.cfg yt
+
+script: coverage run $(which nosetests) -c nose.cfg yt
 
 after_success:
   - codecov
