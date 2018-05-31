@@ -77,7 +77,16 @@ jobs:
     - stage: lint
       script: flake8 .
 
-script: coverage run $(which nosetests) -c nose.cfg yt
+    - stage: test
+      script: coverage run $(which nosetests) -c nose.cfg yt
+      python: 2.7
+        env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3
+        SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0
+      python: 2.7
+      python: 3.4
+      python: 3.5
+      python: 3.6
+      os: osx
 
 after_success:
   - codecov
