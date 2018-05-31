@@ -1,8 +1,8 @@
 import numpy as np
 
-from yt import load_octree
 from yt.frontends.stream.data_structures import load_particles
-from yt.testing import fake_random_ds, assert_equal, assert_almost_equal
+from yt.testing import fake_random_ds, assert_equal, assert_almost_equal, \
+    fake_octree_ds
 
 def setup():
     from yt.config import ytcfg
@@ -130,16 +130,7 @@ def test_arbitrary_grid():
             assert_almost_equal(cg["density"], ag["density"])
 
 def test_octree_cg():
-    oct_mask_list = [8, 0, 0, 0, 0, 8, 0, 0,
-                     0, 0, 0, 0, 0, 0, 0, 0,
-                     8, 0, 0, 0, 0, 0, 0, 0,
-                     0]
-    octree_mask = np.array(oct_mask_list, dtype=np.uint8)
-    quantities = {}
-    quantities[('gas', 'density')] = np.ones((22, 1), dtype=float)
-    bbox = np.array([[-10., 10.], [-10., 10.], [-10., 10.]])
-    ds = load_octree(octree_mask=octree_mask, data=quantities, bbox=bbox,
-                     over_refine_factor=0, partial_coverage=0)
+    ds = fake_octree_ds(over_refine_factor=0, partial_coverage=0)
     cgrid = ds.covering_grid(0, left_edge=ds.domain_left_edge,
                              dims=ds.domain_dimensions)
     density_field = cgrid["density"]
