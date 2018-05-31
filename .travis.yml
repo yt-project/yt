@@ -75,7 +75,6 @@ install:
 script:
   - |
     coverage run $(which nosetests) -c nose.cfg yt
-    coverage report
 
 after_success:
   - codecov
