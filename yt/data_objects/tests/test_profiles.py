@@ -4,8 +4,8 @@ import numpy as np
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import Profile1D, Profile2D, Profile3D,\
     create_profile
-from yt.testing import fake_random_ds, fake_particle_ds, assert_equal,\
-    assert_raises, assert_rel_equal
+from yt.testing import fake_random_ds, assert_equal, assert_raises,\
+    assert_rel_equal
 from yt.utilities.exceptions import YTIllDefinedProfile
 from yt.visualization.profile_plotter import ProfilePlot, PhasePlot
 
@@ -273,19 +273,15 @@ def test_profile_zero_weight():
 
     add_particle_filter("DM", function=DMparticles,
                         filtered_type='io', requires=["particle_type"])
+
     _fields = ("particle_position_x", "particle_position_y",
                "particle_position_z", "particle_mass", "particle_velocity_x",
-               "particle_velocity_y", "particle_velocity_z", "particle_type",
-               "density", "temperature")
-    _units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s', 'dimensionless',
-              'g/cm**3','K')
-    _negative = (False, False, False, False, True, True, True, False, False,
-                 False)
-    ds = fake_particle_ds(fields=_fields, units=_units, negative=_negative,
-                          npart=16 ** 2, length_unit=1.0)
+               "particle_velocity_y", "particle_velocity_z", "particle_type")
+    _units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s', 'dimensionless')
+    ds = fake_random_ds(32, particle_fields=_fields,
+                        particle_field_units=_units, particles=16)
 
     ds.add_particle_filter('DM')
-
     ds.add_field(("gas", "DM_cell_mass"), units="g", function=DM_in_cell_mass,
                  sampling_type='cell')
 
@@ -293,7 +289,7 @@ def test_profile_zero_weight():
 
     profile = yt.create_profile(sp,
                                 [("gas", "density")],
-                                [("gas", "temperature")],
+                                [("gas", "radial_velocity")],
                                 weight_field=("gas", "DM_cell_mass"))
 
-    assert not np.any(np.isnan(profile['gas', 'temperature']))
+    assert not np.any(np.isnan(profile['gas', 'radial_velocity']))
