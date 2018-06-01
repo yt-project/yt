@@ -1146,9 +1146,9 @@ def pixelize_sph_kernel_slice(
                     continue
                 buff[xi, yi] += buff_num[xi, yi] / buff_denom[xi, yi]
 
-@cython.initializedcheck(True)
-@cython.boundscheck(True)
-@cython.wraparound(True)
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
@@ -1162,7 +1162,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, w_j, coeff
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
     cdef np.float64_t qxy, posx_diff, posy_diff, posz_diff
-    cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
+    cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j, ih_j2
     cdef int index, i, j, k
     cdef np.float64_t[:, :, :] buff_num
     cdef np.float64_t[:, :, :] buff_denom
@@ -1216,6 +1216,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
             h_j = math.cbrt(h_j3)
             h_j2 = h_j*h_j
             ih_j = 1.0/h_j
+            ih_j2 = ih_j*ih_j
 
             w_j = pmass[j] / pdens[j] / hsml[j]**3
             coeff = w_j * quantity_to_smooth[j]
@@ -1249,7 +1250,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                         # note that yt's kernel functions use a different convention
                         # than the SPLASH paper (following Gadget-2), and qxy is
                         # twice the value of q used in the SPLASH paper
-                        qxy = 2.0 * math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
+                        qxy = 2.0 * (posx_diff + posy_diff + posz_diff) * ih_j2
                         if qxy >= 1:
                             continue
 
