@@ -1146,6 +1146,127 @@ def pixelize_sph_kernel_slice(
                     continue
                 buff[xi, yi] += buff_num[xi, yi] / buff_denom[xi, yi]
 
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
+        np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
+        np.float64_t[:] hsml, np.float64_t[:] pmass,
+        np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth,
+        bounds, kernel_name="cubic",
+        use_normalization=True):
+
+    cdef np.intp_t xsize, ysize, zsize
+    cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, w_j, coeff
+    cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
+    cdef np.float64_t qxy, posx_diff, posy_diff, posz_diff
+    cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
+    cdef int index, i, j, k
+    cdef np.float64_t[:, :] buff_num
+    cdef np.float64_t[:, :] buff_denom
+
+    xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[3]
+
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+    z_min = bounds[4]
+    z_max = bounds[5]
+
+    dx = (x_max - x_min) / xsize
+    dy = (y_max - y_min) / ysize
+    dz = (z_max - z_min) / zsize
+    idx = 1.0/dx
+    idy = 1.0/dy
+    idz = 1.0/dz
+
+    # TODO: change this to grab my kernel. Essentially, need to improve my 
+    # understanding so I know which kernel should go here
+    kernel_func = get_kernel_func(kernel_name)
+    
+    with nogil:
+        for j in prange(0, posx.shape[0]):
+            if j % 1000 == 0:
+                with gil:
+                    PyErr_CheckSignals()
+
+            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
+            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
+            x0 = iclip(x0-1, 0, xsize)
+            x1 = iclip(x1+1, 0, xsize)
+
+            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
+            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
+            y0 = iclip(y0-1, 0, ysize)
+            y1 = iclip(y1+1, 0, ysize)
+
+            z0 = <np.int64_t> ( (posz[j] - hsml[j] - z_min) * idz)
+            z1 = <np.int64_t> ( (posz[j] + hsml[j] - z_min) * idz)
+            z0 = iclip(z0-1, 0, zsize)
+            z1 = iclip(z1+1, 0, zsize)
+
+            h_j3 = fmax(hsml[j]*hsml[j]*hsml[j], dx*dy*dz)
+            h_j = math.cbrt(h_j3)
+            h_j2 = h_j*h_j
+            ih_j = 1.0/h_j
+
+            w_j = pmass[j] / pdens[j] / hsml[j]**3
+            coeff = w_j * quantity_to_smooth[j]
+
+            # Now we know which pixels to deposit onto for this particle,
+            # so loop over them and add this particle's contribution
+
+            for xi in range(x0, x1):
+                x = (xi + 0.5) * dx + x_min
+
+                posx_diff = posx[j] - x
+                posx_diff = posx_diff * posx_diff
+                if posx_diff > 2 * h_j2:
+                    continue
+
+                for yi in range(y0, y1):
+                    y = (yi + 0.5) * dy + y_min
+
+                    posy_diff = posy[j] - y
+                    posy_diff = posy_diff * posy_diff
+                    if posy_diff > 2 * h_j2:
+                        continue
+
+                    for zi in range(z0, z1):
+                        z = (zi + 0.5) * dz + z_min
+
+                        posz_diff = posz[j] - z
+                        posz_diff = posz_diff * posz_diff
+                        if posz_diff > 2 * h_j2:
+                            continue
+
+                        # note that yt's kernel functions use a different convention
+                        # than the SPLASH paper (following Gadget-2), and qxy is
+                        # twice the value of q used in the SPLASH paper
+                        qxy = 2.0 * math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
+                        if qxy >= 1:
+                            continue
+
+                        # see equations 6, 9, and 11 of the SPLASH paper
+                        if use_norm:
+                            buff_num[xi, yi, zi] += coeff * kernel_func(qxy)
+                            buff_denom[xi, yi, zi] += w_j * kernel_func(qxy)
+                        else:
+                            buff[xi, yi, zi] += coeff * kernel_func(qxy)
+
+    if use_norm:
+        # now we can calculate the normalized image buffer we want to 
+        # return, being careful to avoid producing NaNs in the result
+        for xi in range(xsize):
+            for yi in range(ysize):
+                for zi in range(zsize):
+                    if buff_denom[xi, yi, zi] == 0:
+                        continue
+                    buff[xi, yi, zi] += buff_num[xi, yi, zi] / buff_denom[xi, yi, zi]
+
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,
                                np.ndarray[np.float64_t, ndim=1] start_point,
