@@ -137,10 +137,10 @@ def test_octree_cg():
     assert_equal((density_field == 0.0).sum(), 0)
 
 def test_smoothed_covering_grid_2d_dataset():
-    ds = fake_random_ds(64, nprocs=4)
+    ds = fake_random_ds([32, 32, 1], nprocs=4)
     ds.periodicity = (True, True, True)
-    scg = ds.smoothed_covering_grid(1, [0.0, 0.0, 0.0], ds.domain_dimensions)
-    assert_equal(scg['density'].shape, ds.domain_dimensions)
+    scg = ds.smoothed_covering_grid(1, [0.0, 0.0, 0.0], [32, 32, 1])
+    assert_equal(scg['density'].shape, [32, 32, 1])
 
 def test_arbitrary_grid_derived_field():
     def custom_metal_density(field, data):
