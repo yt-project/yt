@@ -1146,9 +1146,9 @@ def pixelize_sph_kernel_slice(
                     continue
                 buff[xi, yi] += buff_num[xi, yi] / buff_denom[xi, yi]
 
-@cython.initializedcheck(False)
-@cython.boundscheck(False)
-@cython.wraparound(False)
+@cython.initializedcheck(True)
+@cython.boundscheck(True)
+@cython.wraparound(True)
 @cython.cdivision(True)
 def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
@@ -1167,7 +1167,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.float64_t[:, :, :] buff_num
     cdef np.float64_t[:, :, :] buff_denom
 
-    xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[3]
+    xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
     buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
     buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
 
@@ -1224,56 +1224,53 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
 
             # Now we know which pixels to deposit onto for this particle,
             # so loop over them and add this particle's contribution
-
-            # BUG: DO NOT SEEM TO BE GETTING THROUGH HERE
             for xi in range(x0, x1):
                 x = (xi + 0.5) * dx + x_min
 
                 posx_diff = posx[j] - x
                 posx_diff = posx_diff * posx_diff
-                #if posx_diff > 2 * h_j2:
-                #    continue
+                if posx_diff > 2 * h_j2:
+                    continue
 
                 for yi in range(y0, y1):
                     y = (yi + 0.5) * dy + y_min
 
                     posy_diff = posy[j] - y
                     posy_diff = posy_diff * posy_diff
-                    #if posy_diff > 2 * h_j2:
-                    #    continue
+                    if posy_diff > 2 * h_j2:
+                        continue
 
                     for zi in range(z0, z1):
                         z = (zi + 0.5) * dz + z_min
 
                         posz_diff = posz[j] - z
                         posz_diff = posz_diff * posz_diff
-                        #if posz_diff > 2 * h_j2:
-                        #    continue
+                        if posz_diff > 2 * h_j2:
+                            continue
 
                         # note that yt's kernel functions use a different convention
                         # than the SPLASH paper (following Gadget-2), and qxy is
                         # twice the value of q used in the SPLASH paper
                         qxy = 2.0 * math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
-                        #if qxy >= 1:
-                        #    continue
+                        if qxy >= 1:
+                            continue
 
                         # see equations 6, 9, and 11 of the SPLASH paper
-                        #if use_norm:
-                        #    buff_num[xi, yi, zi] += coeff * kernel_func(qxy)
-                        #    buff_denom[xi, yi, zi] += w_j * kernel_func(qxy)
-                        #else:
-                            #buff[xi, yi, zi] += coeff * kernel_func(qxy)
-                        buff[xi, yi, zi] = 1.0
+                        if use_norm:
+                            buff_num[xi, yi, zi] += coeff * kernel_func(qxy)
+                            buff_denom[xi, yi, zi] += w_j * kernel_func(qxy)
+                        else:
+                            buff[xi, yi, zi] += coeff * kernel_func(qxy)
 
-    #if use_norm:
-    #    # now we can calculate the normalized image buffer we want to 
-    #    # return, being careful to avoid producing NaNs in the result
-    #    for xi in range(xsize):
-    #        for yi in range(ysize):
-    #            for zi in range(zsize):
-    #                if buff_denom[xi, yi, zi] == 0:
-    #                    continue
-    #                buff[xi, yi, zi] += buff_num[xi, yi, zi] / buff_denom[xi, yi, zi]
+    if use_norm:
+        # now we can calculate the normalized image buffer we want to 
+        # return, being careful to avoid producing NaNs in the result
+        for xi in range(xsize):
+            for yi in range(ysize):
+                for zi in range(zsize):
+                    if buff_denom[xi, yi, zi] == 0:
+                        continue
+                    buff[xi, yi, zi] += buff_num[xi, yi, zi] / buff_denom[xi, yi, zi]
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,
