@@ -1185,8 +1185,6 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     idy = 1.0/dy
     idz = 1.0/dz
 
-    # TODO: change this to grab my kernel. Essentially, need to improve my 
-    # understanding so I know which kernel should go here
     kernel_func = get_kernel_func(kernel_name)
 
     # define this to avoid using the use_normalization python object
