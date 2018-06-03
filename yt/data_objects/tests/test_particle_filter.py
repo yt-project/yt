@@ -1,5 +1,4 @@
 from __future__ import print_function
-import numpy as np
 from yt.testing import assert_equal, fake_random_ds
 from yt.data_objects.particle_filters import add_particle_filter, particle_filter
 from yt.utilities.exceptions import YTIllDefinedFilter, \
@@ -111,14 +110,13 @@ def test_particle_filter_1():
 def test_particle_filter_2():
     @particle_filter(filtered_type='all', requires=['particle_mass'])
     def filter1(pfilter, data):
-        filter_field = (pfilter.filtered_type, "particle_mass")
         return data
 
     ds = fake_random_ds(16, nprocs=8, particles=16)
     ds.add_particle_filter('filter1')
 
     ad = ds.all_data()
-    with assert_raises(YTIllDefinedFilter) as ex:
+    with assert_raises(YTIllDefinedFilter):
         ad['filter1', 'particle_mass'].shape[0]
 
     @particle_filter(filtered_type='all', requires=['particle_mass'])
