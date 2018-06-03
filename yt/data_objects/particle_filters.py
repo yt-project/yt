@@ -52,13 +52,15 @@ class ParticleFilter(object):
             if f[0] != self.filtered_type: continue
             if tr.shape != filter.shape and tr.shape[0] != filter.shape[0]:
                 raise YTIllDefinedFilter(self, tr.shape, filter.shape)
-            elif filter.size == 0:
-                # Filtering empty set.  This keeps our dimensions correct.
-                # Otherwise we end up with out-of-axis and shape problems.
-                d = tr.copy() 
-            elif len(tr.shape) > len(filter.shape):
-                # Filter must always be 1D
-                d = tr[filter,:]
+            # I do not think these conditions will ever be true,
+            # am I good to remove them?
+            # elif filter.size == 0:
+            #     # Filtering empty set.  This keeps our dimensions correct.
+            #     # Otherwise we end up with out-of-axis and shape problems.
+            #     d = tr.copy()
+            # elif len(tr.shape) > len(filter.shape):
+            #     # Filter must always be 1D
+            #     d = tr[filter,:]
             else:
                 d = tr[filter]
             dobj.field_data[self.name, f[1]] = d
