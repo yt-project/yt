@@ -977,8 +977,9 @@ def pixelize_sph_kernel_projection(
     if weight_field is not None:
         _weight_field = weight_field
 
+    # we find the x and y range over which we have pixels and we find how many
+    # pixels we have in each dimension
     xsize, ysize = buff.shape[0], buff.shape[1]
-
     x_min = bounds[0]
     x_max = bounds[1]
     y_min = bounds[2]
@@ -986,6 +987,7 @@ def pixelize_sph_kernel_projection(
 
     dx = (x_max - x_min) / xsize
     dy = (y_max - y_min) / ysize
+
     idx = 1.0/dx
     idy = 1.0/dy
 
@@ -994,10 +996,13 @@ def pixelize_sph_kernel_projection(
     cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
 
     with nogil:
+        # loop through every particle
         for j in prange(0, posx.shape[0]):
             if j % 1000 == 0:
                 with gil:
                     PyErr_CheckSignals()
+
+            # here we find the pixels which this particle contributes to
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
             x0 = iclip(x0-1, 0, xsize)
@@ -1008,23 +1013,24 @@ def pixelize_sph_kernel_projection(
             y0 = iclip(y0-1, 0, ysize)
             y1 = iclip(y1+1, 0, ysize)
 
+            # we set the smoothing length squared with lower limit of the pixel
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             ih_j2 = 1.0/h_j2
-            
+
             w_j = pmass[j] / pdens[j] / hsml[j]**3
             if weight_field is None:
                 coeff = w_j * hsml[j] * quantity_to_smooth[j]
             else:
                 coeff = w_j * hsml[j] * quantity_to_smooth[j] * _weight_field[j]
 
-            # Now we know which pixels to deposit onto for this particle,
-            # so loop over them and add this particle's contribution
-
+            # found pixels we deposit on, loop through those pixels
             for xi in range(x0, x1):
+                # we use the centre of the pixel to calculate contribution
                 x = (xi + 0.5) * dx + x_min
 
                 posx_diff = posx[j] - x
                 posx_diff = posx_diff * posx_diff
+
                 if posx_diff > h_j2: continue
 
                 for yi in range(y0, y1):
@@ -1039,6 +1045,7 @@ def pixelize_sph_kernel_projection(
                         continue
 
                     # see equation 32 of the SPLASH paper
+                    # now we just use the kernel projection
                     buff[xi, yi] +=  coeff * itab.interpolate(qxy2)
 
 @cython.initializedcheck(False)
@@ -1054,6 +1061,7 @@ def pixelize_sph_kernel_slice(
         bounds, kernel_name="cubic",
         use_normalization=True):
 
+    # similar method to pixelize_sph_kernel_projection
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
     cdef np.int64_t xi, yi, x0, x1, y0, y1
