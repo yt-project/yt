@@ -1,9 +1,12 @@
 from __future__ import print_function
-from yt.testing import assert_equal, fake_random_ds
+
+from nose.tools import assert_raises
+
 from yt.data_objects.particle_filters import add_particle_filter, particle_filter
+from yt.testing import assert_equal, fake_random_ds
 from yt.utilities.exceptions import YTIllDefinedFilter, \
     YTIllDefinedParticleFilter
-from nose.tools import assert_raises
+
 
 def test_add_particle_filter():
     """Test particle filters created via add_particle_filter
@@ -82,7 +85,7 @@ def test_add_particle_filter_overriding():
     # Restore the original warning function
     mylog.warning = warning
 
-def test_particle_filter_1():
+def test_particle_filter_decorator():
     """Test the particle_filter decorator"""
 
     @particle_filter(filtered_type='all', requires=['particle_mass'])
@@ -107,7 +110,7 @@ def test_particle_filter_1():
     assert 'my_stars' in ds.particle_types
     assert ('deposit', 'my_stars_cic') in ds.derived_field_list
 
-def test_particle_filter_2():
+def test_particle_filter_exceptions():
     @particle_filter(filtered_type='all', requires=['particle_mass'])
     def filter1(pfilter, data):
         return data
