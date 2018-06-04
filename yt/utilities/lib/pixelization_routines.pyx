@@ -1023,7 +1023,7 @@ def pixelize_sph_kernel_projection(
             else:
                 coeff = w_j * hsml[j] * quantity_to_smooth[j] * _weight_field[j]
 
-            # loo through pixels we deposit on, loop through those pixels
+            # found pixels we deposit on, loop through those pixels
             for xi in range(x0, x1):
                 # we use the centre of the pixel to calculate contribution
                 x = (xi + 0.5) * dx + x_min
