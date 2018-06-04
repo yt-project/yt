@@ -20,6 +20,7 @@ import numpy as np
 import stat
 import weakref
 from collections import defaultdict
+from glob import glob
 
 from yt.extern.six import string_types
 from yt.funcs import \
@@ -62,11 +63,19 @@ class RAMSESDomainFile(object):
 
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
+        rootdir = ds.root_folder
         basedir = os.path.abspath(
             os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (
             basedir, num, domain_id)
         part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
+        if ds.num_groups > 0:
+            igroup = ((domain_id-1) // ds.group_size) + 1
+            basename = "%s/group_%05i/%%s_%s.out%05i" % (
+                rootdir, igroup, num, domain_id)
+        else:
+            basename = "%s/%%s_%s.out%05i" % (
+                basedir, num, domain_id)
         for t in ['grav', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
         self._part_file_descriptor = part_file_descriptor
@@ -83,7 +92,7 @@ class RAMSESDomainFile(object):
             # self._add_ftype(fh.ftype)
 
         # Autodetect particle files
-        particle_handlers = [PH(ds, domain_id)
+        particle_handlers = [PH(ds, self)
                              for PH in get_particle_handlers()
                              if PH.any_exist(ds)]
         self.particle_handlers = particle_handlers
@@ -376,12 +385,29 @@ class RAMSESDataset(Dataset):
         cosmological: If set to None, automatically detect cosmological simulation. If a boolean, force
                       its value.
         '''
+
         self._fields_in_file = fields
         # By default, extra fields have not triggered a warning
         self._warned_extra_fields = defaultdict(lambda: False)
         self._extra_particle_fields = extra_particle_fields
         self.force_cosmological = cosmological
         self._bbox = bbox
+
+        # Infer if the output is organized in groups
+        root_folder, group_folder = os.path.split(os.path.split(filename)[0])
+
+        if group_folder == 'group_00001':
+            # Count the number of groups
+            # note: we exclude the unlikely event that one of the group is actually a file
+            # instad of a folder
+            self.num_groups = len(
+                filter(lambda e: os.path.isdir(e),
+                       glob(os.path.join(root_folder, 'group_?????'))))
+            self.root_folder = root_folder
+        else:
+            self.root_folder = os.path.split(filename)[0]
+            self.num_groups = 0
+
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
 
@@ -476,29 +502,33 @@ class RAMSESDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # We now execute the same logic Oliver's code does
         rheader = {}
-        f = open(self.parameter_filename)
-        def read_rhs(cast):
+
+        def read_rhs(f, cast):
             line = f.readline().replace('\n', '')
             p, v = line.split("=")
             rheader[p.strip()] = cast(v.strip())
-        for i in range(6): read_rhs(int)
-        f.readline()
-        for i in range(11): read_rhs(float)
-        f.readline()
-        read_rhs(str)
-        # This next line deserves some comment.  We specify a min_level that
-        # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
-        # one-indexed, but it also does refer to the *oct* dimensions -- so
-        # this means that a levelmin of 1 would have *1* oct in it.  So a
-        # levelmin of 2 would have 8 octs at the root mesh level.
-        self.min_level = rheader['levelmin'] - 1
-        # Now we read the hilbert indices
-        self.hilbert_indices = {}
-        if rheader['ordering type'] == "hilbert":
-            f.readline() # header
-            for n in range(rheader['ncpu']):
-                dom, mi, ma = f.readline().split()
-                self.hilbert_indices[int(dom)] = (float(mi), float(ma))
+
+        with open(self.parameter_filename) as f:
+            for i in range(6):
+                read_rhs(f, int)
+            f.readline()
+            for i in range(11):
+                read_rhs(f, float)
+            f.readline()
+            read_rhs(f, str)
+            # This next line deserves some comment.  We specify a min_level that
+            # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
+            # one-indexed, but it also does refer to the *oct* dimensions -- so
+            # this means that a levelmin of 1 would have *1* oct in it.  So a
+            # levelmin of 2 would have 8 octs at the root mesh level.
+            self.min_level = rheader['levelmin'] - 1
+            # Now we read the hilbert indices
+            self.hilbert_indices = {}
+            if rheader['ordering type'] == "hilbert":
+                f.readline() # header
+                for n in range(rheader['ncpu']):
+                    dom, mi, ma = f.readline().split()
+                    self.hilbert_indices[int(dom)] = (float(mi), float(ma))
 
         if rheader['ordering type'] != 'hilbert' and self.bbox:
             raise NotImplementedError(
@@ -533,8 +563,6 @@ class RAMSESDataset(Dataset):
             self.omega_matter = rheader["omega_m"]
             self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level - 1
-        f.close()
-
 
         if self.cosmological_simulation == 0:
             self.current_time = self.parameters['time']
@@ -551,7 +579,8 @@ class RAMSESDataset(Dataset):
 
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
 
-
+        if self.num_groups > 0:
+            self.group_size = rheader['ncpu'] // self.num_groups
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

@@ -1,10 +1,13 @@
 import os
 from yt.utilities.cython_fortran_utils import FortranFile
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, PY2
 from yt.funcs import mylog
 from yt.config import ytcfg
 
 from .io import _read_part_file_descriptor
+
+if PY2:
+    FileNotFoundError = IOError
 
 PARTICLE_HANDLERS = set()
 PRESENT_PART_FILES = {}
@@ -53,7 +56,7 @@ class ParticleFileHandler(object):
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
     local_particle_count = None  # The number of particle in the domain
 
-    def __init__(self, ds, domain_id):
+    def __init__(self, ds, domain):
         '''
         Initalize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
@@ -63,18 +66,32 @@ class ParticleFileHandler(object):
         need in the inherited class.
         '''
         self.ds = ds
-        self.domain_id = domain_id
+        self.domain = domain
+        self.domain_id = domain.domain_id
         basename = os.path.abspath(
-              os.path.dirname(ds.parameter_filename))
+              ds.root_folder)
         iout = int(
             os.path.basename(ds.parameter_filename)
             .split(".")[0].
             split("_")[1])
-        icpu = domain_id
 
-        self.fname = os.path.join(
-            basename,
-            self.fname.format(iout=iout, icpu=icpu))
+        if ds.num_groups > 0:
+            igroup = ((domain.domain_id-1) // ds.group_size) + 1
+            full_path = os.path.join(
+                basename,
+                'group_{:05d}'.format(igroup),
+                self.fname.format(iout=iout, icpu=domain.domain_id))
+        else:
+            full_path = os.path.join(
+                basename,
+                self.fname.format(iout=iout, icpu=domain.domain_id))
+
+        if os.path.exists(full_path):
+            self.fname = full_path
+        else:
+            raise FileNotFoundError(
+                'Could not find particle file (type: %s). Tried %s' %
+                (self.ptype, full_path))
 
         if self.file_descriptor is not None:
             self.file_descriptor = os.path.join(

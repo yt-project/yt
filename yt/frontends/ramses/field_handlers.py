@@ -1,12 +1,16 @@
 import os
 from yt.utilities.cython_fortran_utils import FortranFile
 import glob
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, PY2
 from yt.funcs import mylog
 from yt.config import ytcfg
 
 from .io import _read_fluid_file_descriptor
 from .io_utils import read_offset
+
+
+if PY2:
+    FileNotFoundError = IOError
 
 
 FIELD_HANDLERS = set()
@@ -68,15 +72,29 @@ class FieldFileHandler(object):
         self.domain_id = domain.domain_id
         ds = domain.ds
         basename = os.path.abspath(
-              os.path.dirname(ds.parameter_filename))
+              ds.root_folder)
         iout = int(
             os.path.basename(ds.parameter_filename)
             .split(".")[0].
             split("_")[1])
 
-        self.fname = os.path.join(
-            basename,
-            self.fname.format(iout=iout, icpu=domain.domain_id))
+        if ds.num_groups > 0:
+            igroup = ((domain.domain_id-1) // ds.group_size) + 1
+            full_path = os.path.join(
+                basename,
+                'group_{:05d}'.format(igroup),
+                self.fname.format(iout=iout, icpu=domain.domain_id))
+        else:
+            full_path = os.path.join(
+                basename,
+                self.fname.format(iout=iout, icpu=domain.domain_id))
+
+        if os.path.exists(full_path):
+            self.fname = full_path
+        else:
+            raise FileNotFoundError(
+                'Could not find fluid file (type: %s). Tried %s' %
+                (self.ftype, full_path))
 
         if self.file_descriptor is not None:
             self.file_descriptor = os.path.join(
