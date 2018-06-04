@@ -398,7 +398,11 @@ class RAMSESDataset(Dataset):
 
         if group_folder == 'group_00001':
             # Count the number of groups
-            self.num_groups = len(glob(os.path.join(root_folder, 'group_?????')))
+            # note: we exclude the unlikely event that one of the group is actually a file
+            # instad of a folder
+            self.num_groups = len(
+                filter(lambda e: os.path.isdir(e),
+                       glob(os.path.join(root_folder, 'group_?????'))))
             self.root_folder = root_folder
         else:
             self.root_folder = os.path.split(filename)[0]
@@ -577,8 +581,6 @@ class RAMSESDataset(Dataset):
 
         if self.num_groups > 0:
             self.group_size = rheader['ncpu'] // self.num_groups
-
-
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
