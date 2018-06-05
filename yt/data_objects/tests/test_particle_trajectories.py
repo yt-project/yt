@@ -1,11 +1,15 @@
 import glob
 import os
+import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     GenericArrayTest
+from yt.testing import fake_particle_ds
+from yt.utilities.exceptions import YTIllDefinedParticleData
+
 
 def setup():
     ytcfg["yt","__withintesting"] = "True"
@@ -43,3 +47,22 @@ def test_etc_traj():
         def field_func(name):
             return traj[field]
         yield GenericArrayTest(ds, field_func, args=[field])
+
+def test_uniqueness():
+    n_particles = 2
+    n_steps = 2
+    ids = np.arange(n_particles, dtype=int) % (n_particles//2)
+    data = {'particle_index': ids}
+    fields = ['particle_position_x', 'particle_position_y', 'particle_position_z', 'particle_index']
+    negative = [False, False, False, False]
+    units = ['cm', 'cm', 'cm', '1']
+
+    ts = DatasetSeries([fake_particle_ds(fields=fields, negative=negative, units=units,
+                                         npart=n_particles, data=data)
+                        for i in range(n_steps)])
+    try:
+        traj = ts.particle_trajectories([0])
+    except YTIllDefinedParticleData:
+        pass
+    else:
+        assert False
