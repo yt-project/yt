@@ -396,8 +396,14 @@ class YTDataContainer(object):
     def _generate_sph_field(self, field):
         finfo = self.ds._get_field_info(*field)
 
+        # I think the major issues with this lay in the first lines, with not
+        # enough checks like
+        # do we have the field we are smoothing over?
+        # and then accessing the particles from the ds - there is probably
+        # a better way of doing this
+
         # accessing the data needed. io should not be hardcoded. not sure
-        # of a better way to do this
+        # of a better way to do this - need to seek a bit of direction for this
         ad = self.ds.all_data()
         px = ad[('io','particle_position_x')].in_units('cm')
         py = ad[('io','particle_position_y')].in_units('cm')
@@ -407,12 +413,12 @@ class YTDataContainer(object):
         pdens = ad[('io','density')].in_units('g/cm**3')
         field_quant = ad[('io',field[1])].in_units(finfo.units)
         
-        # empty array to store the results
-        rv = self.ds.arr(np.empty(shape=(self.ActiveDimensions[0],
+        # creating an empty array to store the interpolated field
+        rv = YTArray(np.empty(shape=(self.ActiveDimensions[0],
             self.ActiveDimensions[1], self.ActiveDimensions[2]), dtype="float64"), finfo.units)
 
-        # setting up the bounds
-        bounds = self.ds.arr(np.empty(6, dtype="float64"), 'cm')
+        # setting up the bounds, this _should_ be neater
+        bounds = YTArray(np.empty(6, dtype="float64"), 'cm')
         bounds[0] = self.left_edge[0]
         bounds[2] = self.left_edge[1]
         bounds[4] = self.left_edge[2]
@@ -420,6 +426,7 @@ class YTDataContainer(object):
         bounds[3] = self.right_edge[1]
         bounds[5] = self.right_edge[2]
 
+        # calling the cython function to interpolate the field onto the grid
         pixelize_sph_kernel_arbitrary_grid(rv,px,py,pz,hsml,pmass,pdens,field_quant,bounds)
 
         return rv
