@@ -396,17 +396,33 @@ class YTDataContainer(object):
     def _generate_sph_field(self, field):
         finfo = self.ds._get_field_info(*field)
 
+        # accessing the data needed. io should not be hardcoded. not sure
+        # of a better way to do this
         ad = self.ds.all_data()
         px = ad[('io','particle_position_x')].in_units('cm')
         py = ad[('io','particle_position_y')].in_units('cm')
         pz = ad[('io','particle_position_z')].in_units('cm')
-        field_quant = ad[('io',field[1])]
+        hsml = ad[('io','smoothing_length')].in_units('cm')
+        pmass = ad[('io','particle_mass')].in_units('g')
+        pdens = ad[('io','density')].in_units('g/cm**3')
+        field_quant = ad[('io',field[1])].in_units(finfo.units)
         
-        print(self.ActiveDimensions)
-        #rv = self.ds.arr(np.empty(shape=(size), dtype="float64"), finfo.units)
-        #pixelize_sph_kernel_arbitrary_grid(a,x,y,z,hsml,pmass,pdens,pmass,np.array([0.0,1.0,0.0,1.0,0.0,1.0]))
+        # empty array to store the results
+        rv = self.ds.arr(np.empty(shape=(self.ActiveDimensions[0],
+            self.ActiveDimensions[1], self.ActiveDimensions[2]), dtype="float64"), finfo.units)
 
-        return np.array([1])
+        # setting up the bounds
+        bounds = self.ds.arr(np.empty(6, dtype="float64"), 'cm')
+        bounds[0] = self.left_edge[0]
+        bounds[1] = self.left_edge[1]
+        bounds[2] = self.left_edge[2]
+        bounds[3] = self.right_edge[0]
+        bounds[4] = self.right_edge[1]
+        bounds[5] = self.right_edge[2]
+
+        pixelize_sph_kernel_arbitrary_grid(rv,px,py,pz,hsml,pmass,pdens,field_quant,bounds)
+
+        return rv
 
     def _generate_particle_field(self, field):
         # First we check the validator
