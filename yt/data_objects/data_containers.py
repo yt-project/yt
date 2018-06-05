@@ -71,6 +71,8 @@ from yt.extern.six import add_metaclass, string_types
 from yt.units.yt_array import uconcatenate
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
+from yt.utilities.lib.pixelization_routines import \
+    pixelize_sph_kernel_arbitrary_grid
 
 data_object_registry = {}
 
@@ -391,14 +393,38 @@ class YTDataContainer(object):
             rv = uconcatenate(outputs)
         return rv
 
+    def _generate_sph_field(self, field):
+        finfo = self.ds._get_field_info(*field)
+
+        ad = self.ds.all_data()
+        px = ad[('io','particle_position_x')].in_units('cm')
+        py = ad[('io','particle_position_y')].in_units('cm')
+        pz = ad[('io','particle_position_z')].in_units('cm')
+        field_quant = ad[('io',field[1])]
+        
+        print(self.ActiveDimensions)
+        #rv = self.ds.arr(np.empty(shape=(size), dtype="float64"), finfo.units)
+        #pixelize_sph_kernel_arbitrary_grid(a,x,y,z,hsml,pmass,pdens,pmass,np.array([0.0,1.0,0.0,1.0,0.0,1.0]))
+
+        return np.array([1])
+
     def _generate_particle_field(self, field):
         # First we check the validator
         ftype, fname = field
+
         if self._current_chunk is None or \
            self._current_chunk.chunk_type != "spatial":
             gen_obj = self
         else:
             gen_obj = self._current_chunk.objs[0]
+        
+        is_sph_field = field[0] in 'gas'
+        if hasattr(self.ds, '_sph_ptype'):
+            is_sph_field |= field[0] in self.ds._sph_ptype
+        
+        if(is_sph_field):
+            return self._generate_sph_field(field)
+
         try:
             finfo = self.ds._get_field_info(*field)
             finfo.check_available(gen_obj)
