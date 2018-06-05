@@ -1,6 +1,8 @@
 import glob
 import os
 import numpy as np
+from numpy.testing import \
+    assert_raises
 
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
@@ -60,9 +62,5 @@ def test_uniqueness():
     ts = DatasetSeries([fake_particle_ds(fields=fields, negative=negative, units=units,
                                          npart=n_particles, data=data)
                         for i in range(n_steps)])
-    try:
-        traj = ts.particle_trajectories([0])
-    except YTIllDefinedParticleData:
-        pass
-    else:
-        assert False
+
+    assert_raises(YTIllDefinedParticleData, ts.particle_trajectories, [0])
