@@ -402,7 +402,7 @@ class YTDataContainer(object):
         px = ad[('io','particle_position_x')].in_units('cm')
         py = ad[('io','particle_position_y')].in_units('cm')
         pz = ad[('io','particle_position_z')].in_units('cm')
-        hsml = ad[('io','smoothing_length')].in_units('cm')
+        hsml = ad[('io','smoothing_length')].in_units('cm')*10.0
         pmass = ad[('io','particle_mass')].in_units('g')
         pdens = ad[('io','density')].in_units('g/cm**3')
         field_quant = ad[('io',field[1])].in_units(finfo.units)
@@ -414,10 +414,10 @@ class YTDataContainer(object):
         # setting up the bounds
         bounds = self.ds.arr(np.empty(6, dtype="float64"), 'cm')
         bounds[0] = self.left_edge[0]
-        bounds[1] = self.left_edge[1]
-        bounds[2] = self.left_edge[2]
-        bounds[3] = self.right_edge[0]
-        bounds[4] = self.right_edge[1]
+        bounds[2] = self.left_edge[1]
+        bounds[4] = self.left_edge[2]
+        bounds[1] = self.right_edge[0]
+        bounds[3] = self.right_edge[1]
         bounds[5] = self.right_edge[2]
 
         pixelize_sph_kernel_arbitrary_grid(rv,px,py,pz,hsml,pmass,pdens,field_quant,bounds)

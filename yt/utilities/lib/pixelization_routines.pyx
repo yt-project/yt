@@ -1146,8 +1146,8 @@ def pixelize_sph_kernel_slice(
                     continue
                 buff[xi, yi] += buff_num[xi, yi] / buff_denom[xi, yi]
 
-@cython.initializedcheck(False)
-@cython.boundscheck(False)
+@cython.initializedcheck(True)
+@cython.boundscheck(True)
 @cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
@@ -1190,7 +1190,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     # define this to avoid using the use_normalization python object
     # in the tight loop
     cdef np.intp_t use_norm = int(use_normalization)
-    
+
     with nogil:
         for j in prange(0, posx.shape[0]):
             if j % 1000 == 0:
