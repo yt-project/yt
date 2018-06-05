@@ -124,7 +124,7 @@ class ParticleTrajectories(object):
                 try:
                     output_field[indices, i] = pfields[field]
                 except ValueError:
-                    raise YTIllDefinedParticleData('The dataset contains duplicate particle index')
+                    raise YTIllDefinedParticleData("This dataset contains duplicate particle indices!")
             self.field_data[field] = array_like_field(
                 dd_first, output_field.copy(), fds[field])
             self.particle_fields.append(field)
