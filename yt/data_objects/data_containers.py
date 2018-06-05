@@ -23,7 +23,6 @@ import shelve
 from collections import defaultdict
 from contextlib import contextmanager
 
-from yt.data_objects.particle_io import particle_handler_registry
 from yt.fields.derived_field import \
     DerivedField
 from yt.frontends.ytdata.utilities import \
@@ -1978,16 +1977,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
             if default_value is not None:
                 grid[field] = np.ones(grid.ActiveDimensions)*default_value
             grid[field][self._get_point_indices(grid)] = value
-
-    _particle_handler = None
-
-    @property
-    def particles(self):
-        if self._particle_handler is None:
-            self._particle_handler = \
-                particle_handler_registry[self._type_name](self.ds, self)
-        return self._particle_handler
-
 
     def volume(self):
         """
