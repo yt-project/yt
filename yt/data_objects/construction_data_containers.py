@@ -667,6 +667,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if len(fields_to_get) == 0: return
         try:
             fill, gen, part, alias = self._split_fields(fields_to_get)
+
         except NeedsGridType:
             if self._num_ghost_zones == 0:
                 raise RuntimeError(
@@ -675,6 +676,12 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     "with nonzero num_ghost_zones." % self._num_ghost_zones)
             else:
                 raise
+
+        is_sph_field = True
+        if(is_sph_field):
+            self._fill_sph_particles(fields)
+            return
+
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
@@ -901,46 +908,36 @@ class YTArbitraryGrid(YTCoveringGrid):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(dest, fi.units)
 
-    def _generate_sph_field(self, field):
+    def _fill_sph_particles(self, fields):
         # checks that we have the field and gets information
-        finfo = self.ds._get_field_info(*field)
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
 
-        # there is probably something missing or there is a better way to load
-        # the data
-
-        # access our sph type particle
         ptype = self.ds._sph_ptype
 
-        # access the raw data
-        ad = self.ds.all_data()
-        px = ad[(ptype,'particle_position_x')].in_units('cm')
-        py = ad[(ptype,'particle_position_y')].in_units('cm')
-        pz = ad[(ptype,'particle_position_z')].in_units('cm')
-        hsml = ad[(ptype,'smoothing_length')].in_units('cm')*10.0
-        pmass = ad[(ptype,'particle_mass')].in_units('g')
-        pdens = ad[(ptype,'density')].in_units('g/cm**3')
-        field_value = ad[(ptype,field[1])].in_units(finfo.units)
-        
-        # creating a zero array to store the interpolated field
-        buff = YTArray(np.zeros(shape=(self.ActiveDimensions[0],
-                                       self.ActiveDimensions[1],
-                                       self.ActiveDimensions[2]),
-                       dtype="float64"), finfo.units)
+        for field in fields:
+            dest = np.zeros(self.ActiveDimensions, dtype="float64")
+            
+            for chunk in self._data_source.chunks(fields, "io"):
+                px = chunk[(ptype,'particle_position_x')].in_units('cm')
+                py = chunk[(ptype,'particle_position_x')].in_units('cm')
+                pz = chunk[(ptype,'particle_position_x')].in_units('cm')
+                hsml = chunk[(ptype,'smoothing_length')].in_units('cm')*10.0
+                mass = chunk[(ptype,'particle_mass')].in_units('g')
+                dens = chunk[(ptype,'density')].in_units('g/cm**3')
 
-        # setting up the bounds, this _should_ be neater
-        bounds = YTArray(np.empty(6, dtype="float64"), 'cm')
-        bounds[0] = self.left_edge[0]
-        bounds[2] = self.left_edge[1]
-        bounds[4] = self.left_edge[2]
-        bounds[1] = self.right_edge[0]
-        bounds[3] = self.right_edge[1]
-        bounds[5] = self.right_edge[2]
+                bounds = YTArray(np.empty(6, dtype="float64"), 'cm')
+                bounds[2] = self.left_edge[1]
+                bounds[4] = self.left_edge[2]
+                bounds[1] = self.right_edge[0]
+                bounds[3] = self.right_edge[1]
+                bounds[5] = self.right_edge[2]
 
-        # calling the cython function to interpolate the field onto the grid
-        pixelize_sph_kernel_arbitrary_grid(buff,px,py,pz,hsml,pmass,pdens,
-                                           field_value,bounds)
+                pixelize_sph_kernel_arbitrary_grid(dest,px,py,pz,hsml,mass,
+                                                   dens,mass,bounds)
 
-        return buff
+            fi = self.ds._get_field_info(field)
+            self[field] = self.ds.arr(dest, fi.units)
 
 class LevelState(object):
     current_dx = None

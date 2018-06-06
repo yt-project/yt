@@ -400,16 +400,6 @@ class YTDataContainer(object):
             gen_obj = self
         else:
             gen_obj = self._current_chunk.objs[0]
-        
-        is_sph_field = field[0] in 'gas'
-        if hasattr(self.ds, '_sph_ptype'):
-            is_sph_field |= field[0] in self.ds._sph_ptype
-        
-        # only implement if the type is an arbitrary grid
-        if(is_sph_field and type(self)==
-            yt.data_objects.construction_data_containers.YTArbitraryGrid):
-            return self._generate_sph_field(field)
-
         try:
             finfo = self.ds._get_field_info(*field)
             finfo.check_available(gen_obj)
@@ -434,6 +424,7 @@ class YTDataContainer(object):
         else:
             with self._field_type_state(ftype, finfo, gen_obj):
                 rv = self.ds._get_field_info(*field)(gen_obj)
+
         return rv
 
     def _count_particles(self, ftype):
