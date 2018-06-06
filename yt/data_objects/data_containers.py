@@ -1262,7 +1262,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             requested = self._determine_fields(list(set(fd.requested)))
             deps = [d for d in requested if d not in fields_to_get]
             fields_to_get += deps
-        return fields_to_get
+        return sorted(fields_to_get)
 
     def get_data(self, fields=None):
         if self._current_chunk is None:
