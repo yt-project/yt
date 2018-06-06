@@ -676,6 +676,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             else:
                 raise
 
+        is_sph_field = False
         if len(part) > 0:
             # checking if we have a sph particles
             is_sph_field = 'gas' in part[0]
