@@ -65,6 +65,8 @@ from yt.frontends.stream.api import load_uniform_grid
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
 import yt.extern.six as six
+from yt.utilities.lib.pixelization_routines import \
+    pixelize_sph_kernel_arbitrary_grid
 
 class YTStreamline(YTSelectionContainer1D):
     """
@@ -899,6 +901,46 @@ class YTArbitraryGrid(YTCoveringGrid):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(dest, fi.units)
 
+    def _generate_sph_field(self, field):
+        # checks that we have the field and gets information
+        finfo = self.ds._get_field_info(*field)
+
+        # there is probably something missing or there is a better way to load
+        # the data
+
+        # access our sph type particle
+        ptype = self.ds._sph_ptype
+
+        # access the raw data
+        ad = self.ds.all_data()
+        px = ad[(ptype,'particle_position_x')].in_units('cm')
+        py = ad[(ptype,'particle_position_y')].in_units('cm')
+        pz = ad[(ptype,'particle_position_z')].in_units('cm')
+        hsml = ad[(ptype,'smoothing_length')].in_units('cm')*10.0
+        pmass = ad[(ptype,'particle_mass')].in_units('g')
+        pdens = ad[(ptype,'density')].in_units('g/cm**3')
+        field_value = ad[(ptype,field[1])].in_units(finfo.units)
+        
+        # creating a zero array to store the interpolated field
+        buff = YTArray(np.zeros(shape=(self.ActiveDimensions[0],
+                                       self.ActiveDimensions[1],
+                                       self.ActiveDimensions[2]),
+                       dtype="float64"), finfo.units)
+
+        # setting up the bounds, this _should_ be neater
+        bounds = YTArray(np.empty(6, dtype="float64"), 'cm')
+        bounds[0] = self.left_edge[0]
+        bounds[2] = self.left_edge[1]
+        bounds[4] = self.left_edge[2]
+        bounds[1] = self.right_edge[0]
+        bounds[3] = self.right_edge[1]
+        bounds[5] = self.right_edge[2]
+
+        # calling the cython function to interpolate the field onto the grid
+        pixelize_sph_kernel_arbitrary_grid(buff,px,py,pz,hsml,pmass,pdens,
+                                           field_value,bounds)
+
+        return buff
 
 class LevelState(object):
     current_dx = None
