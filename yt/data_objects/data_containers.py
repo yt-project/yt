@@ -394,28 +394,30 @@ class YTDataContainer(object):
         return rv
 
     def _generate_sph_field(self, field):
+        # checks that we have the field and gets information
         finfo = self.ds._get_field_info(*field)
 
-        # I think the major issues with this lay in the first lines, with not
-        # enough checks like
-        # do we have the field we are smoothing over?
-        # and then accessing the particles from the ds - there is probably
-        # a better way of doing this
+        # there is probably something missing or there is a better way to load
+        # the data
 
-        # accessing the data needed. io should not be hardcoded. not sure
-        # of a better way to do this - need to seek a bit of direction for this
+        # access our sph type particle
+        ptype = self.ds._sph_ptype
+
+        # access the raw data
         ad = self.ds.all_data()
-        px = ad[('io','particle_position_x')].in_units('cm')
-        py = ad[('io','particle_position_y')].in_units('cm')
-        pz = ad[('io','particle_position_z')].in_units('cm')
-        hsml = ad[('io','smoothing_length')].in_units('cm')*10.0
-        pmass = ad[('io','particle_mass')].in_units('g')
-        pdens = ad[('io','density')].in_units('g/cm**3')
-        field_quant = ad[('io',field[1])].in_units(finfo.units)
+        px = ad[(ptype,'particle_position_x')].in_units('cm')
+        py = ad[(ptype,'particle_position_y')].in_units('cm')
+        pz = ad[(ptype,'particle_position_z')].in_units('cm')
+        hsml = ad[(ptype,'smoothing_length')].in_units('cm')*10.0
+        pmass = ad[(ptype,'particle_mass')].in_units('g')
+        pdens = ad[(ptype,'density')].in_units('g/cm**3')
+        field_value = ad[(ptype,field[1])].in_units(finfo.units)
         
-        # creating an empty array to store the interpolated field
-        rv = YTArray(np.empty(shape=(self.ActiveDimensions[0],
-            self.ActiveDimensions[1], self.ActiveDimensions[2]), dtype="float64"), finfo.units)
+        # creating a zero array to store the interpolated field
+        buff = YTArray(np.zeros(shape=(self.ActiveDimensions[0],
+                                       self.ActiveDimensions[1],
+                                       self.ActiveDimensions[2]),
+                       dtype="float64"), finfo.units)
 
         # setting up the bounds, this _should_ be neater
         bounds = YTArray(np.empty(6, dtype="float64"), 'cm')
@@ -427,9 +429,10 @@ class YTDataContainer(object):
         bounds[5] = self.right_edge[2]
 
         # calling the cython function to interpolate the field onto the grid
-        pixelize_sph_kernel_arbitrary_grid(rv,px,py,pz,hsml,pmass,pdens,field_quant,bounds)
+        pixelize_sph_kernel_arbitrary_grid(buff,px,py,pz,hsml,pmass,pdens,
+                                           field_value,bounds)
 
-        return rv
+        return buff
 
     def _generate_particle_field(self, field):
         # First we check the validator
