@@ -60,7 +60,7 @@ class RegionExpression(object):
             raise YTDimensionalityError(len(item), self.ds.dimensionality)
         if self.ds.dimensionality != 3:
             # We'll pass on this for the time being.
-            raise RuntimeError
+            raise YTDimensionalityError(self.ds.dimensionality, '3')
 
         # OK, now we need to look at our slices.  How many are a specific
         # coordinate?
