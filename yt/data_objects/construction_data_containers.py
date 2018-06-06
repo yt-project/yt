@@ -920,13 +920,14 @@ class YTArbitraryGrid(YTCoveringGrid):
             
             for chunk in self._data_source.chunks(fields, "io"):
                 px = chunk[(ptype,'particle_position_x')].in_units('cm')
-                py = chunk[(ptype,'particle_position_x')].in_units('cm')
-                pz = chunk[(ptype,'particle_position_x')].in_units('cm')
+                py = chunk[(ptype,'particle_position_y')].in_units('cm')
+                pz = chunk[(ptype,'particle_position_z')].in_units('cm')
                 hsml = chunk[(ptype,'smoothing_length')].in_units('cm')*10.0
                 mass = chunk[(ptype,'particle_mass')].in_units('g')
                 dens = chunk[(ptype,'density')].in_units('g/cm**3')
 
                 bounds = YTArray(np.empty(6, dtype="float64"), 'cm')
+                bounds[0] = self.left_edge[0]
                 bounds[2] = self.left_edge[1]
                 bounds[4] = self.left_edge[2]
                 bounds[1] = self.right_edge[0]
