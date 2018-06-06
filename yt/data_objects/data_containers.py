@@ -405,7 +405,9 @@ class YTDataContainer(object):
         if hasattr(self.ds, '_sph_ptype'):
             is_sph_field |= field[0] in self.ds._sph_ptype
         
-        if(is_sph_field):
+        # only implement if the type is an arbitrary grid
+        if(is_sph_field and type(self)==
+            yt.data_objects.construction_data_containers.YTArbitraryGrid):
             return self._generate_sph_field(field)
 
         try:
