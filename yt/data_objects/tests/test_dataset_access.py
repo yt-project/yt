@@ -143,7 +143,6 @@ def test_ray_from_r():
     ray8 = LineBuffer(ds, [0.1, 0.2, 0.3], [0.5, 0.4, 0.6], 500)
     assert_equal(ray7["density"], ray8["density"])
 
-
 def test_ortho_ray_from_r():
     ds = fake_amr_ds(fields = ["density"])
     ray1 = ds.r[:,0.3,0.2]
