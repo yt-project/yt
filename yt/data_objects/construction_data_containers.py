@@ -917,7 +917,7 @@ class YTArbitraryGrid(YTCoveringGrid):
 
         for field in fields:
             dest = np.zeros(self.ActiveDimensions, dtype="float64")
-            
+
             for chunk in self._data_source.chunks(fields, "io"):
                 px = chunk[(ptype,'particle_position_x')].in_units('cm')
                 py = chunk[(ptype,'particle_position_y')].in_units('cm')

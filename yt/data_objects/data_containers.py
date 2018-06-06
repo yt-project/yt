@@ -394,7 +394,6 @@ class YTDataContainer(object):
     def _generate_particle_field(self, field):
         # First we check the validator
         ftype, fname = field
-
         if self._current_chunk is None or \
            self._current_chunk.chunk_type != "spatial":
             gen_obj = self
@@ -424,7 +423,6 @@ class YTDataContainer(object):
         else:
             with self._field_type_state(ftype, finfo, gen_obj):
                 rv = self.ds._get_field_info(*field)(gen_obj)
-
         return rv
 
     def _count_particles(self, ftype):
