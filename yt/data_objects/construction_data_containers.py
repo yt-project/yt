@@ -667,7 +667,6 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if len(fields_to_get) == 0: return
         try:
             fill, gen, part, alias = self._split_fields(fields_to_get)
-
         except NeedsGridType:
             if self._num_ghost_zones == 0:
                 raise RuntimeError(
@@ -677,12 +676,14 @@ class YTCoveringGrid(YTSelectionContainer3D):
             else:
                 raise
 
-        is_sph_field = True
-        if(is_sph_field):
-            self._fill_sph_particles(fields)
-            return
+        if len(part) > 0:
+            ptype = self.ds._sph_ptype
+            if(ptype in part[0]):
+                self._fill_sph_particles(fields)
+                return
+            else:    
+                self._fill_particles(part)
 
-        if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
             if f.sampling_type == 'particle':
