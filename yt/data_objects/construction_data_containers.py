@@ -681,7 +681,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             if(ptype in part[0]):
                 self._fill_sph_particles(fields)
                 return
-            else:    
+            else:
                 self._fill_particles(part)
 
         if len(fill) > 0: self._fill_fields(fill)
