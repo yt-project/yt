@@ -1115,7 +1115,6 @@ def pixelize_sph_kernel_slice(
 
             # Now we know which pixels to deposit onto for this particle,
             # so loop over them and add this particle's contribution
-
             for xi in range(x0, x1):
                 x = (xi + 0.5) * dx + x_min
 
@@ -1154,8 +1153,8 @@ def pixelize_sph_kernel_slice(
                     continue
                 buff[xi, yi] += buff_num[xi, yi] / buff_denom[xi, yi]
 
-@cython.initializedcheck(True)
-@cython.boundscheck(True)
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
@@ -1176,8 +1175,8 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.float64_t[:, :, :] buff_denom
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
-    buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
-    buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
+    buff_num = np.zeros((xsize, ysize, zsize), dtype="float64")
+    buff_denom = np.zeros((xsize, ysize, zsize), dtype="float64")
 
     x_min = bounds[0]
     x_max = bounds[1]
@@ -1228,7 +1227,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
             w_j = pmass[j] / pdens[j] / hsml[j]**3
             coeff = w_j * quantity_to_smooth[j]
 
-            # Now we know which pixels to deposit onto for this particle,
+            # Now we know which voxels to deposit onto for this particle,
             # so loop over them and add this particle's contribution
             for xi in range(x0, x1):
                 x = (xi + 0.5) * dx + x_min
@@ -1269,8 +1268,8 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                             buff[xi, yi, zi] += coeff * kernel_func(qxy)
 
     if use_norm:
-        # now we can calculate the normalized image buffer we want to
-        # return, being careful to avoid producing NaNs in the result
+        # now we can calculate the normalized buffer we want to return, being
+        # careful to avoid producing NaNs in the result
         for xi in range(xsize):
             for yi in range(ysize):
                 for zi in range(zsize):
