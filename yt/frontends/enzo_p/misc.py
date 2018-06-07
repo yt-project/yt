@@ -19,6 +19,14 @@ from yt.funcs import \
     ensure_tuple
 
 def bdecode(block):
+    """
+    Decode a block descriptor to get its left and right sides and level.
+
+    A block string consisting of (0, 1), with optionally one colon. The
+    number of digits after the colon is the refinemenet level. The combined
+    digits denote the binary representation of the left edge.
+    """
+
     if ":" in block:
         level = len(block) - block.find(":") - 1
     else:
@@ -31,9 +39,21 @@ def bdecode(block):
     right /= d
     return level, left, right
 
-def get_block_info(block, min_dim=3):
+def get_block_string_and_dim(block, min_dim=3):
     mybs = block[1:].split("_")
     dim = max(len(mybs), min_dim)
+    return mybs, dim
+
+def get_block_level(block):
+    if ":" in block:
+        l = block.find(":")
+    else:
+        l = len(block)
+    return l
+
+def get_block_info(block, min_dim=3):
+    mybs, dim = get_block_string_and_dim(
+        block, min_dim=min_dim)
     left = np.zeros(dim)
     right = np.ones(dim)
     for i, myb in enumerate(mybs):
@@ -41,26 +61,20 @@ def get_block_info(block, min_dim=3):
     return level, left, right
 
 def get_root_blocks(block, min_dim=3):
-    mybs = block[1:].split("_")
-    dim = max(len(mybs), min_dim)
+    mybs, dim = get_block_string_and_dim(
+        block, min_dim=min_dim)
     nb = np.ones(dim, dtype=int)
     for i, myb in enumerate(mybs):
-        if ":" in myb:
-            s = myb.find(":")
-        else:
-            s = len(myb)
+        s = get_block_level(myb)
         nb[i] = 2**s
     return nb
 
 def get_root_block_id(block, min_dim=3):
-    mybs = block[1:].split("_")
-    dim = max(len(mybs), min_dim)
+    mybs, dim = get_block_string_and_dim(
+        block, min_dim=min_dim)
     rbid = np.zeros(dim, dtype=int)
     for i, myb in enumerate(mybs):
-        if ":" in myb:
-            s = myb.find(":")
-        else:
-            s = len(myb)
+        s = get_block_level(myb)
         rbid[i] = int(myb[:s], 2)
     return rbid
 
@@ -85,6 +99,13 @@ def is_parent(anc_block, desc_block):
     return True
 
 def nested_dict_get(pdict, keys, default=None):
+    """
+    Retrieve a value from a nested dict using a tuple of keys.
+
+    If a is a dict, and a['b'] = {'c': 'd'},
+    then nested_dict_get(a, ('b', 'c')) returns 'd'.
+    """
+
     keys = ensure_tuple(keys)
     val = pdict
     for key in keys:
