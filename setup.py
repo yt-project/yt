@@ -338,10 +338,6 @@ class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython
     # generated C files are included in source distribution.
     # See http://stackoverflow.com/a/18418524/1382869
-    # subclass setuptools source distribution builder to ensure cython
-    # generated C files are included in source distribution and readme
-    # is converted from markdown to restructured text.  See
-    # http://stackoverflow.com/a/18418524/1382869
     def run(self):
         # Make sure the compiled Cython files in the distribution are up-to-date
         from Cython.Build import cythonize
