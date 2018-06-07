@@ -317,6 +317,10 @@ class EnzoPDataset(Dataset):
         self.storage_filename = storage_filename
         Dataset.__init__(self, filename, dataset_type, file_style=file_style,
                          units_override=units_override, unit_system=unit_system)
+        mylog.warning(
+            "The Enzo-P file format is still under development and may " +
+            "change. If loading fails, simulation data will need to be " +
+            "re-generated.")
 
     def _parse_parameter_file(self):
         """

@@ -509,7 +509,7 @@ types will be known as soon as the dataset index is created.
 
 .. code-block:: python
 
-   ds = yt.load("collapse-3d-0000/collapse-3d-0000.block_list")
+   ds = yt.load("ENZOP_DD0140/ENZOP_DD0140.block_list")
    ds.index
    print (ds.particle_types)
    print (ds.r["dark", "particle_position"])
@@ -517,8 +517,9 @@ types will be known as soon as the dataset index is created.
 .. rubric:: Caveats
 
 * The Enzo-P output format is still evolving somewhat as the code is being
-  actively developed. This frontend will be updated as development continues.
-  Currently, only non-cosmological datasets are supported.
+  actively developed. This frontend will be updated as development continues
+  and backward compatibility may occasionally be broken until the file format
+  has converged.
 
 .. _loading-exodusii-data:
 
