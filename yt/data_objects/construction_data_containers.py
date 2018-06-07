@@ -676,12 +676,12 @@ class YTCoveringGrid(YTSelectionContainer3D):
             else:
                 raise
 
+        # checking if we have a sph particles
         is_sph_field = False
-        if len(part) > 0:
-            # checking if we have a sph particles
-            if(hasattr(self.ds, '_sph_ptype')):
-                is_sph_field = self.ds._sph_ptype in part[0]
+        if(hasattr(self.ds, '_sph_ptype')):
+            is_sph_field = self.ds._sph_ptype in part[0]
 
+        if len(part) > 0 and len(alias) == 0:
             if(is_sph_field):
                 self._fill_sph_particles(fields)
             else:
@@ -919,7 +919,6 @@ class YTArbitraryGrid(YTCoveringGrid):
         if len(fields) == 0: return
 
         ptype = self.ds._sph_ptype
-
         for field in fields:
             dest = np.zeros(self.ActiveDimensions, dtype="float64")
 
