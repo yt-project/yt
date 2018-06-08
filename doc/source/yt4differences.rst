@@ -3,7 +3,7 @@
 What's New and Different in yt 4.0?
 ===================================
 
-If you are new to yt, welcome!  If you're coming to yt 3.0 from an older
+If you are new to yt, welcome!  If you're coming to yt 4.0 from an older
 version, however, there may be a few things in this version that are different
 than what you are used to.  We have tried to build compatibility layers to
 minimize disruption to existing scripts, but necessarily things will be
@@ -37,8 +37,8 @@ Cool New Things
 ---------------
 
 
-SPH Data
-^^^^^^^^
+Scatter and gather approach for SPH data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As mentioned, previously operations such as slice, projection and arbitrary grids would smooth the particle data onto the global octree. As this is no longer used, a different approach was required to visualize the SPH data. Using SPLASH as inspiration, SPH smoothing pixelization operations were created using smooting operations via "scatter" and "gather" approaches. We estimate the contributions of a particle to a single pixel by considering the point at the centre of the pixel and using the standard SPH smoothing formula. The heavy lifting in these functions is undertaken by cython functions. 
 
@@ -66,9 +66,6 @@ arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [5, 5, 5],dims=[10, 10, 10])
 density = arbitrary_grid[('gas', 'density')]
 print(density)
 ```
-
-
-
 
 API Changes
 -----------
