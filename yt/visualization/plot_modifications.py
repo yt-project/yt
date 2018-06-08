@@ -1401,8 +1401,10 @@ class TextLabelCallback(PlotCallback):
         # consistent with other text labels in this figure
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+        if self.inset_box_args is not None:
+            kwargs['bbox'] = self.inset_box_args
         label = plot._axes.text(x, y, self.text, transform=self.transform,
-                                bbox=self.inset_box_args, **kwargs)
+                                **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
