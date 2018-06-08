@@ -39,7 +39,7 @@ from yt.utilities.lib.element_mappings cimport \
     Tet2Sampler3D
 from yt.geometry.particle_deposit cimport \
     kernel_func, get_kernel_func
-from cython.parallel cimport range
+from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
 from yt.funcs import get_pbar
 
