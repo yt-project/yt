@@ -80,19 +80,6 @@ def force_array(item, shape):
         else:
             return np.zeros(shape, dtype='bool')
 
-def restore_field_information_state(func):
-    """
-    A decorator that takes a function with the API of (self, grid, field)
-    and ensures that after the function is called, the field_parameters will
-    be returned to normal.
-    """
-    def save_state(self, grid, field=None, *args, **kwargs):
-        old_params = grid.field_parameters
-        grid.field_parameters = self.field_parameters
-        tr = func(self, grid, field, *args, **kwargs)
-        grid.field_parameters = old_params
-        return tr
-    return save_state
 
 def sanitize_weight_field(ds, field, weight):
     field_object = ds._get_field_info(field)
@@ -215,6 +202,10 @@ class YTDataContainer(object):
                 self.center = self.ds.find_max(("gas", "density"))[1]
             elif center.startswith("max_"):
                 self.center = self.ds.find_max(center[4:])[1]
+            elif center.lower() == "min":
+                self.center = self.ds.find_min(("gas", "density"))[1]
+            elif center.startswith("min_"):
+                self.center = self.ds.find_min(center[4:])[1]
         else:
             self.center = self.ds.arr(center, 'code_length', dtype='float64')
         self.set_field_parameter('center', self.center)
@@ -1990,20 +1981,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
                     {'contour_slices_%s' % contour_key: cids})
         return cons, contours
 
-    def paint_grids(self, field, value, default_value=None):
-        """
-        This function paints every cell in our dataset with a given *value*.
-        If default_value is given, the other values for the given in every grid
-        are discarded and replaced with *default_value*.  Otherwise, the field is
-        mandated to 'know how to exist' in the grid.
 
-        Note that this only paints the cells *in the dataset*, so cells in grids
-        with child cells are left untouched.
-        """
-        for grid in self._grids:
-            if default_value is not None:
-                grid[field] = np.ones(grid.ActiveDimensions)*default_value
-            grid[field][self._get_point_indices(grid)] = value
 
     def volume(self):
         """
