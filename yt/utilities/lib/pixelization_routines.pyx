@@ -41,6 +41,7 @@ from yt.geometry.particle_deposit cimport \
     kernel_func, get_kernel_func
 from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
+from yt.funcs import get_pbar
 
 cdef int TABLE_NVALS=512
 
@@ -1198,10 +1199,13 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     # in the tight loop
     cdef np.intp_t use_norm = int(use_normalization)
 
+    pbar = get_pbar("Interpolating particle properties onto 3D grid",
+        posx.shape[0],parallel=True)
     with nogil:
         for j in prange(0, posx.shape[0]):
             if j % 1000 == 0:
                 with gil:
+                    pbar.update(j-1)
                     PyErr_CheckSignals()
 
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
@@ -1267,6 +1271,8 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                         else:
                             buff[xi, yi, zi] += coeff * kernel_func(qxy)
 
+    pbar.update(posx.shape[0]-1)
+
     if use_norm:
         # now we can calculate the normalized buffer we want to return, being
         # careful to avoid producing NaNs in the result
@@ -1276,6 +1282,8 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                     if buff_denom[xi, yi, zi] == 0:
                         continue
                     buff[xi, yi, zi] += buff_num[xi, yi, zi] / buff_denom[xi, yi, zi]
+
+    pbar.finish()
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,
