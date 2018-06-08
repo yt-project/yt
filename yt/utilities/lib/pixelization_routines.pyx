@@ -39,7 +39,7 @@ from yt.utilities.lib.element_mappings cimport \
     Tet2Sampler3D
 from yt.geometry.particle_deposit cimport \
     kernel_func, get_kernel_func
-from cython.parallel cimport prange
+from cython.parallel cimport range
 from cpython.exc cimport PyErr_CheckSignals
 from yt.funcs import get_pbar
 
@@ -998,7 +998,7 @@ def pixelize_sph_kernel_projection(
 
     with nogil:
         # loop through every particle
-        for j in prange(0, posx.shape[0]):
+        for j in range(0, posx.shape[0]):
             if j % 1000 == 0:
                 with gil:
                     PyErr_CheckSignals()
@@ -1093,7 +1093,7 @@ def pixelize_sph_kernel_slice(
     cdef np.intp_t use_norm = int(use_normalization)
 
     with nogil:
-        for j in prange(0, posx.shape[0]):
+        for j in range(0, posx.shape[0]):
             if j % 1000 == 0:
                 with gil:
                     PyErr_CheckSignals()
@@ -1202,7 +1202,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     pbar = get_pbar("Interpolating particle properties onto 3D grid",
         posx.shape[0],parallel=True)
     with nogil:
-        for j in prange(0, posx.shape[0]):
+        for j in range(0, posx.shape[0]):
             if j % 1000 == 0:
                 with gil:
                     pbar.update(j-1)
