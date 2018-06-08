@@ -30,7 +30,9 @@ from yt.analysis_modules.level_sets.clump_handling import \
 from yt.frontends.ytdata.data_structures import \
     YTClumpContainer
 from yt.funcs import \
-    mylog, iterable
+    iterable, \
+    mylog, \
+    validate_width_tuple
 from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity, YTArray, uhstack
 from yt.visualization.image_writer import apply_colormap
@@ -147,17 +149,20 @@ class PlotCallback(object):
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
 
-        x0 = np.array(np.tile(plot.xlim[0],ncoord))
-        x1 = np.array(np.tile(plot.xlim[1],ncoord))
+        x0 = np.array(np.tile(plot.xlim[0].to('code_length'),ncoord))
+        x1 = np.array(np.tile(plot.xlim[1].to('code_length'),ncoord))
         xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
         xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
 
-        y0 = np.array(np.tile(plot.ylim[0],ncoord))
-        y1 = np.array(np.tile(plot.ylim[1],ncoord))
+        y0 = np.array(np.tile(plot.ylim[0].to('code_length'),ncoord))
+        y1 = np.array(np.tile(plot.ylim[1].to('code_length'),ncoord))
         yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
         yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
 
-        ccoord = np.array(coord)
+        try:
+            ccoord = np.array(coord.to('code_length'))
+        except AttributeError:
+            ccoord = np.array(coord)
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
@@ -1604,10 +1609,8 @@ class ParticleCallback(PlotCallback):
     def __call__(self, plot):
         data = plot.data
         if iterable(self.width):
-            w = plot.data.ds.quan(self.width[0], self.width[1]).in_units("code_length")
-            self.width = np.float64(w)
-        elif isinstance(self.width, YTQuantity):
-            self.width = np.float64(plot.data.ds.quan(self.width).in_units("code_length"))
+            validate_width_tuple(self.width)
+            self.width = plot.data.ds.quan(self.width[0], self.width[1])
         # we construct a rectangular prism
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -1638,9 +1641,8 @@ class ParticleCallback(PlotCallback):
         if self.minimum_mass is not None:
             gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
-        px, py = self.convert_to_plot(plot,
-                    [np.array(particle_x[gg][::self.stride]),
-                     np.array(particle_y[gg][::self.stride])])
+        px, py = [particle_x[gg][::self.stride], particle_y[gg][::self.stride]]
+        px, py = self.convert_to_plot(plot, [px, py])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
@@ -1675,8 +1677,8 @@ class ParticleCallback(PlotCallback):
         zax = axis
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
-        LE[zax] = data.center[zax].ndarray_view() - self.width*0.5
-        RE[zax] = data.center[zax].ndarray_view() + self.width*0.5
+        LE[zax] = data.center[zax] - self.width*0.5
+        RE[zax] = data.center[zax] + self.width*0.5
         if self.region is not None \
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
