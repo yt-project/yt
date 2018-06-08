@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.testing import \
     assert_equal, \
-    fake_sph_orientation_ds
+    fake_sph_orientation_ds, fake_sph_grid_ds
 
 def test_point():
     ds = fake_sph_orientation_ds()
@@ -226,3 +226,16 @@ def test_boolean_selection():
     union = ds.union([sph, reg])
 
     assert_equal(union['gas', 'density'].shape[0], 7)
+
+def test_arbitrary_grid():
+    ds = fake_sph_grid_ds()
+
+    # this loads up some sph data in a test grid
+    agrid = ds.arbitrary_grid([0, 0, 0], [3, 3, 3], dims=[3, 3, 3])
+
+    # the field should be equal to the density of a particle in every voxel
+    # which is 1.
+    dens = agrid['gas', 'density']
+    answers = np.ones(shape=(3,3,3))
+
+    assert_equal(dens, answers)

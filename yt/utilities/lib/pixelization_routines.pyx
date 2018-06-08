@@ -1164,7 +1164,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
         bounds, kernel_name="cubic",
-        use_normalization=False):
+        use_normalization=True):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, w_j, coeff
@@ -1207,7 +1207,6 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                 with gil:
                     pbar.update(j-1)
                     PyErr_CheckSignals()
-
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
             x0 = iclip(x0-1, 0, xsize)
