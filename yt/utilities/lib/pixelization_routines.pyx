@@ -1203,7 +1203,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         posx.shape[0],parallel=True)
     with nogil:
         for j in range(0, posx.shape[0]):
-            if j % 1000 == 0:
+            if j % 100000 == 0:
                 with gil:
                     pbar.update(j-1)
                     PyErr_CheckSignals()
