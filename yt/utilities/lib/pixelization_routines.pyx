@@ -999,7 +999,7 @@ def pixelize_sph_kernel_projection(
     with nogil:
         # loop through every particle
         for j in range(0, posx.shape[0]):
-            if j % 1000 == 0:
+            if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
 
@@ -1094,7 +1094,7 @@ def pixelize_sph_kernel_slice(
 
     with nogil:
         for j in range(0, posx.shape[0]):
-            if j % 1000 == 0:
+            if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
