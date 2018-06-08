@@ -48,8 +48,8 @@ def test_get_block_info():
             max_n=max_n, random_state=rs)
         level, left, right = get_block_info(b, min_dim=1)
         assert level == l
-        assert left == n / max_n
-        assert right == (n+1) / max_n
+        assert left == float(n) / max_n
+        assert right == float(n+1) / max_n
 
 def test_root_blocks():
     rs = np.random.RandomState(45652)
