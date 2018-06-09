@@ -28,6 +28,8 @@ def cosmology_get_units(hubble_constant, omega_matter, box_size,
     zip1 = 1.0 + initial_redshift
 
     k = {}
+    # For better agreement with values calculated by Enzo,
+    # adopt the exact constants that are used there.
     k["utim"] = 2.52e17 / np.sqrt(omega_matter) / \
       hubble_constant / zip1**1.5
     k["urho"] = rho_crit_g_cm3_h2 * omega_matter * \

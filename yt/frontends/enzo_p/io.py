@@ -28,7 +28,7 @@ class EnzoPIOHandler(BaseIOHandler):
     _dataset_type = "enzo_p"
     _base = slice(None)
     _field_dtype = "float64"
-    _sep = None
+    _sep = "_"
 
     def __init__(self, *args, **kwargs):
         super(EnzoPIOHandler, self).__init__(*args, **kwargs)
@@ -55,21 +55,11 @@ class EnzoPIOHandler(BaseIOHandler):
                 continue
             # mesh fields are "field <name>"
             if name.startswith("field"):
-                if self._sep is None:
-                    if " " in name:
-                        self._sep = " "
-                    else:
-                        self._sep = "_"
                 _, fname = name.split(self._sep, 1)
                 fields.append(("enzop", fname))
                 dtypes.add(v.dtype)
             # particle fields are "particle <type> <name>"
             else:
-                if self._sep is None:
-                    if " " in name:
-                        self._sep = " "
-                    else:
-                        self._sep = "_"
                 _, ftype, fname = name.split(self._sep, 2)
                 fields.append((ftype, fname))
                 ptypes.add(ftype)
@@ -95,6 +85,7 @@ class EnzoPIOHandler(BaseIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
+        dc = self.ds.domain_center.in_units("code_length").d
         for chunk in chunks: # These should be organized by grid filename
             f = None
             for g in chunk.objs:
@@ -122,8 +113,8 @@ class EnzoPIOHandler(BaseIOHandler):
                       tuple(np.asarray(group.get(pn % ax).value, dtype="=f8")
                             for ax in 'xyz'[:self.ds.dimensionality])
                     for i in range(self.ds.dimensionality, 3):
-                        coords += (self.ds.domain_center[i].d *
-                                   np.ones(g.particle_count[ptype], dtype="f8"),)
+                        coords += \
+                          (dc[i] * np.ones(g.particle_count[ptype], dtype="f8"),)
                     if selector is None:
                         # This only ever happens if the call is made from
                         # _read_particle_coords.
