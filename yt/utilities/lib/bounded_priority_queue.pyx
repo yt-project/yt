@@ -23,7 +23,7 @@ cimport cython
 cdef class BoundedPriorityQueue:
     def __cinit__(self, np.intp_t max_elements):
         self.max_elements = max_elements
-        # mark invalidrecently  values with -1
+        # mark invalid recently  values with -1
         self.heap = np.zeros(max_elements)-1
         self.heap_ptr = &(self.heap[0])
         self.size = 0
@@ -33,6 +33,10 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int max_heapify(self, np.intp_t index) nogil except -1:
+        # this uses the traditional mapping of a heap onto an array with left
+        # and rights
+        # essentially just start at the top and move down making sure everything
+        # gets smaller on the way
         cdef np.intp_t left = 2 * index + 1
         cdef np.intp_t right = 2 * index + 2
         cdef np.intp_t largest = index
@@ -53,6 +57,8 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int propagate_up(self, np.intp_t index) nogil except -1:
+        # while we are maller than a parent, we move the value up through the
+        # array by swapping elements
         while index != 0 and self.heap_ptr[(index - 1) // 2] < self.heap_ptr[index]:
             self.heap_ptr[index], self.heap_ptr[(index - 1) // 2] = self.heap_ptr[(index - 1) // 2], self.heap_ptr[index]
             index = (index - 1) // 2
@@ -64,6 +70,10 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int add(self, np.float64_t val) nogil except -1:
+        # if not at max size append, if at max size, only append if smaller than
+        # the maximum valuei
+        # we append to the top and then we need to sift the value down to
+        # validate the heap
         if self.size == self.max_elements:
             if val < self.heap_ptr[0]:
                 self.extract_max()
@@ -77,6 +87,9 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int heap_append(self, np.float64_t val) nogil except -1:
+        # we add an element to the end of the array, and tell the array the size
+        # has increased. as this might not be the smallest element, we need to
+        # propogate up
         self.heap_ptr[self.size] = val
         self.size += 1
         self.propagate_up(self.size - 1)
@@ -96,6 +109,9 @@ cdef class BoundedPriorityQueue:
             self.max_heapify(0)
         return maximum
 
+    # this function loops through every element in theheap, if any children are
+    # greater than their parents then we return zero, which is an error and the
+    # heap condition is not satisfied
     cdef int validate_heap(self) nogil except -1:
         cdef int i, index
         for i in range(self.size-1, -1, -1):
