@@ -28,8 +28,10 @@ cdef class BoundedPriorityQueue:
         # mark invalid recently  values with -1
         self.heap = np.zeros(max_elements)-1
         self.heap_ptr = &(self.heap[0])
-        self.pids = np.zeros(max_elements)-1
+
+        self.pids = np.zeros(max_elements-1, dtype=int)
         self.pids_ptr = &(self.pids[0])
+
         self.size = 0
 
     @cython.boundscheck(False)
@@ -217,7 +219,9 @@ cdef class BoundedPriorityQueue:
 def validate_pid():
     m = BoundedPriorityQueue(5)
 
-    print("Initial heap:", np.asarray(m.heap))
+    print("#################################")
+    print("Initial heap:", np.asarray(m.heap), " - ", np.asarray(m.pids))
+    print("expected:  ...", 3, 4, 8, 2, 1, 10)
 
     # Add elements to the queue
     elements = [0.1, 0.25, 1.33, 0.5, 3.2, 4.6, 2.0, 0.4, 4.0, .001]
@@ -225,7 +229,7 @@ def validate_pid():
 
     for el, pid in zip(elements, pids):
         m.add_pid(el, pid)
-        print(np.asarray(m.heap))
+        print(np.asarray(m.heap), " - ", np.asarray(m.pids))
 
     print(np.asarray(m.heap))
 
@@ -239,6 +243,7 @@ def validate_pid():
 def validate():
     m = BoundedPriorityQueue(5)
 
+    print("#################################")
     print("Initial heap:", np.asarray(m.heap))
 
     # Add elements to the queue
