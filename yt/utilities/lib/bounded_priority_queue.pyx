@@ -213,6 +213,29 @@ cdef class BoundedPriorityQueue:
                 index = (index - 1) // 2
         return 1
 
+
+def validate_pid():
+    m = BoundedPriorityQueue(5)
+
+    print("Initial heap:", np.asarray(m.heap))
+
+    # Add elements to the queue
+    elements = [0.1, 0.25, 1.33, 0.5, 3.2, 4.6, 2.0, 0.4, 4.0, .001]
+    pids = [1,2,3,4,5,6,7,8,9,10]
+
+    for el, pid in zip(elements, pids):
+        m.add_pid(el, pid)
+        print(np.asarray(m.heap))
+
+    print(np.asarray(m.heap))
+
+    print("Extract maximum:", m.extract_max())
+    print("Extract maximum:", m.extract_max())
+    print("Extract maximum:", m.extract_max())
+    print("Extract maximum:", m.extract_max())
+
+    print(np.asarray(m.heap))
+
 def validate():
     m = BoundedPriorityQueue(5)
 
