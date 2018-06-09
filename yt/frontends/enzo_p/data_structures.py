@@ -23,6 +23,7 @@ import io as io
 import numpy as np
 import os
 import stat
+import warnings
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -317,7 +318,7 @@ class EnzoPDataset(Dataset):
         self.storage_filename = storage_filename
         Dataset.__init__(self, filename, dataset_type, file_style=file_style,
                          units_override=units_override, unit_system=unit_system)
-        mylog.warning(
+        warnings.warn(
             "The Enzo-P file format is still under development and may " +
             "change. If loading fails, simulation data will need to be " +
             "re-generated.")
