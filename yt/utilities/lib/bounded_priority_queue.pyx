@@ -23,13 +23,15 @@ cimport numpy as np
 cimport cython
 
 cdef class BoundedPriorityQueue:
-    def __cinit__(self, np.intp_t max_elements):
+    def __cinit__(self, np.intp_t max_elements, np.intp_t pids=0):
         self.max_elements = max_elements
         # mark invalid recently  values with -1
         self.heap = np.zeros(max_elements)-1
         self.heap_ptr = &(self.heap[0])
-        self.pids = np.zeros(max_elements, dtype=int)-1
-        self.pids_ptr = &(self.pids[0])
+
+        if(pids == 1):
+            self.pids = np.zeros(max_elements, dtype=int)-1
+            self.pids_ptr = &(self.pids[0])
 
         self.size = 0
 
@@ -201,7 +203,7 @@ cdef class BoundedPriorityQueue:
 
 
 def validate_pid():
-    m = BoundedPriorityQueue(5)
+    m = BoundedPriorityQueue(5, True)
 
     print("#################################")
     print("Initial heap:", np.asarray(m.heap), " - ", np.asarray(m.pids))
