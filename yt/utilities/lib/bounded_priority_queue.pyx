@@ -28,7 +28,6 @@ cdef class BoundedPriorityQueue:
         # mark invalid recently  values with -1
         self.heap = np.zeros(max_elements)-1
         self.heap_ptr = &(self.heap[0])
-
         self.pids = np.zeros(max_elements, dtype=int)-1
         self.pids_ptr = &(self.pids[0])
 
@@ -39,10 +38,8 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int max_heapify(self, np.intp_t index) nogil except -1:
-        # this uses the traditional mapping of a heap onto an array with left
-        # and rights
-        # essentially just start at the top and move down making sure everything
-        # gets smaller on the way
+        # start at the top and move down making sure every value gets smaller
+        # on the way, if not, we swap values
         cdef np.intp_t left = 2 * index + 1
         cdef np.intp_t right = 2 * index + 2
         cdef np.intp_t largest = index
@@ -63,10 +60,6 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int max_heapify_pid(self, np.intp_t index) nogil except -1:
-        # this uses the traditional mapping of a heap onto an array with left
-        # and rights
-        # essentially just start at the top and move down making sure everything
-        # gets smaller on the way
         cdef np.intp_t left = 2 * index + 1
         cdef np.intp_t right = 2 * index + 2
         cdef np.intp_t largest = index
@@ -88,8 +81,8 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int propagate_up(self, np.intp_t index) nogil except -1:
-        # while we are maller than a parent, we move the value up through the
-        # array by swapping elements
+        # while a value is large than the parent, we swap with the parent and
+        # move the value up
         while index != 0 and self.heap_ptr[(index - 1) // 2] < self.heap_ptr[index]:
             self.heap_ptr[index], self.heap_ptr[(index - 1) // 2] = self.heap_ptr[(index - 1) // 2], self.heap_ptr[index]
             index = (index - 1) // 2
@@ -101,8 +94,6 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int propagate_up_pid(self, np.intp_t index) nogil except -1:
-        # while we are maller than a parent, we move the value up through the
-        # array by swapping elements
         while index != 0 and self.heap_ptr[(index - 1) // 2] < self.heap_ptr[index]:
             self.heap_ptr[index], self.heap_ptr[(index - 1) // 2] = self.heap_ptr[(index - 1) // 2], self.heap_ptr[index]
             self.pids_ptr[index], self.pids_ptr[(index - 1) // 2] = self.pids_ptr[(index - 1) // 2], self.pids_ptr[index]
@@ -116,9 +107,7 @@ cdef class BoundedPriorityQueue:
     @cython.initializedcheck(False)
     cdef int add(self, np.float64_t val) nogil except -1:
         # if not at max size append, if at max size, only append if smaller than
-        # the maximum valuei
-        # we append to the top and then we need to sift the value down to
-        # validate the heap
+        # the maximum value
         if self.size == self.max_elements:
             if val < self.heap_ptr[0]:
                 self.extract_max()
@@ -132,10 +121,6 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int add_pid(self, np.float64_t val, np.int64_t ind) nogil except -1:
-        # if not at max size append, if at max size, only append if smaller than
-        # the maximum valuei
-        # we append to the top and then we need to sift the value down to
-        # validate the heap
         if self.size == self.max_elements:
             if val < self.heap_ptr[0]:
                 self.extract_max_pid()
@@ -162,9 +147,6 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int heap_append_pid(self, np.float64_t val, np.int64_t ind) nogil except -1:
-        # we add an element to the end of the array, and tell the array the size
-        # has increased. as this might not be the smallest element, we need to
-        # propogate up
         self.heap_ptr[self.size] = val
         self.pids_ptr[self.size] = ind
         self.size += 1
@@ -176,6 +158,8 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef np.float64_t extract_max(self) nogil except -1:
+        # we remove the maximum value from the array, and return what that value
+        # was.
         cdef np.float64_t maximum = self.heap_ptr[0]
         cdef np.float64_t val = self.heap_ptr[self.size-1]
         self.heap_ptr[self.size-1] = -1
@@ -202,10 +186,10 @@ cdef class BoundedPriorityQueue:
             self.max_heapify_pid(0)
         return maximum
 
-    # this function loops through every element in theheap, if any children are
-    # greater than their parents then we return zero, which is an error and the
-    # heap condition is not satisfied
     cdef int validate_heap(self) nogil except -1:
+        # this function loops through every element in the heap, if any children
+        # are greater than their parents then we return zero, which is an error
+        # as the heap condition is not satisfied
         cdef int i, index
         for i in range(self.size-1, -1, -1):
             index = i
@@ -221,7 +205,6 @@ def validate_pid():
 
     print("#################################")
     print("Initial heap:", np.asarray(m.heap), " - ", np.asarray(m.pids))
-    print("expected:  ...", 3, 4, 8, 2, 1, 10)
 
     # Add elements to the queue
     elements = [0.1, 0.25, 1.33, 0.5, 3.2, 4.6, 2.0, 0.4, 4.0, .001]
