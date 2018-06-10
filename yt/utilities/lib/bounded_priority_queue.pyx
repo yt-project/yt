@@ -29,7 +29,7 @@ cdef class BoundedPriorityQueue:
         self.heap = np.zeros(max_elements)-1
         self.heap_ptr = &(self.heap[0])
 
-        self.pids = np.zeros(max_elements-1, dtype=int)
+        self.pids = np.zeros(max_elements, dtype=int)-1
         self.pids_ptr = &(self.pids[0])
 
         self.size = 0
@@ -138,7 +138,7 @@ cdef class BoundedPriorityQueue:
         # validate the heap
         if self.size == self.max_elements:
             if val < self.heap_ptr[0]:
-                self.extract_max()
+                self.extract_max_pid()
                 self.heap_append_pid(val, ind)
         else:
             self.heap_append_pid(val, ind)
@@ -226,6 +226,8 @@ def validate_pid():
     # Add elements to the queue
     elements = [0.1, 0.25, 1.33, 0.5, 3.2, 4.6, 2.0, 0.4, 4.0, .001]
     pids = [1,2,3,4,5,6,7,8,9,10]
+
+    print(elements, pids)
 
     for el, pid in zip(elements, pids):
         m.add_pid(el, pid)
