@@ -272,7 +272,7 @@ def fake_particle_ds(
                   "particle_velocity_z"),
         units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s'),
         negative = (False, False, False, False, True, True, True),
-        npart = 16**3, length_unit=1.0):
+        npart = 16**3, length_unit=1.0, data=None):
     from yt.frontends.stream.api import load_particles
 
     prng = RandomState(0x4d3d3d3)
@@ -287,6 +287,9 @@ def fake_particle_ds(
             offsets.append(0.0)
     data = {}
     for field, offset, u in zip(fields, offsets, units):
+        if field in data:
+            v = data[field]
+            continue
         if "position" in field:
             v = prng.normal(loc=0.5, scale=0.25, size=npart)
             np.clip(v, 0.0, 1.0, v)
