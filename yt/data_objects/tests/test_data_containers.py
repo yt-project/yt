@@ -48,9 +48,10 @@ def test_write_out():
         file_row_1 = file.readline()
         file_row_2 = file.readline()
         file_row_2 = np.array(file_row_2.split('\t'), dtype=np.float64)
-    _keys = [str(k) for k in sp.field_data.keys()]
+    sorted_keys = sorted(sp.field_data.keys())
+    _keys = [str(k) for k in sorted_keys]
     _keys = "\t".join(["#"] + _keys + ["\n"])
-    _data = [sp.field_data[k][0] for k in sp.field_data.keys()]
+    _data = [sp.field_data[k][0] for k in sorted_keys]
 
     assert_equal(_keys, file_row_1)
     assert_array_equal(_data, file_row_2)
@@ -67,12 +68,16 @@ def test_save_object():
     sp.save_object("my_sphere_2")
 
 def test_to_dataframe():
-    fields = ["density", "velocity_z"]
-    ds = fake_random_ds(6)
-    dd = ds.all_data()
-    df1 = dd.to_dataframe(fields)
-    assert_array_equal(dd[fields[0]], df1[fields[0]])
-    assert_array_equal(dd[fields[1]], df1[fields[1]])
+    try:
+        import pandas as pd
+        fields = ["density", "velocity_z"]
+        ds = fake_random_ds(6)
+        dd = ds.all_data()
+        df1 = dd.to_dataframe(fields)
+        assert_array_equal(dd[fields[0]], df1[fields[0]])
+        assert_array_equal(dd[fields[1]], df1[fields[1]])
+    except ImportError:
+        pass
 
 def test_std():
     ds = fake_random_ds(3)

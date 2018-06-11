@@ -419,7 +419,7 @@ class YTDataContainer(object):
     def write_out(self, filename, fields=None, format="%0.16e"):
         if fields is None: fields=sorted(self.field_data.keys())
         if self._key_fields is None: raise ValueError
-        field_order = self._key_fields[:]
+        field_order = sorted(self._determine_fields(self._key_fields))
         for field in field_order: self[field]
         field_order += [field for field in fields if field not in field_order]
         fid = open(filename,"w")
