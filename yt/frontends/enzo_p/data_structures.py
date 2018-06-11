@@ -73,7 +73,6 @@ class EnzoPGrid(AMRGridPatch):
         self._children_ids = None
         self._parent_id = -1
         self.Level = -1
-        self.particle_count = None
 
     def __repr__(self):
         return "EnzoPGrid_%04d" % self.id
@@ -111,6 +110,26 @@ class EnzoPGrid(AMRGridPatch):
         d_block = child.block_name[1:].replace(":", "")
         cid = get_child_index(a_block, d_block)
         self._children_ids[cid] = child.id
+
+    _particle_count = None
+    @property
+    def particle_count(self):
+        if self._particle_count is None:
+            with h5py.File(self.filename, "r") as f:
+                fnstr = "%s/%s" % \
+                  (self.block_name,
+                   self.ds.index.io._sep.join(["particle", "%s", "%s"]))
+                self._particle_count = \
+                  dict((ptype, f.get(fnstr % (ptype, pfield)).size)
+                        for ptype, pfield in self.ds.index.io.sample_pfields.items())
+        return self._particle_count
+
+    _total_particles = None
+    @property
+    def total_particles(self):
+        if self._total_particles is None:
+            self._total_particles = sum(self.particle_count.values())
+        return self._total_particles
 
     @property
     def Parent(self):
@@ -267,6 +286,10 @@ class EnzoPHierarchy(GridIndex):
             if not field.particle_type: continue
             if isinstance(fname, tuple): continue
             if field._function is NullFunc: continue
+
+    def _get_particle_type_counts(self):
+        return dict((ptype, sum([g.particle_count[ptype] for g in self.grids]))
+                    for ptype in self.ds.particle_types_raw)
 
     def _detect_output_fields(self):
         self.field_list = []

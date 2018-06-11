@@ -511,8 +511,9 @@ types will be known as soon as the dataset index is created.
 
    ds = yt.load("ENZOP_DD0140/ENZOP_DD0140.block_list")
    ds.index
-   print (ds.particle_types)
-   print (ds.r["dark", "particle_position"])
+   print(ds.particle_types)
+   print(ds.particle_type_counts)
+   print(ds.r["dark", "particle_position"])
 
 .. rubric:: Caveats
 
@@ -1831,11 +1832,11 @@ attributes.
 
    halo = ds.halo("Group", 0)
    # member particles for this halo
-   print halo["member_ids"]
+   print(halo["member_ids"])
    # halo virial radius
-   print halo["Group_R_Crit200"]
+   print(halo["Group_R_Crit200"])
    # halo mass
-   print halo.mass
+   print(halo.mass)
 
 Subhalos containers can be created using either their absolute ids or their
 subhalo ids.
@@ -1845,9 +1846,9 @@ subhalo ids.
    # first subhalo of the first halo
    subhalo = ds.halo("Subhalo", (0, 0))
    # this subhalo's absolute id
-   print subhalo.group_identifier
+   print(subhalo.group_identifier)
    # member particles
-   print subhalo["member_ids"]
+   print(subhalo["member_ids"])
 
 OWLS FOF/SUBFIND
 ^^^^^^^^^^^^^^^^
