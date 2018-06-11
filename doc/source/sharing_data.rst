@@ -92,7 +92,7 @@ Currently, the yt hub can accept these types of data:
 
  * Raw data files, scripts.
  * IPython notebooks: these are stored on the hub and are made available for
-   download and via the IPython `nbviewer <http://nbviewer.ipython.org/>`_
+   download and via the IPython `nbviewer <http://nbviewer.jupyter.org/>`_
    service.
 
 How to Upload Data

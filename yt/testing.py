@@ -444,6 +444,51 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     ds = load_uniform_grid(data, arr.shape, bbox=bbox)
     return ds
 
+
+def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=[True]):
+    # Implementation taken from url:
+    # http://docs.hyperion-rt.org/en/stable/advanced/indepth_oct.html
+
+    # Loop over subcells
+    for subcell in range(8):
+        # Insert criterion for whether cell should be sub-divided. Here we
+        # just use a random number to demonstrate.
+        divide = prng.random_sample() < 0.12
+
+        # Append boolean to overall list
+        refined.append(divide)
+
+        # If the cell is sub-divided, recursively divide it further
+        if divide:
+            construct_octree_mask(prng, refined)
+    return refined
+
+def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=[True], quantities=None,
+                   bbox=None, sim_time=0.0, length_unit=None, mass_unit=None,
+                   time_unit=None, velocity_unit=None, magnetic_unit=None,
+                   periodicity=(True, True, True), over_refine_factor=1,
+                   partial_coverage=1, unit_system="cgs"):
+    from yt.frontends.stream.api import load_octree
+    octree_mask = np.asarray(construct_octree_mask(prng=prng, refined=refined),
+                             dtype=np.uint8)
+    particles = np.sum(np.invert(octree_mask))
+
+    if quantities is None:
+        quantities = {}
+        quantities[('gas', 'density')] = prng.random_sample((particles, 1))
+        quantities[('gas', 'velocity_x')] = prng.random_sample((particles, 1))
+        quantities[('gas', 'velocity_y')] = prng.random_sample((particles, 1))
+        quantities[('gas', 'velocity_z')] = prng.random_sample((particles, 1))
+
+    ds = load_octree(octree_mask=octree_mask, data=quantities, bbox=bbox,
+                     sim_time=sim_time, length_unit=length_unit,
+                     mass_unit=mass_unit, time_unit=time_unit,
+                     velocity_unit=velocity_unit, magnetic_unit=magnetic_unit,
+                     periodicity=periodicity, partial_coverage=partial_coverage,
+                     over_refine_factor=over_refine_factor,
+                     unit_system=unit_system)
+    return ds
+
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword

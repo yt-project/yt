@@ -962,7 +962,7 @@ class PWViewerMPL(PlotWindow):
                             'StreamlineCallback']
             if self._plot_type == 'Particle':
                 ignored += ['HopCirclesCallback','HopParticleCallback',
-                            'ParticleCallback','ClumpContourCallback',
+                            'ClumpContourCallback',
                             'GridBoundaryCallback', 'VelocityCallback',
                             'MagFieldCallback', 'QuiverCallback',
                             'CuttingQuiverCallback', 'StreamlineCallback',
