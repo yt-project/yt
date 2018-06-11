@@ -80,7 +80,6 @@ def force_array(item, shape):
         else:
             return np.zeros(shape, dtype='bool')
 
-
 def sanitize_weight_field(ds, field, weight):
     field_object = ds._get_field_info(field)
     if weight is None:
@@ -420,16 +419,18 @@ class YTDataContainer(object):
     def write_out(self, filename, fields=None, format="%0.16e"):
         if fields is None: fields=sorted(self.field_data.keys())
         if self._key_fields is None: raise ValueError
-        field_order = self._key_fields[:]
-        for field in field_order: self[field]
-        field_order += [field for field in fields if field not in field_order]
-        fid = open(filename,"w")
-        fid.write("\t".join(["#"] + field_order + ["\n"]))
-        field_data = np.array([self.field_data[field] for field in field_order])
-        for line in range(field_data.shape[1]):
-            field_data[:,line].tofile(fid, sep="\t", format=format)
-            fid.write("\n")
-        fid.close()
+        field_order = self._determine_fields(self._key_fields)
+        for field in field_order:
+            self[field]
+        field_order += [self._determine_fields(field)[0] for field in fields
+                        if field not in field_order]
+        field_header = [str(f) for f in field_order]
+        with open(filename,"w") as fid:
+            fid.write("\t".join(["#"] + field_header + ["\n"]))
+            field_data = np.array([self.field_data[field] for field in field_order])
+            for line in range(field_data.shape[1]):
+                field_data[:,line].tofile(fid, sep="\t", format=format)
+                fid.write("\n")
 
     def save_object(self, name, filename = None):
         """
@@ -438,11 +439,10 @@ class YTDataContainer(object):
         :meth:`yt.data_objects.api.GridIndex.save_object`.
         """
         if filename is not None:
-            ds = shelve.open(filename, protocol=-1)
-            if name in ds:
-                mylog.info("Overwriting %s in %s", name, filename)
-            ds[name] = self
-            ds.close()
+            with shelve.open(filename, protocol=-1) as ds:
+                if name in ds:
+                    mylog.info("Overwriting %s in %s", name, filename)
+                ds[name] = self
         else:
             self.index.save_object(self, name)
 
@@ -1664,8 +1664,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
                     "Currently we only support images centered at R=0. " +
                     "We plan to generalize this in the near future")
             from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
-            if iterable(width):
-                radius = max(width)
+            if isinstance(width, tuple):
+               radius = width[0]
             else:
                 radius = width
             if iterable(resolution): resolution = max(resolution)
