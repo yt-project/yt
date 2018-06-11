@@ -245,7 +245,7 @@ class GadgetFOFDataset(Dataset):
             if self.cosmological_simulation == 0:
                 velocity_unit = (1e5, "cm/s")
             else:
-                velocity_unit = (1e5, "cmcm/s")
+                velocity_unit = (1e5, "cm/s * sqrt(a)")
         velocity_unit = _fix_unit_ordering(velocity_unit)
         setdefaultattr(self, 'velocity_unit',
                        self.quan(velocity_unit[0], velocity_unit[1]))
