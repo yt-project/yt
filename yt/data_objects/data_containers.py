@@ -419,18 +419,17 @@ class YTDataContainer(object):
     def write_out(self, filename, fields=None, format="%0.16e"):
         if fields is None: fields=sorted(self.field_data.keys())
         if self._key_fields is None: raise ValueError
-        field_order = self._determine_fields(self._key_fields)
-        for field in field_order:
-            self[field]
-        field_order += [self._determine_fields(field)[0] for field in fields
-                        if field not in field_order]
+        field_order = self._key_fields[:]
+        for field in field_order: self[field]
+        field_order += [field for field in fields if field not in field_order]
+        fid = open(filename,"w")
         field_header = [str(f) for f in field_order]
-        with open(filename,"w") as fid:
-            fid.write("\t".join(["#"] + field_header + ["\n"]))
-            field_data = np.array([self.field_data[field] for field in field_order])
-            for line in range(field_data.shape[1]):
-                field_data[:,line].tofile(fid, sep="\t", format=format)
-                fid.write("\n")
+        fid.write("\t".join(["#"] + field_header + ["\n"]))
+        field_data = np.array([self.field_data[field] for field in field_order])
+        for line in range(field_data.shape[1]):
+            field_data[:,line].tofile(fid, sep="\t", format=format)
+            fid.write("\n")
+        fid.close()
 
     def save_object(self, name, filename = None):
         """
@@ -439,10 +438,11 @@ class YTDataContainer(object):
         :meth:`yt.data_objects.api.GridIndex.save_object`.
         """
         if filename is not None:
-            with shelve.open(filename, protocol=-1) as ds:
-                if name in ds:
-                    mylog.info("Overwriting %s in %s", name, filename)
-                ds[name] = self
+            ds = shelve.open(filename, protocol=-1)
+            if name in ds:
+                mylog.info("Overwriting %s in %s", name, filename)
+            ds[name] = self
+            ds.close()
         else:
             self.index.save_object(self, name)
 
