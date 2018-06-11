@@ -290,44 +290,49 @@ class GridIndex(Index):
         return self.dataset.conversion_factors[unit]
 
     def _identify_base_chunk(self, dobj):
-        fast_index = None
-        def _gsort(g):
-            if g.filename is None:
-                return g.id
-            return g.filename
+        r"""What this does is set up a chunk object and modify in-place the
+        passed-in dobj.  The modifications to the dobj:
+
+          * set _chunk_info to be an object array of proxy-to-"grid" objects
+          * set size to be the size; if this is None, it will not know in
+            advance the size.
+          * set _current_chunk to be a *list* (other places we may make this an
+            iterable, but we do not here) of a single chunk of type "all" with
+            the data object.
+
+        One point of interest is that this setup means that we always have
+        *two* levels of chunking taking place -- chunk_all will always be
+        called, which assumes that the base chunk has been set up.
+
+        TODO: Maybe this should be redone so that we don't modify dobj in
+        place?
+        """
+        indexer = None
         if dobj._type_name == "grid":
             dobj._chunk_info = np.empty(1, dtype='object')
             dobj._chunk_info[0] = weakref.proxy(dobj)
-        elif getattr(dobj, "_grids", None) is None:
-            gi = dobj.selector.select_grids(self.grid_left_edge,
-                                            self.grid_right_edge,
-                                            self.grid_levels)
-            dobj._chunk_info = np.empty(gi.sum(), dtype='object')
-            for i, gi in enumerate(self.grid_tree.grid_order()):
-                dobj._chunk_info[i] = self.grids[gi]
         # These next two lines, when uncommented, turn "on" the fast index.
-        if dobj._type_name != "grid":
-            fast_index = self.grid_tree.selector()
+        indexer = self.grid_tree.selector()
         if getattr(dobj, "size", None) is None:
-            dobj.size = self._count_selection(dobj, fast_index = fast_index)
+            dobj.size = self._count_selection(dobj, indexer = indexer)
         if getattr(dobj, "shape", None) is None:
             dobj.shape = (dobj.size,)
         dobj._current_chunk = list(self._chunk_all(dobj, cache = False,
-                                   fast_index = fast_index))[0]
+                                   indexer = indexer))[0]
 
-    def _count_selection(self, dobj, grids = None, fast_index = None):
-        if fast_index is not None:
-            return fast_index.count(dobj.selector)
+    def _count_selection(self, dobj, grids = None, indexer = None):
+        if indexer is not None:
+            return indexer.count(dobj.selector)
         if grids is None: grids = dobj._chunk_info
         count = sum((g.count(dobj.selector) for g in grids))
         return count
 
-    def _chunk_all(self, dobj, cache = True, fast_index = None):
+    def _chunk_all(self, dobj, cache = True, indexer = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        fast_index = fast_index or getattr(dobj._current_chunk, "_fast_index",
+        indexer = indexer or getattr(dobj._current_chunk, "_indexer",
             None)
         yield YTDataChunk(dobj, "all", gobjs, dobj.size, 
-                        cache, fast_index = fast_index)
+                        cache, indexer = indexer)
         
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
@@ -362,7 +367,7 @@ class GridIndex(Index):
         preload_fields, _ = self._split_fields(preload_fields)
         gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        fast_index = dobj._current_chunk._fast_index
+        indexer = dobj._current_chunk._indexer
         file_order = []
         for g in gobjs:
             if g.filename not in file_order:
@@ -393,15 +398,15 @@ class GridIndex(Index):
                 this_loop = np.zeros(self.grids.size, "uint8")
                 for g in grids:
                     this_loop[g.id - g._id_offset] = 1
-                fast_index2 = self.grid_tree.selector(this_loop)
+                indexer2 = self.grid_tree.selector(this_loop)
                 # Now, the order of the grids array is probably not the same as
-                # the order in the fast_index, so we need to ask the fast_index
+                # the order in the indexer, so we need to ask the indexer
                 # to sort it.
                 chunk_size = self._count_selection(dobj, grids,
-                        fast_index = fast_index2)
-                grids = self.grids[np.asarray(fast_index2.grid_order)].tolist()
+                        indexer = indexer2)
+                grids = self.grids[np.asarray(indexer2.grid_order)].tolist()
                 dc = YTDataChunk(dobj, "io", grids, chunk_size,
-                        cache = cache, fast_index = fast_index2)
+                        cache = cache, indexer = indexer2)
                 # We allow four full chunks to be included.
                 with self.io.preload(dc, preload_fields, 
                             4.0 * size):
