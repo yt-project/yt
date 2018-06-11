@@ -122,6 +122,9 @@ class ParticleTrajectories(object):
         for field in ("particle_position_%s" % ax for ax in "xyz"):
             for i, (fn, (time, indices, pfields)) in enumerate(sorted(my_storage.items())):
                 try:
+                    # This will fail if particles ids are
+                    # duplicate. This is due to the fact that the rhs
+                    # would then have a different shape as the lhs
                     output_field[indices, i] = pfields[field]
                 except ValueError:
                     raise YTIllDefinedParticleData("This dataset contains duplicate particle indices!")
