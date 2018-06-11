@@ -20,14 +20,14 @@ def test_yt_data_container():
     # Test if field_data key exists
     ds = fake_random_ds(5)
     proj = ds.proj("density", 0, data_source=ds.all_data())
-    assert_equal(proj.has_key('px'), True)
-    assert_equal(proj.has_key('pz'), False)
+    assert_equal('px' in proj.keys(), True)
+    assert_equal('pz' in proj.keys(), False)
 
     # Delete the key and check if exits
     proj.__delitem__('px')
-    assert_equal(proj.has_key('px'), False)
+    assert_equal('px' in proj.keys(), False)
     proj.__delitem__('density')
-    assert_equal(proj.has_key('density'), False)
+    assert_equal('density' in proj.keys(), False)
 
     # Delete a non-existent field
     with assert_raises(YTFieldNotFound) as ex:
