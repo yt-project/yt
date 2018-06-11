@@ -310,6 +310,21 @@ def test_array_like_field():
     u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
     assert u1 == u2
 
+ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
+
+@requires_file(ISOGAL)
+def test_array_like_field_output_units():
+    ds = load(ISOGAL)
+    ad = ds.all_data()
+    u1 = ad["particle_mass"].units
+    u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
+    assert u1 == u2
+    assert str(u1) == ds.fields.all.particle_mass.output_units
+    u1 = ad['gas', 'x'].units
+    u2 = array_like_field(ad, 1., ("gas", "x")).units
+    assert u1 == u2
+    assert str(u1) == ds.fields.gas.x.units
+
 def test_add_field_string():
     ds = fake_random_ds(16)
     ad = ds.all_data()
@@ -363,8 +378,6 @@ def test_field_inference():
     # If this is not true this means the result of field inference depends
     # on the order we did field detection, which is random in Python3
     assert_equal(ds._last_freq, (None, None))
-
-ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
 
 @requires_file(ISOGAL)
 def test_deposit_amr():

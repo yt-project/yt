@@ -39,6 +39,7 @@ from numbers import Number as numeric_type
 
 from yt.extern.six.moves import urllib
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.lru_cache import lru_cache
 from yt.utilities.exceptions import \
     YTInvalidWidthError, \
     YTEquivalentDimsError
@@ -869,7 +870,11 @@ def get_output_filename(name, keyword, suffix):
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
-    ensure_dir(my_dir)
+    # If path is a file in the current directory, like "test.txt", then my_dir
+    # would be an empty string, resulting in FileNotFoundError when passed to
+    # ensure_dir. Let's avoid that.
+    if my_dir:
+        ensure_dir(my_dir)
 
 def ensure_dir(path):
     r"""Parallel safe directory maker."""
@@ -897,9 +902,13 @@ def validate_width_tuple(width):
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)
 
+_first_cap_re = re.compile('(.)([A-Z][a-z]+)')
+_all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
+@lru_cache(maxsize=128, typed=False)
 def camelcase_to_underscore(name):
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    s1 = _first_cap_re.sub(r'\1_\2', name)
+    return _all_cap_re.sub(r'\1_\2', s1).lower()
 
 def set_intersection(some_list):
     if len(some_list) == 0: return set([])
@@ -1158,9 +1167,9 @@ def parse_h5_attr(f, attr):
     else:
         return val
 
-def issue_deprecation_warning(msg):
+def issue_deprecation_warning(msg, stacklevel=3):
     from numpy import VisibleDeprecationWarning
-    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=3)
+    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
 
 def obj_length(v):
     if iterable(v):

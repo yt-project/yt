@@ -227,10 +227,11 @@ class ImageArray(YTArray):
             out = self
         else:
             out = self.copy()
+
         if cmax is None:
             cmax = self[:, :, :3].sum(axis=2).max()
-
-        np.multiply(self[:, :, :3], 1.0/cmax, out[:, :, :3])
+        if cmax > 0.0:
+            np.multiply(self[:, :, :3], 1.0/cmax, out[:, :, :3])
 
         if self.shape[2] == 4:
             if amax is None:
@@ -352,7 +353,7 @@ class ImageArray(YTArray):
         """
         if cmap_name is None:
             cmap_name = ytcfg.get("yt", "default_colormap")
-        if filename[-4:] != '.png':
+        if filename is not None and filename[-4:] != '.png':
             filename += '.png'
 
         #TODO: Write info dict as png metadata
@@ -366,7 +367,7 @@ class ImageArray(YTArray):
                                color_bounds=color_bounds, cmap_name=cmap_name,
                                func=func)
 
-    def save(self, filename, png=True, hdf5=True):
+    def save(self, filename, png=True, hdf5=True, dataset_name=None):
         """
         Saves ImageArray.
 
@@ -388,4 +389,4 @@ class ImageArray(YTArray):
             else:
                 self.write_image("%s.png" % filename)
         if hdf5:
-            self.write_hdf5("%s.h5" % filename)
+            self.write_hdf5("%s.h5" % filename, dataset_name)

@@ -14,8 +14,10 @@ ARTIO frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.convenience import load
 from yt.testing import \
     assert_equal, \
+    assert_allclose_units, \
     requires_file, \
     units_override_check
 from yt.utilities.answer_testing.framework import \
@@ -58,3 +60,20 @@ def test_ARTIODataset():
 @requires_file(sizmbhloz)
 def test_units_override():
     units_override_check(sizmbhloz)
+
+@requires_file(sizmbhloz)
+def test_particle_derived_field():
+    def star_age_alias(field, data):
+        # test to make sure we get back data in the correct units
+        # during field detection
+        return data['STAR', 'age'].in_units('Myr')
+
+    ds = load(sizmbhloz)
+
+    ds.add_field(("STAR", "new_field"), function=star_age_alias,
+                 units='Myr', sampling_type="particle")
+
+    ad = ds.all_data()
+
+    assert_allclose_units(ad['STAR', 'age'].in_units("Myr"),
+                          ad["STAR", "new_field"])
