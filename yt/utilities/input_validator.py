@@ -1,3 +1,5 @@
+from functools import wraps
+
 import numpy as np
 
 from yt import YTQuantity, YTArray
@@ -6,6 +8,7 @@ from yt.utilities.exceptions import YTInvalidArgumentType
 
 def input_validator(_type_name):
     def validator(func):
+        @wraps(func)
         def wrapper(*args, **kwargs):
             bad_input = False
             data_category_1 = (list, np.ndarray, YTArray, YTQuantity)
@@ -20,7 +23,7 @@ def input_validator(_type_name):
                         or not isinstance(args[4], data_category_2):
                     bad_input = True
 
-                if len(args[1]) != 3 or len(args[2]) != 3 \
+                if bad_input or len(args[1]) != 3 or len(args[2]) != 3 \
                     or (isinstance(args[3], YTQuantity) and len(args[3]) != 1) \
                     or (isinstance(args[4], YTQuantity) and len(args[4]) != 1):
                     bad_input = True

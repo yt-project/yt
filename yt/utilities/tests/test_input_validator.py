@@ -13,3 +13,7 @@ def test_bad_disk_input():
     desired = "One of the arguments to disk (selector) does not match" \
               " its signature type."
     assert_equal(str(ex.exception)[:50], desired[:50])
+
+    # Valid disk
+    disk = ds.disk(ds.domain_center, [0, 0, 1], (10, 'kpc'), (20, 'kpc'))
+    disk['density']
