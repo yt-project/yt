@@ -67,6 +67,7 @@ from yt.units.yt_array import YTArray
 import yt.extern.six as six
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid
+from yt.extern.tqdm import tqdm
 
 class YTStreamline(YTSelectionContainer1D):
     """
@@ -922,14 +923,16 @@ class YTArbitraryGrid(YTCoveringGrid):
         for field in fields:
             dest = np.zeros(self.ActiveDimensions, dtype="float64")
 
-            for chunk in self._data_source.chunks([field], "io"):
+            pbar = tqdm(desc="Interpolating SPH field")
+
+            for chunk in self._data_source.chunks([field],"io"):
                 px = chunk[(ptype,'particle_position_x')].in_base("code")
                 py = chunk[(ptype,'particle_position_y')].in_base("code")
                 pz = chunk[(ptype,'particle_position_z')].in_base("code")
                 hsml = chunk[(ptype,'smoothing_length')].in_base("code")
                 mass = chunk[(ptype,'particle_mass')].in_base("code")
                 dens = chunk[(ptype,'density')].in_base("code")
-                field_quantity = chunk[(ptype, field[1])].in_base("code")
+                field_quantity = chunk[(ptype, field[1])]
 
                 bounds = np.empty(6, dtype="float64")
                 bounds[0] = self.left_edge[0].in_base("code")
@@ -940,7 +943,8 @@ class YTArbitraryGrid(YTCoveringGrid):
                 bounds[5] = self.right_edge[2].in_base("code")
 
                 pixelize_sph_kernel_arbitrary_grid(dest,px,py,pz,hsml,mass,
-                                                   dens,field_quantity,bounds)
+                                                   dens,field_quantity,bounds,
+                                                   pbar)
 
             self[field] = self.ds.arr(dest, field_quantity.units)
 

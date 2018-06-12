@@ -1163,7 +1163,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        bounds, kernel_name="cubic",
+        bounds, pbar=None, kernel_name="cubic",
         use_normalization=True):
 
     cdef np.intp_t xsize, ysize, zsize
@@ -1199,14 +1199,14 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     # in the tight loop
     cdef np.intp_t use_norm = int(use_normalization)
 
-    pbar = get_pbar("Interpolating particle properties onto 3D grid",
-        posx.shape[0],parallel=True)
     with nogil:
         for j in range(0, posx.shape[0]):
-            if j % 100000 == 0:
+            if j % 50000 == 0:
                 with gil:
-                    pbar.update(j-1)
+                    if(pbar is not None):
+                        pbar.update(50000)
                     PyErr_CheckSignals()
+
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
             x0 = iclip(x0-1, 0, xsize)
@@ -1270,8 +1270,6 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                         else:
                             buff[xi, yi, zi] += coeff * kernel_func(qxy)
 
-    pbar.update(posx.shape[0]-1)
-
     if use_norm:
         # now we can calculate the normalized buffer we want to return, being
         # careful to avoid producing NaNs in the result
@@ -1281,8 +1279,6 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                     if buff_denom[xi, yi, zi] == 0:
                         continue
                     buff[xi, yi, zi] += buff_num[xi, yi, zi] / buff_denom[xi, yi, zi]
-
-    pbar.finish()
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,
