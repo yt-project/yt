@@ -60,8 +60,8 @@ def test_save_object():
     ds = fake_particle_ds()
     sp = ds.sphere(ds.domain_center, 0.25)
     sp.save_object("my_sphere_1", filename="test_save_obj")
-    with shelve.open("test_save_obj", protocol=-1) as obj:
-        loaded_sphere = obj["my_sphere_1"][1]
+    obj = shelve.open("test_save_obj", protocol=-1)
+    loaded_sphere = obj["my_sphere_1"][1]
     assert_array_equal(loaded_sphere.center, sp.center)
     assert_equal(loaded_sphere.radius, sp.radius)
     obj.close()
