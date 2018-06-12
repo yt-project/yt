@@ -98,6 +98,96 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
+def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
+                     PyKDTree kdtree, int n_neighbors):
+    """Calculate an array of distances to the nearest n_neighbours and which
+    particle is that distance away.
+
+    Parameters
+    ----------
+
+    bounds: arrays of floats with shape (6)
+        The bounds of the region to  pixelize / voxelize.
+    dimensions: the number of pixels / voxels to divide into.
+    kdtree: A PyKDTree instance
+        A kdtree to do nearest neighbors searches with
+    n_neighbors: The neighbor number to calculate the distance to
+
+    Returns
+    -------
+
+    nearest_neighbours: tuple of arrays of floats and ints with shape ( float (n_pixels,
+    n_neighbours), int (n_pixels, n_neighbours) )
+
+    """
+    cdef KDTree* c_tree = kdtree._tree
+    cdef Node* leafnode
+    cdef uint64_t idx
+    cdef uint32_t skipid
+    cdef np.float64_t tpos, ma, sq_dist
+    cdef np.float64_t[:] pos
+    cdef uint64_t neighbor_id
+    cdef int i, j, k, l, skip
+    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neighbors, True)
+    cdef uint64_t xsize, ysize, zsize, n_pixels
+    cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, dx, dy, dz
+
+    # setting up the pixels to loop through
+    n_pixels = xsize*ysize*zsize
+    xsize, ysize, zsize = dimensions[0], dimensions[1], dimensions[2]
+
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+    z_min = bounds[4]
+    z_max = bounds[5]
+
+    dx = (x_max - x_min) / xsize
+    dy = (y_max - y_min) / ysize
+    dz = (z_max - z_min) / zsize
+
+    pos = np.array([x_min+dx/2, y_min+dy/2, z_min+dz/2])
+
+    pbar = get_pbar("Generate nearest neighbours", n_pixels)
+    with nogil:
+        for i in range(0, xsize):
+            for j in range(0, ysize):
+                for k in range(0, zsize):
+                    # reset queue to "empty" state, doing it this way avoids
+                    # needing to reallocate memory
+                    queue.size = 0
+
+                    if i % CHUNKSIZE == 0:
+                        with gil:
+                            pbar.update(i-1)
+                            PyErr_CheckSignals()
+
+                    leafnode = c_tree.search(&pos[0])
+                    skipid = leafnode.leafid
+
+                    # Fill queue with particles in the node containing the
+                    # particle we're searching for
+                    #process_node_points(leafnode, pos, input_positions, queue,
+                    #                    i)
+
+                    # Traverse the rest of the kdtree to finish the neighbor
+                    # list
+                    #find_knn(c_tree.root, queue, input_positions, pos,
+                    #         leafnode.leafid, i)
+
+                    pos[0] += dx
+                    pos[1] += dy
+                    pos[2] += dz
+
+    pbar.update(n_pixels-1)
+    pbar.finish()
+
+    return
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef int find_knn(Node* node,
                   BoundedPriorityQueue queue,
                   np.float64_t[:, :] positions,
