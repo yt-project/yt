@@ -64,6 +64,7 @@ def test_save_object():
         loaded_sphere = obj["my_sphere_1"][1]
     assert_array_equal(loaded_sphere.center, sp.center)
     assert_equal(loaded_sphere.radius, sp.radius)
+    obj.close()
 
     sp.save_object("my_sphere_2")
 
