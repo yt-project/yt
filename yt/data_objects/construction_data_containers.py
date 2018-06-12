@@ -685,6 +685,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if len(part) > 0 and len(alias) == 0:
             if(is_sph_field):
                 self._fill_sph_particles(fields)
+                for field in fields:
+                    if field in gen:
+                        gen.remove(field)
             else:
                 self._fill_particles(part)
 
@@ -919,7 +922,6 @@ class YTArbitraryGrid(YTCoveringGrid):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
 
-
         ptype = self.ds._sph_ptype
         for field in fields:
             dest = np.zeros(self.ActiveDimensions, dtype="float64")
@@ -932,7 +934,7 @@ class YTArbitraryGrid(YTCoveringGrid):
             bounds[3] = self.right_edge[1].in_base("code")
             bounds[5] = self.right_edge[2].in_base("code")
 
-            pbar = tqdm(desc="Interpolating SPH field")
+            pbar = tqdm(desc="Interpolating SPH field ({})".format(field[1]))
             for chunk in self._data_source.chunks([field],"io"):
                 px = chunk[(ptype,'particle_position_x')].in_base("code")
                 py = chunk[(ptype,'particle_position_y')].in_base("code")
