@@ -934,7 +934,7 @@ class YTArbitraryGrid(YTCoveringGrid):
             bounds[3] = self.right_edge[1].in_base("code")
             bounds[5] = self.right_edge[2].in_base("code")
 
-            pbar = tqdm(desc="Interpolating SPH field ({})".format(field[1]))
+            pbar = tqdm(desc="Interpolating SPH field {}".format(field))
             for chunk in self._data_source.chunks([field],"io"):
                 px = chunk[(ptype,'particle_position_x')].in_base("code")
                 py = chunk[(ptype,'particle_position_y')].in_base("code")
@@ -942,7 +942,7 @@ class YTArbitraryGrid(YTCoveringGrid):
                 hsml = chunk[(ptype,'smoothing_length')].in_base("code")
                 mass = chunk[(ptype,'particle_mass')].in_base("code")
                 dens = chunk[(ptype,'density')].in_base("code")
-                field_quantity = chunk[(ptype, field[1])]
+                field_quantity = chunk[field]
 
                 pixelize_sph_kernel_arbitrary_grid(dest,px,py,pz,hsml,mass,
                                                    dens,field_quantity,bounds,
