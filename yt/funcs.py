@@ -1182,7 +1182,9 @@ def validate_float(*args):
                     (isinstance(v, tuple) and not isinstance(v[1], string_types)):
                 raise TypeError("Expected a numeric value (or size-1 array),"
                                 " received %s" % v)
-        elif not isinstance(v, numeric_type):
+
+        elif (isinstance(v, YTQuantity) and v.size != 1) or \
+            (not isinstance(v, YTQuantity) and not isinstance(v, numeric_type)):
             raise TypeError("Expected a numeric value, received %s" % v)
 
 def validate_iterable(*args):
