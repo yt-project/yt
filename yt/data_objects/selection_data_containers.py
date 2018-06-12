@@ -18,13 +18,11 @@ import numpy as np
 
 from yt.data_objects.data_containers import \
     YTSelectionContainer0D, YTSelectionContainer1D, \
-    YTSelectionContainer2D, YTSelectionContainer3D
-from yt.funcs import \
-    ensure_list, \
-    iterable, \
-    validate_width_tuple, \
-    fix_length, \
-    fix_axis
+    YTSelectionContainer2D, YTSelectionContainer3D, YTSelectionContainer
+from yt.data_objects.static_output import Dataset
+from yt.funcs import ensure_list, iterable, validate_width_tuple,\
+    fix_length, fix_axis, validate_3d_array, validate_float,\
+    validate_iterable, validate_object
 from yt.geometry.selection_routines import \
     points_in_cells
 from yt.units.yt_array import \
@@ -34,7 +32,6 @@ from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
     YTEllipsoidOrdering
-from yt.utilities.input_validator import input_validator
 from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
@@ -586,10 +583,15 @@ class YTDisk(YTSelectionContainer3D):
     """
     _type_name = "disk"
     _con_args = ('center', '_norm_vec', 'radius', 'height')
-
-    @input_validator(_type_name)
     def __init__(self, center, normal, radius, height, fields=None,
                  ds=None, field_parameters=None, data_source=None):
+
+        validate_3d_array(center, normal)
+        validate_float(radius, height)
+        validate_iterable(fields)
+        validate_object((field_parameters, dict),
+                        (ds, Dataset), (data_source, YTSelectionContainer))
+
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))

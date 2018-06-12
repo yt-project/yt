@@ -1169,3 +1169,29 @@ def handle_mks_cgs(values, field_units):
     except YTEquivalentDimsError as e:
         values = values.to_equivalent(e.new_units, e.base)
     return values
+
+def validate_3d_array(*args):
+    for v in args:
+        if not iterable(v) or len(v) != 3:
+            raise TypeError("Expected an array of size (1,3), received %s" % v)
+
+def validate_float(*args):
+    for v in args:
+        if iterable(v):
+            if len(v) > 2 or not isinstance(v[0], numeric_type) or \
+                    (isinstance(v, tuple) and not isinstance(v[1], string_types)):
+                raise TypeError("Expected a numeric value (or size-1 array),"
+                                " received %s" % v)
+        elif not isinstance(v, numeric_type):
+            raise TypeError("Expected a numeric value, received %s" % v)
+
+def validate_iterable(*args):
+    for v in args:
+        if v is not None and not iterable(v):
+            raise TypeError("Expected an iterable object, received %s" % v)
+
+def validate_object(*args):
+    for u, v in args:
+        if u is not None and not isinstance(u, v):
+            msg = "Expected an object of %s type, received %s" % (v, u)
+            raise TypeError(msg)
