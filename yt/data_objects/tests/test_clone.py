@@ -22,3 +22,10 @@ def test_clone_sphere():
     sp1["density"]
 
     assert_array_equal(sp0["density"], sp1["density"])
+
+def test_clone_cut_region():
+    ds = fake_random_ds(64, nprocs=4, fields=("density", "temperature"))
+    dd = ds.all_data()
+    reg1 = dd.cut_region(["obj['temperature'] > 0.5", "obj['density'] < 0.75"])
+    reg2 = reg1.clone()
+    assert_array_equal(reg1['density'], reg2['density'])
