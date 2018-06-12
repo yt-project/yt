@@ -34,6 +34,7 @@ from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
     YTEllipsoidOrdering
+from yt.utilities.input_validator import input_validator
 from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
@@ -585,6 +586,8 @@ class YTDisk(YTSelectionContainer3D):
     """
     _type_name = "disk"
     _con_args = ('center', '_norm_vec', 'radius', 'height')
+
+    @input_validator(_type_name)
     def __init__(self, center, normal, radius, height, fields=None,
                  ds=None, field_parameters=None, data_source=None):
         YTSelectionContainer3D.__init__(self, center, ds,

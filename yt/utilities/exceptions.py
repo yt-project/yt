@@ -742,3 +742,17 @@ class YTCommandRequiresModule(YTException):
         msg += "or:\n"
         msg += "  pip install %s\n" % self.module
         return msg
+
+class YTInvalidArgumentType(YTException):
+    def __init__(self, obj_type):
+        self.obj_type = obj_type
+
+    def __str__(self):
+        msg = "One of the arguments to %s (selector) does not match its" \
+              " signature type.\n" % self.obj_type
+        msg += "Please check the type of arguments passed to this function.\n"
+        msg += "For docstrings http://yt-project.org/doc/" \
+               "analyzing/objects.html#available-objects\n"
+        msg += "For full reference check http://yt-project.org/doc/" \
+               "reference/api/api.html#api-reference\n"
+        return msg
