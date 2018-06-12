@@ -70,15 +70,14 @@ def test_save_object():
 
 def test_to_dataframe():
     try:
-        import importlib
-        pandas_loader = importlib.util.find_spec("pandas")
-        if pandas_loader is not None:
-            fields = ["density", "velocity_z"]
-            ds = fake_random_ds(6)
-            dd = ds.all_data()
-            df1 = dd.to_dataframe(fields)
-            assert_array_equal(dd[fields[0]], df1[fields[0]])
-            assert_array_equal(dd[fields[1]], df1[fields[1]])
+        import pandas as pd
+        pd # to ignore Flake8 error
+        fields = ["density", "velocity_z"]
+        ds = fake_random_ds(6)
+        dd = ds.all_data()
+        df1 = dd.to_dataframe(fields)
+        assert_array_equal(dd[fields[0]], df1[fields[0]])
+        assert_array_equal(dd[fields[1]], df1[fields[1]])
     except ImportError:
         pass
 
