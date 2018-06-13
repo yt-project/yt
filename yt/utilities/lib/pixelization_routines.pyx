@@ -880,8 +880,8 @@ cdef class SPHKernelInterpolationTable:
     cdef public object kernel_name
     cdef kernel_func kernel
     cdef np.float64_t[::1] table
-    cdef np.float64_t[::1] qxy2_vals
-    cdef np.float64_t qxy2_range, iqxy2_range
+    cdef np.float64_t[::1] q2_vals
+    cdef np.float64_t q2_range, iq2_range
 
     def __init__(self, kernel_name):
         self.kernel_name = kernel_name
@@ -892,63 +892,63 @@ cdef class SPHKernelInterpolationTable:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef np.float64_t integrate_qxy2(self, np.float64_t qxy2) nogil:
+    cdef np.float64_t integrate_q2(self, np.float64_t q2) nogil:
         # See equation 30 of the SPLASH paper
         cdef int i
-        # Our bounds are -sqrt(R*R - qxy2) and sqrt(R*R-qxy2)
+        # Our bounds are -sqrt(R*R - q2) and sqrt(R*R-q2)
         # And our R is always 1; note that our smoothing kernel functions
         # expect it to run from 0 .. 1, so we multiply the integrand by 2
         cdef int N = 200
         cdef np.float64_t qz
         cdef np.float64_t R = 1
-        cdef np.float64_t R0 = -math.sqrt(R*R-qxy2)
-        cdef np.float64_t R1 = math.sqrt(R*R-qxy2)
+        cdef np.float64_t R0 = -math.sqrt(R*R-q2)
+        cdef np.float64_t R1 = math.sqrt(R*R-q2)
         cdef np.float64_t dR = (R1-R0)/N
         # Set to our bounds
         cdef np.float64_t integral = 0.0
-        integral += self.kernel(math.sqrt(R0*R0 + qxy2))
-        integral += self.kernel(math.sqrt(R1*R1 + qxy2))
+        integral += self.kernel(math.sqrt(R0*R0 + q2))
+        integral += self.kernel(math.sqrt(R1*R1 + q2))
         # We're going to manually conduct a trapezoidal integration
         for i in range(1, N):
             qz = R0 + i * dR
-            integral += 2.0*self.kernel(math.sqrt(qz*qz + qxy2))
+            integral += 2.0*self.kernel(math.sqrt(qz*qz + q2))
         integral *= (R1-R0)/(2*N)
         return integral
-        
+
     def populate_table(self):
         cdef int i
         self.table = cvarray(format="d", shape=(TABLE_NVALS,),
                              itemsize=sizeof(np.float64_t))
-        self.qxy2_vals = cvarray(format="d", shape=(TABLE_NVALS,),
+        self.q2_vals = cvarray(format="d", shape=(TABLE_NVALS,),
                              itemsize=sizeof(np.float64_t))
         # We run from 0 to 1 here over R
         for i in range(TABLE_NVALS):
-            self.qxy2_vals[i] = i * 1.0/(TABLE_NVALS-1)
-            self.table[i] = self.integrate_qxy2(self.qxy2_vals[i])
+            self.q2_vals[i] = i * 1.0/(TABLE_NVALS-1)
+            self.table[i] = self.integrate_q2(self.q2_vals[i])
 
-        self.qxy2_range = self.qxy2_vals[TABLE_NVALS-1] - self.qxy2_vals[0]
-        self.iqxy2_range = (TABLE_NVALS-1)/self.qxy2_range
+        self.q2_range = self.q2_vals[TABLE_NVALS-1] - self.q2_vals[0]
+        self.iq2_range = (TABLE_NVALS-1)/self.q2_range
 
     @cython.initializedcheck(False)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline np.float64_t interpolate(self, np.float64_t qxy2) nogil:
+    cdef inline np.float64_t interpolate(self, np.float64_t q2) nogil:
         cdef int index
         cdef np.float64_t F_interpolate
-        index = <int>((qxy2 - self.qxy2_vals[0])*(self.iqxy2_range))
+        index = <int>((q2 - self.q2_vals[0])*(self.iq2_range))
         if index >= TABLE_NVALS:
             return 0.0
         F_interpolate = self.table[index] + (
                 (self.table[index+1] - self.table[index])
-               *(qxy2 - self.qxy2_vals[index])*self.iqxy2_range)
+               *(q2 - self.q2_vals[index])*self.iq2_range)
         return F_interpolate
 
-    def interpolate_array(self, np.float64_t[:] qxy2_vals):
-        cdef np.float64_t[:] ret = np.empty(qxy2_vals.shape[0])
+    def interpolate_array(self, np.float64_t[:] q2_vals):
+        cdef np.float64_t[:] ret = np.empty(q2_vals.shape[0])
         cdef int i
-        for i in range(qxy2_vals.shape[0]):
-            ret[i] = self.interpolate(qxy2_vals[i])
+        for i in range(q2_vals.shape[0]):
+            ret[i] = self.interpolate(q2_vals[i])
         return np.array(ret)
 
 @cython.initializedcheck(False)
@@ -970,7 +970,7 @@ def pixelize_sph_kernel_projection(
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t qxy2, posx_diff, posy_diff, ih_j2
+    cdef np.float64_t q2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
     cdef int index, i, j
     cdef np.float64_t[:] _weight_field
@@ -1041,13 +1041,13 @@ def pixelize_sph_kernel_projection(
                     posy_diff = posy_diff * posy_diff
                     if posy_diff > h_j2: continue
 
-                    qxy2 = (posx_diff + posy_diff) * ih_j2
-                    if qxy2 >= 1:
+                    q2 = (posx_diff + posy_diff) * ih_j2
+                    if q2 >= 1:
                         continue
 
                     # see equation 32 of the SPLASH paper
                     # now we just use the kernel projection
-                    buff[xi, yi] +=  coeff * itab.interpolate(qxy2)
+                    buff[xi, yi] +=  coeff * itab.interpolate(q2)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1066,7 +1066,7 @@ def pixelize_sph_kernel_slice(
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t qxy, posx_diff, posy_diff, ih_j
+    cdef np.float64_t q, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j
     cdef int index, i, j
     cdef np.float64_t[:, :] buff_num
@@ -1097,6 +1097,7 @@ def pixelize_sph_kernel_slice(
             if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
+
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
             x0 = iclip(x0-1, 0, xsize)
@@ -1121,7 +1122,7 @@ def pixelize_sph_kernel_slice(
 
                 posx_diff = posx[j] - x
                 posx_diff = posx_diff * posx_diff
-                if posx_diff > 2 * h_j2:
+                if posx_diff > h_j2:
                     continue
 
                 for yi in range(y0, y1):
@@ -1129,24 +1130,22 @@ def pixelize_sph_kernel_slice(
 
                     posy_diff = posy[j] - y
                     posy_diff = posy_diff * posy_diff
-                    if posy_diff > 2 * h_j2:
+                    if posy_diff > h_j2:
                         continue
 
-                    # note that yt's kernel functions use a different convention
-                    # than the SPLASH paper (following Gadget-2), and qxy is
-                    # twice the value of q used in the SPLASH paper
-                    qxy = 2.0 * math.sqrt(posx_diff + posy_diff) * ih_j
-                    if qxy >= 1:
+                    # see equation 4 of the SPLASH paper
+                    q = math.sqrt(posx_diff + posy_diff) * ih_j
+                    if q >= 1:
                         continue
 
                     # see equations 6, 9, and 11 of the SPLASH paper
                     if use_norm:
-                        buff_num[xi, yi] += coeff * kernel_func(qxy)
-                        buff_denom[xi, yi] += w_j * kernel_func(qxy)
+                        buff_num[xi, yi] += coeff * kernel_func(q)
+                        buff_denom[xi, yi] += w_j * kernel_func(q)
                     else:
-                        buff[xi, yi] += coeff * kernel_func(qxy)
+                        buff[xi, yi] += coeff * kernel_func(q)
     if use_norm:
-        # now we can calculate the normalized image buffer we want to 
+        # now we can calculate the normalized image buffer we want to
         # return, being careful to avoid producing NaNs in the result
         for xi in range(xsize):
             for yi in range(ysize):
@@ -1169,15 +1168,15 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, w_j, coeff
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
-    cdef np.float64_t qxy, posx_diff, posy_diff, posz_diff
+    cdef np.float64_t q, posx_diff, posy_diff, posz_diff
     cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
     cdef int index, i, j, k
     cdef np.float64_t[:, :, :] buff_num
     cdef np.float64_t[:, :, :] buff_denom
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
-    buff_num = np.zeros((xsize, ysize, zsize), dtype="float64")
-    buff_denom = np.zeros((xsize, ysize, zsize), dtype="float64")
+    buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
+    buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
 
     x_min = bounds[0]
     x_max = bounds[1]
@@ -1237,7 +1236,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
 
                 posx_diff = posx[j] - x
                 posx_diff = posx_diff * posx_diff
-                if posx_diff > 2 * h_j2:
+                if posx_diff > h_j2:
                     continue
 
                 for yi in range(y0, y1):
@@ -1245,7 +1244,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
 
                     posy_diff = posy[j] - y
                     posy_diff = posy_diff * posy_diff
-                    if posy_diff > 2 * h_j2:
+                    if posy_diff > h_j2:
                         continue
 
                     for zi in range(z0, z1):
@@ -1253,23 +1252,20 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
 
                         posz_diff = posz[j] - z
                         posz_diff = posz_diff * posz_diff
-                        if posz_diff > 2 * h_j2:
+                        if posz_diff > h_j2:
                             continue
 
-                        # yt's kernel functions use a different convention than
-                        # the SPLASH paper (following Gadget-2), and qxy is
-                        # twice the value of q used in the SPLASH paper
-                        qxy = 2.0 * math.sqrt(posx_diff + posy_diff + posz_diff)
-                        qxy *= ih_j
-                        if qxy >= 1:
+                        # see equation 4 of the SPLASH paper
+                        q = math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
+                        if q >= 1:
                             continue
 
                         # see equations 6, 9, and 11 of the SPLASH paper
                         if use_norm:
-                            buff_num[xi, yi, zi] += coeff * kernel_func(qxy)
-                            buff_denom[xi, yi, zi] += w_j * kernel_func(qxy)
+                            buff_num[xi, yi, zi] += coeff * kernel_func(q)
+                            buff_denom[xi, yi, zi] += w_j * kernel_func(q)
                         else:
-                            buff[xi, yi, zi] += coeff * kernel_func(qxy)
+                            buff[xi, yi, zi] += coeff * kernel_func(q)
 
     if use_norm:
         # now we can calculate the normalized buffer we want to return, being
