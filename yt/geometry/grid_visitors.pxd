@@ -26,6 +26,7 @@ cdef struct GridTreeNode:
     np.int64_t start_index[3]
     np.int32_t dims[3]
     np.float64_t dds[3]
+    np.uint64_t filename_index
 
 cdef struct GridTreeNodePadded:
     np.int32_t num_children
@@ -47,6 +48,7 @@ cdef struct GridTreeNodePadded:
     np.float64_t dds_x
     np.float64_t dds_y
     np.float64_t dds_z
+    np.uint64_t filename_index
 
 # This is similar in spirit to the way oct visitor functions work.  However,
 # there are a few important differences.  Because the grid objects are expected

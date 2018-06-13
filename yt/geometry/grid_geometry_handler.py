@@ -97,6 +97,8 @@ class GridIndex(Index):
             yield self.select_grids(level)
 
     def _initialize_grid_arrays(self):
+        # At some point, we can or should get rid of this function in favor of
+        # just having iterables of uncounted objects.
         mylog.debug("Allocating arrays for %s grids", self.num_grids)
         self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
         self.grid_left_edge = self.ds.arr(np.zeros((self.num_grids,3),
