@@ -133,6 +133,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                            function=eval("_%s" % n),
                            units=unit_system["frequency"],
                            validators=vort_validators)
+
     create_magnitude_field(registry, "vorticity", unit_system["frequency"],
                            ftype=ftype, slice_info=slice_info,
                            validators=vort_validators)
@@ -146,6 +147,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_y"]
     def _vorticity_stretching_z(field, data):
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_z"]
+
     for ax in 'xyz':
         n = "vorticity_stretching_%s" % ax
         registry.add_field((ftype, n),
@@ -168,6 +170,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     def _vorticity_growth_z(field, data):
         return -data[ftype, "vorticity_stretching_z"] - \
           data[ftype, "baroclinic_vorticity_z"]
+
     for ax in 'xyz':
         n = "vorticity_growth_%s" % ax
         registry.add_field((ftype, n),
@@ -456,4 +459,3 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         units="",
         validators=[ValidateSpatial(1, vs_fields),
                     ValidateParameter('bulk_velocity')])
-    

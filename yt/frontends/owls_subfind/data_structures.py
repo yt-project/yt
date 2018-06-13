@@ -34,7 +34,7 @@ from yt.utilities.logger import ytLogger as \
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
-    Dataset, \
+    ParticleDataset, \
     ParticleFile
 from yt.frontends.gadget.data_structures import \
     _fix_unit_ordering
@@ -101,20 +101,19 @@ class OWLSSubfindHDF5File(ParticleFile):
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
     
-class OWLSSubfindDataset(Dataset):
+class OWLSSubfindDataset(ParticleDataset):
     _index_class = OWLSSubfindParticleIndex
     _file_class = OWLSSubfindHDF5File
     _field_info_class = OWLSSubfindFieldInfo
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="subfind_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None,
-                 unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
-        super(OWLSSubfindDataset, self).__init__(filename, dataset_type,
-                                                 units_override=units_override,
-                                                 unit_system=unit_system)
+                 index_order=None, index_filename=None,
+                 units_override=None, unit_system="cgs"):
+        super(OWLSSubfindDataset, self).__init__(
+            filename, dataset_type, index_order=index_order,
+            index_filename=index_filename, units_override=units_override,
+            unit_system=unit_system)
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
@@ -132,8 +131,7 @@ class OWLSSubfindDataset(Dataset):
         self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
         self.current_redshift = hvals["Redshift"]

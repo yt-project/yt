@@ -23,7 +23,7 @@ from .fields import \
     RockstarFieldInfo
 
 from yt.data_objects.static_output import \
-    Dataset, \
+    ParticleDataset, \
     ParticleFile
 from yt.funcs import \
     setdefaultattr
@@ -36,26 +36,25 @@ from .definitions import \
     header_dt
 
 class RockstarBinaryFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range):
         with open(filename, "rb") as f:
             self.header = fpu.read_cattrs(f, header_dt, "=")
             self._position_offset = f.tell()
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
-        super(RockstarBinaryFile, self).__init__(ds, io, filename, file_id)
+        super(RockstarBinaryFile, self).__init__(
+            ds, io, filename, file_id, range)
 
-class RockstarDataset(Dataset):
+class RockstarDataset(ParticleDataset):
     _index_class = ParticleIndex
     _file_class = RockstarBinaryFile
     _field_info_class = RockstarFieldInfo
     _suffix = ".bin"
 
     def __init__(self, filename, dataset_type="rockstar_binary",
-                 n_ref = 16, over_refine_factor = 1,
-                 units_override=None, unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+                 units_override=None, unit_system="cgs",
+                 index_order=None, index_filename=None):
         super(RockstarDataset, self).__init__(filename, dataset_type,
                                               units_override=units_override,
                                               unit_system=unit_system)
@@ -88,8 +87,7 @@ class RockstarDataset(Dataset):
         self.domain_left_edge = np.array([0.0,0.0,0.0])
         self.domain_right_edge = np.array([hvals['box_size']] * 3)
 
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
         self.parameters.update(hvals)
 
     def _set_code_unit_attributes(self):

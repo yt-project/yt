@@ -44,7 +44,8 @@ def setup_poynting_vector(self):
         return poynting
 
     for ax in "xyz":
-        self.add_field(("openPMD", "poynting_vector_%s" % ax), sampling_type="cell",
+        self.add_field(("openPMD", "poynting_vector_%s" % ax),
+                       sampling_type="cell",
                        function=_get_poyn(ax),
                        units="W/m**2")
 
@@ -57,7 +58,8 @@ def setup_kinetic_energy(self, ptype):
         mass = data[ptype, "particle_mass"] * data[ptype, "particle_weighting"]
         return speed_of_light * np.sqrt(p2 + mass ** 2 * speed_of_light ** 2) - mass * speed_of_light ** 2
 
-    self.add_field((ptype, "particle_kinetic_energy"), sampling_type="particle",
+    self.add_field((ptype, "particle_kinetic_energy"),
+                   sampling_type="particle",
                    function=_kin_en,
                    units="kg*m**2/s**2")
 
@@ -76,7 +78,8 @@ def setup_velocity(self, ptype):
         return velocity
 
     for ax in "xyz":
-        self.add_field((ptype, "particle_velocity_%s" % ax), sampling_type="particle",
+        self.add_field((ptype, "particle_velocity_%s" % ax),
+                       sampling_type="particle",
                        function=_get_vel(ax),
                        units="m/s")
 
@@ -90,7 +93,8 @@ def setup_absolute_positions(self, ptype):
         return ap
 
     for ax in "xyz":
-        self.add_field((ptype, "particle_position_%s" % ax), sampling_type="particle",
+        self.add_field((ptype, "particle_position_%s" % ax),
+                       sampling_type="particle",
                        function=_abs_pos(ax),
                        units="m")
 

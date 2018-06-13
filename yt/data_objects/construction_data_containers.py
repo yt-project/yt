@@ -62,6 +62,7 @@ from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
+from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
 import yt.extern.six as six
 
@@ -158,74 +159,15 @@ class YTStreamline(YTSelectionContainer1D):
         self._ts[grid.id] = ts
         return mask
 
-
-class YTQuadTreeProj(YTSelectionContainer2D):
-    """
-    This is a data object corresponding to a line integral through the
-    simulation domain.
-
-    This object is typically accessed through the `proj` object that
-    hangs off of index objects.  YTQuadTreeProj is a projection of a
-    `field` along an `axis`.  The field can have an associated
-    `weight_field`, in which case the values are multiplied by a weight
-    before being summed, and then divided by the sum of that weight; the
-    two fundamental modes of operating are direct line integral (no
-    weighting) and average along a line of sight (weighting.)  What makes
-    `proj` different from the standard projection mechanism is that it
-    utilizes a quadtree data structure, rather than the old mechanism for
-    projections.  It will not run in parallel, but serial runs should be
-    substantially faster.  Note also that lines of sight are integrated at
-    every projected finest-level cell.
-
-    Parameters
-    ----------
-    field : string
-        This is the field which will be "projected" along the axis.  If
-        multiple are specified (in a list) they will all be projected in
-        the first pass.
-    axis : int
-        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
-    weight_field : string
-        If supplied, the field being projected will be multiplied by this
-        weight value before being integrated, and at the conclusion of the
-        projection the resultant values will be divided by the projected
-        `weight_field`.
-    center : array_like, optional
-        The 'center' supplied to fields that use it.  Note that this does
-        not have to have `coord` as one value.  Strictly optional.
-    data_source : `yt.data_objects.data_containers.YTSelectionContainer`, optional
-        If specified, this will be the data source used for selecting
-        regions to project.
-    method : string, optional
-        The method of projection to be performed.
-        "integrate" : integration along the axis
-        "mip" : maximum intensity projection
-        "sum" : same as "integrate", except that we don't multiply by the path length
-        WARNING: The "sum" option should only be used for uniform resolution grid
-        datasets, as other datasets may result in unphysical images.
-    style : string, optional
-        The same as the method keyword.  Deprecated as of version 3.0.2.
-        Please use method keyword instead.
-    field_parameters : dict of items
-        Values to be passed as field parameters that can be
-        accessed by generated fields.
-
-    Examples
-    --------
-
-    >>> ds = load("RedshiftOutput0005")
-    >>> prj = ds.proj("density", 0)
-    >>> print proj["density"]
-    """
+class YTProj(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
-    _type_name = "proj"
     _con_args = ('axis', 'field', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
-    def __init__(self, field, axis, weight_field = None,
-                 center = None, ds = None, data_source = None,
-                 style = None, method = "integrate",
-                 field_parameters = None, max_level = None):
-        YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
+
+    def __init__(self, field, axis, weight_field=None, center=None, ds=None,
+                 data_source=None, style=None, method="integrate",
+                 field_parameters=None, max_level=None):
+        super(YTProj, self).__init__(axis, ds, field_parameters)
         # Style is deprecated, but if it is set, then it trumps method
         # keyword.  TODO: Remove this keyword and this check at some point in
         # the future.
@@ -264,11 +206,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         for f in field:
             nodal_flag = self.ds._get_field_info(f).nodal_flag
             if any(nodal_flag):
-                raise RuntimeError("Nodal fields are currently not supported for projections.")
-
-        if not self.deserialize(field):
-            self.get_data(field)
-            self.serialize()
+                raise RuntimeError("Nodal fields are currently not supported "
+                                   "for projections.")
 
     @property
     def blocks(self):
@@ -276,56 +215,16 @@ class YTQuadTreeProj(YTSelectionContainer2D):
 
     @property
     def field(self):
-        return [k for k in self.field_data.keys() if k not in self._container_fields]
-
-    @property
-    def _mrep(self):
-        return MinimalProjectionData(self)
-
-    def hub_upload(self):
-        self._mrep.upload()
-
-    def deserialize(self, fields):
-        if not ytcfg.getboolean("yt", "serialize"):
-            return False
-        for field in fields:
-            self[field] = None
-        deserialized_successfully = False
-        store_file = self.ds.parameter_filename + '.yt'
-        if os.path.isfile(store_file):
-            deserialized_successfully = self._mrep.restore(store_file, self.ds)
-
-            if deserialized_successfully:
-                mylog.info("Using previous projection data from %s" % store_file)
-                for field, field_data in self._mrep.field_data.items():
-                    self[field] = field_data
-        if not deserialized_successfully:
-            for field in fields:
-                del self[field]
-        return deserialized_successfully
-
-    def serialize(self):
-        if not ytcfg.getboolean("yt", "serialize"):
-            return
-        self._mrep.store(self.ds.parameter_filename + '.yt')
-
-    def _get_tree(self, nvals):
-        xax = self.ds.coordinates.x_axis[self.axis]
-        yax = self.ds.coordinates.y_axis[self.axis]
-        xd = self.ds.domain_dimensions[xax]
-        yd = self.ds.domain_dimensions[yax]
-        bounds = (self.ds.domain_left_edge[xax],
-                  self.ds.domain_right_edge[xax],
-                  self.ds.domain_left_edge[yax],
-                  self.ds.domain_right_edge[yax])
-        return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
-                        bounds, method = self.method)
+        return [k for k in self.field_data.keys() if k not in
+                self._container_fields]
 
     def get_data(self, fields = None):
         fields = fields or []
         fields = self._determine_fields(ensure_list(fields))
         # We need a new tree for every single set of fields we add
         if len(fields) == 0: return
+        if isinstance(self.ds, ParticleDataset):
+            return
         tree = self._get_tree(len(fields))
         # This only needs to be done if we are in parallel; otherwise, we can
         # safely build the mesh as we go.
@@ -336,8 +235,6 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           [], "io", local_only = True)):
-                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
-                            chunk.ires.size, get_memory_usage()/1024.)
                 if _units_initialized is False:
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
@@ -397,72 +294,6 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         mylog.info("Projection completed")
         self.tree = tree
 
-    def _initialize_chunk(self, chunk, tree):
-        icoords = chunk.icoords
-        xax = self.ds.coordinates.x_axis[self.axis]
-        yax = self.ds.coordinates.y_axis[self.axis]
-        i1 = icoords[:,xax]
-        i2 = icoords[:,yax]
-        ilevel = chunk.ires * self.ds.ires_factor
-        tree.initialize_chunk(i1, i2, ilevel)
-
-    def _initialize_projected_units(self, fields, chunk):
-        for field in self.data_source._determine_fields(fields):
-            finfo = self.ds._get_field_info(*field)
-            if finfo.units is None:
-                # First time calling a units="auto" field, infer units and cache
-                # for future field accesses.
-                finfo.units = str(chunk[field].units)
-            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
-            if self.method == "mip" or self._sum_only:
-                path_length_unit = Unit(registry=self.ds.unit_registry)
-            else:
-                ax_name = self.ds.coordinates.axis_name[self.axis]
-                path_element_name = ("index", "path_element_%s" % (ax_name))
-                path_length_unit = self.ds.field_info[path_element_name].units
-                path_length_unit = Unit(path_length_unit,
-                                        registry=self.ds.unit_registry)
-                # Only convert to appropriate unit system for path
-                # elements that aren't angles
-                if not path_length_unit.is_dimensionless:
-                    path_length_unit = path_length_unit.get_base_equivalent(
-                        unit_system=self.ds.unit_system)
-            if self.weight_field is None:
-                self._projected_units[field] = field_unit*path_length_unit
-            else:
-                self._projected_units[field] = field_unit
-
-    def _handle_chunk(self, chunk, fields, tree):
-        if self.method == "mip" or self._sum_only:
-            dl = self.ds.quan(1.0, "")
-        else:
-            # This gets explicitly converted to cm
-            ax_name = self.ds.coordinates.axis_name[self.axis]
-            dl = chunk["index", "path_element_%s" % (ax_name)]
-            # This is done for cases where our path element does not have a CGS
-            # equivalent.  Once "preferred units" have been implemented, this
-            # will not be necessary at all, as the final conversion will occur
-            # at the display layer.
-            if not dl.units.is_dimensionless:
-                dl.convert_to_units(self.ds.unit_system["length"])
-        v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
-        for i, field in enumerate(fields):
-            d = chunk[field] * dl
-            v[:,i] = d
-        if self.weight_field is not None:
-            w = chunk[self.weight_field]
-            np.multiply(v, w[:,None], v)
-            np.multiply(w, dl, w)
-        else:
-            w = np.ones(chunk.ires.size, dtype="float64")
-        icoords = chunk.icoords
-        xax = self.ds.coordinates.x_axis[self.axis]
-        yax = self.ds.coordinates.y_axis[self.axis]
-        i1 = icoords[:,xax]
-        i2 = icoords[:,yax]
-        ilevel = chunk.ires * self.ds.ires_factor
-        tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
-
     def to_pw(self, fields=None, center='c', width=None, origin='center-window'):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
@@ -492,6 +323,211 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, 'native', 'Projection')
         pw.show()
         return pw
+
+    def _initialize_projected_units(self, fields, chunk):
+        for field in self.data_source._determine_fields(fields):
+            if field in self._projected_units:
+                continue
+            finfo = self.ds._get_field_info(*field)
+            if finfo.units is None:
+                # First time calling a units="auto" field, infer units and cache
+                # for future field accesses.
+                finfo.units = str(chunk[field].units)
+            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
+            if self.method == "mip" or self._sum_only:
+                path_length_unit = Unit(registry=self.ds.unit_registry)
+            else:
+                ax_name = self.ds.coordinates.axis_name[self.axis]
+                path_element_name = ("index", "path_element_%s" % (ax_name))
+                path_length_unit = self.ds.field_info[path_element_name].units
+                path_length_unit = Unit(path_length_unit,
+                                        registry=self.ds.unit_registry)
+                # Only convert to appropriate unit system for path
+                # elements that aren't angles
+                if not path_length_unit.is_dimensionless:
+                    path_length_unit = path_length_unit.get_base_equivalent(
+                        unit_system=self.ds.unit_system)
+            if self.weight_field is None:
+                self._projected_units[field] = field_unit*path_length_unit
+            else:
+                self._projected_units[field] = field_unit
+
+class YTKDTreeProj(YTProj):
+    """
+    TODO add docstring
+    """
+    _type_name = "particle_proj"
+    def __init__(self, field, axis, weight_field=None, center=None, ds=None,
+                 data_source=None, style=None, method="integrate",
+                 field_parameters=None, max_level=None):
+        super(YTKDTreeProj, self).__init__(
+            field, axis, weight_field, center, ds, data_source, style, method,
+            field_parameters, max_level)
+
+        # ensure the dataset has a kdtree built
+        ds.index.kdtree
+
+    def _get_tree(self, nvals):
+        return self.ds.index.kdtree
+
+    def _handle_chunk(self, chunk, fields, tree):
+        raise NotImplementedError("Particle projections have not yet been "
+                                  "implemented")
+
+
+class YTQuadTreeProj(YTProj):
+    """
+    This is a data object corresponding to a line integral through the
+    simulation domain.
+
+    This object is typically accessed through the `proj` object that
+    hangs off of index objects.  YTQuadTreeProj is a projection of a
+    `field` along an `axis`.  The field can have an associated
+    `weight_field`, in which case the values are multiplied by a weight
+    before being summed, and then divided by the sum of that weight; the
+    two fundamental modes of operating are direct line integral (no
+    weighting) and average along a line of sight (weighting.)  What makes
+    `proj` different from the standard projection mechanism is that it
+    utilizes a quadtree data structure, rather than the old mechanism for
+    projections.  It will not run in parallel, but serial runs should be
+    substantially faster.  Note also that lines of sight are integrated at
+    every projected finest-level cell.
+
+    Parameters
+    ----------
+    field : string
+        This is the field which will be "projected" along the axis.  If
+        multiple are specified (in a list) they will all be projected in
+        the first pass.
+    axis : int
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+    weight_field : string
+        If supplied, the field being projected will be multiplied by this
+        weight value before being integrated, and at the conclusion of the
+        projection the resultant values will be divided by the projected
+        `weight_field`.
+    center : array_like, optional
+        The 'center' supplied to fields that use it.  Note that this does
+        not have to have `coord` as one value.  Strictly optional.
+    data_source : `yt.data_objects.data_containers.YTSelectionContainer`, optional
+        If specified, this will be the data source used for selecting
+        regions to project.
+    method : string, optional
+        The method of projection to be performed.
+        "integrate" : integration along the axis
+        "mip" : maximum intensity projection
+        "sum" : same as "integrate", except that we don't multiply by the path length
+        WARNING: The "sum" option should only be used for uniform resolution grid
+        datasets, as other datasets may result in unphysical images.
+    style : string, optional
+        The same as the method keyword.  Deprecated as of version 3.0.2.
+        Please use method keyword instead.
+    field_parameters : dict of items
+        Values to be passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> ds = load("RedshiftOutput0005")
+    >>> prj = ds.proj("density", 0)
+    >>> print proj["density"]
+    """
+    _type_name = "quad_proj"
+    def __init__(self, field, axis, weight_field=None, center=None, ds=None,
+                 data_source=None, style=None, method="integrate",
+                 field_parameters=None, max_level=None):
+        super(YTQuadTreeProj, self).__init__(
+            field, axis, weight_field, center, ds, data_source, style, method,
+            field_parameters, max_level)
+
+        if not self.deserialize(field):
+            self.get_data(field)
+            self.serialize()
+
+    @property
+    def _mrep(self):
+        return MinimalProjectionData(self)
+
+    def hub_upload(self):
+        self._mrep.upload()
+
+    def deserialize(self, fields):
+        if not ytcfg.getboolean("yt", "serialize"):
+            return False
+        for field in fields:
+            self[field] = None
+        deserialized_successfully = False
+        store_file = self.ds.parameter_filename + '.yt'
+        if os.path.isfile(store_file):
+            deserialized_successfully = self._mrep.restore(store_file, self.ds)
+
+            if deserialized_successfully:
+                mylog.info("Using previous projection data from %s" % store_file)
+                for field, field_data in self._mrep.field_data.items():
+                    self[field] = field_data
+        if not deserialized_successfully:
+            for field in fields:
+                del self[field]
+        return deserialized_successfully
+
+    def serialize(self):
+        if not ytcfg.getboolean("yt", "serialize"):
+            return
+        self._mrep.store(self.ds.parameter_filename + '.yt')
+
+    def _get_tree(self, nvals):
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        xd = self.ds.domain_dimensions[xax]
+        yd = self.ds.domain_dimensions[yax]
+        bounds = (self.ds.domain_left_edge[xax],
+                  self.ds.domain_right_edge[xax],
+                  self.ds.domain_left_edge[yax],
+                  self.ds.domain_right_edge[yax])
+        return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
+                        bounds, method = self.method)
+
+    def _initialize_chunk(self, chunk, tree):
+        icoords = chunk.icoords
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        i1 = icoords[:,xax]
+        i2 = icoords[:,yax]
+        ilevel = chunk.ires * self.ds.ires_factor
+        tree.initialize_chunk(i1, i2, ilevel)
+
+    def _handle_chunk(self, chunk, fields, tree):
+        mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
+                    chunk.ires.size, get_memory_usage()/1024.)
+        if self.method == "mip" or self._sum_only:
+            dl = self.ds.quan(1.0, "")
+        else:
+            ax_name = self.ds.coordinates.axis_name[self.axis]
+            dl = chunk["index", "path_element_%s" % (ax_name)]
+            # This is done for cases where our path element does not have a CGS
+            # equivalent.  Once "preferred units" have been implemented, this
+            # will not be necessary at all, as the final conversion will occur
+            # at the display layer.
+            if not dl.units.is_dimensionless:
+                dl.convert_to_units(self.ds.unit_system["length"])
+        v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
+        for i, field in enumerate(fields):
+            d = chunk[field] * dl
+            v[:,i] = d
+        if self.weight_field is not None:
+            w = chunk[self.weight_field]
+            np.multiply(v, w[:,None], v)
+            np.multiply(w, dl, w)
+        else:
+            w = np.ones(chunk.ires.size, dtype="float64")
+        icoords = chunk.icoords
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        i1 = icoords[:,xax]
+        i2 = icoords[:,yax]
+        ilevel = chunk.ires * self.ds.ires_factor
+        tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
 
 class YTCoveringGrid(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
@@ -640,7 +676,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
-            if f.particle_type:
+            if f.sampling_type == 'particle':
                 self[a] = self._data_source[f]
             else:
                 self[a] = f(self)
@@ -650,7 +686,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             cell_gen = []
             for field in gen:
                 finfo = self.ds.field_info[field]
-                if finfo.particle_type:
+                if finfo.sampling_type == 'particle':
                     part_gen.append(field)
                 else:
                     cell_gen.append(field)
@@ -673,7 +709,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 fill.append(field)
         for field in fill:
             finfo = self.ds._get_field_info(*field)
-            if finfo.particle_type:
+            if finfo.sampling_type == "particle":
                 particles.append(field)
         gen = [f for f in gen if f not in fill and f not in alias]
         fill = [f for f in fill if f not in particles]

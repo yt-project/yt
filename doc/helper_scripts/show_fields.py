@@ -143,7 +143,7 @@ def print_all_fields(fl):
                 print("   * Units: :math:`%s`" % fix_units(df.units))
             else:
                 print("   * Units: :math:`%s`" % fix_units(df.units, in_cgs=True))
-        print("   * Particle Type: %s" % (df.particle_type))
+        print("   * Sampling Method: %s" % (df.sampling_type))
         print()
         print("**Field Source**")
         print()

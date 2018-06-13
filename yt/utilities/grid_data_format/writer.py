@@ -115,7 +115,7 @@ def save_field(ds, fields, field_parameters=None):
         if isinstance(field_name, tuple):
             field_name = field_name[1]
         field_obj = ds._get_field_info(field_name)
-        if field_obj.particle_type:
+        if field_obj.sampling_type == "particle":
             print("Saving particle fields currently not supported.")
             return
 
@@ -173,7 +173,7 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
             particles_group = grid_group["particles"]
             pt_group = particles_group[particle_type_name]
 
-            if fi.particle_type:  # particle data
+            if fi.sampling_type == "particle":  # particle data
                 pt_group.create_dataset(field_name, grid.ActiveDimensions,
                                         dtype="float64")
             else:  # a field
@@ -208,7 +208,7 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
                     grid.get_data(field_name)
                     units = fhandle[
                         "field_types"][field_name].attrs["field_units"]
-                    if fi.particle_type:  # particle data
+                    if fi.sampling_type == "particle":  # particle data
                         dset = pt_group[field_name]
                         dset[:] = grid[field_name].in_units(units)
                     else:  # a field

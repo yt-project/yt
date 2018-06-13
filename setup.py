@@ -34,7 +34,7 @@ try:
 except pkg_resources.DistributionNotFound:
     pass  # yay!
 
-VERSION = "3.5.dev0"
+VERSION = "4.0.dev0"
 
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
@@ -78,7 +78,9 @@ cython_extensions = [
               libraries=std_libs),
     Extension("yt.geometry.particle_oct_container",
               ["yt/geometry/particle_oct_container.pyx"],
-              include_dirs=["yt/utilities/lib/"],
+              include_dirs=["yt/utilities/lib/",
+                            "yt/utilities/lib/ewahboolarray"],
+              language="c++",
               libraries=std_libs),
     Extension("yt.geometry.selection_routines",
               ["yt/geometry/selection_routines.pyx"],
@@ -132,10 +134,17 @@ cython_extensions = [
     Extension("yt.utilities.lib.mesh_triangulation",
               ["yt/utilities/lib/mesh_triangulation.pyx"],
               depends=["yt/utilities/lib/mesh_triangulation.h"]),
+    Extension("yt.utilities.lib.particle_kdtree_tools",
+              ["yt/utilities/lib/particle_kdtree_tools.pyx"],
+              language="c++"),
+    Extension("yt.utilities.lib.bounded_priority_queue",
+              ["yt/utilities/lib/bounded_priority_queue.pyx"]),
     Extension("yt.utilities.lib.pixelization_routines",
               ["yt/utilities/lib/pixelization_routines.pyx",
                "yt/utilities/lib/pixelization_constants.c"],
               include_dirs=["yt/utilities/lib/"],
+              extra_compile_args=omp_args,
+              extra_link_args=omp_args,
               libraries=std_libs,
               depends=["yt/utilities/lib/pixelization_constants.h"]),
     Extension("yt.utilities.lib.primitives",
@@ -154,6 +163,11 @@ cython_extensions = [
               include_dirs=["yt/utilities/lib/"],
               libraries=std_libs,
               depends=["yt/utilities/lib/fixed_interpolator.h"]),
+    Extension("yt.utilities.lib.ewah_bool_wrap",
+              ["yt/utilities/lib/ewah_bool_wrap.pyx"],
+              include_dirs=["yt/utilities/lib/",
+                            "yt/utilities/lib/ewahboolarray"],
+              language="c++"),
     Extension("yt.utilities.lib.image_samplers",
               ["yt/utilities/lib/image_samplers.pyx",
                "yt/utilities/lib/fixed_interpolator.c"],
@@ -185,7 +199,7 @@ lib_exts = [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
     "interpolators", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "mesh_utilities",
-    "amr_kdtools", "lenses", "distance_queue", "allocation_container"
+    "amr_kdtools", "lenses", "distance_queue", "allocation_container",
 ]
 for ext_name in lib_exts:
     cython_extensions.append(
@@ -315,7 +329,7 @@ package manager for your python environment.""" %
                 numpy.__version__)
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
-                self.distribution.ext_modules)
+            self.distribution.ext_modules)
         _build_ext.finalize_options(self)
         # Prevent numpy from thinking it is still in its setup process
         # see http://stackoverflow.com/a/21621493/1382869
@@ -325,7 +339,10 @@ package manager for your python environment.""" %
             __builtins__["__NUMPY_SETUP__"] = False
         else:
             __builtins__.__NUMPY_SETUP__ = False
+        import numpy
+        import cykdtree
         self.include_dirs.append(numpy.get_include())
+        self.include_dirs.append(cykdtree.get_include())
 
 class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython

@@ -67,6 +67,8 @@ install:
     pip install --upgrade setuptools
     # Install dependencies
     pip install mock $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 nose nose-timer
+    # HACK, FIXME BEFORE MERGING
+    pip install https://github.com/cykdtree/cykdtree/archive/master.zip
     # install yt
     pip install -e .
 

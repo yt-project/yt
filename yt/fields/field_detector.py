@@ -123,7 +123,7 @@ class FieldDetector(defaultdict):
                 if not self.flat: self[item] = vv
                 else: self[item] = vv.ravel()
                 return self[item]
-        elif finfo is not None and finfo.particle_type:
+        elif finfo is not None and finfo.sampling_type == "particle":
             if "particle_position" in (item, item[1]) or \
                "particle_velocity" in (item, item[1]) or \
                "particle_magnetic_field" in (item, item[1]) or \
@@ -171,7 +171,7 @@ class FieldDetector(defaultdict):
     def _read_data(self, field_name):
         self.requested.append(field_name)
         finfo = self.ds._get_field_info(*field_name)
-        if finfo.particle_type:
+        if finfo.sampling_type == "particle":
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
         return YTArray(defaultdict.__missing__(self, field_name),

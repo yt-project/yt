@@ -1,5 +1,5 @@
 """
-OWLS definitions
+Tipsy definitions
 
 
 
@@ -13,3 +13,9 @@ OWLS definitions
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+
+npart_mapping = {
+    'Gas': 'nsph',
+    'DarkMatter': 'ndark',
+    'Stars': 'nstar'
+}

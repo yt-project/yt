@@ -70,9 +70,10 @@ class GAMERFieldInfo(FieldInfoContainer):
                 return data["gas", "momentum_%s"%v] / data["gas","density"]
             return _velocity
         for v in "xyz":
-            self.add_field( ("gas","velocity_%s"%v), sampling_type="cell",
-                            function = velocity_xyz(v),
-                            units = unit_system["velocity"] )
+            self.add_field(("gas","velocity_%s"%v),
+                           sampling_type="cell",
+                           function = velocity_xyz(v),
+                           units = unit_system["velocity"] )
 
         # ============================================================================
         # note that yt internal fields assume
@@ -96,31 +97,35 @@ class GAMERFieldInfo(FieldInfoContainer):
         # thermal energy per mass (i.e., specific)
         def _thermal_energy(field, data):
             return et(data) / data["gamer","Dens"]
-        self.add_field( ("gas","thermal_energy"), sampling_type="cell",
-                        function = _thermal_energy,
-                        units = unit_system["specific_energy"] )
+        self.add_field(("gas","thermal_energy"),
+                       sampling_type="cell",
+                       function = _thermal_energy,
+                       units = unit_system["specific_energy"] )
 
         # total energy per mass
         def _total_energy(field, data):
             return data["gamer","Engy"] / data["gamer","Dens"]
-        self.add_field( ("gas","total_energy"), sampling_type="cell",
-                        function = _total_energy,
-                        units = unit_system["specific_energy"] )
+        self.add_field(("gas","total_energy"),
+                       sampling_type="cell",
+                       function = _total_energy,
+                       units = unit_system["specific_energy"] )
 
         # pressure
         def _pressure(field, data):
             return et(data)*(data.ds.gamma-1.0)
-        self.add_field( ("gas","pressure"), sampling_type="cell",
-                        function = _pressure,
-                        units = unit_system["pressure"] )
+        self.add_field(("gas","pressure"),
+                       sampling_type="cell",
+                       function = _pressure,
+                       units = unit_system["pressure"] )
 
         # temperature
         def _temperature(field, data):
             return data.ds.mu*mh*data["gas","pressure"] / \
                    (data["gas","density"]*boltzmann_constant_cgs)
-        self.add_field( ("gas","temperature"), sampling_type="cell",
-                        function = _temperature,
-                        units = unit_system["temperature"] )
+        self.add_field(("gas","temperature"),
+                       sampling_type="cell",
+                       function = _temperature,
+                       units = unit_system["temperature"] )
 
     def setup_particle_fields(self, ptype):
         super(GAMERFieldInfo, self).setup_particle_fields(ptype)

@@ -26,9 +26,8 @@ import os
 from yt.data_objects.static_output import \
     ParticleFile
 from yt.frontends.sph.data_structures import \
-    SPHDataset
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
+    SPHDataset, \
+    SPHParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.fortran_utils import read_record
@@ -68,46 +67,68 @@ def _get_gadget_format(filename):
 
 
 class GadgetBinaryFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range=None):
         gformat = _get_gadget_format(filename)
         with open(filename, "rb") as f:
             if gformat[0] == 2:
                 f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
             self.header = read_record(f, ds._header_spec, endian=gformat[1])
             if gformat[0] == 2:
-                f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
+                f.seek(f.tell() + SNAP_FORMAT_2_OFFSET) 
             self._position_offset = f.tell()
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
-        super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id)
+        super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id, range)
 
-    def _calculate_offsets(self, field_list):
+    def _calculate_offsets(self, field_list, pcounts):
         self.field_offsets = self.io._calculate_field_offsets(
-            field_list, self.total_particles,
-            self._position_offset, self._file_size)
+            field_list, pcounts, self._position_offset, self.start,
+            self._file_size)
 
+class GadgetBinaryIndex(SPHParticleIndex):
+
+    def __init__(self, ds, dataset_type):
+        super(GadgetBinaryIndex, self).__init__(ds, dataset_type)
+        self._initialize_index()
+
+    def _initialize_index(self):
+        # Normally this function is called during field detection. We call it
+        # here because we need to know which fields exist on-disk so that we can
+        # read in the smoothing lengths for SPH data before we construct the
+        # Morton bitmaps.
+        self._detect_output_fields()
+        super(GadgetBinaryIndex, self)._initialize_index()
+
+    def _initialize_frontend_specific(self):
+        super(GadgetBinaryIndex, self)._initialize_frontend_specific()
+        fname = self.data_files[0].filename
+        self.io._float_type = self.ds._validate_header(fname)[1]
 
 class GadgetDataset(SPHDataset):
-    _index_class = ParticleIndex
+    _index_class = GadgetBinaryIndex
     _file_class = GadgetBinaryFile
     _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
+    _sph_ptype = 'Gas'
     _suffix = ""
 
     def __init__(self, filename, dataset_type="gadget_binary",
                  additional_fields=(),
-                 unit_base=None, n_ref=64,
-                 over_refine_factor=1,
+                 unit_base=None,
+                 index_order=None,
+                 index_filename=None,
+                 kdtree_filename=None,
                  kernel_name=None,
-                 index_ptype="all",
-                 bounding_box=None,
-                 header_spec="default",
-                 field_spec="default",
-                 ptype_spec="default",
+                 bounding_box = None,
+                 header_spec = "default",
+                 field_spec = "default",
+                 ptype_spec = "default",
+                 long_ids = False,
                  units_override=None,
+                 header_offset = 0,
                  unit_system="cgs",
                  use_dark_factor = False,
                  w_0 = -1.0,
@@ -120,8 +141,13 @@ class GadgetDataset(SPHDataset):
             field_spec, gadget_field_specs)
         self._ptype_spec = self._setup_binary_spec(
             ptype_spec, gadget_ptype_specs)
-        self.index_ptype = index_ptype
         self.storage_filename = None
+        if long_ids:
+            self._id_dtype = 'u8'
+        else:
+            self._id_dtype = 'u4'
+        self.long_ids = long_ids
+        self.header_offset = header_offset
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
@@ -145,8 +171,11 @@ class GadgetDataset(SPHDataset):
         self.w_a = w_a
 
         super(GadgetDataset, self).__init__(
-            filename, dataset_type=dataset_type, unit_system=unit_system,
-            n_ref=n_ref, over_refine_factor=over_refine_factor,
+            filename, dataset_type=dataset_type,
+            unit_system=unit_system,
+            index_order=index_order,
+            index_filename=index_filename,
+            kdtree_filename=kdtree_filename,
             kernel_name=kernel_name)
         if self.cosmological_simulation:
             self.time_unit.convert_to_units('s/h')
@@ -193,11 +222,11 @@ class GadgetDataset(SPHDataset):
         # Set standard values
 
         # We may have an overridden bounding box.
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        if self.domain_left_edge is None and hvals['BoxSize'] != 0:
+                self.domain_left_edge = np.zeros(3, "float64")
+                self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+
+        self.domain_dimensions = np.ones(3, "int32")
         self.periodicity = (True, True, True)
 
         self.cosmological_simulation = 1
@@ -412,26 +441,29 @@ class GadgetDataset(SPHDataset):
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
+    _index_class = SPHParticleIndex
     _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Masses"
+    _sph_ptype = 'PartType0'
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="gadget_hdf5",
-                 unit_base=None, n_ref=64,
-                 over_refine_factor=1,
+                 unit_base=None,
+                 index_order=None,
+                 index_filename=None,
                  kernel_name=None,
-                 index_ptype="all",
                  bounding_box=None,
                  units_override=None,
                  unit_system="cgs"):
         self.storage_filename = None
         filename = os.path.abspath(filename)
         if units_override is not None:
-            raise RuntimeError("units_override is not supported for GadgetHDF5Dataset. " +
-                               "Use unit_base instead.")
+            raise RuntimeError(
+                "units_override is not supported for GadgetHDF5Dataset. "
+                "Use unit_base instead.")
         super(GadgetHDF5Dataset, self).__init__(
-            filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
-            over_refine_factor=over_refine_factor, index_ptype=index_ptype,
+            filename, dataset_type, unit_base=unit_base,
+            index_order=index_order, index_filename=index_filename,
             kernel_name=kernel_name, bounding_box=bounding_box,
             unit_system=unit_system)
 
@@ -468,13 +500,12 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.omega_matter = self.parameters["Omega0"]
         self.hubble_constant = self.parameters["HubbleParam"]
 
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(
-                3, "float64") * self.parameters["BoxSize"]
+        if self.domain_left_edge is None and self.parameters['BoxSize'] != 0:
+                self.domain_left_edge = np.zeros(3, "float64")
+                self.domain_right_edge = \
+                    np.ones(3, "float64") * self.parameters["BoxSize"]
 
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
 
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)

@@ -45,12 +45,13 @@ class HaloCatalogParticleIndex(ParticleIndex):
                    self.dataset.parameter_filename, 0)]
 
 class HaloCatalogHDF5File(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range):
         with h5py.File(filename, "r") as f:
             self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
 
-        super(HaloCatalogHDF5File, self).__init__(ds, io, filename, file_id)
+        super(HaloCatalogHDF5File, self).__init__(
+            ds, io, filename, file_id, range)
     
 class HaloCatalogDataset(SavedDataset):
     _index_class = ParticleIndex
@@ -63,10 +64,7 @@ class HaloCatalogDataset(SavedDataset):
                   "domain_left_edge", "domain_right_edge")
 
     def __init__(self, filename, dataset_type="halocatalog_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None,
-                 unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+                 units_override=None, unit_system="cgs"):
         super(HaloCatalogDataset, self).__init__(filename, dataset_type,
                                                  units_override=units_override,
                                                  unit_system=unit_system)
@@ -74,8 +72,7 @@ class HaloCatalogDataset(SavedDataset):
     def _parse_parameter_file(self):
         self.refine_by = 2
         self.dimensionality = 3
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(self.dimensionality, "int32") * nz
+        self.domain_dimensions = np.ones(self.dimensionality, "int32")
         self.periodicity = (True, True, True)
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)

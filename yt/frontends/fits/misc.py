@@ -67,7 +67,9 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
         cfunc = _make_counts(emin, emax)
         fname = "counts_%s-%s" % (emin, emax)
         mylog.info("Creating counts field %s." % fname)
-        ds.add_field((ftype,fname), sampling_type="cell",  function=cfunc,
+        ds.add_field((ftype,fname),
+                     sampling_type="cell",
+                     function=cfunc,
                      units="counts/pixel",
                      validators = [ValidateSpatial()],
                      display_name="Counts (%s-%s keV)" % (emin, emax))

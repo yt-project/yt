@@ -1,0 +1,32 @@
+"""
+A cython implementation of the bounded priority queue
+
+This is a priority queue that only keeps track of smallest k values that have
+been added to it.
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2017, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
+import numpy as np
+cimport numpy as np
+
+cdef class BoundedPriorityQueue:
+    cdef public np.float64_t[:] heap
+    cdef np.float64_t* heap_ptr
+    cdef np.intp_t size
+    cdef np.intp_t max_elements
+
+    cdef int max_heapify(self, np.intp_t index) nogil except -1
+    cdef int propagate_up(self, np.intp_t index) nogil except -1
+    cdef int add(self, np.float64_t val) nogil except -1
+    cdef int heap_append(self, np.float64_t val) nogil except -1
+    cdef np.float64_t extract_max(self) nogil except -1
+    cdef int validate_heap(self) nogil except -1

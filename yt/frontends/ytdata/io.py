@@ -23,6 +23,8 @@ from yt.funcs import \
     parse_h5_attr
 from yt.geometry.selection_routines import \
     GridSelector
+from yt.units.yt_array import \
+    uvstack
 from yt.utilities.exceptions import \
     YTDomainOverflow
 from yt.utilities.io_handler import \
@@ -183,6 +185,18 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
+    def _yield_coordinates(self, data_file):
+        with h5py.File(data_file.filename, 'r') as f:
+            for ptype in f.keys():
+                if 'x' not in f[ptype].keys():
+                    continue
+                units = _get_position_array_units(ptype, f, "x")
+                x, y, z = (self.ds.arr(_get_position_array(ptype, f, ax), units)
+                           for ax in "xyz")
+                pos = uvstack([x, y, z]).T
+                pos.convert_to_units('code_length')
+                yield ptype, pos
+
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
@@ -264,7 +278,14 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        return self.ds.num_particles
+        si, ei = data_file.start, data_file.end
+        if None not in (si, ei):
+            pcount = {}
+            for ptype, npart in self.ds.num_particles.items():
+                pcount[ptype] = np.clip(npart - si, 0, ei - si)
+        else:
+            pcount = self.ds.num_particles
+        return pcount
 
     def _identify_fields(self, data_file):
         fields = []
