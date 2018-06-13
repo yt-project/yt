@@ -936,6 +936,7 @@ class YTArbitraryGrid(YTCoveringGrid):
 
             pbar = tqdm(desc="Interpolating SPH field {}".format(field))
             for chunk in self._data_source.chunks([field],"io"):
+                print(chunk[(ptype,'particle_position_x')].shape)
                 px = chunk[(ptype,'particle_position_x')].in_base("code")
                 py = chunk[(ptype,'particle_position_y')].in_base("code")
                 pz = chunk[(ptype,'particle_position_z')].in_base("code")

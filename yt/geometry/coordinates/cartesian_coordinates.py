@@ -329,6 +329,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             elif isinstance(data_source, YTSlice):
                 buff = np.zeros(size, dtype='float64')
                 for chunk in data_source.chunks([], 'io'):
+                    print(chunk[ptype, px_name].shape)
                     pixelize_sph_kernel_slice(
                         buff,
                         chunk[ptype, px_name],
