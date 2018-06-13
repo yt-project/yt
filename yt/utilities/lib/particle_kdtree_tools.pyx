@@ -100,7 +100,8 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 @cython.wraparound(False)
 @cython.cdivision(True)
 def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
-                     PyKDTree kdtree, int n_neighbors):
+                     PyKDTree kdtree, np.float64_t[:, ::1] input_positions,
+                     int n_neighbors):
     """Calculate an array of distances to the nearest n_neighbours and which
     particle is that distance away.
 
@@ -112,6 +113,7 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
     dimensions: the number of pixels / voxels to divide into.
     kdtree: A PyKDTree instance
         A kdtree to do nearest neighbors searches with
+    input_positiosn:  an array of partile positons
     n_neighbors: The neighbor number to calculate the distance to
 
     Returns
@@ -128,14 +130,13 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
     cdef np.float64_t tpos, ma, sq_dist
     cdef np.float64_t[:] pos
     cdef uint64_t neighbor_id
-    cdef int i, j, k, l, skip
+    cdef int i, j, k, l, skip, xsize, ysize, zsize, npixels
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neighbors, True)
-    cdef uint64_t xsize, ysize, zsize, n_pixels
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, dx, dy, dz
 
     # setting up the pixels to loop through
-    n_pixels = xsize*ysize*zsize
     xsize, ysize, zsize = dimensions[0], dimensions[1], dimensions[2]
+    n_pixels = xsize*ysize*zsize
 
     x_min = bounds[0]
     x_max = bounds[1]
@@ -169,13 +170,13 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
 
                     # Fill queue with particles in the node containing the
                     # particle we're searching for
-                    #process_node_points(leafnode, pos, input_positions, queue,
-                    #                    i)
+                    process_node_points_pid(leafnode, &(pos[0]), input_positions, queue,
+                                        i)
 
                     # Traverse the rest of the kdtree to finish the neighbor
                     # list
-                    #find_knn(c_tree.root, queue, input_positions, pos,
-                    #         leafnode.leafid, i)
+                    find_knn_pid(c_tree.root, queue, input_positions, &(pos[0]),
+                             leafnode.leafid, i)
 
                     pos[0] += dx
                     pos[1] += dy
@@ -194,6 +195,8 @@ cdef int find_knn(Node* node,
                   np.float64_t* pos,
                   uint32_t skipleaf,
                   uint64_t skipidx) nogil except -1:
+    # if we aren't a leaf then we keep travsersing until we find a leaf, else we
+    # we actually begin to check the leaf
     if not node.is_leaf:
         if not cull_node(node.less, pos, queue, skipleaf):
             find_knn(node.less, queue, positions, pos, skipleaf, skipidx)
@@ -206,10 +209,33 @@ cdef int find_knn(Node* node,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cdef int find_knn_pid(Node* node,
+                  BoundedPriorityQueue queue,
+                  np.float64_t[:, :] positions,
+                  np.float64_t* pos,
+                  uint32_t skipleaf,
+                  uint64_t skipidx) nogil except -1:
+    # if we aren't a leaf then we keep travsersing until we find a leaf, else we
+    # we actually begin to check the leaf
+    if not node.is_leaf:
+        if not cull_node(node.less, pos, queue, skipleaf):
+            find_knn_pid(node.less, queue, positions, pos, skipleaf, skipidx)
+        if not cull_node(node.greater, pos, queue, skipleaf):
+            find_knn_pid(node.greater, queue, positions, pos, skipleaf, skipidx)
+    else:
+        if not cull_node(node, pos, queue, skipleaf):
+            process_node_points_pid(node, pos, positions, queue, skipidx)
+    return 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef inline int cull_node(Node* node,
                           np.float64_t* pos,
                           BoundedPriorityQueue queue,
                           uint32_t skipleaf) nogil except -1:
+    # this function essentially checks if the node can possibly have particles
+    # which are nearest neighbours, if it does, then it returns False. if it can
+    # be skipped, it returns True
     cdef np.float64_t v
     cdef np.float64_t tpos, ndist = 0
     cdef uint32_t leafid
@@ -247,3 +273,26 @@ cdef inline int process_node_points(Node* node,
             queue.add(sq_dist)
     return 0
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline int process_node_points_pid(Node* node,
+                                    np.float64_t* pos,
+                                    np.float64_t[:, :] positions,
+                                    BoundedPriorityQueue queue,
+                                    uint64_t skip_idx) nogil except -1:
+    # this is just a copy of the process_node_points except in this function
+    # we also store the pid of particle in the node
+    cdef uint64_t i, idx
+    cdef np.float64_t tpos, sq_dist
+    cdef int j
+    cdef np.float64_t* p_ptr
+    for i in range(node.left_idx, node.left_idx + node.children):
+        p_ptr = &(positions[i, 0])
+        if i != skip_idx:
+            sq_dist = 0
+            for j in range(3):
+                tpos = p_ptr[j] - pos[j]
+                sq_dist += tpos*tpos
+            queue.add_pid(sq_dist, i)
+    return 0
