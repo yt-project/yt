@@ -337,8 +337,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         chunk[ptype, 'particle_mass'],
                         chunk[ptype, 'density'],
                         chunk[field].in_units(ounits),
-                        bounds,
-                        use_normalization=False)
+                        bounds)
             else:
                 raise NotImplementedError(
                     "A pixelization routine has not been implemented for %s "
