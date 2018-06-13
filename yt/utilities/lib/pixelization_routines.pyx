@@ -1060,7 +1060,7 @@ def pixelize_sph_kernel_slice(
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
         bounds, kernel_name="cubic",
-        use_normalization=True):
+        use_normalization=False):
 
     # similar method to pixelize_sph_kernel_projection
     cdef np.intp_t xsize, ysize
@@ -1164,13 +1164,13 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
         bounds, pbar=None, kernel_name="cubic",
-        use_normalization=True):
+        use_normalization=False):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, w_j, coeff
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
     cdef np.float64_t qxy, posx_diff, posy_diff, posz_diff
-    cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j2
+    cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
     cdef int index, i, j, k
     cdef np.float64_t[:, :, :] buff_num
     cdef np.float64_t[:, :, :] buff_denom
@@ -1225,7 +1225,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
             h_j3 = fmax(hsml[j]*hsml[j]*hsml[j], dx*dy*dz)
             h_j = math.cbrt(h_j3)
             h_j2 = h_j*h_j
-            ih_j2 = 1/(h_j*h_j)
+            ih_j = 1/h_j
 
             w_j = pmass[j] / pdens[j] / hsml[j]**3
             coeff = w_j * quantity_to_smooth[j]
@@ -1259,7 +1259,8 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                         # yt's kernel functions use a different convention than
                         # the SPLASH paper (following Gadget-2), and qxy is
                         # twice the value of q used in the SPLASH paper
-                        qxy = 2.0 * (posx_diff + posy_diff + posz_diff) * ih_j2
+                        qxy = 2.0 * math.sqrt(posx_diff + posy_diff + posz_diff)
+                        qxy *= ih_j
                         if qxy >= 1:
                             continue
 
