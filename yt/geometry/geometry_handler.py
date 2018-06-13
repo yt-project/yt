@@ -245,6 +245,12 @@ class Index(ParallelAnalysisInterface):
             chunk_size)
         return fields_to_return, fields_to_generate
 
+    def _identify_base_chunk(self, dobj):
+        r"""This is an internal function used to set up a "base"-level chunk
+        that corresponds to the entirety of the data selected by *dobj*.
+        """
+        raise NotImplementedError # Needs to be implemented by subclass
+
     def _chunk(self, dobj, chunking_style, ngz = 0, **kwargs):
         # A chunk is either None or (grids, size)
         if dobj._current_chunk is None:
