@@ -25,6 +25,14 @@ def test_bad_disk_input():
                " received 'yt.units.yt_array.YTArray' of length 3")
     assert_equal(str(ex.exception), desired)
 
+    # Test invalid float
+    with assert_raises(TypeError) as ex:
+        disk = ds.disk(ds.domain_center, [0, 0, 1],
+                       (10, 10), (20, 'kpc'))
+        disk['density']
+    desired = ("Expected a numeric value, received 'tuple'")
+    assert_equal(str(ex.exception), desired)
+
     # Test invalid iterable
     with assert_raises(TypeError) as ex:
         disk = ds.disk(ds.domain_center, [0, 0, 1], (10, 'kpc'),
