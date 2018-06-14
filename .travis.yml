@@ -23,7 +23,7 @@ env:
     FLAKE8=flake8
     CODECOV=codecov
     COVERAGE=coverage
-    PANDAS=pandas
+    PANDAS=pandas<0.21
 
 before_install:
   - |
@@ -59,7 +59,7 @@ jobs:
   include:
     - stage: lint
       python: 3.4
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON=
+      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS=
       script: flake8 yt/
 
     - stage: tests
