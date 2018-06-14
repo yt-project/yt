@@ -1172,24 +1172,28 @@ def handle_mks_cgs(values, field_units):
 
 def validate_3d_array(obj):
     if not iterable(obj) or len(obj) != 3:
-        raise TypeError("Expected an array of size (1,3),"
-                        " received %s of length %s" % (type(obj), len(obj)))
+        raise TypeError("Expected an array of size (1,3), received '%s' of "
+                        "length %s" % (str(type(obj)).split("'")[1], len(obj)))
 
 def validate_float(obj):
     if isinstance(obj, (tuple, YTQuantity)) and \
             (not isinstance(obj[0], numeric_type) or
              not isinstance(obj[1], string_types)):
-        raise TypeError("Expected a numeric value, received %s" % type(obj))
+        raise TypeError("Expected a numeric value, received '%s'"
+                        % str(type(obj)).split("'")[1])
     elif not isinstance(obj, tuple) and iterable(obj)\
             and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
         raise TypeError("Expected a numeric value (or size-1 array),"
-                        " received %s of length %s" % (type(obj), len(obj)))
+                        " received '%s' of length %s"
+                        % (str(type(obj)).split("'")[1], len(obj)))
 
 def validate_iterable(obj):
     if obj is not None and not iterable(obj):
-        raise TypeError("Expected an iterable object, received %s" % type(obj))
+        raise TypeError("Expected an iterable object,"
+                        " received '%s'" % str(type(obj)).split("'")[1])
 
 def validate_object(obj, data_type):
     if obj is not None and not isinstance(obj, data_type):
-        raise TypeError("Expected an object of %s type, received %s"
-                        % (data_type, type(obj)))
+        raise TypeError("Expected an object of '%s' type, received '%s'"
+                        % (str(data_type).split("'")[1],
+                        str(type(obj)).split("'")[1]))

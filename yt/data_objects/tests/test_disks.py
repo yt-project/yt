@@ -13,8 +13,7 @@ def test_bad_disk_input():
     with assert_raises(TypeError) as ex:
         disk = ds.disk(ds.domain_center, [0, 0, 1, 1], (10, 'kpc'), (20, 'kpc'))
         disk['density']
-    desired = ("Expected an array of size (1,3),"
-               " received <class 'list'> of length 4")
+    desired = ("Expected an array of size (1,3), received 'list' of length 4")
     assert_equal(str(ex.exception), desired)
 
     # Test invalid float
@@ -23,7 +22,7 @@ def test_bad_disk_input():
                        ds.domain_center, (20, 'kpc'))
         disk['density']
     desired = ("Expected a numeric value (or size-1 array),"
-               " received <class 'yt.units.yt_array.YTArray'> of length 3")
+               " received 'yt.units.yt_array.YTArray' of length 3")
     assert_equal(str(ex.exception), desired)
 
     # Test invalid iterable
@@ -32,7 +31,7 @@ def test_bad_disk_input():
                        (20, 'kpc'), fields=YTQuantity(1, 'kpc'))
         disk['density']
     desired = ("Expected an iterable object, received"
-               " <class 'yt.units.yt_array.YTQuantity'>")
+               " 'yt.units.yt_array.YTQuantity'")
     assert_equal(str(ex.exception), desired)
 
     # Test invalid object
@@ -40,9 +39,9 @@ def test_bad_disk_input():
         disk = ds.disk(ds.domain_center, [0, 0, 1], (10, 'kpc'),
                        (20, 'kpc'), ds=ds.all_data())
         disk['density']
-    desired = ("Expected an object of <class 'yt.data_objects.static_output."
-               "Dataset'> type, received <class 'yt.data_objects."
-               "selection_data_containers.YTRegion'>")
+    desired = ("Expected an object of 'yt.data_objects.static_output.Dataset' "
+               "type, received "
+               "'yt.data_objects.selection_data_containers.YTRegion'")
     assert_equal(str(ex.exception), desired)
 
     # Test valid disk
