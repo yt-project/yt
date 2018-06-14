@@ -586,11 +586,14 @@ class YTDisk(YTSelectionContainer3D):
     def __init__(self, center, normal, radius, height, fields=None,
                  ds=None, field_parameters=None, data_source=None):
 
-        validate_3d_array(center, normal)
-        validate_float(radius, height)
+        validate_3d_array(center)
+        validate_3d_array(normal)
+        validate_float(radius)
+        validate_float(height)
         validate_iterable(fields)
-        validate_object((field_parameters, dict),
-                        (ds, Dataset), (data_source, YTSelectionContainer))
+        validate_object(field_parameters, dict)
+        validate_object(ds, Dataset)
+        validate_object(data_source, YTSelectionContainer)
 
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
