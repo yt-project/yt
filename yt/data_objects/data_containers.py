@@ -32,7 +32,7 @@ from yt.funcs import \
     mylog, \
     ensure_list, \
     fix_axis, \
-    iterable
+    iterable, validate_width_tuple
 from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import \
     YTArray, \
@@ -50,7 +50,7 @@ from yt.utilities.exceptions import \
     YTDataSelectorNotImplemented, \
     YTDimensionalityError, \
     YTBooleanObjectError, \
-    YTBooleanObjectsWrongDataset
+    YTBooleanObjectsWrongDataset, YTException
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -70,15 +70,6 @@ from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 
 data_object_registry = {}
-
-def force_array(item, shape):
-    try:
-        return item.copy()
-    except AttributeError:
-        if item:
-            return np.ones(shape, dtype='bool')
-        else:
-            return np.zeros(shape, dtype='bool')
 
 def sanitize_weight_field(ds, field, weight):
     field_object = ds._get_field_info(field)
@@ -231,13 +222,6 @@ class YTDataContainer(object):
         Checks if a field parameter is set.
         """
         return name in self.field_parameters
-
-    def convert(self, datatype):
-        """
-        This will attempt to convert a given unit to cgs from code units.
-        It either returns the multiplicative factor or throws a KeyError.
-        """
-        return self.ds[datatype]
 
     def clear_data(self):
         """
@@ -417,21 +401,73 @@ class YTDataContainer(object):
 
     _key_fields = None
     def write_out(self, filename, fields=None, format="%0.16e"):
-        if fields is None: fields=sorted(self.field_data.keys())
-        if self._key_fields is None: raise ValueError
-        field_order = sorted(self._determine_fields(self._key_fields))
+        """Write out the YTDataContainer object in a text file.
+
+        This function will take a data object and produce a tab delimited text
+        file containing the fields presently existing and the fields given in
+        the ``fields`` list.
+
+        Parameters
+        ----------
+        filename : String
+            The name of the file to write to.
+
+        fields : List of string, Default = None
+            If this is supplied, these fields will be added to the list of
+            fields to be saved to disk. If not supplied, whatever fields
+            presently exist will be used.
+
+        format : String, Default = "%0.16e"
+            Format of numbers to be written in the file.
+
+        Raises
+        ------
+        ValueError
+            Raised when there is no existing field.
+
+        YTException
+            Raised when field_type of supplied fields is inconsistent with the
+            field_type of existing fields.
+
+        Examples
+        --------
+        >>> ds = fake_particle_ds()
+        >>> sp = ds.sphere(ds.domain_center, 0.25)
+        >>> sp.write_out("sphere_1.txt")
+        >>> sp.write_out("sphere_2.txt", fields=["cell_volume"])
+        """
+        if fields is None:
+            fields = sorted(self.field_data.keys())
+
+        if self._key_fields is None:
+            raise ValueError
+
+        field_order = self._key_fields
+        diff_fields = [field for field in fields if field not in field_order]
+        field_order += diff_fields
+        field_order = sorted(self._determine_fields(field_order))
+        field_types = {u for u, v in field_order}
+
+        if len(field_types) != 1:
+            diff_fields = self._determine_fields(diff_fields)
+            req_ftype = self._determine_fields(self._key_fields[0])[0][0]
+            f_type = {f for f in diff_fields if f[0] != req_ftype }
+            msg = ("Field type %s of the supplied field %s is inconsistent"
+                   " with field type '%s'." %
+                   ([f[0] for f in f_type], [f[1] for f in f_type], req_ftype))
+            raise YTException(msg)
+
         for field in field_order: self[field]
-        field_order += [field for field in fields if field not in field_order]
-        fid = open(filename,"w")
+        fid = open(filename, "w")
         field_header = [str(f) for f in field_order]
         fid.write("\t".join(["#"] + field_header + ["\n"]))
         field_data = np.array([self.field_data[field] for field in field_order])
         for line in range(field_data.shape[1]):
-            field_data[:,line].tofile(fid, sep="\t", format=format)
+            field_data[:, line].tofile(fid, sep="\t", format=format)
             fid.write("\n")
         fid.close()
 
-    def save_object(self, name, filename = None):
+    def save_object(self, name, filename=None):
         """
         Save an object.  If *filename* is supplied, it will be stored in
         a :mod:`shelve` file of that name.  Otherwise, it will be stored via
@@ -446,7 +482,7 @@ class YTDataContainer(object):
         else:
             self.index.save_object(self, name)
 
-    def to_dataframe(self, fields = None):
+    def to_dataframe(self, fields=None):
         r"""Export a data object to a pandas DataFrame.
 
         This function will take a data object and construct from it and
@@ -1664,12 +1700,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
                     "Currently we only support images centered at R=0. " +
                     "We plan to generalize this in the near future")
             from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
-            if isinstance(width, tuple):
-               radius = width[0]
-            else:
-                radius = width
+            validate_width_tuple(width)
             if iterable(resolution): resolution = max(resolution)
-            frb = CylindricalFixedResolutionBuffer(self, radius, resolution)
+            frb = CylindricalFixedResolutionBuffer(self, width, resolution)
             return frb
 
         if center is None:

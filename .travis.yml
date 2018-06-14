@@ -23,6 +23,7 @@ env:
     FLAKE8=flake8
     CODECOV=codecov
     COVERAGE=coverage
+    PANDAS=pandas
 
 before_install:
   - |
@@ -50,7 +51,7 @@ install:
     pip install --upgrade wheel
     pip install --upgrade setuptools
     # Install dependencies
-    pip install mock $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE nose nose-timer
+    pip install mock $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS nose nose-timer
     # install yt
     pip install -e .
 
