@@ -23,7 +23,7 @@ env:
     FLAKE8=flake8
     CODECOV=codecov
     COVERAGE=coverage
-    PANDAS=pandas<0.21
+    PANDAS=pandas
 
 before_install:
   - |
@@ -58,7 +58,7 @@ install:
 jobs:
   include:
     - stage: lint
-      python: 3.4
+      python: 3.6
       env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS=
       script: flake8 yt/
 
@@ -74,7 +74,7 @@ jobs:
 
     - stage: tests
       python: 3.4
-      env: FLAKE8=
+      env: FLAKE8= PANDAS=pandas==0.20
       script: coverage run $(which nosetests) -c nose.cfg yt
 
     - stage: tests
