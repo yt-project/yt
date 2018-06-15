@@ -5,7 +5,7 @@ from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import Profile1D, Profile2D, Profile3D,\
     create_profile
 from yt.testing import fake_random_ds, assert_equal, assert_raises,\
-    assert_rel_equal
+    assert_rel_equal, assert_almost_equal
 from yt.utilities.exceptions import YTIllDefinedProfile
 from yt.visualization.profile_plotter import ProfilePlot, PhasePlot
 
@@ -293,3 +293,16 @@ def test_profile_zero_weight():
                                 weight_field=("gas", "DM_cell_mass"))
 
     assert not np.any(np.isnan(profile['gas', 'radial_velocity']))
+
+def test_profile_override_limits():
+
+    ds = fake_random_ds(32, particle_fields=_fields,
+                        particle_field_units=_units, particles=16)
+
+    sp = ds.sphere(ds.domain_center, (10, 'kpc'))
+    obins = np.linspace(-5,5,10)
+    profile = yt.create_profile(sp,
+                                [("gas", "density")],
+                                [("gas", "radial_velocity")],
+                                override_bins={("gas", "density"):(np.linspace(-5,5,10), "g/cm**3")})
+    assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
