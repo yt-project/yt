@@ -41,6 +41,8 @@ vel_units = "code_velocity"
 pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
+cooling_function_units=" erg * cm**3 /s"
+cooling_function_prime_units=" erg * cm**3 /s /K"
 flux_unit = "1 / code_length**2 / code_time"
 number_density_unit = "1 / code_length**3"
 
@@ -61,8 +63,14 @@ known_species_masses = dict(
     ])
 
 _cool_axes = ("lognH", "logT", "logTeq")
-_cool_arrs = ("metal", "cool", "heat", "metal_prime", "cool_prime",
-              "heat_prime", "mu", "abundances")
+_cool_arrs = (("metal_cool", cooling_function_units),
+              ("cool", cooling_function_units),
+              ("heat", cooling_function_units),
+              ("metal_cool_prime", cooling_function_prime_units),
+              ("cool_prime", cooling_function_prime_units),
+              ("heat_prime", cooling_function_prime_units),
+              ("mu", "1"),
+              ("abundances", "1"))
 _cool_species = ("Electron_number_density",
                  "HI_number_density",
                  "HII_number_density",
@@ -242,16 +250,18 @@ class RAMSESFieldInfo(FieldInfoContainer):
             os.path.dirname(self.ds.parameter_filename), int(num))
 
         if not os.path.exists(filename): return
-        def _create_field(name, interp_object):
+        def _create_field(name, interp_object,unit):
             def _func(field, data):
                 shape = data["temperature"].shape
                 d = {'lognH': np.log10(_X*data["density"]/mh).ravel(),
                      'logT' : np.log10(data["temperature"]).ravel()}
-                rv = 10**interp_object(d).reshape(shape)
+                rv = interp_object(d).reshape(shape)
+                if not(name[-1]=='mu'):
+                    rv = 10**interp_object(d).reshape(shape)
                 # Return array in unit 'per volume' consistently with line below
-                return data.ds.arr(rv, number_density_unit)
+                return data.ds.arr(rv, unit)
             self.add_field(name=name, sampling_type="cell", function=_func,
-                           units=self.ds.unit_system['number_density'])
+                           units=unit)
         avals = {}
         tvals = {}
         with FortranFile(filename) as fd:
@@ -259,17 +269,17 @@ class RAMSESFieldInfo(FieldInfoContainer):
             n = n1 * n2
             for ax in _cool_axes:
                 avals[ax] = fd.read_vector('d')
-            for tname in _cool_arrs:
+            for tname, unit in _cool_arrs:
                 var = fd.read_vector('d')
                 if var.size == n1*n2:
-                    tvals[tname] = var.reshape((n1, n2), order='F')
+                    tvals[tname] = dict(data=var.reshape((n1, n2), order='F'), unit=unit)
                 else:
                     var = var.reshape((n1, n2, var.size // (n1*n2)), order='F')
                     for i in range(var.shape[-1]):
-                        tvals[_cool_species[i]] = var[:,:,i]
+                        tvals[_cool_species[i]] = dict(data=var[:,:,i], unit=number_density_unit)
 
-        for n in tvals:
-            interp = BilinearFieldInterpolator(tvals[n],
+        for key in tvals:
+            interp = BilinearFieldInterpolator(tvals[key]['data'],
                         (avals["lognH"], avals["logT"]),
                         ["lognH", "logT"], truncate = True)
-            _create_field(("gas", n), interp)
+            _create_field(("gas", key), interp, tvals[key]['unit'])
