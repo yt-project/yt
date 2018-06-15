@@ -270,7 +270,8 @@ class GadgetFOFDataset(Dataset):
         elif "UnitTime_in_s" in unit_base:
             time_unit = (unit_base["UnitTime_in_s"], "s")
         else:
-            time_unit = (1., "s")        
+            tu = (self.length_unit / self.velocity_unit).to("yr/h")
+            time_unit = (tu.d, tu.units)
         setdefaultattr(self, 'time_unit', self.quan(time_unit[0], time_unit[1]))
 
     def __repr__(self):
