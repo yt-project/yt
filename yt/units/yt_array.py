@@ -1661,12 +1661,30 @@ def uhstack(arrs):
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 
+def ustack(arrs, axis=0):
+    """Join a sequence of arrays along a new axis while preserving units
+
+    The axis parameter specifies the index of the new axis in the
+    dimensions of the result. For example, if ``axis=0`` it will be the
+    first dimension and if ``axis=-1`` it will be the last dimension.
+
+    This is a wrapper around np.stack that preserves units.
+
+    """
+    v = np.stack(arrs)
+    v = validate_numpy_wrapper_units(v, arrs)
+    return v
+
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
     if isinstance(field, tuple):
-        units = data.ds._get_field_info(field[0],field[1]).output_units
+        finfo = data.ds._get_field_info(field[0],field[1])
     else:
-        units = data.ds._get_field_info(field).output_units
+        finfo = data.ds._get_field_info(field)
+    if finfo.sampling_type == 'particle':
+        units = finfo.output_units
+    else:
+        units = finfo.units
     if isinstance(x, YTArray):
         arr = copy.deepcopy(x)
         arr.convert_to_units(units)

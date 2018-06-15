@@ -60,9 +60,9 @@ Code Errors and Failures
 yt fails saying that it cannot import yt modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is commonly exhibited with this error:
-``ImportError: cannot import name obtain_rvec``.  This is likely because
-you need to rebuild the source.  You can do this automatically by running:
+This is commonly exhibited with an error about not being able to import code
+that is part of yt. This is likely because the code that is failing to import
+needs to be compiled or recompiled, You can do this automatically by running:
 
 .. code-block:: bash
 

@@ -654,8 +654,11 @@ class YTSphere(YTSelectionContainer3D):
     ----------
     center : array_like
         The center of the sphere.
-    radius : float
-        The radius of the sphere.
+    radius : float, width specifier, or YTQuantity
+        The radius of the sphere. If passed a float,
+        that will be interpreted in code units. Also
+        accepts a (radius, unit) tuple or YTQuantity
+        instance with units attached.
 
     Examples
     --------

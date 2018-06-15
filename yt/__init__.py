@@ -53,6 +53,7 @@ from yt.units.yt_array import \
     uunion1d, \
     unorm, \
     udot, \
+    ustack, \
     uvstack, \
     uhstack, \
     loadtxt, \

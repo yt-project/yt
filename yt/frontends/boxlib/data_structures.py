@@ -493,6 +493,8 @@ class BoxlibHierarchy(GridIndex):
         mylog.debug("Done creating grid objects")
 
     def _reconstruct_parent_child(self):
+        if (self.max_level == 0):
+            return
         mask = np.empty(len(self.grids), dtype='int32')
         mylog.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):

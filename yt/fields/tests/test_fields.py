@@ -124,8 +124,15 @@ def get_base_ds(nprocs):
         fields.append(("gas", fname))
         units.append(code_units)
 
+    pfields, punits = [], []
+
+    for fname, (code_units, aliases, dn) in StreamFieldInfo.known_particle_fields:
+        pfields.append(fname)
+        punits.append(code_units)
+
     ds = fake_random_ds(
-        4, fields=fields, units=units, particles=20, nprocs=nprocs)
+        4, fields=fields, units=units, particles=20, nprocs=nprocs,
+        particle_fields=pfields, particle_field_units=punits)
     ds.parameters["HydroMethod"] = "streaming"
     ds.parameters["EOSType"] = 1.0
     ds.parameters["EOSSoundSpeed"] = 1.0
@@ -159,6 +166,9 @@ def test_all_fields():
             continue
         if field[1].find("vertex") > -1:
             # don't test the vertex fields for now
+            continue
+        if field[1].find('smoothed') > -1:
+            # smoothed fields aren't implemented for grid data
             continue
         if field in ds.field_list:
             # Don't know how to test this.  We need some way of having fields
@@ -294,6 +304,21 @@ def test_array_like_field():
     u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
     assert u1 == u2
 
+ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
+
+@requires_file(ISOGAL)
+def test_array_like_field_output_units():
+    ds = load(ISOGAL)
+    ad = ds.all_data()
+    u1 = ad["particle_mass"].units
+    u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
+    assert u1 == u2
+    assert str(u1) == ds.fields.all.particle_mass.output_units
+    u1 = ad['gas', 'x'].units
+    u2 = array_like_field(ad, 1., ("gas", "x")).units
+    assert u1 == u2
+    assert str(u1) == ds.fields.gas.x.units
+
 def test_add_field_string():
     ds = fake_random_ds(16)
     ad = ds.all_data()
@@ -348,8 +373,6 @@ def test_field_inference():
     # If this is not true this means the result of field inference depends
     # on the order we did field detection, which is random in Python3
     assert_equal(ds._last_freq, (None, None))
-
-ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
 
 @requires_file(ISOGAL)
 def test_deposit_amr():

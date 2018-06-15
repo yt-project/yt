@@ -26,4 +26,4 @@ text_string = "T = {} Gyr".format(float(ds.current_time.to('Gyr')))
 # save an annotated version of the volume rendering including a representation
 # of the transfer function and a nice label showing the simulation time.
 sc.save_annotated("vol_annotated.png", sigma_clip=6,
-                  text_annotate=[[(.1, 1.05), text_string]])
+                  text_annotate=[[(.1, 0.95), text_string]])

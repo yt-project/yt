@@ -175,14 +175,15 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
-        # For axis=2, x axis will be latitude, y axis will be longitude
-        px = (data_source["px"].d + 90) * np.pi/180
+        # For a radial axis, px will correspond to longitude and py will
+        # correspond to latitude.
+        px = (data_source["px"].d + 180) * np.pi/180
         pdx = data_source["pdx"].d * np.pi/180
-        py = (data_source["py"].d + 180) * np.pi/180
+        py = (data_source["py"].d + 90) * np.pi/180
         pdy = data_source["pdy"].d * np.pi/180
         # First one in needs to be the equivalent of "theta", which is
         # longitude
-        buff = pixelize_aitoff(py, pdy, px, pdx,
+        buff = pixelize_aitoff(px, pdx, py, pdy,
                                size, data_source[field], None,
                                None).transpose()
         return buff
@@ -274,11 +275,11 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     _x_pairs = (('latitude', 'longitude'),
                 ('longitude', 'latitude'),
-                ('altitude', 'latitude'))
+                ('altitude', 'longitude'))
 
     _y_pairs = (('latitude', 'altitude'),
                 ('longitude', 'altitude'),
-                ('altitude', 'longitude'))
+                ('altitude', 'latitude'))
 
     @property
     def period(self):
@@ -365,11 +366,11 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
 
     _x_pairs = (('latitude', 'longitude'),
                 ('longitude', 'latitude'),
-                ('depth', 'latitude'))
+                ('depth', 'longitude'))
 
     _y_pairs = (('latitude', 'depth'),
                 ('longitude', 'depth'),
-                ('depth', 'longitude'))
+                ('depth', 'latitude'))
 
     def sanitize_center(self, center, axis):
         center, display_center = super(
@@ -398,8 +399,8 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
               axis, width, depth)
         elif name == self.radial_axis:
             rax = self.radial_axis
-            width = [self.ds.domain_width[self.y_axis[rax]],
-                     self.ds.domain_width[self.x_axis[rax]]]
+            width = [self.ds.domain_width[self.x_axis[rax]],
+                     self.ds.domain_width[self.y_axis[rax]]]
         elif name == 'latitude':
             ri = self.axis_id[self.radial_axis]
             # Remember, in spherical coordinates when we cut in theta,

@@ -116,8 +116,14 @@ cdef class SelectorObject:
         self._hash_initialized = 0
         cdef np.float64_t [:] DLE
         cdef np.float64_t [:] DRE
-        self.min_level = getattr(dobj, "min_level", 0)
-        self.max_level = getattr(dobj, "max_level", 99)
+        min_level = getattr(dobj, "min_level", None)
+        max_level = getattr(dobj, "max_level", None)
+        if min_level is None:
+            min_level = 0
+        if max_level is None:
+            max_level = 99
+        self.min_level = min_level
+        self.max_level = max_level
         self.overlap_cells = 0
 
         ds = getattr(dobj, 'ds', None)
@@ -1994,6 +2000,8 @@ cdef class ComposeSelector(SelectorObject):
     def __init__(self, dobj, selector1, selector2):
         self.selector1 = selector1
         self.selector2 = selector2
+        self.min_level = max(selector1.min_level, selector2.min_level)
+        self.max_level = min(selector1.max_level, selector2.max_level)
 
     def select_grids(self,
                      np.ndarray[np.float64_t, ndim=2] left_edges,
