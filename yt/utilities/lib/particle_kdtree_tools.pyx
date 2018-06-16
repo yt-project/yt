@@ -133,10 +133,17 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
     cdef int i, j, k, l, skip, xsize, ysize, zsize, npixels
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neighbors, True)
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, dx, dy, dz
+    cdef np.int64_t[:,:,:,:] pixel_pids
+    cdef np.float64_t[:,:,:,:] pixel_distances
 
     # setting up the pixels to loop through
     xsize, ysize, zsize = dimensions[0], dimensions[1], dimensions[2]
     n_pixels = xsize*ysize*zsize
+
+    pixel_pids = np.zeros((xsize, ysize, zsize, n_neighbors),
+                          dtype=int)
+    pixel_distances = np.zeros((xsize, ysize, zsize, n_neighbors),
+                           dtype=float)
 
     x_min = bounds[0]
     x_max = bounds[1]
@@ -149,16 +156,22 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
     dy = (y_max - y_min) / ysize
     dz = (z_max - z_min) / zsize
 
-    pos = np.array([x_min+dx/2, y_min+dy/2, z_min+dz/2])
+    pos = np.zeros(3)
 
     pbar = get_pbar("Generate nearest neighbours", n_pixels)
     with nogil:
+        pos[0] = x_min - 0.5*dx
         for i in range(0, xsize):
+            pos[1] = y_min - 0.5*dy
+            pos[0] += dx
             for j in range(0, ysize):
+                pos[2] = x_min - 0.5*dz
+                pos[1] += dy
                 for k in range(0, zsize):
                     # reset queue to "empty" state, doing it this way avoids
                     # needing to reallocate memory
                     queue.size = 0
+                    pos[2] += dz
 
                     if i % CHUNKSIZE == 0:
                         with gil:
@@ -170,22 +183,21 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
 
                     # Fill queue with particles in the node containing the
                     # particle we're searching for
-                    process_node_points_pid(leafnode, &(pos[0]), input_positions, queue,
-                                        i)
+                    process_node_points_pid(leafnode, &(pos[0]),
+                                            input_positions, queue)
 
                     # Traverse the rest of the kdtree to finish the neighbor
                     # list
                     find_knn_pid(c_tree.root, queue, input_positions, &(pos[0]),
-                             leafnode.leafid, i)
+                                 leafnode.leafid)
 
-                    pos[0] += dx
-                    pos[1] += dy
-                    pos[2] += dz
+                    pixel_distances[i,j,k,:] = queue.heap
+                    pixel_pids[i,j,k,:] = queue.pids
 
     pbar.update(n_pixels-1)
     pbar.finish()
 
-    return
+    return (pixel_distances, pixel_pids)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -213,18 +225,17 @@ cdef int find_knn_pid(Node* node,
                   BoundedPriorityQueue queue,
                   np.float64_t[:, :] positions,
                   np.float64_t* pos,
-                  uint32_t skipleaf,
-                  uint64_t skipidx) nogil except -1:
+                  uint32_t skipleaf) nogil except -1:
     # if we aren't a leaf then we keep travsersing until we find a leaf, else we
     # we actually begin to check the leaf
     if not node.is_leaf:
         if not cull_node(node.less, pos, queue, skipleaf):
-            find_knn_pid(node.less, queue, positions, pos, skipleaf, skipidx)
+            find_knn_pid(node.less, queue, positions, pos, skipleaf)
         if not cull_node(node.greater, pos, queue, skipleaf):
-            find_knn_pid(node.greater, queue, positions, pos, skipleaf, skipidx)
+            find_knn_pid(node.greater, queue, positions, pos, skipleaf)
     else:
         if not cull_node(node, pos, queue, skipleaf):
-            process_node_points_pid(node, pos, positions, queue, skipidx)
+            process_node_points_pid(node, pos, positions, queue)
     return 0
 
 @cython.boundscheck(False)
@@ -279,8 +290,7 @@ cdef inline int process_node_points(Node* node,
 cdef inline int process_node_points_pid(Node* node,
                                     np.float64_t* pos,
                                     np.float64_t[:, :] positions,
-                                    BoundedPriorityQueue queue,
-                                    uint64_t skip_idx) nogil except -1:
+                                    BoundedPriorityQueue queue) nogil except -1:
     # this is just a copy of the process_node_points except in this function
     # we also store the pid of particle in the node
     cdef uint64_t i, idx
@@ -289,10 +299,9 @@ cdef inline int process_node_points_pid(Node* node,
     cdef np.float64_t* p_ptr
     for i in range(node.left_idx, node.left_idx + node.children):
         p_ptr = &(positions[i, 0])
-        if i != skip_idx:
-            sq_dist = 0
-            for j in range(3):
-                tpos = p_ptr[j] - pos[j]
-                sq_dist += tpos*tpos
-            queue.add_pid(sq_dist, i)
+        sq_dist = 0
+        for j in range(3):
+            tpos = p_ptr[j] - pos[j]
+            sq_dist += tpos*tpos
+        queue.add_pid(sq_dist, i)
     return 0
