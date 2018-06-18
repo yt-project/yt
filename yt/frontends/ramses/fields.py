@@ -42,7 +42,8 @@ pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
 cooling_function_units=" erg * cm**3 /s"
-cooling_function_prime_units=" erg * cm**3 /s /K"
+compton_cooling_function_units=" erg /s"
+metal_cooling_function_units="erg * cm**3 /s/Zsun"
 flux_unit = "1 / code_length**2 / code_time"
 number_density_unit = "1 / code_length**3"
 
@@ -62,15 +63,19 @@ known_species_masses = dict(
                 ("HDI", 3.0),
     ])
 
-_cool_axes = ("lognH", "logT", "logTeq")
-_cool_arrs = (("metal_cool", cooling_function_units),
-              ("cool", cooling_function_units),
-              ("heat", cooling_function_units),
-              ("metal_cool_prime", cooling_function_prime_units),
-              ("cool_prime", cooling_function_prime_units),
-              ("heat_prime", cooling_function_prime_units),
-              ("mu", "1"),
-              ("abundances", "1"))
+_cool_axes = ("lognH", "logT")#, "logTeq")
+_cool_arrs = (("cooling", cooling_function_units),
+              ("heating", cooling_function_units),
+              ("compton_cooling",compton_cooling_function_units),
+              ("compton_heating",compton_cooling_function_units),
+              ("metal_cooling", metal_cooling_function_units),
+              ("cooling_prime", cooling_function_units+'/K'),
+              ("heating_prime", cooling_function_units+'/K'),
+              ("compton_cooling_prime", compton_cooling_function_units+'/K'),
+              ("compton_heating_prime", compton_cooling_function_units+'/K'),
+              ("metal_cooling_prime", metal_cooling_function_units+'/K'),
+              ("mu", None),
+              ("abundances", None))
 _cool_species = ("Electron_number_density",
                  "HI_number_density",
                  "HII_number_density",
