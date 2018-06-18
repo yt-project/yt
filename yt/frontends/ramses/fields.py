@@ -42,7 +42,7 @@ pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
 cooling_function_units=" erg * cm**3 /s"
-metal_cooling_function_units="erg * cm**3 *Zsun/s"
+metal_cooling_function_units="erg * cm**3 /s/Zsun"
 flux_unit = "1 / code_length**2 / code_time"
 number_density_unit = "1 / code_length**3"
 
@@ -262,6 +262,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 rv = interp_object(d).reshape(shape)
                 if not(name[-1]=='mu'):
                     rv = 10**interp_object(d).reshape(shape)
+                if 'metal' in name[-1].split():
+                    rv=rv*units.Zsun.in_cgs().v/0.02  #Compensate for yt and RAMSES using different values for solar metallicity
                 # Return array in unit 'per volume' consistently with line below
                 return data.ds.arr(rv, unit)
             self.add_field(name=name, sampling_type="cell", function=_func,
@@ -292,7 +294,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ''' Add total cooling and heating fields'''
         for name in ['heating','cooling']:
             def _all_cool(field,data):
-                return data['cooling']+data['cooling_metal']+data['cooling_compton']
+                return data['cooling']+data['cooling_metal']*data['metallicity']+data['cooling_compton']
             def _all_heat(field,data):
                 return data['heating']+data['heating_compton']
                 
