@@ -65,6 +65,9 @@ from yt.frontends.stream.api import load_uniform_grid
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
 import yt.extern.six as six
+from yt.utilities.lib.pixelization_routines import \
+    pixelize_sph_kernel_arbitrary_grid
+from yt.extern.tqdm import tqdm
 
 class YTStreamline(YTSelectionContainer1D):
     """
@@ -673,14 +676,29 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     "with nonzero num_ghost_zones." % self._num_ghost_zones)
             else:
                 raise
-        if len(part) > 0: self._fill_particles(part)
+
+        # checking if we have a sph particles
+        is_sph_field = False
+        if(hasattr(self.ds, '_sph_ptype') and len(part)>0):
+            is_sph_field = self.ds._sph_ptype in part[0]
+
+        if len(part) > 0 and len(alias) == 0:
+            if(is_sph_field):
+                self._fill_sph_particles(fields)
+                for field in fields:
+                    if field in gen:
+                        gen.remove(field)
+            else:
+                self._fill_particles(part)
+
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
-            if f.sampling_type == 'particle':
+            if f.sampling_type == 'particle' and not is_sph_field:
                 self[a] = self._data_source[f]
             else:
                 self[a] = f(self)
             self.field_data[a].convert_to_units(f.output_units)
+
         if len(gen) > 0:
             part_gen = []
             cell_gen = []
@@ -899,6 +917,39 @@ class YTArbitraryGrid(YTCoveringGrid):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(dest, fi.units)
 
+    def _fill_sph_particles(self, fields):
+        # checks that we have the field and gets information
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
+
+        ptype = self.ds._sph_ptype
+        for field in fields:
+            dest = np.zeros(self.ActiveDimensions, dtype="float64")
+
+            bounds = np.empty(6, dtype=float)
+            bounds[0] = self.left_edge[0].in_base("code")
+            bounds[2] = self.left_edge[1].in_base("code")
+            bounds[4] = self.left_edge[2].in_base("code")
+            bounds[1] = self.right_edge[0].in_base("code")
+            bounds[3] = self.right_edge[1].in_base("code")
+            bounds[5] = self.right_edge[2].in_base("code")
+
+            pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+            for chunk in self._data_source.chunks([field],"io"):
+                px = chunk[(ptype,'particle_position_x')].in_base("code")
+                py = chunk[(ptype,'particle_position_y')].in_base("code")
+                pz = chunk[(ptype,'particle_position_z')].in_base("code")
+                hsml = chunk[(ptype,'smoothing_length')].in_base("code")
+                mass = chunk[(ptype,'particle_mass')].in_base("code")
+                dens = chunk[(ptype,'density')].in_base("code")
+                field_quantity = chunk[field]
+
+                pixelize_sph_kernel_arbitrary_grid(dest,px,py,pz,hsml,mass,
+                                                   dens,field_quantity,bounds,
+                                                   pbar)
+
+            self[field] = self.ds.arr(dest, field_quantity.units)
+            pbar.close()
 
 class LevelState(object):
     current_dx = None

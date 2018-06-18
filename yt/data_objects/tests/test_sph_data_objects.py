@@ -2,7 +2,8 @@ import numpy as np
 
 from yt.testing import \
     assert_equal, \
-    fake_sph_orientation_ds
+    fake_sph_orientation_ds, fake_sph_grid_ds
+from yt import SlicePlot
 
 def test_point():
     ds = fake_sph_orientation_ds()
@@ -226,3 +227,37 @@ def test_boolean_selection():
     union = ds.union([sph, reg])
 
     assert_equal(union['gas', 'density'].shape[0], 7)
+
+def test_arbitrary_grid():
+    ds = fake_sph_grid_ds()
+
+    # this loads up some sph data in a test grid
+    agrid = ds.arbitrary_grid([0, 0, 0], [3, 3, 3], dims=[3, 3, 3])
+
+    # the field should be equal to the density of a particle in every voxel
+    # which is 1.
+    dens = agrid['gas', 'density']
+    answers = np.ones(shape=(3,3,3))
+
+    assert_equal(dens, answers)
+
+def test_compare_arbitrary_grid_slice():
+    ds = fake_sph_orientation_ds()
+    c = np.array([0., 0., 0.])
+    width = 1.5
+    buff_size = 51
+    field = ('gas', 'density')
+
+    # buffer from arbitrary grid
+    ag = ds.arbitrary_grid(c - width / 2,
+                       c + width / 2,
+                       [buff_size]*3)
+    buff_ag = ag[field][:, :, int(np.floor(buff_size/2))].d.T
+
+    # buffer from slice
+    p = SlicePlot(ds, 'z', field, center=c, width=width)
+    p.set_buff_size(51)
+    buff_slc = p.frb.data[field].d
+
+    assert_equal(buff_slc, buff_ag)
+
