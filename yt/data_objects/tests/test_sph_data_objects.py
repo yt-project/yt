@@ -3,6 +3,7 @@ import numpy as np
 from yt.testing import \
     assert_equal, \
     fake_sph_orientation_ds, fake_sph_grid_ds
+from yt import SlicePlot
 
 def test_point():
     ds = fake_sph_orientation_ds()
@@ -242,7 +243,7 @@ def test_arbitrary_grid():
 
 def test_compare_arbitrary_grid_slice():
     ds = fake_sph_orientation_ds()
-    c = np.array([0.,0.,0.])
+    c = np.array([0., 0., 0.])
     width = 1.5
     buff_size = 51
     field = ('gas', 'density')
@@ -254,9 +255,9 @@ def test_compare_arbitrary_grid_slice():
     buff_ag = ag[field][:, :, int(np.floor(buff_size/2))].d.T
 
     # buffer from slice
-    p = yt.SlicePlot(ds, 'z', field, center=c, width=width)
+    p = SlicePlot(ds, 'z', field, center=c, width=width)
     p.set_buff_size(51)
     buff_slc = p.frb.data[field].d
 
-    np.testing.assert_array_equal(buff_slc, buff_ag)
+    assert_equal(buff_slc, buff_ag)
 
