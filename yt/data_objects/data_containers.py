@@ -458,14 +458,13 @@ class YTDataContainer(object):
             raise YTException(msg)
 
         for field in field_order: self[field]
-        fid = open(filename, "w")
-        field_header = [str(f) for f in field_order]
-        fid.write("\t".join(["#"] + field_header + ["\n"]))
-        field_data = np.array([self.field_data[field] for field in field_order])
-        for line in range(field_data.shape[1]):
-            field_data[:, line].tofile(fid, sep="\t", format=format)
-            fid.write("\n")
-        fid.close()
+        with open(filename, "w") as fid:
+            field_header = [str(f) for f in field_order]
+            fid.write("\t".join(["#"] + field_header + ["\n"]))
+            field_data = np.array([self.field_data[field] for field in field_order])
+            for line in range(field_data.shape[1]):
+                field_data[:, line].tofile(fid, sep="\t", format=format)
+                fid.write("\n")
 
     def save_object(self, name, filename=None):
         """
