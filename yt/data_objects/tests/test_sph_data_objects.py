@@ -239,3 +239,24 @@ def test_arbitrary_grid():
     answers = np.ones(shape=(3,3,3))
 
     assert_equal(dens, answers)
+
+def test_compare_arbitrary_grid_slice():
+    ds = fake_sph_orientation_ds()
+    c = np.array([0.,0.,0.])
+    width = 1.5
+    buff_size = 51
+    field = ('gas', 'density')
+
+    # buffer from arbitrary grid
+    ag = ds.arbitrary_grid(c - width / 2,
+                       c + width / 2,
+                       [buff_size]*3)
+    buff_ag = ag[field][:, :, int(np.floor(buff_size/2))].d.T
+
+    # buffer from slice
+    p = yt.SlicePlot(ds, 'z', field, center=c, width=width)
+    p.set_buff_size(51)
+    buff_slc = p.frb.data[field].d
+
+    np.testing.assert_array_equal(buff_slc, buff_ag)
+

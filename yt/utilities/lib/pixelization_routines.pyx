@@ -1163,7 +1163,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
         bounds, pbar=None, kernel_name="cubic",
-        use_normalization=False):
+        use_normalization=True):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, w_j, coeff
