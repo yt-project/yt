@@ -42,8 +42,7 @@ pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
 cooling_function_units=" erg * cm**3 /s"
-compton_cooling_function_units=" erg /s"
-metal_cooling_function_units="erg * cm**3 /s/Zsun"
+metal_cooling_function_units="erg * cm**3 *Zsun/s"
 flux_unit = "1 / code_length**2 / code_time"
 number_density_unit = "1 / code_length**3"
 
@@ -66,14 +65,14 @@ known_species_masses = dict(
 _cool_axes = ("lognH", "logT")#, "logTeq")
 _cool_arrs = (("cooling", cooling_function_units),
               ("heating", cooling_function_units),
-              ("compton_cooling",compton_cooling_function_units),
-              ("compton_heating",compton_cooling_function_units),
-              ("metal_cooling", metal_cooling_function_units),
+              ("cooling_compton",cooling_function_units),
+              ("heating_compton",cooling_function_units),
+              ("cooling_metal", metal_cooling_function_units),
               ("cooling_prime", cooling_function_units+'/K'),
               ("heating_prime", cooling_function_units+'/K'),
-              ("compton_cooling_prime", compton_cooling_function_units+'/K'),
-              ("compton_heating_prime", compton_cooling_function_units+'/K'),
-              ("metal_cooling_prime", metal_cooling_function_units+'/K'),
+              ("cooling_compton_prime", cooling_function_units+'/K'),
+              ("heating_compton_prime", cooling_function_units+'/K'),
+              ("cooling_metal_prime", metal_cooling_function_units+'/K'),
               ("mu", None),
               ("abundances", None))
 _cool_species = ("Electron_number_density",
@@ -288,3 +287,23 @@ class RAMSESFieldInfo(FieldInfoContainer):
                         (avals["lognH"], avals["logT"]),
                         ["lognH", "logT"], truncate = True)
             _create_field(("gas", key), interp, tvals[key]['unit'])
+
+
+        ''' Add total cooling and heating fields'''
+        for name in ['heating','cooling']:
+            def _all_cool(field,data):
+                return data['cooling']+data['cooling_metal']+data['cooling_compton']
+            def _all_heat(field,data):
+                return data['heating']+data['heating_compton']
+                
+            self.add_field(name=('gas','cooling_all'),sampling_type="cell",function=_all_cool,
+                           units=cooling_function_units)
+            self.add_field(name=('gas','heating_all'),sampling_type="cell",function=_all_heat,
+                           units=cooling_function_units)
+
+        ''' Add net cooling fields'''
+        def _net_cool(field,data):
+            return data['cooling_all']-data['heating_all']
+
+        self.add_field(name=('gas','cooling_net'),sampling_type="cell",function=_net_cool,
+                       units=cooling_function_units)
