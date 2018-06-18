@@ -1085,7 +1085,11 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             try:
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError:
-                field_ex = list(extrema[bin_field])
+                try:
+                    field_ex = list(extrema[bin_field])
+                except KeyError:
+                    raise RuntimeError("Could not find field {0} or {1} in override_bins".format(bin_field[-1], bin_field))
+
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
             if any([exi is None for exi in field_ex]):
