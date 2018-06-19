@@ -100,7 +100,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 @cython.wraparound(False)
 @cython.cdivision(True)
 def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
-                     PyKDTree kdtree, np.float64_t[:, ::1] input_positions,
+                     PyKDTree kdtree, np.float64_t[:, :] input_positions,
                      int n_neighbors):
     """Calculate an array of distances to the nearest n_neighbours and which
     particle is that distance away.
@@ -158,7 +158,6 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
 
     pos = np.zeros(3)
 
-    pbar = get_pbar("Generate nearest neighbours", n_pixels)
     with nogil:
         pos[0] = x_min - 0.5*dx
         for i in range(0, xsize):
@@ -175,7 +174,6 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
 
                     if i % CHUNKSIZE == 0:
                         with gil:
-                            pbar.update(i-1)
                             PyErr_CheckSignals()
 
                     leafnode = c_tree.search(&pos[0])
@@ -193,9 +191,6 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
 
                     pixel_distances[i,j,k,:] = queue.heap
                     pixel_pids[i,j,k,:] = queue.pids
-
-    pbar.update(n_pixels-1)
-    pbar.finish()
 
     return (pixel_distances, pixel_pids)
 
