@@ -16,6 +16,7 @@ Pixelization routines
 import numpy as np
 cimport numpy as np
 cimport cython
+
 from cython.view cimport array as cvarray
 cimport libc.math as math
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, \
@@ -42,7 +43,8 @@ from yt.geometry.particle_deposit cimport \
 from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
 from yt.funcs import get_pbar
-from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
+
+from cykdtree.kdtree import PyKDTree
 from yt.utilities.lib.particle_kdtree_tools import generate_nn_list
 
 cdef int TABLE_NVALS=512
@@ -1280,7 +1282,6 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                         continue
                     buff[xi, yi, zi] += buff_num[xi, yi, zi] / buff_denom[xi, yi, zi]
 
-
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1317,13 +1318,12 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
                 periodic=np.array([True, True, True]),
                 leafsize=20)
 
-    #posx = posx[kdtree.idx[:]]
-    #posy = posy[kdtree.idx]
-    #posz = posz[kdtree.idx]
+    posx[:] = posx[kdtree.idx]
+    posy[:]= posy[kdtree.idx]
+    posz[:] = posz[kdtree.idx]
 
     distances, pids = generate_nn_list(bounds, np.array([xsize, ysize, zsize]),
                                        kdtree, np.array([posx, posy, posz]))
-
 
     # define this to avoid using the use_normalization python object
     # in the tight loop
@@ -1341,6 +1341,7 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
                         particle = pids[pixel, pi]
                         w_j = pmass[particle] / pdens[particle] / hsml[particle]**3
                         coeff = w_j * quantity_to_smooth[particle]
+
                         q = math.sqrt(distances[pixel, particle])*ih_j
 
                         if use_norm:
