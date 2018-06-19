@@ -73,11 +73,6 @@ jobs:
       script: coverage run $(which nosetests) -c nose.cfg yt
 
     - stage: tests
-      python: 3.4
-      env: FLAKE8= PANDAS=pandas==0.20
-      script: coverage run $(which nosetests) -c nose.cfg yt
-
-    - stage: tests
       python: 3.5
       env: FLAKE8=
       script: coverage run $(which nosetests) -c nose.cfg yt
