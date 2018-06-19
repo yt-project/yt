@@ -59,7 +59,12 @@ jobs:
   include:
     - stage: lint
       python: 3.6
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS=
+      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS=
+      script: flake8 yt/
+
+    - stage: lint
+      python: 2.7
+      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS=
       script: flake8 yt/
 
     - stage: tests
