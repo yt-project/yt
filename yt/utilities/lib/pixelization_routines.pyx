@@ -42,6 +42,8 @@ from yt.geometry.particle_deposit cimport \
 from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
 from yt.funcs import get_pbar
+from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
+from yt.utilities.lib.particle_kdtree_tools import generate_nn_list
 
 cdef int TABLE_NVALS=512
 
@@ -1262,6 +1264,85 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                             continue
 
                         # see equations 6, 9, and 11 of the SPLASH paper
+                        if use_norm:
+                            buff_num[xi, yi, zi] += coeff * kernel_func(q)
+                            buff_denom[xi, yi, zi] += w_j * kernel_func(q)
+                        else:
+                            buff[xi, yi, zi] += coeff * kernel_func(q)
+
+    if use_norm:
+        # now we can calculate the normalized buffer we want to return, being
+        # careful to avoid producing NaNs in the result
+        for xi in range(xsize):
+            for yi in range(ysize):
+                for zi in range(zsize):
+                    if buff_denom[xi, yi, zi] == 0:
+                        continue
+                    buff[xi, yi, zi] += buff_num[xi, yi, zi] / buff_denom[xi, yi, zi]
+
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
+        np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
+        np.float64_t[:] pmass, np.float64_t[:] pdens, np.float64_t[:] hsml,
+        np.float64_t[:] quantity_to_smooth,
+        bounds, pbar=None, kernel_name="cubic",
+        use_normalization=True):
+
+    # hardcoding neighbors to test
+    cdef int n_neighbors = 48
+    cdef np.intp_t xsize, ysize, zsize
+    cdef np.float64_t w_j, coeff
+    cdef np.int64_t xi, yi, zi, pi
+    cdef np.float64_t q, h_j2, h_j, ih_j
+    cdef int index, i, j, k, particle, pixel
+    cdef np.float64_t[:, :, :] buff_num
+    cdef np.float64_t[:, :, :] buff_denom
+    cdef np.float64_t[:,:] distances
+    cdef np.int64_t[:,:] pids
+
+    xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
+    buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
+    buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
+
+    kernel_func = get_kernel_func(kernel_name)
+
+    # generate the kdtree and find neighbours
+    kdtree = PyKDTree(np.array([xsize, ysize, zsize]),
+                left_edge=np.array([bounds[0], bounds[2], bounds[4]]),
+                right_edge=np.array([bounds[1], bounds[3], bounds[5]]),
+                periodic=np.array([True, True, True]),
+                leafsize=20)
+
+    #posx = posx[kdtree.idx[:]]
+    #posy = posy[kdtree.idx]
+    #posz = posz[kdtree.idx]
+
+    distances, pids = generate_nn_list(bounds, np.array([xsize, ysize, zsize]),
+                                       kdtree, np.array([posx, posy, posz]))
+
+
+    # define this to avoid using the use_normalization python object
+    # in the tight loop
+    cdef np.intp_t use_norm = int(use_normalization)
+
+    with nogil:
+        for xi in range(xsize):
+             for yi in range(ysize):
+                for zi in range(zsize):
+                    pixel = xi + yi + zi
+                    h_j2 = distances[pixel,0]
+                    h_j = math.sqrt(h_j2)
+                    ih_j = 1/h_j
+                    for pi in range(n_neighbors):
+                        particle = pids[pixel, pi]
+                        w_j = pmass[particle] / pdens[particle] / hsml[particle]**3
+                        coeff = w_j * quantity_to_smooth[particle]
+                        q = math.sqrt(distances[pixel, particle])*ih_j
+
                         if use_norm:
                             buff_num[xi, yi, zi] += coeff * kernel_func(q)
                             buff_denom[xi, yi, zi] += w_j * kernel_func(q)
