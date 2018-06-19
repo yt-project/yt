@@ -1630,6 +1630,11 @@ may load Gizmo datasets as Gadget depending on the circumstances, but this
 should not pose a problem in most situations.  FIRE outputs will be loaded
 accordingly due to the number of metallicity fields found (11 or 17).
 
+If ``("PartType0", "MagneticField")`` is present in the output, it would be
+loaded and aliased to ``("PartType0", "particle_magnetic_field")``. The
+corresponding component field like ``("PartType0", "particle_magnetic_field_x")``
+would be added automatically.
+
 For Gizmo outputs written as raw binary outputs, you may have to specify
 a bounding box, field specification, and units as are done for standard
 Gadget outputs.  See :ref:`loading-gadget-data` for more information.
@@ -2012,7 +2017,9 @@ Arguments passed to the load function
 It is possible to provide extra arguments to the load function when loading RAMSES datasets. Here is a list of the ones specific to RAMSES:
 
 ``fields``
-      A list of fields to read from the hydro files. For a hydro simulation with an extra custom field
+    A list of fields to read from the hydro files. For example, in a pure
+    hydro simulation with an extra custom field named ``my-awesome-field``, one
+    would specify the fields argument following this example:
 
       .. code-block:: python
 
@@ -2028,9 +2035,10 @@ It is possible to provide extra arguments to the load function when loading RAMS
       A list of tuples describing extra particles fields to read in. By
       default, yt will try to detect as many fields as possible,
       assuming the extra ones to be double precision floats. This
-      argument is useful if you have extra fields that yt cannot
-      detect. For example, for a dataset containing two integer fields
-      in the particles, one would do
+      argument is useful if you have extra fields besides the particle mass,
+      position, and velocity fields that yt cannot detect automatically. For
+      example, for a dataset containing two extra particle integer fields named
+      ``family`` and ``info``, one would do:
 
       .. code-block:: python
 
@@ -2039,7 +2047,15 @@ It is possible to provide extra arguments to the load function when loading RAMS
           ds = yt.load("output_00001/info_00001.txt", extra_particle_fields=extra_fields)
           # ('all', 'family') and ('all', 'info') now in ds.field_list
 
-      The format of the passed argument is as follow: ``[('field_name_1', 'type_1'), …, ('field_name_n', 'type_n')]`` where the ``type_n`` is as follow `python convention <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
+      The format of the ``extra_particle_fields`` argument is as follows:
+      ``[('field_name_1', 'type_1'), …, ('field_name_n', 'type_n')]`` where
+      the second element of the tuple follows the `python struct format
+      convention
+      <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
+      Note that if ``extra_particle_fields`` is defined, yt will not assume
+      that the ``particle_birth_time`` and ``particle_metallicity`` fields
+      are present in the dataset. If these fields are present, they must be
+      explicitly enumerated in the ``extra_particle_fields`` argument.
 
 ``cosmological``
       Force yt to consider a simulation to be cosmological or
@@ -2047,7 +2063,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
       run down to negative redshifts.
 
 ``bbox``
-      The subbox to load. Yt will only read CPUs intersecting with the
+      The subbox to load. yt will only read CPUs intersecting with the
       subbox. This is especially useful for large simulations or
       zoom-in simulations, where you don't want to have access to data
       outside of a small region of interest. This argument will prevent
@@ -2070,6 +2086,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
 
           bb = ds.box(left_edge=bbox[0], right_edge=bbox[1])
           bb['particle_position_x'].max() < 0.1  # is True
+
       .. note::
          When using the bbox argument, yt will read all the CPUs
          intersecting with the subbox. However it may also read some
@@ -2141,54 +2158,10 @@ There are three way to make yt detect all the particle fields. For example, if y
    The kind (``i``, ``d``, ``I``, ...) of the field follow the `python convention <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
 
 
-Adding custom particle fields
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-There are three way to make yt detect all the particle fields. For example, if you wish to make yt detect the metallicity and a passive field (e.g. for a zoom-in simulation), use one of these methods
-
-1. ``yt.load`` method. Whenever loading a dataset, add the extra particle fields as a keyword argument to the ``yt.load`` call.
-
-   .. code-block:: python
-
-      import yt
-      fields = ["Density",
-                "x-velocity", "y-velocity", "z-velocity",
-                "Pressure", "Metallicity", "Scalar_01"]
-      ds = yt.load('output_00123/info_00123.txt', fields=fields)
-      ('ramses', 'Metallicity') in ds.field_list  # is True
-      ('ramses', 'Scalar_01') in ds.field_list  # is True
-
-2. yt config method. If you don't want to pass the arguments for each call of ``yt.load``, you can add in your configuration
-
-   .. code-block:: none
-
-      [ramses-hydro]
-      fields = Density
-               x-velocity
-               y-velocity
-               z-velocity
-               Pressure
-               Metallicity
-               Scalar_01
-
-3. New RAMSES way. Recent versions of RAMSES automatically write in their output an ``hydro_file_descriptor.txt`` file that gives information about which field is where. If you wish, you can simply create such a file in the folder containing the ``info_xxxxx.txt`` file
-
-   .. code-block:: none
-
-      # version:  1
-      # ivar, variable_name, variable_type
-       1, density, d
-       2, velocity_x, d
-       3, velocity_y, d
-       4, velocity_z, d
-       5, pressure, d
-       6, metallicity, d
-       7, scalar_01
-
-   It is important to note that this file should not end with an empty line (but in this case with ``_7, scalar_01, d``. Note that the ``_`` stands for a space).
 
 Customizing the particle type association
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 In verions of RAMSES more recent than December 2017, particles carry
 along a ``family`` array. The value of this array gives the kind of
 the particle, e.g. 1 for dark matter. It is possible to customize the
@@ -2205,6 +2178,88 @@ config (see :ref:`configuration`), adding
 
 
 
+Particle ages and formation times
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For non-cosmological simulations, particle ages are stored in physical units on
+disk. To access the birth time for the particles, use the
+``particle_birth_time`` field. The time recorded in this field is relative to
+the beginning of the simulation. Particles that were present in the initial
+conditions will have negative values for ``particle_birth_time``.
+
+For cosmological simulations that include star particles, RAMSES stores particle
+formation times as conformal times. To access the formation time field data in
+conformal units use the ``conformal_birth_time`` field. This will return the
+formation times of particles in the simulation in conformal units as a
+dimensionless array. To access the formation time in physical units, use the
+``particle_birth_time`` field. Finally, to access the ages of star particles in
+your simulation, use the ``star_age`` field. Note that this field is defined for
+all particle types but will only make sense for star particles.
+
+For simulations conducted in Newtownian coordinates, with no cosmology or
+comoving expansion, the time is equal to zero at the beginning of the
+simulation. That means that particles present in the initial conditions may have
+negative birth times. This can happen, for example, in idealized isolated galaxy
+simulations, where star particles are included in the initial conditions. For
+simulations conducted in cosmological comoving units, the time is equal to zero
+at the big bang, and all particles should have positive values for the
+``particle_birth_time`` field.
+
+To help clarify the above discussion, the following table describes the meaning
+of the various particle formation time and age fields:
+
++------------------+-------------------------+-------------------------------+
+| Simulation type  | Field name              | Description                   |
+|==================|=========================+===============================+
+| cosmological     | `conformal_birth_time`  | Formation time in conformal   |
+|                  |                         | units (dimensionless)         |
++------------------+-------------------------+--------------------------------+
+| any              | `particle_birth_time`   | The time relative to the       |
+|                  |                         | beginning of the simulation    |
+|                  |                         | when the particle was formed.  |
+|                  |                         | For non-cosmological           |
+|                  |                         | simulations, this field will   |
+|                  |                         | have positive values for       |
+|                  |                         | particles formed during the    |
+|                  |                         | simulation and negative for    |
+|                  |                         | particles of finite age in the |
+|                  |                         | initial conditions. For        |
+|                  |                         | cosmological simulations this  |
+|                  |                         | is the time the particle       |
+|                  |                         | formed relative to the big     |
+|                  |                         | bang, therefore the value of   |
+|                  |                         | this field should be between   |
+|                  |                         | 0 and 13.7 Gyr.                |
++------------------+-------------------------+--------------------------------+
+| any              | `star_age`              | Age of the particle.           |
+|                  |                         | Only physically meaningful for |
+|                  |                         | stars and particles that       |
+|                  |                         | formed dynamically during the  |
+|                  |                         | simulation.                    |
++------------------+-------------------------+--------------------------------+
+
+RAMSES datasets produced by a version of the code newer than November 2017
+contain the metadata necessary for yt to automatically distinguish between star
+particles and other particle types. If you are working with a dataset produced
+by a version of RAMSES older than November 2017, yt will only automatically
+recognize a single particle ``io``. It may be convenient to define a particle
+filter in your scripts to distinguish between particles present in the initial
+conditions and particles that formed dynamically during the simulation by
+filtering particles with ``"conformal_birth_time"`` values equal to zero and not
+equal to zero.  An example particle filter definition for dynamically formed
+stars might look like this:
+
+.. code-block:: python
+
+    @yt.particle_filter(requires=["conformal_birth_time"],
+                        filtered_type='io')
+    def stars(pfilter, data):
+        filter = data[(pfilter.filtered_type, "conformal_birth_time"] != 0
+        return filter
+
+For a cosmological simulation, this filter will distinguish between stars and
+dark matter particles.
+        
 .. _loading-sph-data:
 
 SPH Particle Data

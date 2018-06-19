@@ -516,7 +516,7 @@ class YTGDFAlreadyExists(Exception):
         self.filename = filename
 
     def __str__(self):
-        return "A file already exists at %s and clobber=False." % self.filename
+        return "A file already exists at %s and overwrite=False." % self.filename
 
 class YTNonIndexedDataContainer(YTException):
     def __init__(self, cont):
@@ -695,6 +695,9 @@ class YTIllDefinedAMR(YTException):
             "on the parent level ({} axis)"
         ).format(self.level, self.axis)
         return msg
+
+class YTIllDefinedAMRData(YTException):
+    pass
 
 class YTInconsistentGridFieldShape(YTException):
     def __init__(self, shapes):

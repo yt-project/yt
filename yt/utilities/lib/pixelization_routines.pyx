@@ -567,11 +567,12 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                 r_i += 0.5*dx
             theta_i += dthetamin
 
-cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
-                                np.float64_t *x, np.float64_t *y):
+cdef int aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
+                               np.float64_t *x, np.float64_t *y) except -1:
     cdef np.float64_t z = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2.0))
     x[0] = math.cos(phi) * math.sin(theta / 2.0) / z
     y[0] = math.sin(phi) / z
+    return 0
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -586,8 +587,8 @@ def pixelize_aitoff(np.float64_t[:] theta,
                     np.float64_t theta_offset = 0.0,
                     np.float64_t phi_offset = 0.0):
     # http://paulbourke.net/geometry/transformationprojection/
-    # longitude is -pi to pi
-    # latitude is -pi/2 to pi/2
+    # (theta) longitude is -pi to pi
+    # (phi) latitude is -pi/2 to pi/2
     # z^2 = 1 + cos(latitude) cos(longitude/2)
     # x = cos(latitude) sin(longitude/2) / z
     # y = sin(latitude) / z

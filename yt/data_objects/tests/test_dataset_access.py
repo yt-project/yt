@@ -1,15 +1,11 @@
 import numpy as np
+from nose.tools import assert_raises
 
-from yt.testing import \
-    assert_equal, \
-    fake_amr_ds, \
-    fake_particle_ds, \
-    fake_random_ds, \
-    requires_file
-from yt.utilities.answer_testing.framework import \
-    data_dir_load
-from yt.visualization.line_plot import \
-    LineBuffer
+from yt.testing import assert_equal, fake_amr_ds, fake_particle_ds, \
+    fake_random_ds, requires_file
+from yt.utilities.answer_testing.framework import data_dir_load
+from yt.utilities.exceptions import YTDimensionalityError
+from yt.visualization.line_plot import LineBuffer
 
 # This will test the "dataset access" method.
 
@@ -56,6 +52,23 @@ def test_region_from_d():
     reg2 = ds.all_data()
     assert_equal(reg1["density"], reg2["density"])
 
+    # Test slice as an index
+    reg1 = ds.r[0.1:0.8]
+    reg2 = ds.region([0.45, 0.45, 0.45], [0.1, 0.1, 0.1], [0.8, 0.8, 0.8])
+    assert_equal(reg1["density"], reg2["density"])
+
+    # Test with bad boundary initialization
+    with assert_raises(RuntimeError):
+        ds.r[0.3:0.1, 0.4:0.6, :]
+
+    # Test region by creating an arbitrary grid
+    reg1 = ds.r[0.15:0.55:16j, 0.25:0.65:32j, 0.35:0.75:64j]
+    left_edge = np.array([0.15, 0.25, 0.35])
+    right_edge = np.array([0.55, 0.65, 0.75])
+    dims = np.array([16.0, 32.0, 64.0])
+    reg2 = ds.arbitrary_grid(left_edge, right_edge, dims)
+    assert_equal(reg1["density"], reg2["density"])
+
 def test_accessing_all_data():
     # This will test first that we can access all_data, and next that we can
     # access it multiple times and get the *same object*.
@@ -94,6 +107,19 @@ def test_point_from_r():
     pt1 = ds.r[0.5,0.3,0.1]
     pt2 = ds.point([0.5,0.3,0.1])
     assert_equal(pt1["density"], pt2["density"])
+
+    # Test YTDimensionalityError
+    with assert_raises(YTDimensionalityError) as ex:
+        ds.r[0.5, 0.1]
+    assert_equal(str(ex.exception),
+                 'Dimensionality specified was 2 but we need 3')
+
+    # Test with ds.dimensionality != 3
+    ds = fake_random_ds([32, 32, 1])
+    with assert_raises(YTDimensionalityError) as ex:
+        ds.r[0.5,0.3]
+    assert_equal(str(ex.exception),
+                 'Dimensionality specified was 2 but we need 3')
 
 def test_ray_from_r():
     ds = fake_amr_ds(fields = ["density"])

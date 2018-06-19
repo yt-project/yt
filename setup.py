@@ -193,6 +193,13 @@ cython_extensions = [
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
               libraries=std_libs),
+    Extension("yt.frontends.ramses.io_utils",
+              ["yt/frontends/ramses/io_utils.pyx"],
+              include_dirs=["yt/utilities/lib"],
+              libraries=std_libs),
+    Extension("yt.utilities.cython_fortran_utils",
+              ["yt/utilities/cython_fortran_utils.pyx"],
+              libraries=std_libs),
 ]
 
 lib_exts = [
@@ -348,22 +355,7 @@ class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython
     # generated C files are included in source distribution.
     # See http://stackoverflow.com/a/18418524/1382869
-    # subclass setuptools source distribution builder to ensure cython
-    # generated C files are included in source distribution and readme
-    # is converted from markdown to restructured text.  See
-    # http://stackoverflow.com/a/18418524/1382869
     def run(self):
-        # Make sure the compiled Cython files in the distribution are
-        # up-to-date
-
-        try:
-            import pypandoc
-        except ImportError:
-            raise RuntimeError(
-                'Trying to create a source distribution without pypandoc. '
-                'The readme will not render correctly on pypi without '
-                'pypandoc so we are exiting.'
-            )
         # Make sure the compiled Cython files in the distribution are up-to-date
         from Cython.Build import cythonize
         cythonize(cython_extensions)

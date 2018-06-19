@@ -1,10 +1,7 @@
 import numpy as np
 import yt
 
-from yt.testing import \
-    fake_random_ds, \
-    assert_equal, \
-    requires_file
+from yt.testing import fake_random_ds, assert_equal
 
 def setup():
     from yt.config import ytcfg
@@ -53,17 +50,14 @@ def test_domain_point():
     assert_equal(ppos_den_vel[0], ppos_den)
     assert_equal(ppos_den_vel[1], ppos_vel)
 
-g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
-
-@requires_file(g30)
 def test_fast_find_field_values_at_points():
-    ds = yt.load(g30)
+    ds = fake_random_ds(64, nprocs=8, particles=16**3)
     ad = ds.all_data()
     # right now this is slow for large numbers of particles, so randomly
     # sample 100 particles
     nparticles = 100
     ppos = ad['all', 'particle_position']
-    ppos = ppos[np.random.random_integers(0, len(ppos), size=nparticles)]
+    ppos = ppos[np.random.random_integers(0, len(ppos)-1, size=nparticles)]
 
     ppos_den = ds.find_field_values_at_points('density', ppos)
     ppos_vel = ds.find_field_values_at_points('velocity_x', ppos)

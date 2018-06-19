@@ -452,6 +452,9 @@ def test_frb_regen():
     slc = SlicePlot(ds, 2, 'density')
     slc.set_buff_size(1200)
     assert_equal(slc.frb['density'].shape, (1200, 1200))
+    slc.set_buff_size((400., 200.7))
+    assert_equal(slc.frb['density'].shape, (200, 400))
+
 
 def test_set_background_color():
     ds = fake_random_ds(32)
