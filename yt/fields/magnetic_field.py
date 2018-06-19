@@ -241,7 +241,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     units = unit_system[to_units.dimensions]
 
     # Add fields
-    if sampling_type == "cell":
+    if sampling_type in ["cell", "local"]:
         # Grid dataset case
         def mag_field(fd):
             def _mag_field(field, data):
