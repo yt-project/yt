@@ -175,6 +175,19 @@ whether to use a log or linear scale, and whether or not to do accumulation to
 create a cumulative distribution function.  For more information, see the API
 documentation on the :func:`~yt.data_objects.profiles.create_profile` function.
 
+For custom bins the other keyword arguments can be overriden using the
+``override_bins`` keyword argument. This accepts a dictionary with an array
+for each bin field or ``None`` to use the default settings. 
+
+.. code-block:: python
+
+    custom_bins = np.array([1e-27, 1e-25, 2e-25, 5e-25, 1e-23])
+    profile2d = source.profile([("gas", "density"), ("gas", "temperature")],
+                                [("gas", "cell_mass")], 
+                                override_bins = {("gas", "density"):custom_bins,
+                                                 ("gas", "temperature"):None}) 
+
+
 .. _generating-line-queries:
 
 Line Queries and Planar Integrals
