@@ -17,12 +17,13 @@ import numpy as np
 
 from yt.config import \
     ytcfg
+from yt.extern.six import string_types
 from yt.funcs import \
     mylog, \
     get_image_suffix, \
     get_brewer_cmap
 from yt.units.yt_array import YTQuantity
-from yt.utilities.exceptions import YTNotInsideNotebook
+from yt.utilities.exceptions import YTNotInsideNotebook, YTException
 from .color_maps import mcm
 from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
@@ -148,8 +149,11 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
         that the first element resides in the upper-left corner.  If True, the
         first element will be placed in the lower-left corner.
     """
-    if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3,4):
-        raise RuntimeError
+    if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3, 4):
+        raise YTException(message="Expecting image array of shape (N,M,3)"
+                                  " or (N,M,4), received %s"
+                                  % str(bitmap_array.shape))
+
     if bitmap_array.dtype != np.uint8:
         s1, s2 = bitmap_array.shape[:2]
         if bitmap_array.shape[-1] == 3:
@@ -295,6 +299,7 @@ def strip_colormap_data(fn = "color_map_data.py",
     f.write("from numpy import array\n")
     f.write("color_map_luts = {}\n\n\n")
     if cmaps is None: cmaps = rcm.ColorMaps
+    if isinstance(cmaps, string_types): cmaps = [cmaps]
     for cmap_name in sorted(cmaps):
         print("Stripping", cmap_name)
         vals = rcm._extract_lookup_table(cmap_name)
@@ -413,14 +418,11 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         suffix = '.png'
         filename = "%s%s" % (filename, suffix)
     mylog.info("Saving plot %s", filename)
-    if suffix == ".png":
-        canvas = FigureCanvasAgg(fig)
-    elif suffix == ".pdf":
+    if suffix == ".pdf":
         canvas = FigureCanvasPdf(fig)
     elif suffix in (".eps", ".ps"):
         canvas = FigureCanvasPS(fig)
     else:
-        mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
         canvas = FigureCanvasAgg(fig)
 
     fig.tight_layout()
