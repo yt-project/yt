@@ -17,7 +17,6 @@ import numpy as np
 
 from yt.config import \
     ytcfg
-from yt.extern.six import string_types
 from yt.funcs import \
     mylog, \
     get_image_suffix, \
@@ -29,6 +28,7 @@ from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
 from yt.extern.six.moves import builtins
+from yt.extern.six import string_types
 
 
 def scale_image(image, mi=None, ma=None):
@@ -301,7 +301,6 @@ def strip_colormap_data(fn = "color_map_data.py",
     if cmaps is None: cmaps = rcm.ColorMaps
     if isinstance(cmaps, string_types): cmaps = [cmaps]
     for cmap_name in sorted(cmaps):
-        print("Stripping", cmap_name)
         vals = rcm._extract_lookup_table(cmap_name)
         f.write("### %s ###\n\n" % (cmap_name))
         f.write("color_map_luts['%s'] = \\\n" % (cmap_name))

@@ -40,12 +40,12 @@ class TestImageWriter(unittest.TestCase):
                               alpha_channel=frb["density"])
 
         # Test with numpy integer array
-        x = np.random.randint(0, 256, size=(10, 10), dtype=np.uint8)
-        y = np.random.randint(0, 256, size=(10, 10), dtype=np.uint8)
+        x = np.array(np.random.randint(0, 256, size=(10, 10)), dtype='uint8')
+        y = np.array(np.random.randint(0, 256, size=(10, 10)), dtype='uint8')
         multi_image_composite("multi_channel3.png", x, y)
 
     def test_write_bitmap(self):
-        image = np.zeros([16, 16, 4], dtype=np.uint8)
+        image = np.zeros([16, 16, 4], dtype='uint8')
         xs = np.random.rand(100)
         ys = np.random.rand(100)
         image = splat_points(image, xs, ys)
@@ -59,11 +59,11 @@ class TestImageWriter(unittest.TestCase):
             write_bitmap(np.ones([16, 16]), None)
         desired = ("Expecting image array of shape (N,M,3) "
                    "or (N,M,4), received (16, 16)")
-        assert_equal(str(ex.exception), desired)
+        assert_equal(str(ex.exception)[:50], desired[:50])
 
     def test_strip_colormap_data(self):
         strip_colormap_data("_stripped_cmap.py", ("arbre"))
 
     def test_apply_colormap(self):
-        x = np.random.randint(0, 256, size=(10, 10), dtype=np.uint8)
+        x = np.array(np.random.randint(0, 256, size=(10, 10)), dtype='uint8')
         apply_colormap(x, color_bounds=None, cmap_name=None, func=lambda x:x**2)
