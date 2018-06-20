@@ -57,7 +57,8 @@ from yt.units.yt_array import \
     uvstack, \
     uhstack, \
     loadtxt, \
-    savetxt
+    savetxt, \
+    display_ytarray
 
 from yt.fields.api import \
     field_plugins, \

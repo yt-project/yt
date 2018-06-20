@@ -46,7 +46,8 @@ from yt.units.dimensions import \
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
-    YTInvalidUnitEquivalence, YTEquivalentDimsError
+    YTInvalidUnitEquivalence, YTEquivalentDimsError, \
+    YTArrayTooLargeToDisplay
 from yt.utilities.lru_cache import lru_cache
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
@@ -1822,3 +1823,43 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
     np.savetxt(fname, np.transpose(arrays), header=header,
                fmt=fmt, delimiter=delimiter, footer=footer,
                newline='\n', comments=comments)
+
+def display_ytarray(arr):
+    r"""
+    Display a YTArray in a Jupyter widget that enables unit switching.
+
+    This 
+
+    Parameters
+    ----------
+    arr : YTArray
+        The Array to display; must be of size 3 or lower.
+
+    Examples
+    --------
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> display_ytarray(ds.domain_width)
+    """
+    if arr.size > 3:
+        raise RuntimeError
+    import ipywidgets
+    unit_registry = arr.units.registry 
+    dimension = arr.units.dimensions
+    equiv = unit_registry.list_same_dimensions(arr.units)
+    dropdown = ipywidgets.Dropdown(options = sorted(equiv), value = str(arr.units))
+    def arr_updater(arr, texts):
+        def _value_updater(change):
+            arr2 = arr.in_units(change['new'])
+            if arr2.shape == ():
+                arr2 = [arr2]
+            for v, t in zip(arr2, texts):
+                t.value = str(v.value)
+        return _value_updater
+    if arr.shape == ():
+        arr_iter = [arr]
+    else:
+        arr_iter = arr
+    texts = [ipywidgets.Text(value = str(_.value), disabled = True)
+             for _ in arr_iter]
+    dropdown.observe(arr_updater(arr, texts), names="value")
+    return ipywidgets.HBox(texts + [dropdown])
