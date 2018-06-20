@@ -24,6 +24,9 @@ env:
     CODECOV=codecov
     COVERAGE=coverage
     PANDAS=pandas
+    MOCK=mock
+    NOSETIMER=nose-timer
+    CODECOV=codecov
 
 before_install:
   - |
@@ -51,9 +54,11 @@ install:
     pip install --upgrade wheel
     pip install --upgrade setuptools
     # Install dependencies
-    pip install mock $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS nose nose-timer
+    pip install $MOCK $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS $NOSE $NOSETIMER
     # install yt
-    pip install -e .
+    if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
+      pip install -e .
+    fi
 
 jobs:
   include:
@@ -100,4 +105,7 @@ jobs:
       script: coverage run $(which nosetests) -c nose.cfg yt
 
 after_success:
-  - codecov
+  - |
+    if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
+      codecov
+    fi
