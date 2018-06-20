@@ -1841,7 +1841,7 @@ def display_ytarray(arr):
     >>> display_ytarray(ds.domain_width)
     """
     if arr.size > 3:
-        raise RuntimeError
+        raise YTArrayTooLargeToDisplay(arr.size, 3)
     import ipywidgets
     unit_registry = arr.units.registry 
     dimension = arr.units.dimensions
