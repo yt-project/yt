@@ -34,6 +34,9 @@ from yt.utilities.linear_interpolators import \
 from yt.utilities.cython_fortran_utils import FortranFile
 from .field_handlers import RTFieldFileHandler
 
+from yt.utilities.physical_constants import \
+    mp
+
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
 rho_units = "code_density"
@@ -42,6 +45,7 @@ pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
 cooling_function_units=" erg * cm**3 /s"
+cooling_function_prime_units=" erg * cm**3 /s/K"
 flux_unit = "1 / code_length**2 / code_time"
 number_density_unit = "1 / code_length**3"
 
@@ -67,11 +71,11 @@ _cool_arrs = (("cooling_primordial", cooling_function_units),
               ("cooling_compton",cooling_function_units),
               ("heating_compton",cooling_function_units),
               ("cooling_metal", cooling_function_units),
-              ("cooling_prime", cooling_function_units+'/K'),
-              ("heating_prime", cooling_function_units+'/K'),
-              ("cooling_compton_prime", cooling_function_units+'/K'),
-              ("heating_compton_prime", cooling_function_units+'/K'),
-              ("cooling_metal_prime", cooling_function_units+'/K'),
+              ("cooling_primoridal_prime", cooling_function_prime_units)
+              ("heating_primordial_prime", cooling_function_prime_units)
+              ("cooling_compton_prime", cooling_function_prime_units)
+              ("heating_compton_prime", cooling_function_prime_units)
+              ("cooling_metal_prime", cooling_function_prime_units)
               ("mu", None),
               ("abundances", None))
 _cool_species = ("Electron_number_density",
@@ -253,6 +257,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
             os.path.dirname(self.ds.parameter_filename), int(num))
 
         if not os.path.exists(filename): return
+
+        #Function to create the cooling fields
         def _create_field(name, interp_object,unit):
             def _func(field, data):
                 shape = data["temperature"].shape
@@ -262,11 +268,16 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 if not(name[-1]=='mu'):
                     rv = 10**interp_object(d).reshape(shape)
                 cool=data.ds.arr(rv, unit)
-                if 'metal' in name[-1].split():
+                if 'metal' in name[-1].split('_'):
                     cool=cool*data['metallicity']/0.02  #Ramses uses Zsolar=0.02
+                elif 'compton' in name[-1].split('_'):
+                    cool=data.ds.arr(rv, unit+'/cm**3')
+                    cool=cool/data['number_density']    #Compton cooling/heating is written to file in erg/s
                 return cool
             self.add_field(name=name, sampling_type="cell", function=_func,
                            units=unit)
+
+        #Load cooling files
         avals = {}
         tvals = {}
         with FortranFile(filename) as fd:
@@ -283,25 +294,38 @@ class RAMSESFieldInfo(FieldInfoContainer):
                     for i in range(var.shape[-1]):
                         tvals[_cool_species[i]] = dict(data=var[:,:,i], unit=number_density_unit)
 
+        #Add the mu field first, as it is needed for the number density
+        interp = BilinearFieldInterpolator(tvals['mu']['data'],
+                                           (avals["lognH"], avals["logT"]),
+                                           ["lognH", "logT"], truncate = True)
+        _create_field(("gas", 'mu'), interp, tvals['mu']['unit'])
+
+        #Add the number density field, based on mu
+        def _number_density(field,data):
+            return data[('gas','density')]/mp/data['mu']
+        self.add_field(name=('gas','number_density'),sampling_type="cell",function=_number_density,
+                       units=number_density_unit)
+
+        #Add the cooling and heating fields, which need the number density field
         for key in tvals:
-            interp = BilinearFieldInterpolator(tvals[key]['data'],
-                        (avals["lognH"], avals["logT"]),
-                        ["lognH", "logT"], truncate = True)
-            _create_field(("gas", key), interp, tvals[key]['unit'])
+            if not(key=='mu'):
+                interp = BilinearFieldInterpolator(tvals[key]['data'],
+                                                   (avals["lognH"], avals["logT"]),
+                                                   ["lognH", "logT"], truncate = True)
+                _create_field(("gas", key), interp, tvals[key]['unit'])
 
-
-        ''' Add total cooling and heating fields'''
+        #Add total cooling and heating fields
         def _all_cool(field,data):
             return data['cooling_primordial']+data['cooling_metal']+data['cooling_compton']
         def _all_heat(field,data):
             return data['heating_primordial']+data['heating_compton']
-                
+
         self.add_field(name=('gas','cooling_total'),sampling_type="cell",function=_all_cool,
                        units=cooling_function_units)
         self.add_field(name=('gas','heating_total'),sampling_type="cell",function=_all_heat,
                        units=cooling_function_units)
 
-        ''' Add net cooling fields'''
+        #Add net cooling fields
         def _net_cool(field,data):
             return data['cooling_total']-data['heating_total']
 
