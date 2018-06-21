@@ -149,12 +149,13 @@ def off_axis_projection(data_source, center, normal_vector,
                                     buf, normal_vector)
         # Last Chunk
         if remainder > 0:
-            off_axis_projection_SPH(px[:remainder], 
-                                    py[:remainder], 
-                                    pz[:remainder], 
-                                    particle_masses[:remainder], 
-                                    particle_densities[:remainder], 
-                                    smoothing_lengths[:remainder], 
+            start_index = num_particles - remainder
+            off_axis_projection_SPH(px[start_index:], 
+                                    py[start_index:], 
+                                    pz[start_index:], 
+                                    particle_masses[start_index:], 
+                                    particle_densities[start_index:], 
+                                    smoothing_lengths[start_index:], 
                                     bounds, np.ones(remainder),
                                     buf, normal_vector)
         return buf
