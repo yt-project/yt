@@ -71,11 +71,11 @@ _cool_arrs = (("cooling_primordial", cooling_function_units),
               ("cooling_compton",cooling_function_units),
               ("heating_compton",cooling_function_units),
               ("cooling_metal", cooling_function_units),
-              ("cooling_primoridal_prime", cooling_function_prime_units)
-              ("heating_primordial_prime", cooling_function_prime_units)
-              ("cooling_compton_prime", cooling_function_prime_units)
-              ("heating_compton_prime", cooling_function_prime_units)
-              ("cooling_metal_prime", cooling_function_prime_units)
+              ("cooling_primoridal_prime", cooling_function_prime_units),
+              ("heating_primordial_prime", cooling_function_prime_units),
+              ("cooling_compton_prime", cooling_function_prime_units),
+              ("heating_compton_prime", cooling_function_prime_units),
+              ("cooling_metal_prime", cooling_function_prime_units),
               ("mu", None),
               ("abundances", None))
 _cool_species = ("Electron_number_density",
@@ -292,7 +292,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 else:
                     var = var.reshape((n1, n2, var.size // (n1*n2)), order='F')
                     for i in range(var.shape[-1]):
-                        tvals[_cool_species[i]] = dict(data=var[:,:,i], unit=number_density_unit)
+                        tvals[_cool_species[i]] = dict(data=var[:,:,i], unit="1/cm**3")
 
         #Add the mu field first, as it is needed for the number density
         interp = BilinearFieldInterpolator(tvals['mu']['data'],
