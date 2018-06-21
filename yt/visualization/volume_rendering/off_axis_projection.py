@@ -20,6 +20,8 @@ from yt.funcs import mylog, iterable
 from yt.utilities.lib.partitioned_grid import \
     PartitionedGrid
 from yt.data_objects.api import ImageArray
+from yt.utilities.lib.pixelization_routines import \
+    off_axis_projection_SPH
 import numpy as np
 
 
