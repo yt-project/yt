@@ -278,19 +278,23 @@ been deprecated, use profile.standard_deviation instead."""
         return arr, weight_data, bin_fields
 
     def __getitem__(self, field):
-        fname = self.field_map.get(field, None)
-        if fname is None:
+        if field in self.field_data:
+            fname = field
+        else:
+            fname = self.field_map.get(field, None)
             if isinstance(field, tuple):
-                fname = self.field_map.get(field[1], None)
+                if field in self.field_data:
+                    fname = field
+                else:
+                    fname = self.field_map.get(field[1], None)
             elif isinstance(field, DerivedField):
                 fname = self.field_map.get(field.name[1], None)
-        if fname is None:
-            raise KeyError(field)
+            if fname is None:
+                raise KeyError(field)
+        if getattr(self, 'fractional', False):
+            return self.field_data[fname]
         else:
-            if getattr(self, 'fractional', False):
-                return self.field_data[fname]
-            else:
-                return self.field_data[fname].in_units(self.field_units[fname])
+            return self.field_data[fname].in_units(self.field_units[fname])
 
     def items(self):
         return [(k,self[k]) for k in self.field_data.keys()]

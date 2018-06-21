@@ -382,3 +382,17 @@ class TestBadProfiles(unittest.TestCase):
         assert_raises(
             YTProfileDataShape,
             yt.PhasePlot, ds.data, 'temperature', 'density', 'cell_mass')
+
+def test_index_field_units():
+    # see #1849
+    ds = fake_random_ds(16, length_unit=2)
+    ad = ds.all_data()
+    icv_units = ad['index', 'cell_volume'].units
+    assert str(icv_units) == 'code_length**3'
+    gcv_units = ad['gas', 'cell_volume'].units
+    assert str(gcv_units) == 'cm**3'
+    prof = ad.profile(['density', 'velocity_x'],
+                      [('gas', 'cell_volume'), ('index', 'cell_volume')],
+                      weight_field=None)
+    assert str(prof['index', 'cell_volume'].units) == 'code_length**3'
+    assert str(prof['gas', 'cell_volume'].units) == 'cm**3'
