@@ -281,12 +281,14 @@ been deprecated, use profile.standard_deviation instead."""
         if field in self.field_data:
             fname = field
         else:
+            # deal with string vs tuple field names and attempt to guess which field
+            # we are supposed to be talking about
             fname = self.field_map.get(field, None)
             if isinstance(field, tuple):
-                if field in self.field_data:
-                    fname = field
-                else:
-                    fname = self.field_map.get(field[1], None)
+                fname = self.field_map.get(field[1], None)
+                if fname != field:
+                    raise KeyError("Asked for field '{}' but only have data for "
+                                   "field '{}'".format(field, fname))
             elif isinstance(field, DerivedField):
                 fname = self.field_map.get(field.name[1], None)
             if fname is None:
