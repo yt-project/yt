@@ -29,14 +29,17 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib flake8 mock"
+    - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib flake8 mock nose-timer coverage codecov"
     - "pip install -e ."
 
 # Not a .NET project
 build: false
 
 test_script:
-  - "nosetests --nologcapture -sv yt"
+  - "coverage run -m nose -c nose.cfg"
+
+on_success:
+  - "codecov"
 
 # Enable this to be able to login to the build worker. You can use the
 # `remmina` program in Ubuntu, use the login information that the line below
