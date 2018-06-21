@@ -3,9 +3,21 @@ A proxy object for field descriptors, usually living as ds.fields.
 """
 
 import weakref
+import textwrap
+import inspect
 from yt.extern.six import add_metaclass, string_types
 from yt.fields.derived_field import \
     DerivedField
+
+def _fill_values(values):
+    value = '<div class="rendered_html jp-RenderedHTMLCommon">' + \
+            '<table><thead><tr><th>Name</th><th>Type</th>' + \
+            '<th>Value</th></tr></thead><tr><td>' + \
+            '</td></tr><tr><td>'.join(['{0}</td><td>{1}</td><td>{2}'.format(
+                v, type(values[v]).__name__, str(values[v]))
+                for v in sorted(values)]) + \
+            '</td></tr></table></div>'
+    return value
 
 class FieldTypeContainer(object):
     def __init__(self, ds):
@@ -44,6 +56,47 @@ class FieldTypeContainer(object):
             ob = obj
 
         return ob in self.field_types
+
+    def _ipython_display_(self):
+        import ipywidgets
+        from IPython.display import display, Markdown
+        fnames = []
+        children = []
+        for ftype in sorted(self.field_types):
+            fnc = getattr(self, ftype)
+            names = dir(fnc)
+            names.sort()
+            def change_field(_ftype, _box, _var_window):
+                def _change_field(event):
+                    fobj = getattr(_ftype, event['new'])
+                    _box.clear_output()
+                    with _box:
+                        display(Markdown(data = "```python\n" +
+                            textwrap.dedent(fobj.get_source()) + "\n```"))
+                    values = inspect.getclosurevars(fobj._function).nonlocals
+                    _var_window.value = _fill_values(values)
+                return _change_field
+            flist = ipywidgets.Select(options = names,
+                    layout = ipywidgets.Layout(height = '95%'))
+            source = ipywidgets.Output(layout = ipywidgets.Layout(
+                width = '100%', height = '9em'))
+            var_window = ipywidgets.HTML(value = 'Empty')
+            var_box = ipywidgets.Box(layout = ipywidgets.Layout(
+                width = '100%', height = '100%', overflow_y = 'scroll'))
+            var_box.children = [var_window]
+            ftype_tabs = ipywidgets.Tab(children = [source, var_box],
+                    layout = ipywidgets.Layout(flex = '2 1 auto',
+                                width = 'auto', height = '95%'))
+            ftype_tabs.set_title(0, "Source")
+            ftype_tabs.set_title(1, "Variables")
+            flist.observe(change_field(fnc, source, var_window), "value")
+            children.append(ipywidgets.HBox([flist, ftype_tabs],
+                layout = ipywidgets.Layout(height = '14em')))
+            fnames.append(ftype)
+        tabs = ipywidgets.Tab(children = children)
+        for i, n in enumerate(fnames):
+            tabs.set_title(i, n)
+        display(tabs)
 
 class FieldNameContainer(object):
     def __init__(self, ds, field_type):
