@@ -1,4 +1,4 @@
-"""AOA
+"""
 RAMSES frontend tests
 
 
