@@ -135,7 +135,6 @@ def off_axis_projection(data_source, center, normal_vector,
                                     chunk[ptype, item],
                                     buf,
                                     normal_vector)
-            break
         return buf
     
     data_source = data_source_or_all(data_source)
