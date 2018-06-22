@@ -256,7 +256,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
         filename = "%s/cooling_%05i.out" % (
             os.path.dirname(self.ds.parameter_filename), int(num))
 
-        if not os.path.exists(filename): return
+        if not os.path.exists(filename): 
+            print("This output has no cooling fields")
+            return
 
         #Function to create the cooling fields
         def _create_field(name, interp_object,unit):
@@ -285,8 +287,12 @@ class RAMSESFieldInfo(FieldInfoContainer):
             n = n1 * n2
             for ax in _cool_axes:
                 avals[ax] = fd.read_vector('d')
-            for tname, unit in _cool_arrs:
+            for i,(tname, unit) in enumerate(_cool_arrs):
                 var = fd.read_vector('d')
+                if var.size==n1 and i==0:
+                    #If this case occurs, the cooling files were produced pre-2010 in a format
+                    #that is no longer supported
+                    return
                 if var.size == n1*n2:
                     tvals[tname] = dict(data=var.reshape((n1, n2), order='F'), unit=unit)
                 else:
