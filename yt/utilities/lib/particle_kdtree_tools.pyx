@@ -73,6 +73,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
             # needing to reallocate memory
             queue.size = 0
 
+
             if i % CHUNKSIZE == 0:
                 with gil:
                     pbar.update(i-1)
@@ -157,20 +158,20 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
     dz = (z_max - z_min) / zsize
 
     pos = np.zeros(3)
-
+    pos[0] = x_min - 0.5*dx
     with nogil:
-        pos[0] = x_min - 0.5*dx
         for i in range(0, xsize):
-            pos[1] = y_min - 0.5*dy
             pos[0] += dx
+            pos[1] = y_min - 0.5*dy
             for j in range(0, ysize):
-                pos[2] = x_min - 0.5*dz
                 pos[1] += dy
+                pos[2] = z_min - 0.5*dz
                 for k in range(0, zsize):
+                    pos[2] += dz
+
                     # reset queue to "empty" state, doing it this way avoids
                     # needing to reallocate memory
                     queue.size = 0
-                    pos[2] += dz
 
                     if i % CHUNKSIZE == 0:
                         with gil:
@@ -293,10 +294,9 @@ cdef inline int process_node_points_pid(Node* node,
     cdef int j
     cdef np.float64_t* p_ptr
     for i in range(node.left_idx, node.left_idx + node.children):
-        p_ptr = &(positions[i, 0])
-        sq_dist = 0
+        sq_dist = 0.0
         for j in range(3):
-            tpos = p_ptr[j] - pos[j]
+            tpos = positions[i,j] - pos[j]
             sq_dist += tpos*tpos
         queue.add_pid(sq_dist, i)
     return 0

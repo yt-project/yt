@@ -1166,7 +1166,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
         np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth, np.float64_t[:] bounds, pbar=None,
-        kernel_name="cubic", use_normalization=False):
+        kernel_name="cubic", use_normalization=True):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, w_j, coeff
@@ -1288,19 +1288,20 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
         np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth, np.float_t[:] bounds,
-        pbar=None, kernel_name="cubic", use_normalization=False):
+        np.int64_t n_neighbors=64, pbar=None, kernel_name="cubic",
+        use_normalization=True):
 
     # hardcoding neighbors to test
-    cdef int n_neighbors = 48
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t w_j, coeff
     cdef np.int64_t xi, yi, zi, pi
-    cdef np.float64_t q, h_j2, h_j, ih_j
-    cdef int index, i, j, k, particle, pixel
+    cdef np.float64_t q, h_j2, ih_j2
+    cdef int count, i, j, k, particle, pixel
     cdef np.float64_t[:, :, :] buff_num
     cdef np.float64_t[:, :, :] buff_denom
     cdef np.float64_t[:,:,:,:] distances
     cdef np.int64_t[:,:,:,:] pids
+    cdef np.int64_t[:] idx
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
     buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
@@ -1309,17 +1310,28 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
     kernel_func = get_kernel_func(kernel_name)
 
     # generate the kdtree and find neighbours
+    # I think there is a better way of the passing than making a new array
     kdtree = PyKDTree(np.array([posx, posy, posz]).T,
                 left_edge=np.array([bounds[0], bounds[2], bounds[4]]),
                 right_edge=np.array([bounds[1], bounds[3], bounds[5]]),
                 periodic=np.array([True, True, True]),
-                leafsize=20)
+                leafsize=n_neighbors)
 
-    #posx[:] = posx[kdtree.idx[:]]
-    #posy[:]= posy[kdtree.idx[:]]
-    #posz[:] = posz[kdtree.idx[:]]
+    # sorting the particles based on the kdtree
+    count = kdtree.idx.shape[0]
+    for i in range(count):
+        for j in range(1, count):
+            if kdtree.idx[j] < kdtree.idx[j-1]:
+                kdtree.idx[j-1], kdtree.idx[j] = kdtree.idx[j], kdtree.idx[j-1]
+                posx[j-1], posx[j] = posx[j], posx[j-1]
+                posy[j-1], posy[j] = posy[j], posy[j-1]
+                posz[j-1], posz[j] = posz[j], posz[j-1]
+                pmass[j-1], pmass[j] = pmass[j], pmass[j-1]
+                pdens[j-1], pdens[j] = pdens[j], pdens[j-1]
+                quantity_to_smooth[j-1], quantity_to_smooth[j] = \
+                    quantity_to_smooth[j], quantity_to_smooth[j-1]
 
-    distances, pids = generate_nn_list(bounds, np.array([xsize, ysize,zsize]),
+    distances, pids = generate_nn_list(bounds, np.array([xsize, ysize, zsize]),
                                        kdtree, np.array([posx, posy, posz]).T,
                                        n_neighbors)
 
@@ -1329,17 +1341,15 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
 
     with nogil:
         for xi in range(xsize):
-             for yi in range(ysize):
+            for yi in range(ysize):
                 for zi in range(zsize):
                     h_j2 = distances[xi, yi, zi, 0]
-                    h_j = math.sqrt(h_j2)
-                    ih_j = 1/h_j
+                    ih_j2 = 1/h_j2
                     for pi in range(n_neighbors):
                         particle = pids[xi, yi, zi, pi]
                         w_j = pmass[particle] / pdens[particle] / hsml[particle]**3
                         coeff = w_j * quantity_to_smooth[particle]
-
-                        q = math.sqrt(distances[xi, yi, zi, particle])*ih_j
+                        q = math.sqrt(distances[xi, yi, zi, pi]*ih_j2)
 
                         if use_norm:
                             buff_num[xi, yi, zi] += coeff * kernel_func(q)
