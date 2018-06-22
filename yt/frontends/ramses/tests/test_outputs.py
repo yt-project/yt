@@ -1,4 +1,4 @@
-"""
+"""AOA
 RAMSES frontend tests
 
 
@@ -370,4 +370,12 @@ def test_formation_time():
     assert np.all(ad['particle_birth_time'] <= 0)
     whdynstars = ad['particle_birth_time'] == 0
     assert np.all(ad['star_age'][whdynstars] == ds.current_time)
+
+@requires_file(ramses_new_format)
+@requires_file(ramses_sink)
+def test_cooling_fields():
+    
+    #Test the field is being loaded correctly
+    ds=yt.load(ramses_new_format)
+    assert ('gas','cooling_net') in ds.field_list
 
