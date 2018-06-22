@@ -372,10 +372,17 @@ def test_formation_time():
     assert np.all(ad['star_age'][whdynstars] == ds.current_time)
 
 @requires_file(ramses_new_format)
-@requires_file(ramses_sink)
 def test_cooling_fields():
     
     #Test the field is being loaded correctly
     ds=yt.load(ramses_new_format)
-    assert ('gas','cooling_net') in ds.field_list
+    assert ('gas','cooling_net') in ds.derived_field_list
+    assert ('gas','cooling_metal') in ds.derived_field_list
+    assert ('gas','number_density') in ds.derived_field_list
+    assert ('gas','Electron_number_density') in ds.derived_field_list
 
+    def check_unit(array, unit):
+        assert str(array.in_cgs().units) == unit
+
+    check_unit(ds.r[('gas','cooling_total')],'cm**5*g/s**3')
+    check_unit(ds.r[('gas','cooling_primordial_prime')],'cm**5*g/(K*s**3)')
