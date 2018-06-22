@@ -26,7 +26,7 @@ import numpy as np
 
 
 def off_axis_projection(data_source, center, normal_vector,
-                        width, resolution, item,
+                        width, resolution, item, fname=None,
                         weight=None, volume=None,
                         no_ghost=False, interpolated=False,
                         north_vector=None, num_threads=1, method='integrate'):
@@ -106,59 +106,39 @@ def off_axis_projection(data_source, center, normal_vector,
     >>> write_image(np.log10(image), "offaxis.png")
 
     """
-
     if method not in ['integrate','sum']:
         raise NotImplementedError("Only 'integrate' or 'sum' methods are valid for off-axis-projections")
 
     if interpolated is True:
         raise NotImplementedError("Only interpolated=False methods are currently implemented for off-axis-projections")
 
-
-    data_source = data_source_or_all(data_source)
-
     if hasattr(data_source, '_sph_ptype'):
-        buf = np.zeros((resolution[0], resolution[1]))
-        px = data_source.r["x"]
-        py = data_source.r["y"]
-        pz = data_source.r["z"]
-        num_particles = pz.size
-        particle_masses = data_source.r["mass"]
-        particle_densities = data_source.r["density"]
-        smoothing_lengths = data_source.r["SmoothingLength"]
+        ptype = data_source._sph_ptype
+        buf = np.zeros((resolution[0], resolution[1]), dtype='float64')
         x_min = data_source.domain_left_edge[0]
         x_max = data_source.domain_right_edge[0]
         y_min = data_source.domain_left_edge[1]
         y_max = data_source.domain_right_edge[1]
         z_min = data_source.domain_left_edge[2]
         z_max = data_source.domain_right_edge[2]
+        data_source = data_source_or_all(data_source)
+
         bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
-        # Write our buffer in several chunks of data
-        chunk_size = 5000
-        chunk_iterations = int(num_particles / chunk_size)
-        remainder = num_particles - chunk_iterations * chunk_size
-        for i in range(chunk_iterations):
-            start_index = i * chunk_size
-            end_index = (i + 1) * chunk_size         
-            off_axis_projection_SPH(px[start_index: end_index], 
-                                    py[start_index: end_index], 
-                                    pz[start_index: end_index], 
-                                    particle_masses[start_index: end_index], 
-                                    particle_densities[start_index: end_index], 
-                                    smoothing_lengths[start_index: end_index], 
-                                    bounds, np.ones(chunk_size),
-                                    buf, normal_vector)
-        # Last Chunk
-        if remainder > 0:
-            start_index = num_particles - remainder
-            off_axis_projection_SPH(px[start_index:], 
-                                    py[start_index:], 
-                                    pz[start_index:], 
-                                    particle_masses[start_index:], 
-                                    particle_densities[start_index:], 
-                                    smoothing_lengths[start_index:], 
-                                    bounds, np.ones(remainder),
-                                    buf, normal_vector)
+        for chunk in data_source.chunks([], 'io'):
+            off_axis_projection_SPH(chunk[ptype, "particle_position_x"],
+                                    chunk[ptype, "particle_position_y"],
+                                    chunk[ptype, "particle_position_z"],
+                                    chunk[ptype, "particle_mass"],
+                                    chunk[ptype, "density"],
+                                    chunk[ptype, "smoothing_length"],
+                                    bounds,
+                                    chunk[ptype, item],
+                                    buf,
+                                    normal_vector)
+            break
         return buf
+    
+    data_source = data_source_or_all(data_source)
 
     # Sanitize units
     if not hasattr(center, "units"):
