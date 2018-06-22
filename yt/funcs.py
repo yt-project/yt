@@ -1178,13 +1178,6 @@ def obj_length(v):
         # to signify zero length (aka a scalar).
         return 0
 
-def handle_mks_cgs(values, field_units):
-    try:
-        values = values.to(field_units)
-    except YTEquivalentDimsError as e:
-        values = values.to_equivalent(e.new_units, e.base)
-    return values
-
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
     if isinstance(field, tuple):

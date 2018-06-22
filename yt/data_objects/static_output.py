@@ -973,8 +973,8 @@ class Dataset(object):
                 elif unit_system == 'mks':
                     pass
                 else:
-                    self.magnetic_unit = \
-                        self.magnetic_unit.to_equivalent('gauss', 'CGS')
+                    # this is perhaps a little funky
+                    self.magnetic_unit = self.magnetic_unit.to('T').to('gauss')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         self.unit_system = create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit)
