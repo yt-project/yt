@@ -284,7 +284,6 @@ class RAMSESFieldInfo(FieldInfoContainer):
         tvals = {}
         with FortranFile(filename) as fd:
             n1, n2 = fd.read_vector('i')
-            n = n1 * n2
             for ax in _cool_axes:
                 avals[ax] = fd.read_vector('d')
             for i,(tname, unit) in enumerate(_cool_arrs):
