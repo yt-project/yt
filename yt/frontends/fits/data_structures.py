@@ -46,7 +46,6 @@ from yt.utilities.decompose import \
 from yt.funcs import issue_deprecation_warning
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, \
-    prefixable_units, \
     unit_prefixes
 from yt.units import dimensions
 from yt.utilities.on_demand_imports import \
@@ -155,7 +154,7 @@ class FITSHierarchy(GridIndex):
             [(unit.lower(), unit) for unit in self.ds.unit_registry.lut]
         )
         for unit in list(known_units.values()):
-            if unit in prefixable_units:
+            if unit in self.ds.unit_registry.prefixable_units:
                 for p in ["n","u","m","c","k"]:
                     known_units[(p+unit).lower()] = p+unit
         # We create a field from each slice on the 4th axis

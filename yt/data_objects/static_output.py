@@ -48,8 +48,7 @@ from yt.utilities.parameter_file_storage import \
     NoParameterShelf, \
     output_type_registry
 from yt.units.dimensions import current_mks
-from yt.units.unit_object import Unit, unit_system_registry, \
-    _define_unit
+from yt.units.unit_object import Unit, define_unit
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
     ValidateSpatial
@@ -977,13 +976,8 @@ class Dataset(object):
                     self.magnetic_unit = \
                         self.magnetic_unit.to_equivalent('gauss', 'CGS')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        create_code_unit_system(self.unit_registry, 
-                                current_mks_unit=current_mks_unit)
-        if unit_system == "code":
-            unit_system = self.unit_registry.unit_system_id
-        else:
-            unit_system = str(unit_system).lower()
-        self.unit_system = unit_system_registry[unit_system]
+        self.unit_system = create_code_unit_system(
+            self.unit_registry, current_mks_unit=current_mks_unit)
 
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()
@@ -1469,8 +1463,8 @@ class Dataset(object):
         >>> two_weeks = YTQuantity(14.0, "days")
         >>> ds.define_unit("fortnight", two_weeks)
         """
-        _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr, 
-                     offset=offset, prefixable=prefixable)
+        define_unit(symbol, value, tex_repr=tex_repr, offset=offset,
+                    prefixable=prefixable, registry=self.unit_registry)
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
