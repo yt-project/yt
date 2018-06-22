@@ -59,8 +59,8 @@ from yt.utilities.exceptions import \
     YTPlotCallbackError, \
     YTDataTypeUnsupported, \
     YTInvalidFieldType, \
-    YTUnitNotRecognized, \
-    YTUnitConversionError
+    YTUnitNotRecognized
+from unyt.exceptions import UnitConversionError
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
@@ -642,7 +642,7 @@ class PlotWindow(ImagePlotContainer):
             for un in unit_name:
                 try:
                     self.ds.length_unit.in_units(un)
-                except (YTUnitConversionError, UnitParseError):
+                except (UnitConversionError, UnitParseError):
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
         return self

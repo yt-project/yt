@@ -22,7 +22,6 @@ cimport libc.math as math
 from libc.math cimport abs, sqrt
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max
 from yt.geometry.selection_routines cimport _ensure_code
-from yt.utilities.exceptions import YTEquivalentDimsError
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport strcmp

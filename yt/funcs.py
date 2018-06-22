@@ -41,9 +41,7 @@ from numbers import Number as numeric_type
 from yt.extern.six.moves import urllib
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.lru_cache import lru_cache
-from yt.utilities.exceptions import \
-    YTInvalidWidthError, \
-    YTEquivalentDimsError
+from yt.utilities.exceptions import YTInvalidWidthError
 from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from functools import wraps

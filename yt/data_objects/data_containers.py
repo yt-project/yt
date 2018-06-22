@@ -38,8 +38,8 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 import yt.units.dimensions as ytdims
+from unyt.exceptions import UnitConversionError
 from yt.utilities.exceptions import \
-    YTUnitConversionError, \
     YTFieldUnitError, \
     YTFieldUnitParseError, \
     YTSpatialFieldUnitError, \
@@ -1421,7 +1421,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         fd = self.ds.arr(fd, '')
                         if fi.units != '':
                             raise YTFieldUnitError(fi, fd.units)
-                    except YTUnitConversionError:
+                    except UnitConversionError:
                         raise YTFieldUnitError(fi, fd.units)
                     except UnitParseError:
                         raise YTFieldUnitParseError(fi)
