@@ -376,13 +376,39 @@ def test_cooling_fields():
     
     #Test the field is being loaded correctly
     ds=yt.load(ramses_new_format)
+    
+    #Derived cooling fields
     assert ('gas','cooling_net') in ds.derived_field_list
-    assert ('gas','cooling_metal') in ds.derived_field_list
+    assert ('gas','cooling_total') in ds.derived_field_list
+    assert ('gas','heating_total') in ds.derived_field_list
     assert ('gas','number_density') in ds.derived_field_list
+
+    #Original cooling fields
+    assert ('gas','cooling_primordial') in ds.derived_field_list
+    assert ('gas','cooling_compton') in ds.derived_field_list
+    assert ('gas','cooling_metal') in ds.derived_field_list
+    assert ('gas','heating_primordial') in ds.derived_field_list
+    assert ('gas','heating_compton') in ds.derived_field_list
+    assert ('gas','cooling_primordial_prime') in ds.derived_field_list
+    assert ('gas','cooling_compton_prime') in ds.derived_field_list
+    assert ('gas','cooling_metal_prime') in ds.derived_field_list
+    assert ('gas','heating_primordial_prime') in ds.derived_field_list
+    assert ('gas','heating_compton_prime') in ds.derived_field_list
+    assert ('gas','mu') in ds.derived_field_list
+    
+    #Abundances
     assert ('gas','Electron_number_density') in ds.derived_field_list
+    assert ('gas','HI_number_density') in ds.derived_field_list
+    assert ('gas','HII_number_density') in ds.derived_field_list
+    assert ('gas','HeI_number_density') in ds.derived_field_list
+    assert ('gas','HeII_number_density') in ds.derived_field_list
+    assert ('gas','HeIII_number_density') in ds.derived_field_list
 
     def check_unit(array, unit):
         assert str(array.in_cgs().units) == unit
 
     check_unit(ds.r[('gas','cooling_total')],'cm**5*g/s**3')
     check_unit(ds.r[('gas','cooling_primordial_prime')],'cm**5*g/(K*s**3)')
+    check_unit(ds.r[('gas','number_density')],'cm**(-3)')
+    check_unit(ds.r[('gas','mu')],'dimensionless')
+    check_unit(ds.r[('gas','Electron_number_density')],'cm**(-3)')
