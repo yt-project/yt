@@ -36,6 +36,7 @@ from .field_handlers import RTFieldFileHandler
 
 from yt.utilities.physical_constants import \
     mp
+from yt.funcs import mylog
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
@@ -257,7 +258,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             os.path.dirname(self.ds.parameter_filename), int(num))
 
         if not os.path.exists(filename): 
-            print("This output has no cooling fields")
+            mylog.warning('This output has no cooling fields')
             return
 
         #Function to create the cooling fields
@@ -267,7 +268,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 d = {'lognH': np.log10(_X*data["density"]/mh).ravel(),
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = interp_object(d).reshape(shape)
-                if not(name[-1]=='mu'):
+                if name[-1] != 'mu':
                     rv = 10**interp_object(d).reshape(shape)
                 cool=data.ds.arr(rv, unit)
                 if 'metal' in name[-1].split('_'):
@@ -291,6 +292,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 if var.size==n1 and i==0:
                     #If this case occurs, the cooling files were produced pre-2010 in a format
                     #that is no longer supported
+                    mylog.warning('The old cooling file format is no longer supported. Cooling fields are not loaded..')
                     return
                 if var.size == n1*n2:
                     tvals[tname] = dict(data=var.reshape((n1, n2), order='F'), unit=unit)
@@ -313,7 +315,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         #Add the cooling and heating fields, which need the number density field
         for key in tvals:
-            if not(key=='mu'):
+            if key != 'mu':
                 interp = BilinearFieldInterpolator(tvals[key]['data'],
                                                    (avals["lognH"], avals["logT"]),
                                                    ["lognH", "logT"], truncate = True)
