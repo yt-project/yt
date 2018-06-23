@@ -292,7 +292,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 if var.size==n1 and i==0:
                     #If this case occurs, the cooling files were produced pre-2010 in a format
                     #that is no longer supported
-                    mylog.warning('The old cooling file format is no longer supported. Cooling fields are not loaded..')
+                    mylog.warning('This cooling file format is no longer supported. Cooling field loading skipped.')
                     return
                 if var.size == n1*n2:
                     tvals[tname] = dict(data=var.reshape((n1, n2), order='F'), unit=unit)
