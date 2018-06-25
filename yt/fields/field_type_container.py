@@ -5,7 +5,7 @@ A proxy object for field descriptors, usually living as ds.fields.
 import weakref
 import textwrap
 import inspect
-from yt.extern.six import add_metaclass, string_types
+from yt.extern.six import string_types
 from yt.fields.derived_field import \
     DerivedField
 
