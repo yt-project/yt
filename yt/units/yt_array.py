@@ -1844,7 +1844,6 @@ def display_ytarray(arr):
         raise YTArrayTooLargeToDisplay(arr.size, 3)
     import ipywidgets
     unit_registry = arr.units.registry 
-    dimension = arr.units.dimensions
     equiv = unit_registry.list_same_dimensions(arr.units)
     dropdown = ipywidgets.Dropdown(options = sorted(equiv), value = str(arr.units))
     def arr_updater(arr, texts):
