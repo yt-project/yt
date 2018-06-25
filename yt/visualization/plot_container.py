@@ -26,8 +26,6 @@ from distutils.version import LooseVersion
 from collections import defaultdict
 from functools import wraps
 
-from .tick_locators import LogLocator, LinearLocator
-
 from yt.config import \
     ytcfg
 from yt.data_objects.time_series import \
@@ -155,28 +153,6 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
 
 field_transforms = {}
 
-
-class FieldTransform(object):
-    def __init__(self, name, func, locator):
-        self.name = name
-        self.func = func
-        self.locator = locator
-        field_transforms[name] = self
-
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
-
-    def ticks(self, mi, ma):
-        try:
-            ticks = self.locator(mi, ma)
-        except:
-            ticks = []
-        return ticks
-
-log_transform = FieldTransform('log10', np.log10, LogLocator())
-linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
-symlog_transform = FieldTransform('symlog', None, LogLocator())
-
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):
         return defaultdict.__getitem__(
@@ -239,12 +215,12 @@ class PlotContainer(object):
                 if linthresh is not None:
                     if not linthresh > 0.:
                         raise ValueError('\"linthresh\" must be positive')
-                    self._field_transform[field] = symlog_transform
+                    self._field_transform[field] = "symlog"
                     self._field_transform[field].func = linthresh
                 else:
-                    self._field_transform[field] = log_transform
+                    self._field_transform[field] = "log10"
             else:
-                self._field_transform[field] = linear_transform
+                self._field_transform[field] = "linear"
         return self
 
     def get_log(self, field):
@@ -262,7 +238,7 @@ class PlotContainer(object):
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            if self._field_transform[field] == log_transform:
+            if self._field_transform[field] == "log10":
                 log[field] = True
             else:
                 log[field] = False

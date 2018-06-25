@@ -28,8 +28,6 @@ from yt.visualization.base_plot_types import \
 from yt.visualization.plot_container import \
     PlotContainer, \
     PlotDictionary, \
-    log_transform, \
-    linear_transform, \
     invalidate_plot
 
 class LineBuffer(object):
@@ -196,9 +194,9 @@ class LinePlot(PlotContainer):
         for f in obj.fields:
             finfo = obj.data_source.ds._get_field_info(*f)
             if finfo.take_log:
-                obj._field_transform[f] = log_transform
+                obj._field_transform[f] = "log10"
             else:
-                obj._field_transform[f] = linear_transform
+                obj._field_transform[f] = "linear"
 
         if field_labels is None:
             obj.field_labels = {}
@@ -332,7 +330,7 @@ class LinePlot(PlotContainer):
                 plot.axes.plot(x, y, label=legend_label)
 
                 # apply log transforms if requested
-                if self._field_transform[field] != linear_transform:
+                if self._field_transform[field] != "linear":
                     if (y < 0).any():
                         plot.axes.set_yscale('symlog')
                     else:
