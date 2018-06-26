@@ -124,6 +124,7 @@ def off_axis_projection(data_source, center, normal_vector,
         data_source = data_source_or_all(data_source)
 
         bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
+        chunk_num = 0
         for chunk in data_source.chunks([], 'io'):
             off_axis_projection_SPH(chunk[ptype, "particle_position_x"],
                                     chunk[ptype, "particle_position_y"],
@@ -135,6 +136,8 @@ def off_axis_projection(data_source, center, normal_vector,
                                     chunk[ptype, item],
                                     buf,
                                     normal_vector)
+            print(chunk_num)
+            chunk_num += 1
         return buf
     
     data_source = data_source_or_all(data_source)
