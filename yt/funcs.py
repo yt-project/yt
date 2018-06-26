@@ -994,11 +994,18 @@ def enable_plugins():
                 os.path.join(old_config_dir, my_plugin_name),
                 os.path.join(CONFIG_DIR, my_plugin_name))
         mylog.info("Loading plugins from %s", _fn)
-        execdict = yt.__dict__.copy()
+        ytdict = yt.__dict__
+        execdict = ytdict.copy()
         execdict['add_field'] = my_plugins_fields.add_field
+        localdict = {}
         with open(_fn) as f:
             code = compile(f.read(), _fn, 'exec')
-            exec(code, execdict)
+            exec(code, execdict, localdict)
+        ytnamespace = list(ytdict.keys())
+        for k in localdict.keys():
+            if k not in ytnamespace:
+                if callable(localdict[k]):
+                    setattr(yt, k, localdict[k])
 
 def fix_unitary(u):
     if u == '1':
