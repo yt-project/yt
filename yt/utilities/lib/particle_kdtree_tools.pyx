@@ -41,7 +41,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     ----------
 
     input_positions: arrays of floats with shape (n_particles, 3)
-        The positions of particles in kdtree sorted order. Currently assumed 
+        The positions of particles in kdtree sorted order. Currently assumed
         to be 3D postions.
     kdtree: A PyKDTree instance
         A kdtree to do nearest neighbors searches with
@@ -59,9 +59,9 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef uint64_t idx
     cdef uint32_t skipid
     cdef int n_particles = input_positions.shape[0]
-    cdef np.float64_t[:] smoothing_length = np.empty(n_particles)
     cdef np.float64_t tpos, ma, sq_dist
     cdef np.float64_t* pos
+    cdef np.float64_t[:] smoothing_length = np.empty(n_particles)
     cdef uint64_t neighbor_id
     cdef int i, j, k, l, skip
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neighbors)
@@ -100,100 +100,66 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] dimensions,
-                     PyKDTree kdtree, np.float64_t[:, :] input_positions,
-                     int n_neighbors):
-    """Calculate an array of distances to the nearest n_neighbours and which
-    particle is that distance away.
+def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] sizes, PyKDTree kdtree,
+                     np.float64_t[:,:] input_pos, np.int64_t n_neighbors):
+    """Calculate array of distances to the nth nearest neighbor
 
     Parameters
     ----------
 
-    bounds: arrays of floats with shape (6)
-        The bounds of the region to  pixelize / voxelize.
-    dimensions: the number of pixels / voxels to divide into.
-    kdtree: A PyKDTree instance
-        A kdtree to do nearest neighbors searches with
-    input_positiosn:  an array of partile positons
-    n_neighbors: The neighbor number to calculate the distance to
-
     Returns
     -------
-
-    nearest_neighbours: tuple of arrays of floats and ints with shape ( float (n_pixels,
-    n_neighbours), int (n_pixels, n_neighbours) )
 
     """
     cdef KDTree* c_tree = kdtree._tree
     cdef Node* leafnode
-    cdef uint64_t idx
-    cdef uint32_t skipid
-    cdef np.float64_t tpos, ma, sq_dist
-    cdef np.float64_t[:] pos
-    cdef uint64_t neighbor_id
-    cdef int i, j, k, l, skip, xsize, ysize, zsize, npixels
+    cdef np.float64_t* pos
+    cdef int i, j, k
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neighbors, True)
-    cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, dx, dy, dz
-    cdef np.int64_t[:,:,:,:] pixel_pids
-    cdef np.float64_t[:,:,:,:] pixel_distances
+    cdef np.float64_t[:,:] nearest_dists
+    cdef np.int64_t[:,:] nearest_pids
+    cdef np.float64_t dx, dy, dz
+    cdef np.float64_t[::1] voxel_position = np.zeros(shape=(3))
 
-    # setting up the pixels to loop through
-    xsize, ysize, zsize = dimensions[0], dimensions[1], dimensions[2]
-    n_pixels = xsize*ysize*zsize
+    nearest_dists = np.zeros(shape=(input_pos.shape[0], n_neighbors))
+    nearest_pids = np.zeros(shape=(input_pos.shape[0], n_neighbors),
+                           dtype=int)
 
-    pixel_pids = np.zeros((xsize, ysize, zsize, n_neighbors),
-                          dtype=int)
-    pixel_distances = np.zeros((xsize, ysize, zsize, n_neighbors),
-                           dtype=float)
+    dx = (bounds[1] - bounds[0]) / sizes[0]
+    dy = (bounds[3] - bounds[2]) / sizes[1]
+    dz = (bounds[5] - bounds[4]) / sizes[2]
 
-    x_min = bounds[0]
-    x_max = bounds[1]
-    y_min = bounds[2]
-    y_max = bounds[3]
-    z_min = bounds[4]
-    z_max = bounds[5]
-
-    dx = (x_max - x_min) / xsize
-    dy = (y_max - y_min) / ysize
-    dz = (z_max - z_min) / zsize
-
-    pos = np.zeros(3)
-    pos[0] = x_min - 0.5*dx
     with nogil:
-        for i in range(0, xsize):
-            pos[0] += dx
-            pos[1] = y_min - 0.5*dy
-            for j in range(0, ysize):
-                pos[1] += dy
-                pos[2] = z_min - 0.5*dz
-                for k in range(0, zsize):
-                    pos[2] += dz
-
-                    # reset queue to "empty" state, doing it this way avoids
-                    # needing to reallocate memory
+        for i in range(sizes[0]):
+            for j in range(sizes[1]):
+                for k in range(sizes[2]):
                     queue.size = 0
 
                     if i % CHUNKSIZE == 0:
                         with gil:
                             PyErr_CheckSignals()
 
+                    voxel_position[0] = bounds[0] + (i+0.5)*dx
+                    voxel_position[1] = bounds[2] + (j+0.5)*dy
+                    voxel_position[2] = bounds[4] + (k+0.5)*dz
+
+                    pos = &(voxel_position[0])
                     leafnode = c_tree.search(&pos[0])
-                    skipid = leafnode.leafid
 
                     # Fill queue with particles in the node containing the
                     # particle we're searching for
-                    process_node_points_pid(leafnode, &(pos[0]),
-                                            input_positions, queue)
+                    process_node_points(
+                        leafnode, pos, input_pos, queue, -1)
 
                     # Traverse the rest of the kdtree to finish the neighbor
                     # list
-                    find_knn_pid(c_tree.root, queue, input_positions, &(pos[0]),
-                                 leafnode.leafid)
+                    find_knn(c_tree.root, queue, input_pos, pos,
+                             leafnode.leafid, -1)
 
-                    pixel_distances[i,j,k,:] = queue.heap
-                    pixel_pids[i,j,k,:] = queue.pids
+                    nearest_dists[i,:] = queue.heap
+                    nearest_pids[i,:] = queue.pids
 
-    return (pixel_distances, pixel_pids)
+    return np.asarray(nearest_dists), np.asarray(nearest_pids)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -213,25 +179,6 @@ cdef int find_knn(Node* node,
     else:
         if not cull_node(node, pos, queue, skipleaf):
             process_node_points(node, pos, positions, queue, skipidx)
-    return 0
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef int find_knn_pid(Node* node,
-                  BoundedPriorityQueue queue,
-                  np.float64_t[:, :] positions,
-                  np.float64_t* pos,
-                  uint32_t skipleaf) nogil except -1:
-    # if we aren't a leaf then we keep travsersing until we find a leaf, else we
-    # we actually begin to check the leaf
-    if not node.is_leaf:
-        if not cull_node(node.less, pos, queue, skipleaf):
-            find_knn_pid(node.less, queue, positions, pos, skipleaf)
-        if not cull_node(node.greater, pos, queue, skipleaf):
-            find_knn_pid(node.greater, queue, positions, pos, skipleaf)
-    else:
-        if not cull_node(node, pos, queue, skipleaf):
-            process_node_points_pid(node, pos, positions, queue)
     return 0
 
 @cython.boundscheck(False)
@@ -257,7 +204,7 @@ cdef inline int cull_node(Node* node,
         else:
             tpos = 0
         ndist += tpos*tpos
-    return ndist > queue.heap_ptr[0]
+    return (ndist > queue.heap_ptr[0] and queue.size == queue.max_elements)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -277,26 +224,5 @@ cdef inline int process_node_points(Node* node,
             for j in range(3):
                 tpos = p_ptr[j] - pos[j]
                 sq_dist += tpos*tpos
-            queue.add(sq_dist)
-    return 0
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cdef inline int process_node_points_pid(Node* node,
-                                    np.float64_t* pos,
-                                    np.float64_t[:, :] positions,
-                                    BoundedPriorityQueue queue) nogil except -1:
-    # this is just a copy of the process_node_points except in this function
-    # we also store the pid of particle in the node
-    cdef uint64_t i, idx
-    cdef np.float64_t tpos, sq_dist
-    cdef int j
-    cdef np.float64_t* p_ptr
-    for i in range(node.left_idx, node.left_idx + node.children):
-        sq_dist = 0.0
-        for j in range(3):
-            tpos = positions[i,j] - pos[j]
-            sq_dist += tpos*tpos
-        queue.add_pid(sq_dist, i)
+            queue.add_pid(sq_dist, i)
     return 0

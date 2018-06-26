@@ -1285,13 +1285,12 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
 @cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
-        np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
-        np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
+        np.float64_t[:, :] pos, kdtree, np.float64_t[:] hsml,
+        np.float64_t[:] pmass, np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth, np.float_t[:] bounds,
         np.int64_t n_neighbors=64, pbar=None, kernel_name="cubic",
         use_normalization=True):
 
-    # hardcoding neighbors to test
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t w_j, coeff
     cdef np.int64_t xi, yi, zi, pi
@@ -1308,35 +1307,11 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
     buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
 
     kernel_func = get_kernel_func(kernel_name)
-
-    # generate the kdtree and find neighbours
-    # I think there is a better way of the passing than making a new array
-    kdtree = PyKDTree(np.array([posx, posy, posz]).T,
-                left_edge=np.array([bounds[0], bounds[2], bounds[4]]),
-                right_edge=np.array([bounds[1], bounds[3], bounds[5]]),
-                periodic=np.array([True, True, True]),
-                leafsize=n_neighbors)
-
-    # sorting the particles based on the kdtree
-    count = kdtree.idx.shape[0]
-    for i in range(count):
-        for j in range(1, count):
-            if kdtree.idx[j] < kdtree.idx[j-1]:
-                kdtree.idx[j-1], kdtree.idx[j] = kdtree.idx[j], kdtree.idx[j-1]
-                posx[j-1], posx[j] = posx[j], posx[j-1]
-                posy[j-1], posy[j] = posy[j], posy[j-1]
-                posz[j-1], posz[j] = posz[j], posz[j-1]
-                pmass[j-1], pmass[j] = pmass[j], pmass[j-1]
-                pdens[j-1], pdens[j] = pdens[j], pdens[j-1]
-                quantity_to_smooth[j-1], quantity_to_smooth[j] = \
-                    quantity_to_smooth[j], quantity_to_smooth[j-1]
-
     distances, pids = generate_nn_list(bounds, np.array([xsize, ysize, zsize]),
-                                       kdtree, np.array([posx, posy, posz]).T,
-                                       n_neighbors)
+                                       kdtree, pos, n_neighbors)
 
-    # define this to avoid using the use_normalization python object
-    # in the tight loop
+    # define this to avoid using the use_normalization python object in the
+    # tight loop
     cdef np.intp_t use_norm = int(use_normalization)
 
     with nogil:
