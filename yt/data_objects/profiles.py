@@ -1157,7 +1157,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
 
     args = [data_source]
     for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
-        if mi == 0 and l:
+        if mi <= 0 and l:
             raise YTIllDefinedBounds(mi, ma)
         args += [f, n, mi, ma, l]
     kwargs = dict(weight_field=weight_field)
