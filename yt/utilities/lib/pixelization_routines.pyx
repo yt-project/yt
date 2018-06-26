@@ -1381,6 +1381,7 @@ def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
     free(field_vals)
     return arc_length, plot_values
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def off_axis_projection_SPH(np.float64_t[:] px, 
@@ -1400,7 +1401,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
         return
 
     cdef int num_particles = min(np.size(px), np.size(py), np.size(pz),
-                                 np.size(particle_masses))
+                                 np.size(particle_masses), np.size(particle_densities),
+                                 np.size(smoothing_lengths), np.size(quantity_to_smooth))
     cdef np.float64_t[:, :] rotation_matrix = get_rotation_matrix(normal_vector)
     cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype='float_')
     cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype='float_')
@@ -1482,9 +1484,9 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
     # identity matrix
     if np.isclose(c, 1, rtol=1e-09):
         return np.identity(3, dtype='float_')
-    # if the normal vector is the negative z-axis, return zero matrix
+    # if the normal vector is the negative z-axis, return:
     if np.isclose(s, 0, rtol=1e-09):
-        return np.zeros((3, 3), dtype='float_')
+        return np.array([[0, -1, 0],[1, 0, 0],[0, 0, -1]], dtype='float_')
 
     cdef np.float64_t[:, :] cross_product_matrix = np.array([[0, -1 * v[2], v[1]],
                                                       [v[2], 0, -1 * v[0]],
