@@ -1439,14 +1439,14 @@ def off_axis_projection_SPH(np.float64_t[:] px,
         px_rotated[i] = rotated_coordinates[0]
         py_rotated[i] = rotated_coordinates[1]
         
-        pixelize_sph_kernel_projection(projection_array,
-                                       px_rotated,
-                                       py_rotated,
-                                       smoothing_lengths,
-                                       particle_masses,
-                                       particle_densities,
-                                       quantity_to_smooth,
-                                       bounds[:4])
+    pixelize_sph_kernel_projection(projection_array,
+                                   px_rotated,
+                                   py_rotated,
+                                   smoothing_lengths,
+                                   particle_masses,
+                                   particle_densities,
+                                   quantity_to_smooth,
+                                   bounds[:4])
 
 
 @cython.boundscheck(False)
