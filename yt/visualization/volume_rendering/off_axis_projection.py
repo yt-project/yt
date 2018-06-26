@@ -21,7 +21,7 @@ from yt.utilities.lib.partitioned_grid import \
     PartitionedGrid
 from yt.data_objects.api import ImageArray
 from yt.utilities.lib.pixelization_routines import \
-    off_axis_projection_SPH
+    off_axis_projection_SPH, get_rotation_matrix
 import numpy as np
 
 
@@ -115,16 +115,17 @@ def off_axis_projection(data_source, center, normal_vector,
     if hasattr(data_source, '_sph_ptype'):
         ptype = data_source._sph_ptype
         buf = np.zeros((resolution[0], resolution[1]), dtype='float64')
+
         x_min = data_source.domain_left_edge[0]
         x_max = data_source.domain_right_edge[0]
         y_min = data_source.domain_left_edge[1]
         y_max = data_source.domain_right_edge[1]
         z_min = data_source.domain_left_edge[2]
         z_max = data_source.domain_right_edge[2]
+
         data_source = data_source_or_all(data_source)
 
         bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
-        chunk_num = 0
         for chunk in data_source.chunks([], 'io'):
             off_axis_projection_SPH(chunk[ptype, "particle_position_x"],
                                     chunk[ptype, "particle_position_y"],
@@ -133,11 +134,11 @@ def off_axis_projection(data_source, center, normal_vector,
                                     chunk[ptype, "density"],
                                     chunk[ptype, "smoothing_length"],
                                     bounds,
+                                    center,
+                                    width,
                                     chunk[ptype, item],
                                     buf,
                                     normal_vector)
-            print(chunk_num)
-            chunk_num += 1
         return buf
     
     data_source = data_source_or_all(data_source)
