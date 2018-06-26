@@ -14,6 +14,7 @@ Subsets of octrees
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from contextlib import contextmanager
 import numpy as np
 
 from yt.data_objects.data_containers import \
@@ -479,6 +480,10 @@ class OctreeSubsetBlockSlicePosition(object):
     def get_vertex_centered_data(self, *args, **kwargs):
         raise NotImplementedError
 
+    @contextmanager
+    def _field_parameter_state(self, field_parameters):
+        yield self.block_slice.octree_subset._field_parameter_state(
+                field_parameters)
 
 class OctreeSubsetBlockSlice(object):
     def __init__(self, octree_subset):
