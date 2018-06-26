@@ -962,7 +962,7 @@ class Dataset(object):
         return self.refine_by**(l1-l0)
 
     def _assign_unit_system(self, unit_system):
-        current_mks_unit = None
+        current_mks_unit = 'A'
         magnetic_unit = getattr(self, 'magnetic_unit', None)
         if magnetic_unit is not None:
             # if the magnetic unit is in T, we need to create the code unit
