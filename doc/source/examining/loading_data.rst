@@ -1041,6 +1041,12 @@ and visualization. See :ref:`loading-sph-data` for more details and
 visualizing a Gadget dataset.  An example which makes use of a Gadget snapshot
 from the OWLS project can be found at :ref:`owls-notebook`.
 
+.. note:: 
+
+   If you are loading a multi-file dataset with Gadget, supply the *zeroth*
+   file to the ``load`` command.  For instance,
+   ``yt.load("snapshot_061.0.hdf5")`` .
+
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
 .. code-block:: python
