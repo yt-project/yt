@@ -22,7 +22,7 @@ from yt.funcs import \
     get_image_suffix, \
     get_brewer_cmap
 from yt.units.yt_array import YTQuantity
-from yt.utilities.exceptions import YTNotInsideNotebook, YTException
+from yt.utilities.exceptions import YTNotInsideNotebook
 from .color_maps import mcm
 from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
@@ -150,9 +150,8 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
         first element will be placed in the lower-left corner.
     """
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3, 4):
-        raise YTException(message="Expecting image array of shape (N,M,3)"
-                                  " or (N,M,4), received %s"
-                                  % str(bitmap_array.shape))
+        raise RuntimeError("Expecting image array of shape (N,M,3) or "
+                           "(N,M,4), received %s" % str(bitmap_array.shape))
 
     if bitmap_array.dtype != np.uint8:
         s1, s2 = bitmap_array.shape[:2]
@@ -298,8 +297,10 @@ def strip_colormap_data(fn = "color_map_data.py",
     f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
     f.write("from numpy import array\n")
     f.write("color_map_luts = {}\n\n\n")
-    if cmaps is None: cmaps = rcm.ColorMaps
-    if isinstance(cmaps, string_types): cmaps = [cmaps]
+    if cmaps is None:
+        cmaps = rcm.ColorMaps
+    if isinstance(cmaps, string_types):
+        cmaps = [cmaps]
     for cmap_name in sorted(cmaps):
         vals = rcm._extract_lookup_table(cmap_name)
         f.write("### %s ###\n\n" % (cmap_name))

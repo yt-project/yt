@@ -1,3 +1,13 @@
+"""
+Tests for visualization.image_writer
+"""
+# -----------------------------------------------------------------------------
+# Copyright (c) 2018, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+# -----------------------------------------------------------------------------
 import os
 import shutil
 import tempfile
@@ -7,7 +17,6 @@ import numpy as np
 from nose.tools import assert_raises
 
 from yt.testing import fake_random_ds, assert_equal
-from yt.utilities.exceptions import YTException
 from yt.visualization.image_writer import multi_image_composite, splat_points, \
     write_bitmap, apply_colormap, strip_colormap_data
 
@@ -55,7 +64,7 @@ class TestImageWriter(unittest.TestCase):
         png_str_trans = write_bitmap(image_trans, None, transpose=True)
         assert_equal(png_str, png_str_trans)
 
-        with assert_raises(YTException) as ex:
+        with assert_raises(RuntimeError) as ex:
             write_bitmap(np.ones([16, 16]), None)
         desired = ("Expecting image array of shape (N,M,3) "
                    "or (N,M,4), received (16, 16)")

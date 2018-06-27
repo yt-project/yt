@@ -11,16 +11,15 @@ Test for off_axis_projection and write_projection
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 import os
-import os.path
 import shutil
 import tempfile
 import unittest
 
-from yt.mods import write_projection
+from yt.visualization.image_writer import write_projection
 from yt.testing import \
-    fake_random_ds, assert_equal, expand_keywords
+    fake_random_ds, expand_keywords, assert_fname
 from yt.visualization.volume_rendering.api import off_axis_projection
 
 
@@ -78,9 +77,14 @@ class TestOffAxisProjection(unittest.TestCase):
             image = off_axis_projection(*oap_args, **oap_kwargs)
             for wp_kwargs in wp_kwargs_list:
                 write_projection(image, fn % i, **wp_kwargs)
-                assert_equal(os.path.exists(fn % i), True)
+                assert_fname(fn % i)
 
         # Test remaining parameters of write_projection
         write_projection(image, "test_2", xlabel="x-axis", ylabel="y-axis")
+        assert_fname("test_2.png")
+
         write_projection(image, "test_3.pdf", xlabel="x-axis", ylabel="y-axis")
+        assert_fname("test_3.pdf")
+
         write_projection(image, "test_4.eps", xlabel="x-axis", ylabel="y-axis")
+        assert_fname("test_4.eps")
