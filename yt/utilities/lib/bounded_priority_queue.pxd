@@ -28,25 +28,19 @@ cdef class BoundedPriorityQueue:
     cdef np.intp_t size
     cdef np.intp_t max_elements
 
-    # completed these
     cdef int max_heapify(self, np.intp_t index) nogil except -1
     cdef int max_heapify_pid(self, np.intp_t index) nogil except -1
 
-    # completed these
     cdef int propagate_up(self, np.intp_t index) nogil except -1
     cdef int propagate_up_pid(self, np.intp_t index) nogil except -1
 
-    # completed these
     cdef int add(self, np.float64_t val) nogil except -1
     cdef int add_pid(self, np.float64_t val, np.int64_t pid) nogil except -1
 
-    # completed these
     cdef int heap_append(self, np.float64_t val) nogil except -1
     cdef int heap_append_pid(self, np.float64_t val, np.int64_t pid) nogil except -1
 
-    # completed these
     cdef np.float64_t extract_max(self) nogil except -1
     cdef np.float64_t extract_max_pid(self) nogil except -1
 
-    # does not need to change
     cdef int validate_heap(self) nogil except -1

@@ -66,7 +66,8 @@ from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
 import yt.extern.six as six
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_sph_kernel_arbitrary_grid
+    pixelize_sph_kernel_arbitrary_grid, \
+    pixelize_sph_kernel_gather_arbitrary_grid
 from yt.extern.tqdm import tqdm
 
 class YTStreamline(YTSelectionContainer1D):
@@ -923,33 +924,78 @@ class YTArbitraryGrid(YTCoveringGrid):
         if len(fields) == 0: return
 
         ptype = self.ds._sph_ptype
-        for field in fields:
-            dest = np.zeros(self.ActiveDimensions, dtype="float64")
+        smoothing_style = "scatter"
+        if(hasattr(self.ds, 'sph_smoothing_style')):
+            smoothing_style = self.ds.sph_smoothing_style
 
-            bounds = np.empty(6, dtype=float)
-            bounds[0] = self.left_edge[0].in_base("code")
-            bounds[2] = self.left_edge[1].in_base("code")
-            bounds[4] = self.left_edge[2].in_base("code")
-            bounds[1] = self.right_edge[0].in_base("code")
-            bounds[3] = self.right_edge[1].in_base("code")
-            bounds[5] = self.right_edge[2].in_base("code")
+        if(smoothing_style == "scatter"):
+            for field in fields:
+                dest = np.zeros(self.ActiveDimensions, dtype="float64")
 
-            pbar = tqdm(desc="Interpolating SPH field {}".format(field))
-            for chunk in self._data_source.chunks([field],"io"):
-                px = chunk[(ptype,'particle_position_x')].in_base("code")
-                py = chunk[(ptype,'particle_position_y')].in_base("code")
-                pz = chunk[(ptype,'particle_position_z')].in_base("code")
-                hsml = chunk[(ptype,'smoothing_length')].in_base("code")
-                mass = chunk[(ptype,'particle_mass')].in_base("code")
-                dens = chunk[(ptype,'density')].in_base("code")
-                field_quantity = chunk[field]
+                bounds = np.empty(6, dtype=float)
+                bounds[0] = self.left_edge[0].in_base("code")
+                bounds[2] = self.left_edge[1].in_base("code")
+                bounds[4] = self.left_edge[2].in_base("code")
+                bounds[1] = self.right_edge[0].in_base("code")
+                bounds[3] = self.right_edge[1].in_base("code")
+                bounds[5] = self.right_edge[2].in_base("code")
 
-                pixelize_sph_kernel_arbitrary_grid(dest,px,py,pz,hsml,mass,
-                                                   dens,field_quantity,bounds,
-                                                   pbar)
+                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+                for chunk in self._data_source.chunks([field],"io"):
+                    px = chunk[(ptype,'particle_position_x')].in_base("code")
+                    py = chunk[(ptype,'particle_position_y')].in_base("code")
+                    pz = chunk[(ptype,'particle_position_z')].in_base("code")
+                    hsml = chunk[(ptype,'smoothing_length')].in_base("code")
+                    mass = chunk[(ptype,'particle_mass')].in_base("code")
+                    dens = chunk[(ptype,'density')].in_base("code")
+                    field_quantity = chunk[field]
 
-            self[field] = self.ds.arr(dest, field_quantity.units)
-            pbar.close()
+                    pixelize_sph_kernel_arbitrary_grid(dest, px, py, pz, hsml,
+                                    mass, dens, field_quantity, bounds, pbar)
+
+                self[field] = self.ds.arr(dest, field_quantity.units)
+                pbar.close()
+        else:
+            for field in fields:
+                positions = []
+                mass = []
+                hsml = []
+                dens = []
+                field_quantity = []
+
+                tree = self.ds.index.kdtree
+
+                dest = np.zeros(self.ActiveDimensions, dtype="float64")
+                bounds = np.empty(6, dtype=float)
+                bounds[0] = self.left_edge[0].in_base("code")
+                bounds[2] = self.left_edge[1].in_base("code")
+                bounds[4] = self.left_edge[2].in_base("code")
+                bounds[1] = self.right_edge[0].in_base("code")
+                bounds[3] = self.right_edge[1].in_base("code")
+                bounds[5] = self.right_edge[2].in_base("code")
+
+                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+                for chunk in self.ds.all_data().chunks([], 'io'):
+                    positions.append(chunk[(ptype, 'particle_position')])
+                    hsml.append(chunk[(ptype,'smoothing_length')])
+                    mass.append(chunk[(ptype,'particle_mass')])
+                    dens.append(chunk[(ptype,'density')])
+                    field_quantity.append(chunk[field])
+
+                positions = np.concatenate(positions)[tree.idx]
+                mass = np.concatenate(mass)[tree.idx]
+                hsml = np.concatenate(hsml)[tree.idx]
+                dens = np.concatenate(dens)[tree.idx]
+                field_quantity = np.concatenate(field_quantity)[tree.idx]
+
+                pixelize_sph_kernel_gather_arbitrary_grid(dest, positions,
+                                        tree, hsml, mass, dens,
+                                        field_quantity, bounds, pbar=pbar,
+                                        n_neighbors=self.ds._num_neighbors)
+
+                fi = self.ds._get_field_info(field)
+                self[field] = self.ds.arr(dest, fi.units)
+                pbar.close()
 
 class LevelState(object):
     current_dx = None

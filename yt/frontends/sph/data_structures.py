@@ -26,6 +26,7 @@ from yt.geometry.particle_geometry_handler import \
 
 class SPHDataset(ParticleDataset):
     default_kernel_name = "cubic"
+    sph_smoothing_style = "scatter"
     _num_neighbors = 32
 
     def __init__(self, filename, dataset_type=None, file_style=None,
