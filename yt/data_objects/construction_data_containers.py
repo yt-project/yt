@@ -762,6 +762,40 @@ class YTCoveringGrid(YTSelectionContainer3D):
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)
 
+    def _fill_sph_particles(self, fields):
+        # checks that we have the field and gets information
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
+
+        ptype = self.ds._sph_ptype
+        for field in fields:
+            dest = np.zeros(self.ActiveDimensions, dtype="float64")
+
+            bounds = np.empty(6, dtype=float)
+            bounds[0] = self.left_edge[0].in_base("code")
+            bounds[2] = self.left_edge[1].in_base("code")
+            bounds[4] = self.left_edge[2].in_base("code")
+            bounds[1] = self.right_edge[0].in_base("code")
+            bounds[3] = self.right_edge[1].in_base("code")
+            bounds[5] = self.right_edge[2].in_base("code")
+
+            pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+            for chunk in self._data_source.chunks([field],"io"):
+                px = chunk[(ptype,'particle_position_x')].in_base("code")
+                py = chunk[(ptype,'particle_position_y')].in_base("code")
+                pz = chunk[(ptype,'particle_position_z')].in_base("code")
+                hsml = chunk[(ptype,'smoothing_length')].in_base("code")
+                mass = chunk[(ptype,'particle_mass')].in_base("code")
+                dens = chunk[(ptype,'density')].in_base("code")
+                field_quantity = chunk[field]
+
+                pixelize_sph_kernel_arbitrary_grid(dest,px,py,pz,hsml,mass,
+                                                   dens,field_quantity,bounds,
+                                                   pbar)
+
+            self[field] = self.ds.arr(dest, field_quantity.units)
+            pbar.close()
+
     def _generate_container_field(self, field):
         rv = self.ds.arr(np.ones(self.ActiveDimensions, dtype="float64"),
                              "")
@@ -916,40 +950,6 @@ class YTArbitraryGrid(YTCoveringGrid):
                                   int(any(self.ds.periodicity)))
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(dest, fi.units)
-
-    def _fill_sph_particles(self, fields):
-        # checks that we have the field and gets information
-        fields = [f for f in fields if f not in self.field_data]
-        if len(fields) == 0: return
-
-        ptype = self.ds._sph_ptype
-        for field in fields:
-            dest = np.zeros(self.ActiveDimensions, dtype="float64")
-
-            bounds = np.empty(6, dtype=float)
-            bounds[0] = self.left_edge[0].in_base("code")
-            bounds[2] = self.left_edge[1].in_base("code")
-            bounds[4] = self.left_edge[2].in_base("code")
-            bounds[1] = self.right_edge[0].in_base("code")
-            bounds[3] = self.right_edge[1].in_base("code")
-            bounds[5] = self.right_edge[2].in_base("code")
-
-            pbar = tqdm(desc="Interpolating SPH field {}".format(field))
-            for chunk in self._data_source.chunks([field],"io"):
-                px = chunk[(ptype,'particle_position_x')].in_base("code")
-                py = chunk[(ptype,'particle_position_y')].in_base("code")
-                pz = chunk[(ptype,'particle_position_z')].in_base("code")
-                hsml = chunk[(ptype,'smoothing_length')].in_base("code")
-                mass = chunk[(ptype,'particle_mass')].in_base("code")
-                dens = chunk[(ptype,'density')].in_base("code")
-                field_quantity = chunk[field]
-
-                pixelize_sph_kernel_arbitrary_grid(dest,px,py,pz,hsml,mass,
-                                                   dens,field_quantity,bounds,
-                                                   pbar)
-
-            self[field] = self.ds.arr(dest, field_quantity.units)
-            pbar.close()
 
 class LevelState(object):
     current_dx = None
