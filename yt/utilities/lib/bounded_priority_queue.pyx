@@ -72,8 +72,10 @@ cdef class BoundedPriorityQueue:
             largest = right
 
         if largest != index:
-            self.heap_ptr[index], self.heap_ptr[largest] = self.heap_ptr[largest], self.heap_ptr[index]
-            self.pids_ptr[index], self.pids_ptr[largest] = self.pids_ptr[largest], self.pids_ptr[index]
+            self.heap_ptr[index], self.heap_ptr[largest] = \
+                self.heap_ptr[largest], self.heap_ptr[index]
+            self.pids_ptr[index], self.pids_ptr[largest] = \
+                self.pids_ptr[largest], self.pids_ptr[index]
             self.max_heapify_pid(largest)
 
         return 0
@@ -86,7 +88,8 @@ cdef class BoundedPriorityQueue:
         # while a value is large than the parent, we swap with the parent and
         # move the value up
         while index != 0 and self.heap_ptr[(index - 1) // 2] < self.heap_ptr[index]:
-            self.heap_ptr[index], self.heap_ptr[(index - 1) // 2] = self.heap_ptr[(index - 1) // 2], self.heap_ptr[index]
+            self.heap_ptr[index], self.heap_ptr[(index - 1) // 2] = \
+                self.heap_ptr[(index - 1) // 2], self.heap_ptr[index]
             index = (index - 1) // 2
 
         return 0

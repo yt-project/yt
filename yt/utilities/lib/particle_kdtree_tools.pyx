@@ -116,14 +116,14 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] sizes, PyKDTree kdtre
     cdef np.float64_t* pos
     cdef int i, j, k
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neighbors, True)
-    cdef np.float64_t[:,:] nearest_dists
-    cdef np.int64_t[:,:] nearest_pids
+    cdef np.float64_t[:,:,:,:] nearest_dists
+    cdef np.int64_t[:,:,:,:] nearest_pids
     cdef np.float64_t dx, dy, dz
     cdef np.float64_t[::1] voxel_position = np.zeros(shape=(3))
 
-    nearest_dists = np.zeros(shape=(input_pos.shape[0], n_neighbors))
-    nearest_pids = np.zeros(shape=(input_pos.shape[0], n_neighbors),
-                           dtype=int)
+    nearest_dists = np.zeros(shape=(sizes[0], sizes[1], sizes[2], n_neighbors))
+    nearest_pids = np.zeros(shape=(sizes[0], sizes[1], sizes[2], n_neighbors),
+                            dtype=int)
 
     dx = (bounds[1] - bounds[0]) / sizes[0]
     dy = (bounds[3] - bounds[2]) / sizes[1]
@@ -148,16 +148,15 @@ def generate_nn_list(np.float64_t[:] bounds, np.int64_t[:] sizes, PyKDTree kdtre
 
                     # Fill queue with particles in the node containing the
                     # particle we're searching for
-                    process_node_points(
-                        leafnode, pos, input_pos, queue, -1)
+                    process_node_points_pid(leafnode, pos, input_pos, queue)
 
                     # Traverse the rest of the kdtree to finish the neighbor
                     # list
-                    find_knn(c_tree.root, queue, input_pos, pos,
-                             leafnode.leafid, -1)
+                    find_knn_pid(
+                        c_tree.root, queue, input_pos, pos, leafnode.leafid)
 
-                    nearest_dists[i,:] = queue.heap
-                    nearest_pids[i,:] = queue.pids
+                    nearest_dists[i,j,k,:] = queue.heap
+                    nearest_pids[i,j,k,:] = queue.pids
 
     return np.asarray(nearest_dists), np.asarray(nearest_pids)
 
@@ -179,6 +178,25 @@ cdef int find_knn(Node* node,
     else:
         if not cull_node(node, pos, queue, skipleaf):
             process_node_points(node, pos, positions, queue, skipidx)
+    return 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int find_knn_pid(Node* node,
+                  BoundedPriorityQueue queue,
+                  np.float64_t[:, :] positions,
+                  np.float64_t* pos,
+                  uint32_t skipleaf) nogil except -1:
+    # if we aren't a leaf then we keep travsersing until we find a leaf, else we
+    # we actually begin to check the leaf
+    if not node.is_leaf:
+        if not cull_node(node.less, pos, queue, skipleaf):
+            find_knn_pid(node.less, queue, positions, pos, skipleaf)
+        if not cull_node(node.greater, pos, queue, skipleaf):
+            find_knn_pid(node.greater, queue, positions, pos, skipleaf)
+    else:
+        if not cull_node(node, pos, queue, skipleaf):
+            process_node_points_pid(node, pos, positions, queue)
     return 0
 
 @cython.boundscheck(False)
@@ -224,5 +242,25 @@ cdef inline int process_node_points(Node* node,
             for j in range(3):
                 tpos = p_ptr[j] - pos[j]
                 sq_dist += tpos*tpos
-            queue.add_pid(sq_dist, i)
+            queue.add(sq_dist)
+    return 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline int process_node_points_pid(Node* node,
+                                        np.float64_t* pos,
+                                        np.float64_t[:, :] positions,
+                                        BoundedPriorityQueue queue,
+                                        ) nogil except -1:
+    cdef uint64_t i, idx
+    cdef np.float64_t tpos, sq_dist
+    cdef int j
+    cdef np.float64_t* p_ptr
+    for i in range(node.left_idx, node.left_idx + node.children):
+        p_ptr = &(positions[i, 0])
+        sq_dist = 0
+        for j in range(3):
+            tpos = p_ptr[j] - pos[j]
+            sq_dist += tpos*tpos
+        queue.add_pid(sq_dist, i)
     return 0
