@@ -33,12 +33,13 @@ from yt.funcs import \
     ensure_list, \
     fix_axis, \
     iterable
-from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 import yt.units.dimensions as ytdims
-from unyt.exceptions import UnitConversionError
+from unyt.exceptions import \
+    UnitConversionError, \
+    UnitParseError
 from yt.utilities.exceptions import \
     YTFieldUnitError, \
     YTFieldUnitParseError, \
@@ -195,9 +196,10 @@ class YTDataContainer(object):
 
     def apply_units(self, arr, units):
         try:
+            arr.units.registry = self.ds.unit_registry
             return arr.to(units)
         except AttributeError:
-            return self.ds.arr(arr, input_units = units)
+            return self.ds.arr(arr, input_units=units)
 
     def _set_center(self, center):
         if center is None:
@@ -1369,6 +1371,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
         read_particles, gen_particles = self.index._read_particle_fields(
                                         particles, self, self._current_chunk)
+
         for f, v in read_particles.items():
             self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
             self.field_data[f].convert_to_units(finfos[f].output_units)
@@ -1395,6 +1398,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 fi = self.ds._get_field_info(*field)
                 try:
                     fd = self._generate_field(field)
+                    if hasattr(fd, 'units'):
+                        fd.units.registry = self.ds.unit_registry
                     if fd is None:
                         raise RuntimeError
                     if fi.units is None:
@@ -1424,6 +1429,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         fd = self.ds.arr(fd, '')
                         if fi.units != '':
                             raise YTFieldUnitError(fi, fd.units)
+                    except UnitConversionError:
+                        raise YTFieldUnitError(fi, fd.units)
+                    except UnitParseError:
+                        raise YTFieldUnitParseError(fi)
                     self.field_data[field] = fd
                 except GenerationInProgress as gip:
                     for f in gip.fields:

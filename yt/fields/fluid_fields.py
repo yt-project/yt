@@ -56,8 +56,15 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     unit_system = registry.ds.unit_system
 
-    create_vector_fields(registry, "velocity", unit_system["velocity"], ftype, slice_info)
-    create_vector_fields(registry, "magnetic_field", unit_system["magnetic_field"], ftype, slice_info)
+    if unit_system.name == 'cgs':
+        mag_units = "magnetic_field_cgs"
+    else:
+        mag_units = "magnetic_field_mks"
+
+    create_vector_fields(registry, "velocity", unit_system["velocity"], ftype,
+                         slice_info)
+    create_vector_fields(registry, "magnetic_field", unit_system[mag_units],
+                         ftype, slice_info)
 
     def _cell_mass(field, data):
         return data[ftype, "density"] * data[ftype, "cell_volume"]

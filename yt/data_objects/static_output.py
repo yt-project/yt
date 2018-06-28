@@ -49,6 +49,7 @@ from yt.utilities.parameter_file_storage import \
     output_type_registry
 from yt.units.dimensions import current_mks
 from yt.units.unit_object import Unit, define_unit
+from yt.units.unit_systems import unit_system_registry
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
     ValidateSpatial
@@ -976,8 +977,13 @@ class Dataset(object):
                     # this is perhaps a little funky
                     self.magnetic_unit = self.magnetic_unit.to('T').to('gauss')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        self.unit_system = create_code_unit_system(
+        create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit)
+        if unit_system == "code":
+            unit_system = self.unit_registry.unit_system_id
+        else:
+            unit_system = str(unit_system).lower()
+        self.unit_system = unit_system_registry[unit_system]
 
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()
@@ -1285,7 +1291,7 @@ class Dataset(object):
         else:
             raise RuntimeError
 
-        units = self.field_info[ptype, deposit_field].units
+        units = self.field_info[ptype, deposit_field].output_units
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
                     "nearest": "nn", "simple_smooth": "ss", "count": "count"}

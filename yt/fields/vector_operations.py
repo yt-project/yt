@@ -266,7 +266,7 @@ def create_vector_fields(registry, basename, field_units,
         new_field = data.ds.arr(
             np.zeros(data[xn].shape, dtype=np.float64), f.units)
         new_field[1:-1,1:-1,1:-1] = f
-        return new_field
+        return new_field.to(field.units)
 
     def _divergence_abs(field, data):
         return np.abs(data[ftype, "%s_divergence" % basename])

@@ -221,7 +221,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         return
 
     # Figure out the unit conversion to use
-    if dimensions.current_mks in unit_system.base_units:
+    if unit_system.base_units[dimensions.current_mks] is not None:
         to_units = unit_system["magnetic_field_mks"]
     else:
         to_units = unit_system["magnetic_field_cgs"]
