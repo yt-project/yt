@@ -111,41 +111,6 @@ def off_axis_projection(data_source, center, normal_vector,
 
     if interpolated is True:
         raise NotImplementedError("Only interpolated=False methods are currently implemented for off-axis-projections")
-
-    if hasattr(data_source, '_sph_ptype'):
-        ptype = data_source._sph_ptype
-        buf = np.zeros((resolution[0], resolution[1]), dtype='float64')
-
-        data_source = data_source_or_all(data_source)
-
-        # Sanitize units
-        # if not hasattr(center, "units"):
-        #     center = data_source.ds.arr(center, 'code_length')
-        # if not hasattr(width, "units"):
-        #     width = data_source.ds.arr(width, 'code_length')
-
-        x_min = center[0] - width[0] / 2
-        x_max = center[0] + width[0] / 2
-        y_min = center[1] - width[1] / 2
-        y_max = center[1] + width[1] / 2
-        z_min = center[2] - width[2] / 2
-        z_max = center[2] + width[2] / 2
-        
-        bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
-        for chunk in data_source.chunks([], 'io'):
-            off_axis_projection_SPH(chunk[ptype, "particle_position_x"],
-                                    chunk[ptype, "particle_position_y"],
-                                    chunk[ptype, "particle_position_z"],
-                                    chunk[ptype, "particle_mass"],
-                                    chunk[ptype, "density"],
-                                    chunk[ptype, "smoothing_length"],
-                                    bounds,
-                                    center,
-                                    width,
-                                    chunk[ptype, item],
-                                    buf,
-                                    normal_vector)
-        return buf
     
     data_source = data_source_or_all(data_source)
 
@@ -154,6 +119,33 @@ def off_axis_projection(data_source, center, normal_vector,
         center = data_source.ds.arr(center, 'code_length')
     if not hasattr(width, "units"):
         width = data_source.ds.arr(width, 'code_length')
+
+    if hasattr(data_source.ds, '_sph_ptype'):
+        ptype = data_source.ds._sph_ptype
+        buf = np.zeros((resolution[0], resolution[1]), dtype='float64')
+
+        x_min = center[0] - width[0] / 2
+        x_max = center[0] + width[0] / 2
+        y_min = center[1] - width[1] / 2
+        y_max = center[1] + width[1] / 2
+        z_min = center[2] - width[2] / 2
+        z_max = center[2] + width[2] / 2
+
+        bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
+        for chunk in data_source.chunks([], 'io'):
+            off_axis_projection_SPH(chunk[ptype, "particle_position_x"].to('code_length').d,
+                                    chunk[ptype, "particle_position_y"].to('code_length').d,
+                                    chunk[ptype, "particle_position_z"].to('code_length').d,
+                                    chunk[ptype, "particle_mass"].to('code_mass').d,
+                                    chunk[ptype, "density"].to('code_density').d,
+                                    chunk[ptype, "smoothing_length"].to('code_length').d,
+                                    bounds,
+                                    center.to('code_length').d,
+                                    width.to('code_length').d,
+                                    chunk[ptype, item],
+                                    buf,
+                                    normal_vector)
+        return buf
     sc = Scene()
     data_source.ds.index
     if item is None:

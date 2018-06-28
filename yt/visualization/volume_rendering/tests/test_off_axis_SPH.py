@@ -18,7 +18,6 @@ def test_no_rotation():
     image buffer if processed directly through 
     pixelize_sph_kernel_projection
     """
-
     normal_vector = [0., 0., 1.]
     resolution = (128, 128)
     ds = fake_sph_orientation_ds()
@@ -229,14 +228,35 @@ def test_center_2():
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
-    # center = [(left_edge[0] + right_edge[0])/2,
-    #            left_edge[1],
-    #           (left_edge[2] + right_edge[2])/2]
     center = np.array([0., -1., 0.])
-    width = np.array([8., 8., 8.])
-    # width = [(right_edge[0] - left_edge[0]),
-    #          (right_edge[1] - left_edge[1]),
-    #          (right_edge[2] - left_edge[2])]    
+    width = [(right_edge[0] - left_edge[0]),
+             (right_edge[1] - left_edge[1]),
+             (right_edge[2] - left_edge[2])]    
+    buf1 = OffAP.off_axis_projection(ds,
+                                     center,
+                                     normal_vector,
+                                     width,
+                                     resolution,
+                                     'particle_mass'
+                                     )
+    find_compare_maxima(expected_maxima, buf1, resolution, width)
+
+@requires_module('scipy')
+def test_center_3():
+    """ Change the center to the left edge, or [0, -8, 0] 
+    Every point will be shifted by 8 in the y-domain
+    With this, we should not be able to see anything !
+    """
+    expected_maxima = ([], [])
+    normal_vector = [0., 0., 1.]
+    resolution = (256, 256)
+    ds = fake_sph_orientation_ds()
+    left_edge = ds.domain_left_edge
+    right_edge = ds.domain_right_edge
+    center = np.array([0., -1., 0.])
+    width = [(right_edge[0] - left_edge[0]),
+             left_edge[1],
+             (right_edge[2] - left_edge[2])]    
     buf1 = OffAP.off_axis_projection(ds,
                                      center,
                                      normal_vector,
@@ -262,6 +282,7 @@ def find_compare_maxima(expected_maxima, buf, resolution, width):
             if maxima[i, j] == True:
                 coords[0].append(i)
                 coords[1].append(j)
+    print(coords)
     #assert len(coords) == len(expected_maxima[0])
     #assert that our expected maxima coordinates are in fact in the image
     pixel_tolerance = 2.0
