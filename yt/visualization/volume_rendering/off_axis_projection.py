@@ -116,15 +116,21 @@ def off_axis_projection(data_source, center, normal_vector,
         ptype = data_source._sph_ptype
         buf = np.zeros((resolution[0], resolution[1]), dtype='float64')
 
+        data_source = data_source_or_all(data_source)
+
+        # Sanitize units
+        # if not hasattr(center, "units"):
+        #     center = data_source.ds.arr(center, 'code_length')
+        # if not hasattr(width, "units"):
+        #     width = data_source.ds.arr(width, 'code_length')
+
         x_min = center[0] - width[0] / 2
         x_max = center[0] + width[0] / 2
         y_min = center[1] - width[1] / 2
         y_max = center[1] + width[1] / 2
         z_min = center[2] - width[2] / 2
         z_max = center[2] + width[2] / 2
-
-        data_source = data_source_or_all(data_source)
-
+        
         bounds = [x_min, x_max, y_min, y_max, z_min, z_max]
         for chunk in data_source.chunks([], 'io'):
             off_axis_projection_SPH(chunk[ptype, "particle_position_x"],
