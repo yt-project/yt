@@ -194,7 +194,10 @@ class YTDataContainer(object):
           self.field_parameters[parameter]
 
     def apply_units(self, arr, units):
-        return self.ds.arr(arr, input_units = units)
+        try:
+            return arr.to(units)
+        except AttributeError:
+            return self.ds.arr(arr, input_units = units)
 
     def _set_center(self, center):
         if center is None:
@@ -1421,10 +1424,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         fd = self.ds.arr(fd, '')
                         if fi.units != '':
                             raise YTFieldUnitError(fi, fd.units)
-                    except UnitConversionError:
-                        raise YTFieldUnitError(fi, fd.units)
-                    except UnitParseError:
-                        raise YTFieldUnitParseError(fi)
                     self.field_data[field] = fd
                 except GenerationInProgress as gip:
                     for f in gip.fields:

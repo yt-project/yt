@@ -97,7 +97,6 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
-        d = data.ds.arr(d, input_units = "cm**-3")
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_count" % ptype),
@@ -122,8 +121,10 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
                        units = unit_system["mass"])
 
     def particle_density(field, data):
-        pos = data[ptype, coord_name].convert_to_units("code_length")
-        mass = data[ptype, mass_name].convert_to_units("code_mass")
+        pos = data[ptype, coord_name]
+        pos.convert_to_units("code_length")
+        mass = data[ptype, mass_name]
+        mass.convert_to_units("code_mass")
         d = data.deposit(pos, [mass], method = "sum")
         d = data.ds.arr(d, "code_mass")
         d /= data["index", "cell_volume"]
@@ -789,12 +790,12 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
     field_units = registry[ptype, smoothed_field].units
     def _vol_weight(field, data):
         pos = data[ptype, coord_name]
-        pos = pos.convert_to_units("code_length")
+        pos.convert_to_units("code_length")
         mass = data[ptype, mass_name].in_base(unit_system.name)
         dens = data[ptype, density_name].in_base(unit_system.name)
         quan = data[ptype, smoothed_field]
         if hasattr(quan, "units"):
-            quan = quan.convert_to_units(field_units)
+            quan.convert_to_units(field_units)
 
         if smoothing_length_name is None:
             hsml = np.zeros(quan.shape, dtype='float64') - 1
