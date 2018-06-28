@@ -1,16 +1,24 @@
+"""
+Tests for visualization.color_maps
+"""
+#-----------------------------------------------------------------------------
+# Copyright (c) 2018, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
 import os
 import shutil
 import tempfile
 import unittest
 
-import matplotlib
 import numpy as np
 from nose.tools import assert_raises
 
 from yt import show_colormaps, make_colormap
-from yt.testing import assert_equal, assert_almost_equal
+from yt.testing import assert_equal, assert_almost_equal, requires_backend
 
-matplotlib.use('Agg')
 
 class TestColorMaps(unittest.TestCase):
 
@@ -23,18 +31,20 @@ class TestColorMaps(unittest.TestCase):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
 
+    @requires_backend('Agg')
     def test_show_colormaps(self):
         show_colormaps()
         show_colormaps(subset=["jet", "cool"])
         show_colormaps(subset="yt_native", filename="yt_color_maps.png")
 
         # Test for non-existent color map
-        with assert_raises(Exception) as ex:
+        with assert_raises(AttributeError) as ex:
             show_colormaps(subset="unknown", filename="yt_color_maps.png")
         desired = ("show_colormaps requires subset attribute to be 'all', "
                    "'yt_native', or a list of valid colormap names.")
         assert_equal(str(ex.exception), desired)
 
+    @requires_backend('Agg')
     def test_make_colormap(self):
         make_colormap([([0, 0, 1], 10), ([1, 1, 1], 10), ([1, 0, 0], 10)],
                       name='french_flag', interpolate=False)
