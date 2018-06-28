@@ -1486,7 +1486,7 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
         return np.identity(3, dtype='float_')
     # if the normal vector is the negative z-axis, return:
     if np.isclose(s, 0, rtol=1e-09):
-        return np.array([[0, -1, 0],[1, 0, 0],[0, 0, -1]], dtype='float_')
+        return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype='float_')
 
     cdef np.float64_t[:, :] cross_product_matrix = np.array([[0, -1 * v[2], v[1]],
                                                       [v[2], 0, -1 * v[0]],
