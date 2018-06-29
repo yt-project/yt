@@ -64,34 +64,9 @@ class FieldTypeContainer(object):
         children = []
         for ftype in sorted(self.field_types):
             fnc = getattr(self, ftype)
-            names = dir(fnc)
-            names.sort()
-            def change_field(_ftype, _box, _var_window):
-                def _change_field(event):
-                    fobj = getattr(_ftype, event['new'])
-                    _box.clear_output()
-                    with _box:
-                        display(Markdown(data = "```python\n" +
-                            textwrap.dedent(fobj.get_source()) + "\n```"))
-                    values = inspect.getclosurevars(fobj._function).nonlocals
-                    _var_window.value = _fill_values(values)
-                return _change_field
-            flist = ipywidgets.Select(options = names,
-                    layout = ipywidgets.Layout(height = '95%'))
-            source = ipywidgets.Output(layout = ipywidgets.Layout(
-                width = '100%', height = '9em'))
-            var_window = ipywidgets.HTML(value = 'Empty')
-            var_box = ipywidgets.Box(layout = ipywidgets.Layout(
-                width = '100%', height = '100%', overflow_y = 'scroll'))
-            var_box.children = [var_window]
-            ftype_tabs = ipywidgets.Tab(children = [source, var_box],
-                    layout = ipywidgets.Layout(flex = '2 1 auto',
-                                width = 'auto', height = '95%'))
-            ftype_tabs.set_title(0, "Source")
-            ftype_tabs.set_title(1, "Variables")
-            flist.observe(change_field(fnc, source, var_window), "value")
-            children.append(ipywidgets.HBox([flist, ftype_tabs],
-                layout = ipywidgets.Layout(height = '14em')))
+            children.append(ipywidgets.Output())
+            with children[-1]:
+                display(fnc)
             fnames.append(ftype)
         tabs = ipywidgets.Tab(children = children)
         for i, n in enumerate(fnames):
@@ -134,4 +109,34 @@ class FieldNameContainer(object):
                 return True
         return False
 
-
+    def _ipython_display_(self):
+        import ipywidgets
+        from IPython.display import display, Markdown
+        names = dir(self)
+        names.sort()
+        def change_field(_ftype, _box, _var_window):
+            def _change_field(event):
+                fobj = getattr(_ftype, event['new'])
+                _box.clear_output()
+                with _box:
+                    display(Markdown(data = "```python\n" +
+                        textwrap.dedent(fobj.get_source()) + "\n```"))
+                values = inspect.getclosurevars(fobj._function).nonlocals
+                _var_window.value = _fill_values(values)
+            return _change_field
+        flist = ipywidgets.Select(options = names,
+                layout = ipywidgets.Layout(height = '95%'))
+        source = ipywidgets.Output(layout = ipywidgets.Layout(
+            width = '100%', height = '9em'))
+        var_window = ipywidgets.HTML(value = 'Empty')
+        var_box = ipywidgets.Box(layout = ipywidgets.Layout(
+            width = '100%', height = '100%', overflow_y = 'scroll'))
+        var_box.children = [var_window]
+        ftype_tabs = ipywidgets.Tab(children = [source, var_box],
+                layout = ipywidgets.Layout(flex = '2 1 auto',
+                            width = 'auto', height = '95%'))
+        ftype_tabs.set_title(0, "Source")
+        ftype_tabs.set_title(1, "Variables")
+        flist.observe(change_field(self, source, var_window), "value")
+        display(ipywidgets.HBox([flist, ftype_tabs],
+            layout = ipywidgets.Layout(height = '14em')))
