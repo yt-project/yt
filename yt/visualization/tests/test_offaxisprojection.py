@@ -17,10 +17,11 @@ import os.path
 import tempfile
 import shutil
 from yt.testing import \
-    fake_random_ds, assert_equal, expand_keywords
+    fake_random_ds, assert_equal, expand_keywords, fake_octree_ds
 from yt.mods import write_projection
 from yt.visualization.volume_rendering.api import off_axis_projection
-
+from yt.visualization.api import OffAxisProjectionPlot, \
+    OffAxisSlicePlot
 
 def setup():
     """Test specific setup."""
@@ -81,6 +82,20 @@ def test_oap(tmpdir=True):
         os.chdir(curdir)
         # clean up
         shutil.rmtree(tmpdir)
+
+def test_field_cut_off_axis_octree():
+    ds = fake_octree_ds() 
+    cut = ds.all_data().cut_region('obj["density"]>0.5') 
+    p1 = OffAxisProjectionPlot(ds, [1, 0, 0], 'density')
+    p2 = OffAxisProjectionPlot(ds, [1, 0, 0], 'density', data_source=cut)
+    assert_equal(p2.frb["density"].min() == 0.0, True) # Lots of zeros
+    assert_equal((p1.frb["density"] == p2.frb["density"]).all(), False)
+    p3 = OffAxisSlicePlot(ds, [1, 0, 0], 'density')
+    p4 = OffAxisSlicePlot(ds, [1, 0, 0], 'density', data_source=cut)
+    assert_equal((p3.frb["density"] == p4.frb["density"]).all(), False)
+    p4rho = p4.frb["density"]
+    assert_equal(p4rho.min() == 0.0, True) # Lots of zeros
+    assert_equal(p4rho[p4rho > 0.0].min() >= 0.5, True)
 
 if __name__ == "__main__":
     for test in test_oap(tmpdir=False):
