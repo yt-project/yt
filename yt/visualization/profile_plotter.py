@@ -29,7 +29,7 @@ from .base_plot_types import \
     PlotMPL, ImagePlotMPL
 from .plot_container import \
     ImagePlotContainer, \
-    get_log_minorticks, \
+    log_transform, linear_transform, get_log_minorticks, \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
     create_profile
@@ -1050,13 +1050,13 @@ class PhasePlot(ImagePlotContainer):
                         mylog.warning("Switching to linear colorbar scaling.")
                         zmin = np.nanmin(data)
                         z_scale = 'linear'
-                        self._field_transform[f] = "linear"
+                        self._field_transform[f] = linear_transform
                     else:
                         zmin = positive_values.min()
-                        self._field_transform[f] = "log10"
+                        self._field_transform[f] = log_transform
                 else:
                     zmin = np.nanmin(data)
-                    self._field_transform[f] = "linear"
+                    self._field_transform[f] = linear_transform
                 zlim = [zmin, np.nanmax(data)]
 
             font_size = self._font_properties.get_size()
@@ -1107,7 +1107,7 @@ class PhasePlot(ImagePlotContainer):
             if f not in self._cbar_minorticks:
                 self._cbar_minorticks[f] = True
             if self._cbar_minorticks[f] is True:
-                if self._field_transform[f] == "linear":
+                if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
                 else:
                     vmin = np.float64( self.plots[f].cb.norm.vmin )

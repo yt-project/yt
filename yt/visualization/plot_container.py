@@ -153,6 +153,20 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
 
 field_transforms = {}
 
+
+class FieldTransform(object):
+    def __init__(self, name, func):
+        self.name = name
+        self.func = func
+        field_transforms[name] = self
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+log_transform = FieldTransform('log10', np.log10)
+linear_transform = FieldTransform('linear', lambda x: x)
+symlog_transform = FieldTransform('symlog', None)
+
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):
         return defaultdict.__getitem__(
@@ -215,12 +229,12 @@ class PlotContainer(object):
                 if linthresh is not None:
                     if not linthresh > 0.:
                         raise ValueError('\"linthresh\" must be positive')
-                    self._field_transform[field] = "symlog"
+                    self._field_transform[field] = symlog_transform
                     self._field_transform[field].func = linthresh
                 else:
-                    self._field_transform[field] = "log10"
+                    self._field_transform[field] = log_transform
             else:
-                self._field_transform[field] = "linear"
+                self._field_transform[field] = linear_transform
         return self
 
     def get_log(self, field):
@@ -238,7 +252,7 @@ class PlotContainer(object):
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            if self._field_transform[field] == "log10":
+            if self._field_transform[field] == log_transform:
                 log[field] = True
             else:
                 log[field] = False

@@ -31,6 +31,7 @@ from .fixed_resolution import \
 from .plot_modifications import callback_registry
 from .plot_container import \
     ImagePlotContainer, \
+    log_transform, linear_transform, symlog_transform, \
     get_log_minorticks, get_symlog_minorticks, \
     invalidate_data, invalidate_plot, apply_callback
 from .base_plot_types import CallbackWrapper
@@ -211,9 +212,9 @@ class PlotWindow(ImagePlotContainer):
         for field in self.data_source._determine_fields(self.fields):
             finfo = self.data_source.ds._get_field_info(*field)
             if finfo.take_log:
-                self._field_transform[field] = "log10"
+                self._field_transform[field] = log_transform
             else:
-                self._field_transform[field] = "linear"
+                self._field_transform[field] = linear_transform
         self.setup_callbacks()
         self._setup_plots()
 
@@ -776,7 +777,7 @@ class PWViewerMPL(PlotWindow):
                 zlim = (None, None)
 
             image = self.frb[f]
-            if self._field_transform[f] == "log10":
+            if self._field_transform[f] == log_transform:
                 msg = None
                 use_symlog = False
                 if zlim != (None, None):
@@ -799,10 +800,11 @@ class PWViewerMPL(PlotWindow):
                     if use_symlog:
                         mylog.warning("Switching to symlog colorbar scaling "\
                                       "unless linear scaling is specified later")
-                        self._field_transform[f] = "symlog"
+                        self._field_transform[f] = symlog_transform
+                        self._field_transform[f].func = None
                     else:
                         mylog.warning("Switching to linear colorbar scaling.")
-                        self._field_transform[f] = "linear"
+                        self._field_transform[f] = linear_transform
 
             font_size = self._font_properties.get_size()
 
@@ -838,7 +840,8 @@ class PWViewerMPL(PlotWindow):
             else:
                 ia = image
             self.plots[f] = WindowPlotMPL(
-                ia, self._field_transform[f], None,
+                ia, self._field_transform[f].name,
+                self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, font_size,
                 self.aspect, fig, axes, cax)
@@ -922,13 +925,13 @@ class PWViewerMPL(PlotWindow):
             if f not in self._cbar_minorticks:
                 self._cbar_minorticks[f] = True
             if (self._cbar_minorticks[f] is True and MPL_VERSION < LooseVersion('2.0.0')
-                or self._field_transform[f] == "symlog"):
-                if self._field_transform[f] == "linear":
+                or self._field_transform[f] == symlog_transform):
+                if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
                 else:
                     vmin = np.float64( self.plots[f].cb.norm.vmin )
                     vmax = np.float64( self.plots[f].cb.norm.vmax )
-                    if self._field_transform[f] == "log10":
+                    if self._field_transform[f] == log_transform:
                         mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
                     else: # symlog_transform
                         flinthresh = 10**np.floor( np.log10( self.plots[f].cb.norm.linthresh ) )
