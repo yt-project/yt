@@ -2223,35 +2223,35 @@ at the big bang, and all particles should have positive values for the
 To help clarify the above discussion, the following table describes the meaning
 of the various particle formation time and age fields:
 
-+------------------+-------------------------+-------------------------------+
-| Simulation type  | Field name              | Description                   |
-|==================|=========================+===============================+
-| cosmological     | `conformal_birth_time`  | Formation time in conformal   |
-|                  |                         | units (dimensionless)         |
-+------------------+-------------------------+--------------------------------+
-| any              | `particle_birth_time`   | The time relative to the       |
-|                  |                         | beginning of the simulation    |
-|                  |                         | when the particle was formed.  |
-|                  |                         | For non-cosmological           |
-|                  |                         | simulations, this field will   |
-|                  |                         | have positive values for       |
-|                  |                         | particles formed during the    |
-|                  |                         | simulation and negative for    |
-|                  |                         | particles of finite age in the |
-|                  |                         | initial conditions. For        |
-|                  |                         | cosmological simulations this  |
-|                  |                         | is the time the particle       |
-|                  |                         | formed relative to the big     |
-|                  |                         | bang, therefore the value of   |
-|                  |                         | this field should be between   |
-|                  |                         | 0 and 13.7 Gyr.                |
-+------------------+-------------------------+--------------------------------+
-| any              | `star_age`              | Age of the particle.           |
-|                  |                         | Only physically meaningful for |
-|                  |                         | stars and particles that       |
-|                  |                         | formed dynamically during the  |
-|                  |                         | simulation.                    |
-+------------------+-------------------------+--------------------------------+
++------------------+--------------------------+--------------------------------+
+| Simulation type  | Field name               | Description                    |
+|==================|==========================+================================+
+| cosmological     | ``conformal_birth_time`` | Formation time in conformal    |
+|                  |                          | units (dimensionless)          |
++------------------+--------------------------+--------------------------------+
+| any              | ``particle_birth_time``  | The time relative to the       |
+|                  |                          | beginning of the simulation    |
+|                  |                          | when the particle was formed.  |
+|                  |                          | For non-cosmological           |
+|                  |                          | simulations, this field will   |
+|                  |                          | have positive values for       |
+|                  |                          | particles formed during the    |
+|                  |                          | simulation and negative for    |
+|                  |                          | particles of finite age in the |
+|                  |                          | initial conditions. For        |
+|                  |                          | cosmological simulations this  |
+|                  |                          | is the time the particle       |
+|                  |                          | formed relative to the big     |
+|                  |                          | bang, therefore the value of   |
+|                  |                          | this field should be between   |
+|                  |                          | 0 and 13.7 Gyr.                |
++------------------+--------------------------+--------------------------------+
+| any              | ``star_age``             | Age of the particle.           |
+|                  |                          | Only physically meaningful for |
+|                  |                          | stars and particles that       |
+|                  |                          | formed dynamically during the  |
+|                  |                          | simulation.                    |
++------------------+--------------------------+--------------------------------+
 
 RAMSES datasets produced by a version of the code newer than November 2017
 contain the metadata necessary for yt to automatically distinguish between star
