@@ -503,14 +503,24 @@ To load Enzo-P data into yt, provide the block list file:
    import yt
    ds = yt.load("hello-0200/hello-0200.block_list")
 
-Mesh fields are fully supported for 1, 2, and 3D datasets.
+Mesh and particle fields are fully supported for 1, 2, and 3D datasets.  Enzo-P
+supports arbitrary particle types defined by the user.  The available particle
+types will be known as soon as the dataset index is created.
+
+.. code-block:: python
+
+   ds = yt.load("ENZOP_DD0140/ENZOP_DD0140.block_list")
+   ds.index
+   print(ds.particle_types)
+   print(ds.particle_type_counts)
+   print(ds.r["dark", "particle_position"])
 
 .. rubric:: Caveats
 
 * The Enzo-P output format is still evolving somewhat as the code is being
-  actively developed. This frontend will be updated as development continues.
-* Units are currently assumed to be in CGS.
-* Particles are not yet supported.
+  actively developed. This frontend will be updated as development continues
+  and backward compatibility may occasionally be broken until the file format
+  has converged.
 
 .. _loading-exodusii-data:
 
@@ -1822,11 +1832,11 @@ attributes.
 
    halo = ds.halo("Group", 0)
    # member particles for this halo
-   print halo["member_ids"]
+   print(halo["member_ids"])
    # halo virial radius
-   print halo["Group_R_Crit200"]
+   print(halo["Group_R_Crit200"])
    # halo mass
-   print halo.mass
+   print(halo.mass)
 
 Subhalos containers can be created using either their absolute ids or their
 subhalo ids.
@@ -1836,9 +1846,9 @@ subhalo ids.
    # first subhalo of the first halo
    subhalo = ds.halo("Subhalo", (0, 0))
    # this subhalo's absolute id
-   print subhalo.group_identifier
+   print(subhalo.group_identifier)
    # member particles
-   print subhalo["member_ids"]
+   print(subhalo["member_ids"])
 
 OWLS FOF/SUBFIND
 ^^^^^^^^^^^^^^^^

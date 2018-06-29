@@ -13,3 +13,31 @@ Miscellaneous functions that are Enzo-specific
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
+
+from yt.utilities.physical_ratios import \
+    rho_crit_g_cm3_h2, cm_per_mpc
+
+def cosmology_get_units(hubble_constant, omega_matter, box_size,
+                        initial_redshift, current_redshift):
+    """
+    Return a dict of Enzo cosmological unit conversions.
+    """
+
+    zp1  = 1.0 + current_redshift
+    zip1 = 1.0 + initial_redshift
+
+    k = {}
+    # For better agreement with values calculated by Enzo,
+    # adopt the exact constants that are used there.
+    k["utim"] = 2.52e17 / np.sqrt(omega_matter) / \
+      hubble_constant / zip1**1.5
+    k["urho"] = rho_crit_g_cm3_h2 * omega_matter * \
+      hubble_constant**2 * zp1**3
+    k["uxyz"] = cm_per_mpc * box_size / hubble_constant / zp1
+    k["uaye"] = 1.0 / zip1
+    k["uvel"] = 1.225e7 * box_size * np.sqrt(omega_matter) \
+      * np.sqrt(zip1)
+    k["utem"] = 1.88e6 * (box_size**2) * omega_matter * zip1
+    k["aye"]  = zip1 / zp1
+    return k

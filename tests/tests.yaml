@@ -14,7 +14,7 @@ answer_tests:
   local_enzo_003:
     - yt/frontends/enzo
 
-  local_enzo_p_001:
+  local_enzo_p_004:
     - yt/frontends/enzo_p/tests/test_outputs.py
 
   local_fits_002:
