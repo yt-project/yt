@@ -1828,7 +1828,8 @@ def display_ytarray(arr):
     r"""
     Display a YTArray in a Jupyter widget that enables unit switching.
 
-    This 
+    The array returned by this function is read-only, and only works with
+    arrays of size 3 or lower.
 
     Parameters
     ----------
