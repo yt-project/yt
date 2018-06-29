@@ -14,6 +14,7 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import hashlib
+import matplotlib
 from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it
@@ -1103,3 +1104,30 @@ def assert_fname(fname):
 
     return image_type == os.path.splitext(fname)[1]
 
+def requires_backend(backend):
+    """ Decorator to check for a specified matplotlib backend.
+
+    This decorator returns the decorated function if the specified `backend`
+    is same as of `matplotlib.get_backend()`, otherwise returns null function.
+    It could be used to execute function only when a particular `backend` of
+    matplotlib is being used.
+
+    Parameters
+    ----------
+    backend : String
+        The value which is compared with the current matplotlib backend in use.
+
+    Returns
+    -------
+    Decorated function or null function
+
+    """
+    def ffalse(func):
+        return lambda: None
+
+    def ftrue(func):
+        return func
+
+    if backend.lower() == matplotlib.get_backend().lower():
+        return ftrue
+    return ffalse
