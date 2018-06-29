@@ -117,9 +117,10 @@ class DerivedField(object):
             sampling_type = "particle"
         self.sampling_type = sampling_type
         self.vector_field = vector_field
+        self.ds = ds
 
         if self.ds is not None:
-            self.roman_numeral_ionization = self.ds.roman_numeral_ionization
+            self.roman_numeral_ionization = self.ds._roman_numeral_ionization
         else:
             self.roman_numeral_ionization = True
 
@@ -319,65 +320,11 @@ class DerivedField(object):
             result = True
         return result
 
-    def _ion_to_roman_label(self):
-        pnum2rom = {
-            "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
-            "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
-            "10":"XI", "11":"XII", "12":"XIII", "13":"XIV", "14":"XV",
-            "15":"XVI", "16":"XVII", "17":"XVIII", "18":"XIX", "19":"XX"}
-
-        p = re.compile("_p[0-9]+_")
-        m = p.search(self.name[1])
-        if m is not None:
-            pstr = m.string[m.start()+1:m.end()-1]
-            segments = self.name[1].split("_")
-
-            for i,s in enumerate(segments):
-                if s == pstr:
-                    ipstr = i
-
-            for i,s in enumerate(segments):
-                if i == ipstr -1: 
-                    print(s)
-                    continue
-                segments[i] = s.capitalize()
-
-            element = segments[ipstr-1]
-            roman = pnum2rom[pstr[1:]]
-            label = element + '\ ' + roman + '\ ' + \
-                '\ '.join(segments[ipstr+1:])
-        else:
-            label = self.name[1]
-        return label
-
-    def _ion_to_chem_label(self):
-        p = re.compile("_p[0-9]+_")
-        m = p.search(self.name[1])
-        if m is not None:
-            pstr = m.string[m.start()+1:m.end()-1]
-            segments = self.name[1].split("_")
-            for i,s in enumerate(segments):
-                segments[i] = s.capitalize()
-                if s == pstr:
-                    ipstr = i
-
-            symbols = []
-            for symb in segments[ipstr-1]:
-                if symb.isdigit(): symbols.append("latexsub{"+symb+'}')
-                else: symbols.append(symb)
-            chem_label =  "".join(symbols)
-
-            sign = '+'*int(pstr[1:])
-            label ='{' +chem_label+ '}'+ '^{'+sign+'}' + '\ ' + \
-                '\ '.join(segments[ipstr+1:])
-            print(label)
-        else:
-            label = self.name[1]
-        return label
-
-
-
     def _ion_to_label(self):
+        #check to see if the output format has changed
+        if self.ds is not None:
+            self.roman_numeral_ionization = self.ds._roman_numeral_ionization
+
         pnum2rom = {
             "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
             "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
@@ -429,7 +376,6 @@ class DerivedField(object):
 
         else:
             label = self.name[1]
-        print(label)
         return label
 
     def get_latex_display_name(self):

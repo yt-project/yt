@@ -573,6 +573,28 @@ class Dataset(object):
         self.index.field_list = sorted(self.field_list)
         self._last_freq = (None, None)
 
+    def set_field_label_format(self, format_property, value):
+        """
+        Set format properties for how fields will be written
+        out. Accepts 
+
+        format_property : string indicating what property to set
+        value: the value to set for that format_property
+        """
+        if format_property == "ionization_label":
+            if value == "roman_numeral":
+                self._roman_numeral_ionization = True
+            elif value == "plus_minus":
+                self._roman_numeral_ionization = False
+            else:
+                print("{0} not an acceptable value for format_type \
+                      `ionozation_label`".format(value))
+                raise(ValueError)
+        else:
+            print("{0} not a recognized format_type".format(format_type))
+            raise(ValueError)
+
+
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
         added = []
