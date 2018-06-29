@@ -92,6 +92,7 @@ arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [5, 5, 5],dims=[10, 10, 10])
 density = arbitrary_grid[('gas', 'density')]
 print(density)
 ```
+
 Off-Axis Projection for SPH Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -101,6 +102,7 @@ The following code generates an off-axis projection of an example dataset with a
 normal vector, resolution, center, width, and smoothing quantitiy. 
 
 .. code-block:: python
+
     import yt
 
     ds = yt.load('GadgetDiskGalaxy/snapshot_200.hdf5')
