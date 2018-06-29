@@ -241,6 +241,7 @@ class Dataset(object):
     fields = requires_index("fields")
     _instantiated = False
     _particle_type_counts = None
+    _roman_numeral_ionization = True
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, string_types):

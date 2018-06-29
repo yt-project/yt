@@ -117,7 +117,11 @@ class DerivedField(object):
             sampling_type = "particle"
         self.sampling_type = sampling_type
         self.vector_field = vector_field
-        self.ds = ds
+
+        if self.ds is not None:
+            self.roman_numeral_ionization = self.ds.roman_numeral_ionization
+        else:
+            self.roman_numeral_ionization = True
 
         if nodal_flag is None:
             self.nodal_flag = [0, 0, 0]
@@ -315,7 +319,7 @@ class DerivedField(object):
             result = True
         return result
 
-    def _ion_to_label(self):
+    def _ion_to_roman_label(self):
         pnum2rom = {
             "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
             "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
@@ -327,10 +331,17 @@ class DerivedField(object):
         if m is not None:
             pstr = m.string[m.start()+1:m.end()-1]
             segments = self.name[1].split("_")
+
             for i,s in enumerate(segments):
-                segments[i] = s.capitalize()
                 if s == pstr:
                     ipstr = i
+
+            for i,s in enumerate(segments):
+                if i == ipstr -1: 
+                    print(s)
+                    continue
+                segments[i] = s.capitalize()
+
             element = segments[ipstr-1]
             roman = pnum2rom[pstr[1:]]
             label = element + '\ ' + roman + '\ ' + \
@@ -339,12 +350,95 @@ class DerivedField(object):
             label = self.name[1]
         return label
 
+    def _ion_to_chem_label(self):
+        p = re.compile("_p[0-9]+_")
+        m = p.search(self.name[1])
+        if m is not None:
+            pstr = m.string[m.start()+1:m.end()-1]
+            segments = self.name[1].split("_")
+            for i,s in enumerate(segments):
+                segments[i] = s.capitalize()
+                if s == pstr:
+                    ipstr = i
+
+            symbols = []
+            for symb in segments[ipstr-1]:
+                if symb.isdigit(): symbols.append("latexsub{"+symb+'}')
+                else: symbols.append(symb)
+            chem_label =  "".join(symbols)
+
+            sign = '+'*int(pstr[1:])
+            label ='{' +chem_label+ '}'+ '^{'+sign+'}' + '\ ' + \
+                '\ '.join(segments[ipstr+1:])
+            print(label)
+        else:
+            label = self.name[1]
+        return label
+
+
+
+    def _ion_to_label(self):
+        pnum2rom = {
+            "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
+            "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
+            "10":"XI", "11":"XII", "12":"XIII", "13":"XIV", "14":"XV",
+            "15":"XVI", "16":"XVII", "17":"XVIII", "18":"XIX", "19":"XX"}
+
+        # first look for charge to decide if it is an ion
+        p = re.compile("_p[0-9]+_")
+        m = p.search(self.name[1])
+        if m is not None:
+
+            # Find the ionization state
+            pstr = m.string[m.start()+1:m.end()-1]
+            segments = self.name[1].split("_")
+
+            # find the ionoization index 
+            for i,s in enumerate(segments):
+                if s == pstr: ipstr = i
+
+            
+            for i,s in enumerate(segments):
+                #If its the species we don't want to change the capitalization
+                if i == ipstr -1: continue
+                segments[i] = s.capitalize()
+
+            species = segments[ipstr-1]
+
+            #If there is a number in the species part of the label
+            #that indicates part of a molecule
+            symbols = []
+            for symb in species:
+                # can't just use underscore b/c gets replaced later with space
+                if symb.isdigit(): symbols.append("latexsub{"+symb+'}')
+                else: symbols.append(symb)
+            species_label =  "".join(symbols)
+
+
+            # Use roman numerals for ionization
+            if self.roman_numeral_ionization: 
+                roman = pnum2rom[pstr[1:]]
+                label = species_label + '\ ' + roman + '\ ' + \
+                    '\ '.join(segments[ipstr+1:])
+
+            # use +/- for ionization
+            else: 
+                sign = '+'*int(pstr[1:])
+                label ='{' +species_label+ '}'+ '^{'+sign+'}' + '\ ' + \
+                    '\ '.join(segments[ipstr+1:])
+
+        else:
+            label = self.name[1]
+        print(label)
+        return label
+
     def get_latex_display_name(self):
         label = self.display_name
         if label is None:
             if self._is_ion():
                 fname = self._ion_to_label()
                 label = r'$\rm{'+fname.replace('_','\ ')+r'}$'
+                label = label.replace('latexsub', '_')
             else:
                 label = r'$\rm{'+self.name[1].replace('_','\ ').title()+r'}$'
         elif label.find('$') == -1:
