@@ -196,9 +196,9 @@ def test_center_1():
     #           (left_edge[2] + right_edge[2])/2]
     center = np.array([0., 3., 0.])
     width = np.array([8., 8., 8.])
-    # width = [(right_edge[0] - left_edge[0]),
-    #          (right_edge[1] - left_edge[1]),
-    #          (right_edge[2] - left_edge[2])]    
+    width = [(right_edge[0] - left_edge[0]),
+             (right_edge[1] - left_edge[1]),
+             (right_edge[2] - left_edge[2])]    
     buf1 = OffAP.off_axis_projection(ds,
                                      center,
                                      normal_vector,
@@ -279,7 +279,7 @@ def find_compare_maxima(expected_maxima, buf, resolution, width):
     # Using a step size two since the same maxima is often double/quadruple counted
     for i in range(0, len(maxima), 1):
         for j in range(0, len(maxima[i]), 1):
-            if maxima[i, j] == True:
+            if maxima[i, j]:
                 coords[0].append(i)
                 coords[1].append(j)
     print(coords)

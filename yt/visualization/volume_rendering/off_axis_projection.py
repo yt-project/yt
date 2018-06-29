@@ -21,12 +21,12 @@ from yt.utilities.lib.partitioned_grid import \
     PartitionedGrid
 from yt.data_objects.api import ImageArray
 from yt.utilities.lib.pixelization_routines import \
-    off_axis_projection_SPH, get_rotation_matrix
+    off_axis_projection_SPH
 import numpy as np
 
 
 def off_axis_projection(data_source, center, normal_vector,
-                        width, resolution, item, fname=None,
+                        width, resolution, item,
                         weight=None, volume=None,
                         no_ghost=False, interpolated=False,
                         north_vector=None, num_threads=1, method='integrate'):
