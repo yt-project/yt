@@ -1101,5 +1101,5 @@ def assert_fname(fname):
     elif data.startswith(b'%PDF'):
         image_type = '.pdf'
 
-    return image_type == os.path.splitext(fname)[1]
+    assert image_type == os.path.splitext(fname)[1]
 

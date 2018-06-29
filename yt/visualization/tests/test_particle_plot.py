@@ -214,7 +214,7 @@ class TestParticlePhasePlotSave(unittest.TestCase):
         particle_phases[0]._repr_html_()
         for p in particle_phases:
             for fname in TEST_FLNMS:
-                assert assert_fname(p.save(fname)[0])
+                assert_fname(p.save(fname)[0])
 
 tgal = 'TipsyGalaxy/galaxy.00300'
 @requires_file(tgal)
@@ -307,7 +307,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         for dim in range(3):
             pplot = ParticleProjectionPlot(test_ds, dim, "particle_mass")
             for fname in TEST_FLNMS:
-                assert assert_fname(pplot.save(fname)[0])
+                assert_fname(pplot.save(fname)[0])
 
     def test_particle_plot_ds(self):
         test_ds = fake_particle_ds()
