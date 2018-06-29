@@ -114,6 +114,8 @@ def off_axis_projection(data_source, center, normal_vector,
     
     data_source = data_source_or_all(data_source)
 
+    item = data_source._determine_fields([item])[0]
+
     # Sanitize units
     if not hasattr(center, "units"):
         center = data_source.ds.arr(center, 'code_length')
@@ -122,6 +124,24 @@ def off_axis_projection(data_source, center, normal_vector,
 
     if hasattr(data_source.ds, '_sph_ptype'):
         ptype = data_source.ds._sph_ptype
+
+        fi = data_source.ds.field_info[item]
+
+        raise_error = False
+
+        if fi.alias_field:
+            if fi.alias_name[0] != ptype:
+                raise_error = True
+        else:
+            if fi.name[0] != ptype:
+                raise_error = True
+
+        if raise_error:
+            raise RuntimeError(
+                    "Can only perform off-axis projections for SPH fields, "
+                    "Received '%s'" % (item,)
+                    )
+
         buf = np.zeros((resolution[0], resolution[1]), dtype='float64')
 
         x_min = center[0] - width[0] / 2
@@ -142,7 +162,7 @@ def off_axis_projection(data_source, center, normal_vector,
                                     bounds,
                                     center.to('code_length').d,
                                     width.to('code_length').d,
-                                    chunk[ptype, item],
+                                    chunk[item],
                                     buf,
                                     normal_vector)
         return buf

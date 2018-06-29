@@ -96,43 +96,24 @@ print(density)
 Off-Axis Projection for SPH Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The current `off_axis_projection` function will now support SPH projection plots.
+The current `OffAxisProjectionPlot` class will now support SPH projection plots.
 
 The following code generates an off-axis projection of an example dataset with a given
 normal vector, resolution, center, width, and smoothing quantitiy. 
 
 .. code-block:: python
 
-    import yt
+import yt
 
-    ds = yt.load('GadgetDiskGalaxy/snapshot_200.hdf5')
+ds = yt.load('GadgetDiskGalaxy/snapshot_200.hdf5')
 
-    normal_vector = [0., 1., 0.]
+normal_vector = [1., 1., 1.]
 
-    resolution = (256, 256)
+smoothing_fields = ('gas', 'density')  
 
-    left_edge = ds.domain_left_edge
+prj = yt.OffAxisProjectionPlot(ds, normal_vector, smoothing_fields)
 
-    right_edge = ds.domain_right_edge
-
-    center = [(left_edge[0] + right_edge[0])/2,
-              (left_edge[1] + right_edge[1])/2,
-              (left_edge[2] + right_edge[2])/2]
-
-    width = [(right_edge[0] - left_edge[0]),
-             (right_edge[1] - left_edge[1]),
-             (right_edge[2] - left_edge[2])]  
-
-    smoothing_quantity = 'particle_mass'  
-
-    buf = OffAP.off_axis_projection(ds,
-                                    center,
-                                    normal_vector,
-                                    width,
-                                    resolution,
-                                    smoothing_quantity
-                                    )
-
+prj.save()
 
 API Changes
 -----------
