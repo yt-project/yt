@@ -33,7 +33,7 @@ def test_no_rotation():
     px = ad["particle_position_x"]
     py = ad["particle_position_y"]
     hsml = ad["smoothing_length"]
-    quantity_to_smooth = ad["particle_mass"]
+    quantity_to_smooth = ad[('gas', 'density')]
     density = ad["density"]
     mass = ad["particle_mass"]
     bounds = [-4, 4, -4, 4, -4, 4]
@@ -44,7 +44,7 @@ def test_no_rotation():
                                      normal_vector,
                                      width,
                                      resolution,
-                                     'particle_mass'
+                                     ('gas', 'density')
                                      )
     pixelize_sph_kernel_projection(buf2,
                                    px,
@@ -90,7 +90,7 @@ def test_basic_rotation_1():
                                      normal_vector,
                                      width,
                                      resolution,
-                                     'particle_mass'
+                                     ('gas', 'density')  
                                      )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
@@ -128,7 +128,7 @@ def test_basic_rotation_2():
                                      normal_vector,
                                      width,
                                      resolution,
-                                     'particle_mass'
+                                     ('gas', 'density')  
                                      )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
@@ -167,7 +167,7 @@ def test_basic_rotation_3():
                                      normal_vector,
                                      width,
                                      resolution,
-                                     'particle_mass'
+                                     ('gas', 'density')  
                                      )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
@@ -204,7 +204,7 @@ def test_center_1():
                                      normal_vector,
                                      width,
                                      resolution,
-                                     'particle_mass'
+                                     ('gas', 'density')  
                                      )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
@@ -237,7 +237,7 @@ def test_center_2():
                                      normal_vector,
                                      width,
                                      resolution,
-                                     'particle_mass'
+                                     ('gas', 'density')  
                                      )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
@@ -262,7 +262,7 @@ def test_center_3():
                                      normal_vector,
                                      width,
                                      resolution,
-                                     'particle_mass'
+                                     ('gas', 'density')  
                                      )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
