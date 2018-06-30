@@ -13,6 +13,8 @@ Enzo-P frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
+
 from yt.utilities.on_demand_imports import \
     _h5py as h5py
 
@@ -31,8 +33,12 @@ from yt.frontends.enzo_p.api import EnzoPDataset
 _fields = ("density", "total_energy",
            "velocity_x", "velocity_y")
 
-hello_world = "hello-0200/hello-0200.block_list"
+_pfields = ("particle_position_x", "particle_position_y",
+            "particle_position_z", "particle_velocity_x",
+            "particle_velocity_y", "particle_velocity_z")
 
+hello_world = "hello-0210/hello-0210.block_list"
+ep_cosmo = "ENZOP_DD0140/ENZOP_DD0140.block_list"
 
 @requires_file(hello_world)
 def test_EnzoPDataset():
@@ -56,6 +62,20 @@ def test_hello_world():
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
+@requires_ds(ep_cosmo)
+def test_particle_fields():
+    ds = data_dir_load(ep_cosmo)
+
+    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+    for dobj_name in dso:
+        for field in _pfields:
+            yield FieldValuesTest(ep_cosmo, field, dobj_name,
+                                  particle_type=True)
+        dobj = create_obj(ds, dobj_name)
+        s1 = dobj["ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        assert_equal(s1, s2)
+
 @requires_file(hello_world)
 def test_hierarchy():
     ds = data_dir_load(hello_world)
@@ -73,3 +93,15 @@ def test_hierarchy():
             assert (child.RightEdge <= grid.RightEdge).all()
             assert_equal(child.Parent.id, grid.id)
     fh.close()
+
+@requires_file(ep_cosmo)
+def test_critical_density():
+    ds = data_dir_load(ep_cosmo)
+
+    c1 = (ds.r["dark", "particle_mass"].sum() +
+          ds.r["gas", "cell_mass"].sum()) / \
+          ds.domain_width.prod() / ds.critical_density
+    c2 = ds.omega_matter * (1 + ds.current_redshift)**3 / \
+      (ds.omega_matter * (1 + ds.current_redshift)**3 + ds.omega_lambda)
+
+    assert np.abs(c1 - c2) / max(c1, c2) < 1e-3

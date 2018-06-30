@@ -176,6 +176,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     from the `setup_fluid_fields` method (for grid dataset) or the
     `setup_gas_particle_fields` method (for particle dataset) of a frontend's
     :class:`FieldInfoContainer` instance.
+
     Parameters
     ----------
     registry : :class:`FieldInfoContainer`
@@ -190,6 +191,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         vector magnetic field.
     ftype : string, optional
         The resulting field type of the fields. Default "gas".
+
     Examples
     --------
     >>> from yt.fields.magnetic_field import setup_magnetic_field_aliases

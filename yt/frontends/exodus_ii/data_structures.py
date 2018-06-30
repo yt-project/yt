@@ -392,7 +392,9 @@ class ExodusIIDataset(Dataset):
         try:
             from netCDF4 import Dataset
             filename = args[0]
-            with Dataset(filename) as f:
+            # We use keepweakref here to avoid holding onto the file handle
+            # which can interfere with other is_valid calls.
+            with Dataset(filename, keepweakref=True) as f:
                 f.variables['connect1']
             return True
         except:

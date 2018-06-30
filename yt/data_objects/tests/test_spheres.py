@@ -1,10 +1,9 @@
 import numpy as np
+from numpy.testing import assert_array_equal
 
 from yt.data_objects.profiles import create_profile
-from yt.testing import \
-    fake_random_ds, \
-    assert_equal, \
-    periodicity_cases
+from yt.testing import fake_random_ds, assert_equal, periodicity_cases
+
 
 def setup():
     from yt.config import ytcfg
@@ -65,3 +64,16 @@ def test_domain_sphere():
         for f in _fields_to_compare:
             sp[f].sort()
             assert_equal(sp[f], ref_sp[f])
+
+def test_sphere_center():
+    ds = fake_random_ds(16, nprocs=8,
+                        fields=("density", "temperature", "velocity_x"))
+
+    # Test if we obtain same center in different ways
+    sp1 = ds.sphere("max", (0.25, 'unitary'))
+    sp2 = ds.sphere("max_density", (0.25, 'unitary'))
+    assert_array_equal(sp1.center, sp2.center)
+
+    sp1 = ds.sphere("min", (0.25, 'unitary'))
+    sp2 = ds.sphere("min_density", (0.25, 'unitary'))
+    assert_array_equal(sp1.center, sp2.center)

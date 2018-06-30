@@ -1169,3 +1169,65 @@ def handle_mks_cgs(values, field_units):
     except YTEquivalentDimsError as e:
         values = values.to_equivalent(e.new_units, e.base)
     return values
+
+def validate_3d_array(obj):
+    if not iterable(obj) or len(obj) != 3:
+        raise TypeError("Expected an array of size (3,), received '%s' of "
+                        "length %s" % (str(type(obj)).split("'")[1], len(obj)))
+
+def validate_float(obj):
+    """Validates if the passed argument is a float value.
+
+    Raises an exception if `obj` is a single float value
+    or a YTQunatity of size 1.
+
+    Parameters
+    ----------
+    obj : Any
+        Any argument which needs to be checked for a single float value.
+
+    Raises
+    ------
+    TypeError
+        Raised if `obj` is not a single float value or YTQunatity
+
+    Examples
+    --------
+    >>> validate_float(1)
+    >>> validate_float(1.50)
+    >>> validate_float(YTQuantity(1,"cm"))
+    >>> validate_float((1,"cm"))
+    >>> validate_float([1, 1, 1])
+    Traceback (most recent call last):
+    ...
+    TypeError: Expected a numeric value (or size-1 array), received 'list' of length 3
+
+    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2,"cm")])
+    Traceback (most recent call last):
+    ...
+    TypeError: Expected a numeric value (or size-1 array), received 'list' of length 2
+    """
+    if isinstance(obj, tuple):
+        if len(obj) != 2 or not isinstance(obj[0], numeric_type)\
+                or not isinstance(obj[1], string_types):
+            raise TypeError("Expected a numeric value (or tuple of format "
+                            "(float, String)), received an inconsistent tuple "
+                            "'%s'." % str(obj))
+        else:
+            return
+    if iterable(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
+        raise TypeError("Expected a numeric value (or size-1 array), "
+                        "received '%s' of length %s"
+                        % (str(type(obj)).split("'")[1], len(obj)))
+
+
+def validate_iterable(obj):
+    if obj is not None and not iterable(obj):
+        raise TypeError("Expected an iterable object,"
+                        " received '%s'" % str(type(obj)).split("'")[1])
+
+def validate_object(obj, data_type):
+    if obj is not None and not isinstance(obj, data_type):
+        raise TypeError("Expected an object of '%s' type, received '%s'"
+                        % (str(data_type).split("'")[1],
+                        str(type(obj)).split("'")[1]))
