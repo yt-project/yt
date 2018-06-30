@@ -24,6 +24,9 @@ env:
     CODECOV=codecov
     COVERAGE=coverage
     PANDAS=pandas
+    MOCK=mock
+    NOSETIMER=nose-timer
+    CODECOV=codecov
 
 before_install:
   - |
@@ -52,15 +55,22 @@ install:
     pip install --upgrade wheel
     pip install --upgrade setuptools
     # Install dependencies
-    pip install mock $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS nose nose-timer
+    pip install $MOCK $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS $NOSE $NOSETIMER
     # install yt
-    pip install -e .
+    if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
+      pip install -e .
+    fi
 
 jobs:
   include:
     - stage: lint
       python: 3.6
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS=
+      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS=
+      script: flake8 yt/
+
+    - stage: lint
+      python: 2.7
+      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS=
       script: flake8 yt/
 
     - stage: tests
@@ -71,11 +81,6 @@ jobs:
     - stage: tests
       python: 2.7
       env: FLAKE8=
-      script: coverage run $(which nosetests) -c nose.cfg yt
-
-    - stage: tests
-      python: 3.4
-      env: FLAKE8= PANDAS=pandas==0.20
       script: coverage run $(which nosetests) -c nose.cfg yt
 
     - stage: tests
@@ -101,4 +106,7 @@ jobs:
       script: coverage run $(which nosetests) -c nose.cfg yt
 
 after_success:
-  - codecov
+  - |
+    if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
+      codecov
+    fi
