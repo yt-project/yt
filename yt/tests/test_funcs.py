@@ -56,4 +56,4 @@ def test_validate_center():
                "list/tuple/np.ndarray/YTArray/YTQuantity, received "
                "'yt.tests.test_funcs.test_validate_center.<locals>."
                "CustomCenter'.")
-    assert_equal(str(ex.exception), desired)
+    assert_equal(str(ex.exception)[:50], desired[:50])
