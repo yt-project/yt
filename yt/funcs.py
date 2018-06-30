@@ -1231,3 +1231,29 @@ def validate_object(obj, data_type):
         raise TypeError("Expected an object of '%s' type, received '%s'"
                         % (str(data_type).split("'")[1],
                         str(type(obj)).split("'")[1]))
+
+def validate_axis(axis):
+    err_msg = ("Expected axis of int or char type ( can be "
+               "[0, 1, 2, '0', '1', '2', 'x', 'y', 'z']), received '%s'.")
+    if isinstance(axis, string_types):
+        if axis.lower() not in ['0', '1', '2', 'x', 'y', 'z']:
+            raise TypeError(err_msg % axis)
+    elif isinstance(axis, numeric_type):
+        if axis not in [0, 1, 2]:
+            raise TypeError(err_msg % axis)
+    else:
+        raise TypeError(err_msg % str(type(axis)).split("'")[1])
+
+def validate_center(center):
+    if isinstance(center, string_types):
+        c = center.lower()
+        if c not in ["c", "center", "m", "max", "min"] \
+                and not c.startswith("max_") and not c.startswith("min_"):
+            raise TypeError("Expected 'center' to be in ['c', 'center', "
+                            "'m', 'max', 'min'] or the prefix to be "
+                            "'max_'/'min_', received '%s'." % center)
+    elif not isinstance(center, (numeric_type, YTQuantity)) \
+            and not iterable(center):
+        raise TypeError("Expected 'center' to be a numeric object of type "
+                        "list/tuple/np.ndarray/YTArray/YTQuantity, "
+                        "received '%s'." % str(type(center)).split("'")[1])
