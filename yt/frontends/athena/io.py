@@ -87,7 +87,7 @@ class IOHandlerAthena(BaseIOHandler):
         sl[axis] = slice(coord, coord + 1)
         if grid.ds.field_ordering == 1:
             sl.reverse()
-        return self._read_data_set(grid, field)[sl]
+        return self._read_data_set(grid, field)[tuple(sl)]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
