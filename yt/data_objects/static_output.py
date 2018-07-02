@@ -588,7 +588,7 @@ class Dataset(object):
                 self._roman_numeral_ionization = False
             else:
                 print("{0} not an acceptable value for format_type \
-                      `ionozation_label`. Choices are `roman_numeral`
+                      `ionozation_label`. Choices are `roman_numeral`\
                       and `plus_minus`.".format(value))
                 raise(ValueError)
         else:
