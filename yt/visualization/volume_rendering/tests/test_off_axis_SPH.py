@@ -7,10 +7,10 @@ from yt.testing import \
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_projection
 import numpy as np
-from scipy.ndimage.filters import \
-    maximum_filter
-from scipy.spatial.distance import\
-    euclidean
+from yt.utilities.on_demand_imports import _scipy
+
+spatial = _scipy.spatial
+ndimage = _scipy.ndimage
 
 def test_no_rotation():
     """ Determines if a projection processed through 
@@ -133,7 +133,6 @@ def test_basic_rotation_2():
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
 
-
 @requires_module('scipy')
 def test_basic_rotation_3():
     """ Rotation of z-axis onto negative z-axis. All fake particles on z-axis should now be on 
@@ -241,6 +240,7 @@ def test_center_2():
                                      )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
+
 @requires_module('scipy')
 def test_center_3():
     """ Change the center to the left edge, or [0, -8, 0] 
@@ -267,8 +267,9 @@ def test_center_3():
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
 
+@requires_module('scipy')
 def find_compare_maxima(expected_maxima, buf, resolution, width):
-    max_filter_buf = maximum_filter(buf, size=5)
+    max_filter_buf = ndimage.filters.maximum_filter(buf, size=5)
     maxima = np.isclose(max_filter_buf, buf, rtol=1e-09)
     # ignore contributions from zones of no smoothing
     for i in range(len(maxima)):
@@ -298,8 +299,8 @@ def find_compare_maxima(expected_maxima, buf, resolution, width):
             y_coord -= resolution[1] / 2
             x_coord /= x_scaling_factor
             y_coord /= y_scaling_factor
-            if euclidean([x_coord, y_coord], [expected_maxima[0][i], 
-                                              expected_maxima[1][i]]) < pixel_tolerance:
+            if spatial.distance.euclidean([x_coord, y_coord], [expected_maxima[0][i], 
+                                           expected_maxima[1][i]]) < pixel_tolerance:
                 found_match = True
                 break
         if found_match is not True:
