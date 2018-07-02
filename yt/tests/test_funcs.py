@@ -12,26 +12,23 @@ from nose.tools import assert_raises
 
 from yt import YTQuantity
 from yt.funcs import validate_axis, validate_center
-from yt.testing import assert_equal
+from yt.testing import assert_equal, fake_amr_ds
 
 
 def test_validate_axis():
-    validate_axis(0)
-    validate_axis('X')
-    desired = ("Expected axis of int or char type ( can be "
-               "[0, 1, 2, '0', '1', '2', 'x', 'y', 'z']), received ")
+    validate_axis(None, 0)
+    validate_axis(None, 'X')
+
+    ds = fake_amr_ds(geometry="cylindrical")
+    ds.slice("Theta", 0.25)
 
     with assert_raises(TypeError) as ex:
-        validate_axis(3)
-    assert_equal(str(ex.exception), desired + "'3'.")
-
-    with assert_raises(TypeError) as ex:
-        validate_axis('x-axis')
-    assert_equal(str(ex.exception), desired + "'x-axis'.")
-
-    with assert_raises(TypeError) as ex:
-        validate_axis(['x', 'y'])
-    assert_equal(str(ex.exception), desired + "'list'.")
+        # default geometry is cartesian
+        ds = fake_amr_ds()
+        ds.slice("r", 0.25)
+    desired = ("Expected axis of int or char type (can be "
+               "[0, 'x', 'X', 1, 'y', 'Y', 2, 'z', 'Z']), received 'r'.")
+    assert_equal(str(ex.exception), desired)
 
 def test_validate_center():
     validate_center("max")

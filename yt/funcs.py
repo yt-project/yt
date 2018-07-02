@@ -1232,17 +1232,14 @@ def validate_object(obj, data_type):
                         % (str(data_type).split("'")[1],
                         str(type(obj)).split("'")[1]))
 
-def validate_axis(axis):
-    err_msg = ("Expected axis of int or char type ( can be "
-               "[0, 1, 2, '0', '1', '2', 'x', 'y', 'z']), received '%s'.")
-    if isinstance(axis, string_types):
-        if axis.lower() not in ['0', '1', '2', 'x', 'y', 'z']:
-            raise TypeError(err_msg % axis)
-    elif isinstance(axis, numeric_type):
-        if axis not in [0, 1, 2]:
-            raise TypeError(err_msg % axis)
+def validate_axis(ds, axis):
+    if ds is not None:
+        valid_axis = ds.coordinates.axis_name.keys()
     else:
-        raise TypeError(err_msg % str(type(axis)).split("'")[1])
+        valid_axis = [0, 1, 2, 'x', 'y', 'z', 'X', 'Y', 'Z']
+    if axis not in valid_axis:
+        raise TypeError("Expected axis of int or char type (can be %s), "
+                        "received '%s'." % (list(valid_axis), axis))
 
 def validate_center(center):
     if isinstance(center, string_types):

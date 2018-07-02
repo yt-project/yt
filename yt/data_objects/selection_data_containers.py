@@ -133,7 +133,7 @@ class YTOrthoRay(YTSelectionContainer1D):
     _con_args = ('axis', 'coords')
     def __init__(self, axis, coords, ds=None, 
                  field_parameters=None, data_source=None):
-        validate_axis(axis)
+        validate_axis(ds, axis)
         validate_iterable(coords)
         for c in coords:
             validate_float(c)
@@ -296,7 +296,7 @@ class YTSlice(YTSelectionContainer2D):
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, axis, coord, center=None, ds=None,
                  field_parameters=None, data_source=None):
-        validate_axis(axis)
+        validate_axis(ds, axis)
         validate_float(coord)
         # center is an optional parameter
         if center is not None:
