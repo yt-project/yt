@@ -65,6 +65,8 @@ from yt.frontends.stream.api import load_uniform_grid
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
 import yt.extern.six as six
+from yt.utilities.lib.particle_kdtree_tools import \
+    generate_nn_list
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
     pixelize_sph_kernel_gather_arbitrary_grid
@@ -942,60 +944,73 @@ class YTArbitraryGrid(YTCoveringGrid):
 
                 pbar = tqdm(desc="Interpolating SPH field {}".format(field))
                 for chunk in self._data_source.chunks([field],"io"):
-                    px = chunk[(ptype,'particle_position_x')].in_base("code")
-                    py = chunk[(ptype,'particle_position_y')].in_base("code")
-                    pz = chunk[(ptype,'particle_position_z')].in_base("code")
-                    hsml = chunk[(ptype,'smoothing_length')].in_base("code")
-                    mass = chunk[(ptype,'particle_mass')].in_base("code")
-                    dens = chunk[(ptype,'density')].in_base("code")
-                    field_quantity = chunk[field]
+                    px = chunk[(ptype,'particle_position_x')].in_base("code").d
+                    py = chunk[(ptype,'particle_position_y')].in_base("code").d
+                    pz = chunk[(ptype,'particle_position_z')].in_base("code").d
+                    hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
+                    mass = chunk[(ptype,'particle_mass')].in_base("code").d
+                    dens = chunk[(ptype,'density')].in_base("code").d
+                    field_quantity = chunk[field].d
 
                     pixelize_sph_kernel_arbitrary_grid(dest, px, py, pz, hsml,
                                     mass, dens, field_quantity, bounds, pbar)
 
-                self[field] = self.ds.arr(dest, field_quantity.units)
-                pbar.close()
-        else:
-            for field in fields:
-                positions = []
-                mass = []
-                hsml = []
-                dens = []
-                field_quantity = []
-
-                tree = self.ds.index.kdtree
-
-                dest = np.zeros(self.ActiveDimensions, dtype="float64")
-                bounds = np.empty(6, dtype=float)
-                bounds[0] = self.left_edge[0].in_base("code")
-                bounds[2] = self.left_edge[1].in_base("code")
-                bounds[4] = self.left_edge[2].in_base("code")
-                bounds[1] = self.right_edge[0].in_base("code")
-                bounds[3] = self.right_edge[1].in_base("code")
-                bounds[5] = self.right_edge[2].in_base("code")
-
-                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
-                for chunk in self.ds.all_data().chunks([], 'io'):
-                    positions.append(chunk[(ptype, 'particle_position')])
-                    hsml.append(chunk[(ptype,'smoothing_length')])
-                    mass.append(chunk[(ptype,'particle_mass')])
-                    dens.append(chunk[(ptype,'density')])
-                    field_quantity.append(chunk[field])
-
-                positions = np.concatenate(positions)[tree.idx]
-                mass = np.concatenate(mass)[tree.idx]
-                hsml = np.concatenate(hsml)[tree.idx]
-                dens = np.concatenate(dens)[tree.idx]
-                field_quantity = np.concatenate(field_quantity)[tree.idx]
-
-                pixelize_sph_kernel_gather_arbitrary_grid(dest, positions,
-                                        tree, hsml, mass, dens,
-                                        field_quantity, bounds, pbar=pbar,
-                                        n_neighbors=self.ds._num_neighbors)
-
                 fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(dest, fi.units)
                 pbar.close()
+        else:
+            for field in fields:
+                tree = self.ds.index.kdtree
+
+                # set up the nearest neighbour arrays to store the distances
+                # and the particle ids
+                pids = np.zeros((self.ActiveDimensions[0],
+                                 self.ActiveDimensions[1],
+                                 self.ActiveDimensions[2],
+                                 self.ds._num_neighbors), dtype="int64")
+                dists = np.zeros((self.ActiveDimensions[0],
+                                 self.ActiveDimensions[1],
+                                 self.ActiveDimensions[2],
+                                 self.ds._num_neighbors), dtype="float64")
+                dest = np.zeros(self.ActiveDimensions, dtype="float64")
+
+                # set up bounds
+                bounds = np.empty(6, dtype=float)
+                bounds[0] = self.left_edge[0].in_base("code").d
+                bounds[2] = self.left_edge[1].in_base("code").d
+                bounds[4] = self.left_edge[2].in_base("code").d
+                bounds[1] = self.right_edge[0].in_base("code").d
+                bounds[3] = self.right_edge[1].in_base("code").d
+                bounds[5] = self.right_edge[2].in_base("code").d
+
+                # calculate the offsets for the kdtre
+                offsets = np.array([])
+                for chunk in self.ds.all_data().chunks([], 'io'):
+                    offsets = np.append(offsets, chunk[field].shape[0])
+                offsets = np.cumsum(offsets, dtype="int64")
+
+                # find all the nearest neighbors, we have to loop through
+                # EVERY SINGLE PARTICLE and fill our nearest neighbour lists
+                # before we can do the deposition
+                tree_id = np.array(tree.idx, dtype="int64")
+                for i, chunk in enumerate(self.ds.all_data().chunks([], 'io')):
+                    generate_nn_list(pids, dists, offsets[i], tree,
+                            tree_id, bounds, self.ActiveDimensions,
+                            chunk[(ptype,'particle_position')].in_base("code").d)
+
+                # now do the deposition
+                #for i, chunk in enumerate(self.ds.all_data().chunks([], 'io')):
+                #    hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
+                #    mass = chunk[(ptype,'particle_mass')].in_base("code").d
+                #    dens = chunk[(ptype,'density')].in_base("code").d
+                #    field_quantity = chunk[field].d
+                #    pixelize_sph_kernel_gather_arbitrary_grid(dest, pids,
+                #                            dists, offsets[i], hsml, mass, dens,
+                #                            field_quantity, bounds)
+
+                fi = self.ds._get_field_info(field)
+                self[field] = self.ds.arr(dest, fi.units)
+                #pbar.close()
 
 class LevelState(object):
     current_dx = None

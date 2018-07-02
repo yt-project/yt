@@ -1285,8 +1285,8 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
 @cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
-        np.float64_t[:, :] pos, kdtree, np.float64_t[:] hsml,
-        np.float64_t[:] pmass, np.float64_t[:] pdens,
+        np.float64_t[:, :] pos, kdtree, np.int64_t offset,
+        np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth, np.float_t[:] bounds,
         np.int64_t n_neighbors=64, pbar=None, kernel_name="cubic",
         use_normalization=True):
@@ -1308,7 +1308,7 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
 
     kernel_func = get_kernel_func(kernel_name)
     distances, pids = generate_nn_list(bounds, np.array([xsize, ysize, zsize]),
-                                       kdtree, pos, n_neighbors)
+                                       kdtree, offset, pos, n_neighbors)
 
     # define this to avoid using the use_normalization python object in the
     # tight loop
