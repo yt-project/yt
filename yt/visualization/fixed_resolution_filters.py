@@ -8,7 +8,12 @@ filter_registry = {}
 def apply_filter(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
-        args[0]._filters.append((f.__name__, (args, kwargs)))
+        frb = args[0]
+        frb._filters.append((f.__name__, (args, kwargs)))
+        # We need to invalidate the data to force the plot window to
+        # take the filter into account.
+        if frb.plot_window:
+            frb.plot_window._data_valid = False
         return args[0]
 
     return newfunc

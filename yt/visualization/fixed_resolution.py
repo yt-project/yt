@@ -87,7 +87,7 @@ class FixedResolutionBuffer:
         ("index", "dtheta"),
     )
 
-    def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False):
+    def __init__(self, data_source, bounds, buff_size, antialias=True, plot_window=None, periodic=False):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
@@ -97,6 +97,7 @@ class FixedResolutionBuffer:
         self._filters = []
         self.axis = data_source.axis
         self.periodic = periodic
+        self.plot_window = plot_window
 
         ds = getattr(data_source, "ds", None)
         if ds is not None:
