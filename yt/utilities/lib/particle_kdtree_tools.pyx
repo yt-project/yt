@@ -133,6 +133,9 @@ def generate_nn_list(np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists
                         with gil:
                             PyErr_CheckSignals()
 
+                    with gil:
+                        queue = BoundedPriorityQueue(pids.shape[3], True)
+
                     voxel_position[0] = bounds[0] + (i+0.5)*dx
                     voxel_position[1] = bounds[2] + (j+0.5)*dy
                     voxel_position[2] = bounds[4] + (k+0.5)*dz
@@ -146,8 +149,8 @@ def generate_nn_list(np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists
                         # we're searching for
                     else:
                         queue.size = queue.max_elements
-                        queue.heap = dists[i, j, k, :]
-                        queue.pids = pids[i, j, k, :]
+                        queue.heap[:] = dists[i, j, k, :]
+                        queue.pids[:] = pids[i, j, k, :]
 
                     process_node_points_pid(leafnode, pos, input_pos,
                                             offset, tree_id, queue)
@@ -157,8 +160,8 @@ def generate_nn_list(np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists
                     find_knn_pid(c_tree.root, queue, input_pos, offset, tree_id,
                                  pos, leafnode.leafid)
 
-                    dists[i,j,k,:] = queue.heap
-                    pids[i,j,k,:] = queue.pids
+                    dists[i,j,k,:] = queue.heap[:]
+                    pids[i,j,k,:] = queue.pids[:]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -265,6 +268,9 @@ cdef inline int process_node_points_pid(Node* node,
             continue
         sq_dist = 0
         for j in range(3):
+            with gil:
+                assert(positions[idx_offset, j > node.left_edge[j]])
+                assert(positions[idx_offset, j < node.right_edge[j]])
             tpos = positions[idx_offset, j] - pos[j]
             sq_dist += tpos*tpos
         queue.add_pid(sq_dist, i)
