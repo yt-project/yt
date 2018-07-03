@@ -240,6 +240,7 @@ class PlotWindow(ImagePlotContainer):
         def fset(self, value):
             self._frb = value
             self._data_valid = True
+            self._plot_valid = False
 
         def fdel(self):
             del self._frb
@@ -251,10 +252,12 @@ class PlotWindow(ImagePlotContainer):
 
     def _recreate_frb(self):
         old_fields = None
+        old_filters = []
         # If we are regenerating an frb, we want to know what fields we had before
         if self._frb is not None:
             old_fields = list(self._frb.keys())
             old_units = [str(self._frb[of].units) for of in old_fields]
+            old_filters = self._frb._filters
 
         # Set the bounds
         if hasattr(self,'zlim'):
@@ -265,7 +268,10 @@ class PlotWindow(ImagePlotContainer):
         # Generate the FRB
         self.frb = self._frb_generator(self.data_source, bounds,
                                        self.buff_size, self.antialias,
+                                       self,
                                        periodic=self._periodic)
+        # Restoring old_filters
+        self._frb._filters = old_filters
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
         if old_fields is None:
