@@ -540,7 +540,7 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
     that supports non-aligned input data objects, primarily cutting planes.
     """
 
-    def __init__(self, data_source, radius, buff_size, antialias=True):
+    def __init__(self, data_source, radius, buff_size, antialias=True, plot_window=None):
 
         self.data_source = data_source
         self.ds = data_source.ds
@@ -548,6 +548,7 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
+        self.plot_window = plot_window
 
         ds = getattr(data_source, "ds", None)
         if ds is not None:
@@ -576,12 +577,6 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     that supports off axis projections.  This calls the volume renderer.
     """
-
-    def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False):
-        self.data = {}
-        FixedResolutionBuffer.__init__(
-            self, data_source, bounds, buff_size, antialias, periodic
-        )
 
     def __getitem__(self, item):
         if item in self.data:
@@ -629,10 +624,9 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
     """
 
-    def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False):
-        self.data = {}
+    def __init__(self, data_source, bounds, buff_size, antialias=True, plot_window=None, periodic=False):
         FixedResolutionBuffer.__init__(
-            self, data_source, bounds, buff_size, antialias, periodic
+            self, data_source, bounds, buff_size, antialias, plot_window, periodic
         )
 
         # set up the axis field names
