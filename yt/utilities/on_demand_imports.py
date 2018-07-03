@@ -204,7 +204,7 @@ class scipy_imports(object):
                 special = NotAModule(self._name)
             self._special = special
         return self._special
-    
+
     _signal = None
     @property
     def signal(self):
@@ -226,6 +226,17 @@ class scipy_imports(object):
                 spatial = NotAModule(self._name)
             self._spatial = spatial
         return self._spatial
+
+    _ndimage = None
+    @property
+    def ndimage(self):
+        if self._ndimage is None:
+            try:
+                import scipy.ndimage as ndimage
+            except ImportError:
+                ndimage = NotAModule(self._name)
+            self._ndimage = ndimage
+        return self._ndimage
 
 _scipy = scipy_imports()
 
