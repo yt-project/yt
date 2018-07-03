@@ -42,33 +42,24 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
     """
     This filter convolves
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer` with
-    2d gaussian that is 'nbeam' pixels wide and has standard deviation
-    'sigma'.
+    2d gaussian that has standard deviation 'sigma'. Extra arguments
+    are directly passed to `scipy.ndimage.gaussian_filter`.
     """
 
     _filter_name = "gauss_beam"
 
-    def __init__(self, nbeam=30, sigma=2.0):
-        self.nbeam = nbeam
+    def __init__(self, sigma=2.0, **kwa):
         self.sigma = sigma
+        self.extra_args = kwa
 
     def apply(self, buff):
         from yt.utilities.on_demand_imports import _scipy
-
-        hnbeam = self.nbeam // 2
-        sigma = self.sigma
-
-        l = np.linspace(-hnbeam, hnbeam, num=self.nbeam + 1)
-        x, y = np.meshgrid(l, l)
-        g2d = (1.0 / (sigma * np.sqrt(2.0 * np.pi))) * np.exp(
-            -((x / sigma) ** 2 + (y / sigma) ** 2) / (2 * sigma ** 2)
+        spl = _scipy.ndimage.gaussian_filter(
+            buff,
+            self.sigma,
+            **self.extra_args
         )
-        g2d /= g2d.max()
-
-        npm, nqm = np.shape(buff)
-        spl = _scipy.signal.convolve(buff, g2d)
-
-        return spl[hnbeam : npm + hnbeam, hnbeam : nqm + hnbeam]
+        return spl
 
 
 class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):

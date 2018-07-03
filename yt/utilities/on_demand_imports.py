@@ -349,7 +349,6 @@ class scipy_imports:
             self._ndimage = ndimage
         return self._ndimage
 
-
 _scipy = scipy_imports()
 
 
