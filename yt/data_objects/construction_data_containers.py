@@ -24,6 +24,7 @@ import os
 import sys
 import zipfile
 
+from cykdtree.kdtree import PyKDTree
 from yt.config import ytcfg
 from yt.data_objects.data_containers import \
     YTSelectionContainer1D, \
@@ -958,7 +959,7 @@ class YTArbitraryGrid(YTCoveringGrid):
                 fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(dest, fi.units)
                 pbar.close()
-        else:
+        if(smoothing_style == "gather1"):
             for field in fields:
                 tree = self.ds.index.kdtree
 
@@ -967,11 +968,11 @@ class YTArbitraryGrid(YTCoveringGrid):
                 pids = np.zeros((self.ActiveDimensions[0],
                                  self.ActiveDimensions[1],
                                  self.ActiveDimensions[2],
-                                 self.ds._num_neighbors), dtype="int64")
+                                 self.ds._num_neighbors), dtype="int64") - 1
                 dists = np.zeros((self.ActiveDimensions[0],
                                  self.ActiveDimensions[1],
                                  self.ActiveDimensions[2],
-                                 self.ds._num_neighbors), dtype="float64")
+                                 self.ds._num_neighbors), dtype="float64") - 1
                 dest = np.zeros(self.ActiveDimensions, dtype="float64")
 
                 # set up bounds
@@ -984,33 +985,103 @@ class YTArbitraryGrid(YTCoveringGrid):
                 bounds[5] = self.right_edge[2].in_base("code").d
 
                 # calculate the offsets for the kdtre
-                offsets = np.array([])
+                offsets = np.array([0], dtype="int64")
                 for chunk in self.ds.all_data().chunks([], 'io'):
-                    offsets = np.append(offsets, chunk[field].shape[0])
-                offsets = np.cumsum(offsets, dtype="int64")
+                    offsets = np.append(offsets,
+                        offsets[-1]+len(chunk[(ptype,'density')].in_base("code").d))
 
                 # find all the nearest neighbors, we have to loop through
                 # EVERY SINGLE PARTICLE and fill our nearest neighbour lists
                 # before we can do the deposition
                 tree_id = np.array(tree.idx, dtype="int64")
+                size = np.array(self.ActiveDimensions, dtype="int64")
                 for i, chunk in enumerate(self.ds.all_data().chunks([], 'io')):
-                    generate_nn_list(pids, dists, offsets[i], tree,
-                            tree_id, bounds, self.ActiveDimensions,
-                            chunk[(ptype,'particle_position')].in_base("code").d)
+                    generate_nn_list(pids, dists, offsets[i], tree, tree_id,
+                                    bounds, size,
+                                    chunk[(ptype,'particle_position')].in_base("code").d)
+
+                print("gather1")
+                print(dists)
 
                 # now do the deposition
-                #for i, chunk in enumerate(self.ds.all_data().chunks([], 'io')):
-                #    hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
-                #    mass = chunk[(ptype,'particle_mass')].in_base("code").d
-                #    dens = chunk[(ptype,'density')].in_base("code").d
-                #    field_quantity = chunk[field].d
-                #    pixelize_sph_kernel_gather_arbitrary_grid(dest, pids,
-                #                            dists, offsets[i], hsml, mass, dens,
-                #                            field_quantity, bounds)
+                for i, chunk in enumerate(self.ds.all_data().chunks([], 'io')):
+                    hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
+                    mass = chunk[(ptype,'particle_mass')].in_base("code").d
+                    dens = chunk[(ptype,'density')].in_base("code").d
+                    field_quantity = chunk[field].d
+                    pixelize_sph_kernel_gather_arbitrary_grid(dest, pids,
+                                            dists, offsets[i], tree_id, hsml,
+                                            mass, dens, field_quantity)
 
                 fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(dest, fi.units)
                 #pbar.close()
+
+        if(smoothing_style == "gather2"):
+            for field in fields:
+                # set up the nearest neighbour arrays to store the distances
+                # and the particle ids
+                pids = np.zeros((self.ActiveDimensions[0],
+                                 self.ActiveDimensions[1],
+                                 self.ActiveDimensions[2],
+                                 self.ds._num_neighbors), dtype="int64") - 1
+                dists = np.zeros((self.ActiveDimensions[0],
+                                 self.ActiveDimensions[1],
+                                 self.ActiveDimensions[2],
+                                 self.ds._num_neighbors), dtype="float64") - 1
+                dest = np.zeros(self.ActiveDimensions, dtype="float64")
+
+                # set up bounds
+                bounds = np.empty(6, dtype=float)
+                bounds[0] = self.left_edge[0].in_base("code").d
+                bounds[2] = self.left_edge[1].in_base("code").d
+                bounds[4] = self.left_edge[2].in_base("code").d
+                bounds[1] = self.right_edge[0].in_base("code").d
+                bounds[3] = self.right_edge[1].in_base("code").d
+                bounds[5] = self.right_edge[2].in_base("code").d
+
+                # calculate the offsets for the kdtre
+                pos = []
+                mass = []
+                dens = []
+                hsml = []
+                field_quantity = []
+                for chunk in self._data_source.chunks([field],"io"):
+                    pos.append(chunk[(ptype,'particle_position')].in_base("code").d)
+                    mass.append(chunk[(ptype,'particle_mass')].in_base("code").d)
+                    dens.append(chunk[(ptype,'density')].in_base("code").d)
+                    hsml.append(chunk[(ptype,'smoothing_length')].in_base("code").d)
+                    field_quantity.append(chunk[(field)].in_base("code").d)
+
+                pos = np.concatenate(pos)
+                mass = np.concatenate(mass)
+                dens = np.concatenate(dens)
+                hsml = np.concatenate(hsml)
+                field_quantity = np.concatenate(field_quantity)
+
+                tree = PyKDTree(pos.astype('float64'), left_edge=self.left_edge,
+                                right_edge=self.right_edge,
+                                periodic=np.array([False, False, False]),
+                                leafsize=64)
+
+                # find all the nearest neighbors, we have to loop through
+                # EVERY SINGLE PARTICLE and fill our nearest neighbour lists
+                # before we can do the deposition
+                tree_id = np.array(tree.idx, dtype="int64")
+                size = np.array(self.ActiveDimensions, dtype="int64")
+                generate_nn_list(pids, dists, 0, tree, tree_id, bounds, size,
+                            pos)
+
+                print("gather1")
+                print(dists)
+
+                # now do the deposition
+                pixelize_sph_kernel_gather_arbitrary_grid(dest, pids,
+                                            dists, 0, tree_id, hsml,
+                                            mass, dens, field_quantity)
+
+                fi = self.ds._get_field_info(field)
+                self[field] = self.ds.arr(dest, fi.units)
 
 class LevelState(object):
     current_dx = None

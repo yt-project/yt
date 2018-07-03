@@ -103,7 +103,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 def generate_nn_list(np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists,
                      int offset, PyKDTree kdtree,
                      np.int64_t[:] tree_id, np.float64_t[:] bounds,
-                     np.int64_t[:] size, np.float64_t[:,:] input_pos):
+                     np.int64_t[:] size, np.float64_t[:,::1] input_pos):
     """Calculate array of distances to the nth nearest neighbor
 
     Parameters
@@ -144,12 +144,13 @@ def generate_nn_list(np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists
                         queue.size = 0
                         # Fill queue with particles in the node containing the particle
                         # we're searching for
-                        process_node_points_pid(leafnode, pos, input_pos,
-                                            offset, tree_id, queue)
                     else:
+                        queue.size = queue.max_elements
                         queue.heap = dists[i, j, k, :]
                         queue.pids = pids[i, j, k, :]
-                        queue.size = pids.shape[3]
+
+                    process_node_points_pid(leafnode, pos, input_pos,
+                                            offset, tree_id, queue)
 
                     # Traverse the rest of the kdtree to finish the neighbor
                     # list
@@ -159,13 +160,11 @@ def generate_nn_list(np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists
                     dists[i,j,k,:] = queue.heap
                     pids[i,j,k,:] = queue.pids
 
-    return
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int find_knn(Node* node,
                   BoundedPriorityQueue queue,
-                  np.float64_t[:, :] positions,
+                  np.float64_t[:, ::1] positions,
                   np.float64_t* pos,
                   uint32_t skipleaf,
                   uint64_t skipidx) nogil except -1:
@@ -185,7 +184,7 @@ cdef int find_knn(Node* node,
 @cython.wraparound(False)
 cdef int find_knn_pid(Node* node,
                   BoundedPriorityQueue queue,
-                  np.float64_t[:, :] positions,
+                  np.float64_t[:, ::1] positions,
                   np.int64_t offset,
                   np.int64_t[:] tree_id,
                   np.float64_t* pos,
@@ -214,8 +213,8 @@ cdef inline int cull_node(Node* node,
     cdef np.float64_t v
     cdef np.float64_t tpos, ndist = 0
     cdef uint32_t leafid
-    if node.leafid == skipleaf:
-        return True
+    #if node.leafid == skipleaf:
+    #    return True
     for k in range(3):
         v = pos[k]
         if v < node.left_edge[k]:
@@ -231,7 +230,7 @@ cdef inline int cull_node(Node* node,
 @cython.wraparound(False)
 cdef inline int process_node_points(Node* node,
                                     np.float64_t* pos,
-                                    np.float64_t[:, :] positions,
+                                    np.float64_t[:, ::1] positions,
                                     BoundedPriorityQueue queue,
                                     uint64_t skip_idx) nogil except -1:
     cdef uint64_t i, idx
@@ -252,22 +251,21 @@ cdef inline int process_node_points(Node* node,
 @cython.wraparound(False)
 cdef inline int process_node_points_pid(Node* node,
                                         np.float64_t* pos,
-                                        np.float64_t[:, :] positions,
+                                        np.float64_t[:, ::1] positions,
                                         np.int64_t offset,
                                         np.int64_t[:] tree_id,
                                         BoundedPriorityQueue queue,
                                         ) nogil except -1:
-    cdef uint64_t i, idx, idx_offset
+    cdef uint64_t i,idx_offset
     cdef np.float64_t tpos, sq_dist
     cdef int j
-    cdef np.float64_t* p_ptr
     for i in range(node.left_idx, node.left_idx + node.children):
         idx_offset = tree_id[i] - offset
-        if(idx_offset > 0 and idx_offset < positions.shape[0]):
-            p_ptr = &(positions[idx_offset, 0])
-            sq_dist = 0
-            for j in range(3):
-                tpos = p_ptr[j] - pos[j]
-                sq_dist += tpos*tpos
-            queue.add_pid(sq_dist, idx_offset)
+        if(idx_offset < 0 or idx_offset > positions.shape[0]):
+            continue
+        sq_dist = 0
+        for j in range(3):
+            tpos = positions[idx_offset, j] - pos[j]
+            sq_dist += tpos*tpos
+        queue.add_pid(sq_dist, i)
     return 0
