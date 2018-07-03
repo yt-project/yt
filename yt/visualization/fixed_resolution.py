@@ -1,5 +1,6 @@
 import weakref
 from functools import wraps
+from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -14,7 +15,11 @@ from yt.utilities.lib.api import (  # type: ignore
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-from .fixed_resolution_filters import apply_filter, filter_registry
+from .fixed_resolution_filters import (
+    FixedResolutionBufferFilter,
+    apply_filter,
+    filter_registry,
+)
 from .volume_rendering.api import off_axis_projection
 
 
@@ -53,6 +58,8 @@ class FixedResolutionBuffer:
         This can be true or false, and governs whether the pixelization
         will span the domain boundaries.
 
+    filters : list of FixedResolutionBufferFilter objects (optional)
+
     Examples
     --------
     To make a projection and then several images, you can generate a
@@ -90,16 +97,27 @@ class FixedResolutionBuffer:
         ("index", "dtheta"),
     )
 
-    def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False):
+    def __init__(
+        self,
+        data_source,
+        bounds,
+        buff_size,
+        antialias=True,
+        periodic=False,
+        *,
+        filters: Optional[List[FixedResolutionBufferFilter]] = None,
+    ):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
         self.buff_size = (int(buff_size[0]), int(buff_size[1]))
         self.antialias = antialias
-        self.data = {}
+        self.data: Dict[str, np.ndarray] = {}
         self._filters = []
         self.axis = data_source.axis
         self.periodic = periodic
+        self._data_valid = False
+        self._filters = filters if filters is not None else []
 
         ds = getattr(data_source, "ds", None)
         if ds is not None:
@@ -125,7 +143,7 @@ class FixedResolutionBuffer:
         del self.data[item]
 
     def __getitem__(self, item):
-        if item in self.data:
+        if item in self.data and self._data_valid:
             return self.data[item]
         mylog.info(
             "Making a fixed resolution buffer of (%s) %d by %d",
@@ -165,6 +183,7 @@ class FixedResolutionBuffer:
 
         ia = ImageArray(buff, units=units, info=self._get_info(item))
         self.data[item] = ia
+        self._data_valid = True
         return self.data[item]
 
     def __setitem__(self, item, val):
@@ -539,14 +558,14 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
     that supports non-aligned input data objects, primarily cutting planes.
     """
 
-    def __init__(self, data_source, radius, buff_size, antialias=True):
-
+    def __init__(self, data_source, radius, buff_size, antialias=True, *, filters=None):
         self.data_source = data_source
         self.ds = data_source.ds
         self.radius = radius
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
+        self._filters = filters if filters is not None else []
 
         ds = getattr(data_source, "ds", None)
         if ds is not None:
@@ -575,12 +594,6 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     that supports off axis projections.  This calls the volume renderer.
     """
-
-    def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False):
-        self.data = {}
-        FixedResolutionBuffer.__init__(
-            self, data_source, bounds, buff_size, antialias, periodic
-        )
 
     def __getitem__(self, item):
         if item in self.data:
@@ -628,10 +641,18 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
     """
 
-    def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False):
-        self.data = {}
-        FixedResolutionBuffer.__init__(
-            self, data_source, bounds, buff_size, antialias, periodic
+    def __init__(
+        self,
+        data_source,
+        bounds,
+        buff_size,
+        antialias=True,
+        periodic=False,
+        *,
+        filters=None,
+    ):
+        super().__init__(
+            data_source, bounds, buff_size, antialias, periodic, filters=filters
         )
 
         # set up the axis field names
