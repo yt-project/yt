@@ -268,7 +268,7 @@ class PlotWindow(ImagePlotContainer):
         # Generate the FRB
         self.frb = self._frb_generator(self.data_source, bounds,
                                        self.buff_size, self.antialias,
-                                       self,
+                                       plot_window=self,
                                        periodic=self._periodic)
         # Restoring old_filters
         self._frb._filters = old_filters

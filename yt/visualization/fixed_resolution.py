@@ -85,8 +85,8 @@ class FixedResolutionBuffer(object):
                        ('index', 'r'), ('index', 'dr'),
                        ('index', 'phi'), ('index', 'dphi'),
                        ('index', 'theta'), ('index', 'dtheta'))
-    def __init__(self, data_source, bounds, buff_size, antialias = True, plot_window = None,
-                 periodic = False):
+    def __init__(self, data_source, bounds, buff_size, antialias = True,
+                 plot_window = None, periodic = False):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
@@ -494,7 +494,8 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     that supports non-aligned input data objects, primarily cutting planes.
     """
-    def __init__(self, data_source, radius, buff_size, antialias = True) :
+    def __init__(self, data_source, radius, buff_size, antialias = True,
+                 plot_window = None) :
 
         self.data_source = data_source
         self.ds = data_source.ds
@@ -502,6 +503,7 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
+        self.plot_window = plot_window
 
         ds = getattr(data_source, "ds", None)
         if ds is not None:
@@ -522,10 +524,6 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     that supports off axis projections.  This calls the volume renderer.
     """
-    def __init__(self, data_source, bounds, buff_size, antialias = True,
-                 periodic = False):
-        self.data = {}
-        FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)
 
     def __getitem__(self, item):
         if item in self.data: return self.data[item]
@@ -556,11 +554,9 @@ class ParticleImageBuffer(FixedResolutionBuffer):
     buffer.
 
     """
-    def __init__(self, data_source, bounds, buff_size, antialias=True,
-                 periodic=False):
+    def __init__(self, *args, **kwargs):
         self.data = {}
-        FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size,
-                                       antialias, periodic)
+        super(ParticleImageBuffer, self).__init__(*args, **kwargs)
 
         # set up the axis field names
         axis = self.axis
