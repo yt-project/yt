@@ -102,23 +102,21 @@ The following is a code example:
 
 .. code-block:: python
 
-import yt
+    import yt
 
-ds = yt.load('Data/GadgetDiskGalaxy/snapshot_200.hdf5')
+    ds = yt.load('Data/GadgetDiskGalaxy/snapshot_200.hdf5')
 
-smoothing_field = ('gas', 'density')
+    smoothing_field = ('gas', 'density')
 
-_, center = ds.find_max(smoothing_field)
+    _, center = ds.find_max(smoothing_field)
 
-sp = ds.sphere(center, (10, 'kpc'))
+    sp = ds.sphere(center, (10, 'kpc'))
 
-normal_vector = sp.quantities.angular_momentum_vector()
+    normal_vector = sp.quantities.angular_momentum_vector()
 
-prj = yt.OffAxisProjectionPlot(ds, normal_vector,
-                               smoothing_field, center,
-                               (20, 'kpc'))
+    prj = yt.OffAxisProjectionPlot(ds, normal_vector, smoothing_field, center, (20, 'kpc'))
 
-prj.save()
+    prj.save()
 
 
 API Changes
