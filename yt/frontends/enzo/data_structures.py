@@ -924,8 +924,8 @@ class EnzoDataset(Dataset):
             setdefaultattr(
                 self, 'velocity_unit', self.length_unit / self.time_unit)
 
-        magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
-                                (self.time_unit**2 * self.length_unit))
+        density_unit = self.mass_unit / self.length_unit**3
+        magnetic_unit = np.sqrt(4*np.pi * density_unit) * self.velocity_unit
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
         setdefaultattr(self, 'magnetic_unit', self.quan(magnetic_unit, "gauss"))
 
