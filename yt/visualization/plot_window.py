@@ -1292,6 +1292,15 @@ class PWViewerMPL(PlotWindow):
 
             self.__dict__["annotate_" + cbname] = closure()
 
+            # the following 4 lines were commented out to resolve a merging conflict
+            # during a rebase for PR #1877
+            # They are possibly still relevant but look redudant with the code they
+            # were conflicting against.
+            #CallbackMaker = callback_registry[key]
+            #callback = invalidate_plot(apply_callback(CallbackMaker))
+            #callback.__doc__ = CallbackMaker.__doc__
+            #self.__dict__[cbname] = types.MethodType(callback, self)
+
     def annotate_clear(self, index=None):
         """
         Clear callbacks from the plot.  If index is not set, clear all

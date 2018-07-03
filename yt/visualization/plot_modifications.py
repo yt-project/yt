@@ -303,7 +303,7 @@ class VelocityCallback(PlotCallback):
     with substantial variation in field strength.
     """
 
-    _type_name = "velocity"
+    _type_name = "annotate_velocity"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
@@ -393,7 +393,7 @@ class MagFieldCallback(PlotCallback):
     clearly seen for fields with substantial variation in field strength.
     """
 
-    _type_name = "magnetic_field"
+    _type_name = "annotate_magnetic_field"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
@@ -470,7 +470,7 @@ class QuiverCallback(PlotCallback):
     substantial variation in field strength.
     """
 
-    _type_name = "quiver"
+    _type_name = "annotate_quiver"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
@@ -580,7 +580,7 @@ class ContourCallback(PlotCallback):
     queried.
     """
 
-    _type_name = "contour"
+    _type_name = "annotate_contour"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(
@@ -724,8 +724,7 @@ class GridBoundaryCallback(PlotCallback):
     One can set min and maximum level of grids to display, and
     can change the linewidth of the displayed grids.
     """
-
-    _type_name = "grids"
+    _type_name = "annotate_grids"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(
@@ -900,7 +899,7 @@ class StreamlineCallback(PlotCallback):
     their line width set to 0.
     """
 
-    _type_name = "streamlines"
+    _type_name = "annotate_streamlines"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
@@ -1041,7 +1040,7 @@ class LinePlotCallback(PlotCallback):
 
     """
 
-    _type_name = "line"
+    _type_name = "annotate_line"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(self, p1, p2, data_coords=False, coord_system="data", plot_args=None):
@@ -1081,7 +1080,7 @@ class ImageLineCallback(LinePlotCallback):
 
     """
 
-    _type_name = "image_line"
+    _type_name = "annotate_image_line"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(self, p1, p2, data_coords=False, coord_system="axis", plot_args=None):
@@ -1108,7 +1107,7 @@ class CuttingQuiverCallback(PlotCallback):
     substantial variation in field strength.
     """
 
-    _type_name = "cquiver"
+    _type_name = "annotate_cquiver"
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(
@@ -1201,7 +1200,7 @@ class ClumpContourCallback(PlotCallback):
     Take a list of *clumps* and plot them as a set of contours.
     """
 
-    _type_name = "clumps"
+    _type_name = "annotate_clumps"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(self, clumps, plot_args=None):
@@ -1342,7 +1341,7 @@ class ArrowCallback(PlotCallback):
 
     """
 
-    _type_name = "arrow"
+    _type_name = "annotate_arrow"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(
@@ -1496,7 +1495,7 @@ class MarkerAnnotateCallback(PlotCallback):
 
     """
 
-    _type_name = "marker"
+    _type_name = "annotate_marker"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(self, pos, marker="x", coord_system="data", plot_args=None):
@@ -1570,7 +1569,7 @@ class SphereCallback(PlotCallback):
 
     """
 
-    _type_name = "sphere"
+    _type_name = "annotate_sphere"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
@@ -1706,7 +1705,7 @@ class TextLabelCallback(PlotCallback):
     >>> s.save()
     """
 
-    _type_name = "text"
+    _type_name = "annotate_text"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
@@ -1759,7 +1758,7 @@ class PointAnnotateCallback(TextLabelCallback):
 
     """
 
-    _type_name = "point"
+    _type_name = "annotate_point"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(
@@ -1883,7 +1882,7 @@ class HaloCatalogCallback(PlotCallback):
 
     """
 
-    _type_name = "halos"
+    _type_name = "annotate_halos"
     region = None
     _descriptor = None
     _supported_geometries = ("cartesian", "spectral_cube")
@@ -2041,7 +2040,7 @@ class ParticleCallback(PlotCallback):
     default the plot's data source will be queried.
     """
 
-    _type_name = "particles"
+    _type_name = "annotate_particles"
     region = None
     _descriptor = None
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
@@ -2190,7 +2189,7 @@ class TitleCallback(PlotCallback):
     Accepts a *title* and adds it to the plot
     """
 
-    _type_name = "title"
+    _type_name = "annotate_title"
 
     def __init__(self, title):
         PlotCallback.__init__(self)
@@ -2226,7 +2225,7 @@ class MeshLinesCallback(PlotCallback):
 
     """
 
-    _type_name = "mesh_lines"
+    _type_name = "annotate_mesh_lines"
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, plot_args=None):
@@ -2293,7 +2292,7 @@ class TriangleFacetsCallback(PlotCallback):
     of the geometry represented by the triangles.
     """
 
-    _type_name = "triangle_facets"
+    _type_name = "annotate_triangle_facets"
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, triangle_vertices, plot_args=None):
@@ -2415,7 +2414,7 @@ class TimestampCallback(PlotCallback):
     >>> s.annotate_timestamp()
     """
 
-    _type_name = "timestamp"
+    _type_name = "annotate_timestamp"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(
@@ -2656,7 +2655,7 @@ class ScaleCallback(PlotCallback):
     >>> s.annotate_scale()
     """
 
-    _type_name = "scale"
+    _type_name = "annotate_scale"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
 
     def __init__(
@@ -2855,7 +2854,7 @@ class RayCallback(PlotCallback):
 
     """
 
-    _type_name = "ray"
+    _type_name = "annotate_ray"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
 
     def __init__(self, ray, arrow=False, plot_args=None):
@@ -3007,7 +3006,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
     ... )
     """
 
-    _type_name = "line_integral_convolution"
+    _type_name = "annotate_line_integral_convolution"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
 
     def __init__(
@@ -3122,7 +3121,7 @@ class CellEdgesCallback(PlotCallback):
     >>> s.save()
     """
 
-    _type_name = "cell_edges"
+    _type_name = "annotate_cell_edges"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(self, line_width=0.002, alpha=1.0, color="black"):
