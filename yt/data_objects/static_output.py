@@ -587,13 +587,11 @@ class Dataset(object):
             elif value == "plus_minus":
                 self._roman_numeral_ionization = False
             else:
-                print("{0} not an acceptable value for format_type \
+                raise ValueError("{0} not an acceptable value for format_type \
                       `ionozation_label`. Choices are `roman_numeral`\
                       and `plus_minus`.".format(value))
-                raise(ValueError)
         else:
-            print("{0} not a recognized format_type".format(format_property))
-            raise(ValueError)
+            raise ValueError("{0} not a recognized format_property".format(format_property))
 
 
     def setup_deprecated_fields(self):
