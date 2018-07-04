@@ -126,7 +126,11 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int add_pid(self, np.float64_t val, np.int64_t ind) nogil except -1:
+        cdef int i
         if self.size == self.max_elements:
+            for i in range(self.size):
+                if(ind == self.pids[i]):
+                    return 0
             if val < self.heap_ptr[0]:
                 self.extract_max_pid()
                 self.heap_append_pid(val, ind)

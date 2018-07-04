@@ -959,6 +959,7 @@ class YTArbitraryGrid(YTCoveringGrid):
                 fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(dest, fi.units)
                 pbar.close()
+
         if(smoothing_style == "gather1"):
             for field in fields:
                 tree = self.ds.index.kdtree
@@ -1000,9 +1001,6 @@ class YTArbitraryGrid(YTCoveringGrid):
                                     bounds, size,
                                     chunk[(ptype,'particle_position')].in_base("code").d)
 
-                print("gather1")
-                print(dists)
-
                 # now do the deposition
                 for i, chunk in enumerate(self.ds.all_data().chunks([], 'io')):
                     hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
@@ -1015,7 +1013,6 @@ class YTArbitraryGrid(YTCoveringGrid):
 
                 fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(dest, fi.units)
-                #pbar.close()
 
         if(smoothing_style == "gather2"):
             for field in fields:
@@ -1040,42 +1037,33 @@ class YTArbitraryGrid(YTCoveringGrid):
                 bounds[3] = self.right_edge[1].in_base("code").d
                 bounds[5] = self.right_edge[2].in_base("code").d
 
-                # calculate the offsets for the kdtre
-                pos = []
-                mass = []
-                dens = []
-                hsml = []
-                field_quantity = []
+                positions = np.array([])
+                mass = np.array([])
+                hsml = np.array([])
+                dens = np.array([])
+                field_quantity = np.array([])
+
                 for chunk in self._data_source.chunks([field],"io"):
-                    pos.append(chunk[(ptype,'particle_position')].in_base("code").d)
-                    mass.append(chunk[(ptype,'particle_mass')].in_base("code").d)
-                    dens.append(chunk[(ptype,'density')].in_base("code").d)
-                    hsml.append(chunk[(ptype,'smoothing_length')].in_base("code").d)
-                    field_quantity.append(chunk[(field)].in_base("code").d)
+                    positions = np.append(positions, chunk[(ptype,
+                                                      'particle_position')])
+                    hsml = np.append(hsml, chunk[(ptype,'smoothing_length')])
+                    mass = np.append(mass, chunk[(ptype,'particle_mass')])
+                    dens = np.append(dens, chunk[(ptype,'density')])
+                    field_quantity = np.append(field_quantity, chunk[field])
 
-                pos = np.concatenate(pos)
-                mass = np.concatenate(mass)
-                dens = np.concatenate(dens)
-                hsml = np.concatenate(hsml)
-                field_quantity = np.concatenate(field_quantity)
-
-                tree = PyKDTree(pos.astype('float64'), left_edge=self.left_edge,
+                # build local tree
+                positions = positions.reshape(-1,3)
+                tree = PyKDTree(positions.astype('float64'),
+                                left_edge=self.left_edge,
                                 right_edge=self.right_edge,
                                 periodic=np.array([False, False, False]),
                                 leafsize=64)
 
-                # find all the nearest neighbors, we have to loop through
-                # EVERY SINGLE PARTICLE and fill our nearest neighbour lists
-                # before we can do the deposition
                 tree_id = np.array(tree.idx, dtype="int64")
                 size = np.array(self.ActiveDimensions, dtype="int64")
-                generate_nn_list(pids, dists, 0, tree, tree_id, bounds, size,
-                            pos)
+                generate_nn_list(pids, dists, 0, tree, tree_id,
+                                    bounds, size, positions)
 
-                print("gather1")
-                print(dists)
-
-                # now do the deposition
                 pixelize_sph_kernel_gather_arbitrary_grid(dest, pids,
                                             dists, 0, tree_id, hsml,
                                             mass, dens, field_quantity)
