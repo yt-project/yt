@@ -141,7 +141,24 @@ def off_axis_projection(data_source, center, normal_vector,
                     "Can only perform off-axis projections for SPH fields, "
                     "Received '%s'" % (item,)
                     )
+        
+        normal = np.array(normal_vector)
+        normal = normal / np.linalg.norm(normal)
 
+        # If north_vector is None, we set the default here.
+        # This is chosen so that if normal_vector is one of the
+        # cartesian coordinate axes, the projection will match
+        # the corresponding on-axis projection.
+        if north_vector is None:
+            vecs = np.identity(3)
+            t = np.cross(vecs, normal).sum(axis=1)
+            ax = t.argmax()
+            east_vector = np.cross(vecs[ax, :], normal).ravel()
+            north = np.cross(normal, east_vector).ravel()
+        else:
+            north = np.array(north_vector)
+            north = north / np.linalg.norm(north)
+        
         buf = np.zeros((resolution[0], resolution[1]), dtype='float64')
 
         x_min = center[0] - width[0] / 2
@@ -165,7 +182,14 @@ def off_axis_projection(data_source, center, normal_vector,
                                     chunk[item],
                                     buf,
                                     normal_vector)
-        return buf
+
+        funits = data_source.ds._get_field_info(item).units
+        myinfo = {'field':item, 'east_vector':east_vector,
+                  'north_vector':north_vector, 'normal_vector':normal_vector,
+                  'width':width, 'units':funits, 'type':'rendering'}
+
+        return ImageArray(buf, funits, registry=data_source.ds.unit_registry, info=myinfo)
+
     sc = Scene()
     data_source.ds.index
     if item is None:
