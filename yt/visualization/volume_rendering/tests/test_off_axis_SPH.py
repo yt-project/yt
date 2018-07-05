@@ -55,7 +55,7 @@ def test_no_rotation():
                                    quantity_to_smooth,
                                    bounds
                                    )
-    assert_almost_equal(buf1, buf2)
+    assert_almost_equal(buf1.ndarray_view(), buf2)
 
 
 @requires_module('scipy')
@@ -269,8 +269,9 @@ def test_center_3():
 
 @requires_module('scipy')
 def find_compare_maxima(expected_maxima, buf, resolution, width):
+    buf_ndarray = buf.ndarray_view()
     max_filter_buf = ndimage.filters.maximum_filter(buf, size=5)
-    maxima = np.isclose(max_filter_buf, buf, rtol=1e-09)
+    maxima = np.isclose(max_filter_buf, buf_ndarray, rtol=1e-09)
     # ignore contributions from zones of no smoothing
     for i in range(len(maxima)):
         for j in range(len(maxima[i])):

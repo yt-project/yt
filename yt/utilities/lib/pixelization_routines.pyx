@@ -1395,7 +1395,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                             width,
                             np.float64_t[:] quantity_to_smooth,
                             np.float64_t[:, :] projection_array, 
-                            normal_vector):
+                            normal_vector,
+                            weight_field=None):
     # Do nothing in event of a 0 normal vector
     if np.allclose(normal_vector, np.array([0., 0., 0.]), rtol=1e-09):
         return
@@ -1449,7 +1450,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                                    particle_densities,
                                    quantity_to_smooth,
                                    [rot_bounds_x0, rot_bounds_x1,
-                                    rot_bounds_y0, rot_bounds_y1])
+                                    rot_bounds_y0, rot_bounds_y1],
+                                    weight_field=weight_field)
 
 
 @cython.boundscheck(False)
