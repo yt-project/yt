@@ -87,7 +87,7 @@ using them matters.
    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
    slc = ds.slice('z', 0.5)
    frb = slc.to_frb((20, 'kpc'), 512)
-   frb.apply_gauss_beam(nbeam=30, sigma=2.0)
+   frb.apply_gauss_beam(sigma=2.0)
    frb.apply_white_noise(5e-23)
    plt.imshow(frb['density'].d)
    plt.savefig('frb_filters.png')

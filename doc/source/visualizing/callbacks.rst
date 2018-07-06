@@ -777,3 +777,21 @@ Overplot the Path of a Ray
    p.annotate_ray(oray)
    p.annotate_ray(ray)
    p.save()
+
+
+Operating on the final image
+-----------------------------
+
+It is also possible to operate on the plotted image directly by using
+one of the fixed resolution buffer filter as described in
+:ref:`frb-filters`. 
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.SlicePlot(ds, 'z', 'density')
+   p.frb.apply_gauss_beam(sigma=30)
+   p.save()
+
