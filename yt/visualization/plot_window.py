@@ -272,7 +272,14 @@ class PlotWindow(ImagePlotContainer):
         doc = "The frb property."
 
         def fget(self):
-            if self._frb is None or not self._data_valid:
+            # Force the regeneration of the fixed resolution buffer
+            # * if there's none
+            # * if the data has been invalidated
+            # * if the frb has been inalidated
+            if (self._frb is None or
+                not self._data_valid or
+                not self._frb._data_valid
+            ):
                 self._recreate_frb()
             return self._frb
 
@@ -311,11 +318,9 @@ class PlotWindow(ImagePlotContainer):
             bounds,
             self.buff_size,
             self.antialias,
-            plot_window=self,
             periodic=self._periodic,
+            filters=old_filders
         )
-        # Restoring old_filters
-        self._frb._filters = old_filters
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
         if old_fields is None:
@@ -966,7 +971,9 @@ class PWViewerMPL(PlotWindow):
 
         if self._plot_valid:
             return
-        if not self._data_valid:
+        if ( not self._data_valid or
+             self._frb is None or
+             not self._frb._data_valid):
             self._recreate_frb()
             self._data_valid = True
         self._colorbar_valid = True

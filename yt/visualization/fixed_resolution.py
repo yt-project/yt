@@ -87,7 +87,7 @@ class FixedResolutionBuffer:
         ("index", "dtheta"),
     )
 
-    def __init__(self, data_source, bounds, buff_size, antialias=True, plot_window=None, periodic=False):
+    def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False, filters=None):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
@@ -97,7 +97,8 @@ class FixedResolutionBuffer:
         self._filters = []
         self.axis = data_source.axis
         self.periodic = periodic
-        self.plot_window = plot_window
+        self._data_valid = False
+        self._filters = filters if filters else []
 
         ds = getattr(data_source, "ds", None)
         if ds is not None:
@@ -123,7 +124,7 @@ class FixedResolutionBuffer:
         del self.data[item]
 
     def __getitem__(self, item):
-        if item in self.data:
+        if item in self.data and self._data_valid:
             return self.data[item]
         mylog.info(
             "Making a fixed resolution buffer of (%s) %d by %d",
@@ -163,6 +164,7 @@ class FixedResolutionBuffer:
 
         ia = ImageArray(buff, units=units, info=self._get_info(item))
         self.data[item] = ia
+        self._data_valid = True
         return self.data[item]
 
     def __setitem__(self, item, val):
@@ -623,11 +625,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
     buffer.
 
     """
-
-    def __init__(self, data_source, bounds, buff_size, antialias=True, plot_window=None, periodic=False):
-        FixedResolutionBuffer.__init__(
-            self, data_source, bounds, buff_size, antialias, plot_window, periodic
-        )
+    def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False):
+        super(ParticleImageBuffer, self).__init__(data_source, bounds, buff_size, antialias, periodic)
 
         # set up the axis field names
         axis = self.axis
