@@ -98,7 +98,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     return np.asarray(smoothing_length)
 
 @cython.boundscheck(False)
-@cython.wraparound(False)
+@cython.wraparound(True)
 @cython.cdivision(True)
 def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] dists,
                      int offset, PyKDTree kdtree,
@@ -137,19 +137,21 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
                     voxel_position[1] = bounds[2] + (j+0.5)*dy
                     voxel_position[2] = bounds[4] + (k+0.5)*dz
 
-                    pos = &(voxel_position[0])
-                    leafnode = c_tree.search(&pos[0])
-
                     queue.size = 0
                     queue.heap[:] = dists[i, j, k, :]
                     queue.pids[:] = pids[i, j, k, :]
 
-                    if offset > 0:
-                        queue.reset()
+                    if queue.heap[0] != -1.0:
                         queue.size = queue.max_elements
 
+                    pos = &(voxel_position[0])
+                    leafnode = c_tree.search(&pos[0])
                     process_node_points_pid(leafnode, pos, input_pos,
                                                 offset, tree_id, queue)
+
+                    if queue.size == 0:
+                        dists[i, j, k, 0] = -1.0
+                        continue
 
                     # Traverse the rest of the kdtree to finish the neighbor
                     # list
@@ -158,8 +160,6 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
 
                     dists[i, j, k, :] = queue.heap[:]
                     pids[i, j, k, :] = queue.pids[:]
-
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -190,13 +190,12 @@ cdef int find_knn_pid(Node* node,
                   np.int64_t[:] tree_id,
                   np.float64_t* pos,
                   uint32_t skipleaf) nogil except -1:
-
     # if we aren't a leaf then we keep travsersing until we find a leaf, else we
     # we actually begin to check the leaf
     if not node.is_leaf:
-        if not cull_node_pid(node.less, pos, queue, skipleaf) and (tree_id[node.left_idx] - offset) > 0:
+        if not cull_node_pid(node.less, pos, queue, skipleaf):
             find_knn_pid(node.less, queue, positions, offset, tree_id, pos, skipleaf)
-        if not cull_node_pid(node.greater, pos, queue, skipleaf) and (tree_id[node.left_idx + node.children] - offset) < positions.shape[0]:
+        if not cull_node_pid(node.greater, pos, queue, skipleaf):
             find_knn_pid(node.greater, queue, positions, offset, tree_id, pos, skipleaf)
     else:
         if not cull_node_pid(node, pos, queue, skipleaf):
