@@ -19,8 +19,11 @@ import unittest
 
 from yt.visualization.image_writer import write_projection
 from yt.testing import \
-    fake_random_ds, assert_equal, expand_keywords, fake_octree_ds
-from yt.mods import write_projection
+    assert_equal, \
+    assert_fname, \
+    expand_keywords, \
+    fake_octree_ds, \
+    fake_random_ds
 from yt.visualization.volume_rendering.api import off_axis_projection
 from yt.visualization.api import OffAxisProjectionPlot, \
     OffAxisSlicePlot
