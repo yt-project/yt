@@ -23,10 +23,8 @@ def apply_filter(f):
     def newfunc(*args, **kwargs):
         frb = args[0]
         frb._filters.append((f.__name__, (args, kwargs)))
-        # We need to invalidate the data to force the plot window to
-        # take the filter into account.
-        if frb.plot_window:
-            frb.plot_window._data_valid = False
+        # Invalidate the data of the frb to force its regeneration
+        frb._data_valid = False
         return args[0]
     return newfunc
 
