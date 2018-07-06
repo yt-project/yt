@@ -2575,32 +2575,3 @@ class CellEdgesCallback(PlotCallback):
                           alpha=self.alpha)
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
-
-class SmoothCallback(PlotCallback):
-    """
-    Smooth the plotting window.
-
-    [WIP]
-    """
-    _type_name = "smooth"
-    _supported_geometries = ("cartesian", "spectral_cube")
-
-
-    def __init__(self, kernel_name, kernel_params={}):
-        if callable(kernel_name):
-            self.kernel = kernel_name
-            self.kernel_params = kernel_params
-        else:
-            self.kernel = getattr(self, kernel_name, None)
-            if self.kernel is None:
-                raise Exception('Kernel not found')
-            self.kernel_params = kernel_params
-
-    def __call__(self, plot):
-        data = plot.image._A.copy()
-
-        plot.image._A = self.kernel(data, **self.kernel_params)
-
-    def gaussian(self, data, sigma=5):
-        from scipy.ndimage import gaussian_filter
-        return np.ma.masked_array(gaussian_filter(data, sigma))
