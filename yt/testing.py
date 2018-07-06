@@ -449,9 +449,13 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     return ds
 
 
-def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=[True]):
+def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=None):
     # Implementation taken from url:
     # http://docs.hyperion-rt.org/en/stable/advanced/indepth_oct.html
+
+
+    if refined is None:
+        refined = [True]
 
     # Loop over subcells
     for subcell in range(8):
@@ -467,14 +471,13 @@ def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=[True]):
             construct_octree_mask(prng, refined)
     return refined
 
-def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=[True], quantities=None,
+def fake_octree_ds(prng=RandomState(0x1d3d3d3), quantities=None,
                    bbox=None, sim_time=0.0, length_unit=None, mass_unit=None,
                    time_unit=None, velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True), over_refine_factor=1,
                    partial_coverage=1, unit_system="cgs"):
     from yt.frontends.stream.api import load_octree
-    octree_mask = np.asarray(construct_octree_mask(prng=prng, refined=refined),
-                             dtype=np.uint8)
+    octree_mask = np.asarray(construct_octree_mask(prng=prng), dtype=np.uint8)
     particles = np.sum(np.invert(octree_mask))
 
     if quantities is None:
