@@ -100,7 +100,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def generate_nn_list(np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists,
+def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] dists,
                      int offset, PyKDTree kdtree,
                      np.int64_t[:] tree_id, np.float64_t[:] bounds,
                      np.int64_t[:] size, np.float64_t[:,::1] input_pos):
@@ -140,14 +140,13 @@ def generate_nn_list(np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists
                     pos = &(voxel_position[0])
                     leafnode = c_tree.search(&pos[0])
 
-                    with gil:
-                        queue = BoundedPriorityQueue(pids.shape[3], True)
-
                     queue.size = 0
-                    if(offset > 0):
-                        for p in range(pids.shape[3]):
-                            queue.add_pid(dists[i, j, k, p],
-                                          pids[i, j, k, p])
+                    queue.heap[:] = dists[i, j, k, :]
+                    queue.pids[:] = pids[i, j, k, :]
+
+                    if offset > 0:
+                        queue.reset()
+                        queue.size = queue.max_elements
 
                     process_node_points_pid(leafnode, pos, input_pos,
                                                 offset, tree_id, queue)
@@ -159,6 +158,8 @@ def generate_nn_list(np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists
 
                     dists[i, j, k, :] = queue.heap[:]
                     pids[i, j, k, :] = queue.pids[:]
+
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -189,15 +190,16 @@ cdef int find_knn_pid(Node* node,
                   np.int64_t[:] tree_id,
                   np.float64_t* pos,
                   uint32_t skipleaf) nogil except -1:
+
     # if we aren't a leaf then we keep travsersing until we find a leaf, else we
     # we actually begin to check the leaf
     if not node.is_leaf:
-        if not cull_node(node.less, pos, queue, skipleaf):
+        if not cull_node_pid(node.less, pos, queue, skipleaf) and (tree_id[node.left_idx] - offset) > 0:
             find_knn_pid(node.less, queue, positions, offset, tree_id, pos, skipleaf)
-        if not cull_node(node.greater, pos, queue, skipleaf):
+        if not cull_node_pid(node.greater, pos, queue, skipleaf) and (tree_id[node.left_idx + node.children] - offset) < positions.shape[0]:
             find_knn_pid(node.greater, queue, positions, offset, tree_id, pos, skipleaf)
     else:
-        if not cull_node(node, pos, queue, skipleaf):
+        if not cull_node_pid(node, pos, queue, skipleaf):
             process_node_points_pid(node, pos, positions, offset, tree_id, queue)
     return 0
 
@@ -213,8 +215,8 @@ cdef inline int cull_node(Node* node,
     cdef np.float64_t v
     cdef np.float64_t tpos, ndist = 0
     cdef uint32_t leafid
-    #if node.leafid == skipleaf:
-    #    return True
+    if node.leafid == skipleaf:
+        return True
     for k in range(3):
         v = pos[k]
         if v < node.left_edge[k]:
@@ -225,6 +227,31 @@ cdef inline int cull_node(Node* node,
             tpos = 0
         ndist += tpos*tpos
     return (ndist > queue.heap[0] and queue.size == queue.max_elements)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline int cull_node_pid(Node* node,
+                          np.float64_t* pos,
+                          BoundedPriorityQueue queue,
+                          uint32_t skipleaf) nogil except -1:
+    # this function essentially checks if the node can possibly have particles
+    # which are nearest neighbours, if it does, then it returns False. if it can
+    # be skipped, it returns True
+    cdef np.float64_t v
+    cdef np.float64_t tpos, ndist = 0
+    cdef uint32_t leafid
+    if node.leafid == skipleaf:
+        return True
+    for k in range(3):
+        v = pos[k]
+        if v < node.left_edge[k]:
+            tpos = node.left_edge[k] - v
+        elif v > node.right_edge[k]:
+            tpos = v - node.right_edge[k]
+        else:
+            tpos = 0
+        ndist += tpos*tpos
+    return (ndist > queue.heap_ptr[0] and queue.size == queue.max_elements)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

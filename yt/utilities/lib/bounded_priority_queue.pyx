@@ -5,7 +5,7 @@ This is a priority queue that only keeps track of smallest k values that have
 been added to it.
 
 This priority queue is implemented with the configuration of having the largest
-element at the top - this exploited to store nearest neighbour lists.
+element at the beginning - this exploited to store nearest neighbour lists.
 
 """
 
@@ -28,12 +28,23 @@ cdef class BoundedPriorityQueue:
         # mark invalid recently  values with -1
         self.heap = np.zeros(max_elements)-1
         self.heap_ptr = &(self.heap[0])
-
+        # only allocate memory if we intend to store particle ID's
         if(pids == 1):
             self.pids = np.zeros(max_elements, dtype=int)-1
             self.pids_ptr = &(self.pids[0])
 
         self.size = 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef int reset(self) nogil except -1:
+        # utlity function useful to re-validate the pointers if we allocate
+        # the heap to a memoryview
+        self.pids_ptr = &(self.pids[0])
+        self.heap_ptr = &(self.heap[0])
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -168,7 +179,7 @@ cdef class BoundedPriorityQueue:
     @cython.initializedcheck(False)
     cdef np.float64_t extract_max(self) nogil except -1:
         # we remove the maximum value from the array, and return what that value
-        # was.
+        # was
         cdef np.float64_t maximum = self.heap_ptr[0]
         cdef np.float64_t val = self.heap_ptr[self.size-1]
         self.heap_ptr[self.size-1] = -1
@@ -212,44 +223,17 @@ cdef class BoundedPriorityQueue:
 def validate_pid():
     m = BoundedPriorityQueue(5, True)
 
-    print("#################################")
-    print("Initial heap:", np.asarray(m.heap), " - ", np.asarray(m.pids))
-
     # Add elements to the queue
     elements = [0.1, 0.25, 1.33, 0.5, 3.2, 4.6, 2.0, 0.4, 4.0, .001]
     pids = [1,2,3,4,5,6,7,8,9,10]
 
-    print(elements, pids)
-
     for el, pid in zip(elements, pids):
         m.add_pid(el, pid)
-        print(np.asarray(m.heap), " - ", np.asarray(m.pids))
-
-    print(np.asarray(m.heap))
-
-    print("Extract maximum:", m.extract_max())
-    print("Extract maximum:", m.extract_max())
-    print("Extract maximum:", m.extract_max())
-    print("Extract maximum:", m.extract_max())
-
-    print(np.asarray(m.heap))
 
 def validate():
     m = BoundedPriorityQueue(5)
 
-    print("#################################")
-    print("Initial heap:", np.asarray(m.heap))
-
     # Add elements to the queue
     for el in [0.1, 0.25, 1.33, 0.5, 3.2, 4.6, 2.0, 0.4, 4.0, .001]:
         m.add(el)
-        print(np.asarray(m.heap))
 
-    print(np.asarray(m.heap))
-
-    print("Extract maximum:", m.extract_max())
-    print("Extract maximum:", m.extract_max())
-    print("Extract maximum:", m.extract_max())
-    print("Extract maximum:", m.extract_max())
-
-    print(np.asarray(m.heap))

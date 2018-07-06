@@ -44,9 +44,6 @@ from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
 from yt.funcs import get_pbar
 
-from cykdtree.kdtree import PyKDTree
-from yt.utilities.lib.particle_kdtree_tools import generate_nn_list
-
 cdef int TABLE_NVALS=512
 
 cdef extern from "pixelization_constants.h":
@@ -1166,7 +1163,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
         np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth, np.float64_t[:] bounds, pbar=None,
-        kernel_name="cubic", use_normalization=False):
+        kernel_name="cubic", use_normalization=True):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, w_j, coeff
@@ -1288,8 +1285,8 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists,
         np.int64_t offset, np.int64_t[:] tree_id,  np.float64_t[:] hsml,
         np.float64_t[:] pmass, np.float64_t[:] pdens,
-        np.float64_t[:] quantity_to_smooth, pbar=None,
-        kernel_name="cubic", use_normalization=False):
+        np.float64_t[:] quantity_to_smooth,
+        kernel_name="cubic", use_normalization=True):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t w_j, coeff
@@ -1315,10 +1312,12 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
                 for zi in range(zsize):
                     h_j2 = dists[xi, yi, zi, 0]
                     ih_j2 = 1/h_j2
+
                     for pi in range(pids.shape[3]):
                         particle = tree_id[pids[xi, yi, zi, pi]] - offset
                         if(particle < 0 or particle > pmass.shape[0]):
                             continue
+
                         w_j = pmass[particle] / pdens[particle] / hsml[particle]**3
                         coeff = w_j * quantity_to_smooth[particle]
                         q = math.sqrt(dists[xi, yi, zi, pi]*ih_j2)
