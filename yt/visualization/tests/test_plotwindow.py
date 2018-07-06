@@ -297,7 +297,7 @@ class TestPlotWindowSave(unittest.TestCase):
         for dim in range(3):
             slc = SlicePlot(test_ds, dim, 'density')
             for fname in TEST_FLNMS:
-                assert assert_fname(slc.save(fname)[0])
+                assert_fname(slc.save(fname)[0])
 
     def test_repr_html(self):
         test_ds = fake_random_ds(16)
@@ -309,7 +309,7 @@ class TestPlotWindowSave(unittest.TestCase):
         for dim in range(3):
             proj = ProjectionPlot(test_ds, dim, 'density')
             for fname in TEST_FLNMS:
-                assert assert_fname(proj.save(fname)[0])
+                assert_fname(proj.save(fname)[0])
 
     def test_projection_plot_ds(self):
         test_ds = fake_random_ds(16)
@@ -340,13 +340,13 @@ class TestPlotWindowSave(unittest.TestCase):
         test_ds = fake_random_ds(16)
         slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
         for fname in TEST_FLNMS:
-            assert assert_fname(slc.save(fname)[0])
+            assert_fname(slc.save(fname)[0])
 
     def test_offaxis_projection_plot(self):
         test_ds = fake_random_ds(16)
         prj = OffAxisProjectionPlot(test_ds, [1, 1, 1], "density")
         for fname in TEST_FLNMS:
-            assert assert_fname(prj.save(fname)[0])
+            assert_fname(prj.save(fname)[0])
 
     def test_creation_with_width(self):
         test_ds = fake_random_ds(16)

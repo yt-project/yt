@@ -224,3 +224,27 @@ class TestAnnotations(unittest.TestCase):
 
         with self.assertRaises(YTFieldNotFound):
             self.plot.annotate_text(1e-1, 1e1, "Annotated text", "wrong_field_name")
+
+@requires_file(ETC46)
+def test_phaseplot_set_log():
+    ds = yt.load(ETC46)
+    sp = ds.sphere("max", (1.0, "Mpc"))
+    p1 = yt.ProfilePlot(sp, "radius", ("enzo", "Density"))
+    p2 = yt.PhasePlot(sp, ("enzo", "Density"), ("enzo", "Temperature"), "cell_mass")
+    # make sure we can set the log-scaling using the tuple without erroring out
+    p1.set_log(("enzo", "Density"), False)
+    p2.set_log(("enzo", "Temperature"), False)
+    assert p1.y_log["enzo", "Density"] is False
+    assert p2.y_log is False
+
+    # make sure we can set the log-scaling using a string without erroring out
+    p1.set_log("Density", True)
+    p2.set_log("Temperature", True)
+    assert p1.y_log["enzo", "Density"] is True
+    assert p2.y_log is True
+
+    # make sure we can set the log-scaling using a field object
+    p1.set_log(ds.fields.enzo.Density, False)
+    p2.set_log(ds.fields.enzo.Temperature, False)
+    assert p1.y_log["enzo", "Density"] is False
+    assert p2.y_log is False

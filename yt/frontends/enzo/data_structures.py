@@ -151,17 +151,19 @@ class EnzoGridGZ(EnzoGrid):
             end_zone = None
         else:
             end_zone = -(NGZ - n_zones)
-        sl = [slice(start_zone, end_zone) for i in range(3)]
+        sl = tuple([slice(start_zone, end_zone) for i in range(3)])
         if fields is None: return cube
         for field in ensure_list(fields):
             if field in self.field_list:
                 conv_factor = 1.0
                 if field in self.ds.field_info:
-                    conv_factor = self.ds.field_info[field]._convert_function(self)
+                    conv_factor = self.ds.field_info[field]._convert_function(
+                        self)
                 if self.ds.field_info[field].particle_type: continue
                 temp = self.index.io._read_raw_data_set(self, field)
                 temp = temp.swapaxes(0, 2)
-                cube.field_data[field] = np.multiply(temp, conv_factor, temp)[sl]
+                cube.field_data[field] = np.multiply(
+                    temp, conv_factor, temp)[sl]
         return cube
 
 class EnzoHierarchy(GridIndex):
