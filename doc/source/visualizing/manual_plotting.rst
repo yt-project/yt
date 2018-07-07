@@ -97,13 +97,12 @@ Currently available filters:
 Gaussian Smoothing
 ~~~~~~~~~~~~~~~~~~
 
-.. function:: apply_gauss_beam(self, nbeam=30, sigma=2.0)
+.. function:: apply_gauss_beam(self, sigma=2.0)
 
    (This is a proxy for
    :class:`~yt.visualization.fixed_resolution_filters.FixedResolutionBufferGaussBeamFilter`.)
 
-    This filter convolves the FRB with 2d Gaussian that is "nbeam" pixel wide
-    and has standard deviation "sigma".
+    This filter convolves the FRB with 2d Gaussian that has standard deviation "sigma".
 
 White Noise
 ~~~~~~~~~~~
