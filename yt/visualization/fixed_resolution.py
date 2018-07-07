@@ -542,15 +542,14 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
     that supports non-aligned input data objects, primarily cutting planes.
     """
 
-    def __init__(self, data_source, radius, buff_size, antialias=True, plot_window=None):
-
+    def __init__(self, data_source, radius, buff_size, antialias=True, filters=None) :
         self.data_source = data_source
         self.ds = data_source.ds
         self.radius = radius
         self.buff_size = buff_size
         self.antialias = antialias
         self.data = {}
-        self.plot_window = plot_window
+        self._filters = filters if filters else []
 
         ds = getattr(data_source, "ds", None)
         if ds is not None:
@@ -625,8 +624,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
     buffer.
 
     """
-    def __init__(self, data_source, bounds, buff_size, antialias=True, periodic=False):
-        super(ParticleImageBuffer, self).__init__(data_source, bounds, buff_size, antialias, periodic)
+    def __init__(self, data_source, radius, buff_size, antialias=True, periodic=False, filters=None):
+        super(ParticleImageBuffer, self).__init__(data_source, radius, buff_size, antialias, periodic, filters)
 
         # set up the axis field names
         axis = self.axis
