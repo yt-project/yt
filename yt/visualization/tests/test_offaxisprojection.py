@@ -19,9 +19,14 @@ import unittest
 
 from yt.visualization.image_writer import write_projection
 from yt.testing import \
-    fake_random_ds, expand_keywords, assert_fname
+    assert_equal, \
+    assert_fname, \
+    expand_keywords, \
+    fake_octree_ds, \
+    fake_random_ds
 from yt.visualization.volume_rendering.api import off_axis_projection
-
+from yt.visualization.api import OffAxisProjectionPlot, \
+    OffAxisSlicePlot
 
 class TestOffAxisProjection(unittest.TestCase):
     @classmethod
@@ -88,3 +93,17 @@ class TestOffAxisProjection(unittest.TestCase):
 
         write_projection(image, "test_4.eps", xlabel="x-axis", ylabel="y-axis")
         assert_fname("test_4.eps")
+
+def test_field_cut_off_axis_octree():
+    ds = fake_octree_ds() 
+    cut = ds.all_data().cut_region('obj["density"]>0.5') 
+    p1 = OffAxisProjectionPlot(ds, [1, 0, 0], 'density')
+    p2 = OffAxisProjectionPlot(ds, [1, 0, 0], 'density', data_source=cut)
+    assert_equal(p2.frb["density"].min() == 0.0, True) # Lots of zeros
+    assert_equal((p1.frb["density"] == p2.frb["density"]).all(), False)
+    p3 = OffAxisSlicePlot(ds, [1, 0, 0], 'density')
+    p4 = OffAxisSlicePlot(ds, [1, 0, 0], 'density', data_source=cut)
+    assert_equal((p3.frb["density"] == p4.frb["density"]).all(), False)
+    p4rho = p4.frb["density"]
+    assert_equal(p4rho.min() == 0.0, True) # Lots of zeros
+    assert_equal(p4rho[p4rho > 0.0].min() >= 0.5, True)
