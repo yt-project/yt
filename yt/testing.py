@@ -449,9 +449,16 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     return ds
 
 
-def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=[True]):
+def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=None):
     # Implementation taken from url:
     # http://docs.hyperion-rt.org/en/stable/advanced/indepth_oct.html
+
+
+    if refined in (None, True):
+        refined = [True]
+    if refined is False:
+        refined = [False]
+        return refined
 
     # Loop over subcells
     for subcell in range(8):
@@ -467,7 +474,7 @@ def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=[True]):
             construct_octree_mask(prng, refined)
     return refined
 
-def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=[True], quantities=None,
+def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=None, quantities=None,
                    bbox=None, sim_time=0.0, length_unit=None, mass_unit=None,
                    time_unit=None, velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True), over_refine_factor=1,
