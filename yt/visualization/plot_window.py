@@ -237,7 +237,7 @@ class PlotWindow(ImagePlotContainer):
             # * if there's none
             # * if the data has been invalidated
             # * if the frb has been inalidated
-            if not self.data_is_valid():
+            if not self.data_is_valid:
                 self._recreate_frb()
             return self._frb
 
@@ -667,6 +667,7 @@ class PWViewerMPL(PlotWindow):
         self._splat_color = kwargs.pop("splat_color", None)
         PlotWindow.__init__(self, *args, **kwargs)
 
+    @property
     def data_is_valid(self):
         return self._data_valid and self._frb and self._frb._data_valid
 
@@ -755,7 +756,7 @@ class PWViewerMPL(PlotWindow):
         from matplotlib.mathtext import MathTextParser
         if self._plot_valid:
             return
-        if not self.data_is_valid():
+        if not self.data_is_valid:
             self._recreate_frb()
             self._data_valid = True
         self._colorbar_valid = True
