@@ -33,6 +33,17 @@ def test_gauss_beam_filter():
     frb["density"]
 
 
+def test_custom_filter():
+    ds = fake_amr_ds(fields=("density",))
+    p = ds.proj("density", "z")
+    frb = p.to_frb((1, 'unitary'), 64)
+    data1 = frb['density']
+    frb.apply_custom_filter(lambda d: d*2)
+    data2 = frb['density']
+
+    assert np.allclose(data1.value * 2, data2.value)
+
+
 @requires_module("scipy")
 def test_filter_wiring():
     from scipy.ndimage import gaussian_filter
