@@ -20,9 +20,10 @@ from yt.data_objects.data_containers import \
     YTSelectionContainer0D, YTSelectionContainer1D, \
     YTSelectionContainer2D, YTSelectionContainer3D, YTSelectionContainer
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_list, iterable, validate_width_tuple,\
-    fix_length, fix_axis, validate_3d_array, validate_float,\
-    validate_iterable, validate_object
+from yt.extern.six import string_types
+from yt.funcs import ensure_list, iterable, validate_width_tuple, \
+    fix_length, fix_axis, validate_3d_array, validate_float, \
+    validate_iterable, validate_object, validate_axis, validate_center
 from yt.geometry.selection_routines import \
     points_in_cells
 from yt.units.yt_array import \
@@ -69,6 +70,10 @@ class YTPoint(YTSelectionContainer0D):
     _type_name = "point"
     _con_args = ('p',)
     def __init__(self, p, ds=None, field_parameters=None, data_source=None):
+        validate_3d_array(p)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         super(YTPoint, self).__init__(ds, field_parameters, data_source)
         if isinstance(p, YTArray):
             # we pass p through ds.arr to ensure code units are attached
@@ -128,6 +133,13 @@ class YTOrthoRay(YTSelectionContainer1D):
     _con_args = ('axis', 'coords')
     def __init__(self, axis, coords, ds=None, 
                  field_parameters=None, data_source=None):
+        validate_axis(ds, axis)
+        validate_iterable(coords)
+        for c in coords:
+            validate_float(c)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         super(YTOrthoRay, self).__init__(ds, field_parameters, data_source)
         self.axis = fix_axis(axis, self.ds)
         xax = self.ds.coordinates.x_axis[self.axis]
@@ -204,6 +216,11 @@ class YTRay(YTSelectionContainer1D):
     _container_fields = ("t", "dts")
     def __init__(self, start_point, end_point, ds=None,
                  field_parameters=None, data_source=None):
+        validate_3d_array(start_point)
+        validate_3d_array(end_point)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         super(YTRay, self).__init__(ds, field_parameters, data_source)
         if isinstance(start_point, YTArray):
             self.start_point = \
@@ -279,6 +296,14 @@ class YTSlice(YTSelectionContainer2D):
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, axis, coord, center=None, ds=None,
                  field_parameters=None, data_source=None):
+        validate_axis(ds, axis)
+        validate_float(coord)
+        # center is an optional parameter
+        if center is not None:
+            validate_center(center)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer2D.__init__(self, axis, ds,
                                         field_parameters, data_source)
         self._set_center(center)
@@ -398,6 +423,13 @@ class YTCuttingPlane(YTSelectionContainer2D):
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, normal, center, north_vector=None,
                  ds=None, field_parameters=None, data_source=None):
+        validate_3d_array(normal)
+        validate_center(center)
+        if north_vector is not None:
+            validate_3d_array(north_vector)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer2D.__init__(self, 4, ds,
                                         field_parameters, data_source)
         self._set_center(center)
@@ -585,16 +617,14 @@ class YTDisk(YTSelectionContainer3D):
     _con_args = ('center', '_norm_vec', 'radius', 'height')
     def __init__(self, center, normal, radius, height, fields=None,
                  ds=None, field_parameters=None, data_source=None):
-
-        validate_3d_array(center)
+        validate_center(center)
         validate_3d_array(normal)
         validate_float(radius)
         validate_float(height)
         validate_iterable(fields)
-        validate_object(field_parameters, dict)
         validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
@@ -626,6 +656,14 @@ class YTRegion(YTSelectionContainer3D):
     _con_args = ('center', 'left_edge', 'right_edge')
     def __init__(self, center, left_edge, right_edge, fields=None,
                  ds=None, field_parameters=None, data_source=None):
+        if center is not None:
+            validate_center(center)
+        validate_3d_array(left_edge)
+        validate_3d_array(right_edge)
+        validate_iterable(fields)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         if not isinstance(left_edge, YTArray):
@@ -648,6 +686,12 @@ class YTDataCollection(YTSelectionContainer3D):
     _con_args = ("_obj_list",)
     def __init__(self, obj_list, ds=None, field_parameters=None,
                  data_source=None, center=None):
+        validate_iterable(obj_list)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
+        if center is not None:
+            validate_center(center)
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],
@@ -680,6 +724,11 @@ class YTSphere(YTSelectionContainer3D):
     _con_args = ('center', 'radius')
     def __init__(self, center, radius, ds=None,
                  field_parameters=None, data_source=None):
+        validate_center(center)
+        validate_float(radius)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         super(YTSphere, self).__init__(center, ds,
                                            field_parameters, data_source)
         # Unpack the radius, if necessary
@@ -727,6 +776,16 @@ class YTEllipsoid(YTSelectionContainer3D):
     _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
     def __init__(self, center, A, B, C, e0, tilt, fields=None,
                  ds=None, field_parameters=None, data_source=None):
+        validate_center(center)
+        validate_float(A)
+        validate_float(B)
+        validate_float(C)
+        validate_3d_array(e0)
+        validate_float(tilt)
+        validate_iterable(fields)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         # make sure the magnitudes of semi-major axes are in order
@@ -798,6 +857,13 @@ class YTCutRegion(YTSelectionContainer3D):
     _con_args = ("base_object", "conditionals")
     def __init__(self, data_source, conditionals, ds=None,
                  field_parameters=None, base_object=None):
+        validate_object(data_source, YTSelectionContainer)
+        validate_iterable(conditionals)
+        for condition in conditionals:
+            validate_object(condition, string_types)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(base_object, YTSelectionContainer)
         if base_object is not None:
             # passing base_object explicitly has been deprecated,
             # but we handle it here for backward compatibility
@@ -908,7 +974,7 @@ class YTIntersectionContainer3D(YTSelectionContainer3D):
 
     Parameters
     ----------
-    data_objects : Iterable of YTSelectionContainer3D
+    data_objects : Iterable of YTSelectionContainer
         The data objects to intersect
 
     Examples
@@ -926,6 +992,12 @@ class YTIntersectionContainer3D(YTSelectionContainer3D):
     _con_args = ("data_objects",)
     def __init__(self, data_objects, ds = None, field_parameters = None,
                  data_source = None):
+        validate_iterable(data_objects)
+        for obj in data_objects:
+            validate_object(obj, YTSelectionContainer)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
                 data_source)
         # ensure_list doesn't check for tuples
@@ -944,7 +1016,7 @@ class YTDataObjectUnion(YTSelectionContainer3D):
 
     Parameters
     ----------
-    data_objects : Iterable of YTSelectionContainer3D
+    data_objects : Iterable of YTSelectionContainer
         The data objects to union
 
     Examples
@@ -962,6 +1034,12 @@ class YTDataObjectUnion(YTSelectionContainer3D):
     _con_args = ("data_objects",)
     def __init__(self, data_objects, ds = None, field_parameters = None,
                  data_source = None):
+        validate_iterable(data_objects)
+        for obj in data_objects:
+            validate_object(obj, YTSelectionContainer)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
                 data_source)
         # ensure_list doesn't check for tuples
