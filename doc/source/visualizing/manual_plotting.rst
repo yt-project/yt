@@ -116,6 +116,19 @@ White Noise
     If "bg_lvl" is not present, 10th percentile of the FRB's values is used
     instead.
 
+Custom filter
+~~~~~~~~~~~~~
+
+.. function:: apply_custom_filter(self, callback)
+
+   (This is a proxy for
+   :class:`~yt.visualization.fixed_resolution_filters.FixedResolutionBufferCustomFilter`.)
+
+    This filter adds a custom function to the filtering pipeline. The
+    ``callback`` function takes the input data as a numpy 2d array and
+    returns an array of the same shape as output.
+
+
 .. _manual-line-plots:
 
 Line Plots
