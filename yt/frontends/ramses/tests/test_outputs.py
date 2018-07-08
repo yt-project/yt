@@ -412,3 +412,17 @@ def test_cooling_fields():
     check_unit(ds.r[('gas','number_density')],'cm**(-3)')
     check_unit(ds.r[('gas','mu')],'dimensionless')
     check_unit(ds.r[('gas','Electron_number_density')],'cm**(-3)')
+
+
+ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
+@requires_file(ramses_rt)
+def test_ramses_mixed_files():
+    # Test that one can use derived fields that depend on different
+    # files (here hydro and rt files)
+    ds = yt.load(ramses_rt)
+    def _mixed_field(field, data):
+        return data['rt', 'photon_density_1'] / data['gas', 'H_nuclei_density']
+    ds.add_field(('gas', 'mixed_files'), function=_mixed_field, sampling_type='cell')
+
+    # Access the field
+    ds.r[('gas', 'mixed_files')]
