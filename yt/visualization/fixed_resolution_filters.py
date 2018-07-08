@@ -14,7 +14,7 @@ Fixed resolution buffer filters.
 import numpy as np
 from yt.extern.six import add_metaclass
 from functools import wraps
-
+from yt.utilities.exceptions import YTFRBFilterError
 filter_registry = {}
 
 
@@ -91,3 +91,21 @@ class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
             amp = self.bg_lvl
         npm, nqm = np.shape(buff)
         return buff + np.random.randn(npm, nqm) * amp
+
+
+class FixedResolutionBufferCustomFilter(FixedResolutionBufferFilter):
+    """
+    This filter applies an user-provided function to the frb. The
+    function takes the data as input (numpy array) and returns an
+    array of the same shape.
+    """
+    _filter_name = 'custom_filter'
+
+    def __init__(self, callback):
+        if not callable(callback):
+            raise YTFRBFilterError('Callback should be callable, got %s', callback)
+        self.callback = callback
+
+    def apply(self, buff):
+        res = self.callback(buff)
+        return res

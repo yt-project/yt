@@ -546,6 +546,9 @@ class YTPlotCallbackError(Exception):
         msg = '%s callback failed with the following error: %s'
         return msg % (self.callback, self.error)
 
+class YTFRBFilterError(YTException):
+    pass
+
 class YTPixelizeError(YTException):
     def __init__(self, message):
         self.message = message
