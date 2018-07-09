@@ -137,7 +137,62 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
                     voxel_position[1] = bounds[2] + (j+0.5)*dy
                     voxel_position[2] = bounds[4] + (k+0.5)*dz
 
-                    queue.size = 0
+                    queue.heap[:] = dists[i, j, k, :]
+                    queue.pids[:] = pids[i, j, k, :]
+                    queue.size = queue_sizes[i, j, k]
+
+                    pos = &(voxel_position[0])
+                    leafnode = c_tree.search(&pos[0])
+
+                    # Traverse the rest of the kdtree to finish the neighbor
+                    # list
+                    find_knn_pid(c_tree.root, queue, input_pos, offset, tree_id,
+                                 pos, leafnode.leafid)
+
+                    queue_sizes[i, j, k] = queue.size
+                    dists[i, j, k, :] = queue.heap[:]
+                    pids[i, j, k, :] = queue.pids[:]
+
+@cython.boundscheck(False)
+@cython.wraparound(True)
+@cython.cdivision(True)
+def generate_nn_list_guess(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] dists,
+                     np.int64_t[:, : , :] queue_sizes, int offset, PyKDTree kdtree,
+                     np.int64_t[:] tree_id, np.float64_t[:] bounds,
+                     np.int64_t[:] size, np.float64_t[:,::1] input_pos):
+    """Calculate array of distances to the nth nearest neighbor
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+
+    """
+    cdef KDTree* c_tree = kdtree._tree
+    cdef Node* leafnode
+    cdef np.float64_t* pos
+    cdef int i, j, k, p
+    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(pids.shape[3], True)
+    cdef np.float64_t dx, dy, dz
+    cdef np.float64_t[::1] voxel_position = np.zeros(shape=(3))
+
+    dx = (bounds[1] - bounds[0]) / size[0]
+    dy = (bounds[3] - bounds[2]) / size[1]
+    dz = (bounds[5] - bounds[4]) / size[2]
+
+    with nogil:
+        for i in range(size[0]):
+            for j in range(size[1]):
+                for k in range(size[2]):
+                    if i % CHUNKSIZE == 0:
+                        with gil:
+                            PyErr_CheckSignals()
+
+                    voxel_position[0] = bounds[0] + (i+0.5)*dx
+                    voxel_position[1] = bounds[2] + (j+0.5)*dy
+                    voxel_position[2] = bounds[4] + (k+0.5)*dz
+
                     queue.heap[:] = dists[i, j, k, :]
                     queue.pids[:] = pids[i, j, k, :]
                     queue.size = queue_sizes[i, j, k]
@@ -146,14 +201,6 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
                     leafnode = c_tree.search(&pos[0])
                     process_node_points_pid(leafnode, pos, input_pos,
                                                 offset, tree_id, queue)
-
-                    if(queue.size == 0):
-                        continue
-
-                    # Traverse the rest of the kdtree to finish the neighbor
-                    # list
-                    find_knn_pid(c_tree.root, queue, input_pos, offset, tree_id,
-                                 pos, leafnode.leafid)
 
                     queue_sizes[i, j, k] = queue.size
                     dists[i, j, k, :] = queue.heap[:]
@@ -248,7 +295,7 @@ cdef inline int cull_node_pid(Node* node,
         else:
             tpos = 0
         ndist += tpos*tpos
-    return ndist > queue.heap_ptr[0]
+    return (ndist > queue.heap[0] and queue.size == queue.max_elements)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

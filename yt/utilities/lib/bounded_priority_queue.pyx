@@ -30,7 +30,7 @@ cdef class BoundedPriorityQueue:
         self.heap_ptr = &(self.heap[0])
         # only allocate memory if we intend to store particle ID's
         if(pids == 1):
-            self.pids = np.zeros(max_elements, dtype=int)-1
+            self.pids = np.zeros(max_elements, dtype="int64")-1
             self.pids_ptr = &(self.pids[0])
 
         self.size = 0

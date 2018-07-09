@@ -66,7 +66,7 @@ from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
 import yt.extern.six as six
 from yt.utilities.lib.particle_kdtree_tools import \
-    generate_nn_list
+    generate_nn_list, generate_nn_list_guess
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
     pixelize_sph_kernel_gather_arbitrary_grid
@@ -983,17 +983,31 @@ class YTArbitraryGrid(YTCoveringGrid):
                 # EVERY SINGLE PARTICLE and fill our nearest neighbour lists
                 # before we can do the deposition
                 offsets = np.array([0], dtype="int64")
+
+                # first we loop through and fill the particles with our best
+                # guess
                 pbar = tqdm(desc="Generating nearest neighbor lists")
                 for i, chunk in enumerate(
                         self.ds.all_data().chunks([field], 'io')):
                     offsets = np.append(offsets,
                             offsets[-1]+chunk[(ptype,'density')].shape[0])
 
+                    generate_nn_list_guess(pids, dists, queue_sizes, offsets[i],
+                        tree, tree.idx.astype("int64"), bounds,
+                        self.ActiveDimensions.astype("int64"),
+                        chunk[(ptype,'particle_position')].in_base("code").d)
+                    pbar.update(i)
+
+                # now loop through and traverse the tree. It is much quicker
+                # to do it this way, as the better the initial guess the faster
+                # the main process
+                for i, chunk in enumerate(
+                        self.ds.all_data().chunks([field], 'io')):
                     generate_nn_list(pids, dists, queue_sizes, offsets[i], tree,
                         tree.idx.astype("int64"), bounds,
                         self.ActiveDimensions.astype("int64"),
                         chunk[(ptype,'particle_position')].in_base("code").d)
-                    pbar.update(i)
+                    pbar.update(i+offsets.shape[0])
                 pbar.close()
 
                 # perform the deposition onto the pixels -> do it twice to
@@ -1006,13 +1020,14 @@ class YTArbitraryGrid(YTCoveringGrid):
                         chunk[(ptype,'smoothing_length')].in_base("code").d,
                         chunk[(ptype,'particle_mass')].in_base("code").d,
                         chunk[(ptype,'density')].in_base("code").d,
-                        chunk[field].d)
+                        chunk[field].d, use_normalization=False)
                     pixelize_sph_kernel_gather_arbitrary_grid(dest_den, pids,
                         dists, offsets[i], tree.idx.astype("int64"),
                         chunk[(ptype,'smoothing_length')].in_base("code").d,
                         chunk[(ptype,'particle_mass')].in_base("code").d,
                         chunk[(ptype,'density')].in_base("code").d,
-                        chunk[(ptype,'particle_mass')].in_base("code").d)
+                        chunk[(ptype,'particle_mass')].in_base("code").d,
+                        use_normalization=False)
                     pbar.update(i)
                 pbar.close()
 
