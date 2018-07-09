@@ -101,7 +101,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 @cython.wraparound(True)
 @cython.cdivision(True)
 def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] dists,
-                     int offset, PyKDTree kdtree,
+                     np.int64_t[:, : , :] queue_sizes, int offset, PyKDTree kdtree,
                      np.int64_t[:] tree_id, np.float64_t[:] bounds,
                      np.int64_t[:] size, np.float64_t[:,::1] input_pos):
     """Calculate array of distances to the nth nearest neighbor
@@ -140,17 +140,14 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
                     queue.size = 0
                     queue.heap[:] = dists[i, j, k, :]
                     queue.pids[:] = pids[i, j, k, :]
-
-                    if queue.heap[0] != -1.0:
-                        queue.size = queue.max_elements
+                    queue.size = queue_sizes[i, j, k]
 
                     pos = &(voxel_position[0])
                     leafnode = c_tree.search(&pos[0])
                     process_node_points_pid(leafnode, pos, input_pos,
                                                 offset, tree_id, queue)
 
-                    if queue.size == 0:
-                        dists[i, j, k, 0] = -1.0
+                    if(queue.size == 0):
                         continue
 
                     # Traverse the rest of the kdtree to finish the neighbor
@@ -158,6 +155,7 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
                     find_knn_pid(c_tree.root, queue, input_pos, offset, tree_id,
                                  pos, leafnode.leafid)
 
+                    queue_sizes[i, j, k] = queue.size
                     dists[i, j, k, :] = queue.heap[:]
                     pids[i, j, k, :] = queue.pids[:]
 
@@ -250,7 +248,7 @@ cdef inline int cull_node_pid(Node* node,
         else:
             tpos = 0
         ndist += tpos*tpos
-    return (ndist > queue.heap_ptr[0] and queue.size == queue.max_elements)
+    return (ndist > queue.heap_ptr[0] and queue.size > 0)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
