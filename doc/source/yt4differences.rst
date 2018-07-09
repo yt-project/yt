@@ -68,7 +68,7 @@ lifting in these functions is undertaken by cython functions.
 
 It is now possible to generate slice plots, projection plots and arbitrary grids
 of smoothed quanitities using these operations. The following code demonstrates
-how this could be achieved.
+how this could be achieved. The following would use the scatter method.
 
 ```python
 
@@ -89,9 +89,25 @@ plot.set_zlim(('gas', 'density'), 8e-6, 8e-3)
 plot.save()
 
 arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [5, 5, 5],dims=[10, 10, 10])
-density = arbitrary_grid[('gas', 'density')]
-print(density)
+density = arbitrary_grid[('gas', 'density')].d
+
 ```
+
+This can be modified to use the gather approach by changing a global setting for
+the dataset. The previous example could be modified to include the following
+settings on the datset,
+
+
+```python
+
+ds.sph_smoothing_style = "gather"
+ds._num_neighbors = 32
+
+```
+
+The gather approach requires finding nearest neighbors using the KDTree. The
+first call will generate a KDTree for the entire dataset which will be stored in
+a sidecar file. This will be loaded whenever neccesary.
 
 API Changes
 -----------
