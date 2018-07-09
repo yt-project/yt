@@ -248,7 +248,7 @@ cdef inline int cull_node_pid(Node* node,
         else:
             tpos = 0
         ndist += tpos*tpos
-    return (ndist > queue.heap_ptr[0] and queue.size > 0)
+    return ndist > queue.heap_ptr[0]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

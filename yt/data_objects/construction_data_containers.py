@@ -996,7 +996,8 @@ class YTArbitraryGrid(YTCoveringGrid):
                     pbar.update(i)
                 pbar.close()
 
-                # perform the deposition onto the pixels
+                # perform the deposition onto the pixels -> do it twice to
+                # allow normalization
                 pbar = tqdm(desc="Interpolating SPH field {}".format(field))
                 for i, chunk in enumerate(
                         self.ds.all_data().chunks([field], 'io')):

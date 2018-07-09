@@ -230,6 +230,12 @@ def validate_pid():
     for el, pid in zip(elements, pids):
         m.add_pid(el, pid)
 
+    m.extract_max_pid()
+    m.extract_max_pid()
+    m.extract_max_pid()
+
+    return np.asarray(m.heap), np.asarray(m.pids)
+
 def validate():
     m = BoundedPriorityQueue(5)
 
@@ -237,3 +243,8 @@ def validate():
     for el in [0.1, 0.25, 1.33, 0.5, 3.2, 4.6, 2.0, 0.4, 4.0, .001]:
         m.add(el)
 
+    m.extract_max()
+    m.extract_max()
+    m.extract_max()
+
+    return np.asarray(m.heap)
