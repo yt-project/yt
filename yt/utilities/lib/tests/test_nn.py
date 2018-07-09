@@ -2,12 +2,7 @@ import numpy as np
 
 from yt.utilities.lib.bounded_priority_queue import validate, validate_pid
 
-from yt.testing import \
-    fake_random_ds, \
-    assert_array_equal, \
-    assert_array_less, \
-    assert_equal, \
-    assert_raises
+from yt.testing import assert_array_equal
 
 def test_bounded_priority_queue():
     dists = validate()
