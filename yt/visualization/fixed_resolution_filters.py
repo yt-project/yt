@@ -2,6 +2,8 @@ from functools import wraps
 
 import numpy as np
 
+from yt.funcs import issue_deprecation_warning
+
 filter_registry = {}
 
 
@@ -46,7 +48,12 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
 
     _filter_name = "gauss_beam"
 
-    def __init__(self, sigma=2.0, **kwa):
+    def __init__(self, sigma=2.0, nbeam=None, **kwa):
+        if nbeam is not None:
+            issue_deprecation_warning(
+                "The `nbeam` argument has been deprecated and should be replaced by "
+                "the `truncate` argument where `truncate=nbeam/sigma`.")
+            kwa['truncate'] = nbeam / sigma
         self.sigma = sigma
         self.extra_args = kwa
 
