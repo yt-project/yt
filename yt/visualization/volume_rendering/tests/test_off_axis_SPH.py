@@ -24,12 +24,8 @@ def test_no_rotation():
     ad = ds.all_data()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
-    center = [(left_edge[0] + right_edge[0])/2,
-              (left_edge[1] + right_edge[1])/2,
-              (left_edge[2] + right_edge[2])/2]
-    width = [(right_edge[0] - left_edge[0]),
-             (right_edge[1] - left_edge[1]),
-             (right_edge[2] - left_edge[2])]
+    center = (left_edge + right_edge)/2
+    width = (right_edge - left_edge)  
     px = ad["particle_position_x"]
     py = ad["particle_position_y"]
     hsml = ad["smoothing_length"]
@@ -79,12 +75,8 @@ def test_basic_rotation_1():
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
-    center = [(left_edge[0] + right_edge[0])/2,
-              (left_edge[1] + right_edge[1])/2,
-              (left_edge[2] + right_edge[2])/2]
-    width = [(right_edge[0] - left_edge[0]),
-             (right_edge[1] - left_edge[1]),
-             (right_edge[2] - left_edge[2])]    
+    center = (left_edge + right_edge)/2
+    width = (right_edge - left_edge)   
     buf1 = OffAP.off_axis_projection(ds,
                                      center,
                                      normal_vector,
@@ -117,12 +109,8 @@ def test_basic_rotation_2():
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
-    center = [(left_edge[0] + right_edge[0])/2,
-              (left_edge[1] + right_edge[1])/2,
-              (left_edge[2] + right_edge[2])/2]
-    width = [(right_edge[0] - left_edge[0]),
-             (right_edge[1] - left_edge[1]),
-             (right_edge[2] - left_edge[2])]    
+    center = (left_edge + right_edge)/2
+    width = (right_edge - left_edge)   
     buf1 = OffAP.off_axis_projection(ds,
                                      center,
                                      normal_vector,
@@ -155,12 +143,8 @@ def test_basic_rotation_3():
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
-    center = [(left_edge[0] + right_edge[0])/2,
-              (left_edge[1] + right_edge[1])/2,
-              (left_edge[2] + right_edge[2])/2]
-    width = [(right_edge[0] - left_edge[0]),
-             (right_edge[1] - left_edge[1]),
-             (right_edge[2] - left_edge[2])]    
+    center = (left_edge + right_edge)/2
+    width = (right_edge - left_edge)   
     buf1 = OffAP.off_axis_projection(ds,
                                      center,
                                      normal_vector,
@@ -194,10 +178,7 @@ def test_center_1():
     #            left_edge[1],
     #           (left_edge[2] + right_edge[2])/2]
     center = np.array([0., 3., 0.])
-    width = np.array([8., 8., 8.])
-    width = [(right_edge[0] - left_edge[0]),
-             (right_edge[1] - left_edge[1]),
-             (right_edge[2] - left_edge[2])]    
+    width = (right_edge - left_edge)
     buf1 = OffAP.off_axis_projection(ds,
                                      center,
                                      normal_vector,
@@ -228,9 +209,7 @@ def test_center_2():
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
     center = np.array([0., -1., 0.])
-    width = [(right_edge[0] - left_edge[0]),
-             (right_edge[1] - left_edge[1]),
-             (right_edge[2] - left_edge[2])]    
+    width = (right_edge - left_edge)      
     buf1 = OffAP.off_axis_projection(ds,
                                      center,
                                      normal_vector,
@@ -279,14 +258,11 @@ def find_compare_maxima(expected_maxima, buf, resolution, width):
                 maxima[i, j] = False
     coords = ([], [])
     # Using a step size two since the same maxima is often double/quadruple counted
-    for i in range(0, len(maxima), 1):
-        for j in range(0, len(maxima[i]), 1):
+    for i in range(len(maxima)):
+        for j in range(len(maxima[i])):
             if maxima[i, j]:
                 coords[0].append(i)
                 coords[1].append(j)
-    print(coords)
-    #assert len(coords) == len(expected_maxima[0])
-    #assert that our expected maxima coordinates are in fact in the image
     pixel_tolerance = 2.0
     x_scaling_factor = resolution[0] / width[0]
     y_scaling_factor = resolution[1] / width[1]
