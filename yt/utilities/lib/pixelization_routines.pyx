@@ -1075,8 +1075,9 @@ def pixelize_sph_kernel_slice(
     cdef np.float64_t[:, :] buff_denom
 
     xsize, ysize = buff.shape[0], buff.shape[1]
-    buff_num = np.zeros((xsize, ysize), dtype='f8')
-    buff_denom = np.zeros((xsize, ysize), dtype='f8')
+    if use_normalization:
+        buff_num = np.zeros((xsize, ysize), dtype='f8')
+        buff_denom = np.zeros((xsize, ysize), dtype='f8')
 
     x_min = bounds[0]
     x_max = bounds[1]
@@ -1175,8 +1176,9 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.float64_t[:, :, :] buff_denom
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
-    buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
-    buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
+    if use_normalization:
+        buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
+        buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
 
     x_min = bounds[0]
     x_max = bounds[1]
@@ -1292,13 +1294,14 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.float64_t w_j, coeff
     cdef np.int64_t xi, yi, zi, pi
     cdef np.float64_t q, h_j2, ih_j2
-    cdef int count, i, j, k, particle, pixel
+    cdef int count, i, j, k, particle
     cdef np.float64_t[:, :, :] buff_num
     cdef np.float64_t[:, :, :] buff_denom
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
-    buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
-    buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
+    if use_normalization:
+        buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
+        buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
 
     kernel_func = get_kernel_func(kernel_name)
 
