@@ -60,8 +60,10 @@ def invalidate_data(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
-        args[0]._data_valid = False
-        args[0]._plot_valid = False
+        plot = args[0]
+        if plot._frb is not None:
+            plot._frb._data_valid = False
+        plot._plot_valid = False
         return rv
 
     return newfunc
@@ -94,16 +96,16 @@ def invalidate_plot(f):
 def validate_plot(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
-        if hasattr(args[0], '_data_valid'):
-            if not args[0].data_is_valid:
-                args[0]._recreate_frb()
-        if hasattr(args[0], "_profile_valid"):
-            if not args[0]._profile_valid:
-                args[0]._recreate_profile()
-        if not args[0]._plot_valid:
+        plot = args[0]
+        if not plot.data_is_valid:
+            plot._recreate_frb()
+        if hasattr(plot, "_profile_valid"):
+            if not plot._profile_valid:
+                plot._recreate_profile()
+        if not plot._plot_valid:
             # it is the responsibility of _setup_plots to
-            # call args[0].run_callbacks()
-            args[0]._setup_plots()
+            # call plot.run_callbacks()
+            plot._setup_plots()
         rv = f(*args, **kwargs)
         return rv
 
@@ -428,7 +430,9 @@ class PlotContainer:
             new_object = getattr(new_ds, name)(**kwargs)
 
         self.data_source = new_object
-        self._data_valid = self._plot_valid = False
+        
+        self._frb = None
+        self._plot_valid = False
 
         for d in "xyz":
             lim_name = d + "lim"

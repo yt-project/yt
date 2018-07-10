@@ -282,13 +282,11 @@ class PlotWindow(ImagePlotContainer):
 
         def fset(self, value):
             self._frb = value
-            self._data_valid = True
             self._plot_valid = False
 
         def fdel(self):
             del self._frb
             self._frb = None
-            self._data_valid = False
 
         return locals()
 
@@ -869,7 +867,6 @@ class PWViewerMPL(PlotWindow):
     _current_field = None
     _frb_generator = None
     _plot_type = None
-    _data_valid = False
 
     def __init__(self, *args, **kwargs):
         if self._frb_generator is None:
@@ -881,7 +878,7 @@ class PWViewerMPL(PlotWindow):
 
     @property
     def data_is_valid(self):
-        return self._data_valid and self._frb and self._frb._data_valid
+        return self._frb and self._frb._data_valid
 
     def _setup_origin(self):
         origin = self.origin
@@ -974,7 +971,6 @@ class PWViewerMPL(PlotWindow):
             return
         if not self.data_is_valid:
             self._recreate_frb()
-            self._data_valid = True
         self._colorbar_valid = True
         for f in list(set(self.data_source._determine_fields(self.fields))):
             axis_index = self.data_source.axis
