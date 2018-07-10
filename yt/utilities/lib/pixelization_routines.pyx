@@ -43,6 +43,7 @@ from yt.geometry.particle_deposit cimport \
 from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
 from yt.funcs import get_pbar
+from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
 
 cdef int TABLE_NVALS=512
 
@@ -1285,10 +1286,9 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
 @cython.cdivision(True)
 def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists,
-        np.int64_t offset, np.int64_t[:] tree_id,  np.float64_t[:] hsml,
-        np.float64_t[:] pmass, np.float64_t[:] pdens,
-        np.float64_t[:] quantity_to_smooth,
-        kernel_name="cubic", use_normalization=True):
+        np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth, PyKDTree tree=None, np.int64_t
+        offset=0, kernel_name="cubic", use_normalization=True):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t w_j, coeff
@@ -1297,6 +1297,10 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef int count, i, j, k, particle
     cdef np.float64_t[:, :, :] buff_num
     cdef np.float64_t[:, :, :] buff_denom
+    cdef np.int64_t[:] tree_id
+
+    if tree is not None:
+        tree_id = tree.idx.astype("int64")
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
     if use_normalization:
@@ -1317,9 +1321,12 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
                     ih_j2 = 1/h_j2
 
                     for pi in range(pids.shape[3]):
-                        particle = tree_id[pids[xi, yi, zi, pi]] - offset
-                        if(particle < 0 or particle > pmass.shape[0]):
-                            continue
+                        if tree is not None:
+                            particle = tree_id[pids[xi, yi, zi, pi]] - offset
+                            if(particle < 0 or particle > pmass.shape[0]):
+                                continue
+                        else:
+                            particle = pids[xi, yi, zi, pi]
 
                         w_j = pmass[particle] / pdens[particle] / hsml[particle]**3
                         coeff = w_j * quantity_to_smooth[particle]

@@ -993,9 +993,9 @@ class YTArbitraryGrid(YTCoveringGrid):
                             offsets[-1]+chunk[(ptype,'density')].shape[0])
 
                     generate_nn_list_guess(pids, dists, queue_sizes,
-                        offsets[i], tree, tree.idx.astype("int64"), bounds,
-                        self.ActiveDimensions.astype("int64"),
-                        chunk[(ptype,'particle_position')].in_base("code").d)
+                        tree, bounds, self.ActiveDimensions.astype("int64"),
+                        chunk[(ptype,'particle_position')].in_base("code").d,
+                        offset=offsets[i], gather_type=0)
                     pbar.update(i)
 
                 # now loop through and traverse the tree. It is much quicker
@@ -1003,10 +1003,10 @@ class YTArbitraryGrid(YTCoveringGrid):
                 # the main process
                 for i, chunk in enumerate(
                         self.ds.all_data().chunks([field], 'io')):
-                    generate_nn_list(pids, dists, offsets[i], tree,
-                        tree.idx.astype("int64"), bounds,
-                        self.ActiveDimensions.astype("int64"),
-                        chunk[(ptype,'particle_position')].in_base("code").d)
+                    generate_nn_list(pids, dists, tree,
+                        bounds, self.ActiveDimensions.astype("int64"),
+                        chunk[(ptype,'particle_position')].in_base("code").d,
+                        offset=offsets[i], gather_type=0)
                     pbar.update(i+offsets.shape[0])
                 pbar.close()
 
@@ -1016,18 +1016,19 @@ class YTArbitraryGrid(YTCoveringGrid):
                 for i, chunk in enumerate(
                         self.ds.all_data().chunks([field], 'io')):
                     pixelize_sph_kernel_gather_arbitrary_grid(dest_num, pids,
-                        dists, offsets[i], tree.idx.astype("int64"),
+                        dists,
                         chunk[(ptype,'smoothing_length')].in_base("code").d,
                         chunk[(ptype,'particle_mass')].in_base("code").d,
                         chunk[(ptype,'density')].in_base("code").d,
-                        chunk[field].d, use_normalization=False)
-                    pixelize_sph_kernel_gather_arbitrary_grid(dest_den, pids,
-                        dists, offsets[i], tree.idx.astype("int64"),
-                        chunk[(ptype,'smoothing_length')].in_base("code").d,
-                        chunk[(ptype,'particle_mass')].in_base("code").d,
-                        chunk[(ptype,'density')].in_base("code").d,
-                        chunk[(ptype,'particle_mass')].in_base("code").d,
+                        chunk[field].d, tree=tree, offset=offsets[i],
                         use_normalization=False)
+                    pixelize_sph_kernel_gather_arbitrary_grid(dest_den, pids,
+                        dists,
+                        chunk[(ptype,'smoothing_length')].in_base("code").d,
+                        chunk[(ptype,'particle_mass')].in_base("code").d,
+                        chunk[(ptype,'density')].in_base("code").d,
+                        chunk[(ptype,'particle_mass')].in_base("code").d,
+                        tree=tree, offset=offsets[i], use_normalization=False)
                     pbar.update(i)
                 pbar.close()
 
