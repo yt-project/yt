@@ -101,16 +101,36 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 @cython.wraparound(True)
 @cython.cdivision(True)
 def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] dists,
-                     np.int64_t[:, : , :] queue_sizes, int offset, PyKDTree kdtree,
-                     np.int64_t[:] tree_id, np.float64_t[:] bounds,
-                     np.int64_t[:] size, np.float64_t[:,::1] input_pos):
-    """Calculate array of distances to the nth nearest neighbor
+                     int offset, PyKDTree kdtree, np.int64_t[:] tree_id,
+                     np.float64_t[:] bounds, np.int64_t[:] size,
+                     np.float64_t[:,::1] input_pos):
+    """Calculate array of distances to the nth nearest neighbors, by recursively
+    searching the tree
 
     Parameters
     ----------
 
+    pids: array of ints to store the identity of the particle at a certain
+    distance (voxels_x, voxels_y, voxels_z, n_neighbors)
+    dists: array of floats to store the distance of a nearest neighbor distance
+    (voxels_x, voxels_y, voxels_z, n_neighbors)
+    offset: this is the number of gas particle previously calculated and this is
+    to identify a particle from the tree id
+    kdtree: A PyKDTree instance
+        A kdtree to do nearest neighbors searches with
+    tree_id: this is mapping from positions in the particle array to id's in the
+    (tot_num_particles_in_tree)
+    kdtree
+    bounds: the region for the voxels to cover in the format x_min, xmax, ymin,
+    ... (6)
+    size: the number of voxels to have in each dimension
+    input_pos: arrays of floats with shape (n_particles, 3)
+        The positions of particles in kdtree sorted order. Currently assumed
+        to be 3D postions.
+
     Returns
     -------
+    No returns, the function mutates the dists and the pids
 
     """
     cdef KDTree* c_tree = kdtree._tree
@@ -139,7 +159,7 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
 
                     queue.heap[:] = dists[i, j, k, :]
                     queue.pids[:] = pids[i, j, k, :]
-                    queue.size = queue_sizes[i, j, k]
+                    queue.size = pids.shape[3]
 
                     pos = &(voxel_position[0])
                     leafnode = c_tree.search(&pos[0])
@@ -149,7 +169,6 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
                     find_knn_pid(c_tree.root, queue, input_pos, offset, tree_id,
                                  pos, leafnode.leafid)
 
-                    queue_sizes[i, j, k] = queue.size
                     dists[i, j, k, :] = queue.heap[:]
                     pids[i, j, k, :] = queue.pids[:]
 
@@ -160,13 +179,34 @@ def generate_nn_list_guess(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, 
                      np.int64_t[:, : , :] queue_sizes, int offset, PyKDTree kdtree,
                      np.int64_t[:] tree_id, np.float64_t[:] bounds,
                      np.int64_t[:] size, np.float64_t[:,::1] input_pos):
-    """Calculate array of distances to the nth nearest neighbor
+    """Calculate array of distances to the nth nearest neighbor from the
+    leafnode the voxel centre is in, i.e, the best guess of neighbors
 
     Parameters
     ----------
 
+    pids: array of ints to store the identity of the particle at a certain
+    distance (voxels_x, voxels_y, voxels_z, n_neighbors)
+    dists: array of floats to store the distance of a nearest neighbor distance
+    (voxels_x, voxels_y, voxels_z, n_neighbors)
+    queue_sizes: the number of particles already filled into the kdtree
+    offset: this is the number of gas particle previously calculated and this is
+    to identify a particle from the tree id
+    kdtree: A PyKDTree instance
+        A kdtree to do nearest neighbors searches with
+    tree_id: this is mapping from positions in the particle array to id's in the
+    (tot_num_particles_in_tree)
+    kdtree
+    bounds: the region for the voxels to cover in the format x_min, xmax, ymin,
+    ... (6)
+    size: the number of voxels to have in each dimension
+    input_pos: arrays of floats with shape (n_particles, 3)
+        The positions of particles in kdtree sorted order. Currently assumed
+        to be 3D postions.
+
     Returns
     -------
+    No returns, the function mutates the dists, the pids and the queue_sizes
 
     """
     cdef KDTree* c_tree = kdtree._tree

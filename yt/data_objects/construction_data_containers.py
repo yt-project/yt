@@ -992,8 +992,8 @@ class YTArbitraryGrid(YTCoveringGrid):
                     offsets = np.append(offsets,
                             offsets[-1]+chunk[(ptype,'density')].shape[0])
 
-                    generate_nn_list_guess(pids, dists, queue_sizes, offsets[i],
-                        tree, tree.idx.astype("int64"), bounds,
+                    generate_nn_list_guess(pids, dists, queue_sizes,
+                        offsets[i], tree, tree.idx.astype("int64"), bounds,
                         self.ActiveDimensions.astype("int64"),
                         chunk[(ptype,'particle_position')].in_base("code").d)
                     pbar.update(i)
@@ -1003,7 +1003,7 @@ class YTArbitraryGrid(YTCoveringGrid):
                 # the main process
                 for i, chunk in enumerate(
                         self.ds.all_data().chunks([field], 'io')):
-                    generate_nn_list(pids, dists, queue_sizes, offsets[i], tree,
+                    generate_nn_list(pids, dists, offsets[i], tree,
                         tree.idx.astype("int64"), bounds,
                         self.ActiveDimensions.astype("int64"),
                         chunk[(ptype,'particle_position')].in_base("code").d)
