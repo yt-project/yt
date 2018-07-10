@@ -889,7 +889,7 @@ Overplot the Path of a Ray
    p.save()
 
 
-Operating on the final image
+Applying filters on the final image
 -----------------------------
 
 It is also possible to operate on the plotted image directly by using
