@@ -431,7 +431,8 @@ class PlotContainer:
 
         self.data_source = new_object
         
-        self._frb = None
+        if self._frb is not None:
+            self._frb._data_valid = False
         self._plot_valid = False
 
         for d in "xyz":

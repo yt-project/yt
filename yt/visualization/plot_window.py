@@ -282,7 +282,7 @@ class PlotWindow(ImagePlotContainer):
 
         def fset(self, value):
             self._frb = value
-            self._plot_valid = False
+            self._frb._data_valid = True
 
         def fdel(self):
             del self._frb
