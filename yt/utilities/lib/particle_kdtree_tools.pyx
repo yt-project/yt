@@ -72,8 +72,6 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
             # reset queue to "empty" state, doing it this way avoids
             # needing to reallocate memory
             queue.size = 0
-
-
             if i % CHUNKSIZE == 0:
                 with gil:
                     pbar.update(i-1)
@@ -85,10 +83,10 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 
             # Fill queue with particles in the node containing the particle
             # we're searching for
-            process_node_points(leafnode, pos, input_positions, queue, i)
+            process_node_points_particles(leafnode, pos, input_positions, queue, i)
 
             # Traverse the rest of the kdtree to finish the neighbor list
-            find_knn(
+            find_knn_particles(
                 c_tree.root, queue, input_positions, pos, leafnode.leafid, i)
 
             smoothing_length[i] = sqrt(queue.heap_ptr[0])
@@ -167,7 +165,7 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
 
                     # Traverse the rest of the kdtree to finish the neighbor
                     # list
-                    find_knn_pid(c_tree.root, queue, input_pos, offset, tree_id,
+                    find_knn_voxels(c_tree.root, queue, input_pos, offset, tree_id,
                                 pos, leafnode.leafid, &(bounds[0]), gather_type)
 
                     dists[i, j, k, :] = queue.heap[:]
@@ -241,7 +239,7 @@ def generate_nn_list_guess(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, 
 
                     pos = &(voxel_position[0])
                     leafnode = c_tree.search(&pos[0])
-                    process_node_points_pid(leafnode, pos, input_pos,
+                    process_node_points_voxels(leafnode, pos, input_pos,
                                 offset, tree_id, queue, &(bounds[0]), gather_type)
 
                     queue_sizes[i, j, k] = queue.size
@@ -250,7 +248,7 @@ def generate_nn_list_guess(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int find_knn(Node* node,
+cdef int find_knn_particles(Node* node,
                   BoundedPriorityQueue queue,
                   np.float64_t[:, ::1] positions,
                   np.float64_t* pos,
@@ -260,17 +258,17 @@ cdef int find_knn(Node* node,
     # we actually begin to check the leaf
     if not node.is_leaf:
         if not cull_node(node.less, pos, queue, skipleaf):
-            find_knn(node.less, queue, positions, pos, skipleaf, skipidx)
+            find_knn_particles(node.less, queue, positions, pos, skipleaf, skipidx)
         if not cull_node(node.greater, pos, queue, skipleaf):
-            find_knn(node.greater, queue, positions, pos, skipleaf, skipidx)
+            find_knn_particles(node.greater, queue, positions, pos, skipleaf, skipidx)
     else:
         if not cull_node(node, pos, queue, skipleaf):
-            process_node_points(node, pos, positions, queue, skipidx)
+            process_node_points_particles(node, pos, positions, queue, skipidx)
     return 0
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int find_knn_pid(Node* node,
+cdef int find_knn_voxels(Node* node,
                   BoundedPriorityQueue queue,
                   np.float64_t[:, ::1] positions,
                   np.int64_t offset,
@@ -282,14 +280,14 @@ cdef int find_knn_pid(Node* node,
 
     if not node.is_leaf:
         if not cull_node(node.less, pos, queue, skipleaf, gather_type):
-            find_knn_pid(node.less, queue, positions, offset, tree_id, pos,
+            find_knn_voxels(node.less, queue, positions, offset, tree_id, pos,
                          skipleaf, bounds, gather_type)
         if not cull_node(node.greater, pos, queue, skipleaf, gather_type):
-            find_knn_pid(node.greater, queue, positions, offset, tree_id, pos,
+            find_knn_voxels(node.greater, queue, positions, offset, tree_id, pos,
                          skipleaf, bounds, gather_type)
     else:
         if not cull_node(node, pos, queue, skipleaf, gather_type):
-            process_node_points_pid(node, pos, positions, offset, tree_id,
+            process_node_points_voxels(node, pos, positions, offset, tree_id,
                                     queue, bounds, gather_type)
     return 0
 
@@ -322,7 +320,7 @@ cdef inline int cull_node(Node* node,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline int process_node_points(Node* node,
+cdef inline int process_node_points_particles(Node* node,
                                     np.float64_t* pos,
                                     np.float64_t[:, ::1] positions,
                                     BoundedPriorityQueue queue,
@@ -343,7 +341,7 @@ cdef inline int process_node_points(Node* node,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline int process_node_points_pid(Node* node,
+cdef inline int process_node_points_voxels(Node* node,
                                         np.float64_t* pos,
                                         np.float64_t[:, ::1] positions,
                                         np.int64_t offset,
@@ -365,15 +363,15 @@ cdef inline int process_node_points_pid(Node* node,
             continue
 
         # skip the particle if it is not in the region
-        if positions[idx_offset, 0] < bounds[0] or \
-            positions[idx_offset, 0] > bounds[1]:
-                continue
-        if positions[idx_offset, 1] < bounds[2] or \
-            positions[idx_offset, 1] > bounds[3]:
-                continue
-        if positions[idx_offset, 2] < bounds[4] or \
-            positions[idx_offset, 2] > bounds[5]:
-                continue
+        #if positions[idx_offset, 0] < bounds[0] or \
+        #    positions[idx_offset, 0] > bounds[1]:
+        #        continue
+        #if positions[idx_offset, 1] < bounds[2] or \
+        #    positions[idx_offset, 1] > bounds[3]:
+        #        continue
+        #if positions[idx_offset, 2] < bounds[4] or \
+        #    positions[idx_offset, 2] > bounds[5]:
+        #        continue
 
         sq_dist = 0
         for j in range(dim):
