@@ -71,7 +71,7 @@ def test_basic_rotation_1():
     """
     expected_maxima = ([0., 0., 0., 0., 1.], [0., 1., 2., 3., 0.])
     normal_vector = [0., 1., 0.]
-    resolution = (256, 256)
+    resolution = (128, 128)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
@@ -105,7 +105,7 @@ def test_basic_rotation_2():
     expected_maxima = ([1., 2., 3., 0., 0., 0.], 
                        [0., 0., 0., 0., 1., 2.])
     normal_vector = [1., 0., 0.]
-    resolution = (256, 256)
+    resolution = (128, 128)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
@@ -139,7 +139,7 @@ def test_basic_rotation_3():
     """ 
     expected_maxima = ([0., 0., -1., -2.], [0., -1., 0., 0.])
     normal_vector = [0., 0., -1.]
-    resolution = (256, 256)
+    resolution = (128, 128)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
@@ -170,7 +170,7 @@ def test_center_1():
     """
     expected_maxima = ([0., 0., 0., 1.], [-2., -1., -3., -3.])
     normal_vector = [0., 0., 1.]
-    resolution = (256, 256)
+    resolution = (128, 128)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
@@ -204,7 +204,7 @@ def test_center_2():
     """
     expected_maxima = ([0., 0., 0., 1.], [2., 3., 1., 1.])
     normal_vector = [0., 0., 1.]
-    resolution = (256, 256)
+    resolution = (128, 128)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
@@ -228,7 +228,7 @@ def test_center_3():
     """
     expected_maxima = ([], [])
     normal_vector = [0., 0., 1.]
-    resolution = (256, 256)
+    resolution = (128, 128)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
@@ -251,13 +251,14 @@ def find_compare_maxima(expected_maxima, buf, resolution, width):
     buf_ndarray = buf.ndarray_view()
     max_filter_buf = ndimage.filters.maximum_filter(buf, size=5)
     maxima = np.isclose(max_filter_buf, buf_ndarray, rtol=1e-09)
+
     # ignore contributions from zones of no smoothing
     for i in range(len(maxima)):
         for j in range(len(maxima[i])):
             if np.isclose(buf[i, j], 0., 1e-09):
                 maxima[i, j] = False
     coords = ([], [])
-    # Using a step size two since the same maxima is often double/quadruple counted
+
     for i in range(len(maxima)):
         for j in range(len(maxima[i])):
             if maxima[i, j]:
