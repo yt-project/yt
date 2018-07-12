@@ -995,7 +995,7 @@ class YTArbitraryGrid(YTCoveringGrid):
                     generate_nn_list_guess(pids, dists, queue_sizes,
                         tree, bounds, self.ActiveDimensions.astype("int64"),
                         chunk[(ptype,'particle_position')].in_base("code").d,
-                        offset=offsets[i], gather_type=0)
+                        offset=offsets[i])
                     pbar.update(i)
 
                 # now loop through and traverse the tree. It is much quicker
@@ -1006,7 +1006,7 @@ class YTArbitraryGrid(YTCoveringGrid):
                     generate_nn_list(pids, dists, tree,
                         bounds, self.ActiveDimensions.astype("int64"),
                         chunk[(ptype,'particle_position')].in_base("code").d,
-                        offset=offsets[i], gather_type=0)
+                        offset=offsets[i])
                     pbar.update(i+offsets.shape[0])
                 pbar.close()
 
@@ -1027,7 +1027,7 @@ class YTArbitraryGrid(YTCoveringGrid):
                         chunk[(ptype,'smoothing_length')].in_base("code").d,
                         chunk[(ptype,'particle_mass')].in_base("code").d,
                         chunk[(ptype,'density')].in_base("code").d,
-                        chunk[(ptype,'particle_mass')].in_base("code").d,
+                        np.ones(chunk[(ptype,'density')].d.shape[0]),
                         tree=tree, offset=offsets[i], use_normalization=False)
                     pbar.update(i)
                 pbar.close()

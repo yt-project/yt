@@ -100,7 +100,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 @cython.cdivision(True)
 def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] dists,
                      PyKDTree kdtree, np.float64_t[:] bounds, np.int64_t[:] size,
-                     np.float64_t[:,::1] input_pos, int gather_type=0, int offset=0):
+                     np.float64_t[:,::1] input_pos, int offset=0):
     """Calculate array of distances to the nth nearest neighbors, by recursively
     searching the tree
 
@@ -166,7 +166,7 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
                     # Traverse the rest of the kdtree to finish the neighbor
                     # list
                     find_knn_voxels(c_tree.root, queue, input_pos, offset, tree_id,
-                                pos, leafnode.leafid, &(bounds[0]), gather_type)
+                                pos, leafnode.leafid)
 
                     dists[i, j, k, :] = queue.heap[:]
                     pids[i, j, k, :] = queue.pids[:]
@@ -177,7 +177,7 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
 def generate_nn_list_guess(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] dists,
                      np.int64_t[:, : , :] queue_sizes, PyKDTree kdtree,
                      np.float64_t[:] bounds, np.int64_t[:] size,
-                     np.float64_t[:,::1] input_pos, int offset=0, int gather_type=0):
+                     np.float64_t[:,::1] input_pos, int offset=0):
     """Calculate array of distances to the nth nearest neighbor from the
     leafnode the voxel centre is in, i.e, the best guess of neighbors
 
@@ -240,7 +240,7 @@ def generate_nn_list_guess(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, 
                     pos = &(voxel_position[0])
                     leafnode = c_tree.search(&pos[0])
                     process_node_points_voxels(leafnode, pos, input_pos,
-                                offset, tree_id, queue, &(bounds[0]), gather_type)
+                                offset, tree_id, queue)
 
                     queue_sizes[i, j, k] = queue.size
                     dists[i, j, k, :] = queue.heap[:]
@@ -274,21 +274,19 @@ cdef int find_knn_voxels(Node* node,
                   np.int64_t offset,
                   np.int64_t[:] tree_id,
                   np.float64_t* pos,
-                  uint32_t skipleaf,
-                  np.float64_t * bounds,
-                  int gather_type) nogil except -1:
+                  uint32_t skipleaf) nogil except -1:
 
     if not node.is_leaf:
-        if not cull_node(node.less, pos, queue, skipleaf, gather_type):
+        if not cull_node(node.less, pos, queue, skipleaf):
             find_knn_voxels(node.less, queue, positions, offset, tree_id, pos,
-                         skipleaf, bounds, gather_type)
-        if not cull_node(node.greater, pos, queue, skipleaf, gather_type):
+                         skipleaf)
+        if not cull_node(node.greater, pos, queue, skipleaf):
             find_knn_voxels(node.greater, queue, positions, offset, tree_id, pos,
-                         skipleaf, bounds, gather_type)
+                         skipleaf)
     else:
-        if not cull_node(node, pos, queue, skipleaf, gather_type):
+        if not cull_node(node, pos, queue, skipleaf):
             process_node_points_voxels(node, pos, positions, offset, tree_id,
-                                    queue, bounds, gather_type)
+                                    queue)
     return 0
 
 @cython.boundscheck(False)
@@ -297,17 +295,13 @@ cdef inline int cull_node(Node* node,
                           np.float64_t* pos,
                           BoundedPriorityQueue queue,
                           uint32_t skipleaf,
-                          int gather_type=0) nogil except -1:
-    cdef int dim = 3
-    if gather_type == 1:
-        dim = 2
-
+                          ) nogil except -1:
     cdef np.float64_t v
     cdef np.float64_t tpos, ndist = 0
     cdef uint32_t leafid
     if node.leafid == skipleaf:
         return True
-    for k in range(dim):
+    for k in range(3):
         v = pos[k]
         if v < node.left_edge[k]:
             tpos = node.left_edge[k] - v
@@ -331,6 +325,7 @@ cdef inline int process_node_points_particles(Node* node,
     cdef np.float64_t* p_ptr
     for i in range(node.left_idx, node.left_idx + node.children):
         p_ptr = &(positions[i, 0])
+
         if i != skip_idx:
             sq_dist = 0
             for j in range(3):
@@ -347,13 +342,8 @@ cdef inline int process_node_points_voxels(Node* node,
                                         np.int64_t offset,
                                         np.int64_t[:] tree_id,
                                         BoundedPriorityQueue queue,
-                                        np.float64_t * bounds,
-                                        int gather_type) nogil except -1:
+                                        ) nogil except -1:
     # if gather type is 1, then we ignore the third coordinate for a slice
-    cdef int dim = 3
-    if gather_type == 1:
-        dim = 2
-
     cdef uint64_t i,idx_offset
     cdef np.float64_t tpos, sq_dist
     cdef int j
@@ -362,22 +352,9 @@ cdef inline int process_node_points_voxels(Node* node,
         if(idx_offset < 0 or idx_offset > positions.shape[0]):
             continue
 
-        # skip the particle if it is not in the region
-        #if positions[idx_offset, 0] < bounds[0] or \
-        #    positions[idx_offset, 0] > bounds[1]:
-        #        continue
-        #if positions[idx_offset, 1] < bounds[2] or \
-        #    positions[idx_offset, 1] > bounds[3]:
-        #        continue
-        #if positions[idx_offset, 2] < bounds[4] or \
-        #    positions[idx_offset, 2] > bounds[5]:
-        #        continue
-
         sq_dist = 0
-        for j in range(dim):
+        for j in range(3):
             tpos = positions[idx_offset, j] - pos[j]
             sq_dist += tpos*tpos
-
         queue.add_pid(sq_dist, i)
-
     return 0
