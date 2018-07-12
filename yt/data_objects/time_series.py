@@ -401,7 +401,7 @@ class DatasetSeries(object):
         self._dataset_cls = ds.__class__
         return ds
 
-    def particle_trajectories(self, indices, fields=None, suppress_logging=False):
+    def particle_trajectories(self, indices, fields=None, suppress_logging=False, ptype=None):
         r"""Create a collection of particle trajectories in time over a series of
         datasets.
 
@@ -418,6 +418,8 @@ class DatasetSeries(object):
         suppress_logging : boolean
             Suppress yt's logging when iterating over the simulation time
             series. Default: False
+        ptype : str, optional
+            Only use this particle type
 
         Examples
         --------
@@ -433,8 +435,14 @@ class DatasetSeries(object):
         >>> trajs = ts.particle_trajectories(indices, fields=fields)
         >>> for t in trajs :
         >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
+
+        Note
+        ----
+        This function will fail if there are duplicate particle ids or if some of the particle
+        disappear.
         """
-        return ParticleTrajectories(self, indices, fields=fields, suppress_logging=suppress_logging)
+        return ParticleTrajectories(self, indices, fields=fields, suppress_logging=suppress_logging,
+                                    ptype=ptype)
 
 class TimeSeriesQuantitiesContainer(object):
     def __init__(self, data_object, quantities):
