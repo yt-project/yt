@@ -231,7 +231,6 @@ class ParticleTrajectories(object):
         fds = {}
         new_particle_fields = []
         for field in missing_fields:
-            tmp = (self.ptype, field)
             fds[field] = self.determine_field(field)[0]
             if field not in self.particle_fields:
                 if self.data_series[0]._get_field_info(*fds[field]).particle_type:
