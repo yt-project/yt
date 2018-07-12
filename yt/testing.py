@@ -286,7 +286,7 @@ def fake_particle_ds(
             offsets.append(0.5)
         else:
             offsets.append(0.0)
-    data = {}
+    data = data if data else {}
     for field, offset, u in zip(fields, offsets, units):
         if field in data:
             v = data[field]
