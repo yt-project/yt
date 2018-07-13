@@ -93,6 +93,32 @@ density = arbitrary_grid[('gas', 'density')]
 print(density)
 ```
 
+Off-Axis Projection for SPH Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The current `OffAxisProjectionPlot` class will now support SPH projection plots.
+
+The following is a code example:
+
+.. code-block:: python
+
+    import yt
+
+    ds = yt.load('Data/GadgetDiskGalaxy/snapshot_200.hdf5')
+
+    smoothing_field = ('gas', 'density')
+
+    _, center = ds.find_max(smoothing_field)
+
+    sp = ds.sphere(center, (10, 'kpc'))
+
+    normal_vector = sp.quantities.angular_momentum_vector()
+
+    prj = yt.OffAxisProjectionPlot(ds, normal_vector, smoothing_field, center, (20, 'kpc'))
+
+    prj.save()
+
+
 API Changes
 -----------
 
