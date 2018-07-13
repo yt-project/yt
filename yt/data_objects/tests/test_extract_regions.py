@@ -2,8 +2,10 @@ import numpy as np
 
 from yt.testing import \
     fake_random_ds, \
+    fake_amr_ds, \
     assert_equal, \
     assert_almost_equal
+
 
 
 def setup():
@@ -49,12 +51,7 @@ def test_cut_region():
 
 
 def test_region_and_particles():
-    ds = fake_random_ds(
-        64, nprocs=8,
-        particle_fields=('particle_position_x', 'particle_position_y', 'particle_position_z',
-                         'particle_identity'),
-        particle_field_units=('cm', 'cm', 'cm', '1'),
-        particles=100)
+    ds = fake_amr_ds(particles=10000)
 
     ad = ds.all_data()
     reg = ad.cut_region('obj["x"] < .5')
