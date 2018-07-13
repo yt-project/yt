@@ -954,7 +954,6 @@ class YTCutRegion(YTSelectionContainer3D):
         mask = np.zeros(dist.shape[0], dtype=bool)
         # Loop over all eigh nearest neighbors
         for n in range(N):
-            print(n, mask.sum())
             # Keep particles with a neighbor
             local_mask = np.isfinite(dist[:, n]) & np.logical_not(mask)
 
