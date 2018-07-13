@@ -20,7 +20,7 @@ def test_cut_region():
         r = dd.cut_region( [ "obj['temperature'] > 0.5",
                              "obj['density'] < 0.75",
                              "obj['velocity_x'] > 0.25" ])
-        t = ( (dd["temperature"] > 0.5 ) 
+        t = ( (dd["temperature"] > 0.5 )
             & (dd["density"] < 0.75 )
             & (dd["velocity_x"] > 0.25 ) )
         assert_equal(np.all(r["temperature"] > 0.5), True)
@@ -46,3 +46,21 @@ def test_cut_region():
         assert_equal(p2["density"].max() > 0.25, True)
         p2 = ds.proj("density", 2, data_source=cr, weight_field = "density")
         assert_equal(p2["density"].max() > 0.25, True)
+
+
+def test_region_and_particles():
+    ds = fake_random_ds(
+        64, nprocs=8,
+        particle_fields=('particle_position_x', 'particle_position_y', 'particle_position_z',
+                         'particle_identity'),
+        particle_field_units=('cm', 'cm', 'cm', '1'),
+        particles=100)
+
+    ad = ds.all_data()
+    reg = ad.cut_region('obj["x"] < .5')
+
+    mask = ad['particle_position_x'] < 0.5
+    expected = np.sort(ad['particle_position_x'][mask].value)
+    result = np.sort(reg['particle_position_x'])
+
+    assert_equal(expected.shape, result.shape)
