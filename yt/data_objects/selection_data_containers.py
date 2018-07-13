@@ -976,19 +976,6 @@ class YTCutRegion(YTSelectionContainer3D):
         if self._particle_mask.get(ptype) is None:
             mask = self._part_ind_KDTree(ptype)
             self._particle_mask[ptype] = mask
-
-            #     mask = points_in_cells(
-            #         self[("index", "x")].to(units),
-            #         self[("index", "y")].to(units),
-            #         self[("index", "z")].to(units),
-            #         self[("index", "dx")].to(units),
-            #         self[("index", "dy")].to(units),
-            #         self[("index", "dz")].to(units),
-            #         parent[(ptype, "particle_position_x")].to(units),
-            #         parent[(ptype, "particle_position_y")].to(units),
-            #         parent[(ptype, "particle_position_z")].to(units))
-            # finally:
-            #     self._particle_mask[ptype] = mask
         return self._particle_mask[ptype]
 
     @property
