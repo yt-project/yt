@@ -37,6 +37,8 @@ from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
+from yt.utilities.on_demand_imports import _scipy
+
 
 
 class YTPoint(YTSelectionContainer0D):
@@ -930,21 +932,66 @@ class YTCutRegion(YTSelectionContainer3D):
                 np.logical_and(res, ind, ind)
         return ind
 
+    def _part_ind_KDTree(self, ptype):
+        '''Find the particles in cells using a KDTree approach.'''
+        parent = getattr(self, "parent", self.base_object)
+        units = "code_length"
+
+        pos = np.stack([self[("index", k)].to(units) for k in 'xyz'], axis=1).value
+        dx = np.stack([self[("index", "d%s" % k)].to(units) for k in 'xyz'], axis=1).value
+        ppos = np.stack([parent[(ptype, "particle_position_%s" % k)]
+                         for k in 'xyz'], axis=1).value
+
+        grid_tree = _scipy.KDTree(pos, boxsize=1)
+
+        # Get 8 closest cell at most at dx
+        N = 8
+        # Notes:
+        # * look for the 8 closest cells because coarse cells may have
+        #   particles that are closer to neighboring finer cells
+        # * use the infinite-norm: |x|_\infty = max_i |x_i|
+        dist, icell = grid_tree.query(ppos, distance_upper_bound=dx.max(),
+                                      p=np.inf, k=N)
+
+        mask = np.zeros(dist.shape[0], dtype=bool)
+        # Loop over all eigh nearest neighbors
+        for n in range(N):
+            print(n, mask.sum())
+            # Keep particles with a neighbor
+            local_mask = np.isfinite(dist[:, n]) & np.logical_not(mask)
+
+            # Get remaining particles
+            i = icell[local_mask, n]
+
+            # Check they are in a cell
+            mmask = np.all(
+                np.abs(ppos[local_mask, :] - pos[i, :])
+                < (dx[i] / 2), axis=1
+            )
+
+            # Update the mask (with or gate)
+            mask[local_mask] |= mmask
+
+        return mask
+
+
     def _part_ind(self, ptype):
         if self._particle_mask.get(ptype) is None:
-            parent = getattr(self, "parent", self.base_object)
-            units = "code_length"
-            mask = points_in_cells(
-                self[("index", "x")].to(units),
-                self[("index", "y")].to(units),
-                self[("index", "z")].to(units),
-                self[("index", "dx")].to(units),
-                self[("index", "dy")].to(units),
-                self[("index", "dz")].to(units),
-                parent[(ptype, "particle_position_x")].to(units),
-                parent[(ptype, "particle_position_y")].to(units),
-                parent[(ptype, "particle_position_z")].to(units))
+            mask = self._part_ind_KDTree(ptype)
             self._particle_mask[ptype] = mask
+
+            #     mask = points_in_cells(
+            #         self[("index", "x")].to(units),
+            #         self[("index", "y")].to(units),
+            #         self[("index", "z")].to(units),
+            #         self[("index", "dx")].to(units),
+            #         self[("index", "dy")].to(units),
+            #         self[("index", "dz")].to(units),
+            #         parent[(ptype, "particle_position_x")].to(units),
+            #         parent[(ptype, "particle_position_y")].to(units),
+            #         parent[(ptype, "particle_position_z")].to(units))
+            # finally:
+            #     self._particle_mask[ptype] = mask
         return self._particle_mask[ptype]
 
     @property
