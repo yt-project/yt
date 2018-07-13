@@ -939,35 +939,35 @@ class YTCutRegion(YTSelectionContainer3D):
         dx = np.stack([self[("index", "d%s" % k)].to(units) for k in 'xyz'], axis=1).value
         ppos = np.stack([parent[(ptype, "particle_position_%s" % k)]
                          for k in 'xyz'], axis=1).value
+        levels = self[("index", "grid_level")].astype('int32').value
+        levelmin = levels.min()
+        levelmax = levels.max()
 
-        grid_tree = _scipy.KDTree(pos, boxsize=1)
+        mask = np.zeros(ppos.shape[0], dtype=bool)
 
-        # Get 8 closest cell at most at dx
-        N = 8
-        # Notes:
-        # * look for the 8 closest cells because coarse cells may have
-        #   particles that are closer to neighboring finer cells
-        # * use the infinite-norm: |x|_\infty = max_i |x_i|
-        dist, icell = grid_tree.query(ppos, distance_upper_bound=dx.max(),
-                                      p=np.inf, k=N)
+        for lvl in range(levelmax, levelmin-1, -1):
+            # Filter out cells not in the current level
+            lvl_mask = (levels == lvl)
+            print(lvl, lvl_mask.sum(), mask.sum(), mask.shape[0])
+            dx_loc = dx[lvl_mask]
+            pos_loc = pos[lvl_mask]
 
-        mask = np.zeros(dist.shape[0], dtype=bool)
-        # Loop over all eigh nearest neighbors
-        for n in range(N):
-            # Keep particles with a neighbor
-            local_mask = np.isfinite(dist[:, n]) & np.logical_not(mask)
+            grid_tree = _scipy.KDTree(pos_loc, boxsize=1)
 
-            # Get remaining particles
-            i = icell[local_mask, n]
+            # Compute closest cell for all remaining particles
+            dist, icell = grid_tree.query(ppos[~mask], distance_upper_bound=dx_loc.max(),
+                                          p=np.inf)
+            mask_loc = np.isfinite(dist[:])
 
-            # Check they are in a cell
-            mmask = np.all(
-                np.abs(ppos[local_mask, :] - pos[i, :])
-                < (dx[i] / 2), axis=1
-            )
+            # Check that particles within dx of a cell are in it
+            i = icell[mask_loc]
+            dist = np.abs(ppos[~mask][mask_loc, :] - pos_loc[i])
+            tmp_mask = np.all(dist <= (dx_loc[i] / 2), axis=1)
 
-            # Update the mask (with or gate)
-            mask[local_mask] |= mmask
+            mask_loc[mask_loc] = tmp_mask
+
+            # Update the particle mask with particles found at this level
+            mask[~mask] |= mask_loc
 
         return mask
 
