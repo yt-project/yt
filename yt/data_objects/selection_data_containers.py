@@ -24,8 +24,6 @@ from yt.extern.six import string_types
 from yt.funcs import ensure_list, iterable, validate_width_tuple, \
     fix_length, fix_axis, validate_3d_array, validate_float, \
     validate_iterable, validate_object, validate_axis, validate_center
-from yt.geometry.selection_routines import \
-    points_in_cells
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
