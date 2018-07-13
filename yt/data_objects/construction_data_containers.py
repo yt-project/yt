@@ -2121,6 +2121,8 @@ class YTOctree(YTSelectionContainer3D):
         # build the octree
         self.octree = PyOctree(pos, self.left_edge, self.right_edge,
                                self.n_ref)
+        only_on_root(mylog.info, "Allocating for %i octs",
+                     self.octree.num_octs, global_rootonly = True)
 
     def _setup_data_source(self):
         self._data_source = self.ds.region(
