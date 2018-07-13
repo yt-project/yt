@@ -378,11 +378,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             self.ds.all_data().chunks([field], 'io')):
                         offsets = np.append(offsets,
                                 offsets[-1]+chunk[(ptype,'density')].shape[0])
-
-                        # axis correction
                         pos = chunk[(ptype,'particle_position')].in_base("code").d
-                        pos[:,0] , pos[:,1], pos[:,2] = \
-                            pos[:,self.x_axis[dim]], pos[:,self.y_axis[dim]], pos[:,dim]
 
                         generate_nn_list_guess(pids, dists, queue_sizes,
                             tree, grid_bounds, grid_size.astype("int64"),
@@ -397,10 +393,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     pbar = tqdm(desc="Generating nearest neighbor lists")
                     for i, chunk in enumerate(
                             self.ds.all_data().chunks([field], 'io')):
-                        # axis correction
                         pos = chunk[(ptype,'particle_position')].in_base("code").d
-                        pos[:,0] , pos[:,1], pos[:,2] = \
-                            pos[:,self.x_axis[dim]], pos[:,self.y_axis[dim]], pos[:,dim]
 
                         generate_nn_list(pids, dists, tree,
                             grid_bounds, grid_size.astype("int64"),

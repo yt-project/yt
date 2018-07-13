@@ -148,10 +148,6 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
         for i in range(size[0]):
             for j in range(size[1]):
                 for k in range(size[2]):
-                    if i % CHUNKSIZE == 0:
-                        with gil:
-                            PyErr_CheckSignals()
-
                     voxel_position[0] = bounds[0] + (i+0.5)*dx
                     voxel_position[1] = bounds[2] + (j+0.5)*dy
                     voxel_position[2] = bounds[4] + (k+0.5)*dz
@@ -161,7 +157,7 @@ def generate_nn_list(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, ::1] d
                     queue.size = pids.shape[3]
 
                     pos = &(voxel_position[0])
-                    leafnode = c_tree.search(&pos[0])
+                    leafnode = c_tree.search(pos)
 
                     # Traverse the rest of the kdtree to finish the neighbor
                     # list
@@ -238,7 +234,7 @@ def generate_nn_list_guess(np.int64_t[:, :, :, ::1] pids, np.float64_t[:, :, :, 
                     queue.size = queue_sizes[i, j, k]
 
                     pos = &(voxel_position[0])
-                    leafnode = c_tree.search(&pos[0])
+                    leafnode = c_tree.search(pos)
                     process_node_points_voxels(leafnode, pos, input_pos,
                                 offset, tree_id, queue)
 
