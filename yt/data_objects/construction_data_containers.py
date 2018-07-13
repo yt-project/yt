@@ -68,6 +68,7 @@ import yt.extern.six as six
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid
 from yt.extern.tqdm import tqdm
+from yt.utilities.lib.cyoctree import PyOctree
 
 class YTStreamline(YTSelectionContainer1D):
     """
@@ -2105,9 +2106,25 @@ class YTOctree(YTSelectionContainer3D):
 
         self._use_pbar = use_pbar
         self._setup_data_source()
+        self._setup_octree()
+
+    def _setup_octree(self):
+        # NOTE: there should be checks here to see if it is loaded, and if not,
+        # then load it from memory
+
+        # loop through and load positions
+        pos = []
+        for chunk in self._data_source.chunks([],"io"):
+            pos.append(chunk[('all', 'particle_position')].d)
+        pos = np.concatenate(pos)
+
+        # build the octree
+        self.octree = PyOctree(pos, self.left_edge, self.right_edge,
+                               self.n_ref)
 
     def _setup_data_source(self):
-        return
+        self._data_source = self.ds.region(
+            self.center, self.left_edge, self.right_edge)
 
     def _sanitize_edge(self, edge):
         if not iterable(edge):

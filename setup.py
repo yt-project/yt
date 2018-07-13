@@ -147,7 +147,7 @@ cython_extensions = [
               extra_link_args=omp_args,
               libraries=std_libs,
               depends=["yt/utilities/lib/pixelization_constants.h"]),
-    Extension("cyoctree",
+    Extension("yt.utilities.lib.cyoctree",
               ["yt/utilities/lib/cyoctree.pyx"],
               extra_compile_args=['-fopenmp'],
               extra_link_args=['-fopenmp'],
