@@ -948,7 +948,6 @@ class YTCutRegion(YTSelectionContainer3D):
         for lvl in range(levelmax, levelmin-1, -1):
             # Filter out cells not in the current level
             lvl_mask = (levels == lvl)
-            print(lvl, lvl_mask.sum(), mask.sum(), mask.shape[0])
             dx_loc = dx[lvl_mask]
             pos_loc = pos[lvl_mask]
 
