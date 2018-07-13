@@ -2061,3 +2061,63 @@ class YTSurface(YTSelectionContainer3D):
             mylog.error("Problem uploading.")
 
         return model_uid
+
+class YTOctree(YTSelectionContainer3D):
+    """A 3D region with all the data filled into an octree.
+
+    Parameters
+    ----------
+    right_edge : array_like
+        The right edge of the region to be extracted.  Specify units by supplying
+        a YTArray, otherwise code length units are assumed.
+    left_edge : array_like
+        The left edge of the region to be extracted.  Specify units by supplying
+        a YTArray, otherwise code length units are assumed.
+    n_ref: int
+        This is the maximum number of particles per leaf in the resulting
+        octree.
+
+    Examples
+    --------
+    """
+    _spatial = True
+    _type_name = "octree"
+    _con_args = ('left_edge', 'right_edge', 'n_ref')
+    _container_fields = (("index", "dx"),
+                         ("index", "dy"),
+                         ("index", "dz"),
+                         ("index", "x"),
+                         ("index", "y"),
+                         ("index", "z"))
+    _base_grid = None
+    def __init__(self, left_edge, right_edge, n_ref=32, fields = None,
+                 ds = None, use_pbar = True, field_parameters = None):
+        if field_parameters is None:
+            center = None
+        else:
+            center = field_parameters.get("center", None)
+        YTSelectionContainer3D.__init__(self,
+            center, ds, field_parameters)
+
+        self.left_edge = self._sanitize_edge(left_edge)
+        self.right_edge = self._sanitize_edge(right_edge)
+        self.n_ref = n_ref
+
+        self._use_pbar = use_pbar
+        self._setup_data_source()
+
+    def _setup_data_source(self):
+        return
+
+    def _sanitize_edge(self, edge):
+        if not iterable(edge):
+            edge = [edge]*len(self.ds.domain_left_edge)
+        if len(edge) != len(self.ds.domain_left_edge):
+            raise RuntimeError(
+                "Length of edges must match the dimensionality of the "
+                "dataset")
+        if hasattr(edge, 'units'):
+            edge_units = edge.units
+        else:
+            edge_units = 'code_length'
+        return self.ds.arr(edge, edge_units)

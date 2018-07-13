@@ -58,6 +58,8 @@ yt/utilities/lib/mesh_samplers.cpp
 yt/utilities/lib/mesh_traversal.cpp
 yt/utilities/lib/mesh_triangulation.c
 yt/utilities/lib/mesh_utilities.c
+yt/utilities/lib/pixelization_routines.cpp
+yt/utilities/lib/cyoctree.cpp
 yt/utilities/lib/misc_utilities.c
 yt/utilities/lib/particle_kdtree_tools.cpp
 yt/utilities/lib/particle_mesh_operations.c
