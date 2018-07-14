@@ -1017,8 +1017,8 @@ class YTNotebookCmd(YTCommand):
     def __call__(self, args):
         kwargs = {}
         try:
-            # IPython 1.0+
-            from IPython.html.notebookapp import NotebookApp
+            # IPython 4.0+
+            from notebook.notebookapp import NotebookApp
         except ImportError:
             # pre-IPython v1.0
             from IPython.frontend.html.notebook.notebookapp import NotebookApp
