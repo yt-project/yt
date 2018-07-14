@@ -234,7 +234,7 @@ class scipy_imports(object):
             try:
                 from scipy.spatial import cKDTree as KDTree
             except ImportError:
-                from yt.extern import KDTree
+                from yt.extern.pykdtree import KDTree
             self._KDTree = KDTree
         return self._KDTree
 
