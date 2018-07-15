@@ -2091,7 +2091,7 @@ class YTOctree(YTSelectionContainer3D):
                          ("index", "y"),
                          ("index", "z"))
     _base_grid = None
-    def __init__(self, left_edge, right_edge, n_ref=32, fields = None,
+    def __init__(self, left_edge, right_edge, n_ref=32, ptypes = None, fields = None,
                  ds = None, use_pbar = True, field_parameters = None):
         if field_parameters is None:
             center = None
@@ -2103,6 +2103,7 @@ class YTOctree(YTSelectionContainer3D):
         self.left_edge = self._sanitize_edge(left_edge)
         self.right_edge = self._sanitize_edge(right_edge)
         self.n_ref = n_ref
+        self.ptypes = self._sanitize_ptypes(ptypes)
 
         self._use_pbar = use_pbar
         self._setup_data_source()
@@ -2115,7 +2116,8 @@ class YTOctree(YTSelectionContainer3D):
         # loop through and load positions
         pos = []
         for chunk in self._data_source.chunks([],"io"):
-            pos.append(chunk[('all', 'particle_position')].d)
+            for ptype in self.ptypes:
+                pos.append(chunk[(ptype, 'particle_position')].d)
         pos = np.concatenate(pos)
 
         # build the octree
@@ -2123,6 +2125,18 @@ class YTOctree(YTSelectionContainer3D):
                                self.n_ref)
         only_on_root(mylog.info, "Allocating for %i octs",
                      self.octree.num_octs, global_rootonly = True)
+
+    def _sanitize_ptypes(self, ptypes):
+        if ptypes is None:
+            return ['all']
+
+        self.ds.index
+        for ptype in ptypes:
+            if ptype not in self.ds.particle_types:
+                raise TypeError("%s not found. Particle type must be in the \
+                                dataset!".format(ptype))
+            if ptype == 'all':
+                return ['all']
 
     def _setup_data_source(self):
         self._data_source = self.ds.region(
