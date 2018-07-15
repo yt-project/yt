@@ -97,7 +97,6 @@ This can be modified to use the gather approach by changing a global setting for
 the dataset. The previous example could be modified to include the following
 settings on the datset,
 
-
 ```python
 
 ds.sph_smoothing_style = "gather"
@@ -108,6 +107,31 @@ ds._num_neighbors = 32
 The gather approach requires finding nearest neighbors using the KDTree. The
 first call will generate a KDTree for the entire dataset which will be stored in
 a sidecar file. This will be loaded whenever neccesary.
+
+Off-Axis Projection for SPH Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The current `OffAxisProjectionPlot` class will now support SPH projection plots.
+
+The following is a code example:
+
+.. code-block:: python
+
+    import yt
+
+    ds = yt.load('Data/GadgetDiskGalaxy/snapshot_200.hdf5')
+
+    smoothing_field = ('gas', 'density')
+
+    _, center = ds.find_max(smoothing_field)
+
+    sp = ds.sphere(center, (10, 'kpc'))
+
+    normal_vector = sp.quantities.angular_momentum_vector()
+
+    prj = yt.OffAxisProjectionPlot(ds, normal_vector, smoothing_field, center, (20, 'kpc'))
+
+    prj.save()
 
 API Changes
 -----------
