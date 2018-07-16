@@ -4,6 +4,9 @@ from yt.utilities.lib.bounded_priority_queue import validate, validate_pid
 
 from yt.testing import assert_array_equal
 
+# These test functions use utility functions in
+# yt.utilities.lib.bounded_priority_queue
+# to test functions which are not exposed at a python level
 def test_bounded_priority_queue():
     dists = validate()
     answers = np.array([0.1, 0.001, -1., -1., -1.])
