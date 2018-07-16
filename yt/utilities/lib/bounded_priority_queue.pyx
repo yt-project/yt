@@ -41,7 +41,7 @@ cdef class BoundedPriorityQueue:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef int reset(self) nogil except -1:
-        # utlity function useful to re-validate the pointers if we allocate
+        # utility function useful to re-validate the pointers if we allocate
         # the heap to a memoryview
         if self.use_pids:
             self.pids_ptr = &(self.pids[0])
