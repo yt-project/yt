@@ -1248,8 +1248,8 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff,
                 for j in range(size[1]):
                     for k in range(size[2]):
                         if buff_den[i, j, k] != 0.0:
-                            buff[i, j, k] = buff[i, j, k] / \
-                                            buff_den[i, j, k]
+                            buff[i, j, k] = (buff[i, j, k] /
+                                                        buff_den[i, j, k])
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)

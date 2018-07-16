@@ -100,7 +100,7 @@ settings on the datset,
 ```python
 
 ds.sph_smoothing_style = "gather"
-ds._num_neighbors = 32
+ds.num_neighbors = 32
 
 ```
 
