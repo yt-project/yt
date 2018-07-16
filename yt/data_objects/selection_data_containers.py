@@ -991,10 +991,12 @@ class YTCutRegion(YTSelectionContainer3D):
             # If scipy is installed, use the fast KD tree
             # implementation. Else, fall back onto the direct
             # brute-force algorithm.
-            if issubclass(_scipy.spatial, NotAModule):
-                mask = self._part_ind_brute_force(ptype)
-            else:
+            try:
+                _scipy.spatial.KDTree
                 mask = self._part_ind_KDTree(ptype)
+            except ImportError:
+                mask = self._part_ind_brute_force(ptype)
+
             self._particle_mask[ptype] = mask
         return self._particle_mask[ptype]
 
