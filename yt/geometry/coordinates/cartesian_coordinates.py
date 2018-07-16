@@ -368,10 +368,16 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     # we swap the axes back so the axis which was sliced over
                     # is the last axis. Then we just transpose if our x and y
                     # were also different
-                    buff_temp = buff_temp.swapaxes(2, z)
+                    if z != 2:
+                        buff_temp = buff_temp.swapaxes(2, z)
+                        if x == 2:
+                            x = z
+                        else:
+                            y = z
+
                     buff = buff_temp[:,:,0]
                     if y < x:
-                        buff.transpose()
+                        buff = buff.transpose()
             else:
                 raise NotImplementedError(
                     "A pixelization routine has not been implemented for %s "
