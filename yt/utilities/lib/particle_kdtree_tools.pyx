@@ -167,12 +167,13 @@ def query(PyKDTree kdtree, np.float64_t [:, ::1] tree_positions,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def knn_list_guess(np.float64_t [:, ::1] tree_positions, np.float64_t[:,:] dists,
-                   np.int64_t[:,:] pids,  PyKDTree kdtree, np.float64_t[:, ::1]
-                   input_positions, int num_neigh, int sorted=0, int offset=0
+def knn_list_guess(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, ::1] dists,
+                   np.int64_t[:, :, :, ::1] pids, np.int64_t[:, :, :] q_sizes,
+                   PyKDTree kdtree, np.float64_t[:] bounds, np.int64_t[:] size,
+                   int num_neigh, int sorted=0, int offset=0
                    ):
     """This is a KD nearest neighbor search to calculate the first guess, this
-    is useful for filling a nearest neighbor list chunwise
+    is useful for filling a nearest neighbor list chunkwise for a voxel.
 
     Parameters
     ----------
@@ -188,8 +189,10 @@ def knn_list_guess(np.float64_t [:, ::1] tree_positions, np.float64_t[:,:] dists
         The particle ids of the nearest neighbors
     kdtree: A PyKDTree instance
         A kdtree to do nearest neighbors searches with
-    input_positions: array of floats (any, 3)
-        The positions to gather the nearest neighbors.
+    bounds: array of floats
+        The boundaries of the grid.
+    size: array of ints
+        The number of cells to divide the grid into
     num_neigh: The neighbor number to calculate the distance to
     sorted: int
         have the tree input positions been sorted with the tree idx?
@@ -202,36 +205,51 @@ def knn_list_guess(np.float64_t [:, ::1] tree_positions, np.float64_t[:,:] dists
     cdef KDTree* c_tree = kdtree._tree
     cdef Node* leafnode
     cdef np.float64_t* pos
-    cdef int i, skipidx = -1
+    cdef int i, j, k, skipidx = -1
+    cdef double dx, dy, dz
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
     cdef np.int64_t[:] tree_id
+    cdef np.float64_t[:] voxel_pos = np.zeros(3, dtype="float64")
 
-    # if we haven't sorted then we use the tree ids
+    dx = (bounds[1] - bounds[0]) / size[0]
+    dy = (bounds[3] - bounds[2]) / size[1]
+    dz = (bounds[5] - bounds[4]) / size[2]
+
+    # if we haven't sorted then we use the tree ids to map the particle ids
     if not sorted:
-        tree_id = np.zeros((1), dtype="int64") - 1
-    else:
         tree_id = kdtree.idx.astype("int64")
+    else:
+        tree_id = np.zeros((1), dtype="int64") - 1
 
-    for i in range(0, tree_positions.shape[0]):
-        queue.size = 0
+    for i in range(0, size[0]):
+        for j in range(0, size[1]):
+            for k in range(0, size[2]):
+                queue.size = q_sizes[i, j, k]
+                queue.heap[:] = dists[i, j, k, :]
+                queue.pids[:] = pids[i, j, k, :]
 
-        pos = &(input_positions[i, 0])
-        leafnode = c_tree.search(pos)
+                voxel_pos[0] = bounds[0] + (i+0.5)*dx
+                voxel_pos[1] = bounds[2] + (j+0.5)*dy
+                voxel_pos[2] = bounds[4] + (k+0.5)*dz
 
-        process_node_points(leafnode, queue, tree_positions, pos, skipidx,
+                pos = &(voxel_pos[0])
+                leafnode = c_tree.search(pos)
+
+                process_node_points(leafnode, queue, tree_positions, pos, skipidx,
                             tree_id, offset)
 
-        dists[i, :] = queue.heap[:]
-        pids[i, :] = queue.pids[:]
+                q_sizes[i, j, k] = queue.size
+                dists[i, j, k, :] = queue.heap[:]
+                pids[i, j, k, :] = queue.pids[:]
 
     return
 
 @cython.boundscheck(False)
 @cython.wraparound(True)
 @cython.cdivision(True)
-def knn_list(np.float64_t [:, ::1] tree_positions, np.float64_t[:,:] dists,
-             np.int64_t[:,:] pids,  PyKDTree kdtree, np.float64_t[:, ::1]
-             input_positions, int num_neigh, int sorted=0, int offset=0
+def knn_list(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, ::1] dists,
+             np.int64_t[:, :, :, ::1] pids,  PyKDTree kdtree, np.float64_t[:] bounds,
+             np.int64_t[:] size, int num_neigh, int sorted=0, int offset=0
              ):
     """This is a KD nearest neighbor search to calculate improve the first guess
     with tree traversing, this is useful for filling a nearest neighbor list
@@ -265,30 +283,41 @@ def knn_list(np.float64_t [:, ::1] tree_positions, np.float64_t[:,:] dists,
     cdef KDTree* c_tree = kdtree._tree
     cdef Node* leafnode
     cdef np.float64_t* pos
-    cdef int i
-    cdef int skipidx = -1
+    cdef int i, j, k, skipidx = -1
+    cdef double dx, dy, dz
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
     cdef np.int64_t[:] tree_id
+    cdef np.float64_t[:] voxel_pos = np.zeros(3, dtype="float64")
+
+    dx = (bounds[1] - bounds[0]) / size[0]
+    dy = (bounds[3] - bounds[2]) / size[1]
+    dz = (bounds[5] - bounds[4]) / size[2]
 
     # if we haven't sorted then we use the tree ids to map the particle ids
     if not sorted:
-        tree_id = np.zeros((1), dtype="int64") - 1
-    else:
         tree_id = kdtree.idx.astype("int64")
+    else:
+        tree_id = np.zeros((1), dtype="int64") - 1
 
-    for i in range(0, tree_positions.shape[0]):
-        queue.size = queue.max_elements
-        queue.heap[:] = dists[i, :]
-        queue.pids[:] = pids[i, :]
+    for i in range(0, size[0]):
+        for j in range(0, size[1]):
+            for k in range(0, size[2]):
+                queue.size = queue.max_elements
+                queue.heap[:] = dists[i, j, k, :]
+                queue.pids[:] = pids[i, j, k, :]
 
-        pos = &(input_positions[i, 0])
-        leafnode = c_tree.search(pos)
+                voxel_pos[0] = bounds[0] + (i+0.5)*dx
+                voxel_pos[1] = bounds[2] + (j+0.5)*dy
+                voxel_pos[2] = bounds[4] + (k+0.5)*dz
 
-        find_knn(c_tree.root, queue, tree_positions, pos, leafnode.leafid,
-                 skipidx, tree_id, offset)
+                pos = &(voxel_pos[0])
+                leafnode = c_tree.search(pos)
 
-        dists[i, :] = queue.heap[:]
-        pids[i, :] = queue.pids[:]
+                find_knn(c_tree.root, queue, tree_positions, pos, leafnode.leafid,
+                         skipidx, tree_id, offset)
+
+                dists[i, j, k, :] = queue.heap[:]
+                pids[i, j, k, :] = queue.pids[:]
 
     return
 
@@ -372,6 +401,6 @@ cdef inline int process_node_points(Node* node,
             tpos = positions[idx_offset, j] - pos[j]
             sq_dist += tpos*tpos
 
-        queue.add_pid(sq_dist, idx_offset)
+        queue.add_pid(sq_dist, i)
     return 0
 

@@ -65,11 +65,9 @@ from yt.frontends.stream.api import load_uniform_grid
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
 import yt.extern.six as six
-from yt.utilities.lib.particle_kdtree_tools import \
-    generate_nn_list, generate_nn_list_guess
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
-    pixelize_sph_kernel_gather_arbitrary_grid
+    pixelize_sph_gather
 from yt.extern.tqdm import tqdm
 
 class YTStreamline(YTSelectionContainer1D):
@@ -961,88 +959,13 @@ class YTArbitraryGrid(YTCoveringGrid):
 
         if(smoothing_style == "gather"):
             for field in fields:
-                tree = self.ds.index.kdtree
+                buff = np.zeros(self.ActiveDimensions, dtype="float64")
 
-                # set up the nearest neighbour arrays to store the distances
-                # and the particle ids
-                pids = np.zeros((self.ActiveDimensions[0],
-                                 self.ActiveDimensions[1],
-                                 self.ActiveDimensions[2],
-                                 self.ds._num_neighbors), dtype="int64") - 1
-                dists = np.zeros((self.ActiveDimensions[0],
-                                 self.ActiveDimensions[1],
-                                 self.ActiveDimensions[2],
-                                 self.ds._num_neighbors), dtype="float64") - 1
-                queue_sizes = np.zeros((self.ActiveDimensions[0],
-                                 self.ActiveDimensions[1],
-                                 self.ActiveDimensions[2]), dtype="int64")
-                dest_num = np.zeros(self.ActiveDimensions, dtype="float64")
-                dest_den = np.zeros(self.ActiveDimensions, dtype="float64")
-
-                # find all the nearest neighbors, we have to loop through
-                # EVERY SINGLE PARTICLE and fill our nearest neighbour lists
-                # before we can do the deposition
-                offsets = np.array([0], dtype="int64")
-
-                # first we loop through and fill the particles with our best
-                # guess
-                pbar = tqdm(desc="Generating nearest neighbor lists")
-                for i, chunk in enumerate(
-                        self.ds.all_data().chunks([field], 'io')):
-                    offsets = np.append(offsets,
-                            offsets[-1]+chunk[(ptype,'density')].shape[0])
-
-                    generate_nn_list_guess(pids, dists, queue_sizes,
-                        tree, bounds, self.ActiveDimensions.astype("int64"),
-                        chunk[(ptype,'particle_position')].in_base("code").d,
-                        offset=offsets[i])
-                    pbar.update(i)
-
-                # now loop through and traverse the tree. It is much quicker
-                # to do it this way, as the better the initial guess the faster
-                # the main process
-                for i, chunk in enumerate(
-                        self.ds.all_data().chunks([field], 'io')):
-                    generate_nn_list(pids, dists, tree,
-                        bounds, self.ActiveDimensions.astype("int64"),
-                        chunk[(ptype,'particle_position')].in_base("code").d,
-                        offset=offsets[i])
-                    pbar.update(i+offsets.shape[0])
-                pbar.close()
-
-                # perform the deposition onto the pixels -> do it twice to
-                # allow normalization
-                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
-                for i, chunk in enumerate(
-                        self.ds.all_data().chunks([field], 'io')):
-                    pixelize_sph_kernel_gather_arbitrary_grid(dest_num, pids,
-                        dists,
-                        chunk[(ptype,'smoothing_length')].in_base("code").d,
-                        chunk[(ptype,'particle_mass')].in_base("code").d,
-                        chunk[(ptype,'density')].in_base("code").d,
-                        chunk[field].d, tree=tree, offset=offsets[i],
-                        use_normalization=False)
-                    pixelize_sph_kernel_gather_arbitrary_grid(dest_den, pids,
-                        dists,
-                        chunk[(ptype,'smoothing_length')].in_base("code").d,
-                        chunk[(ptype,'particle_mass')].in_base("code").d,
-                        chunk[(ptype,'density')].in_base("code").d,
-                        np.ones(chunk[(ptype,'density')].d.shape[0]),
-                        tree=tree, offset=offsets[i], use_normalization=False)
-                    pbar.update(i)
-                pbar.close()
-
-                # perfom the normalization at the end, as we are depositing
-                # chunkwise so this cannot be done sooner
-                for i in range(self.ActiveDimensions[0]):
-                    for j in range(self.ActiveDimensions[1]):
-                        for k in range(self.ActiveDimensions[2]):
-                            if dest_den[i, j, k] != 0.0:
-                                dest_num[i, j, k] = dest_num[i, j, k] / \
-                                                    dest_den[i, j, k]
+                pixelize_sph_gather(buff, bounds, self.ds, field[1],
+                                         ptype)
 
                 fi = self.ds._get_field_info(field)
-                self[field] = self.ds.arr(dest_num, fi.units)
+                self[field] = self.ds.arr(buff, fi.units)
 
 class LevelState(object):
     current_dx = None

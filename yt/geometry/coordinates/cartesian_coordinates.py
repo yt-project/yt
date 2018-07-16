@@ -30,12 +30,9 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_slice, \
     pixelize_sph_kernel_projection, \
     pixelize_element_mesh_line, \
-    pixelize_sph_kernel_gather_arbitrary_grid
+    pixelize_sph_gather
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
-from yt.utilities.lib.particle_kdtree_tools import \
-    generate_nn_list, generate_nn_list_guess
-from yt.extern.tqdm import tqdm
 
 def _sample_ray(ray, npoints, field):
     """
@@ -349,91 +346,16 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             bounds)
 
                 if smoothing_style == "gather":
-                    tree = data_source.ds.index.kdtree
-                    grid_size = np.array([size[0], size[1], 1], dtype="int64")
-                    grid_bounds = np.array([bounds[0], bounds[1], bounds[2],
+                    buff_size = np.array([size[0], size[1], 1], dtype="int64")
+                    buff_temp = np.zeros(buff_size, dtype="float64")
+                    buff_bounds = np.array([bounds[0], bounds[1], bounds[2],
                                             bounds[3], data_source.coord,
-                                            data_source.coord],
-                                           dtype="float64")
+                                           data_source.coord], dtype="float64")
 
-                    # set up the nearest neighbour arrays to store the distances
-                    # and the particle ids
-                    pids = np.zeros((size[0], size[1], 1,
-                                 self.ds._num_neighbors), dtype="int64") - 1
-                    dists = np.zeros((size[0], size[1], 1,
-                                 self.ds._num_neighbors), dtype="float64") - 1
-                    queue_sizes = np.zeros(grid_size, dtype="int64")
-                    dest_num = np.zeros(grid_size, dtype="float64")
-                    dest_den = np.zeros(grid_size, dtype="float64")
+                    pixelize_sph_gather(buff_temp, buff_bounds, self.ds,
+                                        field[1], ptype)
 
-                    # find all the nearest neighbors, we have to loop through
-                    # EVERY SINGLE PARTICLE and fill our nearest neighbour lists
-                    # before we can do the deposition
-                    offsets = np.array([0], dtype="int64")
-
-                    # first we loop through and fill the particles with our best
-                    # guess
-                    pbar = tqdm(desc="Generating nearest neighbor guess")
-                    for i, chunk in enumerate(
-                            self.ds.all_data().chunks([field], 'io')):
-                        offsets = np.append(offsets,
-                                offsets[-1]+chunk[(ptype,'density')].shape[0])
-                        pos = chunk[(ptype,'particle_position')].in_base("code").d
-
-                        generate_nn_list_guess(pids, dists, queue_sizes,
-                            tree, grid_bounds, grid_size.astype("int64"),
-                            pos,
-                            offset=offsets[i])
-                        pbar.update(i)
-                    pbar.close()
-
-                    # now loop through and traverse the tree. It is much quicker
-                    # to do it this way, as the better the initial guess the faster
-                    # the main process
-                    pbar = tqdm(desc="Generating nearest neighbor lists")
-                    for i, chunk in enumerate(
-                            self.ds.all_data().chunks([field], 'io')):
-                        pos = chunk[(ptype,'particle_position')].in_base("code").d
-
-                        generate_nn_list(pids, dists, tree,
-                            grid_bounds, grid_size.astype("int64"),
-                            pos,
-                            offset=offsets[i])
-                        pbar.update(i)
-                    pbar.close()
-
-                    # perform the deposition onto the pixels -> do it twice to
-                    # allow normalization
-                    pbar = tqdm(desc="Interpolating SPH field {}".format(field))
-                    for i, chunk in enumerate(
-                            self.ds.all_data().chunks([field], 'io')):
-                        pixelize_sph_kernel_gather_arbitrary_grid(dest_num, pids,
-                            dists,
-                            chunk[(ptype,'smoothing_length')].in_base("code").d,
-                            chunk[(ptype,'particle_mass')].in_base("code").d,
-                            chunk[(ptype,'density')].in_base("code").d,
-                            chunk[field].in_units(ounits), tree=tree, offset=offsets[i],
-                            use_normalization=False)
-                        pixelize_sph_kernel_gather_arbitrary_grid(dest_den, pids,
-                            dists,
-                            chunk[(ptype,'smoothing_length')].in_base("code").d,
-                            chunk[(ptype,'particle_mass')].in_base("code").d,
-                            chunk[(ptype,'density')].in_base("code").d,
-                            np.ones(chunk[(ptype,'density')].d.shape[0]),
-                            tree=tree, offset=offsets[i], use_normalization=False)
-                        pbar.update(i)
-                    pbar.close()
-
-                    # perform the normalization at the end, as we are depositing
-                    # chunkwise so this cannot be done sooner
-                    for i in range(grid_size[0]):
-                        for j in range(grid_size[1]):
-                            for k in range(grid_size[2]):
-                                if dest_den[i, j, k] != 0.0:
-                                    dest_num[i, j, k] = dest_num[i, j, k] / \
-                                                    dest_den[i, j, k]
-
-                    buff[:, :] = dest_num[:,:,0]
+                    buff[:, :] = buff_temp[:,:,0]
             else:
                 raise NotImplementedError(
                     "A pixelization routine has not been implemented for %s "
