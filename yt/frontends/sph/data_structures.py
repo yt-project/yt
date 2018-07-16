@@ -116,7 +116,7 @@ class SPHParticleIndex(ParticleIndex):
             positions.astype('float64'),
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
-            periodic=np.array(False),
+            periodic=np.array(self.ds.periodicity),
             leafsize=2*int(self.ds._num_neighbors),
             data_version=self.ds._file_hash
         )
