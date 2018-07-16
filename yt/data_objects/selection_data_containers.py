@@ -35,8 +35,8 @@ from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
-from yt.utilities.on_demand_imports import _scipy
-
+from yt.geometry.selection_routines import points_in_cells
+from yt.utilities.on_demand_imports import _scipy, NotAModule
 
 
 class YTPoint(YTSelectionContainer0D):
@@ -970,10 +970,31 @@ class YTCutRegion(YTSelectionContainer3D):
 
         return mask
 
+    def _part_ind_brute_force(self, ptype):
+        parent = getattr(self, "parent", self.base_object)
+        units = "code_length"
+        mask = points_in_cells(
+            self[("index", "x")].to(units),
+            self[("index", "y")].to(units),
+            self[("index", "z")].to(units),
+            self[("index", "dx")].to(units),
+            self[("index", "dy")].to(units),
+            self[("index", "dz")].to(units),
+            parent[(ptype, "particle_position_x")].to(units),
+            parent[(ptype, "particle_position_y")].to(units),
+            parent[(ptype, "particle_position_z")].to(units))
+
+        return mask
 
     def _part_ind(self, ptype):
         if self._particle_mask.get(ptype) is None:
-            mask = self._part_ind_KDTree(ptype)
+            # If scipy is installed, use the fast KD tree
+            # implementation. Else, fall back onto the direct
+            # brute-force algorithm.
+            if issubclass(_scipy.KDTree, NotAModule):
+                mask = self._part_ind_brute_force(ptype)
+            else:
+                mask = self._part_ind_KDTree(ptype)
             self._particle_mask[ptype] = mask
         return self._particle_mask[ptype]
 
