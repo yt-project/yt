@@ -227,17 +227,6 @@ class scipy_imports(object):
             self._spatial = spatial
         return self._spatial
 
-    _KDTree = None
-    @property
-    def KDTree(self):
-        if self._KDTree is None:
-            try:
-                from scipy.spatial import cKDTree as KDTree
-            except ImportError:
-                KDTree = NotAModule(self._name)
-            self._KDTree = KDTree
-        return self._KDTree
-
 _scipy = scipy_imports()
 
 class h5py_imports(object):

@@ -951,7 +951,7 @@ class YTCutRegion(YTSelectionContainer3D):
             dx_loc = dx[lvl_mask]
             pos_loc = pos[lvl_mask]
 
-            grid_tree = _scipy.KDTree(pos_loc, boxsize=1)
+            grid_tree = _scipy.spatial.cKDTree(pos_loc, boxsize=1)
 
             # Compute closest cell for all remaining particles
             dist, icell = grid_tree.query(ppos[~mask], distance_upper_bound=dx_loc.max(),
@@ -991,7 +991,7 @@ class YTCutRegion(YTSelectionContainer3D):
             # If scipy is installed, use the fast KD tree
             # implementation. Else, fall back onto the direct
             # brute-force algorithm.
-            if issubclass(_scipy.KDTree, NotAModule):
+            if issubclass(_scipy.spatial, NotAModule):
                 mask = self._part_ind_brute_force(ptype)
             else:
                 mask = self._part_ind_KDTree(ptype)
