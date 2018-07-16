@@ -328,10 +328,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             bnds)
                     buff /= weight_buff
             elif isinstance(data_source, YTSlice):
-                smoothing_style = "scatter"
-                if hasattr(data_source.ds, 'sph_smoothing_style'):
-                    smoothing_style = data_source.ds.sph_smoothing_style
-
+                smoothing_style = getattr(self.ds, 'sph_smoothing_style',
+                                          'scatter')
                 buff = np.zeros(size, dtype='float64')
                 if smoothing_style == "scatter":
                     for chunk in data_source.chunks([], 'io'):

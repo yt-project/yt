@@ -924,9 +924,7 @@ class YTArbitraryGrid(YTCoveringGrid):
         if len(fields) == 0: return
 
         ptype = self.ds._sph_ptype
-        smoothing_style = "scatter"
-        if(hasattr(self.ds, 'sph_smoothing_style')):
-            smoothing_style = self.ds.sph_smoothing_style
+        smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
 
         bounds = np.empty(6, dtype=float)
         bounds[0] = self.left_edge[0].in_base("code")
