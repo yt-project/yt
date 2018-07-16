@@ -344,16 +344,34 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             bounds)
 
                 if smoothing_style == "gather":
-                    buff_size = np.array([size[0], size[1], 1], dtype="int64")
+                    # for a slice we create a grid of num_pixelsxnum_pixelsx1,
+                    # for a z slice, and we swap the one dependent on the slice
+                    # axis
+                    x, y, z = self.x_axis[dim], self.y_axis[dim], dim
+
+                    buff_size = np.zeros(3, dtype="int64")
+                    buff_size[x] = size[0]
+                    buff_size[y] = size[1]
+                    buff_size[z] = 1
+
+                    buff_bounds = np.zeros(6, dtype="float64")
+                    buff_bounds[2*x:2*x+2] = bounds[0:2]
+                    buff_bounds[2*y:2*y+2] = bounds[2:4]
+                    buff_bounds[2*z] = data_source.coord
+                    buff_bounds[2*z+1] = data_source.coord
+
                     buff_temp = np.zeros(buff_size, dtype="float64")
-                    buff_bounds = np.array([bounds[0], bounds[1], bounds[2],
-                                            bounds[3], data_source.coord,
-                                           data_source.coord], dtype="float64")
 
                     pixelize_sph_gather(buff_temp, buff_bounds, self.ds,
                                         field, ptype)
 
-                    buff[:, :] = buff_temp[:,:,0]
+                    # we swap the axes back so the axis which was sliced over
+                    # is the last axis. Then we just transpose if our x and y
+                    # were also different
+                    buff_temp = buff_temp.swapaxes(2, z)
+                    buff = buff_temp[:,:,0]
+                    if y < x:
+                        buff.transpose()
             else:
                 raise NotImplementedError(
                     "A pixelization routine has not been implemented for %s "
