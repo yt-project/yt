@@ -1169,7 +1169,7 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff,
                         field,
                         ptype,
                         use_normalization=True):
-
+        ounits = data_source.field_info[field].output_units
         cdef int i, j, k
         cdef np.float64_t[:, :, :] buff_den
 
@@ -1228,7 +1228,7 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff,
                 chunk[(ptype,'smoothing_length')].in_base("code").d,
                 chunk[(ptype,'particle_mass')].in_base("code").d,
                 chunk[(ptype,'density')].in_base("code").d,
-                chunk[field].d, tree=tree, offset=offsets[i],
+                chunk[field].in_units(ounits).d, tree=tree, offset=offsets[i],
                 use_normalization=False)
 
             if use_normalization:
@@ -1410,7 +1410,7 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
     with nogil:
         for xi in range(xsize):
             for yi in range(ysize):
-                for zi in prange(zsize):
+                for zi in range(zsize):
                     h_j2 = dists[xi, yi, zi, 0]
                     ih_j2 = 1/h_j2
 

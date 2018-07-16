@@ -961,7 +961,7 @@ class YTArbitraryGrid(YTCoveringGrid):
             for field in fields:
                 buff = np.zeros(self.ActiveDimensions, dtype="float64")
 
-                pixelize_sph_gather(buff, bounds, self.ds, field[1],
+                pixelize_sph_gather(buff, bounds, self.ds, field,
                                          ptype)
 
                 fi = self.ds._get_field_info(field)

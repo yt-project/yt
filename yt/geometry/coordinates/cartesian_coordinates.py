@@ -353,7 +353,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                            data_source.coord], dtype="float64")
 
                     pixelize_sph_gather(buff_temp, buff_bounds, self.ds,
-                                        field[1], ptype)
+                                        field, ptype)
 
                     buff[:, :] = buff_temp[:,:,0]
             else:
