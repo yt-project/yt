@@ -146,10 +146,8 @@ class ParticleTrajectories(object):
     def get_full_field_name(self, field):
         ds_first = self.data_series[0]
         dd_first = ds_first.all_data()
-        if self.ptype:
-            return dd_first._determine_fields((self.ptype, field))
-        else:
-            return dd_first._determine_fields(field)
+        ptype = self.ptype if self.ptype else 'all'
+        return dd_first._determine_fields((ptype, field))
 
     def __getitem__(self, key):
         """
