@@ -26,7 +26,8 @@ from yt.geometry.particle_geometry_handler import \
 
 class SPHDataset(ParticleDataset):
     default_kernel_name = "cubic"
-    sph_smoothing_style = "scatter"
+    _sph_smoothing_styles = ["scatter", "gather"]
+    _sph_smoothing_style = "scatter"
     _num_neighbors = 32
 
     def __init__(self, filename, dataset_type=None, file_style=None,
@@ -42,6 +43,29 @@ class SPHDataset(ParticleDataset):
             filename, dataset_type=dataset_type, file_style=file_style,
             units_override=units_override, unit_system=unit_system,
             index_order=index_order, index_filename=index_filename)
+
+    @property
+    def num_neighbors(self):
+        return self._num_neighbors
+
+    @num_neighbors.setter
+    def num_neighbors(self, value):
+        if value < 0:
+            raise ValueError("Negative value not allowed: %s" % value)
+        self._num_neighbors = value
+
+    @property
+    def sph_smoothing_style(self):
+        return self._sph_smoothing_style
+
+    @sph_smoothing_style.setter
+    def sph_smoothing_style(self, value):
+        if value not in self._sph_smoothing_styles:
+            raise ValueError("Smoothing style not implemented: %s, please "
+                             "select one of the following: " % value,
+                             self._sph_smoothing_styles)
+
+        self._sph_smoothing_style = value
 
     def add_smoothed_particle_field(self, smooth_field,
                                     method="volume_weighted", nneighbors=64,
