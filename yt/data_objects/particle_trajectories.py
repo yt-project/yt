@@ -87,7 +87,7 @@ class ParticleTrajectories(object):
         for field in (
                 "particle_index",
                 "particle_position_x", "particle_position_y", "particle_position_z"):
-            fds[field] = self.determine_field(field)[0]
+            fds[field] = self.get_full_field_name(field)[0]
 
         my_storage = {}
         pbar = get_pbar("Constructing trajectory information", len(self.data_series))
@@ -143,7 +143,7 @@ class ParticleTrajectories(object):
     def keys(self):
         return self.field_data.keys()
 
-    def determine_field(self, field):
+    def get_full_field_name(self, field):
         ds_first = self.data_series[0]
         dd_first = ds_first.all_data()
         if self.ptype:
@@ -231,7 +231,7 @@ class ParticleTrajectories(object):
         fds = {}
         new_particle_fields = []
         for field in missing_fields:
-            fds[field] = self.determine_field(field)[0]
+            fds[field] = self.get_full_field_name(field)[0]
             if field not in self.particle_fields:
                 if self.data_series[0]._get_field_info(*fds[field]).particle_type:
                     self.particle_fields.append(field)
