@@ -29,7 +29,8 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_cartesian_nodal, \
     pixelize_sph_kernel_slice, \
     pixelize_sph_kernel_projection, \
-    pixelize_element_mesh_line
+    pixelize_element_mesh_line, \
+    normalization_2d_utility
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
 
@@ -328,6 +329,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     buff /= weight_buff
             elif isinstance(data_source, YTSlice):
                 buff = np.zeros(size, dtype='float64')
+                buff_den = np.zeros(size, dtype='float64')
                 for chunk in data_source.chunks([], 'io'):
                     pixelize_sph_kernel_slice(
                         buff,
@@ -337,7 +339,18 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         chunk[ptype, 'particle_mass'],
                         chunk[ptype, 'density'],
                         chunk[field].in_units(ounits),
-                        bounds)
+                        bounds, use_normalization=False)
+                    pixelize_sph_kernel_slice(
+                        buff_den,
+                        chunk[ptype, px_name],
+                        chunk[ptype, py_name],
+                        chunk[ptype, 'smoothing_length'],
+                        chunk[ptype, 'particle_mass'],
+                        chunk[ptype, 'density'],
+                        np.ones(chunk[ptype, 'density'].shape[0]),
+                        bounds, use_normalization=False)
+
+                normalization_2d_utility(buff, buff_den)
             else:
                 raise NotImplementedError(
                     "A pixelization routine has not been implemented for %s "

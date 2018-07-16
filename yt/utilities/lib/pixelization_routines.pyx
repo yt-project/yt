@@ -1498,3 +1498,30 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
     return np.identity(3, dtype='float_') + cross_product_matrix \
         + np.matmul(cross_product_matrix, cross_product_matrix) \
         * 1/(1+c)
+
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def normalization_2d_utility(np.float64_t[:, :] num,
+                             np.float64_t[:, :] den):
+    cdef int i, j
+    for i in range(num.shape[0]):
+        for j in range(num.shape[1]):
+            if den[i, j] != 0.0:
+                num[i, j] = num[i, j] / den[i, j]
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def normalization_3d_utility(np.float64_t[:, :, :] num,
+                             np.float64_t[:, :, :] den):
+    cdef int i, j, k
+    for i in range(num.shape[0]):
+        for j in range(num.shape[1]):
+            for k in range(num.shape[2]):
+                if den[i, j, k] != 0.0:
+                    num[i, j, k] = num[i, j, k] / den[i, j, k]
+
