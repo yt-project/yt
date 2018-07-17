@@ -132,11 +132,16 @@ cdef class BoundedPriorityQueue:
     @cython.initializedcheck(False)
     cdef np.float64_t extract_max(self) nogil except -1:
         cdef np.float64_t maximum = self.heap_ptr[0]
-        cdef np.float64_t val = self.heap_ptr[self.size-1]
-        cdef np.int64_t ind = self.pids_ptr[self.size-1]
+        cdef np.float64_t val
+        cdef np.int64_t ind
+
+        val = self.heap_ptr[self.size-1]
         self.heap_ptr[self.size-1] = -1
+
         if self.use_pids:
+            ind = self.pids_ptr[self.size-1]
             self.pids_ptr[self.size-1] = -1
+
         self.size -= 1
         if self.size > 0:
             self.heap_ptr[0] = val
