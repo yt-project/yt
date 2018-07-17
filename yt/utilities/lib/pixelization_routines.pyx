@@ -1185,6 +1185,7 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff,
         pos = pos[tree.idx, :]
 
         knn_list(pos, dists, pids, tree, bounds, size, data_source.num_neighbors)
+        del pos
 
         # perform the deposition onto the pixels -> do it twice to
         # allow normalization
