@@ -29,6 +29,7 @@ class SPHDataset(ParticleDataset):
     _sph_smoothing_styles = ["scatter", "gather"]
     _sph_smoothing_style = "scatter"
     _num_neighbors = 32
+    _use_sph_normalization = True
 
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
@@ -66,6 +67,14 @@ class SPHDataset(ParticleDataset):
                              self._sph_smoothing_styles)
 
         self._sph_smoothing_style = value
+    def use_sph_normalization(self):
+        return self._use_sph_normalization
+
+    @use_sph_normalization.setter
+    def use_sph_normalization(self, value):
+        if value is not True and value is not False:
+            raise ValueError("SPH normalization needs to be True or False!")
+        self._use_sph_normalization = value
 
     def add_smoothed_particle_field(self, smooth_field,
                                     method="volume_weighted", nneighbors=64,

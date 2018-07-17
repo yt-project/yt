@@ -1064,8 +1064,7 @@ def pixelize_sph_kernel_slice(
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        bounds, kernel_name="cubic",
-        use_normalization=True):
+        bounds, kernel_name="cubic"):
 
     # similar method to pixelize_sph_kernel_projection
     cdef np.intp_t xsize, ysize
@@ -1074,13 +1073,8 @@ def pixelize_sph_kernel_slice(
     cdef np.float64_t q, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j
     cdef int index, i, j
-    cdef np.float64_t[:, :] buff_num
-    cdef np.float64_t[:, :] buff_denom
 
     xsize, ysize = buff.shape[0], buff.shape[1]
-    if use_normalization:
-        buff_num = np.zeros((xsize, ysize), dtype='f8')
-        buff_denom = np.zeros((xsize, ysize), dtype='f8')
 
     x_min = bounds[0]
     x_max = bounds[1]
@@ -1093,10 +1087,6 @@ def pixelize_sph_kernel_slice(
     idy = 1.0/dy
 
     kernel_func = get_kernel_func(kernel_name)
-
-    # define this to avoid using the use_normalization python object
-    # in the tight loop
-    cdef np.intp_t use_norm = int(use_normalization)
 
     with nogil:
         for j in range(0, posx.shape[0]):
@@ -1145,19 +1135,7 @@ def pixelize_sph_kernel_slice(
                         continue
 
                     # see equations 6, 9, and 11 of the SPLASH paper
-                    if use_norm:
-                        buff_num[xi, yi] += coeff * kernel_func(q)
-                        buff_denom[xi, yi] += w_j * kernel_func(q)
-                    else:
-                        buff[xi, yi] += coeff * kernel_func(q)
-    if use_norm:
-        # now we can calculate the normalized image buffer we want to
-        # return, being careful to avoid producing NaNs in the result
-        for xi in range(xsize):
-            for yi in range(ysize):
-                if buff_denom[xi, yi] == 0:
-                    continue
-                buff[xi, yi] += buff_num[xi, yi] / buff_denom[xi, yi]
+                    buff[xi, yi] += coeff * kernel_func(q)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1210,9 +1188,10 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff,
 @cython.cdivision(True)
 def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
-        np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
-        np.float64_t[:] quantity_to_smooth, np.float64_t[:] bounds, pbar=None,
-        kernel_name="cubic", use_normalization=True):
+        np.float64_t[:] hsml, np.float64_t[:] pmass,
+        np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth,
+        bounds, pbar=None, kernel_name="cubic"):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, w_j, coeff
@@ -1220,13 +1199,8 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.float64_t q, posx_diff, posy_diff, posz_diff
     cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
     cdef int index, i, j, k
-    cdef np.float64_t[:, :, :] buff_num
-    cdef np.float64_t[:, :, :] buff_denom
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
-    if use_normalization:
-        buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
-        buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
 
     x_min = bounds[0]
     x_max = bounds[1]
@@ -1243,10 +1217,6 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     idz = 1.0/dz
 
     kernel_func = get_kernel_func(kernel_name)
-
-    # define this to avoid using the use_normalization python object
-    # in the tight loop
-    cdef np.intp_t use_norm = int(use_normalization)
 
     with nogil:
         for j in range(0, posx.shape[0]):
@@ -1310,22 +1280,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                         if q >= 1:
                             continue
 
-                        # see equations 6, 9, and 11 of the SPLASH paper
-                        if use_norm:
-                            buff_num[xi, yi, zi] += coeff * kernel_func(q)
-                            buff_denom[xi, yi, zi] += w_j * kernel_func(q)
-                        else:
-                            buff[xi, yi, zi] += coeff * kernel_func(q)
-
-    if use_norm:
-        # now we can calculate the normalized buffer we want to return, being
-        # careful to avoid producing NaNs in the result
-        for xi in range(xsize):
-            for yi in range(ysize):
-                for zi in range(zsize):
-                    if buff_denom[xi, yi, zi] == 0:
-                        continue
-                    buff[xi, yi, zi] += buff_num[xi, yi, zi] / buff_denom[xi, yi, zi]
+                        buff[xi, yi, zi] += coeff * kernel_func(q)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1615,3 +1570,30 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
     return np.identity(3, dtype='float_') + cross_product_matrix \
         + np.matmul(cross_product_matrix, cross_product_matrix) \
         * 1/(1+c)
+
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def normalization_2d_utility(np.float64_t[:, :] num,
+                             np.float64_t[:, :] den):
+    cdef int i, j
+    for i in range(num.shape[0]):
+        for j in range(num.shape[1]):
+            if den[i, j] != 0.0:
+                num[i, j] = num[i, j] / den[i, j]
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def normalization_3d_utility(np.float64_t[:, :, :] num,
+                             np.float64_t[:, :, :] den):
+    cdef int i, j, k
+    for i in range(num.shape[0]):
+        for j in range(num.shape[1]):
+            for k in range(num.shape[2]):
+                if den[i, j, k] != 0.0:
+                    num[i, j, k] = num[i, j, k] / den[i, j, k]
+

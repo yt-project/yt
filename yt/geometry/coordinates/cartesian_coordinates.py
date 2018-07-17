@@ -30,7 +30,8 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_slice, \
     pixelize_sph_kernel_projection, \
     pixelize_element_mesh_line, \
-    pixelize_sph_gather
+    pixelize_sph_gather, \
+    normalization_2d_utility
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
 
@@ -331,10 +332,24 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 smoothing_style = getattr(self.ds, 'sph_smoothing_style',
                                           'scatter')
                 buff = np.zeros(size, dtype='float64')
-                if smoothing_style == "scatter":
-                    for chunk in data_source.chunks([], 'io'):
+                normalize = getattr(self.ds, 'use_sph_normalization', True)
+
+                if normalize:
+                    buff_den = np.zeros(size, dtype='float64')
+
+                for chunk in data_source.chunks([], 'io'):
+                    pixelize_sph_kernel_slice(
+                        buff,
+                        chunk[ptype, px_name],
+                        chunk[ptype, py_name],
+                        chunk[ptype, 'smoothing_length'],
+                        chunk[ptype, 'particle_mass'],
+                        chunk[ptype, 'density'],
+                        chunk[field].in_units(ounits),
+                        bounds)
+                    if normalize:
                         pixelize_sph_kernel_slice(
-                            buff,
+                            buff_den,
                             chunk[ptype, px_name],
                             chunk[ptype, py_name],
                             chunk[ptype, 'smoothing_length'],
@@ -342,6 +357,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, 'density'],
                             chunk[field].in_units(ounits),
                             bounds)
+
+                    if normalize:
+                        normalization_2d_utility(buff, buff_den)
 
                 if smoothing_style == "gather":
                     # for a slice we create a grid of num_pixelsxnum_pixelsx1,
@@ -390,7 +408,6 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                data_source[field],
                                bounds, int(antialias),
                                period, int(periodic))
-
         return buff
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):

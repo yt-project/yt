@@ -70,39 +70,29 @@ It is now possible to generate slice plots, projection plots and arbitrary grids
 of smoothed quanitities using these operations. The following code demonstrates
 how this could be achieved. The following would use the scatter method.
 
-```python
+.. code-block:: python
 
-import yt
+    import yt
 
-ds = yt.load('snapshot_033/snap_033.0.hdf5')
+    ds = yt.load('snapshot_033/snap_033.0.hdf5')
 
-plot = yt.SlicePlot(ds, 2, ('gas', 'density'))
+    plot = yt.SlicePlot(ds, 2, ('gas', 'density'))
+    plot.save()
 
-plot.set_zlim(('gas', 'density'), 1e-32, 1e-27)
+    plot = yt.ProjectionPlot(ds, 2, ('gas', 'density'))
+    plot.save()
 
-plot.save()
+    arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [5, 5, 5],
+                                       dims=[10, 10, 10])
+    density = arbitrary_grid[('gas', 'density')]
 
-plot = yt.ProjectionPlot(ds, 2, ('gas', 'density'))
-
-plot.set_zlim(('gas', 'density'), 8e-6, 8e-3)
-
-plot.save()
-
-arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [5, 5, 5],dims=[10, 10, 10])
-density = arbitrary_grid[('gas', 'density')].d
-
-```
+The default behaviour for sPH interpolation is that the values are normalized
+inline with Eq. 9 in `SPLASH, Price (2009) <https://arxiv.org/pdf/0709.0832.pdf>`_.
+This can be disabled with `ds.use_sph_normalization = False`.
 
 This can be modified to use the gather approach by changing a global setting for
 the dataset. The previous example could be modified to include the following
-settings on the datset,
-
-```python
-
-ds.sph_smoothing_style = "gather"
-ds.num_neighbors = 32
-
-```
+settings on the datset `ds.sph_smoothing_style = "gather"`.
 
 The gather approach requires finding nearest neighbors using the KDTree. The
 first call will generate a KDTree for the entire dataset which will be stored in
