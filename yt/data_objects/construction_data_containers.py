@@ -66,7 +66,7 @@ from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
 import yt.extern.six as six
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_sph_kernel_arbitrary_grid
+    pixelize_sph_kernel_arbitrary_grid, normalization_3d_utility
 from yt.extern.tqdm import tqdm
 
 class YTStreamline(YTSelectionContainer1D):
@@ -926,6 +926,10 @@ class YTArbitraryGrid(YTCoveringGrid):
         for field in fields:
             dest = np.zeros(self.ActiveDimensions, dtype="float64")
 
+            normalize = getattr(self.ds, 'use_sph_normalization', True)
+            if normalize:
+                dest_den = np.zeros(self.ActiveDimensions, dtype="float64")
+
             bounds = np.empty(6, dtype=float)
             bounds[0] = self.left_edge[0].in_base("code")
             bounds[2] = self.left_edge[1].in_base("code")
@@ -944,9 +948,16 @@ class YTArbitraryGrid(YTCoveringGrid):
                 dens = chunk[(ptype,'density')].in_base("code")
                 field_quantity = chunk[field]
 
-                pixelize_sph_kernel_arbitrary_grid(dest,px,py,pz,hsml,mass,
-                                                   dens,field_quantity,bounds,
-                                                   pbar)
+                pixelize_sph_kernel_arbitrary_grid(dest, px, py, pz, hsml,
+                                                   mass, dens, field_quantity,
+                                                   bounds, pbar)
+                if normalize:
+                    pixelize_sph_kernel_arbitrary_grid(dest_den, px, py, pz,
+                                    hsml, mass, dens, np.ones(hsml.shape[0]),
+                                    bounds)
+
+            if normalize:
+                normalization_3d_utility(dest, dest_den)
 
             self[field] = self.ds.arr(dest, field_quantity.units)
             pbar.close()
