@@ -331,25 +331,16 @@ class CartesianCoordinateHandler(CoordinateHandler):
             elif isinstance(data_source, YTSlice):
                 smoothing_style = getattr(self.ds, 'sph_smoothing_style',
                                           'scatter')
-                buff = np.zeros(size, dtype='float64')
-                normalize = getattr(self.ds, 'use_sph_normalization', True)
+                if smoothing_style == 'scatter':
+                    buff = np.zeros(size, dtype='float64')
+                    normalize = getattr(self.ds, 'use_sph_normalization', True)
 
-                if normalize:
-                    buff_den = np.zeros(size, dtype='float64')
-
-                for chunk in data_source.chunks([], 'io'):
-                    pixelize_sph_kernel_slice(
-                        buff,
-                        chunk[ptype, px_name],
-                        chunk[ptype, py_name],
-                        chunk[ptype, 'smoothing_length'],
-                        chunk[ptype, 'particle_mass'],
-                        chunk[ptype, 'density'],
-                        chunk[field].in_units(ounits),
-                        bounds)
                     if normalize:
+                        buff_den = np.zeros(size, dtype='float64')
+
+                    for chunk in data_source.chunks([], 'io'):
                         pixelize_sph_kernel_slice(
-                            buff_den,
+                            buff,
                             chunk[ptype, px_name],
                             chunk[ptype, py_name],
                             chunk[ptype, 'smoothing_length'],
@@ -357,6 +348,16 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, 'density'],
                             chunk[field].in_units(ounits),
                             bounds)
+                        if normalize:
+                            pixelize_sph_kernel_slice(
+                                buff_den,
+                                chunk[ptype, px_name],
+                                chunk[ptype, py_name],
+                                chunk[ptype, 'smoothing_length'],
+                                chunk[ptype, 'particle_mass'],
+                                chunk[ptype, 'density'],
+                                np.ones(chunk[ptype, 'density'].shape[0]),
+                                bounds)
 
                     if normalize:
                         normalization_2d_utility(buff, buff_den)

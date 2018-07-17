@@ -1147,8 +1147,15 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff,
                         field,
                         ptype):
         cdef int i, j, k
+        cdef np.float64_t[:, :, :] buff_den
 
         tree = data_source.index.kdtree
+
+        normalize = getattr(data_source, 'use_sph_normalization', True)
+        if normalize:
+            buff_den = np.zeros((buff.shape[0], buff.shape[1], buff.shape[2]),
+                                dtype="float64")
+
         size = np.array([buff.shape[0], buff.shape[1], buff.shape[2]],
                         dtype="int64")
         pids = np.zeros((size[0], size[1], size[2], data_source.num_neighbors),
@@ -1176,11 +1183,21 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff,
                 chunk[(ptype,'smoothing_length')].in_base("code").d,
                 chunk[(ptype,'particle_mass')].in_base("code").d,
                 chunk[(ptype,'density')].in_base("code").d,
-                chunk[field].in_units(ounits).d, tree=tree, offset=offset,
-                use_normalization=False)
+                chunk[field].in_units(ounits).d, tree=tree, offset=offset)
+            if normalize:
+                pixelize_sph_kernel_gather_arbitrary_grid(buff_den, pids, dists,
+                    chunk[(ptype,'smoothing_length')].in_base("code").d,
+                    chunk[(ptype,'particle_mass')].in_base("code").d,
+                    chunk[(ptype,'density')].in_base("code").d,
+                    np.ones(chunk[(ptype,'density')].shape[0]),
+                    tree=tree, offset=offset)
+
             offset += chunk[(ptype,'density')].shape[0]
             pbar.update(1)
         pbar.close()
+
+        if normalize:
+            normalization_3d_utility(buff, buff_den)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1290,30 +1307,21 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists,
         np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth, PyKDTree tree=None, np.int64_t
-        offset=0, kernel_name="cubic", use_normalization=True):
+        offset=0, kernel_name="cubic"):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t w_j, coeff
     cdef np.int64_t xi, yi, zi, pi
     cdef np.float64_t q, h_j2, ih_j2
     cdef int count, i, j, k, particle
-    cdef np.float64_t[:, :, :] buff_num
-    cdef np.float64_t[:, :, :] buff_denom
     cdef np.int64_t[:] tree_id
 
     if tree is not None:
         tree_id = tree.idx.astype("int64")
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
-    if use_normalization:
-        buff_num = np.zeros((xsize, ysize, zsize), dtype='f8')
-        buff_denom = np.zeros((xsize, ysize, zsize), dtype='f8')
 
     kernel_func = get_kernel_func(kernel_name)
-
-    # define this to avoid using the use_normalization python object in the
-    # tight loop
-    cdef np.intp_t use_norm = int(use_normalization)
 
     with nogil:
         for xi in range(xsize):
@@ -1334,21 +1342,7 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
                         coeff = w_j * quantity_to_smooth[particle]
                         q = math.sqrt(dists[xi, yi, zi, pi]*ih_j2)
 
-                        if use_norm:
-                            buff_num[xi, yi, zi] += coeff * kernel_func(q)
-                            buff_denom[xi, yi, zi] += w_j * kernel_func(q)
-                        else:
-                            buff[xi, yi, zi] += coeff * kernel_func(q)
-
-    if use_norm:
-        # now we can calculate the normalized buffer we want to return, being
-        # careful to avoid producing NaNs in the result
-        for xi in range(xsize):
-            for yi in range(ysize):
-                for zi in range(zsize):
-                    if buff_denom[xi, yi, zi] == 0:
-                        continue
-                    buff[xi, yi, zi] += buff_num[xi, yi, zi] / buff_denom[xi, yi, zi]
+                        buff[xi, yi, zi] += coeff * kernel_func(q)
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,

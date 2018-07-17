@@ -67,6 +67,8 @@ class SPHDataset(ParticleDataset):
                              self._sph_smoothing_styles)
 
         self._sph_smoothing_style = value
+
+    @property
     def use_sph_normalization(self):
         return self._use_sph_normalization
 
