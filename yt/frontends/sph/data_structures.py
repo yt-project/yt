@@ -27,6 +27,7 @@ from yt.geometry.particle_geometry_handler import \
 class SPHDataset(ParticleDataset):
     default_kernel_name = "cubic"
     _num_neighbors = 32
+    _use_sph_normalization = True
 
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
@@ -41,6 +42,16 @@ class SPHDataset(ParticleDataset):
             filename, dataset_type=dataset_type, file_style=file_style,
             units_override=units_override, unit_system=unit_system,
             index_order=index_order, index_filename=index_filename)
+
+    @property
+    def use_sph_normalization(self):
+        return self._use_sph_normalization
+
+    @use_sph_normalization.setter
+    def use_sph_normalization(self, value):
+        if value is not True and value is not False:
+            raise ValueError("SPH normalization needs to be True or False!")
+        self._use_sph_normalization = value
 
     def add_smoothed_particle_field(self, smooth_field,
                                     method="volume_weighted", nneighbors=64,
