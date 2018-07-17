@@ -65,6 +65,13 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef uint64_t neighbor_id
     cdef int i, j, k, l, skip
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neighbors)
+    cdef np.float64_t[:] size = np.zeros(3, dtype="float64")
+    cdef np.int64_t[:] periodic = np.zeros(3, dtype="int64")
+
+    for i in range(3):
+        periodic[i] = kdtree.periodic[i]
+        size[i] = (kdtree.right_edge[i] - kdtree.left_edge[i]) / 2
+        size[i] = size[i] * size[i]
 
     # these are things which are not necessary for this function, but we set
     # them up to pass to the utility functions as we use them elsewhere
@@ -89,11 +96,11 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
             # Fill queue with particles in the node containing the particle
             # we're searching for
             process_node_points(leafnode, queue, input_positions, pos, i,
-                                tree_id, offset)
+                                tree_id, offset, &(size[0]), &(periodic[0]))
 
             # Traverse the rest of the kdtree to finish the neighbor list
             find_knn(c_tree.root, queue, input_positions, pos, leafnode.leafid,
-                     i, tree_id, offset)
+                     i, tree_id, offset, &(size[0]), &(periodic[0]))
 
             smoothing_length[i] = sqrt(queue.heap_ptr[0])
 
@@ -141,6 +148,13 @@ def query(PyKDTree kdtree, np.float64_t [:, ::1] tree_positions,
     cdef np.int64_t[:] tree_id
     cdef np.float64_t[:, :] dists
     cdef np.int64_t[:, :] pids
+    cdef np.float64_t[:] size = np.zeros(3, dtype="float64")
+    cdef np.int64_t[:] periodic = np.zeros(3, dtype="int64")
+
+    for i in range(3):
+        periodic[i] = kdtree.periodic[i]
+        size[i] = (kdtree.right_edge[i] - kdtree.left_edge[i]) / 2
+        size[i] = size[i] * size[i]
 
     dists = np.zeros((input_positions.shape[0], num_neigh), dtype="float64")
     pids = np.zeros((input_positions.shape[0], num_neigh), dtype="int64")
@@ -155,9 +169,9 @@ def query(PyKDTree kdtree, np.float64_t [:, ::1] tree_positions,
         leafnode = c_tree.search(pos)
 
         process_node_points(leafnode, queue, tree_positions, pos, skipidx, tree_id,
-                            offset)
+                            offset, &(size[0]), &(periodic[0]))
         find_knn(c_tree.root, queue, tree_positions, pos, leafnode.leafid,
-                 skipidx, tree_id, offset)
+                 skipidx, tree_id, offset, &(size[0]), &(periodic[0]))
 
         dists[i, :] = queue.heap[:]
         pids[i, :] = queue.pids[:]
@@ -210,6 +224,13 @@ def knn_list_guess(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, :
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
     cdef np.int64_t[:] tree_id
     cdef np.float64_t[:] voxel_pos = np.zeros(3, dtype="float64")
+    cdef np.float64_t[:] tree_size = np.zeros(3, dtype="float64")
+    cdef np.int64_t[:] periodic = np.zeros(3, dtype="int64")
+
+    for i in range(3):
+        periodic[i] = kdtree.periodic[i]
+        tree_size[i] = (kdtree.right_edge[i] - kdtree.left_edge[i]) / 2
+        tree_size[i] = tree_size[i] * tree_size[i]
 
     dx = (bounds[1] - bounds[0]) / size[0]
     dy = (bounds[3] - bounds[2]) / size[1]
@@ -236,7 +257,7 @@ def knn_list_guess(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, :
                 leafnode = c_tree.search(pos)
 
                 process_node_points(leafnode, queue, tree_positions, pos, skipidx,
-                            tree_id, offset)
+                            tree_id, offset, &(tree_size[0]), &(periodic[i]))
 
                 q_sizes[i, j, k] = queue.size
                 dists[i, j, k, :] = queue.heap[:]
@@ -288,6 +309,13 @@ def knn_list(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, ::1] di
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
     cdef np.int64_t[:] tree_id
     cdef np.float64_t[:] voxel_pos = np.zeros(3, dtype="float64")
+    cdef np.float64_t[:] tree_size = np.zeros(3, dtype="float64")
+    cdef np.int64_t[:] periodic = np.zeros(3, dtype="int64")
+
+    for i in range(3):
+        periodic[i] = kdtree.periodic[i]
+        tree_size[i] = (kdtree.right_edge[i] - kdtree.left_edge[i]) / 2
+        tree_size[i] = tree_size[i] * tree_size[i]
 
     dx = (bounds[1] - bounds[0]) / size[0]
     dy = (bounds[3] - bounds[2]) / size[1]
@@ -314,7 +342,7 @@ def knn_list(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, ::1] di
                 leafnode = c_tree.search(pos)
 
                 find_knn(c_tree.root, queue, tree_positions, pos, leafnode.leafid,
-                         skipidx, tree_id, offset)
+                         skipidx, tree_id, offset, &(tree_size[0]), &(periodic[0]))
 
                 dists[i, j, k, :] = queue.heap[:]
                 pids[i, j, k, :] = queue.pids[:]
@@ -330,21 +358,23 @@ cdef int find_knn(Node* node,
                   uint32_t skipleaf,
                   uint64_t skipidx,
                   np.int64_t[:] tree_id,
-                  int offset
+                  int offset,
+                  np.float64_t* size,
+                  np.int64_t* periodic,
                   ) nogil except -1:
     # if we aren't a leaf then we keep traversing until we find a leaf, else we
     # we actually begin to check the leaf
     if not node.is_leaf:
-        if not cull_node(node.less, pos, queue, skipleaf):
+        if not cull_node(node.less, pos, queue, skipleaf, size, periodic):
             find_knn(node.less, queue, tree_positions, pos, skipleaf, skipidx,
-                     tree_id, offset)
-        if not cull_node(node.greater, pos, queue, skipleaf):
+                     tree_id, offset, size, periodic)
+        if not cull_node(node.greater, pos, queue, skipleaf, size, periodic):
             find_knn(node.greater, queue, tree_positions, pos, skipleaf, skipidx,
-                     tree_id, offset)
+                     tree_id, offset, size, periodic)
     else:
-        if not cull_node(node, pos, queue, skipleaf):
+        if not cull_node(node, pos, queue, skipleaf, size, periodic):
             process_node_points(node, queue, tree_positions, pos, skipidx, tree_id,
-                                offset)
+                                offset, size, periodic)
     return 0
 
 @cython.boundscheck(False)
@@ -353,6 +383,8 @@ cdef inline int cull_node(Node* node,
                           np.float64_t* pos,
                           BoundedPriorityQueue queue,
                           uint32_t skipleaf,
+                          np.float64_t* size,
+                          np.int64_t* periodic,
                           ) nogil except -1:
     cdef np.float64_t v
     cdef np.float64_t tpos, ndist = 0
@@ -369,7 +401,11 @@ cdef inline int cull_node(Node* node,
             tpos = v - node.right_edge[k]
         else:
             tpos = 0
-        ndist += tpos*tpos
+        if periodic[k] == 1:
+            ndist += (tpos*tpos) % size[k]
+        else:
+            ndist += tpos*tpos
+
     return (ndist > queue.heap[0] and queue.size == queue.max_elements)
 
 @cython.boundscheck(False)
@@ -381,6 +417,8 @@ cdef inline int process_node_points(Node* node,
                                     int skipidx,
                                     np.int64_t[:] tree_id,
                                     int offset,
+                                    np.float64_t* size,
+                                    np.int64_t* periodic,
                                     ) nogil except -1:
     cdef uint64_t i, idx_offset
     cdef np.float64_t tpos, sq_dist
@@ -399,7 +437,10 @@ cdef inline int process_node_points(Node* node,
         sq_dist = 0
         for j in range(3):
             tpos = positions[idx_offset, j] - pos[j]
-            sq_dist += tpos*tpos
+            if periodic[j] == 1:
+                sq_dist += (tpos*tpos) % size[j]
+            else:
+                sq_dist += tpos*tpos
 
         queue.add_pid(sq_dist, i)
     return 0
