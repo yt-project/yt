@@ -36,7 +36,7 @@ from yt.utilities.minimal_representation import \
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
 from yt.geometry.selection_routines import points_in_cells
-from yt.utilities.on_demand_imports import _scipy, NotAModule
+from yt.utilities.on_demand_imports import _scipy
 
 
 class YTPoint(YTSelectionContainer0D):
