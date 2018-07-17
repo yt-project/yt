@@ -69,12 +69,13 @@ $ conda create -n yt-git python=3.6
 $ source activate yt-git
 # Make sure you run the latest version of conda
 $ conda update conda
-# Install only yt's dependencies
+# Install yt's runtime dependencies
 $ conda install -c conda-forge yt --only-deps
+# Install yt's build dependencies
 $ conda install -c conda-forge cython
 # Make sure you run the latest version of pip
 $ pip install --upgrade pip
-$ pip install -e .
+$ pip install -v -e .
 # Output installed packages
 $ conda env export
 ```
