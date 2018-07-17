@@ -401,12 +401,13 @@ cdef inline int cull_node(Node* node,
             tpos = v - node.right_edge[k]
         else:
             tpos = 0
+
         if periodic[k] == 1:
             ndist += (tpos*tpos) % size[k]
         else:
             ndist += tpos*tpos
 
-    return (ndist > queue.heap[0] and queue.size == queue.max_elements)
+    return (ndist > queue.heap_ptr[0] and queue.size == queue.max_elements)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -430,13 +431,14 @@ cdef inline int process_node_points(Node* node,
         else:
             idx_offset = tree_id[i] - offset
 
-        if(idx_offset < 0 or idx_offset > positions.shape[0] or \
-           idx_offset == skipidx):
+        if (idx_offset < 0 or idx_offset > positions.shape[0] or \
+                idx_offset == skipidx):
             continue
 
         sq_dist = 0
         for j in range(3):
             tpos = positions[idx_offset, j] - pos[j]
+
             if periodic[j] == 1:
                 sq_dist += (tpos*tpos) % size[j]
             else:

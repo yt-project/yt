@@ -1203,7 +1203,7 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff,
             knn_list_guess(chunk[(ptype,'particle_position')].in_base("code").d,
                            dists, pids, queue_sizes, tree, bounds, size,
                            data_source.num_neighbors, offset=offsets[i])
-            pbar.update(i)
+            pbar.update(1)
         pbar.close()
 
         # now loop through and traverse the tree. It is much quicker
@@ -1216,7 +1216,7 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff,
             knn_list(chunk[(ptype,'particle_position')].in_base("code").d,
                      dists, pids, tree, bounds, size, data_source.num_neighbors,
                      offset=offsets[i])
-            pbar.update(i)
+            pbar.update(1)
         pbar.close()
 
         # perform the deposition onto the pixels -> do it twice to
