@@ -229,7 +229,7 @@ class ParticleTrajectories(object):
         fds = {}
         new_particle_fields = []
         for field in missing_fields:
-            fds[field] = self.get_full_field_name(field)[0]
+            fds[field] = dd_first._determine_fields(field)[0]
             if field not in self.particle_fields:
                 if self.data_series[0]._get_field_info(*fds[field]).particle_type:
                     self.particle_fields.append(field)
