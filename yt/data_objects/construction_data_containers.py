@@ -926,7 +926,8 @@ class YTArbitraryGrid(YTCoveringGrid):
         for field in fields:
             dest = np.zeros(self.ActiveDimensions, dtype="float64")
 
-            if self.ds.use_sph_normalization:
+            normalize = getattr(self.ds, 'use_sph_normalization', True)
+            if normalize:
                 dest_den = np.zeros(self.ActiveDimensions, dtype="float64")
 
             bounds = np.empty(6, dtype=float)
@@ -950,12 +951,12 @@ class YTArbitraryGrid(YTCoveringGrid):
                 pixelize_sph_kernel_arbitrary_grid(dest, px, py, pz, hsml,
                                                    mass, dens, field_quantity,
                                                    bounds, pbar)
-                if self.ds.use_sph_normalization:
+                if normalize:
                     pixelize_sph_kernel_arbitrary_grid(dest_den, px, py, pz,
                                     hsml, mass, dens, np.ones(hsml.shape[0]),
                                     bounds)
 
-            if self.ds.use_sph_normalization:
+            if normalize:
                 normalization_3d_utility(dest, dest_den)
 
             self[field] = self.ds.arr(dest, field_quantity.units)

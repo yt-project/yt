@@ -329,7 +329,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     buff /= weight_buff
             elif isinstance(data_source, YTSlice):
                 buff = np.zeros(size, dtype='float64')
-                if self.ds.use_sph_normalization:
+                normalize = getattr(self.ds, 'use_sph_normalization', True)
+                if normalize:
                     buff_den = np.zeros(size, dtype='float64')
 
                 for chunk in data_source.chunks([], 'io'):
@@ -342,7 +343,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         chunk[ptype, 'density'],
                         chunk[field].in_units(ounits),
                         bounds)
-                    if self.ds.use_sph_normalization:
+                    if normalize:
                         pixelize_sph_kernel_slice(
                             buff_den,
                             chunk[ptype, px_name],
@@ -353,7 +354,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             np.ones(chunk[ptype, 'density'].shape[0]),
                             bounds)
 
-                if self.ds.use_sph_normalization:
+                if normalize:
                     normalization_2d_utility(buff, buff_den)
             else:
                 raise NotImplementedError(
