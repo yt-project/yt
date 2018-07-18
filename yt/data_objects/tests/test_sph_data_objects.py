@@ -261,3 +261,37 @@ def test_compare_arbitrary_grid_slice():
 
     assert_equal(buff_slc, buff_ag)
 
+def test_gather_slice():
+    ds = fake_sph_grid_ds()
+    ds.num_neighbors = 5
+    field = ('gas', 'density')
+
+    c = np.array([1.5, 1.5, 0.5])
+    width = 3.0
+
+    p = SlicePlot(ds, 'z', field, center=c, width=width)
+    p.set_buff_size(3)
+    buff_scatter = p.frb.data[field].d
+
+    ds.sph_smoothing_style = "gather"
+
+    p = SlicePlot(ds, 'z', field, center=c, width=width)
+    p.set_buff_size(3)
+    buff_gather = p.frb.data[field].d
+
+    assert_equal(buff_scatter, buff_gather)
+
+def test_gather_grid():
+    ds = fake_sph_grid_ds()
+    ds.num_neighbors = 5
+    field = ('gas', 'density')
+
+    ag = ds.arbitrary_grid([0, 0, 0], [3, 3, 3], dims=[3, 3, 3])
+    scatter = ag[field]
+
+    ds.sph_smoothing_style = "gather"
+    ag = ds.arbitrary_grid([0, 0, 0], [3, 3, 3], dims=[3, 3, 3])
+    gather = ag[field]
+
+    assert_equal(gather, scatter)
+

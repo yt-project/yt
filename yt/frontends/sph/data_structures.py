@@ -95,7 +95,7 @@ class SPHDataset(ParticleDataset):
         method : string, default 'volume_weighted'
            The particle smoothing method to use. Can only be 'volume_weighted'
            for now.
-        nneighbors : int, default 64
+        neighbors : int, default 64
             The number of neighbors to examine during the process.
         kernel_name : string or None, default None
             This is the name of the smoothing kernel to use. Current supported
@@ -129,19 +129,25 @@ class SPHParticleIndex(ParticleIndex):
 
     def _generate_kdtree(self, fname):
         from cykdtree import PyKDTree
-        if os.path.exists(fname):
-            mylog.info('Loading KDTree from %s' % os.path.basename(fname))
-            kdtree = PyKDTree.from_file(fname)
-            if kdtree.data_version != self.ds._file_hash:
-                mylog.info('Detected hash mismatch, regenerating KDTree')
-            else:
-                self._kdtree = kdtree
-                return
+        if fname is not None:
+            if os.path.exists(fname):
+                mylog.info('Loading KDTree from %s' % os.path.basename(fname))
+                kdtree = PyKDTree.from_file(fname)
+                if kdtree.data_version != self.ds._file_hash:
+                    mylog.info('Detected hash mismatch, regenerating KDTree')
+                else:
+                    self._kdtree = kdtree
+                    return
         positions = []
         for data_file in self.data_files:
-            for _, ppos in self.io._yield_coordinates(
+            if fname is None:
+                for _, ppos in self.io._yield_coordinates(
+                    data_file):
+                    positions.append(ppos)
+            else:
+                for _, ppos in self.io._yield_coordinates(
                     data_file, needed_ptype=self.ds._sph_ptype):
-                positions.append(ppos)
+                    positions.append(ppos)
         if positions == []:
             self._kdtree = None
             return
@@ -152,7 +158,7 @@ class SPHParticleIndex(ParticleIndex):
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             periodic=np.array(self.ds.periodicity),
-            leafsize=2*int(self.ds._num_neighbors),
+            leafsize=2*int(self.ds.num_neighbors),
             data_version=self.ds._file_hash
         )
         if fname is not None:
