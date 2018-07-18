@@ -40,18 +40,6 @@ cdef class BoundedPriorityQueue:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef int reset(self) nogil except -1:
-        # utility function useful to re-validate the pointers if we allocate
-        # the heap to a memoryview
-        if self.use_pids:
-            self.pids_ptr = &(self.pids[0])
-        self.heap_ptr = &(self.heap[0])
-        return 0
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    @cython.initializedcheck(False)
     cdef int max_heapify(self, np.intp_t index) nogil except -1:
         cdef np.intp_t left = 2 * index + 1
         cdef np.intp_t right = 2 * index + 2

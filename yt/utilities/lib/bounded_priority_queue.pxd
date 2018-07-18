@@ -27,7 +27,6 @@ cdef class BoundedPriorityQueue:
     cdef np.intp_t size
     cdef np.intp_t max_elements
 
-    cdef int reset(self) nogil except -1
     cdef int max_heapify(self, np.intp_t index) nogil except -1
     cdef int propagate_up(self, np.intp_t index) nogil except -1
     cdef int add(self, np.float64_t val) nogil except -1
