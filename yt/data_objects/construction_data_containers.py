@@ -935,11 +935,12 @@ class YTArbitraryGrid(YTCoveringGrid):
         bounds[3] = self.right_edge[1].in_base("code")
         bounds[5] = self.right_edge[2].in_base("code")
 
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
+
         if(smoothing_style == "scatter"):
             for field in fields:
                 dest = np.zeros(self.ActiveDimensions, dtype="float64")
 
-                normalize = getattr(self.ds, 'use_sph_normalization', True)
                 if normalize:
                     dest_den = np.zeros(self.ActiveDimensions, dtype="float64")
 
@@ -972,7 +973,7 @@ class YTArbitraryGrid(YTCoveringGrid):
                 buff = np.zeros(self.ActiveDimensions, dtype="float64")
 
                 pixelize_sph_gather(buff, bounds, self.ds, field,
-                                    ptype)
+                                    ptype, normalize=normalize)
 
                 fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(buff, fi.units)

@@ -331,9 +331,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
             elif isinstance(data_source, YTSlice):
                 smoothing_style = getattr(self.ds, 'sph_smoothing_style',
                                           'scatter')
+                normalize = getattr(self.ds, 'use_sph_normalization', True)
+
                 if smoothing_style == 'scatter':
                     buff = np.zeros(size, dtype='float64')
-                    normalize = getattr(self.ds, 'use_sph_normalization', True)
 
                     if normalize:
                         buff_den = np.zeros(size, dtype='float64')
@@ -382,7 +383,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     buff_temp = np.zeros(buff_size, dtype="float64")
 
                     pixelize_sph_gather(buff_temp, buff_bounds, self.ds,
-                                        field, ptype)
+                                        field, ptype, normalize=normalize)
 
                     # we swap the axes back so the axis which was sliced over
                     # is the last axis. Then we just transpose if our x and y

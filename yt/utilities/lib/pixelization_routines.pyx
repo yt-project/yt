@@ -1141,17 +1141,15 @@ def pixelize_sph_kernel_slice(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def pixelize_sph_gather(np.float64_t[:, :, :] buff,
-                        np.float64_t[:] bounds,
-                        data_source,
-                        field,
-                        ptype):
+def pixelize_sph_gather(np.float64_t[:, :, :] buff, np.float64_t[:] bounds,
+                        data_source, field, ptype,
+                        np.int64_t skipaxis=-1,
+                        normalize=True):
         cdef int i, j, k
         cdef np.float64_t[:, :, :] buff_den
 
         tree = data_source.index.kdtree
 
-        normalize = getattr(data_source, 'use_sph_normalization', True)
         if normalize:
             buff_den = np.zeros((buff.shape[0], buff.shape[1], buff.shape[2]),
                                 dtype="float64")
@@ -1169,7 +1167,8 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff,
         pos = np.concatenate(pos)
         pos = pos[tree.idx, :]
 
-        knn_list(pos, dists, pids, tree, bounds, size, data_source.num_neighbors)
+        knn_list(pos, dists, pids, tree, bounds, size, data_source.num_neighbors,
+                 skipaxis=skipaxis)
         del pos
 
         # perform the deposition onto the pixels -> do it twice to
