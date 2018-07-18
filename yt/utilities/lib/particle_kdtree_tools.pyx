@@ -29,11 +29,16 @@ from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
 
 cdef int CHUNKSIZE = 4096
 
+# This structure allows the nearest neighbor finding to consider a subset of
+# spatial dimensions, i.e the the spatial separation in the x and z coordinates
+# could be consider by using set_axes_range(axes, 1), this would cause the while
+# loops to skip the y dimensions, without the performance hit of an if statement
 cdef struct axes_range:
     int start
     int stop
     int step
 
+# skipaxis: x=0, y=1, z=2
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
