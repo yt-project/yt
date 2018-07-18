@@ -364,9 +364,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         normalization_2d_utility(buff, buff_den)
 
                 if smoothing_style == "gather":
-                    # for a slice we create a grid of num_pixelsxnum_pixelsx1,
-                    # for a z slice, and we swap the one dependent on the slice
-                    # axis
+                    # Here we find out which axis are going to be the "x" and
+                    # "y" axis for the actual visualisation and then we set the
+                    # buffer size and bounds to match. The z axis of the plot
+                    # is the axis we slice over and the buffer will be of size 1
+                    # in that dimension
                     x, y, z = self.x_axis[dim], self.y_axis[dim], dim
 
                     buff_size = np.zeros(3, dtype="int64")
@@ -380,14 +382,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     buff_bounds[2*z] = data_source.coord
                     buff_bounds[2*z+1] = data_source.coord
 
+                    # then we do the interpolation
                     buff_temp = np.zeros(buff_size, dtype="float64")
-
                     pixelize_sph_gather(buff_temp, buff_bounds, self.ds,
                                         field, ptype, normalize=normalize)
 
                     # we swap the axes back so the axis which was sliced over
-                    # is the last axis. Then we just transpose if our x and y
-                    # were also different
+                    # is the last axis, as this is the "z" axis of the plots.
                     if z != 2:
                         buff_temp = buff_temp.swapaxes(2, z)
                         if x == 2:
@@ -396,6 +397,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             y = z
 
                     buff = buff_temp[:,:,0]
+
+                    # Then we just transpose if the buffer x and y are
+                    # different than the plot x and y
                     if y < x:
                         buff = buff.transpose()
             else:
