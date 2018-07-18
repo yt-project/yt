@@ -140,11 +140,6 @@ class SPHParticleIndex(ParticleIndex):
                     return
         positions = []
         for data_file in self.data_files:
-            if fname is None:
-                for _, ppos in self.io._yield_coordinates(
-                    data_file):
-                    positions.append(ppos)
-            else:
                 for _, ppos in self.io._yield_coordinates(
                     data_file, needed_ptype=self.ds._sph_ptype):
                     positions.append(ppos)
