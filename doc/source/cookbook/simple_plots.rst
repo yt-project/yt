@@ -197,7 +197,7 @@ Setting Field Label Formats
 --------------------------
 
 This example illustrates how to change the label format for
-ion species from the deafult roman numeral style.
+ion species from the default roman numeral style.
 
 .. yt_cookbook:: changing_label_formats.py
 

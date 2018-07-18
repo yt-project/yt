@@ -241,7 +241,7 @@ class Dataset(object):
     fields = requires_index("fields")
     _instantiated = False
     _particle_type_counts = None
-    _roman_numeral_ionization = True
+    _format_ionization_label = 'roman_numeral'
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, string_types):
@@ -581,17 +581,18 @@ class Dataset(object):
         format_property : string indicating what property to set
         value: the value to set for that format_property
         """
-        if format_property == "ionization_label":
-            if value == "roman_numeral":
-                self._roman_numeral_ionization = True
-            elif value == "plus_minus":
-                self._roman_numeral_ionization = False
+        available_formats = {"ionizataion_label":("plus_minus", "roman_numeral")}
+        if format_property in available_formats:
+            if value in available_formats[format_property]:
+                setattr(self, "%s_format" % format_property, value)
             else:
-                raise ValueError("{0} not an acceptable value for format_type \
-                      `ionozation_label`. Choices are `roman_numeral`\
-                      and `plus_minus`.".format(value))
+                raise ValueError("{0} not an acceptable value for format_property \
+                        {1}. Choices are {2}.".format(value, format_property,
+                            available_formats[format_property]))
         else:
-            raise ValueError("{0} not a recognized format_property".format(format_property))
+            raise ValueError("{0} not a recognized format_property. Available
+                             properties are: {1}".format(format_property,
+                                                         list(available_formats.keys())))
 
 
     def setup_deprecated_fields(self):

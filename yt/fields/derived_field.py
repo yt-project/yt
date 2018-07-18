@@ -120,9 +120,9 @@ class DerivedField(object):
         self.ds = ds
 
         if self.ds is not None:
-            self.roman_numeral_ionization = self.ds._roman_numeral_ionization
+            self._format_ionization_label = self.ds._format_ionization_label
         else:
-            self.roman_numeral_ionization = True
+            self._format_ionization_label = "roman_numeral"
 
         if nodal_flag is None:
             self.nodal_flag = [0, 0, 0]
@@ -323,7 +323,7 @@ class DerivedField(object):
     def _ion_to_label(self):
         #check to see if the output format has changed
         if self.ds is not None:
-            self.roman_numeral_ionization = self.ds._roman_numeral_ionization
+            self._format_ionization_label = self.ds._format_ionization_label
 
         pnum2rom = {
             "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
@@ -340,7 +340,7 @@ class DerivedField(object):
             pstr = m.string[m.start()+1:m.end()-1]
             segments = self.name[1].split("_")
 
-            # find the ionoization index 
+            # find the ionization index
             for i,s in enumerate(segments):
                 if s == pstr: ipstr = i
 
@@ -363,7 +363,7 @@ class DerivedField(object):
 
 
             # Use roman numerals for ionization
-            if self.roman_numeral_ionization: 
+            if self._format_ionization_label == "roman_numeral":
                 roman = pnum2rom[pstr[1:]]
                 label = species_label + '\ ' + roman + '\ ' + \
                     '\ '.join(segments[ipstr+1:])

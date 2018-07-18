@@ -337,7 +337,8 @@ format you can use the ``ds.set_field_label_format`` method like so:
 The first argument accepts a ``format_property``, or specific aspect of the labeling, and the
 second sets the corresponding ``value``. Currently available format properties are
 
-    * ``ionization_label``: sets how the ionization state of ions are labeled
+    * ``ionization_label``: sets how the ionization state of ions are labeled. Available
+            options are ``"plus_minus"`` and ``"roman_numeral"``
 
 .. _bfields:
 
