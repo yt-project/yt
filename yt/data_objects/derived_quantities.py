@@ -230,10 +230,11 @@ class CenterOfMass(DerivedQuantity):
         Flag to include particles in the calculation.  Particles are ignored
         if not present.
         Default: False
-    particle_type : str
-        Particle type to be used for Center of mass calculation when use_particle
-        = True.
-        Default: all
+    particle_type: string
+        Flag to specify the field type of the particles to use. Useful for
+        particle-based codes where you don't want to use all of the particles
+        in your calculation.
+        Default: 'all'
 
     Examples
     --------
@@ -306,10 +307,11 @@ class BulkVelocity(DerivedQuantity):
         Flag to include particles in the calculation.  Particles are ignored
         if not present.
         Default: True
-    particle_type : str
-        Particle type to be used for Center of mass calculation when use_particle
-        = True.
-        Default: all
+    particle_type: string
+        Flag to specify the field type of the particles to use. Useful for
+        particle-based codes where you don't want to use all of the particles
+        in your calculation.
+        Default: 'all'
 
     Examples
     --------
@@ -427,7 +429,7 @@ class WeightedVariance(DerivedQuantity):
 
 class AngularMomentumVector(DerivedQuantity):
     r"""
-    Calculates the angular momentum vector, using gas and/or particles.
+    Calculates the angular momentum vector, using gas (grid-based) and/or particles.
 
     The angular momentum vector is the mass-weighted mean specific angular momentum.
     Returns a YTArray of the vector.
@@ -435,25 +437,32 @@ class AngularMomentumVector(DerivedQuantity):
     Parameters
     ----------
     use_gas : bool
-        Flag to include gas in the calculation.  Gas is ignored if not
+        Flag to include grid-based gas in the calculation. Gas is ignored if not
         present.
         Default: True
     use_particles : bool
         Flag to include particles in the calculation.  Particles are ignored
         if not present.
         Default: True
-    particle_type : str
-        Particle type to be used for Center of mass calculation when use_particle
-        = True.
-        Default: all
-
+    particle_type: string
+        Flag to specify the field type of the particles to use. Useful for
+        particle-based codes where you don't want to use all of the particles
+        in your calculation.
+        Default: 'all'
 
     Examples
     --------
 
+    # Find angular momentum vector of galaxy in grid-based isolated galaxy dataset
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
     >>> print ad.quantities.angular_momentum_vector()
+
+    # Find angular momentum vector of gas disk in particle-based dataset
+    >>> ds = load("FIRE_M12i_ref11/snapshot_600.hdf5")
+    >>> _, c = ds.find_max(('gas', 'density'))
+    >>> sp = ds.sphere(c, (10, 'kpc'))
+    >>> print sp.quantities.angular_momentum_vector(use_gas=False, use_particles=True, particle_type='PartType0')
 
     """
     def count_values(self, use_gas=True, use_particles=True, particle_type = "all"):
@@ -462,10 +471,11 @@ class AngularMomentumVector(DerivedQuantity):
         num_vals = 0
         # create the index if it doesn't exist yet
         self.data_source.ds.index
+        self.particle_type = particle_type
         self.use_gas = use_gas & \
             (("gas", "cell_mass") in self.data_source.ds.field_info)
         self.use_particles = use_particles & \
-            ((particle_type, "particle_mass") in self.data_source.ds.field_info)
+            ((self.particle_type, "particle_mass") in self.data_source.ds.field_info)
         if self.use_gas:
             num_vals += 4
         if self.use_particles:
@@ -480,10 +490,10 @@ class AngularMomentumVector(DerivedQuantity):
                           for axis in "xyz"])
             rvals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if self.use_particles:
-            rvals.extend([(data[particle_type, "particle_specific_angular_momentum_%s" % axis] *
-                           data[particle_type, "particle_mass"]).sum(dtype=np.float64) \
+            rvals.extend([(data[self.particle_type, "particle_specific_angular_momentum_%s" % axis] *
+                           data[self.particle_type, "particle_mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
-            rvals.append(data[particle_type, "particle_mass"].sum(dtype=np.float64))
+            rvals.append(data[self.particle_type, "particle_mass"].sum(dtype=np.float64))
         return rvals
 
     def reduce_intermediate(self, values):
