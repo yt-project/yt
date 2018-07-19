@@ -162,6 +162,7 @@ def off_axis_projection(data_source, center, normal_vector,
         else:
             north = np.array(north_vector)
             north = north / np.linalg.norm(north)
+            east_vector = np.cross(north, normal).ravel()
         
         #if weight is None:
         
