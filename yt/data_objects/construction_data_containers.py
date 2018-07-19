@@ -2090,7 +2090,6 @@ class YTOctree(YTSelectionContainer3D):
                          ("index", "x"),
                          ("index", "y"),
                          ("index", "z"))
-    _base_grid = None
     def __init__(self, left_edge, right_edge, n_ref=32, ptypes = None, fields = None,
                  ds = None, use_pbar = True, field_parameters = None):
         if field_parameters is None:
@@ -2126,6 +2125,8 @@ class YTOctree(YTSelectionContainer3D):
         only_on_root(mylog.info, "Allocating for %i octs",
                      self.octree.num_octs, global_rootonly = True)
 
+        # if does not exist then write to memory
+
     def _sanitize_ptypes(self, ptypes):
         if ptypes is None:
             return ['all']
@@ -2154,3 +2155,15 @@ class YTOctree(YTSelectionContainer3D):
         else:
             edge_units = 'code_length'
         return self.ds.arr(edge, edge_units)
+
+    def get_data(self, fields = None):
+        # here we need to check if we already have the field, if not then we
+        # need to interpolate the fields onto the octree
+        if fields is None: return
+        fields = self._determine_fields(ensure_list(fields))
+        fields_to_get = [f for f in fields if f not in self.field_data]
+        fields_to_get = self._identify_dependencies(fields_to_get)
+        if len(fields_to_get) == 0: return
+
+        for field in fields_to_get:
+            print(self.ds.field_info[field])
