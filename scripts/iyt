@@ -63,16 +63,11 @@ ip.ex("import yt")
 
 # Now we add some tab completers, in the vein of:
 # http://pymel.googlecode.com/svn/trunk/tools/ipymel.py
-# We'll start with some fields.
-
 
 def yt_simple_fieldname_completer(self, event):
     """Match dictionary completions"""
-    #text = event.symbol # Not sure why this no longer works
     text = event.line
-    #print repr(text)
-    # Another option, seems to work great. Catches things like ''.<tab>
-    #m = re.match(r"(\S+(\.\w+)*)\.(\w*)$", text)
+    # The regexp matches anything like foo.bar.baz['f
     m = re.match(r"(\S+(\.\w+)*)\[[\'\\\"](\w*)$", text)
 
     if not m:
@@ -98,11 +93,7 @@ def yt_simple_fieldname_completer(self, event):
 
 def yt_tuple_fieldname_completer(self, event):
     """Match dictionary completions"""
-    #text = event.symbol # Not sure why this no longer works
     text = event.line
-    #print repr(text)
-    # Another option, seems to work great. Catches things like ''.<tab>
-    #m = re.match(r"(\S+(\.\w+)*)\.(\w*)$", text)
     # The regexp matches anything like foo.bar.baz['toto', 'tata
     m = re.match(r"(\S+(\.\w+)*)\[[\'\\\"](\S+)[\'\\\"],\s*[\'\\\"](\S+)", text)
 
