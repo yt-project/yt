@@ -586,12 +586,12 @@ class Dataset(object):
             if value in available_formats[format_property]:
                 setattr(self, "%s_format" % format_property, value)
             else:
-                raise ValueError("{0} not an acceptable value for format_property \
-                        {1}. Choices are {2}.".format(value, format_property,
+                raise ValueError("{0} not an acceptable value for format_property "
+                        "{1}. Choices are {2}.".format(value, format_property,
                             available_formats[format_property]))
         else:
-            raise ValueError("{0} not a recognized format_property. Available
-                             properties are: {1}".format(format_property,
+            raise ValueError("{0} not a recognized format_property. Available"
+                             "properties are: {1}".format(format_property,
                                                          list(available_formats.keys())))
 
 
