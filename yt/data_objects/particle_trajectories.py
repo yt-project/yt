@@ -43,6 +43,8 @@ class ParticleTrajectories(object):
     suppress_logging : boolean
         Suppress yt's logging when iterating over the simulation time
         series. Default: False
+    ptype : str, optional
+        Only use this particle type. Default: None, which uses all particle type.
 
     Examples
     --------
