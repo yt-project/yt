@@ -58,3 +58,4 @@ def test_region_and_particles():
     result = np.sort(reg['particle_position_x'])
 
     assert_equal(expected.shape, result.shape)
+    assert_equal(expected, result)
