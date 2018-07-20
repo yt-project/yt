@@ -227,7 +227,7 @@ def knn_list(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, ::1] di
     cdef double dx, dy, dz
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
     cdef np.float64_t[:] voxel_pos = np.zeros(3, dtype="float64")
-    cdef int extra_nodes = max(0, (queue.max_elements-1) / kdtree.leafsize)
+    cdef int extra_nodes
 
     cdef axes_range axes
     set_axes_range(&axes, skipaxis)
@@ -254,9 +254,12 @@ def knn_list(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, ::1] di
 
                 # if we want more neighbors than particles in a leaf, then we
                 # loop through a few neighbors
-                for q in range(extra_nodes):
-                    process_node_points(c_tree.leaves[leafnode.all_neighbors[p]],
+                extra_nodes = 0
+                while queue.size < queue.max_elements and extra_nodes < \
+                  leafnode.all_neighbors.size():
+                    process_node_points(c_tree.leaves[leafnode.all_neighbors[extra_nodes]],
                                         queue, tree_positions, pos, skipidx, &axes)
+                    extra_nodes += 1
 
                 find_knn(c_tree.root, queue, tree_positions, pos, leafnode.leafid,
                          skipidx, &axes)
