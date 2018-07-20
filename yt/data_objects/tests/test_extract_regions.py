@@ -4,9 +4,7 @@ from yt.testing import \
     fake_random_ds, \
     fake_amr_ds, \
     assert_equal, \
-    assert_almost_equal, \
-    requires_module
-
+    assert_almost_equal
 
 def setup():
     from yt.config import ytcfg
