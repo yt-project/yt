@@ -935,10 +935,15 @@ class YTCutRegion(YTSelectionContainer3D):
         parent = getattr(self, "parent", self.base_object)
         units = "code_length"
 
-        pos = np.stack([self[("index", k)].to(units) for k in 'xyz'], axis=1).value
-        dx = np.stack([self[("index", "d%s" % k)].to(units) for k in 'xyz'], axis=1).value
-        ppos = np.stack([parent[(ptype, "particle_position_%s" % k)]
-                         for k in 'xyz'], axis=1).value
+        pos = np.stack([self[("index", 'x')].to(units),
+                        self[("index", 'y')].to(units),
+                        self[("index", 'z')].to(units)], axis=1).value
+        dx = np.stack([self[("index", "dx")].to(units),
+                       self[("index", "dy")].to(units),
+                       self[("index", "dz")].to(units)], axis=1).value
+        ppos = np.stack([parent[(ptype, "particle_position_x")],
+                         parent[(ptype, "particle_position_y")],
+                         parent[(ptype, "particle_position_z")]], axis=1).value
         levels = self[("index", "grid_level")].astype('int32').value
         levelmin = levels.min()
         levelmax = levels.max()
