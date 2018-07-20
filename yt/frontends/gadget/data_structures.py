@@ -654,8 +654,10 @@ class GadgetHDF5Dataset(GadgetDataset):
 
 class ArepoHDF5Dataset(GadgetHDF5Dataset):
     _field_info_class = ArepoFieldInfo
+
     def __init__(self, filename, dataset_type="arepo_hdf5",
                  unit_base=None,
+                 smoothing_factor=2.0,
                  index_order=None,
                  index_filename=None,
                  kernel_name=None,
@@ -667,6 +669,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
             index_order=index_order, index_filename=index_filename,
             kernel_name=kernel_name, bounding_box=bounding_box,
             units_override=units_override, unit_system=unit_system)
+        self.smoothing_factor = smoothing_factor
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
