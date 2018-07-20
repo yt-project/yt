@@ -107,7 +107,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 ds = f[ptype]["Masses"][si:ei,...]/f[ptype]["Density"][si:ei,...]
                 ds *= 3.0/(4.0*np.pi)
                 ds **= (1./3.)
-                ds *= 2.5
+                ds *= self.ds.smoothing_factor
             else:
                 ds = f[ptype]["SmoothingLength"][si:ei,...]
             dt = ds.dtype.newbyteorder("N") # Native
