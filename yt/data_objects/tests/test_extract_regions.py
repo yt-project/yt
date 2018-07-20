@@ -4,8 +4,8 @@ from yt.testing import \
     fake_random_ds, \
     fake_amr_ds, \
     assert_equal, \
-    assert_almost_equal
-
+    assert_almost_equal, \
+    requires_module
 
 
 def setup():
@@ -49,7 +49,7 @@ def test_cut_region():
         p2 = ds.proj("density", 2, data_source=cr, weight_field = "density")
         assert_equal(p2["density"].max() > 0.25, True)
 
-
+@requires_module('scipy')
 def test_region_and_particles():
     ds = fake_amr_ds(particles=10000)
 
