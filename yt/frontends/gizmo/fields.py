@@ -32,25 +32,20 @@ metal_elements = ["He", "C", "N", "O", "Ne",
                   "Mg", "Si", "S", "Ca", "Fe"]
 
 class GizmoFieldInfo(GadgetFieldInfo):
+    # The known fields list is according to the GIZMO User Guide. See
+    # http://www.tapir.caltech.edu/~phopkins/Site/GIZMO_files/gizmo_documentation.html#snaps-reading
     known_particle_fields = (
-        ("Mass", ("code_mass", ["particle_mass"], None)),
-        ("Masses", ("code_mass", ["particle_mass"], None)),
         ("Coordinates", ("code_length", ["particle_position"], None)),
-        ("Velocity", ("code_velocity", ["particle_velocity"], None)),
         ("Velocities", ("code_velocity", ["particle_velocity"], None)),
-        ("MagneticField", ("code_magnetic", ["particle_magnetic_field"], None)),
         ("ParticleIDs", ("", ["particle_index"], None)),
+        ("Masses", ("code_mass", ["particle_mass"], None)),
         ("InternalEnergy", ("code_specific_energy", ["thermal_energy"], None)),
-        ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("Density", ("code_mass / code_length**3", ["density"], None)),
-        ("MaximumTemperature", ("K", [], None)),
-        ("Temperature", ("K", ["temperature"], None)),
-        ("Epsilon", ("code_length", [], None)),
-        ("Metals", ("code_metallicity", ["metallicity"], None)),
-        ("Metallicity", ("code_metallicity", ["metallicity"], None)),
-        ("Phi", ("code_length", [], None)),
+        ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
+        ("ElectronAbundance", ("", [], None)),
+        ("NeutralHydrogenAbundance", ("", [], None)),
         ("StarFormationRate", ("Msun / yr", [], None)),
-        ("FormationTime", ("code_time", ["creation_time"], None)),
+        ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Metallicity_00", ("", ["metallicity"], None)),
         ("Metallicity_01", ("", ["He_metallicity"], None)),
         ("Metallicity_02", ("", ["C_metallicity"], None)),
@@ -62,6 +57,15 @@ class GizmoFieldInfo(GadgetFieldInfo):
         ("Metallicity_08", ("", ["S_metallicity"], None)),
         ("Metallicity_09", ("", ["Ca_metallicity"], None)),
         ("Metallicity_10", ("", ["Fe_metallicity"], None)),
+        ("ArtificialViscosity", ("", [], None)),
+        ("MagneticField",
+         ("code_magnetic", ["particle_magnetic_field"], None)),
+        ("DivergenceOfMagneticField",
+         ("code_magnetic / code_length", [], None)),
+        ("StellarFormationTime", ("code_time", ["creation_time"], None)),
+        ("BH_Mass", ("code_mass", [], None)),
+        ("BH_Mdot", ("code_mass / code_time", [], None)),
+        ("BH_Mass_AlphaDisk", ("code_mass", [], None)),
     )
 
     def __init__(self, *args, **kwargs):
