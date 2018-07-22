@@ -62,7 +62,9 @@ class GizmoFieldInfo(GadgetFieldInfo):
          ("code_magnetic", ["particle_magnetic_field"], None)),
         ("DivergenceOfMagneticField",
          ("code_magnetic / code_length", [], None)),
-        ("StellarFormationTime", ("code_time", ["creation_time"], None)),
+        ("StellarFormationTime", ("", [], None)),
+        # "StellarFormationTime" has different meanings in (non-)cosmological
+        # runs, so units are left blank here.
         ("BH_Mass", ("code_mass", [], None)),
         ("BH_Mdot", ("code_mass / code_time", [], None)),
         ("BH_Mass_AlphaDisk", ("code_mass", [], None)),
@@ -79,6 +81,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
         if ptype in ("PartType0",):
             self.setup_gas_particle_fields(ptype)
             setup_species_fields(self, ptype)
+        if ptype in ("PartType4",):
+            self.setup_star_particle_fields(ptype)
 
     def setup_gas_particle_fields(self, ptype):
         super(GizmoFieldInfo, self).setup_gas_particle_fields(ptype)
@@ -147,3 +151,29 @@ class GizmoFieldInfo(GadgetFieldInfo):
             setup_magnetic_field_aliases(
                 self, ptype, magnetic_field, ftype=ptype
             )
+
+    def setup_star_particle_fields(self, ptype):
+        def _creation_time(field, data):
+            if data.ds.cosmological_simulation:
+                a_form = data['StellarFormationTime']
+                z_form = 1 / a_form - 1
+                creation_time = data.ds.cosmology.t_from_z(z_form)
+            else:
+                t_form = data["StellarFormationTime"]
+                creation_time = data.ds.arr(t_form, "code_time")
+            return creation_time
+
+        self.add_field(
+            (ptype, "creation_time"),
+            sampling_type="particle",
+            function=_creation_time,
+            units=self.ds.unit_system["time"])
+
+        def _age(field, data):
+            return data.ds.current_time - data["creation_time"]
+
+        self.add_field(
+            (ptype, "age"),
+            sampling_type="particle",
+            function=_age,
+            units=self.ds.unit_system["time"])
