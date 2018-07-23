@@ -1,5 +1,6 @@
 cimport numpy as np
 import numpy as np
+import struct
 cimport cython
 from libcpp.vector cimport vector
 
@@ -10,6 +11,8 @@ cdef struct Node:
     int start
     int end
     int parent
+    int children
+    int leaf
 
 # this is the underlying c structure for the octree, it is very basic in terms
 # of the values that it stores
@@ -20,21 +23,56 @@ cdef struct Octree:
     int n_ref
     int num_nodes
     Node * root
-    vector[int] ids
+    int * idx
 
-# this is the python interface to the cython octree
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef class PyOctree:
     cdef Octree c_tree
+    cdef int[:] _idx
+    cdef int _n_ref
+    cdef int _num_octs
+    cdef int _num_particles
 
-    def __init__(self, double[:, ::1] &input_pos, left_edge = None,
+    def __init__(self, double[:, ::1] &input_pos = None, left_edge = None,
                  right_edge = None, int n_ref=32):
-        # the max number of particles per leaf
+        # if this is the case, we are very likely just initialising an instance
+        # and then going to load an existing kdtree from memory
+        if input_pos is None:
+            return
+
+        self.setup_bounds(input_pos, left_edge, right_edge)
+        self.setup_ctree(input_pos, n_ref)
+        self.setup_root(input_pos)
+
+        # now build the tree, we do this with no gil as we will attempt to
+        # parallelize in the future
+        with nogil:
+            process_node(self.c_tree, self.c_tree.root, &(input_pos[0, 0]))
+
+        # shrink to fit
+        self.c_tree.nodes.shrink_to_fit()
+
+        # setup the final parameters
+        self.n_ref = n_ref
+        self.num_octs = self.c_tree.nodes.size()
+        self.num_particles = input_pos.shape[0]
+        self.c_tree.nodes.shrink_to_fit()
+
+    def setup_ctree(self, double[:, ::1] &input_pos, int n_ref):
+        self.c_tree.num_nodes = 1
+
+        self.n_ref = n_ref
         self.c_tree.n_ref = n_ref
 
-        # set up the boundaries of the tree
+        self.idx = np.arange(0, input_pos.shape[0], dtype=np.int32)
+        self.c_tree.idx = &self._idx[0]
+
+        reserve(&self.c_tree.nodes, 10000000)
+
+    def setup_bounds(self, double[:, ::1] &input_pos, left_edge=None,
+                     right_edge=None):
         if left_edge is not None:
             for i in range(3):
                 self.c_tree.left_edge[i] = left_edge[i]
@@ -49,46 +87,119 @@ cdef class PyOctree:
             for i in range(3):
                 self.c_tree.right_edge[i] = np.amax(input_pos[:,i])
 
-        # set up the initial node storage
-        self.c_tree.num_nodes = 1
-
-        # attempt to reserve some memory, we don't want to reallocate
-        self.c_tree.nodes.reserve(1000000)
-
-        # set up the initial tree id list
-        self.c_tree.ids.reserve(input_pos.shape[0]+1)
-        for i in range(input_pos.shape[0]):
-            self.c_tree.ids.push_back(i)
-
-        # make the root node
-        self.setup_root(input_pos.shape[0]*3)
-
-        # now build the tree
-        with nogil:
-            process_node(self.c_tree, self.c_tree.root, &(input_pos[0, 0]))
-
-        # TODO:
-        # shrink the nodes capacity to fit
-
-    def setup_root(self, end):
+    def setup_root(self, double[:, ::1] &input_pos):
         cdef Node root
         root.left_edge = self.c_tree.left_edge
         root.right_edge = self.c_tree.right_edge
         root.parent = -1
         root.start = 0
-        root.end = end
+        root.end = input_pos.shape[0]*3
 
         # store the root in an array and make a convenient pointer
         self.c_tree.nodes.push_back(root)
         self.c_tree.root = &(self.c_tree.nodes[0])
 
+    def reset(self):
+        # reset the c tree
+        self.c_tree.nodes.clear()
+        self.c_tree.num_nodes = 0
+        for i in range(3):
+            self.c_tree.left_edge[i] = 0.0
+            self.c_tree.right_edge[i] = 0.0
+        self.c_tree.n_ref = 0
+
+        # reset python properties
+        self.n_ref = 0
+        self.num_octs = 0
+        self.idx = np.array([0], dtype=np.int32)
+        self.num_particles = 0
+
     @property
     def idx(self):
-        return np.asarray(self.c_tree.ids)
+        return np.asarray(self._idx)
+
+    @idx.setter
+    def idx(self, array):
+        self._idx = array
+        self.c_tree.idx = &self._idx[0]
 
     @property
     def num_octs(self):
-        return self.c_tree.nodes.size()
+        return self._num_octs
+
+    @num_octs.setter
+    def num_octs(self, val):
+        self._num_octs = val
+
+    @property
+    def n_ref(self):
+        return self._n_ref
+
+    @n_ref.setter
+    def n_ref(self, val):
+        self._n_ref = val
+
+    @property
+    def num_particles(self):
+        return self._num_particles
+
+    @num_particles.setter
+    def num_particles(self, val):
+        self._num_particles = val
+
+    # TODO: this code is much slower than I would like, this is likely due to
+    # the use of struct -> plan to replace this
+    def save(self, fname = None, tree_hash = 0):
+        if fname is None:
+            raise ValueError("A filename must be specified to save the kdtree!")
+
+        # TODO: we need to save the tree hash as well
+        with open(fname,'wb') as f:
+            f.write(struct.pack('3i', self.num_particles, self.num_octs,
+                                      self.n_ref))
+            f.write(struct.pack('{}i'.format(self.num_particles),
+                                *self.idx))
+            for i in range(self.num_octs):
+                f.write(struct.pack('6d5i',
+                                    self.c_tree.nodes[i].left_edge[0],
+                                    self.c_tree.nodes[i].left_edge[1],
+                                    self.c_tree.nodes[i].left_edge[2],
+                                    self.c_tree.nodes[i].right_edge[0],
+                                    self.c_tree.nodes[i].right_edge[1],
+                                    self.c_tree.nodes[i].right_edge[2],
+                                    self.c_tree.nodes[i].start,
+                                    self.c_tree.nodes[i].end,
+                                    self.c_tree.nodes[i].parent,
+                                    self.c_tree.nodes[i].children,
+                                    self.c_tree.nodes[i].leaf))
+
+    def load(self, fname = None):
+        if fname is None:
+            raise ValueError("A filename must be specified to load the kdtree!")
+
+        self.reset()
+
+        cdef Node temp
+        with open(fname,'rb') as f:
+            (self.num_particles, self.num_octs, self.n_ref) = \
+                struct.unpack('3i', f.read(12))
+            self.idx = \
+                np.asarray(struct.unpack('{}i'.format(self.num_particles),
+                           f.read(4*self.num_particles)), dtype=np.int32)
+            reserve(&self.c_tree.nodes, self.num_octs+1)
+            for i in range(self.num_octs):
+                (temp.left_edge[0], temp.left_edge[1], temp.left_edge[2],
+                 temp.right_edge[0], temp.right_edge[1], temp.right_edge[2],
+                 temp.start, temp.end, temp.parent, temp.children,
+                 temp.leaf) = struct.unpack('6d5i', f.read(68))
+
+                self.c_tree.nodes.push_back(temp)
+
+# this is a utility function which is able to catch errors when we attempt to
+# reserve too much memory
+cdef int reserve(vector[Node] * vec, int amount) except +MemoryError:
+    vec.reserve(amount)
+    return 0
 
 # this makes the children and stores them in the tree.node
 @cython.boundscheck(False)
@@ -140,21 +251,21 @@ cdef int process_node(Octree &tree, Node * node, double * input_pos) nogil:
 
     # split into two partitions based on x value
     temp_value = (node.left_edge[0] + node.right_edge[0]) / 2
-    splits[4] = seperate(input_pos, &tree.ids[0], 0,
+    splits[4] = seperate(input_pos, &tree.idx[0], 0,
                          temp_value,
                          splits[0], splits[8])
 
     # split into four partitions using the y value
     temp_value = (node.left_edge[1] + node.right_edge[1]) / 2
     for i in range(0, 2, 1):
-        splits[2 + i*4] = seperate(input_pos, &tree.ids[0], 1,
+        splits[2 + i*4] = seperate(input_pos, &tree.idx[0], 1,
                                    temp_value,
                                    splits[4*i], splits[4*i + 4])
 
     # split into eight partitions using the z value
     temp_value = (node.left_edge[2] + node.right_edge[2]) / 2
     for i in range(0, 4, 1):
-        splits[2*i + 1] = seperate(input_pos, &tree.ids[0], 2,
+        splits[2*i + 1] = seperate(input_pos, &tree.idx[0], 2,
                                    temp_value,
                                    splits[2*i], splits[2*i + 2])
 
@@ -175,20 +286,20 @@ cdef int process_node(Octree &tree, Node * node, double * input_pos) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int seperate(double * array, int * ids, int offset,  double &value,
+cdef int seperate(double * array, int * idx, int offset,  double &value,
                   int &start, int &end) nogil:
     cdef int index
-    cdef int ids_index = start/3, ids_split = ids_index
+    cdef int idx_index = start/3, idx_split = idx_index
     cdef int split = start
 
     for index in range(start, end, 3):
-        ids_index += 1
+        idx_index += 1
         if array[index + offset] < value:
-            ids[ids_split], ids[ids_index] = ids[ids_index], ids[ids_split]
+            idx[idx_split], idx[idx_index] = idx[idx_index], idx[idx_split]
             array[split], array[index] = array[index], array[split]
             array[split+1], array[index+1] = array[index+1], array[split+1]
             array[split+2], array[index+2] = array[index+2], array[split+2]
             split+=3
-            ids_split+=1
+            idx_split+=1
 
     return split
