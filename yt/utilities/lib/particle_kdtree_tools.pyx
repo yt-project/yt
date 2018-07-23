@@ -129,76 +129,14 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def query(PyKDTree kdtree, np.float64_t [:, ::1] tree_positions,
-          np.float64_t[:, ::1] input_positions, int num_neigh
-          ):
-    """This is a KD nearest neighbor search with a similar interface to the
-    scikdtree used for performance comparisons
-
-    Parameters
-    ----------
-
-    kdtree: A PyKDTree instance
-        A kdtree to do nearest neighbors searches with
-    tree_positions: arrays of floats with shape (n_particles, 3)
-        The positions of particles in kdtree non-sorted order. Currently assumed
-        to be 3D postions.
-    input_positions: array of floats (any, 3)
-        The positions to gather the nearest neighbors.
-    kdtree: A PyKDTree instance
-        A kdtree to do nearest neighbors searches with
-    num_neigh: The neighbor number to calculate the distance to
-
-    Returns
-    -------
-
-    dists: arrays of floats with shape (n_particles, num_neigh)
-        The the nearest neighbor distances
-    pids: arrays of ints with shape (n_particles, num_neigh)
-        The particle ids of the nearest neighbors
-    """
-
-    cdef KDTree* c_tree = kdtree._tree
-    cdef Node* leafnode
-    cdef np.float64_t* pos
-    cdef int i, skipidx = -1
-    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
-    cdef np.float64_t[:, :] dists
-    cdef np.int64_t[:, :] pids
-
-    cdef axes_range axes
-    set_axes_range(&axes, -1)
-
-    dists = np.zeros((input_positions.shape[0], num_neigh), dtype="float64")
-    pids = np.zeros((input_positions.shape[0], num_neigh), dtype="int64")
-
-    for i in range(0, input_positions.shape[0]):
-        queue.size = 0
-
-        pos = &(input_positions[i, 0])
-        leafnode = c_tree.search(pos)
-
-        process_node_points(leafnode, queue, tree_positions, pos, skipidx,
-                            &axes)
-        find_knn(c_tree.root, queue, tree_positions, pos, leafnode.leafid,
-                 skipidx, &axes)
-
-        dists[i, :] = queue.heap[:]
-        pids[i, :] = queue.pids[:]
-
-    return np.asarray(dists), np.asarray(pids)
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def knn_list(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, ::1] dists,
+def knn_list_grid(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, ::1] dists,
              np.int64_t[:, :, :, ::1] pids,  PyKDTree kdtree, np.float64_t[:] bounds,
              np.int64_t[:] size, int num_neigh,
              np.int64_t skipaxis=-1):
 
-    """This is a KD nearest neighbor search to calculate improve the first guess
-    with tree traversing, this is useful for filling a nearest neighbor list
-    chunkwise
+    """This calcualtes the K nearest neighbors of a uniform grid with a bounds
+    and size that have been inputted. This is useful for slice plots, arbitrary
+    grids and projections.
 
     Parameters
     ----------
@@ -214,9 +152,14 @@ def knn_list(np.float64_t [:, ::1] tree_positions, np.float64_t[:, :, :, ::1] di
         The particle ids of the nearest neighbors
     kdtree: A PyKDTree instance
         A kdtree to do nearest neighbors searches with
-    input_positions: array of floats (any, 3)
-        The positions to gather the nearest neighbors.
+    bounds: array of floats (6)
+        The boundaries of the grid
+    size: array of ints (3)
+        The number of voxels to divide the grid into for each dimenions
     num_neigh: The neighbor number to calculate the distance to
+    skipaxis: int
+        Any physics dimensions which should be ignored when calculating
+        distances, i.e in a projection plot
     """
 
     # the positions are the positions to find the k nn and the dists and pids

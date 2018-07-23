@@ -44,7 +44,7 @@ from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
 from yt.funcs import get_pbar
 from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
-from yt.utilities.lib.particle_kdtree_tools import knn_list
+from yt.utilities.lib.particle_kdtree_tools import knn_list_grid
 from yt.extern.tqdm import tqdm
 
 cdef int TABLE_NVALS=512
@@ -1167,7 +1167,7 @@ def pixelize_sph_gather(np.float64_t[:, :, :] buff, np.float64_t[:] bounds,
         pos = np.concatenate(pos)
         pos = pos[tree.idx, :]
 
-        knn_list(pos, dists, pids, tree, bounds, size, data_source.num_neighbors,
+        knn_list_grid(pos, dists, pids, tree, bounds, size, data_source.num_neighbors,
                  skipaxis=skipaxis)
         del pos
 
