@@ -24,8 +24,6 @@ from yt.extern.six import string_types
 from yt.funcs import ensure_list, iterable, validate_width_tuple, \
     fix_length, fix_axis, validate_3d_array, validate_float, \
     validate_iterable, validate_object, validate_axis, validate_center
-from yt.geometry.selection_routines import \
-    points_in_cells
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
@@ -37,6 +35,8 @@ from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
+from yt.geometry.selection_routines import points_in_cells
+from yt.utilities.on_demand_imports import _scipy
 
 
 class YTPoint(YTSelectionContainer0D):
@@ -930,20 +930,78 @@ class YTCutRegion(YTSelectionContainer3D):
                 np.logical_and(res, ind, ind)
         return ind
 
+    def _part_ind_KDTree(self, ptype):
+        '''Find the particles in cells using a KDTree approach.'''
+        parent = getattr(self, "parent", self.base_object)
+        units = "code_length"
+
+        pos = np.stack([self[("index", 'x')].to(units),
+                        self[("index", 'y')].to(units),
+                        self[("index", 'z')].to(units)], axis=1).value
+        dx = np.stack([self[("index", "dx")].to(units),
+                       self[("index", "dy")].to(units),
+                       self[("index", "dz")].to(units)], axis=1).value
+        ppos = np.stack([parent[(ptype, "particle_position_x")],
+                         parent[(ptype, "particle_position_y")],
+                         parent[(ptype, "particle_position_z")]], axis=1).value
+        levels = self[("index", "grid_level")].astype('int32').value
+        levelmin = levels.min()
+        levelmax = levels.max()
+
+        mask = np.zeros(ppos.shape[0], dtype=bool)
+
+        for lvl in range(levelmax, levelmin-1, -1):
+            # Filter out cells not in the current level
+            lvl_mask = (levels == lvl)
+            dx_loc = dx[lvl_mask]
+            pos_loc = pos[lvl_mask]
+
+            grid_tree = _scipy.spatial.cKDTree(pos_loc, boxsize=1)
+
+            # Compute closest cell for all remaining particles
+            dist, icell = grid_tree.query(ppos[~mask], distance_upper_bound=dx_loc.max(),
+                                          p=np.inf)
+            mask_loc = np.isfinite(dist[:])
+
+            # Check that particles within dx of a cell are in it
+            i = icell[mask_loc]
+            dist = np.abs(ppos[~mask][mask_loc, :] - pos_loc[i])
+            tmp_mask = np.all(dist <= (dx_loc[i] / 2), axis=1)
+
+            mask_loc[mask_loc] = tmp_mask
+
+            # Update the particle mask with particles found at this level
+            mask[~mask] |= mask_loc
+
+        return mask
+
+    def _part_ind_brute_force(self, ptype):
+        parent = getattr(self, "parent", self.base_object)
+        units = "code_length"
+        mask = points_in_cells(
+            self[("index", "x")].to(units),
+            self[("index", "y")].to(units),
+            self[("index", "z")].to(units),
+            self[("index", "dx")].to(units),
+            self[("index", "dy")].to(units),
+            self[("index", "dz")].to(units),
+            parent[(ptype, "particle_position_x")].to(units),
+            parent[(ptype, "particle_position_y")].to(units),
+            parent[(ptype, "particle_position_z")].to(units))
+
+        return mask
+
     def _part_ind(self, ptype):
         if self._particle_mask.get(ptype) is None:
-            parent = getattr(self, "parent", self.base_object)
-            units = "code_length"
-            mask = points_in_cells(
-                self[("index", "x")].to(units),
-                self[("index", "y")].to(units),
-                self[("index", "z")].to(units),
-                self[("index", "dx")].to(units),
-                self[("index", "dy")].to(units),
-                self[("index", "dz")].to(units),
-                parent[(ptype, "particle_position_x")].to(units),
-                parent[(ptype, "particle_position_y")].to(units),
-                parent[(ptype, "particle_position_z")].to(units))
+            # If scipy is installed, use the fast KD tree
+            # implementation. Else, fall back onto the direct
+            # brute-force algorithm.
+            try:
+                _scipy.spatial.KDTree
+                mask = self._part_ind_KDTree(ptype)
+            except ImportError:
+                mask = self._part_ind_brute_force(ptype)
+
             self._particle_mask[ptype] = mask
         return self._particle_mask[ptype]
 
