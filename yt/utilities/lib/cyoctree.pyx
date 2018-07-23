@@ -1,6 +1,7 @@
 cimport numpy as np
 import numpy as np
 import struct
+
 cimport cython
 from libcpp.vector cimport vector
 
@@ -52,7 +53,7 @@ cdef class PyOctree:
             process_node(self.c_tree, self.c_tree.root, &(input_pos[0, 0]))
 
         # shrink to fit
-        self.c_tree.nodes.shrink_to_fit()
+        #self.c_tree.nodes.shrink_to_fit()
 
         # setup the final parameters
         self.n_ref = n_ref
