@@ -25,7 +25,6 @@ from yt.utilities.answer_testing.framework import \
 from yt.frontends.gizmo.api import GizmoDataset
 from yt.frontends.gizmo.fields import metal_elements
 
-FIRE_m12i = 'FIRE_M12i_ref11/snapshot_600.hdf5'
 
 # This maps from field names to weight field names to use for projections
 fields = OrderedDict(
