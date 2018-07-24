@@ -1873,8 +1873,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> verts = dd.extract_isocontours("Density", rho,
         ...             "triangles.obj", True)
         """
+        from yt.data_objects.static_output import ParticleDataset
+        from yt.frontends.stream.data_structures import StreamParticlesDataset
         verts = []
         samples = []
+        if isinstance(self.ds, (ParticleDataset, StreamParticlesDataset)):
+            raise NotImplementedError
         for block, mask in self.blocks:
             my_verts = self._extract_isocontours_from_grid(
                 block, mask, field, value, sample_values)

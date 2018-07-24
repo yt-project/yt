@@ -53,7 +53,7 @@ class TestDataContainers(unittest.TestCase):
 
     def test_write_out(self):
         filename = "sphere.txt"
-        ds = fake_particle_ds()
+        ds = fake_random_ds(16)
         sp = ds.sphere(ds.domain_center, 0.25)
         sp.write_out(filename, fields=["cell_volume"])
 
@@ -69,15 +69,8 @@ class TestDataContainers(unittest.TestCase):
         assert_equal(keys, file_row_1)
         assert_array_equal(data, file_row_2)
 
-        # Test for exception
-        with assert_raises(YTException) as ex:
-            sp.write_out(filename, fields=["particle_position_x"])
-        desired = ("Field type ['all'] of the supplied field ['particle_position_x']"
-                   " is in consistent with field type 'gas'.")
-        assert_equal(str(ex.exception)[:50], desired[:50])
-
     def test_save_object(self):
-        ds = fake_particle_ds()
+        ds = fake_random_ds(16)
         sp = ds.sphere(ds.domain_center, 0.25)
         sp.save_object("my_sphere_1", filename="test_save_obj")
         obj = shelve.open("test_save_obj", protocol=-1)
