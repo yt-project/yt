@@ -284,7 +284,7 @@ class GridIndex(Index):
         fast_index = None
         def _gsort(g):
             if g.filename is None:
-                return g.id
+                return str(g.id)
             return g.filename
         if dobj._type_name == "grid":
             dobj._chunk_info = np.empty(1, dtype='object')
@@ -356,7 +356,8 @@ class GridIndex(Index):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         fast_index = dobj._current_chunk._fast_index
         for g in gobjs:
-            gfiles[g.filename].append(g)
+            # Force to be a string because sometimes g.filename is None.
+            gfiles[str(g.filename)].append(g)
         # We can apply a heuristic here to make sure we aren't loading too
         # many grids all at once.
         if chunk_sizing == "auto":
