@@ -973,9 +973,9 @@ def pixelize_sph_kernel_projection(
         weight_field=None):
 
     cdef np.intp_t xsize, ysize
-    cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
+    cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t q2, posx_diff, posy_diff, ih_j2
+    cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
     cdef int index, i, j
     cdef np.float64_t[:] _weight_field
@@ -1023,11 +1023,11 @@ def pixelize_sph_kernel_projection(
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             ih_j2 = 1.0/h_j2
 
-            w_j = pmass[j] / pdens[j] / hsml[j]**3
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**2
             if weight_field is None:
-                coeff = w_j * hsml[j] * quantity_to_smooth[j]
+                prefactor_j *= quantity_to_smooth[j]
             else:
-                coeff = w_j * hsml[j] * quantity_to_smooth[j] * _weight_field[j]
+                prefactor_j *= quantity_to_smooth[j] * _weight_field[j]
 
             # found pixels we deposit on, loop through those pixels
             for xi in range(x0, x1):
@@ -1046,13 +1046,13 @@ def pixelize_sph_kernel_projection(
                     posy_diff = posy_diff * posy_diff
                     if posy_diff > h_j2: continue
 
-                    q2 = (posx_diff + posy_diff) * ih_j2
-                    if q2 >= 1:
+                    q_ij2 = (posx_diff + posy_diff) * ih_j2
+                    if q_ij2 >= 1:
                         continue
 
                     # see equation 32 of the SPLASH paper
                     # now we just use the kernel projection
-                    buff[xi, yi] +=  coeff * itab.interpolate(q2)
+                    buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1068,9 +1068,9 @@ def pixelize_sph_kernel_slice(
 
     # similar method to pixelize_sph_kernel_projection
     cdef np.intp_t xsize, ysize
-    cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
+    cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t q, posx_diff, posy_diff, ih_j
+    cdef np.float64_t q_ij, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j
     cdef int index, i, j
 
@@ -1108,8 +1108,8 @@ def pixelize_sph_kernel_slice(
             h_j = math.sqrt(h_j2)
             ih_j = 1.0/h_j
 
-            w_j = pmass[j] / pdens[j] / hsml[j]**3
-            coeff = w_j * quantity_to_smooth[j]
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
+            prefactor_j *= quantity_to_smooth[j]
 
             # Now we know which pixels to deposit onto for this particle,
             # so loop over them and add this particle's contribution
@@ -1130,12 +1130,12 @@ def pixelize_sph_kernel_slice(
                         continue
 
                     # see equation 4 of the SPLASH paper
-                    q = math.sqrt(posx_diff + posy_diff) * ih_j
-                    if q >= 1:
+                    q_ij = math.sqrt(posx_diff + posy_diff) * ih_j
+                    if q_ij >= 1:
                         continue
 
                     # see equations 6, 9, and 11 of the SPLASH paper
-                    buff[xi, yi] += coeff * kernel_func(q)
+                    buff[xi, yi] += prefactor_j * kernel_func(q_ij)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1210,9 +1210,9 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         bounds, pbar=None, kernel_name="cubic"):
 
     cdef np.intp_t xsize, ysize, zsize
-    cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, w_j, coeff
+    cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, prefactor_j
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
-    cdef np.float64_t q, posx_diff, posy_diff, posz_diff
+    cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff
     cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
     cdef int index, i, j, k
 
@@ -1262,8 +1262,8 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
             h_j2 = h_j*h_j
             ih_j = 1/h_j
 
-            w_j = pmass[j] / pdens[j] / hsml[j]**3
-            coeff = w_j * quantity_to_smooth[j]
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
+            prefactor_j *= quantity_to_smooth[j]
 
             # Now we know which voxels to deposit onto for this particle,
             # so loop over them and add this particle's contribution
@@ -1292,11 +1292,11 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                             continue
 
                         # see equation 4 of the SPLASH paper
-                        q = math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
-                        if q >= 1:
+                        q_ij = math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
+                        if q_ij >= 1:
                             continue
 
-                        buff[xi, yi, zi] += coeff * kernel_func(q)
+                        buff[xi, yi, zi] += prefactor_j * kernel_func(q_ij)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1309,9 +1309,9 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
         offset=0, kernel_name="cubic"):
 
     cdef np.intp_t xsize, ysize, zsize
-    cdef np.float64_t w_j, coeff
+    cdef np.float64_t prefactor_ij, smoothed_quantity_j
     cdef np.int64_t xi, yi, zi, pi
-    cdef np.float64_t q, h_j2, ih_j2
+    cdef np.float64_t q_ij, h_j2, ih_j2
     cdef int count, i, j, k, particle
     cdef np.int64_t[:] tree_id
 
@@ -1326,6 +1326,8 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
         for xi in range(xsize):
             for yi in range(ysize):
                 for zi in range(zsize):
+                    # we set the smoothing length squared of the voxel to the
+                    # distance to its furthest nearest neighbor squared.
                     h_j2 = dists[xi, yi, zi, 0]
                     ih_j2 = 1/h_j2
 
@@ -1337,11 +1339,14 @@ def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
                         else:
                             particle = pids[xi, yi, zi, pi]
 
-                        w_j = pmass[particle] / pdens[particle] / hsml[particle]**3
-                        coeff = w_j * quantity_to_smooth[particle]
-                        q = math.sqrt(dists[xi, yi, zi, pi]*ih_j2)
+                        prefactor_ij = (pmass[particle] / pdens[particle] /
+                                        hsml[particle]**3)
+                        q_ij = math.sqrt(dists[xi, yi, zi, pi]*ih_j2)
+                        smoothed_quantity_j = (prefactor_ij *
+                                               quantity_to_smooth[particle] *
+                                               kernel_func(q_ij))
 
-                        buff[xi, yi, zi] += coeff * kernel_func(q)
+                        buff[xi, yi, zi] += smoothed_quantity_j
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,
