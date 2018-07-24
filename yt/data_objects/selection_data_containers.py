@@ -21,6 +21,8 @@ from yt.data_objects.data_containers import \
     YTSelectionContainer2D, YTSelectionContainer3D, YTSelectionContainer
 from yt.data_objects.static_output import Dataset
 from yt.extern.six import string_types
+from yt.frontends.sph.data_structures import \
+    SPHDataset
 from yt.funcs import ensure_list, iterable, validate_width_tuple, \
     fix_length, fix_axis, validate_3d_array, validate_float, \
     validate_iterable, validate_object, validate_axis, validate_center
