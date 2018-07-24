@@ -230,7 +230,7 @@ Axis-Aligned Data Sources
    p = yt.ProjectionPlot(ds, 'z', 'density', center=[0.5, 0.5, 0.5],
                          weight_field='density', width=(20, 'kpc'))
    p.annotate_quiver('velocity_x', 'velocity_y', factor=16, 
-                     plot_args={"color":"purple})
+                     plot_args={"color": "purple"})
    p.save()
 
 Off-Axis Data Sources

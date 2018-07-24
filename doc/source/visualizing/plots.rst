@@ -1097,7 +1097,7 @@ function of radius. The xlabel is set to "Radius", for all plots, and the ylabel
    plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
                     weight_field=None)
    plot.set_xlabel("Radius")
-   plot.set_ylabel("x-velocity", "velocity in x direction")
+   plot.set_ylabel("velocity_x", "velocity in x direction")
    plot.save()
 
 Adding plot title

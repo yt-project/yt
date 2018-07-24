@@ -1020,7 +1020,9 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         self._final_start_index = self.global_startindex
 
     def _setup_data_source(self, level_state = None):
-        if level_state is None: return
+        if level_state is None:
+            super(YTSmoothedCoveringGrid, self)._setup_data_source()
+            return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
         level_state.data_source = self.ds.region(

@@ -23,6 +23,10 @@ env:
     FLAKE8=flake8
     CODECOV=codecov
     COVERAGE=coverage
+    PANDAS=pandas
+    MOCK=mock
+    NOSETIMER=nose-timer
+    CODECOV=codecov
 
 before_install:
   - |
@@ -40,6 +44,7 @@ before_install:
     echo "[yt]" > $HOME/.config/yt/ytrc
     echo "suppressStreamLogging = True" >> $HOME/.config/yt/ytrc
     cat $HOME/.config/yt/ytrc
+    cp tests/matplotlibrc .
 
 install:
   - |
@@ -50,17 +55,24 @@ install:
     pip install --upgrade wheel
     pip install --upgrade setuptools
     # Install dependencies
-    pip install mock $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE nose nose-timer
+    pip install $MOCK $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS $NOSE $NOSETIMER
     # HACK, FIXME BEFORE MERGING
     pip install https://github.com/cykdtree/cykdtree/archive/master.zip
     # install yt
-    pip install -e .
+    if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
+      pip install -e .
+    fi
 
 jobs:
   include:
     - stage: lint
-      python: 3.4
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON=
+      python: 3.6
+      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS=
+      script: flake8 yt/
+
+    - stage: lint
+      python: 2.7
+      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS=
       script: flake8 yt/
 
     - stage: tests
@@ -70,11 +82,6 @@ jobs:
 
     - stage: tests
       python: 2.7
-      env: FLAKE8=
-      script: coverage run $(which nosetests) -c nose.cfg yt
-
-    - stage: tests
-      python: 3.4
       env: FLAKE8=
       script: coverage run $(which nosetests) -c nose.cfg yt
 
@@ -101,4 +108,7 @@ jobs:
       script: coverage run $(which nosetests) -c nose.cfg yt
 
 after_success:
-  - codecov
+  - |
+    if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
+      codecov
+    fi

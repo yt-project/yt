@@ -18,6 +18,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.funcs import mylog, get_pbar
 from yt.units.yt_array import array_like_field
 from yt.config import ytcfg
+from yt.utilities.exceptions import YTIllDefinedParticleData
 from collections import OrderedDict
 
 import numpy as np
@@ -120,7 +121,13 @@ class ParticleTrajectories(object):
         output_field.fill(np.nan)
         for field in ("particle_position_%s" % ax for ax in "xyz"):
             for i, (fn, (time, indices, pfields)) in enumerate(sorted(my_storage.items())):
-                output_field[indices, i] = pfields[field]
+                try:
+                    # This will fail if particles ids are
+                    # duplicate. This is due to the fact that the rhs
+                    # would then have a different shape as the lhs
+                    output_field[indices, i] = pfields[field]
+                except ValueError:
+                    raise YTIllDefinedParticleData("This dataset contains duplicate particle indices!")
             self.field_data[field] = array_like_field(
                 dd_first, output_field.copy(), fds[field])
             self.particle_fields.append(field)
