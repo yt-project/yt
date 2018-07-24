@@ -17,6 +17,8 @@ Gizmo frontend tests
 from collections import OrderedDict
 
 import yt
+from yt.testing import \
+    requires_file
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     sph_answer
@@ -53,7 +55,7 @@ def test_gizmo_64():
         yield test
 
 
-@requires_ds(gmhd, big_data=True)
+@requires_file(gmhd)
 def test_gizmo_mhd():
     """
     Magnetic fields should be loaded correctly when they are present.
@@ -75,7 +77,7 @@ def test_gizmo_mhd():
         assert f.shape == (409013,)
 
 
-@requires_ds(gmhd, big_data=True)
+@requires_file(gmhd)
 def test_gas_particle_fields():
     """
     Test fields set up in GizmoFieldInfo.setup_gas_particle_fields.
@@ -108,7 +110,7 @@ def test_gas_particle_fields():
         assert (ptype, field) in ds.derived_field_list
 
 
-@requires_ds(gmhd, big_data=True)
+@requires_file(gmhd)
 def test_star_particle_fields():
     """
     Test fields set up in GizmoFieldInfo.setup_star_particle_fields.
