@@ -48,7 +48,7 @@ gmhd_bbox = [[-400, 400]] * 3
 
 @requires_ds(g64, big_data=True)
 def test_gizmo_64():
-    ds = data_dir_load(g64)
+    ds = yt.load(g64)
     assert isinstance(ds, GizmoDataset)
     for test in sph_answer(ds, 'snap_N64L16_135', 524288, fields):
         test_gizmo_64.__name__ = test.description
