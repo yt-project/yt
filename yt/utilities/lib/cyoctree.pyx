@@ -1,7 +1,6 @@
 cimport numpy as np
 import numpy as np
 import struct
-
 cimport cython
 from libcpp.vector cimport vector
 
@@ -14,6 +13,7 @@ cdef struct Node:
     int parent
     int children
     int leaf
+    int node_id
 
 # this is the underlying c structure for the octree, it is very basic in terms
 # of the values that it stores
@@ -22,13 +22,9 @@ cdef struct Octree:
     double left_edge[3]
     double right_edge[3]
     int n_ref
-    int num_nodes
     Node * root
     int * idx
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef class PyOctree:
     cdef Octree c_tree
     cdef int[:] _idx
@@ -52,18 +48,15 @@ cdef class PyOctree:
         with nogil:
             process_node(self.c_tree, self.c_tree.root, &(input_pos[0, 0]))
 
-        # shrink to fit
-        #self.c_tree.nodes.shrink_to_fit()
-
         # setup the final parameters
         self.n_ref = n_ref
         self.num_octs = self.c_tree.nodes.size()
         self.num_particles = input_pos.shape[0]
-        #self.c_tree.nodes.shrink_to_fit()
 
-    def setup_ctree(self, double[:, ::1] &input_pos, int n_ref):
-        self.c_tree.num_nodes = 1
-
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef setup_ctree(self, double[:, ::1] &input_pos, int n_ref):
         self.n_ref = n_ref
         self.c_tree.n_ref = n_ref
 
@@ -72,7 +65,10 @@ cdef class PyOctree:
 
         reserve(&self.c_tree.nodes, 10000000)
 
-    def setup_bounds(self, double[:, ::1] &input_pos, left_edge=None,
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef setup_bounds(self, double[:, ::1] &input_pos, left_edge=None,
                      right_edge=None):
         if left_edge is not None:
             for i in range(3):
@@ -88,13 +84,17 @@ cdef class PyOctree:
             for i in range(3):
                 self.c_tree.right_edge[i] = np.amax(input_pos[:,i])
 
-    def setup_root(self, double[:, ::1] &input_pos):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef setup_root(self, double[:, ::1] &input_pos):
         cdef Node root
         root.left_edge = self.c_tree.left_edge
         root.right_edge = self.c_tree.right_edge
         root.parent = -1
         root.start = 0
         root.end = input_pos.shape[0]*3
+        root.node_id = 0
 
         # store the root in an array and make a convenient pointer
         self.c_tree.nodes.push_back(root)
@@ -103,7 +103,6 @@ cdef class PyOctree:
     def reset(self):
         # reset the c tree
         self.c_tree.nodes.clear()
-        self.c_tree.num_nodes = 0
         for i in range(3):
             self.c_tree.left_edge[i] = 0.0
             self.c_tree.right_edge[i] = 0.0
@@ -206,29 +205,32 @@ cdef int reserve(vector[Node] * vec, int amount) except +MemoryError:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline int generate_children(Octree &tree, Node * node, int &parent_id) nogil:
+cdef inline int generate_children(Octree &tree, Node * node) nogil:
     cdef int i, j, z, k
     cdef double dx, dy, dz
-    cdef Node * child = &(tree.nodes[parent_id + 1])
+    cdef Node temp
+
+    node.children = tree.nodes.size()
+
+    temp.parent = node.node_id
 
     dx = (node.right_edge[0] - node.left_edge[0]) / 2
     dy = (node.right_edge[1] - node.left_edge[1]) / 2
     dz = (node.right_edge[2] - node.left_edge[2]) / 2
 
-    z = 0
+    z = node.children
     for i in range(2):
         for j in range(2):
             for k in range(2):
-                tree.nodes.push_back(tree.nodes[parent_id])
-                child[z].left_edge[0] = node.left_edge[0] + i*dx
-                child[z].left_edge[1] = node.left_edge[1] + j*dy
-                child[z].left_edge[2] = node.left_edge[2] + k*dz
-                child[z].right_edge[0] = node.left_edge[0] + (i+1)*dx
-                child[z].right_edge[1] = node.left_edge[1] + (j+1)*dy
-                child[z].right_edge[2] = node.left_edge[2] + (k+1)*dz
-                child[z].parent  = parent_id
-                tree.num_nodes += 1
-                z += 1
+                temp.left_edge[0] = node.left_edge[0] + i*dx
+                temp.left_edge[1] = node.left_edge[1] + j*dy
+                temp.left_edge[2] = node.left_edge[2] + k*dz
+                temp.right_edge[0] = node.left_edge[0] + (i+1)*dx
+                temp.right_edge[1] = node.left_edge[1] + (j+1)*dy
+                temp.right_edge[2] = node.left_edge[2] + (k+1)*dz
+                temp.node_id = z
+                tree.nodes.push_back(temp)
+                z+=1
     return 0
 
 @cython.boundscheck(False)
@@ -237,15 +239,17 @@ cdef inline int generate_children(Octree &tree, Node * node, int &parent_id) nog
 cdef int process_node(Octree &tree, Node * node, double * input_pos) nogil:
     # skip if not enough children
     if(node.end - node.start <= 3*tree.n_ref):
+        node.leaf = 1
         return 0
 
-    cdef int parent_id = tree.num_nodes - 1, i
+    cdef int i
     cdef int splits[9]
     cdef double temp_value
 
     # make the children placeholders
-    generate_children(tree, node, parent_id)
+    generate_children(tree, node)
 
+    # TODO: refactor this section to use an over-refine-factor
     # set up the split integers
     splits[0] = node.start
     splits[8] = node.end
@@ -270,15 +274,13 @@ cdef int process_node(Octree &tree, Node * node, double * input_pos) nogil:
                                    temp_value,
                                    splits[2*i], splits[2*i + 2])
 
-    # now just need to tell the children which particles they store
-    cdef Node * child = &(tree.nodes[parent_id + 1])
-
+    # now just need to tell the children which particles they store and repeat
+    # the process
+    cdef Node * child = &(tree.nodes[node.children])
     for i in range(0, 8, 1):
         child[i].start = splits[i]
         child[i].end =  splits[i+1]
-
-    for i in range(0, 8, 1):
-        process_node(tree, &tree.nodes[parent_id + 1 + i], input_pos)
+        process_node(tree, &child[i], input_pos)
 
     return 0
 
