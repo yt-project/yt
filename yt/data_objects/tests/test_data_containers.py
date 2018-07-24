@@ -11,7 +11,7 @@ from numpy.testing import assert_array_equal
 from yt.data_objects.data_containers import YTDataContainer
 from yt.testing import assert_equal, fake_random_ds, fake_amr_ds,\
     fake_particle_ds, requires_module
-from yt.utilities.exceptions import YTFieldNotFound, YTException
+from yt.utilities.exceptions import YTFieldNotFound
 
 class TestDataContainers(unittest.TestCase):
     @classmethod
