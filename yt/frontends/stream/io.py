@@ -160,9 +160,11 @@ class StreamParticleIOHandler(BaseIOHandler):
                     data = f[ptype, field][mask]
                     yield (ptype, field), data
 
-    def _yield_coordinates(self, data_file):
+    def _yield_coordinates(self, data_file, needed_ptype=None):
         # self.fields[g.id][fname] is the pattern here
         for ptype in self.ds.particle_types_raw:
+            if needed_ptype is not None and needed_ptype is not ptype:
+                continue
             try:
                 pos = np.column_stack(self.fields[data_file.filename][
                     (ptype, "particle_position_%s" % ax)] for ax in 'xyz')
