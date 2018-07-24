@@ -2165,5 +2165,7 @@ class YTOctree(YTSelectionContainer3D):
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0: return
 
+        print(fields_to_get)
+
         for field in fields_to_get:
-            print(self.ds.field_info[field])
+            self[field] = self._data_source[field]

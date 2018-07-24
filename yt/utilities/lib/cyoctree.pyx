@@ -59,7 +59,7 @@ cdef class PyOctree:
         self.n_ref = n_ref
         self.num_octs = self.c_tree.nodes.size()
         self.num_particles = input_pos.shape[0]
-        self.c_tree.nodes.shrink_to_fit()
+        #self.c_tree.nodes.shrink_to_fit()
 
     def setup_ctree(self, double[:, ::1] &input_pos, int n_ref):
         self.c_tree.num_nodes = 1
