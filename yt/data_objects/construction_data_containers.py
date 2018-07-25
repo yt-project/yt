@@ -2139,12 +2139,12 @@ class YTOctree(YTSelectionContainer3D):
         if fname is not None:
             if os.path.exists(fname):
                 mylog.info('Loading octree from %s' % os.path.basename(fname))
-                print(fname)
-                #octree = PyOctree.load(fname)
+                octree = PyOctree()
+                octree.load(fname)
                 #if octree.hash != self.ds._file_hash:
                 #    mylog.info('Detected hash mismatch, regenerating Octree')
                 #else:
-                #self._octree = octree
+                self._octree = octree
                 return
 
         positions = self._data_source[('PartType0', 'Coordinates')]
