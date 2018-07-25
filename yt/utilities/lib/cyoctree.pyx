@@ -22,6 +22,9 @@ cdef struct Octree:
     Node * root
     int * idx
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef class PyOctree:
     cdef Octree c_tree
     cdef int[:] _idx
@@ -50,9 +53,6 @@ cdef class PyOctree:
         self.num_octs = self.c_tree.nodes.size()
         self.num_particles = input_pos.shape[0]
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef setup_ctree(self, double[:, ::1] &input_pos, int n_ref):
         self.c_tree.n_ref = n_ref
 
@@ -61,9 +61,6 @@ cdef class PyOctree:
 
         reserve(&self.c_tree.nodes, 10000000)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef setup_bounds(self, double[:, ::1] &input_pos, left_edge=None,
                      right_edge=None):
         if left_edge is not None:
@@ -80,9 +77,6 @@ cdef class PyOctree:
             for i in range(3):
                 self.c_tree.right_edge[i] = np.amax(input_pos[:,i])
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef setup_root(self, double[:, ::1] &input_pos):
         cdef Node root
         root.left_edge = self.c_tree.left_edge
@@ -91,12 +85,13 @@ cdef class PyOctree:
         root.start = 0
         root.end = input_pos.shape[0]*3
         root.node_id = 0
+        root.leaf = 0
 
         # store the root in an array and make a convenient pointer
         self.c_tree.nodes.push_back(root)
         self.c_tree.root = &(self.c_tree.nodes[0])
 
-    def reset(self):
+    cdef reset(self):
         # reset the c tree
         self.c_tree.nodes.clear()
         for i in range(3):
@@ -142,6 +137,20 @@ cdef class PyOctree:
     @num_particles.setter
     def num_particles(self, val):
         self._num_particles = val
+
+    @property
+    def leaf_positions(self):
+        cdef int i, j
+        positions = []
+        for i in range(self.c_tree.nodes.size()):
+            if self.c_tree.nodes[i].leaf == 1:
+                continue
+            else:
+                for j in range(3):
+                    positions.append((self.c_tree.nodes[i].left_edge[j] +
+                                      self.c_tree.nodes[i].right_edge[j]) / 2)
+        positions = np.asarray(positions)
+        return positions.reshape((-1,3))
 
     # TODO: this code is much slower than I would like, this is likely due to
     # the use of struct -> plan to replace this
@@ -209,6 +218,7 @@ cdef inline int generate_children(Octree &tree, Node * node) nogil:
     node.children = tree.nodes.size()
 
     temp.parent = node.node_id
+    temp.leaf = 0
 
     dx = (node.right_edge[0] - node.left_edge[0]) / 2
     dy = (node.right_edge[1] - node.left_edge[1]) / 2
