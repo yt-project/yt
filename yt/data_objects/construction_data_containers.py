@@ -66,7 +66,9 @@ from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
 import yt.extern.six as six
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_sph_kernel_arbitrary_grid, normalization_3d_utility
+    pixelize_sph_kernel_arbitrary_grid, \
+    pixelize_sph_gather, \
+    normalization_3d_utility
 from yt.extern.tqdm import tqdm
 
 class YTStreamline(YTSelectionContainer1D):
@@ -923,44 +925,58 @@ class YTArbitraryGrid(YTCoveringGrid):
         if len(fields) == 0: return
 
         ptype = self.ds._sph_ptype
-        for field in fields:
-            dest = np.zeros(self.ActiveDimensions, dtype="float64")
+        smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
 
-            normalize = getattr(self.ds, 'use_sph_normalization', True)
-            if normalize:
-                dest_den = np.zeros(self.ActiveDimensions, dtype="float64")
+        bounds = np.empty(6, dtype=float)
+        bounds[0] = self.left_edge[0].in_base("code")
+        bounds[2] = self.left_edge[1].in_base("code")
+        bounds[4] = self.left_edge[2].in_base("code")
+        bounds[1] = self.right_edge[0].in_base("code")
+        bounds[3] = self.right_edge[1].in_base("code")
+        bounds[5] = self.right_edge[2].in_base("code")
 
-            bounds = np.empty(6, dtype=float)
-            bounds[0] = self.left_edge[0].in_base("code")
-            bounds[2] = self.left_edge[1].in_base("code")
-            bounds[4] = self.left_edge[2].in_base("code")
-            bounds[1] = self.right_edge[0].in_base("code")
-            bounds[3] = self.right_edge[1].in_base("code")
-            bounds[5] = self.right_edge[2].in_base("code")
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
 
-            pbar = tqdm(desc="Interpolating SPH field {}".format(field))
-            for chunk in self._data_source.chunks([field],"io"):
-                px = chunk[(ptype,'particle_position_x')].in_base("code")
-                py = chunk[(ptype,'particle_position_y')].in_base("code")
-                pz = chunk[(ptype,'particle_position_z')].in_base("code")
-                hsml = chunk[(ptype,'smoothing_length')].in_base("code")
-                mass = chunk[(ptype,'particle_mass')].in_base("code")
-                dens = chunk[(ptype,'density')].in_base("code")
-                field_quantity = chunk[field]
+        if(smoothing_style == "scatter"):
+            for field in fields:
+                dest = np.zeros(self.ActiveDimensions, dtype="float64")
 
-                pixelize_sph_kernel_arbitrary_grid(dest, px, py, pz, hsml,
-                                                   mass, dens, field_quantity,
-                                                   bounds, pbar)
                 if normalize:
-                    pixelize_sph_kernel_arbitrary_grid(dest_den, px, py, pz,
+                    dest_den = np.zeros(self.ActiveDimensions, dtype="float64")
+
+                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+                for chunk in self._data_source.chunks([field],"io"):
+                    px = chunk[(ptype,'particle_position_x')].in_base("code").d
+                    py = chunk[(ptype,'particle_position_y')].in_base("code").d
+                    pz = chunk[(ptype,'particle_position_z')].in_base("code").d
+                    hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
+                    mass = chunk[(ptype,'particle_mass')].in_base("code").d
+                    dens = chunk[(ptype,'density')].in_base("code").d
+                    field_quantity = chunk[field].d
+
+                    pixelize_sph_kernel_arbitrary_grid(dest, px, py, pz, hsml,
+                                    mass, dens, field_quantity, bounds, pbar)
+                    if normalize:
+                        pixelize_sph_kernel_arbitrary_grid(dest_den, px, py, pz,
                                     hsml, mass, dens, np.ones(hsml.shape[0]),
                                     bounds)
 
-            if normalize:
-                normalization_3d_utility(dest, dest_den)
+                if normalize:
+                    normalization_3d_utility(dest, dest_den)
 
-            self[field] = self.ds.arr(dest, field_quantity.units)
-            pbar.close()
+                fi = self.ds._get_field_info(field)
+                self[field] = self.ds.arr(dest, fi.units)
+                pbar.close()
+
+        if(smoothing_style == "gather"):
+            for field in fields:
+                buff = np.zeros(self.ActiveDimensions, dtype="float64")
+
+                pixelize_sph_gather(buff, bounds, self.ds, field,
+                                    ptype, normalize=normalize)
+
+                fi = self.ds._get_field_info(field)
+                self[field] = self.ds.arr(buff, fi.units)
 
 class LevelState(object):
     current_dx = None
