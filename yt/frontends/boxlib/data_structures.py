@@ -493,6 +493,8 @@ class BoxlibHierarchy(GridIndex):
         mylog.debug("Done creating grid objects")
 
     def _reconstruct_parent_child(self):
+        if (self.max_level == 0):
+            return
         mask = np.empty(len(self.grids), dtype='int32')
         mylog.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
@@ -1556,15 +1558,12 @@ class WarpXDataset(BoxlibDataset):
             periodicity += [True]  # pad to 3D
         self.periodicity = ensure_tuple(periodicity)
 
-        
-
-        species_list = []
-        species_dirs = glob.glob(self.output_dir + "/particle*")
-        for species in species_dirs:
-            species_list.append(species[len(self.output_dir)+1:])
-        self.particle_types = tuple(species_list)
-        self.particle_types_raw = self.particle_types
-
+        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = [cpt.split("/")[-2] for cpt in particle_types]
+        if len(particle_types) > 0:
+            self.parameters["particles"] = 1
+            self.particle_types = tuple(particle_types)
+            self.particle_types_raw = self.particle_types
 
     def _set_code_unit_attributes(self):
         setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))

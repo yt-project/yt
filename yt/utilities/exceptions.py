@@ -696,6 +696,9 @@ class YTIllDefinedAMR(YTException):
         ).format(self.level, self.axis)
         return msg
 
+class YTIllDefinedParticleData(YTException):
+    pass
+
 class YTIllDefinedAMRData(YTException):
     pass
 

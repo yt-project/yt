@@ -2471,20 +2471,15 @@ def points_in_cells(
 
     n_p = px.size
     n_c = cx.size
-    mask = np.ones(n_p, dtype="bool")
+    mask = np.zeros(n_p, dtype="bool")
 
     for p in range(n_p):
         for c in range(n_c):
-            if fabs(px[p] - cx[c]) > 0.5 * dx[c]:
-                mask[p] = False
-                continue
-            if fabs(py[p] - cy[c]) > 0.5 * dy[c]:
-                mask[p] = False
-                continue
-            if fabs(pz[p] - cz[c]) > 0.5 * dz[c]:
-                mask[p] = False
-                continue
-            if mask[p]: break
+            if (fabs(px[p] - cx[c]) <= 0.5 * dx[c] and
+                fabs(py[p] - cy[c]) <= 0.5 * dy[c] and
+                fabs(pz[p] - cz[c]) <= 0.5 * dz[c]):
+                mask[p] = True
+                break
 
     return mask
 

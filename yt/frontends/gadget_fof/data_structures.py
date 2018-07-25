@@ -242,7 +242,7 @@ class GadgetFOFDataset(ParticleDataset):
             if self.cosmological_simulation == 0:
                 velocity_unit = (1e5, "cm/s")
             else:
-                velocity_unit = (1e5, "cmcm/s")
+                velocity_unit = (1e5, "cm/s * sqrt(a)")
         velocity_unit = _fix_unit_ordering(velocity_unit)
         setdefaultattr(self, 'velocity_unit',
                        self.quan(velocity_unit[0], velocity_unit[1]))
@@ -267,7 +267,8 @@ class GadgetFOFDataset(ParticleDataset):
         elif "UnitTime_in_s" in unit_base:
             time_unit = (unit_base["UnitTime_in_s"], "s")
         else:
-            time_unit = (1., "s")        
+            tu = (self.length_unit / self.velocity_unit).to("yr/h")
+            time_unit = (tu.d, tu.units)
         setdefaultattr(self, 'time_unit', self.quan(time_unit[0], time_unit[1]))
 
     def __repr__(self):
