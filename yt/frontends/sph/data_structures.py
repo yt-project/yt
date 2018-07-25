@@ -26,7 +26,10 @@ from yt.geometry.particle_geometry_handler import \
 
 class SPHDataset(ParticleDataset):
     default_kernel_name = "cubic"
+    _sph_smoothing_styles = ["scatter", "gather"]
+    _sph_smoothing_style = "scatter"
     _num_neighbors = 32
+    _use_sph_normalization = True
 
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
@@ -41,6 +44,39 @@ class SPHDataset(ParticleDataset):
             filename, dataset_type=dataset_type, file_style=file_style,
             units_override=units_override, unit_system=unit_system,
             index_order=index_order, index_filename=index_filename)
+
+    @property
+    def num_neighbors(self):
+        return self._num_neighbors
+
+    @num_neighbors.setter
+    def num_neighbors(self, value):
+        if value < 0:
+            raise ValueError("Negative value not allowed: %s" % value)
+        self._num_neighbors = value
+
+    @property
+    def sph_smoothing_style(self):
+        return self._sph_smoothing_style
+
+    @sph_smoothing_style.setter
+    def sph_smoothing_style(self, value):
+        if value not in self._sph_smoothing_styles:
+            raise ValueError("Smoothing style not implemented: %s, please "
+                             "select one of the following: " % value,
+                             self._sph_smoothing_styles)
+
+        self._sph_smoothing_style = value
+
+    @property
+    def use_sph_normalization(self):
+        return self._use_sph_normalization
+
+    @use_sph_normalization.setter
+    def use_sph_normalization(self, value):
+        if value is not True and value is not False:
+            raise ValueError("SPH normalization needs to be True or False!")
+        self._use_sph_normalization = value
 
     def add_smoothed_particle_field(self, smooth_field,
                                     method="volume_weighted", nneighbors=64,
@@ -59,7 +95,7 @@ class SPHDataset(ParticleDataset):
         method : string, default 'volume_weighted'
            The particle smoothing method to use. Can only be 'volume_weighted'
            for now.
-        nneighbors : int, default 64
+        neighbors : int, default 64
             The number of neighbors to examine during the process.
         kernel_name : string or None, default None
             This is the name of the smoothing kernel to use. Current supported
@@ -93,19 +129,20 @@ class SPHParticleIndex(ParticleIndex):
 
     def _generate_kdtree(self, fname):
         from cykdtree import PyKDTree
-        if os.path.exists(fname):
-            mylog.info('Loading KDTree from %s' % os.path.basename(fname))
-            kdtree = PyKDTree.from_file(fname)
-            if kdtree.data_version != self.ds._file_hash:
-                mylog.info('Detected hash mismatch, regenerating KDTree')
-            else:
-                self._kdtree = kdtree
-                return
+        if fname is not None:
+            if os.path.exists(fname):
+                mylog.info('Loading KDTree from %s' % os.path.basename(fname))
+                kdtree = PyKDTree.from_file(fname)
+                if kdtree.data_version != self.ds._file_hash:
+                    mylog.info('Detected hash mismatch, regenerating KDTree')
+                else:
+                    self._kdtree = kdtree
+                    return
         positions = []
         for data_file in self.data_files:
-            for _, ppos in self.io._yield_coordinates(
+                for _, ppos in self.io._yield_coordinates(
                     data_file, needed_ptype=self.ds._sph_ptype):
-                positions.append(ppos)
+                    positions.append(ppos)
         if positions == []:
             self._kdtree = None
             return
@@ -116,7 +153,7 @@ class SPHParticleIndex(ParticleIndex):
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             periodic=np.array(self.ds.periodicity),
-            leafsize=2*int(self.ds._num_neighbors),
+            leafsize=2*int(self.ds.num_neighbors),
             data_version=self.ds._file_hash
         )
         if fname is not None:

@@ -68,6 +68,7 @@ yt/utilities/lib/primitives.c
 yt/utilities/lib/origami.c
 yt/utilities/lib/particle_mesh_operations.c
 yt/utilities/lib/pixelization_routines.c
+yt/utilities/lib/pixelization_routines.cpp
 yt/utilities/lib/png_writer.c
 yt/utilities/lib/points_in_volume.c
 yt/utilities/lib/quad_tree.c

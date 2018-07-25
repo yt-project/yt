@@ -68,30 +68,60 @@ lifting in these functions is undertaken by cython functions.
 
 It is now possible to generate slice plots, projection plots and arbitrary grids
 of smoothed quanitities using these operations. The following code demonstrates
-how this could be achieved.
+how this could be achieved. The following would use the scatter method.
 
-```python
+.. code-block:: python
 
-import yt
+    import yt
 
-ds = yt.load('snapshot_033/snap_033.0.hdf5')
+    ds = yt.load('snapshot_033/snap_033.0.hdf5')
 
-plot = yt.SlicePlot(ds, 2, ('gas', 'density'))
+    plot = yt.SlicePlot(ds, 2, ('gas', 'density'))
+    plot.save()
 
-plot.set_zlim(('gas', 'density'), 1e-32, 1e-27)
+    plot = yt.ProjectionPlot(ds, 2, ('gas', 'density'))
+    plot.save()
 
-plot.save()
+    arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [5, 5, 5],
+                                       dims=[10, 10, 10])
+    density = arbitrary_grid[('gas', 'density')]
 
-plot = yt.ProjectionPlot(ds, 2, ('gas', 'density'))
+The default behaviour for sPH interpolation is that the values are normalized
+inline with Eq. 9 in `SPLASH, Price (2009) <https://arxiv.org/pdf/0709.0832.pdf>`_.
+This can be disabled with `ds.use_sph_normalization = False`.
 
-plot.set_zlim(('gas', 'density'), 8e-6, 8e-3)
+This can be modified to use the gather approach by changing a global setting for
+the dataset. The previous example could be modified to include the following
+settings on the datset `ds.sph_smoothing_style = "gather"`.
 
-plot.save()
+The gather approach requires finding nearest neighbors using the KDTree. The
+first call will generate a KDTree for the entire dataset which will be stored in
+a sidecar file. This will be loaded whenever neccesary.
 
-arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [5, 5, 5],dims=[10, 10, 10])
-density = arbitrary_grid[('gas', 'density')]
-print(density)
-```
+Off-Axis Projection for SPH Data
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The current `OffAxisProjectionPlot` class will now support SPH projection plots.
+
+The following is a code example:
+
+.. code-block:: python
+
+    import yt
+
+    ds = yt.load('Data/GadgetDiskGalaxy/snapshot_200.hdf5')
+
+    smoothing_field = ('gas', 'density')
+
+    _, center = ds.find_max(smoothing_field)
+
+    sp = ds.sphere(center, (10, 'kpc'))
+
+    normal_vector = sp.quantities.angular_momentum_vector()
+
+    prj = yt.OffAxisProjectionPlot(ds, normal_vector, smoothing_field, center, (20, 'kpc'))
+
+    prj.save()
 
 API Changes
 -----------

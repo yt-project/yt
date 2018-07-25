@@ -29,7 +29,9 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_cartesian_nodal, \
     pixelize_sph_kernel_slice, \
     pixelize_sph_kernel_projection, \
-    pixelize_element_mesh_line
+    pixelize_element_mesh_line, \
+    pixelize_sph_gather, \
+    normalization_2d_utility
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
 
@@ -327,17 +329,79 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             bnds)
                     buff /= weight_buff
             elif isinstance(data_source, YTSlice):
-                buff = np.zeros(size, dtype='float64')
-                for chunk in data_source.chunks([], 'io'):
-                    pixelize_sph_kernel_slice(
-                        buff,
-                        chunk[ptype, px_name],
-                        chunk[ptype, py_name],
-                        chunk[ptype, 'smoothing_length'],
-                        chunk[ptype, 'particle_mass'],
-                        chunk[ptype, 'density'],
-                        chunk[field].in_units(ounits),
-                        bounds)
+                smoothing_style = getattr(self.ds, 'sph_smoothing_style',
+                                          'scatter')
+                normalize = getattr(self.ds, 'use_sph_normalization', True)
+
+                if smoothing_style == 'scatter':
+                    buff = np.zeros(size, dtype='float64')
+
+                    if normalize:
+                        buff_den = np.zeros(size, dtype='float64')
+
+                    for chunk in data_source.chunks([], 'io'):
+                        pixelize_sph_kernel_slice(
+                            buff,
+                            chunk[ptype, px_name],
+                            chunk[ptype, py_name],
+                            chunk[ptype, 'smoothing_length'],
+                            chunk[ptype, 'particle_mass'],
+                            chunk[ptype, 'density'],
+                            chunk[field].in_units(ounits),
+                            bounds)
+                        if normalize:
+                            pixelize_sph_kernel_slice(
+                                buff_den,
+                                chunk[ptype, px_name],
+                                chunk[ptype, py_name],
+                                chunk[ptype, 'smoothing_length'],
+                                chunk[ptype, 'particle_mass'],
+                                chunk[ptype, 'density'],
+                                np.ones(chunk[ptype, 'density'].shape[0]),
+                                bounds)
+
+                    if normalize:
+                        normalization_2d_utility(buff, buff_den)
+
+                if smoothing_style == "gather":
+                    # Here we find out which axis are going to be the "x" and
+                    # "y" axis for the actual visualisation and then we set the
+                    # buffer size and bounds to match. The z axis of the plot
+                    # is the axis we slice over and the buffer will be of size 1
+                    # in that dimension
+                    x, y, z = self.x_axis[dim], self.y_axis[dim], dim
+
+                    buff_size = np.zeros(3, dtype="int64")
+                    buff_size[x] = size[0]
+                    buff_size[y] = size[1]
+                    buff_size[z] = 1
+
+                    buff_bounds = np.zeros(6, dtype="float64")
+                    buff_bounds[2*x:2*x+2] = bounds[0:2]
+                    buff_bounds[2*y:2*y+2] = bounds[2:4]
+                    buff_bounds[2*z] = data_source.coord
+                    buff_bounds[2*z+1] = data_source.coord
+
+                    # then we do the interpolation
+                    buff_temp = np.zeros(buff_size, dtype="float64")
+                    pixelize_sph_gather(buff_temp, buff_bounds, self.ds,
+                                        field, ptype, normalize=normalize)
+
+                    # we swap the axes back so the axis which was sliced over
+                    # is the last axis, as this is the "z" axis of the plots.
+                    if z != 2:
+                        buff_temp = buff_temp.swapaxes(2, z)
+                        if x == 2:
+                            x = z
+                        else:
+                            y = z
+
+                    buff = buff_temp[:,:,0]
+
+                    # Then we just transpose if the buffer x and y are
+                    # different than the plot x and y
+                    if y < x:
+                        buff = buff.transpose()
             else:
                 raise NotImplementedError(
                     "A pixelization routine has not been implemented for %s "
@@ -350,7 +414,6 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                data_source[field],
                                bounds, int(antialias),
                                period, int(periodic))
-        
         return buff
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):

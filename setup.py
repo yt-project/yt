@@ -145,6 +145,7 @@ cython_extensions = [
               include_dirs=["yt/utilities/lib/"],
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
+              language='c++',
               libraries=std_libs,
               depends=["yt/utilities/lib/pixelization_constants.h"]),
     Extension("yt.utilities.lib.cyoctree",
