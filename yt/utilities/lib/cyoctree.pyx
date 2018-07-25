@@ -4,10 +4,9 @@ import struct
 cimport cython
 from libcpp.vector cimport vector
 
-# this is the underlying c structure of a node
 cdef struct Node:
     double left_edge[3]
-    double right_edge[3]
+    double right_edge[3]  # may be more efficient to store the width instead
     int start
     int end
     int parent
@@ -15,8 +14,6 @@ cdef struct Node:
     int leaf
     int node_id
 
-# this is the underlying c structure for the octree, it is very basic in terms
-# of the values that it stores
 cdef struct Octree:
     vector[Node] nodes
     double left_edge[3]
@@ -57,7 +54,6 @@ cdef class PyOctree:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef setup_ctree(self, double[:, ::1] &input_pos, int n_ref):
-        self.n_ref = n_ref
         self.c_tree.n_ref = n_ref
 
         self.idx = np.arange(0, input_pos.shape[0], dtype=np.int32)

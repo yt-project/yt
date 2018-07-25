@@ -2133,28 +2133,59 @@ class YTOctree(YTSelectionContainer3D):
 
         self._use_pbar = use_pbar
         self._setup_data_source()
-        self._setup_octree()
+        self.octree
 
-    def _setup_octree(self):
-        # NOTE: there should be checks here to see if it is loaded, and if not,
-        # then load it from memory
+    def _generate_octree(self, fname = None):
+        if fname is not None:
+            if os.path.exists(fname):
+                mylog.info('Loading octree from %s' % os.path.basename(fname))
+                print(fname)
+                #octree = PyOctree.load(fname)
+                #if octree.hash != self.ds._file_hash:
+                #    mylog.info('Detected hash mismatch, regenerating Octree')
+                #else:
+                #self._octree = octree
+                return
 
-        # loop through and load positions
-        pos = []
-        for chunk in self._data_source.chunks([],"io"):
-            for ptype in self.ptypes:
-                pos.append(chunk[(ptype, 'particle_position')].d)
-        pos = np.concatenate(pos)
+        positions = self._data_source[('PartType0', 'Coordinates')]
+        if positions == []:
+            self._octree = None
+            return
 
-        # build the octree
-        self.octree = PyOctree(pos, self.left_edge, self.right_edge,
-                               self.n_ref)
-        only_on_root(mylog.info, "Allocating for %i octs",
-                     self.octree.num_octs, global_rootonly = True)
+        mylog.info('Allocating Octree for %s particles' % positions.shape[0])
+        self._octree = PyOctree(
+            positions.astype('float64'),
+            left_edge=self.ds.domain_left_edge,
+            right_edge=self.ds.domain_right_edge,
+            n_ref=2*int(self.ds.num_neighbors),
+            #data_version=self.ds._file_hash
+        )
 
-        # if does not exist then write to memory
+        if fname is not None:
+            self._octree.save(fname)
+
+    @property
+    def octree(self):
+        if hasattr(self, '_octree'):
+            return self._octree
+
+        ds = self.ds
+
+        if getattr(ds, 'octree_filename', None) is None:
+            if os.path.exists(ds.parameter_filename):
+                fname = ds.parameter_filename + ".octree"
+            else:
+                # we don't want to write to disk for in-memory data
+                fname = None
+        else:
+            fname = ds.octree_filename
+
+        self._generate_octree(fname)
+
+        return self._octree
 
     def _sanitize_ptypes(self, ptypes):
+        # this needs correcting slightly
         if ptypes is None:
             return ['all']
 
@@ -2184,15 +2215,13 @@ class YTOctree(YTSelectionContainer3D):
         return self.ds.arr(edge, edge_units)
 
     def get_data(self, fields = None):
-        # here we need to check if we already have the field, if not then we
-        # need to interpolate the fields onto the octree
         if fields is None: return
-        fields = self._determine_fields(ensure_list(fields))
-        fields_to_get = [f for f in fields if f not in self.field_data]
-        fields_to_get = self._identify_dependencies(fields_to_get)
-        if len(fields_to_get) == 0: return
 
-        print(fields_to_get)
+        if isinstance(fields, list) and len(fields) > 1:
+            for field in fields: self.get_data(field)
+            return
+        elif isinstance(fields, list):
+            fields = fields[0]
 
-        for field in fields_to_get:
-            self[field] = self._data_source[field]
+        print(fields)
+
