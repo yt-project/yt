@@ -299,3 +299,29 @@ def test_profile_sph_data():
     # test we create a profile without raising YTIllDefinedProfile
     yt.create_profile(ds.all_data(), ['density', 'temperature'],
                       ['kinetic_energy'], weight_field=None)
+
+def test_profile_override_limits():
+    ds = fake_random_ds(64, nprocs = 8, fields = _fields, units = _units)
+
+    sp = ds.sphere(ds.domain_center, (10, 'kpc'))
+    obins = np.linspace(-5,5,10)
+    profile = yt.create_profile(sp,
+                                [ "density"],["temperature"],
+                                override_bins={"density":(obins, "g/cm**3")})
+    assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
+
+    profile = yt.create_profile(sp,
+                                [ "density", "dinosaurs"],["temperature"],
+                                override_bins={"density":(obins, "g/cm**3"),
+                                               "dinosaurs":obins})
+    assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
+    assert_equal(ds.arr(obins, "dyne"), profile.y_bins)
+
+    profile = yt.create_profile(sp,
+                                [ "density", "dinosaurs", "tribbles"],["temperature"],
+                                override_bins={"density":(obins, "g/cm**3"),
+                                               "dinosaurs":obins,
+                                               "tribbles":(obins, "erg")})
+    assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
+    assert_equal(ds.arr(obins, "dyne"), profile.y_bins)
+    assert_equal(ds.arr(obins, "erg"), profile.z_bins)

@@ -281,6 +281,8 @@ class PPVCube(object):
             The (RA, Dec) coordinate in degrees of the central pixel. Must
             be specified with *sky_scale*.
 
+        Notes
+        -----
         Additional keyword arguments are passed to
         :meth:`~astropy.io.fits.HDUList.writeto`.
 

@@ -402,3 +402,18 @@ class nose_imports(object):
         return self._run
 
 _nose = nose_imports()
+
+class libconf_imports(object):
+    _name = "libconf"
+    _load = None
+    @property
+    def load(self):
+        if self._load is None:
+            try:
+                from libconf import load
+            except ImportError:
+                load = NotAModule(self._name)
+            self._load = load
+        return self._load
+
+_libconf = libconf_imports()

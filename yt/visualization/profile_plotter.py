@@ -1381,14 +1381,15 @@ class PhasePlot(ImagePlotContainer):
                 self.z_log[field] = log
             self._profile_valid = False
         else:
-            if field == p.x_field[1]:
+            field, = self.profile.data_source._determine_fields([field])
+            if field == p.x_field:
                 self.x_log = log
                 self._profile_valid = False
-            elif field == p.y_field[1]:
+            elif field == p.y_field:
                 self.y_log = log
                 self._profile_valid = False
-            elif field in p.field_map:
-                self.z_log[p.field_map[field]] = log
+            elif field in p.field_data:
+                self.z_log[field] = log
             else:
                 raise KeyError("Field %s not in phase plot!" % (field))
         return self

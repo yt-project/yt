@@ -1,4 +1,3 @@
-# -*- coding: UTF-8 -*-
 #-----------------------------------------------------------------------------
 # Copyright (c) 2016, yt Development Team.
 #
@@ -12,13 +11,19 @@ import sys
 import unittest
 import yt
 from yt.config import ytcfg, CONFIG_DIR
-from yt.testing import fake_random_ds
+from yt.testing import \
+    assert_raises, \
+    fake_random_ds
 
-TEST_PLUGIN_FILE = '''def _myfunc(field, data):
+TEST_PLUGIN_FILE = '''
+def _myfunc(field, data):
     return np.random.random(data['density'].shape)
 add_field('random', dimensions='dimensionless',
-          function=_myfunc, units='auto', sampling_type='cell')'''
-
+          function=_myfunc, units='auto', sampling_type='cell')
+def myfunc():
+    return 4
+foobar = 12
+'''
 
 def setUpModule():
     my_plugin_name = ytcfg.get('yt', 'pluginfilename')
@@ -47,6 +52,7 @@ def tearDownModule():
         if os.path.isfile(potential_plugin_file + '.bak_test'):
             os.rename(potential_plugin_file + '.bak_test',
                       potential_plugin_file)
+    del yt.myfunc
 
 
 class TestPluginFile(unittest.TestCase):
@@ -67,3 +73,5 @@ class TestPluginFile(unittest.TestCase):
         dd = ds.all_data()
         self.assertEqual(str(dd['random'].units), 'dimensionless')
         self.assertEqual(dd['random'].shape, dd['density'].shape)
+        assert yt.myfunc() == 4
+        assert_raises(AttributeError, getattr, yt, 'foobar')
