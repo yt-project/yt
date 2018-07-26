@@ -1069,38 +1069,31 @@ def interpolate_sph_arbitrary_positions_gather(
         PyKDTree kdtree=None,
         kernel_name="cubic"):
 
-    cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_ij, smoothed_quantity_j
-    cdef int index, i, j
+    cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
+    cdef int index, i, j, particle
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(30, True)
 
     kernel_func = get_kernel_func(kernel_name)
-    with nogil:
-        for j in range(0, interpolation_positions.shape[0]):
-            if j % 100000 == 0:
-                with gil:
-                    PyErr_CheckSignals()
+    for j in range(0, interpolation_positions.shape[0]):
+        knn_position(interpolation_positions[j, :], particle_positions,
+                     queue, kdtree)
 
-            knn_position(interpolation_positions[i, :], particle_positions,
-                         queue, kdtree)
+        h_j2 = queue.heap[0]
+        ih_j2 = 1.0/h_j2
 
+        #  Now we know which pixels to deposit onto for this particle
+        for i in range(queue.max_elements):
+            particle = queue.pids[i]
+            # do the interpolation here
+            prefactor_j = (pmass[particle] / pdens[particle] /
+                           hsml[particle]**3)
+            q_ij = math.sqrt(queue.heap[particle]*ih_j2)
+            smoothed_quantity_j = (prefactor_j *
+                                   quantity_to_smooth[particle] *
+                                   kernel_func(q_ij))
 
-            h_j2 = queue.heap[0]
-            ih_j2 = 1.0/h_j2
-
-            # Now we know which pixels to deposit onto for this particle
-            for i in range(queue.max_elements):
-                particle = queue.pids[i]
-
-                # do the interpolation here
-                prefactor_ij = (pmass[particle] / pdens[particle] /
-                                        hsml[particle]**3)
-                q_ij = math.sqrt(queue.heap[particle]*ih_j2)
-                smoothed_quantity_j = (prefactor_ij *
-                                       quantity_to_smooth[particle] *
-                                       kernel_func(q_ij))
-
-                # see equations 6, 9, and 11 of the SPLASH paper
-                buff[j] += prefactor_j * kernel_func(q_ij)
+            # see equations 6, 9, and 11 of the SPLASH paper
+            buff[j] += prefactor_j * kernel_func(q_ij)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
