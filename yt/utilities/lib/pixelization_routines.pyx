@@ -1058,6 +1058,42 @@ def pixelize_sph_kernel_projection(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+def interpolate_sph_arbitrary_positions_gather(
+        np.float64_t[:] buff,
+        np.float64_t[:, :] particle_positions,
+        np.float64_t[:, :] interpolation_positions,
+        np.float64_t[:] hsml, np.float64_t[:] pmass,
+        np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth,
+        kernel_name="cubic"):
+
+    cdef np.float64_t q_ij, h_j2, ih_j2
+    cdef int index, i, j
+
+
+    kernel_func = get_kernel_func(kernel_name)
+    with nogil:
+        for j in range(0, interpolation_positions.shape[0]):
+            if j % 100000 == 0:
+                with gil:
+                    PyErr_CheckSignals()
+
+            # grab the K nearest neighbors
+
+            h_j2 = queue[0]
+            ih_j2 = 1.0/h_j2
+
+            # Now we know which pixels to deposit onto for this particle
+            for i in range(queue.max_elements):
+                    # do the interpolation here
+
+                    # see equations 6, 9, and 11 of the SPLASH paper
+                    buff[j] += prefactor_j * kernel_func(q_ij)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 def pixelize_sph_kernel_slice(
         np.float64_t[:, :] buff,
         np.float64_t[:] posx, np.float64_t[:] posy,

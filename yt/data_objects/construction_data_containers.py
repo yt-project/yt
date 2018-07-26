@@ -2182,20 +2182,25 @@ class YTOctree(YTSelectionContainer3D):
 
         self._generate_octree(fname)
 
+        # set up the x, y, z fields as the locations of the octs
+        self['x'] = self._octree.leaf_positions[:, 0]
+        self['y'] = self._octree.leaf_positions[:, 1]
+        self['z'] = self._octree.leaf_positions[:, 2]
+
         return self._octree
 
     def _sanitize_ptypes(self, ptypes):
         # this needs correcting slightly
         if ptypes is None:
-            return ['all']
+            return [self.ds._sph_ptype]
 
         self.ds.index
         for ptype in ptypes:
             if ptype not in self.ds.particle_types:
                 raise TypeError("%s not found. Particle type must be in the \
                                 dataset!".format(ptype))
-            if ptype == 'all':
-                return ['all']
+
+        self.ptypes = ptypes
 
     def _setup_data_source(self):
         self._data_source = self.ds.region(
@@ -2222,6 +2227,9 @@ class YTOctree(YTSelectionContainer3D):
             return
         elif isinstance(fields, list):
             fields = fields[0]
+
+        # put a test in to check we store information about this field
+        #
 
         print(fields)
 
