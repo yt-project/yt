@@ -1084,6 +1084,7 @@ def interpolate_sph_arbitrary_positions_gather(
         #  Now we know which pixels to deposit onto for this particle
         for i in range(queue.max_elements):
             particle = queue.pids[i]
+
             # do the interpolation here
             prefactor_j = (pmass[particle] / pdens[particle] /
                            hsml[particle]**3)

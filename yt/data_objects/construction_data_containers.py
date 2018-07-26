@@ -68,6 +68,7 @@ import yt.extern.six as six
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
     pixelize_sph_gather, \
+    interpolate_sph_arbitrary_positions_gather, \
     normalization_3d_utility
 from yt.extern.tqdm import tqdm
 from yt.utilities.lib.cyoctree import PyOctree
@@ -2229,7 +2230,37 @@ class YTOctree(YTSelectionContainer3D):
             fields = fields[0]
 
         # put a test in to check we store information about this field
-        #
+        buff = np.zeros(self['x'].shape[0], dtype="float64")
 
-        print(fields)
+        pos = []
+        dens = []
+        mass = []
+        quant_to_smooth = []
+        hsml = []
+        for chunk in self.ds.all_data().chunks([fields], 'io'):
+                    pos.append(chunk[(fields[0],'particle_position')].in_base("code").d)
+                    dens.append(chunk[(fields[0],'density')].in_base("code").d)
+                    mass.append(chunk[(fields[0],'particle_mass')].in_base("code").d)
+                    quant_to_smooth.append(chunk[fields].in_base("code").d)
+                    hsml.append(chunk[(fields[0], 'smoothing_length')].in_base("code").d)
+
+        tree = self.ds.index.kdtree
+
+        pos = np.concatenate(pos)
+        pos = pos[tree.idx, :]
+        dens = np.concatenate(dens)
+        dens = dens[tree.idx]
+        mass = np.concatenate(mass)
+        mass = mass[tree.idx]
+        hsml = np.concatenate(hsml)
+        hsml = hsml[tree.idx]
+        quant_to_smooth = np.concatenate(quant_to_smooth)
+        quant_to_smooth = quant_to_smooth[tree.idx]
+
+        interpolate_sph_arbitrary_positions_gather(buff, pos,
+                                                   self._octree.leaf_positions,
+                                                   hsml, mass, dens,
+                                                   quant_to_smooth, tree)
+
+        self[fields] = buff
 
