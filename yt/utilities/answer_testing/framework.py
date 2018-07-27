@@ -138,11 +138,11 @@ class AnswerTesting(Plugin):
                 print('Please supply an output directory with the --local-dir option')
                 sys.exit(1)
             storage_class = AnswerTestLocalStorage
+            output_dir = os.path.realpath(options.output_dir)
             # Fix up filename for local storage
             if self.compare_name is not None:
-                self.compare_name = "%s/%s/%s" % \
-                    (os.path.realpath(options.output_dir), self.compare_name,
-                     self.compare_name)
+                self.compare_name = os.path.join(output_dir, self.compare_name,
+                                                 self.compare_name)
 
             # Create a local directory only when `options.answer_name` is
             # provided. If it is not provided then creating local directory
@@ -150,13 +150,10 @@ class AnswerTesting(Plugin):
             # test, this case is handled in AnswerTestingTest.
             if self.store_name is not None and options.store_results \
                     and options.answer_name is not None:
-                name_dir_path = "%s/%s" % \
-                    (os.path.realpath(options.output_dir),
-                    self.store_name)
+                name_dir_path = os.path.join(output_dir, self.store_name)
                 if not os.path.isdir(name_dir_path):
                     os.makedirs(name_dir_path)
-                self.store_name= "%s/%s" % \
-                        (name_dir_path, self.store_name)
+                self.store_name= os.path.join(name_dir_path, self.store_name)
         else:
             storage_class = AnswerTestCloudStorage
 
@@ -220,7 +217,8 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         # This is where we dump our result storage up to Amazon, if we are able
         # to.
         import pyrax
-        pyrax.set_credential_file(os.path.expanduser("~/.yt/rackspace"))
+        credentials = os.path.expanduser(os.path.join('~', '.yt', 'rackspace'))
+        pyrax.set_credential_file(credentials)
         cf = pyrax.cloudfiles
         c = cf.get_container("yt-answer-tests")
         pb = get_pbar("Storing results ", len(result_storage))
@@ -361,7 +359,7 @@ class AnswerTestingTest(object):
             self.prefix = "{}_{}".format(pyver, self.prefix)
 
             answer_store_dir = os.path.realpath(self.options.output_dir)
-            ref_name = "%s/%s/%s" % (answer_store_dir, self.prefix, self.prefix)
+            ref_name = os.path.join(answer_store_dir, self.prefix, self.prefix)
             self.reference_storage.reference_name = ref_name
             self.reference_storage.answer_name = self.prefix
 
@@ -369,7 +367,7 @@ class AnswerTestingTest(object):
             # - create the answer directory for this test
             # - self.reference_storage.answer_name will be path to answer files
             if self.options.store_results:
-                answer_test_dir = "%s/%s" % (answer_store_dir, self.prefix)
+                answer_test_dir = os.path.join(answer_store_dir, self.prefix)
                 if not os.path.isdir(answer_test_dir):
                     os.makedirs(answer_test_dir)
                 self.reference_storage.reference_name = None
