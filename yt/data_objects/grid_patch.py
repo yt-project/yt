@@ -403,15 +403,18 @@ class AMRGridPatch(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        nodal_flag = source.shape - self.ActiveDimensions
-        if sum(nodal_flag) == 0:
-            dest[offset:offset+count] = source[mask]
-        else:
-            slices = get_nodal_slices(source.shape, nodal_flag)
-            for i , sl in enumerate(slices):
-                dest[offset:offset+count, i] = source[sl][mask]
+        dest[offset:offset+count] = source[mask]
         return count
 
+    def select_nodal(self, selector, source, dest, offset, nodal_flag):
+        mask = self._get_selector_mask(selector)
+        count = self.count(selector)
+        if count == 0: return 0
+        slices = get_nodal_slices(source.shape, nodal_flag, self.ds.dimensionality)
+        for i , sl in enumerate(slices):
+            dest[offset:offset+count, i] = source[sl][np.squeeze(mask)]
+        return count
+    
     def count(self, selector):
         mask = self._get_selector_mask(selector)
         if mask is None: return 0

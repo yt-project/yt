@@ -61,9 +61,10 @@ class IOHandlerBoxlib(BaseIOHandler):
                 for field in fields:
                     if field in centered_fields:
                         ds = data[g.id].pop(field)
+                        nd = g.select(selector, ds, rv[field], ind)
                     else:
                         ds = self._read_raw_field(g, field)
-                    nd = g.select(selector, ds, rv[field], ind) # caches
+                        nd = g.select_nodal(selector, ds, rv[field], ind, nodal_flag)
                 ind += nd
                 data.pop(g.id)
         return rv
