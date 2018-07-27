@@ -112,7 +112,7 @@ def off_axis_projection(data_source, center, normal_vector,
 
     if interpolated is True:
         raise NotImplementedError("Only interpolated=False methods are currently implemented for off-axis-projections")
-    
+
     data_source = data_source_or_all(data_source)
 
     item = data_source._determine_fields([item])[0]
@@ -128,7 +128,6 @@ def off_axis_projection(data_source, center, normal_vector,
             raise NotImplementedError("SPH Only allows 'integrate' method")
 
         ptype = data_source.ds._sph_ptype
-
         fi = data_source.ds.field_info[item]
 
         raise_error = False
@@ -145,7 +144,7 @@ def off_axis_projection(data_source, center, normal_vector,
                     "Can only perform off-axis projections for SPH fields, "
                     "Received '%s'" % (item,)
                     )
-        
+
         normal = np.array(normal_vector)
         normal = normal / np.linalg.norm(normal)
 
@@ -163,9 +162,8 @@ def off_axis_projection(data_source, center, normal_vector,
             north = np.array(north_vector)
             north = north / np.linalg.norm(north)
             east_vector = np.cross(north, normal).ravel()
-        
+
         #if weight is None:
-        
         buf = np.zeros((resolution[0], resolution[1]), dtype='float64')
 
         x_min = center[0] - width[0] / 2
@@ -180,18 +178,20 @@ def off_axis_projection(data_source, center, normal_vector,
 
         if weight is None:
             for chunk in data_source.chunks([], 'io'):
-                off_axis_projection_SPH(chunk[ptype, "particle_position_x"].to('code_length').d,
-                                        chunk[ptype, "particle_position_y"].to('code_length').d,
-                                        chunk[ptype, "particle_position_z"].to('code_length').d,
-                                        chunk[ptype, "particle_mass"].to('code_mass').d,
-                                        chunk[ptype, "density"].to('code_density').d,
-                                        chunk[ptype, "smoothing_length"].to('code_length').d,
-                                        bounds,
-                                        center.to('code_length').d,
-                                        width.to('code_length').d,
-                                        chunk[item].in_units(ounits),
-                                        buf,
-                                        normal_vector)
+                off_axis_projection_SPH(
+                    chunk[ptype, "particle_position_x"].to('code_length').d,
+                    chunk[ptype, "particle_position_y"].to('code_length').d,
+                    chunk[ptype, "particle_position_z"].to('code_length').d,
+                    chunk[ptype, "particle_mass"].to('code_mass').d,
+                    chunk[ptype, "density"].to('code_density').d,
+                    chunk[ptype, "smoothing_length"].to('code_length').d,
+                    bounds,
+                    center.to('code_length').d,
+                    width.to('code_length').d,
+                    chunk[item].in_units(ounits),
+                    buf,
+                    normal_vector)
+
             path_length_unit = data_source.ds._get_field_info('smoothing_length').units
             path_length_unit = Unit(path_length_unit, registry=data_source.ds.unit_registry)
             item_unit = data_source.ds._get_field_info(item).units
@@ -199,43 +199,46 @@ def off_axis_projection(data_source, center, normal_vector,
             funits = item_unit * path_length_unit
 
         else:
-                # if there is a weight field, take two projections:
-                # one of field*weight, the other of just weight, and divide them
-                weight_buff = np.zeros((resolution[0], resolution[1]), dtype='float64')
-                wounits = data_source.ds.field_info[weight].output_units
+            # if there is a weight field, take two projections:
+            # one of field*weight, the other of just weight, and divide them
+            weight_buff = np.zeros((resolution[0], resolution[1]), dtype='float64')
+            wounits = data_source.ds.field_info[weight].output_units
 
-                for chunk in data_source.chunks([], 'io'):
-                    off_axis_projection_SPH(chunk[ptype, "particle_position_x"].to('code_length').d,
-                                            chunk[ptype, "particle_position_y"].to('code_length').d,
-                                            chunk[ptype, "particle_position_z"].to('code_length').d,
-                                            chunk[ptype, "particle_mass"].to('code_mass').d,
-                                            chunk[ptype, "density"].to('code_density').d,
-                                            chunk[ptype, "smoothing_length"].to('code_length').d,
-                                            bounds,
-                                            center.to('code_length').d,
-                                            width.to('code_length').d,
-                                            chunk[item].in_units(ounits),
-                                            buf,
-                                            normal_vector,
-                                            weight_field=chunk[weight].in_units(wounits))
+            for chunk in data_source.chunks([], 'io'):
+                off_axis_projection_SPH(
+                    chunk[ptype, "particle_position_x"].to('code_length').d,
+                    chunk[ptype, "particle_position_y"].to('code_length').d,
+                    chunk[ptype, "particle_position_z"].to('code_length').d,
+                    chunk[ptype, "particle_mass"].to('code_mass').d,
+                    chunk[ptype, "density"].to('code_density').d,
+                    chunk[ptype, "smoothing_length"].to('code_length').d,
+                    bounds,
+                    center.to('code_length').d,
+                    width.to('code_length').d,
+                    chunk[item].in_units(ounits),
+                    buf,
+                    normal_vector,
+                    weight_field=chunk[weight].in_units(wounits))
 
-                for chunk in data_source.chunks([], 'io'):
-                    off_axis_projection_SPH(chunk[ptype, "particle_position_x"].to('code_length').d,
-                                            chunk[ptype, "particle_position_y"].to('code_length').d,
-                                            chunk[ptype, "particle_position_z"].to('code_length').d,
-                                            chunk[ptype, "particle_mass"].to('code_mass').d,
-                                            chunk[ptype, "density"].to('code_density').d,
-                                            chunk[ptype, "smoothing_length"].to('code_length').d,
-                                            bounds,
-                                            center.to('code_length').d,
-                                            width.to('code_length').d,
-                                            chunk[weight].to(wounits),
-                                            weight_buff,
-                                            normal_vector)
-                buf /= weight_buff
-                item_unit = data_source.ds._get_field_info(item).units
-                item_unit = Unit(item_unit, registry=data_source.ds.unit_registry)
-                funits = item_unit
+            for chunk in data_source.chunks([], 'io'):
+                off_axis_projection_SPH(
+                    chunk[ptype, "particle_position_x"].to('code_length').d,
+                    chunk[ptype, "particle_position_y"].to('code_length').d,
+                    chunk[ptype, "particle_position_z"].to('code_length').d,
+                    chunk[ptype, "particle_mass"].to('code_mass').d,
+                    chunk[ptype, "density"].to('code_density').d,
+                    chunk[ptype, "smoothing_length"].to('code_length').d,
+                    bounds,
+                    center.to('code_length').d,
+                    width.to('code_length').d,
+                    chunk[weight].to(wounits),
+                    weight_buff,
+                    normal_vector)
+
+            buf /= weight_buff
+            item_unit = data_source.ds._get_field_info(item).units
+            item_unit = Unit(item_unit, registry=data_source.ds.unit_registry)
+            funits = item_unit
 
         myinfo = {'field':item, 'east_vector':east_vector,
                   'north_vector':north_vector, 'normal_vector':normal_vector,
