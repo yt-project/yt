@@ -498,7 +498,8 @@ Overplot Streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_streamlines(self, field_x, field_y, factor=16, \
-                                   density = 1, plot_args=None)
+                                   density=1, display_threshold=None, \
+                                   plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.StreamlineCallback`.)
