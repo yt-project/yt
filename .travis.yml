@@ -1,5 +1,6 @@
 language: python
-sudo: false
+sudo: required
+dist: precise
 cache:
   pip: true
   directories:
