@@ -295,3 +295,31 @@ def test_gather_grid():
 
     assert_equal(gather, scatter)
 
+def test_covering_grid_scatter():
+    ds = fake_sph_grid_ds()
+    field = ('gas', 'density')
+    buff_size = 8
+
+    ag = ds.arbitrary_grid(0, 3, [buff_size]*3)
+    ag_dens = ag[field].to('g*cm**-3').d
+
+    cg = ds.covering_grid(3, 0, 8)
+    cg_dens = cg[field].to('g*cm**-3').d
+
+    assert_equal(ag_dens, cg_dens)
+
+def test_covering_grid_gather():
+    ds = fake_sph_grid_ds()
+    ds.sph_smoothing_style = 'gather'
+    ds.num_neighbors = 5
+    field = ('gas', 'density')
+    buff_size = 8
+
+    ag = ds.arbitrary_grid(0, 3, [buff_size]*3)
+    ag_dens = ag[field].to('g*cm**-3').d
+
+    cg = ds.covering_grid(3, 0, 8)
+    cg_dens = cg[field].to('g*cm**-3').d
+
+    assert_equal(ag_dens, cg_dens)
+

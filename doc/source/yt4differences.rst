@@ -66,9 +66,10 @@ contributions of a particle to a single pixel by considering the point at the
 centre of the pixel and using the standard SPH smoothing formula. The heavy
 lifting in these functions is undertaken by cython functions.
 
-It is now possible to generate slice plots, projection plots and arbitrary grids
-of smoothed quanitities using these operations. The following code demonstrates
-how this could be achieved. The following would use the scatter method.
+It is now possible to generate slice plots, projection plots, covering grids and
+arbitrary grids of smoothed quanitities using these operations. The following
+code demonstrates how this could be achieved. The following would use the scatter
+method:
 
 .. code-block:: python
 
@@ -82,17 +83,26 @@ how this could be achieved. The following would use the scatter method.
     plot = yt.ProjectionPlot(ds, 2, ('gas', 'density'))
     plot.save()
 
-    arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [5, 5, 5],
-                                       dims=[10, 10, 10])
-    density = arbitrary_grid[('gas', 'density')]
+    arbitrary_grid = ds.arbitrary_grid([0.0, 0.0, 0.0], [25, 25, 25],
+                                       dims=[16, 16, 16])
+    ag_density = arbitrary_grid[('gas', 'density')]
 
-The default behaviour for sPH interpolation is that the values are normalized
+    covering_grid = ds.covering_grid(4, 0, 16)
+    cg_density = covering_grid[('gas', 'density')]
+
+In the above example the `covering_grid` and the `arbitrary_grid` will return
+the same data. In fact, these containers are very similar but provide a
+slighlty different API.
+
+The above code can be modified to use the gather approach by changing a global
+setting for the dataset. This can be achieved with
+`ds.sph_smoothing_style = "gather"`, so far, the gather approach is not
+supported for projections.
+
+The default behaviour for SPH interpolation is that the values are normalized
 inline with Eq. 9 in `SPLASH, Price (2009) <https://arxiv.org/pdf/0709.0832.pdf>`_.
-This can be disabled with `ds.use_sph_normalization = False`.
-
-This can be modified to use the gather approach by changing a global setting for
-the dataset. The previous example could be modified to include the following
-settings on the datset `ds.sph_smoothing_style = "gather"`.
+This can be disabled with `ds.use_sph_normalization = False`. This will
+disable the normalization for all future interpolations.
 
 The gather approach requires finding nearest neighbors using the KDTree. The
 first call will generate a KDTree for the entire dataset which will be stored in
@@ -125,4 +135,5 @@ The following is a code example:
 
 API Changes
 -----------
+
 
