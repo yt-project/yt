@@ -464,7 +464,7 @@ class AngularMomentumVector(DerivedQuantity):
             num_vals += 4
         self.num_vals = num_vals
 
-    def process_chunk(self, data, **kwargs):
+    def process_chunk(self, data, use_gas = True, use_particles = False, p_type= "all"):
         rvals = []
         if self.use_gas:
             rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
