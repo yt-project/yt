@@ -107,7 +107,7 @@ class WeightedAverageQuantity(DerivedQuantity):
 
     Returns a YTQuantity for each field requested; if one,
     it returns a single YTQuantity, if many, it returns a list of YTQuantities
-    in order of the listed fields.  
+    in order of the listed fields.
 
     Where f is the field and w is the weight, the weighted average is
     Sum_i(f_i \* w_i) / Sum_i(w_i).
@@ -188,7 +188,7 @@ class TotalQuantity(DerivedQuantity):
 class TotalMass(TotalQuantity):
     r"""
     Calculates the total mass of the object. Returns a YTArray where the
-    first element is total gas mass and the second element is total particle 
+    first element is total gas mass and the second element is total particle
     mass.
 
     Examples
@@ -302,6 +302,10 @@ class BulkVelocity(DerivedQuantity):
         Flag to include particles in the calculation.  Particles are ignored
         if not present.
         Default: True
+    p_type : str
+        Particle type to be used for Center of mass calculation when use_particle
+        = True.
+        Default: all
 
     Examples
     --------
@@ -311,7 +315,7 @@ class BulkVelocity(DerivedQuantity):
     >>> print ad.quantities.bulk_velocity()
 
     """
-    def count_values(self, use_gas = True, use_particles = False):
+    def count_values(self, use_gas = True, use_particles = False, p_type= "all"):
         # This is a list now
         self.num_vals = 0
         if use_gas:
@@ -319,7 +323,7 @@ class BulkVelocity(DerivedQuantity):
         if use_particles:
             self.num_vals += 4
 
-    def process_chunk(self, data, use_gas = True, use_particles = False):
+    def process_chunk(self, data, use_gas = True, use_particles = False  p_type= "all"):
         vals = []
         if use_gas:
             vals += [(data["gas", "velocity_%s" % ax] *
@@ -327,10 +331,10 @@ class BulkVelocity(DerivedQuantity):
                      for ax in 'xyz']
             vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if use_particles:
-            vals += [(data["all", "particle_velocity_%s" % ax] *
-                      data["all", "particle_mass"]).sum(dtype=np.float64)
+            vals += [(data[p_type, "particle_velocity_%s" % ax] *
+                      data[p_type, "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["all", "particle_mass"].sum(dtype=np.float64))
+            vals.append(data[p_type, "particle_mass"].sum(dtype=np.float64))
         return vals
 
     def reduce_intermediate(self, values):
@@ -409,9 +413,9 @@ class WeightedVariance(DerivedQuantity):
             my_mean = values[i]
             my_var2 = values[i + int(len(values) / 2)]
             all_mean = (my_weight * my_mean).sum(dtype=np.float64) / all_weight
-            rvals.append(self.data_source.ds.arr([(np.sqrt((my_weight * 
-                                                 (my_var2 + (my_mean - 
-                                                  all_mean)**2)).sum(dtype=np.float64) 
+            rvals.append(self.data_source.ds.arr([(np.sqrt((my_weight *
+                                                 (my_var2 + (my_mean -
+                                                  all_mean)**2)).sum(dtype=np.float64)
                                                   / all_weight)), all_mean]))
         return rvals
 
@@ -432,6 +436,11 @@ class AngularMomentumVector(DerivedQuantity):
         Flag to include particles in the calculation.  Particles are ignored
         if not present.
         Default: True
+    p_type : str
+        Particle type to be used for Center of mass calculation when use_particle
+        = True.
+        Default: all
+
 
     Examples
     --------
@@ -441,14 +450,14 @@ class AngularMomentumVector(DerivedQuantity):
     >>> print ad.quantities.angular_momentum_vector()
 
     """
-    def count_values(self, use_gas=True, use_particles=True):
+    def count_values(self, use_gas=True, use_particles=True, p_type = "all"):
         num_vals = 0
         # create the index if it doesn't exist yet
         self.data_source.ds.index
         self.use_gas = use_gas & \
             (("gas", "cell_mass") in self.data_source.ds.field_info)
         self.use_particles = use_particles & \
-            (("all", "particle_mass") in self.data_source.ds.field_info)
+            ((p_type, "particle_mass") in self.data_source.ds.field_info)
         if self.use_gas:
             num_vals += 4
         if self.use_particles:
@@ -463,10 +472,10 @@ class AngularMomentumVector(DerivedQuantity):
                           for axis in "xyz"])
             rvals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if self.use_particles:
-            rvals.extend([(data["all", "particle_specific_angular_momentum_%s" % axis] *
-                           data["all", "particle_mass"]).sum(dtype=np.float64) \
+            rvals.extend([(data[p_type, "particle_specific_angular_momentum_%s" % axis] *
+                           data[p_type, "particle_mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
-            rvals.append(data["all", "particle_mass"].sum(dtype=np.float64))
+            rvals.append(data[p_type, "particle_mass"].sum(dtype=np.float64))
         return rvals
 
     def reduce_intermediate(self, values):
@@ -485,7 +494,7 @@ class Extrema(DerivedQuantity):
     r"""
     Calculates the min and max value of a field or list of fields.
     Returns a YTArray for each field requested.  If one, a single YTArray
-    is returned, if many, a list of YTArrays in order of field list is 
+    is returned, if many, a list of YTArrays in order of field list is
     returned.  The first element of each YTArray is the minimum of the
     field and the second is the maximum of the field.
 
@@ -682,23 +691,27 @@ class SpinParameter(DerivedQuantity):
         Flag to include particles in the calculation.  Particles are ignored
         if not present.
         Default: True
+    p_type : str
+        Particle type to be used for Center of mass calculation when use_particle
+        = True.
+        Default: all
 
     Examples
     --------
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.center_of_mass()
+    >>> print ad.quantities.spin_parameter()
 
     """
     def count_values(self, **kwargs):
         self.num_vals = 3
 
-    def process_chunk(self, data, use_gas=True, use_particles=True):
+    def process_chunk(self, data, use_gas=True, use_particles=True, p_type= "all"):
         use_gas &= \
           (("gas", "cell_mass") in self.data_source.ds.field_info)
         use_particles &= \
-          (("all", "particle_mass") in self.data_source.ds.field_info)
+          ((p_type, "particle_mass") in self.data_source.ds.field_info)
         e = data.ds.quan(0., "erg")
         j = data.ds.quan(0., "g*cm**2/s")
         m = data.ds.quan(0., "g")
@@ -708,10 +721,10 @@ class SpinParameter(DerivedQuantity):
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
             m += data["gas", "cell_mass"].sum(dtype=np.float64)
         if use_particles:
-            e += (data["all", "particle_velocity_magnitude"]**2 *
-                  data["all", "particle_mass"]).sum(dtype=np.float64)
-            j += data["all", "particle_angular_momentum_magnitude"].sum(dtype=np.float64)
-            m += data["all", "particle_mass"].sum(dtype=np.float64)
+            e += (data[p_type, "particle_velocity_magnitude"]**2 *
+                  data[p_type, "particle_mass"]).sum(dtype=np.float64)
+            j += data[p_type, "particle_angular_momentum_magnitude"].sum(dtype=np.float64)
+            m += data[p_type, "particle_mass"].sum(dtype=np.float64)
         return (e, j, m)
 
     def reduce_intermediate(self, values):
