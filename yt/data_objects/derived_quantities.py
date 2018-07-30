@@ -27,6 +27,8 @@ from yt.utilities.physical_constants import \
     gravitational_constant_cgs
 from yt.utilities.physical_ratios import HUGE
 from yt.extern.six import add_metaclass
+from yt.utilities.exceptions import \
+    YTParticleTypeNotFound
 
 derived_quantity_registry = {}
 
@@ -242,6 +244,8 @@ class CenterOfMass(DerivedQuantity):
 
     """
     def count_values(self, use_gas = True, use_particles = False, particle_type="all"):
+        if not particle_type in self.data_source.ds.particle_types:
+            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
         use_gas &= \
           (("gas", "cell_mass") in self.data_source.ds.field_info)
         use_particles &= \
@@ -316,6 +320,8 @@ class BulkVelocity(DerivedQuantity):
 
     """
     def count_values(self, use_gas = True, use_particles = False, particle_type= "all"):
+        if not particle_type in self.data_source.ds.particle_types:
+            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
         # This is a list now
         self.num_vals = 0
         if use_gas:
@@ -451,6 +457,8 @@ class AngularMomentumVector(DerivedQuantity):
 
     """
     def count_values(self, use_gas=True, use_particles=True, particle_type = "all"):
+        if not particle_type in self.data_source.ds.particle_types:
+            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
         num_vals = 0
         # create the index if it doesn't exist yet
         self.data_source.ds.index
@@ -708,6 +716,8 @@ class SpinParameter(DerivedQuantity):
         self.num_vals = 3
 
     def process_chunk(self, data, use_gas=True, use_particles=True, particle_type= "all"):
+        if not particle_type in self.data_source.ds.particle_types:
+            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
         use_gas &= \
           (("gas", "cell_mass") in self.data_source.ds.field_info)
         use_particles &= \
