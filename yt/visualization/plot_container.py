@@ -226,6 +226,19 @@ class PlotContainer:
         self._minorticks = {}
         self._field_transform = {}
 
+        self.setup_defaults()
+
+    def setup_defaults(self):
+        self._colormaps = defaultdict(lambda: default_cmap)
+        default_cmap = ytcfg.get("yt", "default_colormap")
+        if "config" in ytcfg:
+            for ftype in ytcfg['config']:
+                for field in ytcfg['config'][ftype]:
+                    f = self.data_source._determine_fields((ftype, field))[0]
+                    cfg = ytcfg['config'][ftype][field]
+                    # configure colormap
+                    self._colormaps[f] = cfg.get('cmap', default_cmap)
+
     @accepts_all_fields
     @invalidate_plot
     def set_log(self, field, log, linthresh=None):
@@ -807,7 +820,6 @@ class ImagePlotContainer(PlotContainer):
         super().__init__(data_source, figure_size, fontsize)
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
-        self._colormaps = defaultdict(lambda: ytcfg.get("yt", "default_colormap"))
         self._cbar_minorticks = {}
         self._background_color = PlotDictionary(self.data_source, lambda: "w")
         self._colorbar_label = PlotDictionary(self.data_source, lambda: None)
