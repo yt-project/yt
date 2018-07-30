@@ -2193,7 +2193,7 @@ class YTOctree(YTSelectionContainer3D):
     def _sanitize_ptypes(self, ptypes):
         # this needs correcting slightly
         if ptypes is None:
-            return [self.ds._sph_ptype]
+            return ['all']
 
         self.ds.index
         for ptype in ptypes:
@@ -2201,7 +2201,7 @@ class YTOctree(YTSelectionContainer3D):
                 raise TypeError("%s not found. Particle type must be in the \
                                 dataset!".format(ptype))
 
-        self.ptypes = ptypes
+        return ptypes
 
     def _setup_data_source(self):
         self._data_source = self.ds.region(
@@ -2229,7 +2229,9 @@ class YTOctree(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
 
-        # put a test in to check we store information about this field
+        self.gather_smooth(fields)
+
+    def gather_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
 
         pos = []
@@ -2238,11 +2240,11 @@ class YTOctree(YTSelectionContainer3D):
         quant_to_smooth = []
         hsml = []
         for chunk in self.ds.all_data().chunks([fields], 'io'):
-                    pos.append(chunk[(fields[0],'particle_position')].in_base("code").d)
-                    dens.append(chunk[(fields[0],'density')].in_base("code").d)
-                    mass.append(chunk[(fields[0],'particle_mass')].in_base("code").d)
-                    quant_to_smooth.append(chunk[fields].in_base("code").d)
-                    hsml.append(chunk[(fields[0], 'smoothing_length')].in_base("code").d)
+            pos.append(chunk[(fields[0],'particle_position')].in_base("code").d)
+            dens.append(chunk[(fields[0],'density')].in_base("code").d)
+            mass.append(chunk[(fields[0],'particle_mass')].in_base("code").d)
+            hsml.append(chunk[(fields[0], 'smoothing_length')].in_base("code").d)
+            quant_to_smooth.append(chunk[fields].in_base("code").d)
 
         tree = self.ds.index.kdtree
 
