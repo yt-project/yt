@@ -56,12 +56,12 @@ def test_no_rotation():
 
 @requires_module('scipy')
 def test_basic_rotation_1():
-    """ Rotation of z-axis onto y-axis. All fake particles on Z-axis should now be on the Y-Axis
+    """ All particles on Z-axis should now be on the negative Y-Axis
         fake_sph_orientation has three z-axis particles, so there should be three y-axis particles 
         after rotation 
-        (0, 0, 1) -> (0, 1)
-        (0, 0, 2) -> (0, 2)
-        (0, 0, 3) -> (0, 3)
+        (0, 0, 1) -> (0, -1)
+        (0, 0, 2) -> (0, -2)
+        (0, 0, 3) -> (0, -3)
         In addition, we should find a local maxima at (0, 0) due to:
         (0, 0, 0) -> (0, 0)
         (0, 1, 0) -> (0, 0)
@@ -69,7 +69,7 @@ def test_basic_rotation_1():
         and the one particle on the x-axis should not change its position:
         (1, 0, 0) -> (1, 0)
     """
-    expected_maxima = ([0., 0., 0., 0., 1.], [0., 1., 2., 3., 0.])
+    expected_maxima = ([0., 0., 0., 0., 1.], [0., -1., -2., -3., 0.])
     normal_vector = [0., 1., 0.]
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
@@ -89,12 +89,12 @@ def test_basic_rotation_1():
 
 @requires_module('scipy')
 def test_basic_rotation_2():
-    """ Rotation of z-axis onto x-axis. All fake particles on z-axis should now be on the x-Axis
+    """ Rotation of x-axis onto z-axis. All particles on z-axis should now be on the negative x-Axis
     fake_sph_orientation has three z-axis particles, so there should be three x-axis particles 
     after rotation 
-    (0, 0, 1) -> (1, 0)
-    (0, 0, 2) -> (2, 0)
-    (0, 0, 3) -> (3, 0)
+    (0, 0, 1) -> (-1, 0)
+    (0, 0, 2) -> (-2, 0)
+    (0, 0, 3) -> (-3, 0)
     In addition, we should find a local maxima at (0, 0) due to:
     (0, 0, 0) -> (0, 0)
     (1, 0, 0) -> (0, 0)
@@ -102,7 +102,7 @@ def test_basic_rotation_2():
     (0, 1, 0) -> (0, 1)
     (0, 2, 0) -> (0, 2)
     """ 
-    expected_maxima = ([1., 2., 3., 0., 0., 0.], 
+    expected_maxima = ([-1., -2., -3., 0., 0., 0.], 
                        [0., 0., 0., 0., 1., 2.])
     normal_vector = [1., 0., 0.]
     resolution = (64, 64)
