@@ -74,8 +74,6 @@ answer_tests:
     - yt/visualization/tests/test_mesh_slices.py:test_tri2
     - yt/visualization/tests/test_mesh_slices.py:test_quad2
     - yt/visualization/tests/test_mesh_slices.py:test_multi_region
-    - yt/visualization/tests/test_line_plots.py:test_line_plot
-    - yt/visualization/tests/test_line_plots.py:test_multi_line_plot
 
   local_boxlib_007:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
