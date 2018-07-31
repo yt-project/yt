@@ -1184,8 +1184,7 @@ def pixelize_sph_kernel_slice(
 @cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_gather(np.float64_t[:, :, :] buff, np.float64_t[:] bounds,
-                        data_source, field, ptype,
-                        np.int64_t skipaxis=-1,
+                        data_source, field, ptype, np.int64_t skipaxis=-1,
                         normalize=True):
         cdef int i, j, k
         cdef np.float64_t[:, :, :] buff_den

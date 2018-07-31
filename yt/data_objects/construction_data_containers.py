@@ -2137,18 +2137,19 @@ class YTOctree(YTSelectionContainer3D):
         self.octree
 
     def _generate_octree(self, fname = None):
-        if fname is not None:
-            if os.path.exists(fname):
-                mylog.info('Loading octree from %s' % os.path.basename(fname))
-                octree = PyOctree()
-                octree.load(fname)
-                #if octree.hash != self.ds._file_hash:
-                #    mylog.info('Detected hash mismatch, regenerating Octree')
-                #else:
-                self._octree = octree
-                return
+        # for debug purpose force a rebuild
+        #if fname is not None:
+        #    if os.path.exists(fname):
+        #        mylog.info('Loading octree from %s' % os.path.basename(fname))
+        #        octree = PyOctree()
+        #        octree.load(fname)
+        #        #if octree.hash != self.ds._file_hash:
+        #        #    mylog.info('Detected hash mismatch, regenerating Octree')
+        #        #else:
+        #        self._octree = octree
+        #        return
 
-        positions = self._data_source[('PartType0', 'Coordinates')]
+        positions = self._data_source[(self.ptypes[0], 'Coordinates')]
         if positions == []:
             self._octree = None
             return
@@ -2158,7 +2159,7 @@ class YTOctree(YTSelectionContainer3D):
             positions.astype('float64'),
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
-            n_ref=2*int(self.ds.num_neighbors),
+            n_ref=self.n_ref,
             #data_version=self.ds._file_hash
         )
 
@@ -2229,7 +2230,11 @@ class YTOctree(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
 
+        #self.scatter_smooth(fields)
+        import time
+        t0 = time.time()
         self.gather_smooth(fields)
+        print("time for interp:", time.time() - t0)
 
     def gather_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
@@ -2266,3 +2271,20 @@ class YTOctree(YTSelectionContainer3D):
 
         self[fields] = buff
 
+    def scatter_smooth(self, fields):
+        buff = np.zeros(self['x'].shape[0], dtype="float64")
+
+        # do chunkwise deposition
+        ptype = fields[0]
+        for chunk in self._data_source.chunks([fields], "io"):
+            px = chunk[(ptype,'particle_position_x')].in_base("code").d
+            py = chunk[(ptype,'particle_position_y')].in_base("code").d
+            pz = chunk[(ptype,'particle_position_z')].in_base("code").d
+            hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
+            pmass = chunk[(ptype,'particle_mass')].in_base("code").d
+            pdens = chunk[(ptype,'density')].in_base("code").d
+            field_quantity = chunk[fields].d
+
+            self.octree.interpolate_sph_octs(buff, px, py, pz, pmass, pdens,
+                                             hsml, field_quantity)
+        self[fields] = buff

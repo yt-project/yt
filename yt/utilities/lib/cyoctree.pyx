@@ -3,6 +3,10 @@ import numpy as np
 import struct
 cimport cython
 from libcpp.vector cimport vector
+cimport libc.math as math
+
+from yt.geometry.particle_deposit cimport \
+    kernel_func, get_kernel_func
 
 cdef struct Node:
     double left_edge[3]
@@ -13,6 +17,8 @@ cdef struct Node:
     int children
     int leaf
     int node_id
+    int buff_id
+    int depth
 
 cdef struct Octree:
     vector[Node] nodes
@@ -21,6 +27,7 @@ cdef struct Octree:
     int n_ref
     Node * root
     int * idx
+    int max_depth
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -31,6 +38,8 @@ cdef class PyOctree:
     cdef int _n_ref
     cdef int _num_octs
     cdef int _num_particles
+    cdef int _min_depth
+    cdef kernel_func kernel
 
     def __init__(self, double[:, ::1] &input_pos = None, left_edge = None,
                  right_edge = None, int n_ref=32):
@@ -55,6 +64,7 @@ cdef class PyOctree:
 
     cdef setup_ctree(self, double[:, ::1] &input_pos, int n_ref):
         self.c_tree.n_ref = n_ref
+        self.c_tree.max_depth = 0
 
         self.idx = np.arange(0, input_pos.shape[0], dtype=np.int32)
         self.c_tree.idx = &self._idx[0]
@@ -85,7 +95,8 @@ cdef class PyOctree:
         root.start = 0
         root.end = input_pos.shape[0]*3
         root.node_id = 0
-        root.leaf = 0
+        root.leaf = 1
+        root.depth = 0
 
         # store the root in an array and make a convenient pointer
         self.c_tree.nodes.push_back(root)
@@ -104,6 +115,10 @@ cdef class PyOctree:
         self.num_octs = 0
         self.idx = np.array([0], dtype=np.int32)
         self.num_particles = 0
+
+    @property
+    def max_depth(self):
+        return self.c_tree.max_depth
 
     @property
     def idx(self):
@@ -139,16 +154,26 @@ cdef class PyOctree:
         self._num_particles = val
 
     @property
+    def min_depth(self):
+        return self._min_depth
+
+    @property
     def leaf_positions(self):
-        cdef int i, j
+
+        cdef int i, j, z
+        z = 0
         positions = []
         for i in range(self.c_tree.nodes.size()):
-            if self.c_tree.nodes[i].leaf == 1:
+            if self.c_tree.nodes[i].leaf == 0:
                 continue
             else:
                 for j in range(3):
                     positions.append((self.c_tree.nodes[i].left_edge[j] +
                                       self.c_tree.nodes[i].right_edge[j]) / 2)
+
+                self.c_tree.nodes[i].buff_id = z
+                z+=1
+
         positions = np.asarray(positions)
         return positions.reshape((-1,3))
 
@@ -200,12 +225,69 @@ cdef class PyOctree:
 
                 self.c_tree.nodes.push_back(temp)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void smooth_onto_leaves(self, np.float64_t[:] buff, np.float64_t posx,
+                                 np.float64_t posy, np.float64_t posz,
+                                 np.float64_t hsml, np.float64_t prefactor,
+                                 Node * node):
+
+        cdef Node * child
+        cdef double q_ij, diff_X, diff_y, diff_z
+
+        if node.leaf == 0:
+            child = &self.c_tree.nodes[node.children]
+            for i in range(8):
+                if child[i].left_edge[0] - posx < hsml and \
+                        posx - child[i].right_edge[0] < hsml:
+                    if child[i].left_edge[1] - posy < hsml and \
+                            posy - child[i].right_edge[1] < hsml:
+                        if child[i].left_edge[2] - posz < hsml and \
+                                posz - child[i].right_edge[2] < hsml:
+                            self.smooth_onto_leaves(buff, posx, posy, posz,
+                                                    hsml, prefactor, &child[i])
+
+        else:
+            diff_x = ((node.left_edge[0] + node.right_edge[0]) / 2 - posx)
+            diff_x *= diff_x
+            diff_y = ((node.left_edge[1] + node.right_edge[1]) / 2 - posy)
+            diff_y *= diff_y
+            diff_z = ((node.left_edge[2] + node.right_edge[2]) / 2 - posz)
+            diff_z *= diff_z
+
+            q_ij = math.sqrt((diff_x + diff_y + diff_z) / (hsml*hsml))
+
+            buff[node.buff_id] += prefactor * self.kernel(q_ij)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def interpolate_sph_octs(self, np.float64_t[:] buff, np.float64_t[:] posx,
+                             np.float64_t[:] posy, np.float64_t[:] posz,
+                             np.float64_t[:] pmass, np.float64_t[:] pdens,
+                             np.float64_t[:] hsml, np.float64_t[:] field,
+                             kernel_name="cubic"):
+
+        self.kernel = get_kernel_func(kernel_name)
+
+        cdef int i
+        cdef double prefactor
+
+        for i in range(posx.shape[0]):
+            prefactor = pmass[i] / pdens[i] / hsml[i]**3
+            prefactor *= field[i]
+
+            self.smooth_onto_leaves(buff, posx[i], posy[i], posz[i], hsml[i],
+                                    prefactor, self.c_tree.root)
+
 # this is a utility function which is able to catch errors when we attempt to
 # reserve too much memory
 cdef int reserve(vector[Node] * vec, int amount) except +MemoryError:
     vec.reserve(amount)
     return 0
 
+# TODO: move these into the pyoctree class
 # this makes the children and stores them in the tree.node
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -218,7 +300,10 @@ cdef inline int generate_children(Octree &tree, Node * node) nogil:
     node.children = tree.nodes.size()
 
     temp.parent = node.node_id
-    temp.leaf = 0
+    temp.leaf = 1
+    temp.depth = node.depth + 1
+
+    tree.max_depth = max(temp.depth, tree.max_depth)
 
     dx = (node.right_edge[0] - node.left_edge[0]) / 2
     dy = (node.right_edge[1] - node.left_edge[1]) / 2
@@ -243,10 +328,7 @@ cdef inline int generate_children(Octree &tree, Node * node) nogil:
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef int process_node(Octree &tree, Node * node, double * input_pos) nogil:
-    # skip if not enough children
-    if(node.end - node.start <= 3*tree.n_ref):
-        node.leaf = 1
-        return 0
+    node.leaf = 0
 
     cdef int i
     cdef int splits[9]
@@ -280,12 +362,17 @@ cdef int process_node(Octree &tree, Node * node, double * input_pos) nogil:
                                    temp_value,
                                    splits[2*i], splits[2*i + 2])
 
-    # now just need to tell the children which particles they store and repeat
-    # the process
+    # skip if not enough children
     cdef Node * child = &(tree.nodes[node.children])
     for i in range(0, 8, 1):
         child[i].start = splits[i]
         child[i].end =  splits[i+1]
+
+    # stop here if no children
+    if(node.end - node.start <= 3*tree.n_ref):
+        return 0
+
+    for i in range(0, 8, 1):
         process_node(tree, &child[i], input_pos)
 
     return 0
