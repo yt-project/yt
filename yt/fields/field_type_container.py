@@ -59,7 +59,6 @@ class FieldTypeContainer(object):
 
     def _ipython_display_(self):
         import ipywidgets
-        from IPython.display import display, Markdown
         fnames = []
         children = []
         for ftype in sorted(self.field_types):
