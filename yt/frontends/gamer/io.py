@@ -50,7 +50,7 @@ class IOHandlerGAMER(BaseIOHandler):
         self._group_particle  = ds._group_particle
         self._field_dtype     = "float64" # fixed even when FLOAT8 is off
         self._particle_handle = ds._particle_handle
-        self.patch_size       = ds.parameters['PatchSize']*2
+        self.patch_size       = ds.parameters['PatchSize']*ds.refine_by
         self.pgroup           = ds.refine_by**3 # number of patches in a patch group
 
     def _read_particle_coords(self, chunks, ptf):
