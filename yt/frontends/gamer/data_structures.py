@@ -31,7 +31,6 @@ from yt.utilities.file_handler import \
     HDF5FileHandler
 from .fields import GAMERFieldInfo
 from .definitions import geometry_parameters
-from yt.testing import assert_equal
 
 
 
