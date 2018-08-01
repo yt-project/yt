@@ -1682,16 +1682,16 @@ class ParticleCallback(PlotCallback):
                           y0, y1, period_y):
         #  duplicate particles if periodic in that direction AND if the plot
         #  extends outside the domain boundaries.
-        if self.periodic_x and x0 > self.LE[0]:
+        if self.periodic_x and x0 > self.RE[0]:
             particle_x = uhstack((particle_x, particle_x + period_x))
             particle_y = uhstack((particle_y, particle_y))
-        if self.periodic_x and x1 < self.RE[0]:
+        if self.periodic_x and x1 < self.LE[0]:
             particle_x = uhstack((particle_x, particle_x - period_x))
             particle_y = uhstack((particle_y, particle_y))
-        if self.periodic_y and y0 > self.LE[1]:
+        if self.periodic_y and y0 > self.RE[1]:
             particle_y = uhstack((particle_y, particle_y + period_y))
             particle_x = uhstack((particle_x, particle_x))
-        if self.periodic_y and y1 < self.RE[1]:
+        if self.periodic_y and y1 < self.LE[1]:
             particle_y = uhstack((particle_y, particle_y - period_y))
             particle_x = uhstack((particle_x, particle_x))
         return particle_x, particle_y
