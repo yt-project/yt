@@ -86,13 +86,13 @@ class GAMERHierarchy(GridIndex):
         grid_corner      = self._handle['Tree/Corner'].value[::self.pgroup]
         convert2physical = self._handle['Tree/Corner'].attrs['Cvt2Phy']
 
-        self.grid_dimensions[:] = parameters['PatchSize']*2
+        self.grid_dimensions[:] = parameters['PatchSize']*self.refine_by
 
         for lv in range(0, parameters['NLevel']):
             num_grids_level = parameters['NPatch'][lv]/self.pgroup
             if num_grids_level == 0: break
 
-            patch_scale = parameters['PatchSize']*parameters['CellScale'][lv]*2
+            patch_scale = parameters['PatchSize']*parameters['CellScale'][lv]*self.refine_by
 
             # set the level and edge of each grid
             # (left/right_edge are YT arrays in code units)
