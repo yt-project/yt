@@ -2,6 +2,7 @@ import numpy as np
 
 from yt.testing import \
     fake_random_ds, \
+    fake_particle_ds, \
     assert_equal, \
     assert_rel_equal, \
     assert_almost_equal
@@ -124,30 +125,7 @@ def test_sample_at_max_field_values():
 
 def test_derived_quantities_with_particle_types():
 
-    #ds=fake_particle_data()
-    #ad=ds.all_data()
-
-    @particle_filter(requires=["particle_position_x"], filtered_type='all')
-    def low_x(pfilter,data):
-        return data['particle_position_x'].in_units('code_length')<0.5
-
-    #Create pre-defined particle dataset
-    nparts=100
-    ppx = pvx = np.array(np.linspace(0,1,nparts))
-    ppy = pvy = np.array(np.linspace(1,0,nparts))
-    ppz = pvz = ppx-ppy
-    pm = np.ones(nparts)
-
-    data={'particle_position_x':ppx,
-          'particle_position_y':ppy,
-          'particle_position_z':ppx,
-          'particle_velocity_x':pvx,
-          'particle_velocity_y':pvy,
-          'particle_velocity_z':pvz,
-          'particle_mass':pm}
-
-    bbox=np.array([[min(ppx), max(ppx)], [min(ppy), max(ppy)], [min(ppz), max(ppz)]])
-    ds = load_particles(data, n_ref=6, bbox=bbox, length_unit=parsec, mass_unit=Msun)
+    ds = fake_particle_ds()
 
     @particle_filter(requires=["particle_position_x"], filtered_type='all')
     def low_x(pfilter,data):
@@ -167,5 +145,5 @@ def test_derived_quantities_with_particle_types():
 
 
     #Check spin parameter values
-    assert_almost_equal(ad.quantities.spin_parameter(use_gas=False,use_particles=True),1.1973910384754621e+27)
-    assert_almost_equal(ad.quantities.spin_parameter(use_gas=False,use_particles=True,particle_type='low_x'),2.1171960652141979e+27)
+    assert_almost_equal(ad.quantities.spin_parameter(use_gas=False,use_particles=True),655.7311454765503)
+    assert_almost_equal(ad.quantities.spin_parameter(use_gas=False,use_particles=True,particle_type='low_x'),1309.164886405665)
