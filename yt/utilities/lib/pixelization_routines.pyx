@@ -1480,8 +1480,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype='float_')
     cdef np.float64_t[:] rotated_coordinates
     cdef np.float64_t[:] rotated_center
-    rotated_center = rotation_matmul(rotation_matrix,
-                                     np.array([center[0], center[1], center[2]]))
+    rotated_center = rotation_matmul(
+        rotation_matrix, np.array([center[0], center[1], center[2]]))
 
     # set up the rotated bounds
     cdef np.float64_t rot_bounds_x0 = rotated_center[0] - width[0] / 2
@@ -1493,7 +1493,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
         coordinate_matrix[0] = px[i]
         coordinate_matrix[1] = py[i]
         coordinate_matrix[2] = pz[i]
-        rotated_coordinates = rotation_matmul(rotation_matrix, coordinate_matrix)
+        rotated_coordinates = rotation_matmul(
+            rotation_matrix, coordinate_matrix)
         px_rotated[i] = rotated_coordinates[0]
         py_rotated[i] = rotated_coordinates[1]
 
@@ -1514,12 +1515,9 @@ def off_axis_projection_SPH(np.float64_t[:] px,
 cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix, 
                                      np.float64_t[:] coordinate_matrix):
     cdef np.float64_t[:] out = np.zeros(3)
-    cdef np.float64_t s = 0
     for i in range(3):
         for j in range(3):
-            s += rotation_matrix[i, j] * coordinate_matrix[j]
-        out[i] = s
-        s = 0
+            out[i] += rotation_matrix[i, j] * coordinate_matrix[j]
     return out
 
 
@@ -1527,8 +1525,9 @@ cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix,
 @cython.wraparound(False)
 cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
     """ Returns a numpy rotation matrix corresponding to the
-    rotation of the z-axis ([0, 0, 1]) to a given normal vector
-    https://math.stackexchange.com/a/476311
+    rotation of the given normal vector to the z-axis ([0, 0, 1]).
+    See https://math.stackexchange.com/a/476311 although note we return the
+    inverse of what's specified there.
     """
     cdef np.float64_t[:] normal_vector_np = np.array([normal_vector[0], normal_vector[1], normal_vector[2]], 
                                                      dtype='float_')
@@ -1549,9 +1548,9 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
                                                       [v[2], 0, -1 * v[0]],
                                                       [-1 * v[1], v[0], 0]], 
                                                       dtype='float_')
-    return np.identity(3, dtype='float_') + cross_product_matrix \
-        + np.matmul(cross_product_matrix, cross_product_matrix) \
-        * 1/(1+c)
+    return np.linalg.inv(np.identity(3, dtype='float_') + cross_product_matrix 
+                         + np.matmul(cross_product_matrix, cross_product_matrix)
+                         * 1/(1+c))
 
 
 @cython.initializedcheck(False)
