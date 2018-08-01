@@ -739,6 +739,58 @@ class YTCoveringGrid(YTSelectionContainer3D):
         for p in part:
             self[p] = self._data_source[p]
 
+    def _fill_sph_particles(self, fields):
+        # checks that we have the field and gets information
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
+
+        ptype = self.ds._sph_ptype
+        smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+
+        bounds, size = self._get_grid_bounds_size()
+
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
+        if(smoothing_style == "scatter"):
+            for field in fields:
+                dest = np.zeros(size, dtype="float64")
+
+                if normalize:
+                    dest_den = np.zeros(size, dtype="float64")
+
+                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+                for chunk in self._data_source.chunks([field],"io"):
+                    px = chunk[(ptype,'particle_position_x')].in_base("code").d
+                    py = chunk[(ptype,'particle_position_y')].in_base("code").d
+                    pz = chunk[(ptype,'particle_position_z')].in_base("code").d
+                    hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
+                    mass = chunk[(ptype,'particle_mass')].in_base("code").d
+                    dens = chunk[(ptype,'density')].in_base("code").d
+                    field_quantity = chunk[field].d
+
+                    pixelize_sph_kernel_arbitrary_grid(dest, px, py, pz, hsml,
+                                    mass, dens, field_quantity, bounds, pbar)
+                    if normalize:
+                        pixelize_sph_kernel_arbitrary_grid(dest_den, px, py, pz,
+                                    hsml, mass, dens, np.ones(hsml.shape[0]),
+                                    bounds)
+
+                if normalize:
+                    normalization_3d_utility(dest, dest_den)
+
+                fi = self.ds._get_field_info(field)
+                self[field] = self.ds.arr(dest, fi.units)
+                pbar.close()
+
+        if(smoothing_style == "gather"):
+            for field in fields:
+                buff = np.zeros(self.ActiveDimensions, dtype="float64")
+
+                pixelize_sph_gather(buff, bounds, self.ds, field,
+                                    ptype, normalize=normalize)
+
+                fi = self.ds._get_field_info(field)
+                self[field] = self.ds.arr(buff, fi.units)
+
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
@@ -857,6 +909,20 @@ class YTCoveringGrid(YTSelectionContainer3D):
                                sim_time=self.ds.current_time.v)
         write_to_gdf(ds, gdf_path, **kwargs)
 
+    def _get_grid_bounds_size(self):
+        dd = self.ds.domain_width / 2**self.level
+        bounds = np.zeros(6, dtype=float)
+
+        bounds[0] = self.left_edge[0].in_base("code")
+        bounds[1] = bounds[0] + dd[0].d * self.ActiveDimensions[0]
+        bounds[2] = self.left_edge[1].in_base("code")
+        bounds[3] = bounds[2] + dd[1].d * self.ActiveDimensions[1]
+        bounds[4] = self.left_edge[2].in_base("code")
+        bounds[5] = bounds[4] + dd[2].d * self.ActiveDimensions[2]
+        size = np.ones(3, dtype=int) * 2**self.level
+
+        return bounds, size
+
 class YTArbitraryGrid(YTCoveringGrid):
     """A 3D region with arbitrary bounds and dimensions.
 
@@ -919,14 +985,7 @@ class YTArbitraryGrid(YTCoveringGrid):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(dest, fi.units)
 
-    def _fill_sph_particles(self, fields):
-        # checks that we have the field and gets information
-        fields = [f for f in fields if f not in self.field_data]
-        if len(fields) == 0: return
-
-        ptype = self.ds._sph_ptype
-        smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
-
+    def _get_grid_bounds_size(self):
         bounds = np.empty(6, dtype=float)
         bounds[0] = self.left_edge[0].in_base("code")
         bounds[2] = self.left_edge[1].in_base("code")
@@ -934,49 +993,9 @@ class YTArbitraryGrid(YTCoveringGrid):
         bounds[1] = self.right_edge[0].in_base("code")
         bounds[3] = self.right_edge[1].in_base("code")
         bounds[5] = self.right_edge[2].in_base("code")
+        size = self.ActiveDimensions
 
-        normalize = getattr(self.ds, 'use_sph_normalization', True)
-
-        if(smoothing_style == "scatter"):
-            for field in fields:
-                dest = np.zeros(self.ActiveDimensions, dtype="float64")
-
-                if normalize:
-                    dest_den = np.zeros(self.ActiveDimensions, dtype="float64")
-
-                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
-                for chunk in self._data_source.chunks([field],"io"):
-                    px = chunk[(ptype,'particle_position_x')].in_base("code").d
-                    py = chunk[(ptype,'particle_position_y')].in_base("code").d
-                    pz = chunk[(ptype,'particle_position_z')].in_base("code").d
-                    hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
-                    mass = chunk[(ptype,'particle_mass')].in_base("code").d
-                    dens = chunk[(ptype,'density')].in_base("code").d
-                    field_quantity = chunk[field].d
-
-                    pixelize_sph_kernel_arbitrary_grid(dest, px, py, pz, hsml,
-                                    mass, dens, field_quantity, bounds, pbar)
-                    if normalize:
-                        pixelize_sph_kernel_arbitrary_grid(dest_den, px, py, pz,
-                                    hsml, mass, dens, np.ones(hsml.shape[0]),
-                                    bounds)
-
-                if normalize:
-                    normalization_3d_utility(dest, dest_den)
-
-                fi = self.ds._get_field_info(field)
-                self[field] = self.ds.arr(dest, fi.units)
-                pbar.close()
-
-        if(smoothing_style == "gather"):
-            for field in fields:
-                buff = np.zeros(self.ActiveDimensions, dtype="float64")
-
-                pixelize_sph_gather(buff, bounds, self.ds, field,
-                                    ptype, normalize=normalize)
-
-                fi = self.ds._get_field_info(field)
-                self[field] = self.ds.arr(buff, fi.units)
+        return bounds, size
 
 class LevelState(object):
     current_dx = None
