@@ -1,8 +1,15 @@
 cimport numpy as np
 import numpy as np
-import struct
 cimport cython
+
+# for writing to file
+import struct
+
+# cpp includes
 from libcpp.vector cimport vector
+from libcpp cimport bool
+
+# c includes
 cimport libc.math as math
 
 from yt.geometry.particle_deposit cimport \
@@ -11,23 +18,23 @@ from yt.geometry.particle_deposit cimport \
 cdef struct Node:
     double left_edge[3]
     double right_edge[3]  # may be more efficient to store the width instead
-    int start
+    int start             # which particles we store
     int end
-    int parent
-    int children
-    int leaf
-    int node_id
-    int buff_id
-    int depth
+    int parent            # position of parent in Octree.nodes
+    int children          # position of 0th child, children are contiguous
+    bool leaf
+    unsigned int node_id  # these probably should be longs
+    unsigned int leaf_id
+    unsigned short depth
 
 cdef struct Octree:
     vector[Node] nodes
     double left_edge[3]
     double right_edge[3]
-    int n_ref
+    unsigned int n_ref
     Node * root
     int * idx
-    int max_depth
+    unsigned short max_depth
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -38,7 +45,6 @@ cdef class PyOctree:
     cdef int _n_ref
     cdef int _num_octs
     cdef int _num_particles
-    cdef int _min_depth
     cdef kernel_func kernel
 
     def __init__(self, double[:, ::1] &input_pos = None, left_edge = None,
@@ -94,9 +100,12 @@ cdef class PyOctree:
         root.parent = -1
         root.start = 0
         root.end = input_pos.shape[0]*3
+        root.children = -1
         root.node_id = 0
         root.leaf = 1
         root.depth = 0
+        root.leaf_id = 0
+        root.node_id = 0
 
         # store the root in an array and make a convenient pointer
         self.c_tree.nodes.push_back(root)
@@ -115,6 +124,10 @@ cdef class PyOctree:
         self.num_octs = 0
         self.idx = np.array([0], dtype=np.int32)
         self.num_particles = 0
+
+    @property
+    def size_bytes(self):
+        return sizeof(Node) * self.c_tree.nodes.size()
 
     @property
     def max_depth(self):
@@ -159,9 +172,7 @@ cdef class PyOctree:
 
     @property
     def leaf_positions(self):
-
-        cdef int i, j, z
-        z = 0
+        cdef int i, j, z = 0
         positions = []
         for i in range(self.c_tree.nodes.size()):
             if self.c_tree.nodes[i].leaf == 0:
@@ -171,7 +182,7 @@ cdef class PyOctree:
                     positions.append((self.c_tree.nodes[i].left_edge[j] +
                                       self.c_tree.nodes[i].right_edge[j]) / 2)
 
-                self.c_tree.nodes[i].buff_id = z
+                self.c_tree.nodes[i].leaf_id = z
                 z+=1
 
         positions = np.asarray(positions)
@@ -190,7 +201,7 @@ cdef class PyOctree:
             f.write(struct.pack('{}i'.format(self.num_particles),
                                 *self.idx))
             for i in range(self.num_octs):
-                f.write(struct.pack('6d5i',
+                f.write(struct.pack('6d4i?2ih',
                                     self.c_tree.nodes[i].left_edge[0],
                                     self.c_tree.nodes[i].left_edge[1],
                                     self.c_tree.nodes[i].left_edge[2],
@@ -201,12 +212,15 @@ cdef class PyOctree:
                                     self.c_tree.nodes[i].end,
                                     self.c_tree.nodes[i].parent,
                                     self.c_tree.nodes[i].children,
-                                    self.c_tree.nodes[i].leaf))
+                                    self.c_tree.nodes[i].leaf,
+                                    self.c_tree.nodes[i].node_id,
+                                    self.c_tree.nodes[i].leaf_id,
+                                    self.c_tree.nodes[i].depth))
 
     def load(self, fname = None):
         if fname is None:
-            raise ValueError("A filename must be specified to load the kdtree!")
-
+            raise ValueError("A filename must be specified to load the octtree!")
+        # clear any current tree we have loaded
         self.reset()
 
         cdef Node temp
@@ -220,14 +234,12 @@ cdef class PyOctree:
             for i in range(self.num_octs):
                 (temp.left_edge[0], temp.left_edge[1], temp.left_edge[2],
                  temp.right_edge[0], temp.right_edge[1], temp.right_edge[2],
-                 temp.start, temp.end, temp.parent, temp.children,
-                 temp.leaf) = struct.unpack('6d5i', f.read(68))
+                 temp.start, temp.end, temp.parent, temp.children, temp.leaf,
+                 temp.node_id, temp.leaf_id, temp.depth) = \
+                struct.unpack('6d4i?2ih', f.read(78))
 
                 self.c_tree.nodes.push_back(temp)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef void smooth_onto_leaves(self, np.float64_t[:] buff, np.float64_t posx,
                                  np.float64_t posy, np.float64_t posz,
                                  np.float64_t hsml, np.float64_t prefactor,
@@ -258,11 +270,8 @@ cdef class PyOctree:
 
             q_ij = math.sqrt((diff_x + diff_y + diff_z) / (hsml*hsml))
 
-            buff[node.buff_id] += prefactor * self.kernel(q_ij)
+            buff[node.leaf_id] += prefactor * self.kernel(q_ij)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def interpolate_sph_octs(self, np.float64_t[:] buff, np.float64_t[:] posx,
                              np.float64_t[:] posy, np.float64_t[:] posz,
                              np.float64_t[:] pmass, np.float64_t[:] pdens,
@@ -287,6 +296,7 @@ cdef int reserve(vector[Node] * vec, int amount) except +MemoryError:
     vec.reserve(amount)
     return 0
 
+# NOTE: maybe move these into the PyOctree
 # TODO: move these into the pyoctree class
 # this makes the children and stores them in the tree.node
 @cython.boundscheck(False)
@@ -302,6 +312,7 @@ cdef inline int generate_children(Octree &tree, Node * node) nogil:
     temp.parent = node.node_id
     temp.leaf = 1
     temp.depth = node.depth + 1
+    temp.leaf_id = 0
 
     tree.max_depth = max(temp.depth, tree.max_depth)
 

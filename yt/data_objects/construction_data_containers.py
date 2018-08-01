@@ -2138,18 +2138,27 @@ class YTOctree(YTSelectionContainer3D):
 
     def _generate_octree(self, fname = None):
         # for debug purpose force a rebuild
-        #if fname is not None:
-        #    if os.path.exists(fname):
-        #        mylog.info('Loading octree from %s' % os.path.basename(fname))
-        #        octree = PyOctree()
-        #        octree.load(fname)
-        #        #if octree.hash != self.ds._file_hash:
-        #        #    mylog.info('Detected hash mismatch, regenerating Octree')
-        #        #else:
-        #        self._octree = octree
-        #        return
+        if fname is not None:
+            if os.path.exists(fname):
+                mylog.info('Loading octree from %s' % os.path.basename(fname))
+                octree = PyOctree()
+                octree.load(fname)
+                #if octree.hash != self.ds._file_hash:
+                #    mylog.info('Detected hash mismatch, regenerating Octree')
+                #else:
+                self._octree = octree
+                return
 
-        positions = self._data_source[(self.ptypes[0], 'Coordinates')]
+        if isinstance(self.ptypes, list) and len(self.ptypes) > 1:
+            positions = []
+            for ptype in self.ptypes:
+                positions.append(self._data_source[(ptype, 'Coordinates')])
+            positions = np.concatenate(positions)
+        elif isinstance(self.ptypes, list):
+            positions = self._data_source[(self.ptypes[0], 'Coordinates')]
+        else:
+            positions = self._data_source[(self.ptypes, 'Coordinates')]
+
         if positions == []:
             self._octree = None
             return
@@ -2163,6 +2172,7 @@ class YTOctree(YTSelectionContainer3D):
             #data_version=self.ds._file_hash
         )
 
+        mylog.info('Saving octree to file %s', fname)
         if fname is not None:
             self._octree.save(fname)
 
@@ -2230,11 +2240,10 @@ class YTOctree(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
 
-        #self.scatter_smooth(fields)
-        import time
-        t0 = time.time()
-        self.gather_smooth(fields)
-        print("time for interp:", time.time() - t0)
+        if self.ds.sph_smoothing_style == "scatter":
+            self.scatter_smooth(fields)
+        else:
+            self.gather_smooth(fields)
 
     def gather_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
@@ -2252,30 +2261,29 @@ class YTOctree(YTSelectionContainer3D):
             quant_to_smooth.append(chunk[fields].in_base("code").d)
 
         tree = self.ds.index.kdtree
-
         pos = np.concatenate(pos)
-        pos = pos[tree.idx, :]
         dens = np.concatenate(dens)
-        dens = dens[tree.idx]
         mass = np.concatenate(mass)
-        mass = mass[tree.idx]
         hsml = np.concatenate(hsml)
-        hsml = hsml[tree.idx]
         quant_to_smooth = np.concatenate(quant_to_smooth)
-        quant_to_smooth = quant_to_smooth[tree.idx]
 
-        interpolate_sph_arbitrary_positions_gather(buff, pos,
+        pbar = tqdm(desc="Interpolating (gather) SPH field {}".format(fields[0]),
+                    total=self._octree.leaf_positions.shape[0])
+        interpolate_sph_arbitrary_positions_gather(buff, pos[tree.idx, :],
                                                    self._octree.leaf_positions,
-                                                   hsml, mass, dens,
-                                                   quant_to_smooth, tree)
+                                                   hsml[tree.idx], mass[tree.idx],
+                                                   dens[tree.idx],
+                                                   quant_to_smooth[tree.idx],
+                                                   tree, pbar=pbar)
+        pbar.close()
 
         self[fields] = buff
 
     def scatter_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
 
-        # do chunkwise deposition
         ptype = fields[0]
+        pbar = tqdm(desc="Interpolating (scatter) SPH field {}".format(fields[0]))
         for chunk in self._data_source.chunks([fields], "io"):
             px = chunk[(ptype,'particle_position_x')].in_base("code").d
             py = chunk[(ptype,'particle_position_y')].in_base("code").d
@@ -2287,4 +2295,7 @@ class YTOctree(YTSelectionContainer3D):
 
             self.octree.interpolate_sph_octs(buff, px, py, pz, pmass, pdens,
                                              hsml, field_quantity)
+            pbar.update(1)
+        pbar.close()
+
         self[fields] = buff

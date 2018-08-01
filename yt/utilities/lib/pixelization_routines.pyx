@@ -1067,7 +1067,7 @@ def interpolate_sph_arbitrary_positions_gather(
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
         PyKDTree kdtree=None,
-        kernel_name="cubic"):
+        kernel_name="cubic", pbar=None):
 
     cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
     cdef int index, i, j, particle
@@ -1075,6 +1075,10 @@ def interpolate_sph_arbitrary_positions_gather(
 
     kernel_func = get_kernel_func(kernel_name)
     for j in range(0, interpolation_positions.shape[0]):
+        if j % 20000 == 0:
+            if pbar is not None:
+                pbar.update(20000)
+
         knn_position(interpolation_positions[j, :], particle_positions,
                      queue, kdtree)
 
