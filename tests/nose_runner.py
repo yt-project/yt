@@ -1,4 +1,3 @@
-import subprocess
 import sys
 import os
 import yaml
@@ -130,10 +129,3 @@ if __name__ == "__main__":
         cov.stop()
         cov.combine()
         cov.xml_report(outfile="coverage.xml", ignore_errors=True)
-        try:
-            res = subprocess.check_output('codecov', stderr=subprocess.STDOUT,
-                                          universal_newlines=True, shell=True)
-            print(res)
-        except subprocess.CalledProcessError as e:
-            print("Error while uploading coverage data.")
-            print(e.output)
