@@ -482,13 +482,14 @@ all the cells contained in a sphere at the center of our dataset.
    sp = ds.sphere('c', (10, 'kpc'))
    print(sp.quantities.angular_momentum_vector())
 
-Some quantities can be calculated for a specific particle type only. For exmaple, to 
-get the center of mass of all stars within the sphere:
+Some quantities can be calculated for a specific particle type only. For example, to 
+get the center of mass of only the stars within the sphere:
 
 .. code-block:: python
    ds=load("my_data")
    sp=ds.sphere('c',(10,'kpc'))
    print(sp.quantities.center_of_mass(use_gas=False,use_particles=True,particle_type='star'))
+
 
 Quickly Processing Data
 ^^^^^^^^^^^^^^^^^^^^^^^
