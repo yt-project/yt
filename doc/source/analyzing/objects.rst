@@ -585,9 +585,10 @@ Available Derived Quantities
 
 **Angular Momentum Vector**
     | Class :class:`~yt.data_objects.derived_quantities.AngularMomentumVector`
-    | Usage: ``angular_momentum_vector(use_gas=True, use_particles=True)``
+    | Usage: ``angular_momentum_vector(use_gas=True, use_particles=True, particle_type='all')``
     | The mass-weighted average angular momentum vector of the particles, gas,
-      or both.
+      or both. The quantity can be calculated for all particles or a given
+      particle_type only.
 
 **Bulk Velocity**
     | Class :class:`~yt.data_objects.derived_quantities.BulkVelocity`
