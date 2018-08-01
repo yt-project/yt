@@ -131,6 +131,11 @@ class FITSImageData(object):
 
         if width is None:
             width = 1.0
+        if isinstance(width, tuple):
+            if ds is None:
+                width = YTQuantity(width[0], width[1])
+            else:
+                width = ds.quan(width[0], width[1])
         if img_ctr is None:
             img_ctr = np.zeros(3)
 
@@ -207,7 +212,7 @@ class FITSImageData(object):
                     else:
                         short_unit = unit[0]
                     key = "{}unit".format(short_unit)
-                    value = getattr(self, key)
+                    value = getattr(self, "{}_unit".format(unit))
                     hdu.header[key] = float(value.value)
                     hdu.header.comments[key] = value.units
                 if self.current_time is not None:
