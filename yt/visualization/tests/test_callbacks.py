@@ -278,9 +278,9 @@ def test_particles_callback():
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
+        ad=ds.all_data()
         p.annotate_particles((10, "Mpc"), p_size=1.0, col="k", marker="o",
-                             stride=1, ptype="all", minimum_mass=None,
-                             alpha=1.0)
+                             stride=1, ptype="all",alpha=1.0,data_source=ad)
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
