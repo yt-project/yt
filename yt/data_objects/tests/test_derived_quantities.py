@@ -143,6 +143,9 @@ def test_derived_quantities_with_particle_types():
         com_x=(ad[(ptype,'particle_mass')]*ad[(ptype,'particle_position_x')]/ad[(ptype,'particle_mass')].sum()).sum()
         assert_almost_equal(ad.quantities.center_of_mass(use_gas=False,use_particles=True,particle_type=ptype)[0],com_x,5)
 
+        #Check angular momentum vector
+        l_x=(ad[(ptype,'particle_specific_angular_momentum_x')]*ad[(ptype,'particle_mass')]/ad[(ptype,'particle_mass')].sum()).sum()
+        assert_almost_equal(ad.quantities.angular_momentum_vector(use_gas=False,use_particles=True,particle_type=ptype)[0],l_x,5)
 
     #Check spin parameter values
     assert_almost_equal(ad.quantities.spin_parameter(use_gas=False,use_particles=True),655.7311454765503)

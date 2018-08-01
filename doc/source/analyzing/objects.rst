@@ -635,7 +635,7 @@ Available Derived Quantities
 
 **Spin Parameter**
     | Class :class:`~yt.data_objects.derived_quantities.SpinParameter`
-    | Usage: ``spin_parameter(use_gas=True, use_particles=True,' particle_type='all')``
+    | Usage: ``spin_parameter(use_gas=True, use_particles=True, particle_type='all')``
     | The spin parameter for the baryons using the particles, gas, or both. The 
       quantity can be calculated for all particles or a given particle_type only.
 
