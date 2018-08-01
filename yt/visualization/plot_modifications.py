@@ -29,6 +29,7 @@ from yt.analysis_modules.level_sets.clump_handling import \
     Clump
 from yt.frontends.ytdata.data_structures import \
     YTClumpContainer
+from yt.data_objects.selection_data_containers import YTCutRegion
 from yt.funcs import \
     iterable, \
     mylog, \
@@ -1622,7 +1623,7 @@ class ParticleCallback(PlotCallback):
     _descriptor = None
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1,
-                 ptype='all', minimum_mass=None, alpha=1.0):
+                 ptype='all', minimum_mass=None, alpha=1.0, data_source=None):
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
@@ -1632,6 +1633,7 @@ class ParticleCallback(PlotCallback):
         self.ptype = ptype
         self.minimum_mass = minimum_mass
         self.alpha = alpha
+        self.data_source=data_source
 
     def __call__(self, plot):
         data = plot.data
@@ -1643,7 +1645,11 @@ class ParticleCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
+        if type(self.data_source)==YTCutRegion:
+            mylog.warn("Parameter 'width' is ignored in annotate_particles if the data_source is a cut_region.")
+            self.region=self.data_source
+        else:
+            self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
         ax = data.axis
         xax = plot.data.ds.coordinates.x_axis[ax]
         yax = plot.data.ds.coordinates.y_axis[ax]
@@ -1659,15 +1665,12 @@ class ParticleCallback(PlotCallback):
                   plot.data.ds.domain_right_edge[yax]
         period_x = plot.data.ds.domain_width[xax]
         period_y = plot.data.ds.domain_width[yax]
-        particle_x, particle_y = self._enforce_periodic(reg[pt, field_x],
-                                                        reg[pt, field_y],
+        particle_x, particle_y = self._enforce_periodic(self.region[pt, field_x],
+                                                        self.region[pt, field_y],
                                                         x0, x1, period_x,
                                                         y0, y1, period_y)
         gg = ( ( particle_x >= x0 ) & ( particle_x <= x1 )
            &   ( particle_y >= y0 ) & ( particle_y <= y1 ) )
-        if self.minimum_mass is not None:
-            gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
-            if gg.sum() == 0: return
         px, py = [particle_x[gg][::self.stride], particle_y[gg][::self.stride]]
         px, py = self.convert_to_plot(plot, [px, py])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
@@ -1710,7 +1713,7 @@ class ParticleCallback(PlotCallback):
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
             return self.region
-        self.region = data.ds.region(data.center, LE, RE)
+        self.region = data.ds.region(data.center, LE, RE, data_source=self.data_source)
         return self.region
 
 class TitleCallback(PlotCallback):
