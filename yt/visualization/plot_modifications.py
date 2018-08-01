@@ -294,16 +294,16 @@ class VelocityCallback(PlotCallback):
     """
     Adds a 'quiver' plot of velocity to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* and *plot_args* allows you to 
-    pass in matplotlib arguments (see matplotlib.axes.Axes.quiver 
-    for more info). if *normalize* is True, the velocity fields 
-    will be scaled by their local (in-plane) length, allowing 
-    morphological features to be more clearly seen for fields 
+    length unit using *scale_units* and *plot_args* allows you to
+    pass in matplotlib arguments (see matplotlib.axes.Axes.quiver
+    for more info). if *normalize* is True, the velocity fields
+    will be scaled by their local (in-plane) length, allowing
+    morphological features to be more clearly seen for fields
     with substantial variation in field strength.
     """
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, factor=16, scale=None, scale_units=None, 
+    def __init__(self, factor=16, scale=None, scale_units=None,
                  normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.factor = factor
@@ -339,7 +339,7 @@ class VelocityCallback(PlotCallback):
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
-                                 normalize=self.normalize, bv_x=bv_x, 
+                                 normalize=self.normalize, bv_x=bv_x,
                                  bv_y=bv_y, plot_args=self.plot_args)
         return qcb(plot)
 
@@ -347,15 +347,15 @@ class MagFieldCallback(PlotCallback):
     """
     Adds a 'quiver' plot of magnetic field to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* and *plot_args* allows you to pass 
+    length unit using *scale_units* and *plot_args* allows you to pass
     in matplotlib arguments (see matplotlib.axes.Axes.quiver for more info).
-    if *normalize* is True, the magnetic fields will be scaled by their 
+    if *normalize* is True, the magnetic fields will be scaled by their
     local (in-plane) length, allowing morphological features to be more
     clearly seen for fields with substantial variation in field strength.
     """
     _type_name = "magnetic_field"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
-    def __init__(self, factor=16, scale=None, scale_units=None, 
+    def __init__(self, factor=16, scale=None, scale_units=None,
                  normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.factor = factor
@@ -371,8 +371,8 @@ class MagFieldCallback(PlotCallback):
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
                                         "cutting_plane_magnetic_field_y",
-                                        self.factor, scale=self.scale, 
-                                        scale_units=self.scale_units, 
+                                        self.factor, scale=self.scale,
+                                        scale_units=self.scale_units,
                                         normalize=self.normalize,
                                         plot_args=self.plot_args)
         else:
@@ -381,9 +381,9 @@ class MagFieldCallback(PlotCallback):
             axis_names = plot.data.ds.coordinates.axis_name
             xv = "magnetic_field_%s" % (axis_names[xax])
             yv = "magnetic_field_%s" % (axis_names[yax])
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
-                                 normalize=self.normalize, 
+                                 normalize=self.normalize,
                                  plot_args=self.plot_args)
         return qcb(plot)
 
@@ -392,10 +392,10 @@ class QuiverCallback(PlotCallback):
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints.
     *scale* is the data units per arrow length unit using *scale_units*
-    and *plot_args* allows you to pass in matplotlib arguments (see 
-    matplotlib.axes.Axes.quiver for more info). if *normalize* is True, 
-    the fields will be scaled by their local (in-plane) length, allowing 
-    morphological features to be more clearly seen for fields with 
+    and *plot_args* allows you to pass in matplotlib arguments (see
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is True,
+    the fields will be scaled by their local (in-plane) length, allowing
+    morphological features to be more clearly seen for fields with
     substantial variation in field strength.
     """
     _type_name = "quiver"
@@ -459,7 +459,7 @@ class QuiverCallback(PlotCallback):
             nn = np.sqrt(pixX**2 + pixY**2)
             pixX /= nn
             pixY /= nn
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale,
                           scale_units=self.scale_units, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -594,7 +594,7 @@ class GridBoundaryCallback(PlotCallback):
     edgecolors='#00FFFF', or edgecolor='0.3', where the last is a float in 0-1
     scale indicating gray).  Note that setting edgecolors overrides cmap if you
     have both set to non-None values.  Cutoff for display is at min_pix
-    wide. draw_ids puts the grid id a the corner of the grid (but its not so 
+    wide. draw_ids puts the grid id a the corner of the grid (but its not so
     great in projections...).  id_loc determines which corner holds the grid id.
     One can set min and maximum level of grids to display, and
     can change the linewidth of the displayed grids.
@@ -602,7 +602,7 @@ class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
 
-    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, 
+    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20,
                  draw_ids=False, id_loc="lower left",
                  periodic=True, min_level=None, max_level=None,
                  cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
@@ -921,10 +921,10 @@ class CuttingQuiverCallback(PlotCallback):
     Get a quiver plot on top of a cutting plane, using *field_x* and
     *field_y*, skipping every *factor* datapoint in the discretization.
     *scale* is the data units per arrow length unit using *scale_units*
-    and *plot_args* allows you to pass in matplotlib arguments (see 
-    matplotlib.axes.Axes.quiver for more info). if *normalize* is True, 
-    the fields will be scaled by their local (in-plane) length, allowing 
-    morphological features to be more clearly seen for fields with 
+    and *plot_args* allows you to pass in matplotlib arguments (see
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is True,
+    the fields will be scaled by their local (in-plane) length, allowing
+    morphological features to be more clearly seen for fields with
     substantial variation in field strength.
     """
     _type_name = "cquiver"
@@ -976,7 +976,7 @@ class CuttingQuiverCallback(PlotCallback):
             pixX /= nn
             pixY /= nn
 
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale,
                           scale_units=self.scale_units, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -1486,7 +1486,7 @@ class HaloCatalogCallback(PlotCallback):
         be used to find the fields containing the coordinates
         of the center of each halo. Ex: 'particle_position'
         will result in the fields 'particle_position_x' for x
-        'particle_position_y' for y, and 'particle_position_z' 
+        'particle_position_y' for y, and 'particle_position_z'
         for z.
     text_args: Contains the arguments controlling the text
         appearance of the annotated field.
@@ -1614,9 +1614,9 @@ class ParticleCallback(PlotCallback):
     *width* along the line of sight.  *p_size* controls the number of
     pixels per particle, and *col* governs the color.  *ptype* will
     restrict plotted particles to only those that are of a given type.
-    Particles with masses below *minimum_mass* will not be plotted.
-    *alpha* determines the opacity of the marker symbol used in the scatter
-    plot.
+    *alpha* determines the opacity of the marker symbol used in the scatter.
+    An alternate data source can be specified with *data_source*, but by
+    default the plot's data source will be queried.
     """
     _type_name = "particles"
     region = None
@@ -1735,7 +1735,7 @@ class TitleCallback(PlotCallback):
 
 class MeshLinesCallback(PlotCallback):
     """
-    Adds mesh lines to the plot. Only works for unstructured or 
+    Adds mesh lines to the plot. Only works for unstructured or
     semi-structured mesh data. For structured grid data, see
     GridBoundaryCallback or CellEdgesCallback.
 
@@ -1763,17 +1763,17 @@ class MeshLinesCallback(PlotCallback):
 
     def promote_2d_to_3d(self, coords, indices, plot):
         new_coords = np.zeros((2*coords.shape[0], 3))
-        new_connects = np.zeros((indices.shape[0], 2*indices.shape[1]), 
+        new_connects = np.zeros((indices.shape[0], 2*indices.shape[1]),
                                 dtype=np.int64)
-    
+
         new_coords[0:coords.shape[0],0:2] = coords
         new_coords[0:coords.shape[0],2] = plot.ds.domain_left_edge[2]
         new_coords[coords.shape[0]:,0:2] = coords
         new_coords[coords.shape[0]:,2] = plot.ds.domain_right_edge[2]
-        
+
         new_connects[:,0:indices.shape[1]] = indices
         new_connects[:,indices.shape[1]:] = indices + coords.shape[0]
-    
+
         return new_coords, new_connects
 
     def __call__(self, plot):
@@ -1791,7 +1791,7 @@ class MeshLinesCallback(PlotCallback):
                 pass
             coords = m.connectivity_coords
             indices = m.connectivity_indices - m._index_offset
-            
+
             num_verts = indices.shape[1]
             num_dims = coords.shape[1]
 
@@ -1802,7 +1802,7 @@ class MeshLinesCallback(PlotCallback):
 
             tri_indices = triangulate_indices(indices.astype(np.int_))
             points = coords[tri_indices]
-        
+
             tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
             tfc(plot)
 
@@ -2140,8 +2140,8 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
-                 max_frac=0.16, min_frac=0.015, coord_system='axis', 
-                 text_args=None, size_bar_args=None, draw_inset_box=False, 
+                 max_frac=0.16, min_frac=0.015, coord_system='axis',
+                 text_args=None, size_bar_args=None, draw_inset_box=False,
                  inset_box_args=None, scale_text_format="{scale} {units}"):
 
         def_size_bar_args = {
@@ -2222,7 +2222,7 @@ class ScaleCallback(PlotCallback):
             self.coeff = max_scale.v
             self.unit = max_scale.units
         self.scale = YTQuantity(self.coeff, self.unit)
-        text = self.scale_text_format.format(scale=int(self.coeff), 
+        text = self.scale_text_format.format(scale=int(self.coeff),
                                              units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
