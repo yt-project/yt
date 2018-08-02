@@ -525,14 +525,27 @@ class YTFITSDataset(FITSDataset):
         """
         Generates the conversion to various physical _units based on the parameter file
         """
-        for unit in ("length", "time", "mass", "velocity", "magnetic"):
+        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
+                          ("velocity", "cm/s"), ("magnetic", "gauss")]:
             if unit == "magnetic":
-                short_unit = "bf"
+                short_unit = "bfunit"
             else:
-                short_unit = unit[0]
-            u = self.quan(self.primary_header["%sunit" % short_unit],
-                          self.primary_header.comments["%sunit" % short_unit])
-            mylog.info("Found %s units of %s." % (unit, u))
+                short_unit = "%sunit" % unit[0]
+            if short_unit in self.primary_header:
+                # units should now be in header
+                u = self.quan(self.primary_header[short_unit],
+                              self.primary_header.comments[short_unit])
+                mylog.info("Found %s units of %s." % (unit, u))
+            else:
+                if unit == "length":
+                    # Falling back to old way of getting units for length
+                    # in old files
+                    u = self.quan(1.0, str(self.wcs.wcs.cunit[0]))
+                    mylog.info("Found %s units of %s." % (unit, u))
+                else:
+                    # Give up otherwise
+                    u = self.quan(1.0, cgs)
+                    mylog.warning("No unit for %s found. Assuming 1.0 code_%s = 1.0 %s" % (unit, unit, cgs))
             setdefaultattr(self, '%s_unit' % unit, u)
 
     def _determine_bbox(self):
