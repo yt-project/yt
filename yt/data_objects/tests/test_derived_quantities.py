@@ -8,8 +8,6 @@ from yt.testing import \
     assert_almost_equal
 
 from yt import particle_filter
-from yt import load_particles
-from yt.units import parsec, Msun
 
 def setup():
     from yt.config import ytcfg
