@@ -74,43 +74,43 @@ jobs:
       script: flake8 yt/
 
     - stage: tests
-      name: "Python: 2.7 Unit Test"
+      name: "Python: 2.7 Unit Tests"
       python: 2.7
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0
-      script: coverage run $(which nosetests) --attr "!answer_test" -c nose.cfg
+      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0 REQUESTS=
+      script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
-      name: "Python: 2.7 Unit Test"
+      name: "Python: 2.7 Unit Tests"
       python: 2.7
       env: FLAKE8= REQUESTS=
-      script: coverage run $(which nosetests) --attr "!answer_test" -c nose.cfg
+      script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
-      name: "Python: 3.5 Unit Test"
+      name: "Python: 3.5 Unit Tests"
       python: 3.5
       env: FLAKE8= REQUESTS=
-      script: coverage run $(which nosetests) --attr "!answer_test" -c nose.cfg
+      script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
-      name: "Python: 3.6 Unit Test"
+      name: "Python: 3.6 Unit Tests"
       python: 3.6
-      env: FLAKE8=
-      script: coverage run $(which nosetests) --attr "!answer_test" -c nose.cfg
+      env: FLAKE8= REQUESTS=
+      script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
-      name: "Python: 2.7 Answer Test"
+      name: "Python: 2.7 Answer Tests"
       python: 2.7
       env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0
       script: coverage run tests/cloud_answer_tests_runner.py -f -m
 
     - stage: tests
-      name: "Python: 3.6 Answer Test"
+      name: "Python: 3.6 Answer Tests"
       python: 3.6
       env: FLAKE8=
       script: coverage run tests/cloud_answer_tests_runner.py -f -m
 
     - stage: tests
-      name: "Xcode: xcode7.3 Unit Test"
+      name: "Xcode: xcode7.3 Unit Tests"
       os: osx
       osx_image: xcode7.3
       language: generic  # https://github.com/travis-ci/travis-ci/issues/2312
@@ -120,7 +120,7 @@ jobs:
           - $HOME/Library/Caches/pip
           # `cache` does not support `env`-like `global` so copy-paste from top
           - $HOME/.ccache  # https://github.com/travis-ci/travis-ci/issues/5853
-      script: coverage run $(which nosetests) --attr "!answer_test" -c nose.cfg
+      script: coverage run $(which nosetests) -c nose_unit.cfg
 
 after_success:
   - |
