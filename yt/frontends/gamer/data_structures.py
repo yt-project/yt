@@ -78,7 +78,7 @@ class GAMERHierarchy(GridIndex):
 
     def _count_grids(self):
         # count the total number of patches at all levels
-        self.num_grids = self.dataset.parameters['NPatch'].sum()/self.pgroup
+        self.num_grids = self.dataset.parameters['NPatch'].sum()//self.pgroup
 
     def _parse_index(self):
         parameters       = self.dataset.parameters
@@ -89,7 +89,7 @@ class GAMERHierarchy(GridIndex):
         self.grid_dimensions[:] = parameters['PatchSize']*self.refine_by
 
         for lv in range(0, parameters['NLevel']):
-            num_grids_level = parameters['NPatch'][lv]/self.pgroup
+            num_grids_level = parameters['NPatch'][lv]//self.pgroup
             if num_grids_level == 0: break
 
             patch_scale = parameters['PatchSize']*parameters['CellScale'][lv]*self.refine_by
@@ -132,7 +132,7 @@ class GAMERHierarchy(GridIndex):
 
         for gid in range(self.num_grids):
             grid     = self.grids[gid]
-            son_gid0 = son_list[gid*self.pgroup:(gid+1)*self.pgroup]/self.pgroup
+            son_gid0 = son_list[gid*self.pgroup:(gid+1)*self.pgroup]//self.pgroup
 
             # set up the parent-children relationship
             grid.Children = [ self.grids[t] for t in son_gid0[son_gid0>=0] ]
@@ -175,7 +175,7 @@ class GAMERHierarchy(GridIndex):
 
             # parent index is consistent with the loaded dataset
             if grid.Level > 0:
-                father_gid = father_list[grid.id*self.pgroup]/self.pgroup
+                father_gid = father_list[grid.id*self.pgroup]//self.pgroup
                 assert father_gid == grid.Parent.id, \
                        'Grid %d, Level %d, Parent_Found %d, Parent_Expect %d' % \
                        (grid.id, grid.Level, grid.Parent.id, father_gid)

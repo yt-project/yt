@@ -119,7 +119,7 @@ class IOHandlerGAMER(BaseIOHandler):
 
         # shortcuts
         ps2 = self.patch_size
-        ps1 = ps2/2
+        ps1 = ps2//2
 
         for field in fields:
             ds     = self._group_grid[ field[1] ]
@@ -173,7 +173,7 @@ class IOHandlerGAMER(BaseIOHandler):
         if len(fluid_fields) == 0: return rv
 
         ps2 = self.patch_size
-        ps1 = ps2/2
+        ps1 = ps2//2
 
         for field in fluid_fields:
             ds = self._group_grid[ field[1] ]
