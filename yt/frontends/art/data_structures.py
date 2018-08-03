@@ -203,9 +203,6 @@ class ARTDataset(Dataset):
                 if possible.endswith(numericstr+suffix):
                     if os.path.basename(possible).startswith(prefix):
                         match = possible
-                elif possible.endswith(suffix):
-                    if os.path.basename(possible).startswith(prefix):
-                        match = possible
             if match is not None:
                 mylog.info('discovered %s:%s', filetype, match)
                 setattr(self, "_file_"+filetype, match)
