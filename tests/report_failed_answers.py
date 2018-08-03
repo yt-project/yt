@@ -1,5 +1,6 @@
 """
-Answer Tests runner on cloud platforms like Travis
+Script to generate report of failed answer tests or to generate golden answers
+on cloud platforms like Travis
 
 """
 
@@ -20,20 +21,18 @@ import logging
 import os
 import re
 import shutil
-import sys
 import tempfile
 import xml.etree.ElementTree as ET
 
 import nose
 import numpy
 import requests
-
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
 from yt.utilities.command_line import FileStreamer
 
 logging.basicConfig(level=logging.INFO)
-log = logging.getLogger('cloud-answer-test-runner')
+log = logging.getLogger('yt_report_failed_answers')
 numpy.set_printoptions(threshold=5, edgeitems=1, precision=4)
 
 def generate_failed_answers_html(failed_answers):
@@ -317,7 +316,8 @@ def parse_nose_xml(nose_xml):
     """
     missing_answers = []
     failed_answers = []
-
+    missing_errors = ["No such file or directory",
+                      "There is no old answer available"]
     tree = ET.parse(nose_xml)
     testsuite = tree.getroot()
 
@@ -325,8 +325,10 @@ def parse_nose_xml(nose_xml):
         for error in testcase:
             test_name = testcase.attrib["classname"] + ":" \
                         + testcase.attrib["name"]
-            if "No such file or directory" in error.attrib["message"]:
-                missing_answers.append(test_name)
+            if missing_errors[0] in error.attrib["message"] or \
+                    missing_errors[1] in error.attrib["message"]:
+                    missing_answers.append(test_name)
+
             elif "Items are not equal" in error.attrib["message"]:
                 img_path = extract_image_locations(error.attrib["message"])
                 if img_path:
@@ -334,10 +336,10 @@ def parse_nose_xml(nose_xml):
     return failed_answers, missing_answers
 
 if __name__ == "__main__":
-    """Run answer tests on cloud platforms like Travis, Appveyor
+    """Report failed answer tests of cloud platforms like Travis, Appveyor
 
-    This script executes yt answer tests on cloud platform.
-    If the test fail due to difference in actual and expected images, 
+    This script parses the nosetests xml file generated after answer tests are 
+    executed. If the test fail due to difference in actual and expected images, 
     this function uploads a html page having all the plots which got failed 
     (if executed with `-f` command line argument).
     In case, answer store does not has a golden answer and if executed with 
@@ -351,6 +353,10 @@ if __name__ == "__main__":
     parser.add_argument("-m", "--upload-missing-answers", action="store_true",
                         help="Upload tests' answers that are not found in "
                              "answer-store.")
+    parser.add_argument("--xunit-file", action="store", dest="nosetest_xml",
+                        required=True,
+                        help="Name of the nosetests xml file to parse for "
+                             "failed answer tests.")
     args = parser.parse_args()
 
     # ANSI color codes
@@ -359,23 +365,9 @@ if __name__ == "__main__":
     COLOR_RESET = '\x1b[0m'
     FLAG_EMOJI = u' \U0001F6A9 '
 
-    ANSWER_STORE = ytcfg.get("yt", "test_storage_dir")
-    if not ANSWER_STORE or ANSWER_STORE == "/does/not/exist":
-        ANSWER_STORE = "answer-store"
-
-    NOSETEST_XML = "answer_testing_nosetests.xml"
-
-    # first parameter is program name
-    # https://github.com/python/cpython/blob/master/Lib/unittest/main.py#L99
-    test_argv = [os.path.basename(__file__), '--with-answer-testing',
-                 '--nologcapture', '-s', '-d', '-v', '--local',
-                 '--attr=answer_test', '--local-dir=%s' % ANSWER_STORE,
-                 '--with-xunit', '--xunit-file=%s' % NOSETEST_XML, 'yt']
-    result = nose.run(argv=test_argv, addplugins=[AnswerTesting()], exit=False)
-
     failed_answers = missing_answers = None
-    if not result and (args.upload_failed_tests or args.upload_missing_answers):
-        failed_answers, missing_answers = parse_nose_xml(NOSETEST_XML)
+    if args.upload_failed_tests or args.upload_missing_answers:
+        failed_answers, missing_answers = parse_nose_xml(args.nosetest_xml)
 
     if args.upload_failed_tests and failed_answers:
         response = upload_failed_answers(failed_answers)
@@ -396,6 +388,3 @@ if __name__ == "__main__":
                    "answers in the repository's answer-store." +
                    COLOR_RESET + FLAG_EMOJI)
             log.info(msg)
-
-    # 0 on success and 1 on failure
-    sys.exit(not result)
