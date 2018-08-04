@@ -19,33 +19,25 @@ import weakref
 import glob
 import h5py
 
-from yt.funcs import \
-    mylog, \
-    ensure_tuple
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.utilities.file_handler import \
     HDF5FileHandler
 
 from .fields import ChollaFieldInfo
-from yt.utilities.decompose import \
-    decompose_array, get_psize
 
 class ChollaGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        super(ChollaGrid, self).__init__(self, id, \
-                                         filename=index.index_filename, \
-                                         index=index)
+        #super().__init__(self, id, filename=index.index_filename, index=index)
+        AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
         self.filename = index.index_filename
         self.Parent = None
         self.Children = []
@@ -55,12 +47,9 @@ class ChollaGrid(AMRGridPatch):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
-        if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.ds.refine_by
-        else:
-            LE, RE = self.index.grid_left_edge[id,:], \
-                     self.index.grid_right_edge[id,:]
-            self.dds = self.ds.arr((RE-LE)/self.ActiveDimensions, "code_length")
+        LE, RE = self.index.grid_left_edge[id,:], \
+                 self.index.grid_right_edge[id,:]
+        self.dds = self.ds.arr((RE-LE)/self.ActiveDimensions, "code_length")
         if self.ds.dimensionality < 2: self.dds[1] = 1.0
         if self.ds.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
@@ -81,22 +70,23 @@ class ChollaHierarchy(GridIndex):
         # for now, the index file is the dataset!
         self.index_filename = self.dataset.filename
         self._handle = ds._handle
+        #super().__init__(self, ds. dataset_type)
         GridIndex.__init__(self, ds, dataset_type)
 
     def _count_grids(self):
-        pass
+        self.num_grids = 1
 
     def _parse_index(self):
         self.num_grids = 1
-        self.grid_left_edge = self.dataset.domain_left_edge
-        self.grid_right_edge = self.dataset.domain_right_edge
-        self.grid_dimensions = self.dataset.dimensions
-        self.grid_particle_count = np.ones([self.num_grids, 1], dtype='int64')
+        self.grid_left_edge = self.dataset.domain_left_edge.reshape(1,3)
+        self.grid_right_edge = self.dataset.domain_right_edge.reshape(1,3)
+        self.grid_dimensions = self.dataset.domain_dimensions.reshape(1,3)
+        self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
         self.grid_levels = np.ones([self.num_grids, 1], dtype='int64')
         self.max_level = np.ones([self.num_grids, 1], dtype='int64')
         self.grids = np.empty(self.num_grids, dtype='object')
-        for i in range(num_grids):
-            self.grids[i] = self.grid(i, self, levels[i])
+        for i in range(self.num_grids):
+            self.grids[i] = self.grid(i, self, self.grid_levels[i])
 
     def _populate_grid_objects(self):
         for g in self.grids:
@@ -110,6 +100,12 @@ class ChollaHierarchy(GridIndex):
             yield YTDataChunk(dobj, "io", [subset],
                               self._count_selection(dobj, [subset]),
                               cache = cache)
+
+    def _detect_output_fields(self):
+        self.field_list = []
+        f = h5py.File(self.dataset.filename, 'r')
+        self.field_list = [('cholla', k) for k in list(f.keys())]
+        f.close()
 
 class ChollaDataset(Dataset):
     _index_class = ChollaHierarchy
@@ -125,6 +121,8 @@ class ChollaDataset(Dataset):
         if units_override is None:
             units_override = {}
         self._handle = HDF5FileHandler(filename)
+        #super().__init__(self, filename, dataset_type, 
+        #                 units_override=units_override, unit_system=unit_system)
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
         self.filename = filename
@@ -154,6 +152,7 @@ class ChollaDataset(Dataset):
         self.cosmological_simulation = False
         self.periodicity = (False, False, False)
         self.gamma = self._handle.attrs['gamma']
+
         self._handle.close()
 
     @classmethod
