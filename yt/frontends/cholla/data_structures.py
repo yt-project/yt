@@ -83,6 +83,9 @@ class ChollaHierarchy(GridIndex):
         self._handle = ds._handle
         GridIndex.__init__(self, ds, dataset_type)
 
+    def _count_grids(self):
+        pass
+
     def _parse_index(self):
         self.num_grids = 1
         self.grid_left_edge = self.dataset.domain_left_edge
