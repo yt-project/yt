@@ -81,7 +81,8 @@ def generate_tasks_input():
     tests = yaml.load(data)
 
     base_argv = ['--local-dir=%s' % answers_dir, '-s', '--nologcapture',
-                 '--with-answer-testing', '--answer-big-data', '--local']
+                 '--with-answer-testing', '--answer-big-data', '--local',
+                 '--with-xunit']
     args = []
 
     for test in list(tests["other_tests"].keys()):
