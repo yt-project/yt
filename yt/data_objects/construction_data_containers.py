@@ -2207,10 +2207,10 @@ class YTOctree(YTSelectionContainer3D):
             return ['all']
 
         self.ds.index
-        for ptype in ptypes:
-            if ptype not in self.ds.particle_types:
-                raise TypeError("%s not found. Particle type must be in the \
-                                dataset!".format(ptype))
+        # NOTE: work with lists
+        if ptypes not in self.ds.particle_types:
+            raise TypeError("%s not found. Particle type must be in the \
+                                dataset!".format(ptypes))
 
         return ptypes
 

@@ -11,50 +11,62 @@ from libcpp cimport bool
 
 # c includes
 cimport libc.math as math
+from libc.stdlib cimport malloc, free
 
 from yt.geometry.particle_deposit cimport \
     kernel_func, get_kernel_func
 
 cdef struct Node:
     double left_edge[3]
-    double right_edge[3]        # may be more efficient to store the width instead
-    unsigned long start         # which particles we store
+    double right_edge[3]           # may be more efficient to store the width
+
+    unsigned long start            # instead which particles we store
     unsigned long end
-    unsigned long parent        # position of parent in Octree.nodes
-    unsigned long children      # position of 0th child, children are contiguous
+
+    unsigned long parent           # position of parent in Octree.nodes
+    unsigned long children         # position of 0th child, children are
+                                   # contiguous
     bool leaf
-    unsigned long node_id       # these probably should be longs
-    unsigned long leaf_id       # not actually sure how useful this is
+    unsigned long node_id          # these probably should be longs
+    unsigned long leaf_id          # not actually sure how useful this is
     unsigned int depth
+
 
 @cython.boundscheck(True)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef class PyOctree:
-    cdef int _state             # 0 if tree is not built, 1 for a built tree
-    cdef double _left_edge[3]   # boundary conditions for the oct
-    cdef double _right_edge[3]
-    cdef long[:] _idx           # ordering of particles used by the tree
-    cdef int _n_ref
-    cdef int _num_octs
-    cdef int _num_particles
-    cdef int _max_depth
+    cdef int _state                # 0 if tree is not built, 1 for a built tree
 
-    cdef vector[Node] nodes     # This is an STL container to store the octs
+    cdef double _left_edge[3]      # boundary conditions for the oct
+    cdef double _right_edge[3]
+    cdef np.int64_t[:] _idx        # ordering of particles used by the tree
+
+    cdef int _n_ref                # number of particles per leaf
+
+    cdef int num_octs
+    cdef int num_particles
+
+    cdef vector[Node] nodes        # This is an STL container to store the octs
+    cdef int _over_refine_factor
+    cdef int _max_splits
+    cdef int _num_children
+    cdef int _num_children_per_dim
 
     # this is use for interpolation and is global for the octree smoothing
     # operations
     cdef kernel_func kernel
 
     def __init__(self, double[:, ::1] &input_pos = None, left_edge = None,
-                 right_edge = None, int n_ref=32):
+                 right_edge = None, int n_ref=32, int over_refine_factor=1):
+
         # if this is the case, we are very likely just initialising an instance
         # and then going to load an existing Octree from memory, so we don't
         # really need to do anything
         if input_pos is None:
             return
 
-        # max number of particles per oct
+        self.over_refine_factor = over_refine_factor
         self.n_ref = n_ref
         self.num_particles = input_pos.shape[0]
 
@@ -67,12 +79,10 @@ cdef class PyOctree:
 
         # replace this with something more conservative -> probably allow STL to
         # manage its own reallocation
-        self.nodes.reserve(10000000)
+        self.nodes.reserve(1000000)
 
-        # now build the tree, we do this with no gil as we will attempt to
-        # parallelize in the future
-        with nogil:
-            self.process_node(&self.nodes[0], &input_pos[0, 0])
+        # now build the tree
+        self.build_tree(&input_pos[0, 0])
 
         # setup the final parameters
         self.num_octs = self.nodes.size()
@@ -126,60 +136,44 @@ cdef class PyOctree:
         self.num_octs = 0
         self.num_particles = 0
 
-    # TODO: this this will be a lot more "re-allocation" safe to pass the position
-    # of the node in the vector rather than a memory address which can be
-    # invalidated upon a reallocation
-    cdef int process_node(self, Node * node, double * input_pos) nogil:
-        node.leaf = 0
+    cdef int build_tree(self, double * input_pos):
+        # generate an array to store the which particles are in each child oct
+        cdef np.int64_t * split_arr
+        split_arr = <np.int64_t*> malloc((2**(3*self.over_refine_factor)+1) *
+                                                            sizeof(np.int64_t))
 
-        cdef int i
-        cdef int splits[9]
-        cdef double temp_value
+        # loop through the octs in serial and process them, i.e, sort the
+        # particles and create the children, which will increase the node.size
+        cdef int num_nodes_processed = 0
+        while num_nodes_processed < self.nodes.size():
+            self.process_node(&self.nodes[num_nodes_processed], input_pos,
+                              split_arr)
+            num_nodes_processed += 1
 
-        # make the children placeholders
-        self.generate_children(node)
+        free(split_arr)
 
-        # TODO: refactor this section to use an over-refine-factor
-        # set up the split integers
-        splits[0] = node.start
-        splits[8] = node.end
-
-        # split into two partitions based on x value
-        temp_value = (node.left_edge[0] + node.right_edge[0]) / 2
-        splits[4] = seperate(input_pos, &self._idx[0], 0,
-                             temp_value,
-                             splits[0], splits[8])
-
-        # split into four partitions using the y value
-        temp_value = (node.left_edge[1] + node.right_edge[1]) / 2
-        for i in range(0, 2, 1):
-            splits[2 + i*4] = seperate(input_pos, &self._idx[0], 1,
-                                       temp_value,
-                                       splits[4*i], splits[4*i + 4])
-
-        # split into eight partitions using the z value
-        temp_value = (node.left_edge[2] + node.right_edge[2]) / 2
-        for i in range(0, 4, 1):
-            splits[2*i + 1] = seperate(input_pos, &self._idx[0], 2,
-                                       temp_value,
-                                       splits[2*i], splits[2*i + 2])
-
-        cdef Node * child = &(self.nodes[node.children])
-        for i in range(0, 8, 1):
-            child[i].start = splits[i]
-            child[i].end =  splits[i+1]
-
-        # stop here if no children
+    cdef int process_node(self, Node * node, double * input_pos,
+                          np.int64_t * split_arr) nogil:
         if(node.end - node.start <= 3*self._n_ref):
             return 0
 
-        for i in range(0, 8, 1):
-            self.process_node(&child[i], input_pos)
+        # node is no longer a leaf
+        node.leaf = 0
+
+        # this sorts the children in the node and then stores the position of
+        # the first and last particle in each node
+        split_helper(node.start, node.end, self._num_children, self._max_splits,
+                     split_arr, input_pos, &self._idx[0], &node.left_edge[0],
+                     &node.right_edge[0])
+
+        # generate the node structures for the children
+        self.generate_children(node, split_arr)
 
         return 0
 
-    cdef inline void generate_children(self, Node * node) nogil:
-        cdef int i, j, z, k
+    cdef inline void generate_children(self, Node * node,
+                                       np.int64_t * split_arr) nogil:
+        cdef int i, j, z, k, split_id
         cdef double dx, dy, dz
         cdef Node temp
 
@@ -191,36 +185,55 @@ cdef class PyOctree:
         temp.depth = node.depth + 1
         temp.leaf_id = 0
 
-        dx = (node.right_edge[0] - node.left_edge[0]) / 2
-        dy = (node.right_edge[1] - node.left_edge[1]) / 2
-        dz = (node.right_edge[2] - node.left_edge[2]) / 2
+        # set up the values to be used to set the child boundaries
+        dx = (node.right_edge[0] - node.left_edge[0]) / self._num_children_per_dim
+        dy = (node.right_edge[1] - node.left_edge[1]) / self._num_children_per_dim
+        dz = (node.right_edge[2] - node.left_edge[2]) / self._num_children_per_dim
 
+        # loop through and create the children setting the node dependent values
         z = node.children
-        for i in range(2):
-            for j in range(2):
-                for k in range(2):
+        split_id = 0
+        for i in range(self._num_children_per_dim):
+            for j in range(self._num_children_per_dim):
+                for k in range(self._num_children_per_dim):
                     temp.left_edge[0] = node.left_edge[0] + i*dx
                     temp.left_edge[1] = node.left_edge[1] + j*dy
                     temp.left_edge[2] = node.left_edge[2] + k*dz
                     temp.right_edge[0] = node.left_edge[0] + (i+1)*dx
                     temp.right_edge[1] = node.left_edge[1] + (j+1)*dy
                     temp.right_edge[2] = node.left_edge[2] + (k+1)*dz
-
                     temp.node_id = z
+
+                    temp.start = split_arr[split_id]
+                    temp.end = split_arr[split_id + 1]
 
                     self.nodes.push_back(temp)
                     z+=1
+                    split_id+=1
 
     @property
     def size_bytes(self):
         return sizeof(Node) * self.nodes.size()
 
-    # TODO: fix this implementation
     @property
-    def max_depth(self):
-        return self.max_depth
+    def n_ref(self):
+        return self._n_ref
 
-    # TODO: replace this with a descriptor
+    @n_ref.setter
+    def n_ref(self, value):
+        self._n_ref = value
+
+    @property
+    def over_refine_factor(self):
+        return self._over_refine_factor
+
+    @over_refine_factor.setter
+    def over_refine_factor(self, value):
+        self._over_refine_factor = value
+        self._num_children = 2**(3 * value)
+        self._max_splits = 2**(value - 1)
+        self._num_children_per_dim  = 2**value
+
     @property
     def idx(self):
         return np.asarray(self._idx)
@@ -228,30 +241,6 @@ cdef class PyOctree:
     @idx.setter
     def idx(self, array):
         self._idx = array
-
-    @property
-    def num_octs(self):
-        return self._num_octs
-
-    @num_octs.setter
-    def num_octs(self, val):
-        self._num_octs = val
-
-    @property
-    def n_ref(self):
-        return self._n_ref
-
-    @n_ref.setter
-    def n_ref(self, val):
-        self._n_ref = val
-
-    @property
-    def num_particles(self):
-        return self._num_particles
-
-    @num_particles.setter
-    def num_particles(self, val):
-        self._num_particles = val
 
     # TODO: re-write this to pass through in a much more efficient manner,
     # currently dreadfully slow
@@ -272,6 +261,56 @@ cdef class PyOctree:
 
         positions = np.asarray(positions)
         return positions.reshape((-1,3))
+
+    cdef void smooth_onto_leaves(self, np.float64_t[:] buff, np.float64_t posx,
+                                 np.float64_t posy, np.float64_t posz,
+                                 np.float64_t hsml, np.float64_t prefactor,
+                                 Node * node):
+
+        cdef Node * child
+        cdef double q_ij, diff_X, diff_y, diff_z
+
+        if node.leaf == 0:
+            child = &self.nodes[node.children]
+            for i in range(8):
+                if child[i].left_edge[0] - posx < hsml and \
+                        posx - child[i].right_edge[0] < hsml:
+                    if child[i].left_edge[1] - posy < hsml and \
+                            posy - child[i].right_edge[1] < hsml:
+                        if child[i].left_edge[2] - posz < hsml and \
+                                posz - child[i].right_edge[2] < hsml:
+                            self.smooth_onto_leaves(buff, posx, posy, posz,
+                                                    hsml, prefactor, &child[i])
+
+        else:
+            diff_x = ((node.left_edge[0] + node.right_edge[0]) / 2 - posx)
+            diff_x *= diff_x
+            diff_y = ((node.left_edge[1] + node.right_edge[1]) / 2 - posy)
+            diff_y *= diff_y
+            diff_z = ((node.left_edge[2] + node.right_edge[2]) / 2 - posz)
+            diff_z *= diff_z
+
+            q_ij = math.sqrt((diff_x + diff_y + diff_z) / (hsml*hsml))
+
+            buff[node.leaf_id] += prefactor * self.kernel(q_ij)
+
+    def interpolate_sph_octs(self, np.float64_t[:] buff, np.float64_t[:] posx,
+                             np.float64_t[:] posy, np.float64_t[:] posz,
+                             np.float64_t[:] pmass, np.float64_t[:] pdens,
+                             np.float64_t[:] hsml, np.float64_t[:] field,
+                             kernel_name="cubic"):
+
+        self.kernel = get_kernel_func(kernel_name)
+
+        cdef int i
+        cdef double prefactor
+
+        for i in range(posx.shape[0]):
+            prefactor = pmass[i] / pdens[i] / hsml[i]**3
+            prefactor *= field[i]
+
+            self.smooth_onto_leaves(buff, posx[i], posy[i], posz[i], hsml[i],
+                                    prefactor, &self.nodes[0])
 
     # TODO: this code is much slower than I would like, this is likely due to
     # the use of struct -> plan to replace this. A c++ approach is probably
@@ -326,55 +365,21 @@ cdef class PyOctree:
 
                 self.nodes.push_back(temp)
 
-    cdef void smooth_onto_leaves(self, np.float64_t[:] buff, np.float64_t posx,
-                                 np.float64_t posy, np.float64_t posz,
-                                 np.float64_t hsml, np.float64_t prefactor,
-                                 Node * node):
+cdef void split_helper(int start, int end, int num_children, int max_splits,
+                       np.int64_t * split_arr, np.float64_t * pos,
+                       np.int64_t * idx, np.float64_t * left,
+                       np.float64_t * right) nogil:
+    '''
+    Helper function to initialise the recursive children build.
+    '''
+    cdef double lower = left[0]
+    cdef double upper = right[0]
 
-        cdef Node * child
-        cdef double q_ij, diff_X, diff_y, diff_z
+    split_arr[0] = start
+    split_arr[num_children] = end
 
-        if node.leaf == 0:
-            child = &self.nodes[node.children]
-            for i in range(8):
-                if child[i].left_edge[0] - posx < hsml and \
-                        posx - child[i].right_edge[0] < hsml:
-                    if child[i].left_edge[1] - posy < hsml and \
-                            posy - child[i].right_edge[1] < hsml:
-                        if child[i].left_edge[2] - posz < hsml and \
-                                posz - child[i].right_edge[2] < hsml:
-                            self.smooth_onto_leaves(buff, posx, posy, posz,
-                                                    hsml, prefactor, &child[i])
-
-        else:
-            diff_x = ((node.left_edge[0] + node.right_edge[0]) / 2 - posx)
-            diff_x *= diff_x
-            diff_y = ((node.left_edge[1] + node.right_edge[1]) / 2 - posy)
-            diff_y *= diff_y
-            diff_z = ((node.left_edge[2] + node.right_edge[2]) / 2 - posz)
-            diff_z *= diff_z
-
-            q_ij = math.sqrt((diff_x + diff_y + diff_z) / (hsml*hsml))
-
-            buff[node.leaf_id] += prefactor * self.kernel(q_ij)
-
-    def interpolate_sph_octs(self, np.float64_t[:] buff, np.float64_t[:] posx,
-                             np.float64_t[:] posy, np.float64_t[:] posz,
-                             np.float64_t[:] pmass, np.float64_t[:] pdens,
-                             np.float64_t[:] hsml, np.float64_t[:] field,
-                             kernel_name="cubic"):
-
-        self.kernel = get_kernel_func(kernel_name)
-
-        cdef int i
-        cdef double prefactor
-
-        for i in range(posx.shape[0]):
-            prefactor = pmass[i] / pdens[i] / hsml[i]**3
-            prefactor *= field[i]
-
-            self.smooth_onto_leaves(buff, posx[i], posy[i], posz[i], hsml[i],
-                                    prefactor, &self.nodes[0])
+    split(0, num_children, max_splits, 0, 0, split_arr, idx, pos, left, right,
+          lower, upper)
 
 # This is a utility function which is able to catch errors when we attempt to
 # reserve too much memory
@@ -382,17 +387,11 @@ cdef int reserve(vector[Node] * vec, int amount) except +MemoryError:
     vec.reserve(amount)
     return 0
 
-# This is a utility function to separate an array into a region smaller than the
-# splitting value and a region larger than the splitting value, this is used to
-# determine which particles occupy which octs
-@cython.boundscheck(True)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef int seperate(double * array, long * idx, char offset,  double value,
-                  long start, long end) nogil except -1:
-    cdef long index
-    cdef long idx_index = start/3, idx_split = idx_index
-    cdef long split = start
+cdef int seperate(np.float64_t * array, np.int64_t * idx, int offset,  double value,
+                  np.int64_t start, np.int64_t end) nogil except -1:
+    cdef np.int64_t index
+    cdef np.int64_t idx_index = start // 3, idx_split = idx_index
+    cdef np.int64_t split = start
 
     for index in range(start, end, 3):
         idx_index += 1
@@ -405,3 +404,32 @@ cdef int seperate(double * array, long * idx, char offset,  double value,
             idx_split+=1
 
     return split
+
+cdef void split(int start, int end, int max_splits, int splits, int axis,
+           np.int64_t * split_arr, np.int64_t * idx, np.float64_t * pos,
+           np.float64_t * left_edge, np.float64_t * right_edge,
+           np.float64_t lower, np.float64_t upper) nogil:
+    '''
+    '''
+
+    cdef int mid
+    cdef double temp_value
+
+    if splits == max_splits and axis < 2:
+        splits = 0
+        axis += 1
+        lower = left_edge[axis]
+        upper = right_edge[axis]
+
+    if splits < max_splits:
+        splits += 1
+        mid = (start + end) // 2
+        temp_value = (upper + lower) / 2
+
+        split_arr[mid] = seperate(pos, idx, axis, temp_value, split_arr[start],
+                                  split_arr[end])
+
+        split(start, mid, max_splits, splits, axis, split_arr, idx, pos,
+              left_edge, right_edge, lower, temp_value)
+        split(mid, end, max_splits, splits, axis, split_arr, idx, pos,
+              left_edge, right_edge, temp_value, upper)
