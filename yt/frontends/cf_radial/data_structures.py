@@ -160,6 +160,9 @@ class CFRadialDataset(Dataset):
         coords = self._handle.coords
         x, y, z = [coords[d] for d in 'xyz']
 
+        self.origin_latitude = self._handle.origin_latitude[0]
+        self.origin_longitude = self._handle.origin_longitude[0]
+
         #   self.domain_left_edge       <= array of float64
         dle = [x.min(), y.min(), z.min()]
         self.domain_left_edge = np.array(dle)
