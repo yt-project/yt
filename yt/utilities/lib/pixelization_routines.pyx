@@ -1530,7 +1530,7 @@ cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix,
 @cython.wraparound(False)
 cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector, final_vector):
     """ Returns a numpy rotation matrix corresponding to the
-    rotation of the given normal vector to the z-axis ([0, 0, 1]).
+    rotation of the given normal vector to the specified final_vector.
     See https://math.stackexchange.com/a/476311 although note we return the
     inverse of what's specified there.
     """
@@ -1539,16 +1539,17 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector, final_vector):
     cdef np.float64_t[:] final_vector_np = np.array([final_vector[0], final_vector[1], final_vector[2]], 
                                                      dtype='float_')
     cdef np.float64_t[:] normal_unit_vector = normal_vector_np / np.linalg.norm(normal_vector_np)
-    cdef np.float64_t[:] v = np.cross(final_vector, normal_unit_vector)
+    cdef np.float64_t[:] final_unit_vector = final_vector_np / np.linalg.norm(final_vector_np)
+    cdef np.float64_t[:] v = np.cross(final_unit_vector, normal_unit_vector)
     cdef np.float64_t s = np.linalg.norm(v)
-    cdef np.float64_t c = np.dot(final_vector, normal_unit_vector)
-    # if the normal vector is identical to the z-axis, just return the
+    cdef np.float64_t c = np.dot(final_unit_vector, normal_unit_vector)
+    # if the normal vector is identical to the final vector, just return the
     # identity matrix
     if np.isclose(c, 1, rtol=1e-09):
         return np.identity(3, dtype='float_')
     # if the normal vector is the negative z-axis, return:
-    if np.isclose(s, 0, rtol=1e-09):
-        return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype='float_')
+    #if np.isclose(s, 0, rtol=1e-09):
+    #    return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype='float_')
 
     cdef np.float64_t[:, :] cross_product_matrix = np.array([[0, -1 * v[2], v[1]],
                                                       [v[2], 0, -1 * v[0]],
