@@ -36,12 +36,11 @@ class ChollaGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        #super().__init__(self, id, filename=index.index_filename, index=index)
         AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
         self.filename = index.index_filename
         self.Parent = None
         self.Children = []
-        self.Level = level
+        self.Level = 0
 
     def _setup_dx(self):
         # So first we figure out what the index is.  We don't assume
@@ -70,20 +69,19 @@ class ChollaHierarchy(GridIndex):
         # for now, the index file is the dataset!
         self.index_filename = self.dataset.filename
         self._handle = ds._handle
-        #super().__init__(self, ds. dataset_type)
         GridIndex.__init__(self, ds, dataset_type)
 
     def _count_grids(self):
-        self.num_grids = 1
+        self.num_grids = self.ds.parameters['nprocs']
+
 
     def _parse_index(self):
-        self.num_grids = 1
         self.grid_left_edge = self.dataset.domain_left_edge.reshape(1,3)
         self.grid_right_edge = self.dataset.domain_right_edge.reshape(1,3)
         self.grid_dimensions = self.dataset.domain_dimensions.reshape(1,3)
         self.grid_particle_count = np.zeros([self.num_grids, 1], dtype='int64')
-        self.grid_levels = np.ones([self.num_grids, 1], dtype='int64')
-        self.max_level = np.ones([self.num_grids, 1], dtype='int64')
+        self.grid_levels = np.zeros([self.num_grids, 1], dtype='int64').reshape(1,1)
+        #self.max_level = np.zeros([self.num_grids, 1], dtype='int64')
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels[i])
@@ -112,17 +110,22 @@ class ChollaDataset(Dataset):
     _field_info_class = ChollaFieldInfo
     _dataset_type = "cholla"
 
-    def __init__(self, filename, dataset_type='cholla',
-                 storage_filename=None, parameters=None,
-                 units_override=None, nprocs=1, unit_system="code"):
+    def __init__(self, 
+                 filename, 
+                 dataset_type='cholla',
+                 storage_filename=None, 
+                 parameters=None,
+                 units_override=None, 
+                 nprocs=1, 
+                 unit_system="code"):
         self.fluid_types += ("cholla",)
         if parameters is None:
             parameters = {}
         if units_override is None:
             units_override = {}
+        parameters['nprocs'] = nprocs
+        self.specified_parameters = parameters
         self._handle = HDF5FileHandler(filename)
-        #super().__init__(self, filename, dataset_type, 
-        #                 units_override=units_override, unit_system=unit_system)
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
         self.filename = filename
@@ -142,7 +145,9 @@ class ChollaDataset(Dataset):
 
     def _parse_parameter_file(self):
         self.unique_identifier = self.parameter_filename.__hash__()
-        self.parameters = self._handle.attrs
+        self.parameters = {}
+        for k in self._handle.attrs:
+            self.parameters[k] = self._handle.attrs[k]
         self.domain_left_edge = self._handle.attrs['offset']
         self.domain_right_edge = self.domain_left_edge + \
                                  self._handle.attrs['domain']
@@ -152,8 +157,16 @@ class ChollaDataset(Dataset):
         self.cosmological_simulation = False
         self.periodicity = (False, False, False)
         self.gamma = self._handle.attrs['gamma']
-
         self._handle.close()
+        self._determine_nprocs()
+
+    def _determine_nprocs(self):
+        # If nprocs is None, do some automatic decomposition of the domain
+        if self.specified_parameters['nprocs'] is None:
+            nprocs = np.around(np.prod(self.domain_dimensions)/32**self.dimensionality).astype('int')
+            self.parameters['nprocs'] = max(min(nprocs, 512), 1)
+        else:
+            self.parameters['nprocs'] = self.specified_parameters['nprocs']
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
