@@ -26,6 +26,11 @@ from yt.data_objects.static_output import \
     Dataset
 from .fields import CFRadialFieldInfo
 
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 import xarray
 
 class CFRadialGrid(AMRGridPatch):
@@ -68,9 +73,6 @@ class CFRadialHierarchy(GridIndex):
         # fluid type or particle type.  Convention suggests that the on-disk
         # fluid type is usually the dataset_type and the on-disk particle type
         # (for a single population of particles) is "io".
-        #self.field_list = [
-         #   ('cf_radial', 'reflectivity')
-       # ]
         self.field_list = []
         for key in self.ds._handle.variables.keys():
             if all(x in self.ds._handle[key].dims for x
