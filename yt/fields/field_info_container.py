@@ -196,8 +196,10 @@ class FieldInfoContainer(dict):
                 units = ""
             elif units == 1.0:
                 units = ""
+            if field[1] == 'reflectivity':
+                take_log = False
             self.add_output_field(field, sampling_type="cell", units = units,
-                                  display_name = display_name)
+                                  display_name = display_name, take_log=take_log)
             for alias in aliases:
                 self.alias((ftype, alias), field)
 

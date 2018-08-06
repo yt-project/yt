@@ -25,6 +25,7 @@ class CFRadialFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
+        ("reflectivity", ("", [], None)),
     )
 
     known_particle_fields = (
