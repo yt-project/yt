@@ -81,7 +81,7 @@ class PlotMPL(object):
 
     """
 
-    def __init__(self, fsize, axrect, figure, axes):
+    def __init__(self, fsize, axrect, figure, axes, mpl_proj = None):
         """Initialize PlotMPL class"""
         import matplotlib.figure
         self._plot_valid = True
@@ -93,7 +93,7 @@ class PlotMPL(object):
             figure.set_size_inches(fsize)
             self.figure = figure
         if axes is None:
-            self.axes = self.figure.add_axes(axrect)
+            self.axes = self.figure.add_axes(axrect, projection = mpl_proj)
         else:
             axes.cla()
             axes.set_position(axrect)
@@ -191,9 +191,12 @@ class ImagePlotMPL(PlotMPL):
     """A base class for yt plots made using imshow
 
     """
-    def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax):
+    def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax,
+                 mpl_proj = None):
         """Initialize ImagePlotMPL class object"""
-        super(ImagePlotMPL, self).__init__(fsize, axrect, figure, axes)
+        mpl_proj = "polar"
+        super(ImagePlotMPL, self).__init__(fsize, axrect, figure, axes,
+                mpl_proj = mpl_proj)
         self.zmin, self.zmax = zlim
         if cax is None:
             self.cax = self.figure.add_axes(caxrect)
