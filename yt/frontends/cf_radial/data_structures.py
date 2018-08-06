@@ -31,7 +31,7 @@ class CFRadialGrid(AMRGridPatch):
 
     def __init__(self, id, index, level):
         super(CFRadialGrid, self).__init__(
-            self, id, filename=index.index_filename, index=index)
+            id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -51,7 +51,8 @@ class CFRadialHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        super(CFRadialHierarchy, self).__init__(self, ds, dataset_type)
+        super(CFRadialHierarchy, self).__init__(
+            ds, dataset_type)
 
     def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
@@ -97,8 +98,9 @@ class CFRadialDataset(Dataset):
                  storage_filename=None,
                  units_override=None):
         self.fluid_types += ('cf_radial',)
-        super(CFRadialDataset, self).__init__(self, filename, dataset_type,
-                         units_override=units_override)
+        super(CFRadialDataset, self).__init__(
+            filename, dataset_type,
+            units_override=units_override)
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
         # self.refine_by = 2
