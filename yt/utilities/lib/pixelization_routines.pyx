@@ -1474,7 +1474,11 @@ def off_axis_projection_SPH(np.float64_t[:] px,
         return
 
     cdef int num_particles = np.size(px)
-    cdef np.float64_t[:, :] rotation_matrix = get_rotation_matrix(normal_vector)
+    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype='float_')
+    cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype='float_')
+    cdef np.float64_t[:, :] rotation_normal_matrix = get_rotation_matrix(normal_vector, z_axis)
+    cdef np.float64_t[:, :] rotation_north_matrix = get_rotation_matrix(north_vector, y_axis)
+    cdef np.float64_t[:, :] rotation_matrix = np.matmul(rotation_normal_matrix, rotation_north_matrix)
     cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype='float_')
     cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype='float_')
 
@@ -1482,7 +1486,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     cdef np.float64_t[:] rotated_coordinates
     cdef np.float64_t[:] rotated_center
     rotated_center = rotation_matmul(
-        rotation_matrix, np.array([center[0], center[1], center[2]]))
+        rotation_matrix,
+        np.array([center[0], center[1], center[2]]))
 
     # set up the rotated bounds
     cdef np.float64_t rot_bounds_x0 = rotated_center[0] - width[0] / 2
@@ -1521,10 +1526,9 @@ cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix,
             out[i] += rotation_matrix[i, j] * coordinate_matrix[j]
     return out
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
+cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector, final_vector):
     """ Returns a numpy rotation matrix corresponding to the
     rotation of the given normal vector to the z-axis ([0, 0, 1]).
     See https://math.stackexchange.com/a/476311 although note we return the
@@ -1532,11 +1536,12 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
     """
     cdef np.float64_t[:] normal_vector_np = np.array([normal_vector[0], normal_vector[1], normal_vector[2]], 
                                                      dtype='float_')
-    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype='float_')
+    cdef np.float64_t[:] final_vector_np = np.array([final_vector[0], final_vector[1], final_vector[2]], 
+                                                     dtype='float_')
     cdef np.float64_t[:] normal_unit_vector = normal_vector_np / np.linalg.norm(normal_vector_np)
-    cdef np.float64_t[:] v = np.cross(z_axis, normal_unit_vector)
+    cdef np.float64_t[:] v = np.cross(final_vector, normal_unit_vector)
     cdef np.float64_t s = np.linalg.norm(v)
-    cdef np.float64_t c = np.dot(z_axis, normal_unit_vector)
+    cdef np.float64_t c = np.dot(final_vector, normal_unit_vector)
     # if the normal vector is identical to the z-axis, just return the
     # identity matrix
     if np.isclose(c, 1, rtol=1e-09):
