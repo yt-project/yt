@@ -25,7 +25,36 @@ class CFRadialFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
-        ("reflectivity", ("", [], None)),
+        ("reflectivity", ("dBZ", [], None)),
+        ("correct_reflectivity", ("dBZ", [], None)),
+        ("total_power", ("dBZ", [], None)),
+        ("velocity", (
+            "m/s",
+            ["mean_doppler_velocity", "doppler_velocity"], None)),
+        ("corrected_velocity", ("m/s", [], None)),
+        ("simulated_velocity", ("m/s", [], None)),
+        ("spectrum_width", ("m/s", [], None)),
+        ("differential_reflectivity", ("dB", [], None)),
+        ("corrected_differential_reflectivity", ("dB", [], None)),
+        ("cross_correlation_ratio", ("ratio", [], None)),
+        ("normalized_coherent_power", ("ratio", [], None)),
+        ("differential_phase", ("degree", [], None)),
+        ("unfolded_differential_phase", ("degree", [], None)),
+        ("corrected_differential_phase", ("degree", [], None)),
+        ("specific_differential_phase", ("degree/km", [], None)),
+        ("corrected_specific_differential_phase", ("degree/km", [], None)),
+        ("linear_depolarization_ratio", ("dB", [], None)),
+        ("linear_depolarization_ratio_h", ("dB", [], None)),
+        ("linear_depolarization_ratio_v", ("dB", [], None)),
+        ("signal_to_noise_ratio", ("dB", [], None)),
+        ("rain_rate", ("kg/m2/s", [], None)),
+        ("radar_estimated_rain_rate", ("mm/hr", [], None)),
+        ("radar_echo_classification", ("legend", [], None)),
+        ("specific_attenuation", ("dB/km", [], None)),
+        ("differential_phase_texture", ("degree", [], None)),
+        ("eastward_wind_component", ("m/s", [], None)),
+        ("northward_wind_component", ("m/s", [], None)),
+        ("vertical_wind_component", ("m/s", [], None))
     )
 
     known_particle_fields = (
