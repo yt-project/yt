@@ -65,7 +65,6 @@ class CFRadialIOHandler(BaseIOHandler):
                     ds = self.ds._handle
                     variable = ds.variables[field[1]]
                     data = variable.values[0, ...].T
-                    data[np.isnan(data)] = 0
                     offset += grid.select(
                         selector, data, rv[field], offset)
         return rv
