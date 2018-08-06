@@ -1473,12 +1473,17 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     if np.allclose(normal_vector, np.array([0., 0., 0.]), rtol=1e-09):
         return
 
+    # We want to do two rotations, one to first rotate our coordinates to have
+    # the normal vector be the z-axis (i.e., the viewer's perspective), and then
+    # another rotation to make the north-vector be the y-axis (i.e., north).
+    # Fortunately, total_rotation_matrix = rotation_matrix_1 x rotation_matrix_2
     cdef int num_particles = np.size(px)
     cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype='float_')
     cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype='float_')
-    cdef np.float64_t[:, :] rotation_normal_matrix = get_rotation_matrix(normal_vector, z_axis)
-    cdef np.float64_t[:, :] rotation_north_matrix = get_rotation_matrix(north_vector, y_axis)
-    cdef np.float64_t[:, :] rotation_matrix = np.matmul(rotation_normal_matrix, rotation_north_matrix)
+    cdef np.float64_t[:, :] normal_rotation_matrix = get_rotation_matrix(normal_vector, z_axis)
+    cdef np.float64_t[:] transformed_north_vector = np.matmul(normal_rotation_matrix, north_vector)
+    cdef np.float64_t[:, :] north_rotation_matrix = get_rotation_matrix(transformed_north_vector, y_axis)
+    cdef np.float64_t[:, :] rotation_matrix = np.matmul(north_rotation_matrix, normal_rotation_matrix)
     cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype='float_')
     cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype='float_')
 
@@ -1547,9 +1552,10 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector, final_vector):
     # identity matrix
     if np.isclose(c, 1, rtol=1e-09):
         return np.identity(3, dtype='float_')
-    # if the normal vector is the negative z-axis, return:
-    #if np.isclose(s, 0, rtol=1e-09):
-    #    return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype='float_')
+    # if the normal vector is the negative final vector, return the negative
+    # identity matrix:
+    if np.isclose(s, 0, rtol=1e-09):
+        return -np.identity(3, dtype='float_')
 
     cdef np.float64_t[:, :] cross_product_matrix = np.array([[0, -1 * v[2], v[1]],
                                                       [v[2], 0, -1 * v[0]],
