@@ -127,6 +127,8 @@ default_unit_symbol_lut = {
     "mol": (1.0/amu_grams, dimensions.dimensionless, 0.0, r"\rm{mol}"),
     'Sv': (cm_per_m**2, dimensions.specific_energy, 0.0, r"\rm{Sv}"),
     "rayleigh": (0.25e6/np.pi, dimensions.count_intensity, 0.0, r"\rm{R}"),
+    "dBZ": (1.0, dimensions.dimensionless, 0.0, r"\rm{dBZ}"),
+    "dB": (1.0, dimensions.dimensionless, 0.0, r"\rm{dB}"),
 
     # for AstroPy compatibility
     "solMass": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
