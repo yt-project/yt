@@ -149,4 +149,22 @@ class CFRadialDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
+        try:
+            import xarray
+        except ImportError:
+            return False
+
+        try:
+            ds = xarray.open_dataset(args[0])
+        except FileNotFoundError:
+            return False
+
+        try:
+            conventions = ds.attrs['Conventions']
+        except KeyError:
+            return False
+
+        if 'CF/Radial' in conventions:
+            return True
+
         return False
