@@ -194,7 +194,6 @@ class ImagePlotMPL(PlotMPL):
     def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax,
                  mpl_proj = None):
         """Initialize ImagePlotMPL class object"""
-        mpl_proj = "polar"
         super(ImagePlotMPL, self).__init__(fsize, axrect, figure, axes,
                 mpl_proj = mpl_proj)
         self.zmin, self.zmax = zlim
