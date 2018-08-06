@@ -1467,6 +1467,7 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                             np.float64_t[:] quantity_to_smooth,
                             np.float64_t[:, :] projection_array,
                             normal_vector,
+                            north_vector,
                             weight_field=None):
     # Do nothing in event of a 0 normal vector
     if np.allclose(normal_vector, np.array([0., 0., 0.]), rtol=1e-09):

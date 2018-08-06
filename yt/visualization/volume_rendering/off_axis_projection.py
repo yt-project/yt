@@ -190,7 +190,8 @@ def off_axis_projection(data_source, center, normal_vector,
                     width.to('code_length').d,
                     chunk[item].in_units(ounits),
                     buf,
-                    normal_vector)
+                    normal_vector,
+                    north_vector)
 
             path_length_unit = data_source.ds._get_field_info('smoothing_length').units
             path_length_unit = Unit(path_length_unit, registry=data_source.ds.unit_registry)
@@ -218,6 +219,7 @@ def off_axis_projection(data_source, center, normal_vector,
                     chunk[item].in_units(ounits),
                     buf,
                     normal_vector,
+                    north_vector,
                     weight_field=chunk[weight].in_units(wounits))
 
             for chunk in data_source.chunks([], 'io'):
@@ -233,7 +235,8 @@ def off_axis_projection(data_source, center, normal_vector,
                     width.to('code_length').d,
                     chunk[weight].to(wounits),
                     weight_buff,
-                    normal_vector)
+                    normal_vector,
+                    north_vector)
 
             buf /= weight_buff
             item_unit = data_source.ds._get_field_info(item).units
