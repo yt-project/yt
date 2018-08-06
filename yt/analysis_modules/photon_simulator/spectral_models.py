@@ -1,5 +1,5 @@
 """
-Photon emission and absoprtion models for use with the
+Photon emission and absorption models for use with the
 photon simulator.
 """
 
@@ -195,7 +195,7 @@ class TableApecModel(SpectralModel):
         "2.0.2"
     thermal_broad : boolean, optional
         Whether to apply thermal broadening to spectral lines. Only should
-        be used if you are attemping to simulate a high-spectral resolution
+        be used if you are attempting to simulate a high-spectral resolution
         detector.
 
     Examples

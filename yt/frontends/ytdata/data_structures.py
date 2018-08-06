@@ -52,6 +52,7 @@ from yt.units import \
 from yt.units.unit_registry import \
     UnitRegistry
 from yt.units.yt_array import \
+    uconcatenate, \
     YTQuantity
 from yt.utilities.logger import \
     ytLogger as mylog
@@ -68,7 +69,7 @@ from yt.fields.field_exceptions import \
 from yt.data_objects.data_containers import \
     GenerationInProgress
 
-_grid_data_containers = ["abritrary_grid",
+_grid_data_containers = ["arbitrary_grid",
                          "covering_grid",
                          "smoothed_covering_grid"]
 
@@ -271,7 +272,7 @@ class YTDataContainerDataset(YTDataset):
         """
 
         if self._data_obj is None:
-            # Some data containers can't be recontructed in the same way
+            # Some data containers can't be reconstructed in the same way
             # since this is now particle-like data.
             data_type = self.parameters.get("data_type")
             container_type = self.parameters.get("container_type")
@@ -308,7 +309,7 @@ class YTDataLightRayDataset(YTDataContainerDataset):
 
     def _restore_light_ray_solution(self):
         """
-        Restore all information asssociate with the light ray solution
+        Restore all information associate with the light ray solution
         to its original form.
         """
         key = "light_ray_solution"
@@ -471,25 +472,40 @@ class YTGridDataset(YTDataset):
         self.base_domain_left_edge = self.domain_left_edge
         self.base_domain_right_edge = self.domain_right_edge
         self.base_domain_dimensions = self.domain_dimensions
+
         if self.container_type in _grid_data_containers:
-            dx = (self.domain_right_edge - self.domain_left_edge) / \
-              (self.domain_dimensions *
-               self.refine_by**self.parameters["level"])
             self.domain_left_edge = self.parameters["left_edge"]
-            self.domain_right_edge = self.domain_left_edge + \
-              self.parameters["ActiveDimensions"] * dx
-            self.domain_dimensions = self.parameters["ActiveDimensions"]
+
+            if "level" in self.parameters["con_args"]:
+                dx = (self.base_domain_right_edge -
+                      self.base_domain_left_edge) / \
+                  (self.domain_dimensions *
+                   self.refine_by**self.parameters["level"])
+                self.domain_right_edge = self.domain_left_edge + \
+                  self.parameters["ActiveDimensions"] * dx
+                self.domain_dimensions = \
+                  ((self.domain_right_edge -
+                    self.domain_left_edge) / dx).astype(int)
+            else:
+                self.domain_right_edge = self.parameters["right_edge"]
+                self.domain_dimensions = self.parameters["ActiveDimensions"]
+                dx = (self.domain_right_edge - self.domain_left_edge) / \
+                  self.domain_dimensions
+
             self.periodicity = \
               np.abs(self.domain_left_edge -
                      self.base_domain_left_edge) < 0.5 * dx
             self.periodicity &= \
             np.abs(self.domain_right_edge -
                    self.base_domain_right_edge) < 0.5 * dx
+
         elif self.data_type == "yt_frb":
-            self.domain_left_edge = \
-              np.concatenate([self.parameters["left_edge"], [0.]])
-            self.domain_right_edge = \
-              np.concatenate([self.parameters["right_edge"], [1.]])
+            dle = self.domain_left_edge
+            self.domain_left_edge = uconcatenate(
+                [self.parameters["left_edge"].to(dle.units), [0] * dle.uq])
+            dre = self.domain_right_edge
+            self.domain_right_edge = uconcatenate(
+                [self.parameters["right_edge"].to(dre.units), [1] * dre.uq])
             self.domain_dimensions = \
               np.concatenate([self.parameters["ActiveDimensions"], [1]])
 

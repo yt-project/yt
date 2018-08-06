@@ -20,7 +20,8 @@ from yt.testing import \
     assert_equal, \
     requires_file, \
     units_override_check, \
-    assert_array_equal
+    assert_array_equal, \
+    assert_allclose_units
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
@@ -208,3 +209,22 @@ def test_deeply_nested_zoom():
     image = plot.frb['density']
 
     assert (image > 0).all()
+
+    v, c = ds.find_max('density')
+
+    assert_allclose_units(v, ds.quan(0.005878286377124154, 'g/cm**3'))
+
+    c_actual = [0.49150732540021, 0.505260532936791, 0.49058055816398]
+    c_actual = ds.arr(c_actual, 'code_length')
+    assert_allclose_units(c, c_actual)
+
+    assert_equal(max([g['density'].max() for g in ds.index.grids]), v)
+
+@requires_file(kh2d)
+def test_2d_grid_shape():
+    # see issue #1601
+    # we want to make sure that accessing data on a grid object
+    # returns a 3D array with a dummy dimension.
+    ds = data_dir_load(kh2d)
+    g = ds.index.grids[1]
+    assert g['density'].shape == (128, 100, 1)

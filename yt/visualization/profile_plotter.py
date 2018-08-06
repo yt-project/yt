@@ -20,10 +20,10 @@ from yt.extern.six import string_types, iteritems
 from collections import OrderedDict
 import base64
 import os
+from functools import wraps
 
 import matplotlib
 import numpy as np
-
 
 from .base_plot_types import \
     PlotMPL, ImagePlotMPL
@@ -33,6 +33,10 @@ from .plot_container import \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
     create_profile
+from yt.data_objects.static_output import \
+    Dataset
+from yt.data_objects.data_containers import \
+    YTSelectionContainer
 from yt.frontends.ytdata.data_structures import \
     YTProfileDataset
 from yt.utilities.exceptions import \
@@ -60,6 +64,14 @@ def get_canvas(name):
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
+
+def invalidate_profile(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        rv = f(*args, **kwargs)
+        args[0]._profile_valid = False
+        return rv
+    return newfunc
 
 class PlotContainerDict(OrderedDict):
     def __missing__(self, key):
@@ -110,6 +122,15 @@ def sanitize_label(label, nprofiles):
 
     return label
 
+def data_object_or_all_data(data_source):
+    if isinstance(data_source, Dataset):
+        data_source = data_source.all_data()
+
+    if not isinstance(data_source, YTSelectionContainer):
+        raise RuntimeError("data_source must be a yt selection data object")
+
+    return data_source
+
 class ProfilePlot(object):
     r"""
     Create a 1d profile plot from a data source or from a list 
@@ -127,7 +148,8 @@ class ProfilePlot(object):
     ----------
     data_source : YTSelectionContainer Object
         The data object to be profiled, such as all_data, region, or 
-        sphere.
+        sphere. If a dataset is passed in instead, an all_data data object
+        is generated internally from the dataset.
     x_field : str
         The binning field for the profile.
     y_fields : str or list
@@ -201,6 +223,7 @@ class ProfilePlot(object):
     Use set_line_property to change line properties of one or all profiles.
     
     """
+
     x_log = None
     y_log = None
     x_title = None
@@ -212,6 +235,8 @@ class ProfilePlot(object):
                  accumulation=False, fractional=False,
                  label=None, plot_spec=None,
                  x_log=None, y_log=None):
+
+        data_source = data_object_or_all_data(data_source)
 
         if x_log is None:
             logs = None
@@ -341,6 +366,12 @@ class ProfilePlot(object):
             return
         for f in self.axes:
             self.axes[f].cla()
+            if f in self._plot_text:
+                self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
+                                        self._plot_text[f],
+                                        fontproperties=self._font_properties,
+                                        **self._text_kwargs[f])
+
         for i, profile in enumerate(self.profiles):
             for field, field_data in profile.items():
                 self.axes[field].plot(np.array(profile.x), np.array(field_data),
@@ -351,12 +382,19 @@ class ProfilePlot(object):
                 axes = self.axes[fname]
                 xscale, yscale = self._get_field_log(fname, profile)
                 xtitle, ytitle = self._get_field_title(fname, profile)
+
                 axes.set_xscale(xscale)
                 axes.set_yscale(yscale)
-                axes.set_xlabel(xtitle)
+
                 axes.set_ylabel(ytitle)
+                axes.set_xlabel(xtitle)
+
                 axes.set_ylim(*self.axes.ylim[fname])
                 axes.set_xlim(*self.axes.xlim)
+
+                if fname in self._plot_title:
+                    axes.set_title(self._plot_title[fname])
+
                 if any(self.label):
                     axes.legend(loc="best")
         self._set_font_properties()
@@ -364,6 +402,12 @@ class ProfilePlot(object):
 
     @classmethod
     def _initialize_instance(cls, obj, profiles, labels, plot_specs, y_log):
+        obj._plot_title = {}
+        obj._plot_text = {}
+        obj._text_xpos = {}
+        obj._text_ypos = {}
+        obj._text_kwargs = {}
+
         from matplotlib.font_manager import FontProperties
         obj._font_properties = FontProperties(family='stixgeneral', size=18)
         obj._font_color = None
@@ -375,6 +419,7 @@ class ProfilePlot(object):
                 field, = obj.profiles[0].data_source._determine_fields([field])
                 obj.y_log[field] = log
         obj.y_title = {}
+        obj.x_title = None
         obj.label = sanitize_label(labels, len(obj.profiles))
         if plot_specs is None:
             plot_specs = [dict() for p in obj.profiles]
@@ -493,6 +538,44 @@ class ProfilePlot(object):
                 raise KeyError("Field %s not in profile plot!" % (field))
         return self
 
+
+    @invalidate_plot
+    def set_ylabel(self, field, label):
+        """Sets a new ylabel for the specified fields
+
+        Parameters
+        ----------
+        field : string
+           The name of the field that is to be changed.
+
+        label : string
+           The label to be placed on the y-axis
+        """
+        if field == "all":
+            for field in self.profiles[0].field_data:
+                self.y_title[field] = label
+        else:
+            field, = self.profiles[0].data_source._determine_fields([field])
+            if field in self.profiles[0].field_data:
+                self.y_title[field] = label
+            else:
+                raise KeyError("Field %s not in profile plot!" % (field))
+
+        return self
+
+    @invalidate_plot
+    def set_xlabel(self, label):
+        """Sets a new xlabel for all profiles
+
+        Parameters
+        ----------
+        label : string
+           The label to be placed on the x-axis
+        """
+        self.x_title = label
+
+        return self
+
     @invalidate_plot
     def set_unit(self, field, unit):
         """Sets a new unit for the requested field
@@ -505,10 +588,11 @@ class ProfilePlot(object):
         new_unit : string or Unit object
            The name of the new unit.
         """
+        fd = self.profiles[0].data_source._determine_fields(field)[0]
         for profile in self.profiles:
-            if field == profile.x_field[1]:
+            if fd == profile.x_field:
                 profile.set_x_unit(unit)
-            elif field in self.profiles[0].field_map:
+            elif fd[1] in self.profiles[0].field_map:
                 profile.set_field_unit(field, unit)
             else:
                 raise KeyError("Field %s not in profile plot!" % (field))
@@ -659,6 +743,97 @@ class ProfilePlot(object):
 
         return (x_title, y_title)
 
+    @invalidate_plot
+    def annotate_title(self, title, field='all'):
+        r"""Set a title for the plot.
+
+        Parameters
+        ----------
+        title : str
+          The title to add.
+        field : str or list of str
+          The field name for which title needs to be set.
+
+        Examples
+        --------
+        >>> # To set title for all the fields:
+        >>> plot.annotate_title("This is a Profile Plot")
+
+        >>> # To set title for specific fields:
+        >>> plot.annotate_title("Profile Plot for Temperature", "temperature")
+
+        >>> # Setting same plot title for both the given fields
+        >>> plot.annotate_title("Profile Plot: Temperature-Dark Matter Density",
+                                ["temperature", "dark_matter_density"])
+
+        """
+        if field is 'all':
+            fields = list(self.axes.keys())
+        else:
+            fields = ensure_list(field)
+        for profile in self.profiles:
+            for field in profile.data_source._determine_fields(fields):
+                if field in profile.field_map:
+                    field = profile.field_map[field]
+                self._plot_title[field] = title
+        return self
+
+    @invalidate_plot
+    def annotate_text(self, xpos=0.0, ypos=0.0, text=None, field='all', **text_kwargs):
+        r"""Allow the user to insert text onto the plot
+
+        The x-position and y-position must be given as well as the text string.
+        Add *text* to plot at location *xpos*, *ypos* in plot coordinates for
+        the given fields or by default for all fields.
+        (see example below).
+
+        Parameters
+        ----------
+        xpos: float
+          Position on plot in x-coordinates.
+        ypos: float
+          Position on plot in y-coordinates.
+        text: str
+          The text to insert onto the plot.
+        field: str or tuple
+          The name of the field to add text to.
+        text_kwargs: dict
+          Dictionary of text keyword arguments to be passed to matplotlib
+
+        >>>  import yt
+        >>>  from yt.units import kpc
+        >>>  ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>  my_galaxy = ds.disk(ds.domain_center, [0.0, 0.0, 1.0], 10*kpc, 3*kpc)
+        >>>  plot = yt.ProfilePlot(my_galaxy, "density", ["temperature"])
+
+        >>>  # Annotate text for all the fields
+        >>>  plot.annotate_text(1e-26, 1e5, "This is annotated text in the plot area.")
+        >>>  plot.save()
+
+        >>>  # Annotate text for a given field
+        >>>  plot.annotate_text(1e-26, 1e5, "Annotated text", "Temperature")
+        >>>  plot.save()
+
+        >>>  # Annotate text for multiple fields
+        >>>  fields = ["temperature", "density"]
+        >>>  plot.annotate_text(1e-26, 1e5, "Annotated text", fields)
+        >>>  plot.save()
+
+        """
+        if field is 'all':
+            fields = list(self.axes.keys())
+        else:
+            fields = ensure_list(field)
+        for profile in self.profiles:
+            for field in profile.data_source._determine_fields(fields):
+                if field in profile.field_map:
+                    field = profile.field_map[field]
+                self._plot_text[field] = text
+                self._text_xpos[field] = xpos
+                self._text_ypos[field] = ypos
+                self._text_kwargs[field] = text_kwargs
+        return self
+
 class PhasePlot(ImagePlotContainer):
     r"""
     Create a 2d profile (phase) plot from a data source or from 
@@ -674,7 +849,8 @@ class PhasePlot(ImagePlotContainer):
     ----------
     data_source : YTSelectionContainer Object
         The data object to be profiled, such as all_data, region, or 
-        sphere.
+        sphere. If a dataset is passed in instead, an all_data data object
+        is generated internally from the dataset.
     x_field : str
         The x binning field for the profile.
     y_field : str
@@ -729,6 +905,7 @@ class PhasePlot(ImagePlotContainer):
     y_log = None
     plot_title = None
     _plot_valid = False
+    _profile_valid = False
     _plot_type = 'Phase'
     _xlim = (None, None)
     _ylim = (None, None)
@@ -737,6 +914,8 @@ class PhasePlot(ImagePlotContainer):
                  weight_field="cell_mass", x_bins=128, y_bins=128,
                  accumulation=False, fractional=False,
                  fontsize=18, figure_size=8.0):
+
+        data_source = data_object_or_all_data(data_source)
 
         if isinstance(data_source.ds, YTProfileDataset):
             profile = data_source.ds.profile
@@ -766,7 +945,10 @@ class PhasePlot(ImagePlotContainer):
         obj._text_xpos = {}
         obj._text_ypos = {}
         obj._text_kwargs = {}
-        obj.profile = profile
+        obj._profile = profile
+        obj._profile_valid = True
+        obj._xlim = (None, None)
+        obj._ylim = (None, None)
         super(PhasePlot, obj).__init__(data_source, figure_size, fontsize)
         obj._setup_plots()
         obj._initfinished = True
@@ -827,6 +1009,12 @@ class PhasePlot(ImagePlotContainer):
     def _recreate_frb(self):
         # needed for API compatibility with PlotWindow
         pass
+
+    @property
+    def profile(self):
+        if not self._profile_valid:
+            self._recreate_profile()
+        return self._profile
 
     def _setup_plots(self):
         if self._plot_valid:
@@ -1163,7 +1351,7 @@ class PhasePlot(ImagePlotContainer):
         >>> plot.annotate_title("This is a phase plot")
 
         """
-        for f in self.profile.field_data:
+        for f in self._profile.field_data:
             if isinstance(f, tuple):
                 f = f[1]
             self.plot_title[self.data_source._determine_fields(f)[0]] = title
@@ -1185,18 +1373,23 @@ class PhasePlot(ImagePlotContainer):
         log : boolean
             Log on/off.
         """
+        p = self._profile
         if field == "all":
             self.x_log = log
             self.y_log = log
-            for field in self.profile.field_data:
+            for field in p.field_data:
                 self.z_log[field] = log
+            self._profile_valid = False
         else:
-            if field == self.profile.x_field[1]:
+            field, = self.profile.data_source._determine_fields([field])
+            if field == p.x_field:
                 self.x_log = log
-            elif field == self.profile.y_field[1]:
+                self._profile_valid = False
+            elif field == p.y_field:
                 self.y_log = log
-            elif field in self.profile.field_map:
-                self.z_log[self.profile.field_map[field]] = log
+                self._profile_valid = False
+            elif field in p.field_data:
+                self.z_log[field] = log
             else:
                 raise KeyError("Field %s not in phase plot!" % (field))
         return self
@@ -1213,12 +1406,12 @@ class PhasePlot(ImagePlotContainer):
         new_unit : string or Unit object
            The name of the new unit.
         """
-        fields = [fd[1] for fd in self.profile.field_data]
-        if field == self.profile.x_field[1]:
+        fd = self.data_source._determine_fields(field)[0]
+        if fd == self.profile.x_field:
             self.profile.set_x_unit(unit)
-        elif field == self.profile.y_field[1]:
+        elif fd == self.profile.y_field:
             self.profile.set_y_unit(unit)
-        elif field in fields:
+        elif fd in self.profile.field_data.keys():
             self.profile.set_field_unit(field, unit)
             self.plots[field].zmin, self.plots[field].zmax = (None, None)
         else:
@@ -1226,6 +1419,7 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @invalidate_plot
+    @invalidate_profile
     def set_xlim(self, xmin=None, xmax=None):
         """Sets the limits of the x bin field
 
@@ -1233,12 +1427,12 @@ class PhasePlot(ImagePlotContainer):
         ----------
 
         xmin : float or None
-          The new x minimum.  Defaults to None, which leaves the xmin
-          unchanged.
+          The new x minimum in the current x-axis units.  Defaults to None,
+          which leaves the xmin unchanged.
 
         xmax : float or None
-          The new x maximum.  Defaults to None, which leaves the xmax
-          unchanged.
+          The new x maximum in the current x-axis units.  Defaults to None,
+          which leaves the xmax unchanged.
 
         Examples
         --------
@@ -1250,47 +1444,20 @@ class PhasePlot(ImagePlotContainer):
         >>> pp.save()
 
         """
-        p = self.profile
+        p = self._profile
         if xmin is None:
             xmin = p.x_bins.min()
+        elif not hasattr(xmin, 'units'):
+            xmin = self.ds.quan(xmin, p.x_bins.units)
         if xmax is None:
             xmax = p.x_bins.max()
-        units = {p.x_field: str(p.x.units),
-                 p.y_field: str(p.y.units)}
-        zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
-        extrema = {p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
-                   p.y_field: ((p.y_bins.min(), str(p.y.units)),
-                               (p.y_bins.max(), str(p.y.units)))}
-        if self.x_log is not None or self.y_log is not None:
-            logs = {}
-        else:
-            logs = None
-        if self.x_log is not None:
-            logs[p.x_field] = self.x_log
-        if self.y_log is not None:
-            logs[p.y_field] = self.y_log
-        deposition = getattr(self.profile, "deposition", None)
-        if deposition is None:
-            additional_kwargs = {'accumulation': p.accumulation,
-                                 'fractional': p.fractional}
-        else:
-            additional_kwargs = {'deposition': p.deposition}
-        self.profile = create_profile(
-            p.data_source,
-            [p.x_field, p.y_field],
-            list(p.field_map.values()),
-            n_bins=[len(p.x_bins)-1, len(p.y_bins)-1],
-            weight_field=p.weight_field,
-            units=units,
-            extrema=extrema,
-            logs=logs,
-            **additional_kwargs)
-        for field in zunits:
-            self.profile.set_field_unit(field, zunits[field])
+        elif not hasattr(xmax, 'units'):
+            xmax = self.ds.quan(xmax, p.x_bins.units)
         self._xlim = (xmin, xmax)
         return self
 
     @invalidate_plot
+    @invalidate_profile
     def set_ylim(self, ymin=None, ymax=None):
         """Sets the plot limits for the y bin field.
 
@@ -1298,12 +1465,12 @@ class PhasePlot(ImagePlotContainer):
         ----------
 
         ymin : float or None
-          The new y minimum.  Defaults to None, which leaves the ymin
-          unchanged.
+          The new y minimum in the current y-axis units.  Defaults to None,
+          which leaves the ymin unchanged.
 
         ymax : float or None
-          The new y maximum.  Defaults to None, which leaves the ymax
-          unchanged.
+          The new y maximum in the current y-axis units.  Defaults to None,
+          which leaves the ymax unchanged.
 
         Examples
         --------
@@ -1315,17 +1482,24 @@ class PhasePlot(ImagePlotContainer):
         >>> pp.save()
 
         """
-        p = self.profile
+        p = self._profile
         if ymin is None:
             ymin = p.y_bins.min()
+        elif not hasattr(ymin, 'units'):
+            ymin = self.ds.quan(ymin, p.y_bins.units)
         if ymax is None:
             ymax = p.y_bins.max()
+        elif not hasattr(ymax, 'units'):
+            ymax = self.ds.quan(ymax, p.y_bins.units)
+        self._ylim = (ymin, ymax)
+        return self
+
+    def _recreate_profile(self):
+        p = self._profile
         units = {p.x_field: str(p.x.units),
                  p.y_field: str(p.y.units)}
         zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
-        extrema = {p.x_field: ((p.x_bins.min(), str(p.x.units)),
-                               (p.x_bins.max(), str(p.x.units))),
-                   p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))}
+        extrema = {p.x_field: self._xlim, p.y_field: self._ylim}
         if self.x_log is not None or self.y_log is not None:
             logs = {}
         else:
@@ -1334,13 +1508,11 @@ class PhasePlot(ImagePlotContainer):
             logs[p.x_field] = self.x_log
         if self.y_log is not None:
             logs[p.y_field] = self.y_log
-        deposition = getattr(self.profile, "deposition", None)
-        if deposition is None:
-            additional_kwargs = {'accumulation': p.accumulation,
-                                 'fractional': p.fractional}
-        else:
-            additional_kwargs = {'deposition': p.deposition}
-        self.profile = create_profile(
+        deposition = getattr(p, "deposition", None)
+        additional_kwargs = {'accumulation': p.accumulation,
+                             'fractional': p.fractional,
+                             'deposition': deposition}
+        self._profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
             list(p.field_map.values()),
@@ -1351,9 +1523,8 @@ class PhasePlot(ImagePlotContainer):
             logs=logs,
             **additional_kwargs)
         for field in zunits:
-            self.profile.set_field_unit(field, zunits[field])
-        self._ylim = (ymin, ymax)
-        return self
+            self._profile.set_field_unit(field, zunits[field])
+        self._profile_valid = True
 
 
 class PhasePlotMPL(ImagePlotMPL):

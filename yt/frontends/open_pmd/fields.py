@@ -98,39 +98,36 @@ def setup_absolute_positions(self, ptype):
 class OpenPMDFieldInfo(FieldInfoContainer):
     """Specifies which fields from the dataset yt should know about.
 
-    ``self.known_other_fields`` and ``self.known_particle_fields`` must be
-    populated.  Entries for both of these lists must be tuples of the form
-    ``("name", ("units", ["fields", "to", "alias"], "display_name"))``.  These
-    fields will be represented and handled in yt in the way you define them
-    here.  The fields defined in both ``self.known_other_fields`` and
-    ``self.known_particle_fields`` will only be added to a dataset (with units,
-    aliases, etc), if they match any entry in the ``OpenPMDHierarchy``'s
-    ``self.field_list``.
+    ``self.known_other_fields`` and ``self.known_particle_fields`` must be populated.
+    Entries for both of these lists must be tuples of the form
+        ("name", ("units", ["fields", "to", "alias"], "display_name"))
+    These fields will be represented and handled in yt in the way you define them here.
+    The fields defined in both ``self.known_other_fields`` and ``self.known_particle_fields`` will only be added
+    to a dataset (with units, aliases, etc), if they match any entry in the ``OpenPMDHierarchy``'s ``self.field_list``.
 
     Notes
     -----
 
-    Contrary to many other frontends, we dynamically obtain the known fields
-    from the simulation output.  The openPMD markup is extremely flexible -
-    names, dimensions and the number of individual datasets can (and very likely
-    will) vary.
+    Contrary to many other frontends, we dynamically obtain the known fields from the simulation output.
+    The openPMD markup is extremely flexible - names, dimensions and the number of individual datasets
+    can (and very likely will) vary.
 
-    openPMD states that names of records and their components are only allowed
-    to contain the characters ``a-Z``, the numbers ``0-9`` and the underscore
-    ``_`` (equivalently, the regex ``\w``).  Since yt widely uses the underscore
-    in field names, openPMD's underscores (``_``) are replaced by hyphen
-    (``-``).
+    openPMD states that names of records and their components are only allowed to contain the
+        characters a-Z,
+        the numbers 0-9
+        and the underscore _
+        (equivalently, the regex \w).
+    Since yt widely uses the underscore in field names, openPMD's underscores (_) are replaced by hyphen (-).
 
-    Derived fields will automatically be set up, if names and units of your
-    known on-disk (or manually derived) fields match the ones in the list of
-    yt "universal" fields.
+    Derived fields will automatically be set up, if names and units of your known on-disk (or manually derived)
+    fields match the ones in [1].
 
     References
     ----------
     * http://yt-project.org/docs/dev/analyzing/fields.html
     * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures
     * https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md
-
+    * [1] http://yt-project.org/docs/dev/reference/field_list.html#universal-fields
     """
     _mag_fields = []
 
@@ -139,59 +136,69 @@ class OpenPMDFieldInfo(FieldInfoContainer):
         bp = ds.base_path
         mp = ds.meshes_path
         pp = ds.particles_path
-        fields = f[bp + mp]
 
-        for fname in fields.keys():
-            field = fields[fname]
-            if type(field) is h5.Dataset or is_const_component(field):
-                # Don't consider axes. This appears to be a vector field of single dimensionality
-                ytname = str("_".join([fname.replace("_", "-")]))
-                parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype=np.int))
-                unit = str(YTQuantity(1, parsed).units)
-                aliases = []
-                # Save a list of magnetic fields for aliasing later on
-                # We can not reasonably infer field type/unit by name in openPMD
-                if unit == "T" or unit == "kg/(A*s**2)":
-                    self._mag_fields.append(ytname)
-                self.known_other_fields += ((ytname, (unit, aliases, None)),)
-            else:
-                for axis in field.keys():
-                    ytname = str("_".join([fname.replace("_", "-"), axis]))
+        try:
+            fields = f[bp + mp]
+            for fname in fields.keys():
+                field = fields[fname]
+                if type(field) is h5.Dataset or is_const_component(field):
+                    # Don't consider axes. This appears to be a vector field of single dimensionality
+                    ytname = str("_".join([fname.replace("_", "-")]))
                     parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype=np.int))
                     unit = str(YTQuantity(1, parsed).units)
                     aliases = []
                     # Save a list of magnetic fields for aliasing later on
-                    # We can not reasonably infer field type by name in openPMD
+                    # We can not reasonably infer field type/unit by name in openPMD
                     if unit == "T" or unit == "kg/(A*s**2)":
                         self._mag_fields.append(ytname)
                     self.known_other_fields += ((ytname, (unit, aliases, None)),)
-        for i in self.known_other_fields:
-            mylog.debug("open_pmd - known_other_fields - {}".format(i))
-        particles = f[bp + pp]
-        for species in particles.keys():
-            for record in particles[species].keys():
-                try:
-                    pds = particles[species + "/" + record]
-                    parsed = parse_unit_dimension(pds.attrs["unitDimension"])
-                    unit = str(YTQuantity(1, parsed).units)
-                    ytattrib = str(record).replace("_", "-")
-                    if ytattrib == "position":
-                        # Symbolically rename position to preserve yt's interpretation of the pfield
-                        # particle_position is later derived in setup_absolute_positions in the way yt expects it
-                        ytattrib = "positionCoarse"
-                    if type(pds) is h5.Dataset or is_const_component(pds):
-                        name = ["particle", ytattrib]
-                        self.known_particle_fields += ((str("_".join(name)), (unit, [], None)),)
-                    else:
-                        for axis in pds.keys():
-                            aliases = []
-                            name = ["particle", ytattrib, axis]
-                            ytname = str("_".join(name))
-                            self.known_particle_fields += ((ytname, (unit, aliases, None)),)
-                except KeyError:
-                    mylog.info("open_pmd - {}_{} does not seem to have unitDimension".format(species, record))
-        for i in self.known_particle_fields:
-            mylog.debug("open_pmd - known_particle_fields - {}".format(i))
+                else:
+                    for axis in field.keys():
+                        ytname = str("_".join([fname.replace("_", "-"), axis]))
+                        parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype=np.int))
+                        unit = str(YTQuantity(1, parsed).units)
+                        aliases = []
+                        # Save a list of magnetic fields for aliasing later on
+                        # We can not reasonably infer field type by name in openPMD
+                        if unit == "T" or unit == "kg/(A*s**2)":
+                            self._mag_fields.append(ytname)
+                        self.known_other_fields += ((ytname, (unit, aliases, None)),)
+            for i in self.known_other_fields:
+                mylog.debug("open_pmd - known_other_fields - {}".format(i))
+        except(KeyError):
+            pass
+
+        try:
+            particles = f[bp + pp]
+            for pname in particles.keys():
+                species = particles[pname]
+                for recname in species.keys():
+                    try:
+                        record = species[recname]
+                        parsed = parse_unit_dimension(record.attrs["unitDimension"])
+                        unit = str(YTQuantity(1, parsed).units)
+                        ytattrib = str(recname).replace("_", "-")
+                        if ytattrib == "position":
+                            # Symbolically rename position to preserve yt's interpretation of the pfield
+                            # particle_position is later derived in setup_absolute_positions in the way yt expects it
+                            ytattrib = "positionCoarse"
+                        if type(record) is h5.Dataset or is_const_component(record):
+                            name = ["particle", ytattrib]
+                            self.known_particle_fields += ((str("_".join(name)), (unit, [], None)),)
+                        else:
+                            for axis in record.keys():
+                                aliases = []
+                                name = ["particle", ytattrib, axis]
+                                ytname = str("_".join(name))
+                                self.known_particle_fields += ((ytname, (unit, aliases, None)),)
+                    except(KeyError):
+                        if recname != "particlePatches":
+                            mylog.info("open_pmd - {}_{} does not seem to have unitDimension".format(pname, recname))
+            for i in self.known_particle_fields:
+                mylog.debug("open_pmd - known_particle_fields - {}".format(i))
+        except(KeyError):
+            pass
+
         super(OpenPMDFieldInfo, self).__init__(ds, field_list)
 
     def setup_fluid_fields(self):

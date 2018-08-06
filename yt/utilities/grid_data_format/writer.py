@@ -21,7 +21,7 @@ from contextlib import contextmanager
 
 from yt import __version__ as yt_version
 from yt.utilities.exceptions import YTGDFAlreadyExists
-from yt.funcs import ensure_list
+from yt.funcs import ensure_list, issue_deprecation_warning
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, \
     communication_system
@@ -30,7 +30,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 def write_to_gdf(ds, gdf_path, fields=None, 
                  data_author=None, data_comment=None,
                  dataset_units=None, particle_type_name="dark_matter",
-                 clobber=False):
+                 overwrite=False, **kwargs):
     """
     Write a dataset to the given path in the Grid Data Format.
 
@@ -61,8 +61,8 @@ def write_to_gdf(ds, gdf_path, fields=None,
         dataset.
     particle_type_name : string, optional
         The particle type of the particles in the dataset. Default: "dark_matter"
-    clobber : boolean, optional
-        Whether or not to clobber an already existing file. If False, attempting
+    overwrite : boolean, optional
+        Whether or not to overwrite an already existing file. If False, attempting
         to overwrite an existing file will result in an exception.
 
     Examples
@@ -71,8 +71,14 @@ def write_to_gdf(ds, gdf_path, fields=None,
     ...                  "time_unit":(1.0,"Myr")}
     >>> write_to_gdf(ds, "clumps.h5", data_author="John ZuHone",
     ...              dataset_units=dataset_units,
-    ...              data_comment="My Really Cool Dataset", clobber=True)
+    ...              data_comment="My Really Cool Dataset", overwrite=True)
     """
+    if "clobber" in kwargs:
+        issue_deprecation_warning("The \"clobber\" keyword argument "
+                                  "is deprecated. Use the \"overwrite\" "
+                                  "argument, which has the same effect, "
+                                  "instead.")
+        overwrite = kwargs.pop("clobber")
 
     if fields is None:
         fields = ds.field_list
@@ -83,7 +89,7 @@ def write_to_gdf(ds, gdf_path, fields=None,
                          data_comment,
                          dataset_units=dataset_units,
                          particle_type_name=particle_type_name, 
-                         clobber=clobber) as f:
+                         overwrite=overwrite) as f:
 
         # now add the fields one-by-one
         _write_fields_to_gdf(ds, f, fields, particle_type_name)
@@ -236,14 +242,21 @@ def _get_backup_file(ds):
 @contextmanager
 def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
                     dataset_units=None, particle_type_name="dark_matter",
-                    clobber=False):
+                    overwrite=False, **kwargs):
+
+    if "clobber" in kwargs:
+        issue_deprecation_warning("The \"clobber\" keyword argument "
+                                  "is deprecated. Use the \"overwrite\" "
+                                  "argument, which has the same effect, "
+                                  "instead.")
+        overwrite = kwargs.pop("clobber")
 
     # Make sure we have the absolute path to the file first
     gdf_path = os.path.abspath(gdf_path)
 
     # Is the file already there? If so, are we allowing
-    # clobbering?
-    if os.path.exists(gdf_path) and not clobber:
+    # overwriting?
+    if os.path.exists(gdf_path) and not overwrite:
         raise YTGDFAlreadyExists(gdf_path)
 
     ###

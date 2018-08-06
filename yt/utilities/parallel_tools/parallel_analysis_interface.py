@@ -21,7 +21,6 @@ import numpy as np
 import sys
 import os
 import traceback
-import types
 from functools import wraps
 
 from yt.funcs import \
@@ -203,7 +202,7 @@ class ObjectIterator(object):
 class ParallelObjectIterator(ObjectIterator):
     """
     This takes an object, *pobj*, that implements ParallelAnalysisInterface,
-    and then does its thing, calling initliaze and finalize on the object.
+    and then does its thing, calling initialize and finalize on the object.
     """
     def __init__(self, pobj, just_list = False, attr='_grids',
                  round_robin=False):
@@ -271,7 +270,7 @@ class ParallelDummy(type):
             if attrname.startswith("_") or attrname in skip:
                 if attrname not in extra: continue
             attr = getattr(cls, attrname)
-            if isinstance(attr, types.MethodType):
+            if callable(attr):
                 setattr(cls, attrname, parallel_simple_proxy(attr))
 
 def parallel_passthrough(func):
@@ -1059,7 +1058,7 @@ class Communicator(object):
         tmp_send = send.view(self.__tocast)
         recv = np.empty(total_size, dtype=send.dtype)
         if isinstance(send, YTArray):
-            # We assume send.units is consitent with the units
+            # We assume send.units is consistent with the units
             # on the receiving end.
             if isinstance(send, ImageArray):
                 recv = ImageArray(recv, input_units=send.units)
@@ -1188,7 +1187,7 @@ class ParallelAnalysisInterface(object):
             return True, LE, RE, self.ds.region(self.center, LE, RE)
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
-        mi = self.comm.rank % (self.comm.size / rank_ratio)
+        mi = self.comm.rank % (self.comm.size // rank_ratio)
         cx, cy, cz = np.unravel_index(mi, cc)
         x = np.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = np.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
@@ -1216,7 +1215,7 @@ class ParallelAnalysisInterface(object):
             return LE, RE #, re
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
-        mi = self.comm.rank % (self.comm.size / rank_ratio)
+        mi = self.comm.rank % (self.comm.size // rank_ratio)
         cx, cy, cz = np.unravel_index(mi, cc)
         x = np.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = np.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]

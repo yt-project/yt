@@ -63,28 +63,18 @@ ip.ex("import yt")
 
 # Now we add some tab completers, in the vein of:
 # http://pymel.googlecode.com/svn/trunk/tools/ipymel.py
-# We'll start with some fields.
 
-
-def yt_fieldname_completer(self, event):
+def yt_simple_fieldname_completer(self, event):
     """Match dictionary completions"""
-    #print "python_matches", event.symbol
-    #text = event.symbol # Not sure why this no longer works
     text = event.line
-    #print repr(text)
-    # Another option, seems to work great. Catches things like ''.<tab>
-    #print repr(text), dir(text)
-    #m = re.match(r"(\S+(\.\w+)*)\.(\w*)$", text)
+    # The regexp matches anything like foo.bar.baz['f
     m = re.match(r"(\S+(\.\w+)*)\[[\'\\\"](\w*)$", text)
 
     if not m:
         raise try_next
 
     expr, attr = m.group(1, 3)
-    #print "COMPLETING ON ", expr, attr
-    #print type(self.Completer), dir(self.Completer)
-    #print self.Completer.namespace
-    #print self.Completer.global_namespace
+
     try:
         obj = eval(expr, self.Completer.namespace)
     except:
@@ -94,16 +84,44 @@ def yt_fieldname_completer(self, event):
             raise IPython.ipapi.TryNext
 
     if isinstance(obj, YTDataContainer):
-        #print "COMPLETING ON THIS THING"
-        all_fields = [f for f in sorted(
-                obj.ds.field_list + obj.ds.derived_field_list)]
-        #matches = self.Completer.python_matches(text)
-        #print "RETURNING ", all_fields
+        all_types = list(set(
+            [ftype for ftype, _ in
+             obj.ds.field_list + obj.ds.derived_field_list]))
+        return all_types
+
+    raise try_next
+
+def yt_tuple_fieldname_completer(self, event):
+    """Match dictionary completions"""
+    text = event.line
+    # The regexp matches anything like foo.bar.baz['toto', 'tata
+    m = re.match(r"(\S+(\.\w+)*)\[[\'\\\"](\S+)[\'\\\"],\s*[\'\\\"](\S+)", text)
+
+    if not m:
+        raise try_next
+
+    expr, prefix, attr = m.group(1, 3, 4)
+
+    try:
+        obj = eval(expr, self.Completer.namespace)
+    except:
+        try:
+            obj = eval(expr, self.Completer.global_namespace)
+        except:
+            raise IPython.ipapi.TryNext
+
+    if isinstance(obj, YTDataContainer):
+        all_fields = [
+            fname for ftype, fname in
+            obj.ds.field_list + obj.ds.derived_field_list
+            if prefix == ftype
+        ]
         return all_fields
 
 
     raise try_next
 
-ip.set_hook('complete_command', yt_fieldname_completer, re_key = ".*")
+ip.set_hook('complete_command', yt_simple_fieldname_completer, re_key = ".*")
+ip.set_hook('complete_command', yt_tuple_fieldname_completer, re_key = ".*")
 
 ip_shell.mainloop(**kwargs)

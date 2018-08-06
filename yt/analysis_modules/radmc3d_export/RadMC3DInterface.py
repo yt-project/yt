@@ -362,7 +362,7 @@ class RadMC3DWriter:
                                        source.position[2]))
             fhandle.write('\n')
 
-        # write wavelength informaton
+        # write wavelength information
         for wavelength in wavelengths:
             fhandle.write('%f \n' % wavelength)
 

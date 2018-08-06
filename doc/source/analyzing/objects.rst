@@ -235,6 +235,21 @@ different units can be used. Here's a somewhat convoluted (yet working) example:
     end = ((1.0, "Mpc"), (300.0, "kpc"), (0.0, "kpc"))
     ray = ds.r[start:end]
 
+Making Fixed-Resolution Rays
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Rays can also be constructed to have fixed resolution if an imaginary step value
+is provided, similar to the 2 and 3-dimensional cases described above. This
+works for rays directed along an axis:::
+
+    ortho_ray = ds.r[(0.1:0.6:500j,0.3,0.2]
+    
+or off-axis rays as well:::
+
+    start = [0.1, 0.2, 0.3] # interpreted in code_length
+    end = [0.4, 0.5, 0.6] # interpreted in code_length
+    ray = ds.r[start:end:100j]
+
 Selecting Points
 ^^^^^^^^^^^^^^^^
 

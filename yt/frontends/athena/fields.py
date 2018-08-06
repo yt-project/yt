@@ -61,13 +61,14 @@ class AthenaFieldInfo(FieldInfoContainer):
                                function=velocity_field(comp), units = unit_system["velocity"])
         # Add pressure, energy, and temperature fields
         def eint_from_etot(data):
-            eint = data["athena","total_energy"]
+            eint = data["athena","total_energy"].copy()
             eint -= data["gas","kinetic_energy"]
             if ("athena","cell_centered_B_x") in self.field_list:
                 eint -= data["gas","magnetic_energy"]
             return eint
         def etot_from_pres(data):
-            etot = data["athena","pressure"]/(data.ds.gamma-1.)
+            etot = data["athena","pressure"].copy()
+            etot /= data.ds.gamma-1.
             etot += data["gas", "kinetic_energy"]
             if ("athena","cell_centered_B_x") in self.field_list:
                 etot += data["gas", "magnetic_energy"]

@@ -20,7 +20,7 @@ will work best for you depends on your precise situation:
   python packages, or are working on a supercomputer or cluster computer, you
   will probably want to use the bash all-in-one installation script.  This
   creates a python environment using the `miniconda python
-  distrubtion <http://conda.pydata.org/miniconda.html>`_ and the
+  distribution <http://conda.pydata.org/miniconda.html>`_ and the
   `conda <http://conda.pydata.org/docs/>`_ package manager inside of a single
   folder in your home directory. See :ref:`install-script` for more details.
 
@@ -107,7 +107,7 @@ If you do not have ``wget``, the following should also work:
   $ curl -OL https://raw.githubusercontent.com/yt-project/yt/master/doc/install_script.sh
 
 By default, the bash install script will create a python environment based on
-the `miniconda python distrubtion <http://conda.pydata.org/miniconda.html>`_,
+the `miniconda python distribution <http://conda.pydata.org/miniconda.html>`_,
 and will install yt's dependencies using the `conda
 <http://conda.pydata.org/docs/>`_ package manager. To avoid needing a
 compilation environment to run the install script, yt itself will also be
@@ -286,13 +286,13 @@ Clone the yt repository with:
   $ git clone https://github.com/yt-project/yt
 
 Once inside the yt directory, update to the appropriate branch and
-run ``setup.py develop``. For example, the following commands will allow you
+run ``pip install -e .``. For example, the following commands will allow you
 to see the tip of the development branch.
 
 .. code-block:: bash
 
   $ git checkout master
-  $ python setup.py develop
+  $ pip install -e .
 
 This will make sure you are running a version of yt corresponding to the
 most up-to-date source code.
@@ -300,7 +300,7 @@ most up-to-date source code.
 Installing Support for the Rockstar Halo Finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The easiest way to set rockstar up in a conda-based python envrionment is to run
+The easiest way to set rockstar up in a conda-based python environment is to run
 the install script with ``INST_ROCKSTAR=1``.
 
 If you want to do this manually, you will need to follow these
@@ -327,7 +327,7 @@ to a clone that you have already made, and do the following:
   $ cd /path/to/yt-git
   $ ./clean.sh
   $ echo /path/to/rockstar > rockstar.cfg
-  $ python setup.py develop
+  $ pip install -e .
 
 Here ``/path/to/yt-git`` is the path to your clone of the yt git repository
 and ``/path/to/rockstar`` is the path to your clone of Matt Turk's fork of
@@ -385,7 +385,7 @@ source include:
 
 - ``git``
 - A C compiler such as ``gcc`` or ``clang``
-- ``Python 2.7``, ``Python 3.4``, or ``Python 3.5``
+- ``Python 2.7``, ``Python 3.5``, or ``Python 3.6``
 
 In addition, building yt from source requires ``numpy`` and ``cython``
 which can be installed with ``pip``:
@@ -407,16 +407,16 @@ development version of yt instead of the latest stable release, you will need
   $ git clone https://github.com/yt-project/yt
   $ cd yt
   $ git checkout master
-  $ python setup.py install --user --prefix=
+  $ pip install . --user --install-option="--prefix="
 
 .. note::
 
   If you maintain your own user-level python installation separate from the
-  OS-level python installation, you can leave off ``--user --prefix=``, although
+  OS-level python installation, you can leave off ``--user --install-option="--prefix="``, although
   you might need ``sudo`` depending on where python is installed. See `This
   StackOverflow discussion
   <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
-  if you are curious why ``--prefix=`` is neccessary on some systems.
+  if you are curious why ``--install-option="--prefix="`` is necessary on some systems.
 
 This will install yt into a folder in your home directory
 (``$HOME/.local/lib64/python2.7/site-packages`` on Linux,
@@ -439,9 +439,9 @@ repository the "active" installed copy:
   $ git clone https://github.com/yt-project/yt
   $ cd yt
   $ git checkout master
-  $ python setup.py develop --user --prefix=
+  $ pip install -e . --user --install-option="--prefix="
 
-As above, you can leave off ``--user --prefix=`` if you want to install yt into
+As above, you can leave off ``--user --install-option="--prefix="`` if you want to install yt into
 the default package install path.  If you do not have write access for this
 location, you might need to use ``sudo``.
 
@@ -569,7 +569,7 @@ C code requires a compilation step for big changes like this):
 
   $ cd yt-<machine>/src/yt-git
   $ git checkout <desired version>
-  $ python setup.py develop
+  $ pip install -e .
 
 Valid versions to jump to are described in :ref:`branches-of-yt`.
 
@@ -595,7 +595,7 @@ repository. Use git to update to the appropriate version and recompile.
 
   $ cd yt
   $ git checkout <desired-version>
-  $ python setup.py install --user --prefix=
+  $ pip install . --user --install-option="--prefix="
 
 Valid versions to jump to are described in :ref:`branches-of-yt`).
 

@@ -10,7 +10,7 @@ of HTTP requests.
 
 **N.B.** You must specify a Content-Length header if using an iterable object
 since there is no way to determine in advance the total size that will be
-yielded, and there is no way to reset an interator.
+yielded, and there is no way to reset an iterator.
 
 Example usage:
 
@@ -159,7 +159,7 @@ class StreamingHTTPHandler(urllib.request.HTTPHandler):
 
     def http_request(self, req):
         """Handle a HTTP request.  Make sure that Content-Length is specified
-        if we're using an interable value"""
+        if we're using an iterable value"""
         # Make sure that if we're using an iterable object as the request
         # body, that we've also specified Content-Length
         if request_has_data(req):

@@ -288,13 +288,13 @@ class LightCone(CosmologySplice):
             field_of_view = self.simulation.quan(field_of_view[0],
                                                  field_of_view[1])
         elif not isinstance(field_of_view, YTArray):
-          raise RuntimeError("field_of_view argument must be either a YTQauntity " +
+          raise RuntimeError("field_of_view argument must be either a YTQuantity " +
                              "or a tuple of type (float, str).")
         if isinstance(image_resolution, tuple) and len(image_resolution) == 2:
             image_resolution = self.simulation.quan(image_resolution[0],
                                                     image_resolution[1])
         elif not isinstance(image_resolution, YTArray):
-          raise RuntimeError("image_resolution argument must be either a YTQauntity " +
+          raise RuntimeError("image_resolution argument must be either a YTQuantity " +
                              "or a tuple of type (float, str).")
         
         # Calculate number of pixels on a side.

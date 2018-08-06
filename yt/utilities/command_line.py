@@ -60,17 +60,17 @@ if ytcfg.getboolean("yt","loadfieldplugins"):
 
 _default_colormap = ytcfg.get("yt", "default_colormap")
 
-def _fix_ds(arg):
+def _fix_ds(arg, *args, **kwargs):
     if os.path.isdir("%s" % arg) and \
         os.path.exists("%s/%s" % (arg,arg)):
-        ds = load("%s/%s" % (arg,arg))
+        ds = load("%s/%s" % (arg,arg), *args, **kwargs)
     elif os.path.isdir("%s.dir" % arg) and \
         os.path.exists("%s.dir/%s" % (arg,arg)):
-        ds = load("%s.dir/%s" % (arg,arg))
+        ds = load("%s.dir/%s" % (arg,arg), *args, **kwargs)
     elif arg.endswith(".index"):
-        ds = load(arg[:-10])
+        ds = load(arg[:-10], *args, **kwargs)
     else:
-        ds = load(arg)
+        ds = load(arg, *args, **kwargs)
     return ds
 
 def _add_arg(sc, arg):
@@ -130,7 +130,7 @@ def _print_installation_information(path):
         print("Changeset = %s" % vstring.strip())
     print("---")
     return vstring
-    
+
 
 def _get_girder_client():
     try:
@@ -192,7 +192,7 @@ class YTCommandSubtype(type):
                     title=cls.subparser, dest=cls.subparser)
             sp = _subparsers[cls.subparser]
             for name in names:
-                sc = sp.add_parser(name, description=cls.description, 
+                sc = sp.add_parser(name, description=cls.description,
                                    help=cls.description)
                 sc.set_defaults(func=cls.run)
                 for arg in cls.args:
@@ -492,7 +492,7 @@ class YTBugreportCmd(YTCommand):
         print("simply be a misunderstanding that could be cleared up by")
         print("visiting the yt irc channel or getting advice on the email list:")
         print("   http://yt-project.org/irc.html")
-        print("   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org")
+        print("   https://mail.python.org/mm3/archives/list/yt-users@python.org/")
         print()
         summary = input("Press <enter> if you remain firm in your conviction to continue.")
         print()
@@ -637,7 +637,7 @@ class YTHubRegisterCmd(YTCommand):
                     password=password1, lastName=last_name, admin=False)
         hub_url = ytcfg.get("yt", "hub_url")
         req = requests.post(hub_url + "/user", data=data)
-      
+
         if req.ok:
             headers = {'Girder-Token': req.json()['authToken']['token']}
         else:
@@ -653,7 +653,7 @@ class YTHubRegisterCmd(YTCommand):
 
         print("Storing API key in configuration file")
         set_config("yt", "hub_api_key", apiKey)
-        
+
         print()
         print("SUCCESS!")
         print()
@@ -725,13 +725,13 @@ class YTLoadCmd(YTCommand):
         IPython.embed(config=cfg,user_ns=local_ns)
 
 class YTMapserverCmd(YTCommand):
-    args = ("proj", "field", "weight",
+    args = ("proj", "field", "weight", "linear", "center", "width", "cmap",
             dict(short="-a", longname="--axis", action="store", type=int,
-                 dest="axis", default=0, help="Axis (4 for all three)"),
+                 dest="axis", default=0, help="Axis"),
             dict(short ="-o", longname="--host", action="store", type=str,
-                   dest="host", default=None, help="IP Address to bind on"),
-            "ds",
-            )
+                 dest="host", default=None, help="IP Address to bind on"),
+            dict(short='ds', nargs=1, type=str, help='The dataset to load.')
+    )
 
     name = "mapserver"
     description = \
@@ -741,23 +741,49 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
-        if sys.version_info >= (3,0,0):
-            print("yt mapserver is disabled for Python 3.")
-            return -1
-        ds = args.ds
-        if args.axis == 4:
+        from yt.visualization.mapserver.pannable_map import PannableMapServer
+        from yt.frontends.ramses.data_structures import RAMSESDataset
+
+        # For RAMSES datasets, use the bbox feature to make the dataset load faster
+        if RAMSESDataset._is_valid(args.ds) and args.center and args.width:
+            kwa = dict(bbox= [[c - args.width/2 for c in args.center],
+                              [c + args.width/2 for c in args.center]])
+        else:
+            kwa = dict()
+
+        ds = _fix_ds(args.ds, **kwa)
+        if args.center and args.width:
+            center = args.center
+            width = args.width
+            ad = ds.box(left_edge = [c - args.width/2 for c in args.center],
+                        right_edge = [c + args.width/2 for c in args.center])
+        else:
+            center = [0.5]*3
+            width = 1.0
+            ad = ds.all_data()
+
+        if args.axis >= 4:
             print("Doesn't work with multiple axes!")
             return
         if args.projection:
-            p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight)
+            p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight, data_source=ad,
+                               center=center, width=width)
         else:
-            p = SlicePlot(ds, args.axis, args.field)
-        from yt.visualization.mapserver.pannable_map import PannableMapServer
-        PannableMapServer(p.data_source, args.field)
-        import yt.extern.bottle as bottle
+            p = SlicePlot(ds, args.axis, args.field, data_source=ad,
+                               center=center, width=width)
+        p.set_log('all', args.takelog)
+        p.set_cmap('all', args.cmap)
+
+        PannableMapServer(p.data_source, args.field, args.takelog, args.cmap)
+        try:
+            import bottle
+        except ImportError:
+            raise ImportError(
+                "The mapserver functionality requires the bottle "
+                "package to be installed. Please install using `pip "
+                "install bottle`."
+            )
         bottle.debug(True)
-        bottle_dir = os.path.dirname(bottle.__file__)
-        sys.path.append(bottle_dir)
         if args.host is not None:
             colonpl = args.host.find(":")
             if colonpl >= 0:
@@ -765,10 +791,9 @@ class YTMapserverCmd(YTCommand):
                 args.host = args.host[:colonpl]
             else:
                 port = 8080
-            bottle.run(server='rocket', host=args.host, port=port)
+            bottle.run(server='auto', host=args.host, port=port)
         else:
-            bottle.run(server='rocket')
-        sys.path.remove(bottle_dir)
+            bottle.run(server='auto')
 
 
 class YTPastebinCmd(YTCommand):
@@ -779,7 +804,7 @@ class YTPastebinCmd(YTCommand):
                   help="Use syntax highlighter for the file in language"),
              dict(short="-L", longname="--languages", action="store_true",
                   default = False, dest="languages",
-                  help="Retrive a list of supported languages"),
+                  help="Retrieve a list of supported languages"),
              dict(short="-e", longname="--encoding", action="store",
                   default = 'utf-8', dest="encoding",
                   help="Specify the encoding of a file (default is "
@@ -822,7 +847,7 @@ class YTPastebinGrabCmd(YTCommand):
 class YTHubStartNotebook(YTCommand):
     args = (
         dict(dest="folderId", default=ytcfg.get("yt", "hub_sandbox"),
-             nargs="?", 
+             nargs="?",
              help="(Optional) Hub folder to mount inside the Notebook"),
     )
     description = \
@@ -882,7 +907,10 @@ class YTPlotCmd(YTCommand):
             dict(short="-fu", longname="--field-unit",
                  action="store", type=str,
                  dest="field_unit", default=None,
-                 help="Desired field units"))
+                 help="Desired field units"),
+            dict(longname='--show-scale-bar',
+                 action='store_true',
+                 help="Annotate the plot with the scale"))
 
     name = "plot"
 
@@ -932,6 +960,8 @@ class YTPlotCmd(YTCommand):
                 plt.annotate_grids()
             if args.time:
                 plt.annotate_timestamp()
+            if args.show_scale_bar:
+                plt.annotate_scale()
 
             if args.field_unit:
                 plt.set_unit(args.field, args.field_unit)
@@ -982,17 +1012,13 @@ class YTNotebookCmd(YTCommand):
             )
     description = \
         """
-        Start the Jupyter Notebook locally. 
+        Start the Jupyter Notebook locally.
         """
     def __call__(self, args):
         kwargs = {}
-        try:
-            # IPython 1.0+
-            from IPython.html.notebookapp import NotebookApp
-        except ImportError:
-            # pre-IPython v1.0
-            from IPython.frontend.html.notebook.notebookapp import NotebookApp
-        print("You must choose a password so that others cannot connect to " \
+        from notebook.notebookapp import NotebookApp
+
+        print("You must choose a password so that others cannot connect to "
               "your notebook.")
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:
@@ -1000,7 +1026,7 @@ class YTNotebookCmd(YTCommand):
             pw = IPython.lib.passwd()
             print("If you would like to use this password in the future,")
             print("place a line like this inside the [yt] section in your")
-            print("yt configuration file at ~/.yt/config")
+            print("yt configuration file at ~/.config/yt/ytrc")
             print()
             print("notebook_password = %s" % pw)
             print()
@@ -1304,7 +1330,7 @@ class YTDownloadData(YTCommand):
     args = (
         dict(short="filename", action="store", type=str,
              help="The name of the file to download", nargs='?',
-             default=''), 
+             default=''),
         dict(short="location", action="store", type=str, nargs='?',
              help="The location in which to place the file, can be "
                   "\"supp_data_dir\", \"test_data_dir\", or any valid "
@@ -1318,8 +1344,8 @@ class YTDownloadData(YTCommand):
     )
     description = \
         """
-        Download a file from http://yt-project.org/data and save it to a 
-        particular location. Files can be saved to the locations provided 
+        Download a file from http://yt-project.org/data and save it to a
+        particular location. Files can be saved to the locations provided
         by the "test_data_dir" or "supp_data_dir" configuration entries, or
         any valid path to a location on disk.
         """

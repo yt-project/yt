@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from yt.config import ytcfg
 from yt.data_objects.time_series import \
     DatasetSeries
+from yt.extern import \
+    six
 from yt.funcs import \
     is_root, mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -212,7 +214,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             ts = DatasetSeries([ts])
         self.ts = ts
         self.particle_type = particle_type
-        self.outbase = outbase
+        self.outbase = six.b(outbase)
         self.min_halo_size = min_halo_size
         if force_res is None:
             tds = ts[-1] # Cache a reference
@@ -294,7 +296,8 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             server_address, port = None, None
         self.server_address, self.port = self.comm.mpi_bcast(
             (server_address, port))
-        self.port = str(self.port)
+        self.server_address = six.b(str(self.server_address))
+        self.port = six.b(str(self.port))
 
     def run(self, block_ratio = 1, callbacks = None, restart = False):
         """
@@ -325,7 +328,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.ts._pre_outputs = self.ts._pre_outputs[restart_num:]
         else:
             restart_num = 0
-        self.handler.setup_rockstar(self.server_address, self.port,
+        self.handler.setup_rockstar(
+                    self.server_address,
+                    self.port,
                     num_outputs, self.total_particles, 
                     self.particle_type,
                     particle_mass = self.particle_mass,
@@ -347,7 +352,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                 os.makedirs(self.outbase)
             # Make a record of which dataset corresponds to which set of
             # output files because it will be easy to lose this connection.
-            fp = open(self.outbase + '/datasets.txt', 'w')
+            fp = open(self.outbase.decode() + '/datasets.txt', 'w')
             fp.write("# dsname\tindex\n")
             for i, ds in enumerate(self.ts):
                 dsloc = path.join(path.relpath(ds.fullpath), ds.basename)

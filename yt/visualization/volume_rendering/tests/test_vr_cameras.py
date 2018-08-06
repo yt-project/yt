@@ -18,14 +18,14 @@ import os.path
 import tempfile
 import shutil
 from yt.testing import \
-    fake_random_ds
+    fake_random_ds, \
+    assert_fname
 import numpy as np
 from yt.visualization.volume_rendering.old_camera import \
     PerspectiveCamera, StereoPairCamera, InteractiveCamera, ProjectionCamera, \
     FisheyeCamera
 from yt.visualization.volume_rendering.api import ColorTransferFunction, \
     ProjectionTransferFunction
-from yt.visualization.tests.test_plotwindow import assert_fname
 from unittest import TestCase
 
 

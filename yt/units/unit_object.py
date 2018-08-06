@@ -122,7 +122,7 @@ def get_latex_representation(expr, registry):
             invert_symbols[value].append(key)
 
     # if there are any units with identical latex representations, substitute
-    # units to avoid  uncanceled terms in the final latex expresion.
+    # units to avoid  uncanceled terms in the final latex expression.
     for val in invert_symbols:
         symbols = invert_symbols[val]
         for i in range(1, len(symbols)):

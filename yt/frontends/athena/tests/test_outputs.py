@@ -16,13 +16,13 @@ Athena frontend tests
 from yt.testing import \
     assert_equal, \
     requires_file, \
-    assert_allclose_units
+    assert_allclose_units, \
+    disable_dataset_cache
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
     data_dir_load
 from yt.frontends.athena.api import AthenaDataset
-from yt.config import ytcfg
 from yt.convenience import load
 
 import yt.units as u
@@ -85,9 +85,8 @@ uo_sloshing = {"length_unit": (1.0,"Mpc"),
                "mass_unit": (1.0e14,"Msun")}
 
 @requires_file(sloshing)
+@disable_dataset_cache
 def test_nprocs():
-    ytcfg["yt","skip_dataset_cache"] = "True"
-
     ds1 = load(sloshing, units_override=uo_sloshing)
     sp1 = ds1.sphere("c", (100.,"kpc"))
     prj1 = ds1.proj("density",0)
@@ -110,8 +109,6 @@ def test_nprocs():
     assert_allclose_units(sp1.quantities.bulk_velocity(),
                           sp2.quantities.bulk_velocity())
     assert_equal(prj1["density"], prj2["density"])
-
-    ytcfg["yt","skip_dataset_cache"] = "False"
 
 @requires_file(cloud)
 def test_AthenaDataset():

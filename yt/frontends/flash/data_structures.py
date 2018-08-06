@@ -153,12 +153,6 @@ class FLASHHierarchy(GridIndex):
             gre[:,2] = 2.0 * np.pi
             return
 
-        # Now, for cartesian data.
-        for i in range(self.num_grids):
-            dx = dxs[self.grid_levels[i],:]
-            gle[i][:ND] = np.rint(gle[i][:ND]/dx[0][:ND])*dx[0][:ND]
-            gre[i][:ND] = np.rint(gre[i][:ND]/dx[0][:ND])*dx[0][:ND]
-
     def _populate_grid_objects(self):
         ii = np.argsort(self.grid_levels.flat)
         gid = self._handle["/gid"][:]
@@ -238,11 +232,14 @@ class FLASHDataset(Dataset):
     def _set_code_unit_attributes(self):
 
         if 'unitsystem' in self.parameters:
-            if self['unitsystem'].lower() == "cgs":
+            # Some versions of FLASH inject quotes in the runtime parameters
+            # See issue #1721
+            us = self['unitsystem'].replace('\'', '').replace('"', '').lower()
+            if us == "cgs":
                 b_factor = 1.0
-            elif self['unitsystem'].lower() == "si":
+            elif us == "si":
                 b_factor = np.sqrt(4*np.pi/1e7)
-            elif self['unitsystem'].lower() == "none":
+            elif us == "none":
                 b_factor = np.sqrt(4*np.pi)
             else:
                 raise RuntimeError("Runtime parameter unitsystem with "
@@ -296,7 +293,7 @@ class FLASHDataset(Dataset):
         # First we load all of the parameters
         hns = ["simulation parameters"]
         # note the ordering here is important: runtime parameters should
-        # ovewrite scalars with the same name.
+        # overwrite scalars with the same name.
         for ptype in ['scalars', 'runtime parameters']:
             for vtype in ['integer', 'real', 'logical', 'string']:
                 hns.append("%s %s" % (vtype, ptype))

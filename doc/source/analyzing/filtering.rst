@@ -127,6 +127,22 @@ In addition, you may specify a name for the newly defined particle type.  If no
 name is specified, the name for the particle type will be inferred from the name
 of the filter definition --- in this case the inferred name will be ``stars``.
 
+As an alternative syntax, you can also define a new particle filter via the
+:func:`~yt.data_objects.particle_filter.add_particle_filter` function.
+
+.. code-block:: python
+
+    def stars(pfilter, data):
+        filter = data[(pfilter.filtered_type, "particle_type")] == 2
+        return filter
+
+    yt.add_particle_filter("stars", function=stars, filtered_type='all',
+                        requires=["particle_type"])
+
+This is equivalent to our use of the ``particle_filter`` decorator above.  The
+choice to use either the ``particle_filter`` decorator or the
+``add_particle_filter`` function is a purely stylistic choice.
+
 Lastly, the filter must be applied to our dataset of choice.  Note that this
 filter can be added to as many datasets as we wish.  It will only actually
 create new filtered fields if the dataset has the required fields, though.
@@ -142,22 +158,34 @@ our dataset ``ds`` and treat them as any other particle field.  In addition,
 it created some ``deposit`` fields, where the particles were deposited on to
 the grid as mesh fields.
 
-As an alternative syntax, you can also define a new particle filter via the
-:func:`~yt.data_objects.particle_filter.add_particle_filter` function.
+We can create additional filters building on top of the filters we have. 
+For example, we can identify the young stars based on their age, which is
+the difference between current time and their creation_time.
 
 .. code-block:: python
 
-
-    def Stars(pfilter, data):
-        filter = data[(pfilter.filtered_type, "particle_type")] == 2
+    def young_stars(pfilter, data):
+        age = data.ds.current_time - data[pfilter.filtered_type, "creation_time"]
+        filter = np.logical_and(age.in_units('Myr') <= 5, age >= 0)
         return filter
 
-    add_particle_filter("stars", function=Stars, filtered_type='all',
-                        requires=["particle_type"])
+    yt.add_particle_filter("young_stars", function=young_stars,
+                        filtered_type='stars', requires=["creation_time"])
 
-This is equivalent to our use of the ``particle_filter`` decorator above.  The
-choice to use either the ``particle_filter`` decorator or the
-``add_particle_fitler`` function is a purely stylistic choice.
+If we properly define all the filters using the decorator ``yt.particle_filter`` 
+or the function ``yt.add_particle_filter`` in advance. We can add the filter
+we need to the dataset. If the ``filtered_type`` is already defined but not
+added to the dataset, it will automatically add the filter first. For example,
+if we add the ``young_stars`` filter, which is filtered from ``stars``, 
+to the dataset, it will also add ``stars`` filter to the dataset.
+
+.. code-block:: python
+
+    import yt
+    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    ds.add_particle_filter('young_stars')
+
+
 
 .. notebook:: particle_filter.ipynb
 

@@ -26,7 +26,8 @@ from yt.frontends.boxlib.api import \
     OrionDataset, \
     NyxDataset, \
     WarpXDataset, \
-    CastroDataset
+    CastroDataset, \
+    MaestroDataset
 import numpy as np    
 
 # We don't do anything needing ghost zone generation right now, because these
@@ -167,6 +168,17 @@ def test_plasma():
         test_plasma.__name__ = test.description
         yield test
 
+beam = "GaussianBeam/plt03008"
+@requires_ds(beam)
+def test_beam():
+    ds = data_dir_load(beam)
+    assert_equal(str(ds), "plt03008")
+    for test in small_patch_amr(ds, _warpx_fields,
+                                input_center="c",
+                                input_weight="Ex"):
+        test_beam.__name__ = test.description
+        yield test
+
 @requires_file(plasma)
 def test_warpx_particle_io():
     ds = data_dir_load(plasma)
@@ -258,3 +270,31 @@ def test_nyx_no_part():
 
     ds = data_dir_load(nyx_no_particles)
     assert_equal(sorted(ds.field_list), fields)
+
+msubch = 'maestro_subCh_plt00248'
+@requires_file(msubch)
+def test_maestro_parameters():
+    assert isinstance(data_dir_load(msubch), MaestroDataset)
+    ds = data_dir_load(msubch)
+
+    # Check a string parameter
+    assert(ds.parameters['plot_base_name']=="subCh_hot_baserun_plt")
+    assert(type(ds.parameters['plot_base_name']) is str)
+
+    # Check boolean parameters: T or F
+    assert(ds.parameters['use_thermal_diffusion'] is False)
+    assert(type(ds.parameters['use_thermal_diffusion']) is bool)
+
+    assert(ds.parameters['do_burning'] is True)
+    assert(type(ds.parameters['do_burning']) is bool)
+
+    # Check a float parameter with a decimal point
+    assert(ds.parameters['sponge_kappa']==float('10.00000000'))
+    assert(type(ds.parameters['sponge_kappa']) is float)
+
+    # Check a float parameter with E exponent notation
+    assert(ds.parameters['small_dt']==float('0.1000000000E-09'))
+
+    # Check an int parameter
+    assert(ds.parameters['s0_interp_type']==3)
+    assert(type(ds.parameters['s0_interp_type']) is int)

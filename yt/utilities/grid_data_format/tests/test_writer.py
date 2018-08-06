@@ -17,7 +17,9 @@ import shutil
 import os
 from yt.utilities.on_demand_imports import _h5py as h5
 from yt.testing import \
-    fake_random_ds, assert_equal
+    fake_random_ds, \
+    assert_equal, \
+    requires_module
 from yt.utilities.grid_data_format.writer import \
     write_to_gdf
 from yt.frontends.gdf.data_structures import \
@@ -35,6 +37,7 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 
+@requires_module('h5py')
 def test_write_gdf():
     """Main test suite for write_gdf"""
     tmpdir = tempfile.mkdtemp()

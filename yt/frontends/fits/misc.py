@@ -14,7 +14,7 @@ import numpy as np
 import base64
 from yt.extern.six import PY3
 from yt.fields.derived_field import ValidateSpatial
-from yt.funcs import mylog
+from yt.funcs import mylog, issue_deprecation_warning
 from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity, YTArray
 if PY3:
@@ -162,6 +162,7 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     >>> print circle_region.quantities.extrema("flux")
     """
     import pyregion
+    from yt.frontends.fits.api import EventsFITSDataset
     if os.path.exists(reg):
         r = pyregion.open(reg)
     else:
@@ -170,8 +171,8 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     filter = r.get_filter(header=ds.wcs_2d.to_header())
     nx = ds.domain_dimensions[ds.lon_axis]
     ny = ds.domain_dimensions[ds.lat_axis]
-    mask = filter.mask((ny,nx)).transpose()
-    if ds.events_data:
+    mask = filter.mask((ny, nx)).transpose()
+    if isinstance(ds, EventsFITSDataset):
         prefix = "event_"
     else:
         prefix = ""
@@ -192,8 +193,11 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
 
 class PlotWindowWCS(object):
     r"""
-    Use the wcsaxes library to plot celestial coordinates on the axes of a
-    on-axis PlotWindow plot. See http://wcsaxes.readthedocs.org for details.
+    Use AstroPy's WCSAxes class to plot celestial coordinates on the axes of a
+    on-axis PlotWindow plot. See 
+    http://docs.astropy.org/en/stable/visualization/wcsaxes/ for more details
+    on how it works under the hood. This functionality requires a version of 
+    AstroPy >= 1.3. 
 
     Parameters
     ----------
@@ -201,7 +205,20 @@ class PlotWindowWCS(object):
         The PlotWindow instance to add celestial axes to.
     """
     def __init__(self, pw):
-        from wcsaxes import WCSAxes
+        try:
+            # Attempt import from the old WCSAxes package first
+            from wcsaxes import WCSAxes
+            issue_deprecation_warning("Support for the standalone 'wcsaxes' "
+                                      "package is deprecated since its"
+                                      "functionality has been merged into"
+                                      "AstroPy, and will be removed in a "
+                                      "future release. It is recommended to "
+                                      "use the version bundled with AstroPy "
+                                      ">= 1.3.") 
+        except ImportError:
+            # Try to use the AstroPy version
+            WCSAxes = _astropy.wcsaxes.WCSAxes
+
         if pw.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")
         if not hasattr(pw.ds, "wcs_2d"):

@@ -19,7 +19,8 @@ import os
 import numpy as np
 import stat
 import weakref
-from io import BytesIO
+from collections import defaultdict
+from glob import glob
 
 from yt.extern.six import string_types
 from yt.funcs import \
@@ -33,18 +34,24 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
+from yt.data_objects.particle_filters import add_particle_filter
 
-from .definitions import ramses_header, field_aliases
 from yt.utilities.physical_constants import mp, kb
+from .definitions import ramses_header, field_aliases, particle_families
 from .fields import \
     RAMSESFieldInfo, _X
-import yt.utilities.fortran_utils as fpu
+from .hilbert import get_cpu_list
+from .particle_handlers import get_particle_handlers
+from .field_handlers import get_field_handlers
+from yt.utilities.cython_fortran_utils import FortranFile as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
 from yt.arraytypes import blankRecordArray
 
 from yt.utilities.lib.cosmology_time import \
     friedman
+
+from .io_utils import read_amr, fill_hydro
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -53,19 +60,48 @@ class RAMSESDomainFile(object):
     def __init__(self, ds, domain_id):
         self.ds = ds
         self.domain_id = domain_id
-        self.nvar = 0 # Set this later!
 
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
+        rootdir = ds.root_folder
+        basedir = os.path.abspath(
+            os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (
-            os.path.abspath(
-              os.path.dirname(ds.parameter_filename)),
-            num, domain_id)
-        for t in ['grav', 'hydro', 'part', 'amr']:
+            basedir, num, domain_id)
+        part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
+        if ds.num_groups > 0:
+            igroup = ((domain_id-1) // ds.group_size) + 1
+            basename = "%s/group_%05i/%%s_%s.out%05i" % (
+                rootdir, igroup, num, domain_id)
+        else:
+            basename = "%s/%%s_%s.out%05i" % (
+                basedir, num, domain_id)
+        for t in ['grav', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
+        self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
-        self._read_hydro_header()
-        self._read_particle_header()
+
+        # Autodetect field files
+        field_handlers = [FH(self)
+                          for FH in get_field_handlers()
+                          if FH.any_exist(ds)]
+        self.field_handlers = field_handlers
+        for fh in field_handlers:
+            mylog.debug('Detected fluid type %s in domain_id=%s' % (fh.ftype, domain_id))
+            fh.detect_fields(ds)
+            # self._add_ftype(fh.ftype)
+
+        # Autodetect particle files
+        particle_handlers = [PH(ds, self)
+                             for PH in get_particle_handlers()
+                             if PH.any_exist(ds)]
+        self.particle_handlers = particle_handlers
+        for ph in particle_handlers:
+            mylog.debug('Detected particle type %s in domain_id=%s' % (ph.ptype, domain_id))
+            ph.read_header()
+            # self._add_ptype(ph.ptype)
+
+        # Load the AMR structure
         self._read_amr()
 
     _hydro_offset = None
@@ -74,132 +110,51 @@ class RAMSESDomainFile(object):
     def __repr__(self):
         return "RAMSESDomainFile: %i" % self.domain_id
 
-    def _is_hydro(self):
-        '''
-        Does the output include hydro?
-        '''
-        return os.path.exists(self.hydro_fn)
-
     @property
     def level_count(self):
-        if self._level_count is not None: return self._level_count
-        self.hydro_offset
-        return self._level_count
+        lvl_count = None
+        for fh in self.field_handlers:
+            fh.offset
+            if lvl_count is None:
+                lvl_count = fh.level_count.copy()
+            else:
+                lvl_count += fh._level_count
+        return lvl_count
 
     @property
-    def hydro_offset(self):
-        if self._hydro_offset is not None: return self._hydro_offset
-        # We now have to open the file and calculate it
-        f = open(self.hydro_fn, "rb")
-        fpu.skip(f, 6)
-        # It goes: level, CPU, 8-variable
-        min_level = self.ds.min_level
-        n_levels = self.amr_header['nlevelmax'] - min_level
-        hydro_offset = np.zeros(n_levels, dtype='int64')
-        hydro_offset -= 1
-        level_count = np.zeros(n_levels, dtype='int64')
-        skipped = []
-        for level in range(self.amr_header['nlevelmax']):
-            for cpu in range(self.amr_header['nboundary'] +
-                             self.amr_header['ncpu']):
-                header = ( ('file_ilevel', 1, 'I'),
-                           ('file_ncache', 1, 'I') )
-                try:
-                    hvals = fpu.read_attrs(f, header, "=")
-                except AssertionError:
-                    print("You are running with the wrong number of fields.")
-                    print("If you specified these in the load command, check the array length.")
-                    print("In this file there are %s hydro fields." % skipped)
-                    #print"The last set of field sizes was: %s" % skipped
-                    raise
-                if hvals['file_ncache'] == 0: continue
-                assert(hvals['file_ilevel'] == level+1)
-                if cpu + 1 == self.domain_id and level >= min_level:
-                    hydro_offset[level - min_level] = f.tell()
-                    level_count[level - min_level] = hvals['file_ncache']
-                skipped = fpu.skip(f, 8 * self.nvar)
-        self._hydro_offset = hydro_offset
-        self._level_count = level_count
-        return self._hydro_offset
+    def amr_file(self):
+        if hasattr(self, '_amr_file'):
+            self._amr_file.seek(0)
+            return self._amr_file
 
-    def _read_hydro_header(self):
-        # If no hydro file is found, return
-        if not self._is_hydro():
-            return
-        if self.nvar > 0: return self.nvar
-        # Read the number of hydro  variables
-        f = open(self.hydro_fn, "rb")
-        fpu.skip(f, 1)
-        self.nvar = fpu.read_vector(f, "i")[0]
-
-    def _read_particle_header(self):
-        if not os.path.exists(self.part_fn):
-            self.local_particle_count = 0
-            self.particle_field_offsets = {}
-            return
-        f = open(self.part_fn, "rb")
-        f.seek(0, os.SEEK_END)
-        flen = f.tell()
+        f = fpu(self.amr_fn)
+        self._amr_file = f
         f.seek(0)
-        hvals = {}
-        attrs = ( ('ncpu', 1, 'I'),
-                  ('ndim', 1, 'I'),
-                  ('npart', 1, 'I') )
-        hvals.update(fpu.read_attrs(f, attrs))
-        fpu.read_vector(f, 'I')
-
-        attrs = ( ('nstar_tot', 1, 'I'),
-                  ('mstar_tot', 1, 'd'),
-                  ('mstar_lost', 1, 'd'),
-                  ('nsink', 1, 'I') )
-        hvals.update(fpu.read_attrs(f, attrs))
-        self.particle_header = hvals
-        self.local_particle_count = hvals['npart']
-
-        particle_fields = [
-            ("particle_position_x", "d"),
-            ("particle_position_y", "d"),
-            ("particle_position_z", "d"),
-            ("particle_velocity_x", "d"),
-            ("particle_velocity_y", "d"),
-            ("particle_velocity_z", "d"),
-            ("particle_mass", "d"),
-            ("particle_identifier", "i"),
-            ("particle_refinement_level", "I")]
-        if hvals["nstar_tot"] > 0:
-            particle_fields += [("particle_age", "d"),
-                                ("particle_metallicity", "d")]
-        if self.ds._extra_particle_fields is not None:
-            particle_fields += self.ds._extra_particle_fields
-
-        field_offsets = {}
-        _pfields = {}
-        for field, vtype in particle_fields:
-            if f.tell() >= flen: break
-            field_offsets["io", field] = f.tell()
-            _pfields["io", field] = vtype
-            fpu.skip(f, 1)
-        self.particle_field_offsets = field_offsets
-        self.particle_field_types = _pfields
-        self.particle_types = self.particle_types_raw = ("io",)
+        return f
 
     def _read_amr_header(self):
         hvals = {}
-        f = open(self.amr_fn, "rb")
+        f = self.amr_file
+        f.seek(0)
+
         for header in ramses_header(hvals):
-            hvals.update(fpu.read_attrs(f, header))
+            hvals.update(f.read_attrs(header))
+        # For speedup, skip reading of 'headl' and 'taill'
+        f.skip(2)
+        hvals['numbl'] = f.read_vector('i')
+
         # That's the header, now we skip a few.
         hvals['numbl'] = np.array(hvals['numbl']).reshape(
             (hvals['nlevelmax'], hvals['ncpu']))
-        fpu.skip(f)
+        f.skip()
         if hvals['nboundary'] > 0:
-            fpu.skip(f, 2)
-            self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
+            f.skip(2)
+            self.ngridbound = f.read_vector('i').astype("int64")
         else:
             self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
-        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )  # NOQA
-        ordering = fpu.read_vector(f, 'c')  # NOQA
-        fpu.skip(f, 4)
+        free_mem = f.read_attrs((('free_mem', 5, 'i'), ) )  # NOQA
+        ordering = f.read_vector('c')  # NOQA
+        f.skip(4)
         # Now we're at the tree itself
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals
@@ -218,90 +173,20 @@ class RAMSESDomainFile(object):
                 self.ds.domain_left_edge, self.ds.domain_right_edge)
         root_nodes = self.amr_header['numbl'][self.ds.min_level,:].sum()
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
-        fb = open(self.amr_fn, "rb")
-        fb.seek(self.amr_offset)
-        f = BytesIO()
-        f.write(fb.read())
-        f.seek(0)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
-        def _ng(c, l):
-            if c < self.amr_header['ncpu']:
-                ng = self.amr_header['numbl'][l, c]
-            else:
-                ng = self.ngridbound[c - self.amr_header['ncpu'] +
-                                self.amr_header['nboundary']*l]
-            return ng
+
+        f = self.amr_file
+        f.seek(self.amr_offset)
+
         min_level = self.ds.min_level
-        # yt max level is not the same as the RAMSES one.
-        # yt max level is the maximum number of additional refinement levels
-        # so for a uni grid run with no refinement, it would be 0.
-        # So we initially assume that.
-        max_level = 0
-        nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
-        for level in range(self.amr_header['nlevelmax']):
-            # Easier if do this 1-indexed
-            for cpu in range(self.amr_header['nboundary'] + self.amr_header['ncpu']):
-                #ng is the number of octs on this level on this domain
-                ng = _ng(cpu, level)
-                if ng == 0: continue
-                ind = fpu.read_vector(f, "I").astype("int64")  # NOQA
-                fpu.skip(f, 2)
-                pos = np.empty((ng, 3), dtype='float64')
-                pos[:,0] = fpu.read_vector(f, "d") - nx
-                pos[:,1] = fpu.read_vector(f, "d") - ny
-                pos[:,2] = fpu.read_vector(f, "d") - nz
-                #pos *= self.ds.domain_width
-                #pos += self.dataset.domain_left_edge
-                fpu.skip(f, 31)
-                #parents = fpu.read_vector(f, "I")
-                #fpu.skip(f, 6)
-                #children = np.empty((ng, 8), dtype='int64')
-                #for i in range(8):
-                #    children[:,i] = fpu.read_vector(f, "I")
-                #cpu_map = np.empty((ng, 8), dtype="int64")
-                #for i in range(8):
-                #    cpu_map[:,i] = fpu.read_vector(f, "I")
-                #rmap = np.empty((ng, 8), dtype="int64")
-                #for i in range(8):
-                #    rmap[:,i] = fpu.read_vector(f, "I")
-                # We don't want duplicate grids.
-                # Note that we're adding *grids*, not individual cells.
-                if level >= min_level:
-                    assert(pos.shape[0] == ng)
-                    n = self.oct_handler.add(cpu + 1, level - min_level, pos,
-                                count_boundary = 1)
-                    self._error_check(cpu, level, pos, n, ng, (nx, ny, nz))
-                    if n > 0: max_level = max(level - min_level, max_level)
+        max_level = read_amr(f, self.amr_header, self.ngridbound, min_level, self.oct_handler)
+
         self.max_level = max_level
         self.oct_handler.finalize()
 
-    def _error_check(self, cpu, level, pos, n, ng, nn):
-        # NOTE: We have the second conditional here because internally, it will
-        # not add any octs in that case.
-        if n == ng or cpu + 1 > self.oct_handler.num_domains:
-            return
-        # This is where we now check for issues with creating the new octs, and
-        # we attempt to determine what precisely is going wrong.
-        # These are all print statements.
-        print("We have detected an error with the construction of the Octree.")
-        print("  The number of Octs to be added :  %s" % ng)
-        print("  The number of Octs added       :  %s" % n)
-        print("  Level                          :  %s" % level)
-        print("  CPU Number (0-indexed)         :  %s" % cpu)
-        for i, ax in enumerate('xyz'):
-            print("  extent [%s]                     :  %s %s" % \
-            (ax, pos[:,i].min(), pos[:,i].max()))
-        print("  domain left                    :  %s" % \
-            (self.ds.domain_left_edge,))
-        print("  domain right                   :  %s" % \
-            (self.ds.domain_right_edge,))
-        print("  offset applied                 :  %s %s %s" % \
-            (nn[0], nn[1], nn[2]))
-        print("AMR Header:")
-        for key in sorted(self.amr_header):
-            print("   %-30s: %s" % (key, self.amr_header[key]))
-        raise RuntimeError
+        # Close AMR file
+        f.close()
 
     def included(self, selector):
         if getattr(selector, "domain_id", None) is not None:
@@ -314,32 +199,27 @@ class RAMSESDomainSubset(OctreeSubset):
     _domain_offset = 1
     _block_reorder = "F"
 
-    def fill(self, content, fields, selector):
+    def fill(self, fd, fields, selector, file_handler):
+        ndim = self.ds.dimensionality
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
-        all_fields = self.domain.ds.index.fluid_field_list
+        all_fields = [f for ft, f in file_handler.field_list]
         fields = [f for ft, f in fields]
         tr = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
+
         levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
             selector, self.domain_id, cell_count)
+
+        # Initializing data container
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
-        for level, offset in enumerate(self.domain.hydro_offset):
-            if offset == -1: continue
-            content.seek(offset)
-            nc = self.domain.level_count[level]
-            temp = {}
-            for field in all_fields:
-                temp[field] = np.empty((nc, 8), dtype="float64")
-            for i in range(8):
-                for field in all_fields:
-                    if field not in fields:
-                        fpu.skip(content)
-                    else:
-                        temp[field][:,i] = fpu.read_vector(content, 'd') # cell 1
-            oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, temp)
+
+        fill_hydro(fd, file_handler.offset,
+                   file_handler.level_count, levels, cell_inds,
+                   file_inds, ndim, all_fields, fields, tr,
+                   oct_handler)
         return tr
 
 class RAMSESIndex(OctreeIndex):
@@ -356,88 +236,40 @@ class RAMSESIndex(OctreeIndex):
         super(RAMSESIndex, self).__init__(ds, dataset_type)
 
     def _initialize_oct_handler(self):
+        if self.ds._bbox is not None:
+            cpu_list = get_cpu_list(self.dataset, self.dataset._bbox)
+        else:
+            cpu_list = range(self.dataset['ncpu'])
+
         self.domains = [RAMSESDomainFile(self.dataset, i + 1)
-                        for i in range(self.dataset['ncpu'])]
+                        for i in cpu_list]
         total_octs = sum(dom.local_oct_count #+ dom.ngridbound.sum()
                          for dom in self.domains)
         self.max_level = max(dom.max_level for dom in self.domains)
         self.num_grids = total_octs
 
     def _detect_output_fields(self):
-        # Do we want to attempt to figure out what the fields are in the file?
         dsl = set([])
-        if self.fluid_field_list is None or len(self.fluid_field_list) <= 0:
-            self._setup_auto_fields()
+
+        # Get the detected particle fields
         for domain in self.domains:
-            dsl.update(set(domain.particle_field_offsets.keys()))
+            for ph in domain.particle_handlers:
+                dsl.update(set(ph.field_offsets.keys()))
+
         self.particle_field_list = list(dsl)
-        self.field_list = [("ramses", f) for f in self.fluid_field_list] \
-                          + self.particle_field_list
+        cosmo = self.ds.cosmological_simulation
+        for f in self.particle_field_list[:]:
+            if f[1] == 'particle_birth_time' and cosmo:
+                self.particle_field_list.append(
+                    (f[0], 'conformal_birth_time'))
 
-    def _setup_auto_fields(self):
-        '''
-        If no fluid fields are set, the code tries to set up a fluids array by hand
-        '''
-        # TODO: SUPPORT RT - THIS REQUIRES IMPLEMENTING A NEW FILE READER!
-        # Find nvar
+        # Get the detected fields
+        dsl = set([])
+        for fh in self.domains[0].field_handlers:
+            dsl.update(set(fh.field_list))
+        self.fluid_field_list = list(dsl)
 
-
-        # TODO: copy/pasted from DomainFile; needs refactoring!
-        num = os.path.basename(self.dataset.parameter_filename).split("."
-                )[0].split("_")[1]
-        testdomain = 1 # Just pick the first domain file to read
-        basename = "%s/%%s_%s.out%05i" % (
-            os.path.abspath(
-              os.path.dirname(self.dataset.parameter_filename)),
-            num, testdomain)
-        hydro_fn = basename % "hydro"
-        # Do we have a hydro file?
-        if not os.path.exists(hydro_fn):
-            self.fluid_field_list = []
-            return
-        # Read the number of hydro  variables
-        f = open(hydro_fn, "rb")
-        hydro_header = ( ('ncpu', 1, 'i'),
-                         ('nvar', 1, 'i'),
-                         ('ndim', 1, 'i'),
-                         ('nlevelmax', 1, 'i'),
-                         ('nboundary', 1, 'i'),
-                         ('gamma', 1, 'd')
-                         )
-        hvals = fpu.read_attrs(f, hydro_header)
-        self.ds.gamma = hvals['gamma']
-        nvar = hvals['nvar']
-        # OK, we got NVAR, now set up the arrays depending on what NVAR is
-        # Allow some wiggle room for users to add too many variables
-        if nvar < 5:
-            mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
-            raise ValueError
-        # Basic hydro runs
-        if nvar == 5:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
-                      "Pressure"]
-        if nvar > 5 and nvar < 11:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
-                      "Pressure", "Metallicity"]
-        # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
-        if nvar == 11:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
-                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
-                      "Pressure"]
-        if nvar > 11:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
-                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
-                      "Pressure","Metallicity"]
-        while len(fields) < nvar:
-            fields.append("var"+str(len(fields)))
-        mylog.debug("No fields specified by user; automatically setting fields array to %s", str(fields))
-        self.fluid_field_list = fields
+        self.field_list = self.particle_field_list + self.fluid_field_list
 
     def _identify_base_chunk(self, dobj):
         if getattr(dobj, "_chunk_info", None) is None:
@@ -457,7 +289,7 @@ class RAMSESIndex(OctreeIndex):
 
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i,og in enumerate(sobjs):
+        for i, og in enumerate(sobjs):
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
@@ -484,23 +316,28 @@ class RAMSESIndex(OctreeIndex):
 
     def _get_particle_type_counts(self):
         npart = 0
+        npart = {k: 0 for k in self.ds.particle_types
+                 if k is not 'all'}
         for dom in self.domains:
-            npart += dom.local_particle_count
+            for fh in dom.particle_handlers:
+                count = fh.local_particle_count
+                npart[fh.ptype] += count
 
-        return {'io': npart}
+        return npart
 
     def print_stats(self):
+        '''
+        Prints out (stdout) relevant information about the simulation
 
-        # This function prints information based on the fluid on the grids,
-        # and therefore does not work for DM only runs.
+        This function prints information based on the fluid on the grids,
+        and therefore does not work for DM only runs.
+        '''
         if not self.fluid_field_list:
             print("This function is not implemented for DM only runs")
             return
 
         self._initialize_level_stats()
-        """
-        Prints out (stdout) relevant information about the simulation
-        """
+
         header = "%3s\t%14s\t%14s" % ("level", "# cells","# cells^3")
         print(header)
         print("%s" % (len(header.expandtabs())*"-"))
@@ -534,9 +371,10 @@ class RAMSESDataset(Dataset):
     gamma = 1.4 # This will get replaced on hydro_fn open
 
     def __init__(self, filename, dataset_type='ramses',
-                 fields = None, storage_filename = None,
+                 fields=None, storage_filename=None,
                  units_override=None, unit_system="cgs",
-                 extra_particle_fields=None):
+                 extra_particle_fields=None, cosmological=None,
+                 bbox=None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, string_types):
             fields = field_aliases[fields]
@@ -544,13 +382,71 @@ class RAMSESDataset(Dataset):
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
                 If set to None, will try a default set of fields
         extra_particle_fields: An array of extra particle variables in order of position in the particle_XXXXX.outYYYYY file.
+        cosmological: If set to None, automatically detect cosmological simulation. If a boolean, force
+                      its value.
         '''
-        self.fluid_types += ("ramses",)
+
         self._fields_in_file = fields
+        # By default, extra fields have not triggered a warning
+        self._warned_extra_fields = defaultdict(lambda: False)
         self._extra_particle_fields = extra_particle_fields
+        self.force_cosmological = cosmological
+        self._bbox = bbox
+
+        # Infer if the output is organized in groups
+        root_folder, group_folder = os.path.split(os.path.split(filename)[0])
+
+        if group_folder == 'group_00001':
+            # Count the number of groups
+            # note: we exclude the unlikely event that one of the group is actually a file
+            # instad of a folder
+            self.num_groups = len(
+                filter(lambda e: os.path.isdir(e),
+                       glob(os.path.join(root_folder, 'group_?????'))))
+            self.root_folder = root_folder
+        else:
+            self.root_folder = os.path.split(filename)[0]
+            self.num_groups = 0
+
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
+
+        # Add the particle types
+        ptypes = []
+        for PH in get_particle_handlers():
+            if PH.any_exist(self):
+                ptypes.append(PH.ptype)
+
+        ptypes = tuple(ptypes)
+        self.particle_types = self.particle_types_raw = ptypes
+
+        # Add the fluid types
+        for FH in get_field_handlers():
+            FH.purge_detected_fields(self)
+            if FH.any_exist(self):
+                self.fluid_types += (FH.ftype, )
+
         self.storage_filename = storage_filename
+
+
+    def create_field_info(self, *args, **kwa):
+        """Extend create_field_info to add the particles types."""
+        super(RAMSESDataset, self).create_field_info(*args, **kwa)
+        # Register particle filters
+        if ('io', 'particle_family') in self.field_list:
+            for fname, value in particle_families.items():
+                def loc(val):
+                    def closure(pfilter, data):
+                        filter = data[(pfilter.filtered_type, "particle_family")] == val
+                        return filter
+
+                    return closure
+                add_particle_filter(fname, loc(value),
+                                    filtered_type='io', requires=['particle_family'])
+
+            for k in particle_families.keys():
+                mylog.info('Adding particle_type: %s' % k)
+                self.add_particle_filter('%s' % k)
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -606,29 +502,38 @@ class RAMSESDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # We now execute the same logic Oliver's code does
         rheader = {}
-        f = open(self.parameter_filename)
-        def read_rhs(cast):
-            line = f.readline()
+
+        def read_rhs(f, cast):
+            line = f.readline().replace('\n', '')
             p, v = line.split("=")
-            rheader[p.strip()] = cast(v)
-        for i in range(6): read_rhs(int)
-        f.readline()
-        for i in range(11): read_rhs(float)
-        f.readline()
-        read_rhs(str)
-        # This next line deserves some comment.  We specify a min_level that
-        # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
-        # one-indexed, but it also does refer to the *oct* dimensions -- so
-        # this means that a levelmin of 1 would have *1* oct in it.  So a
-        # levelmin of 2 would have 8 octs at the root mesh level.
-        self.min_level = rheader['levelmin'] - 1
-        # Now we read the hilbert indices
-        self.hilbert_indices = {}
-        if rheader['ordering type'] == "hilbert":
-            f.readline() # header
-            for n in range(rheader['ncpu']):
-                dom, mi, ma = f.readline().split()
-                self.hilbert_indices[int(dom)] = (float(mi), float(ma))
+            rheader[p.strip()] = cast(v.strip())
+
+        with open(self.parameter_filename) as f:
+            for i in range(6):
+                read_rhs(f, int)
+            f.readline()
+            for i in range(11):
+                read_rhs(f, float)
+            f.readline()
+            read_rhs(f, str)
+            # This next line deserves some comment.  We specify a min_level that
+            # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
+            # one-indexed, but it also does refer to the *oct* dimensions -- so
+            # this means that a levelmin of 1 would have *1* oct in it.  So a
+            # levelmin of 2 would have 8 octs at the root mesh level.
+            self.min_level = rheader['levelmin'] - 1
+            # Now we read the hilbert indices
+            self.hilbert_indices = {}
+            if rheader['ordering type'] == "hilbert":
+                f.readline() # header
+                for n in range(rheader['ncpu']):
+                    dom, mi, ma = f.readline().split()
+                    self.hilbert_indices[int(dom)] = (float(mi), float(ma))
+
+        if rheader['ordering type'] != 'hilbert' and self.bbox:
+            raise NotImplementedError(
+                'The ordering %s is not compatible with the `bbox` argument.'
+                % rheader['ordering type'])
         self.parameters.update(rheader)
         self.domain_left_edge = np.zeros(3, dtype='float64')
         self.domain_dimensions = np.ones(3, dtype='int32') * \
@@ -636,8 +541,16 @@ class RAMSESDataset(Dataset):
         self.domain_right_edge = np.ones(3, dtype='float64')
         # This is likely not true, but it's not clear how to determine the boundary conditions
         self.periodicity = (True, True, True)
-        # These conditions seem to always be true for non-cosmological datasets
-        if rheader["time"] >= 0 and rheader["H0"] == 1 and rheader["aexp"] == 1:
+
+        if self.force_cosmological is not None:
+            is_cosmological = self.force_cosmological
+        else:
+            # These conditions seem to always be true for non-cosmological datasets
+            is_cosmological = not (rheader["time"] >= 0 and
+                                   rheader["H0"] == 1 and
+                                   rheader["aexp"] == 1)
+
+        if not is_cosmological:
             self.cosmological_simulation = 0
             self.current_redshift = 0
             self.hubble_constant = 0
@@ -650,8 +563,6 @@ class RAMSESDataset(Dataset):
             self.omega_matter = rheader["omega_m"]
             self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level - 1
-        f.close()
-
 
         if self.cosmological_simulation == 0:
             self.current_time = self.parameters['time']
@@ -668,6 +579,8 @@ class RAMSESDataset(Dataset):
 
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
 
+        if self.num_groups > 0:
+            self.group_size = rheader['ncpu'] // self.num_groups
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

@@ -540,7 +540,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
         xticks *= (self.alpha.x.size-1) / (self.alpha.x[-1] - self.alpha.x[0])
         if len(xticks) > 5:
-            xticks = xticks[::len(xticks)/5]
+            xticks = xticks[::len(xticks)//5]
         ax.xaxis.set_ticks(xticks)
         def x_format(x, pos):
             return "%.1f" % (x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0])
@@ -554,7 +554,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
 
-    def vert_cbar(self, resolution, log_scale, ax=None, label=None, 
+    def vert_cbar(self, resolution, log_scale, ax, label=None, 
                   label_fmt=None):
         r"""Display an image of the transfer function
 
@@ -570,11 +570,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         >>> tf.show()
         """
-        from matplotlib import pyplot
         from matplotlib.ticker import FuncFormatter
-        #pyplot.clf()
-        if ax is None:
-            ax = pyplot.axes()
         if label is None:
             label = ''
         alpha = self.alpha.y 
@@ -583,6 +579,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         i_data[:,:,0] = np.outer(self.funcs[0].y, np.ones(self.alpha.x.size))
         i_data[:,:,1] = np.outer(self.funcs[1].y, np.ones(self.alpha.x.size))
         i_data[:,:,2] = np.outer(self.funcs[2].y, np.ones(self.alpha.x.size))
+
         ax.imshow(i_data, origin='lower', aspect='auto')
         ax.plot(alpha, np.arange(self.alpha.y.size), 'w')
 
@@ -594,7 +591,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
         xticks *= (self.alpha.x.size-1) / (self.alpha.x[-1] - self.alpha.x[0])
         if len(xticks) > 5:
-            xticks = xticks[::len(xticks)/5]
+            xticks = xticks[::len(xticks)//5]
 
         # Add colorbar limits to the ticks (May not give ideal results)
         xticks = np.append(visible[0], xticks)
@@ -873,7 +870,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
     defines the somewhat arbitrary normalization to the scattering
     approximation: because everything is done largely unit-free, and is
     really not terribly accurate anyway, feel free to adjust this to change
-    the relative amount of reddenning.  Maybe in some future version this
+    the relative amount of reddening.  Maybe in some future version this
     will be unitful.
     """
     def __init__(self, T_bounds, rho_bounds, nbins=256,

@@ -3,7 +3,7 @@
 Notebook Tutorial
 -----------------
 
-The IPython notebook is a powerful system for literate codoing - a style of
+The IPython notebook is a powerful system for literate coding - a style of
 writing code that embeds input, output, and explanatory text into one document.
 
 yt has deep integration with the IPython notebook, explained in-depth in the
@@ -28,4 +28,4 @@ versions of these example notebooks.  If you would like to run them locally on
 your own computer, simply download the notebook by clicking the 'Download
 Notebook' link in the top right corner of each page.
 
-1. `IPython Notebook Tutorials <http://nbviewer.ipython.org/github/ipython/ipython/blob/master/examples/Notebook/Index.ipynb>`_
+1. `IPython Notebook Tutorials <https://nbviewer.jupyter.org/github/ipython/ipython/blob/master/examples/Index.ipynb>`_

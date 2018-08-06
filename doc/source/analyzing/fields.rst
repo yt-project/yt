@@ -466,7 +466,7 @@ available are:
 * ``mass`` - this field takes the total sum of ``particle_mass`` in each mesh
   zone.
 * ``cic`` - this field performs cloud-in-cell interpolation (see `Section 2.2
-  <http://ta.twi.tudelft.nl/dv/users/Lemmens/MThesis.TTH/chapter4.html>`_ for more
+  <http://ta.twi.tudelft.nl/dv/users/lemmens/MThesis.TTH/chapter4.html>`_ for more
   information) of the density of particles in a given mesh zone.
 * ``smoothed`` - this is a special deposition type.  See discussion below for
   more information, in :ref:`sph-fields`.

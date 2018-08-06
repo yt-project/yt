@@ -18,7 +18,7 @@ from yt.funcs import issue_deprecation_warning
 issue_deprecation_warning(
     "The halo_mass_function module does not function correctly and has been "
     "deprecated. This code has been moved to the yt attic "
-    "(https://bitbucket.org/yt_analysis/yt_attic) and will be removed in a "
+    "(https://github.com/yt-project/yt_attic) and will be removed in a "
     "future release.")
 
 from .halo_mass_function import \

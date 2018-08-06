@@ -321,7 +321,7 @@ class YTNoAPIKey(YTException):
         self.config_name = config_name
 
     def __str__(self):
-        return "You need to set an API key for %s in ~/.yt/config as %s" % (
+        return "You need to set an API key for %s in ~/.config/yt/ytrc as %s" % (
             self.service, self.config_name)
 
 class YTTooManyVertices(YTException):
@@ -392,6 +392,17 @@ class YTIllDefinedFilter(YTException):
         return "Filter '%s' ill-defined.  Applied to shape %s but is shape %s." % (
             self.filter, self.s1, self.s2)
 
+class YTIllDefinedParticleFilter(YTException):
+    def __init__(self, filter, missing):
+        self.filter = filter
+        self.missing = missing
+
+    def __str__(self):
+        msg = ("\nThe fields\n\t{},\nrequired by the \"{}\" particle filter, "
+               "are not defined for this dataset.")
+        f = self.filter
+        return msg.format("\n".join([str(m) for m in self.missing]), f.name)
+
 class YTIllDefinedBounds(YTException):
     def __init__(self, lb, ub):
         self.lb = lb
@@ -412,6 +423,19 @@ class YTObjectNotImplemented(YTException):
         v  = r"The object type '%s' is not implemented for the dataset "
         v += r"'%s'."
         return v % (self.obj_name, self.ds)
+
+class YTParticleOutputFormatNotImplemented(YTException):
+    def __str__(self):
+        return "The particle output format is not supported."
+
+class YTFileNotParseable(YTException):
+    def __init__(self, fname, line):
+        self.fname = fname
+        self.line = line
+
+    def __str__(self):
+        v = r"Error while parsing file %s at line %s"
+        return v % (self.fname, self.line)
 
 class YTRockstarMultiMassNotSupported(YTException):
     def __init__(self, mi, ma, ptype):
@@ -492,7 +516,7 @@ class YTGDFAlreadyExists(Exception):
         self.filename = filename
 
     def __str__(self):
-        return "A file already exists at %s and clobber=False." % self.filename
+        return "A file already exists at %s and overwrite=False." % self.filename
 
 class YTGDFUnknownGeometry(Exception):
     def __init__(self, geometry):
@@ -661,6 +685,12 @@ class YTIllDefinedAMR(YTException):
             "on the parent level ({} axis)"
         ).format(self.level, self.axis)
         return msg
+
+class YTIllDefinedParticleData(YTException):
+    pass
+
+class YTIllDefinedAMRData(YTException):
+    pass
 
 class YTInconsistentGridFieldShape(YTException):
     def __init__(self, shapes):

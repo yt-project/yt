@@ -34,7 +34,7 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                'GTKCairo': ['backend_gtkcairo', 'FigureCanvasGTKCairo'],
                'MacOSX': ['backend_macosx', 'FigureCanvasMac', 'FigureManagerMac'],
                'Qt4Agg': ['backend_qt4agg', 'FigureCanvasQTAgg'],
-               'Qt5Agg': ['backend_gt5agg', 'FigureCanvasQTAgg'],
+               'Qt5Agg': ['backend_qt5agg', 'FigureCanvasQTAgg'],
                'TkAgg': ['backend_tkagg', 'FigureCanvasTkAgg'],
                'WX': ['backend_wx', 'FigureCanvasWx'],
                'WXAgg': ['backend_wxagg', 'FigureCanvasWxAgg'],
@@ -211,15 +211,18 @@ class ImagePlotMPL(PlotMPL):
         elif (cbnorm == 'symlog'):
             if cblinthresh is None:
                 cblinthresh = (data.max()-data.min())/10.
-            norm = matplotlib.colors.SymLogNorm(cblinthresh, vmin=data.min(), vmax=data.max())
+            norm = matplotlib.colors.SymLogNorm(
+                cblinthresh, vmin=float(data.min()), vmax=float(data.max()))
         extent = [float(e) for e in extent]
         # tuple colormaps are from palettable (or brewer2mpl)
         if isinstance(cmap, tuple):
             cmap = get_brewer_cmap(cmap)
-        self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
-                                      extent=extent, norm=norm, vmin=self.zmin,
-                                      aspect=aspect, vmax=self.zmax, cmap=cmap,
-                                      interpolation='nearest')
+        vmin = float(self.zmin) if self.zmax is not None else None
+        vmax = float(self.zmax) if self.zmax is not None else None
+        self.image = self.axes.imshow(
+            data.to_ndarray(), origin='lower', extent=extent, norm=norm,
+            vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
+            interpolation='nearest')
         if (cbnorm == 'symlog'):
             if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
                 formatter_kwargs = {}
@@ -229,10 +232,23 @@ class ImagePlotMPL(PlotMPL):
                 **formatter_kwargs)
             self.cb = self.figure.colorbar(
                 self.image, self.cax, format=formatter)
-            yticks = list(-10**np.arange(np.floor(np.log10(-data.min())),\
-                          np.rint(np.log10(cblinthresh))-1, -1)) + [0] + \
-                     list(10**np.arange(np.rint(np.log10(cblinthresh)),\
-                          np.ceil(np.log10(data.max()))+1))
+            if data.min() >= 0.0:
+                yticks = [data.min().v] + list(
+                    10**np.arange(np.rint(np.log10(cblinthresh)),
+                                  np.ceil(np.log10(data.max())) + 1))
+            elif data.max() <= 0.0:
+                yticks = list(
+                    -10**np.arange(
+                        np.floor(np.log10(-data.min())),
+                        np.rint(np.log10(cblinthresh)) - 1, -1)) + \
+                    [data.max().v]
+            else:
+                yticks = list(
+                    -10**np.arange(np.floor(np.log10(-data.min())),
+                                   np.rint(np.log10(cblinthresh))-1, -1)) + \
+                    [0] + \
+                    list(10**np.arange(np.rint(np.log10(cblinthresh)),
+                                       np.ceil(np.log10(data.max()))+1))
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
@@ -308,15 +324,21 @@ class ImagePlotMPL(PlotMPL):
 
         return size, axrect, caxrect
 
-    def _toggle_axes(self, choice):
+    def _toggle_axes(self, choice, draw_frame=None):
         """
         Turn on/off displaying the axis ticks and labels for a plot.
 
-        choice = True or False
+        Parameters
+        ----------
+        choice : boolean
+            If True, set the axes to be drawn. If False, set the axes to not be
+            drawn.
         """
-
+        if draw_frame is None:
+            draw_frame = choice
         self._draw_axes = choice
-        self.axes.set_frame_on(choice)
+        self._draw_frame = draw_frame
+        self.axes.set_frame_on(draw_frame)
         self.axes.get_xaxis().set_visible(choice)
         self.axes.get_yaxis().set_visible(choice)
         size, axrect, caxrect = self._get_best_layout()
@@ -344,11 +366,11 @@ class ImagePlotMPL(PlotMPL):
         labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
         return labels
 
-    def hide_axes(self):
+    def hide_axes(self, draw_frame=None):
         """
         Hide the axes for a plot including ticks and labels
         """
-        self._toggle_axes(False)
+        self._toggle_axes(False, draw_frame)
         return self
 
     def show_axes(self):
@@ -409,7 +431,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
     Notes
     -----
     This is a simple implementation for a common use case.  Viewing the source
-    can be instructure, and is encouraged to see how to generate more
+    can be instructive, and is encouraged to see how to generate more
     complicated or more specific sets of multiplots for your own purposes.
     """
     import matplotlib.figure

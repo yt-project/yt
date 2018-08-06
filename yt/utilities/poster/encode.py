@@ -1,6 +1,6 @@
 """multipart/form-data encoding module
 
-This module provides functions that faciliate encoding name/value pairs
+This module provides functions that facilitate encoding name/value pairs
 as multipart/form-data suitable for a HTTP POST or PUT request.
 
 multipart/form-data is the standard way to upload files over HTTP"""
@@ -385,7 +385,7 @@ def multipart_encode(params, boundary=None, cb=None):
 
     Returns a tuple of `datagen`, `headers`, where `datagen` is a
     generator that will yield blocks of data that make up the encoded
-    parameters, and `headers` is a dictionary with the assoicated
+    parameters, and `headers` is a dictionary with the associated
     Content-Type and Content-Length headers.
 
     Examples:

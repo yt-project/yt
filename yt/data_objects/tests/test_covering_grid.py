@@ -1,13 +1,8 @@
 import numpy as np
 
-from yt import \
-    load
 from yt.frontends.stream.data_structures import load_particles
-from yt.testing import \
-    requires_file, \
-    fake_random_ds, \
-    assert_equal, \
-    assert_almost_equal
+from yt.testing import fake_random_ds, assert_equal, assert_almost_equal, \
+    fake_octree_ds
 
 def setup():
     from yt.config import ytcfg
@@ -134,18 +129,34 @@ def test_arbitrary_grid():
                     2**ref_level * ds.domain_dimensions)
             assert_almost_equal(cg["density"], ag["density"])
 
-output_00080 = "output_00080/info_00080.txt"
-@requires_file(output_00080)
 def test_octree_cg():
-    ds = load(output_00080)
-    cgrid = ds.covering_grid(0, left_edge=ds.domain_left_edge, dims=ds.domain_dimensions)
+    ds = fake_octree_ds(over_refine_factor=0, partial_coverage=0)
+    cgrid = ds.covering_grid(0, left_edge=ds.domain_left_edge,
+                             dims=ds.domain_dimensions)
     density_field = cgrid["density"]
     assert_equal((density_field == 0.0).sum(), 0)
 
-ekh = 'EnzoKelvinHelmholtz/DD0011/DD0011'
-@requires_file(ekh)
 def test_smoothed_covering_grid_2d_dataset():
-    ds = load(ekh)
+    ds = fake_random_ds([32, 32, 1], nprocs=4)
     ds.periodicity = (True, True, True)
-    scg = ds.smoothed_covering_grid(1, [0, 0, 0], [128, 128, 1])
-    assert_equal(scg['density'].shape, [128, 128, 1])
+    scg = ds.smoothed_covering_grid(1, [0.0, 0.0, 0.0], [32, 32, 1])
+    assert_equal(scg['density'].shape, [32, 32, 1])
+
+def test_arbitrary_grid_derived_field():
+    def custom_metal_density(field, data):
+        # Calculating some random value
+        return data['gas', 'density']*np.random.random_sample()
+
+    ds = fake_random_ds(64, nprocs=8, particles=16**2)
+    ds.add_field(("gas", "Metal_Density"), units="g/cm**3",
+                 function=custom_metal_density, sampling_type='cell')
+
+    def _tracerf(field, data):
+        return data['Metal_Density']/data['gas', 'density']
+
+    ds.add_field(("gas", "tracerf"), function=_tracerf, units="dimensionless",
+                 take_log=False)
+
+    galgas = ds.arbitrary_grid([0.4, 0.4, 0.4], [0.99, 0.99, 0.99],
+                               dims=[32, 32, 32])
+    galgas['tracerf']

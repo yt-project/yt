@@ -208,16 +208,20 @@ Overplot Quivers
 Axis-Aligned Data Sources
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. function:: annotate_quiver(self, field_x, field_y, factor, scale=None, \
-                              scale_units=None, normalize=False)
+.. function:: annotate_quiver(self, field_x, field_y, factor=16, scale=None, \
+                              scale_units=None, normalize=False, plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.QuiverCallback`.)
 
    Adds a 'quiver' plot to any plot, using the ``field_x`` and ``field_y`` from
-   the associated data, skipping every ``factor`` datapoints ``scale`` is the
-   data units per arrow length unit using ``scale_units`` (see
-   matplotlib.axes.Axes.quiver for more info)
+   the associated data, skipping every ``factor`` datapoints in the 
+   discretization. ``scale`` is the data units per arrow length unit using 
+   ``scale_units``. If ``normalize`` is ``True``, the fields will be scaled by 
+   their local (in-plane) length, allowing morphological features to be more 
+   clearly seen for fields with substantial variation in field strength. 
+   Additional arguments can be passed to the ``plot_args`` dictionary, see 
+   matplotlib.axes.Axes.quiver for more info.
 
 .. python-script::
 
@@ -225,26 +229,35 @@ Axis-Aligned Data Sources
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.ProjectionPlot(ds, 'z', 'density', center=[0.5, 0.5, 0.5],
                          weight_field='density', width=(20, 'kpc'))
-   p.annotate_quiver('velocity_x', 'velocity_y', 16)
+   p.annotate_quiver('velocity_x', 'velocity_y', factor=16, 
+                     plot_args={"color": "purple"})
    p.save()
 
 Off-Axis Data Sources
 ^^^^^^^^^^^^^^^^^^^^^
 
-.. function:: annotate_cquiver(self, field_x, field_y, factor)
+.. function:: annotate_cquiver(self, field_x, field_y, factor=16, scale=None, \
+                               scale_units=None, normalize=False, plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.CuttingQuiverCallback`.)
 
-   Get a quiver plot on top of a cutting plane, using ``field_x`` and
-   ``field_y``, skipping every ``factor`` datapoint in the discretization.
+   Get a quiver plot on top of a cutting plane, using the ``field_x`` and 
+   ``field_y`` from the associated data, skipping every ``factor`` datapoints in
+   the discretization. ``scale`` is the data units per arrow length unit using 
+   ``scale_units``. If ``normalize`` is ``True``, the fields will be scaled by 
+   their local (in-plane) length, allowing morphological features to be more 
+   clearly seen for fields with substantial variation in field strength. 
+   Additional arguments can be passed to the ``plot_args`` dictionary, see 
+   matplotlib.axes.Axes.quiver for more info.
 
 .. python-script::
 
    import yt
    ds = yt.load("Enzo_64/DD0043/data0043")
    s = yt.OffAxisSlicePlot(ds, [1,1,0], ["density"], center="c")
-   s.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y', 10)
+   s.annotate_cquiver('cutting_plane_velocity_x', 'cutting_plane_velocity_y', 
+                      factor=10, plot_args={'color':'orange'})
    s.zoom(1.5)
    s.save()
 
@@ -254,7 +267,8 @@ Overplot Grids
 ~~~~~~~~~~~~~~
 
 .. function:: annotate_grids(self, alpha=0.7, min_pix=1, min_pix_ids=20, \
-                             draw_ids=False, periodic=True, min_level=None, \
+                             draw_ids=False, id_loc="lower left", \
+                             periodic=True, min_level=None, \
                              max_level=None, cmap='B-W Linear_r', \
                              edgecolors=None, linewidth=1.0)
 
@@ -263,7 +277,8 @@ Overplot Grids
 
    Adds grid boundaries to a plot, optionally with alpha-blending via the
    ``alpha`` keyword. Cuttoff for display is at ``min_pix`` wide. ``draw_ids``
-   puts the grid id in the corner of the grid.  (Not so great in projections...)
+   puts the grid id in the ``id_loc`` corner of the grid. (``id_loc`` can be
+   upper/lower left/right. ``draw_ids`` is not so great in projections...)
 
 .. python-script::
 
@@ -383,17 +398,19 @@ Overplot Magnetic Field Quivers
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_magnetic_field(self, factor=16, scale=None, \
-                                      scale_units=None, normalize=False)
+                                      scale_units=None, normalize=False, \
+                                      plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.MagFieldCallback`.)
 
-   Adds a 'quiver' plot of magnetic field to the plot, skipping all but every
-   ``factor`` datapoint. ``scale`` is the data units per arrow length unit using
-   ``scale_units`` (see matplotlib.axes.Axes.quiver for more info). if
-   ``normalize`` is ``True``, the magnetic fields will be scaled by their local
-   (in-plane) length, allowing morphological features to be more clearly seen
-   for fields with substantial variation in field strength.
+   Adds a 'quiver' plot of magnetic field to the plot, skipping every ``factor`` 
+   datapoints in the discretization. ``scale`` is the data units per arrow 
+   length unit using ``scale_units``. If ``normalize`` is ``True``, the 
+   magnetic fields will be scaled by their local (in-plane) length, allowing 
+   morphological features to be more clearly seen for fields with substantial 
+   variation in field strength. Additional arguments can be passed to the 
+   ``plot_args`` dictionary, see matplotlib.axes.Axes.quiver for more info.
 
 .. python-script::
 
@@ -402,7 +419,7 @@ Overplot Magnetic Field Quivers
                 parameters={"time_unit":(1, 'Myr'), "length_unit":(1, 'Mpc'),
                             "mass_unit":(1e17, 'Msun')})
    p = yt.ProjectionPlot(ds, 'z', 'density', center='c', width=(300, 'kpc'))
-   p.annotate_magnetic_field()
+   p.annotate_magnetic_field(plot_args={"headlength": 3})
    p.save()
 
 .. _annotate-marker:
@@ -481,7 +498,8 @@ Overplot Streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_streamlines(self, field_x, field_y, factor=16, \
-                                   density = 1, plot_args=None)
+                                   density=1, display_threshold=None, \
+                                   plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.StreamlineCallback`.)
@@ -578,26 +596,26 @@ Add a Title
 Overplot Quivers for the Velocity Field
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_velocity(self, factor=16, scale=None, scale_units=None,\
-                                normalize=False)
+.. function:: annotate_velocity(self, factor=16, scale=None, scale_units=None, \
+                                normalize=False, plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.VelocityCallback`.)
 
-   Adds a 'quiver' plot of velocity to the plot, skipping all but every
-   ``factor`` datapoint. ``scale`` is the data units per arrow length unit using
-   ``scale_units`` (see matplotlib.axes.Axes.quiver for more info). if
-   ``normalize`` is ``True``, the velocity fields will be scaled by their local
-   (in-plane) length, allowing morphological features to be more clearly seen
-   for fields with substantial variation in field strength (normalize is not
-   implemented and thus ignored for Cutting Planes).
+   Adds a 'quiver' plot of velocity to the plot, skipping every ``factor`` 
+   datapoints in the discretization. ``scale`` is the data units per arrow 
+   length unit using ``scale_units``. If ``normalize`` is ``True``, the 
+   velocity fields will be scaled by their local (in-plane) length, allowing 
+   morphological features to be more clearly seen for fields with substantial 
+   variation in field strength. Additional arguments can be passed to the 
+   ``plot_args`` dictionary, see matplotlib.axes.Axes.quiver for more info.
 
 .. python-script::
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.SlicePlot(ds, 'z', 'density', center='m', width=(10, 'kpc'))
-   p.annotate_velocity()
+   p.annotate_velocity(plot_args={"headwidth": 4})
    p.save()
 
 .. _annotate-timestamp:
@@ -607,11 +625,11 @@ Add the Current Time and/or Redshift
 
 .. function:: annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left',\
                                  time=True, redshift=False, \
-                                 time_format='t = {time:.0f} {units}', \
-                                 time_unit=None, \
+                                 time_format='t = {time:.1f} {units}', \
+                                 time_unit=None, time_offset=None, \
                                  redshift_format='z = {redshift:.2f}', \
-                                 use_inset_box=False, text_args=None, \
-                                 inset_box_args=None)
+                                 draw_inset_box=False, coord_system='axis', \
+                                 text_args=None, inset_box_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.TimestampCallback`.)
@@ -620,8 +638,9 @@ Add the Current Time and/or Redshift
     location in the image (either in a present corner, or by specifying (x,y)
     image coordinates with the x_pos, y_pos arguments.  If no time_units are
     specified, it will automatically choose appropriate units.  It allows for
-    custom formatting of the time and redshift information, as well as the
-    specification of an inset box around the text.
+    custom formatting of the time and redshift information, the specification
+    of an inset box around the text, and changing the value of the timestamp
+    via a constant offset.
 
 .. python-script::
 
@@ -635,11 +654,14 @@ Add the Current Time and/or Redshift
 
 Add a Physical Scale Bar
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. function:: annotate_scale(corner='lower_right', coeff=None, \
-                             unit=None, pos=None, max_frac=0.16, \
-                             min_frac=0.015, coord_system='axis', \
-                             text_args=None, size_bar_args=None, \
-                             draw_inset_box=False, inset_box_args=None)
+                             unit=None, pos=None, 
+                             scale_text_format="{scale} {units}", \
+                             max_frac=0.16, min_frac=0.015, \
+                             coord_system='axis', text_args=None, \
+                             size_bar_args=None, draw_inset_box=False, \
+                             inset_box_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ScaleCallback`.)
@@ -655,7 +677,8 @@ Add a Physical Scale Bar
     dictionary accepts matplotlib's font_properties arguments to override
     the default font_properties for the current plot.  The size_bar_args
     dictionary accepts keyword arguments for the AnchoredSizeBar class in
-    matplotlib's axes_grid toolkit.
+    matplotlib's axes_grid toolkit. Finally, the format of the scale bar text
+    can be adjusted using the scale_text_format keyword argument.
 
 .. python-script::
 
@@ -740,7 +763,7 @@ Overplot the Path of a Ray
     Adds a line representing the projected path of a ray across the plot.  The
     ray can be either a
     :class:`~yt.data_objects.selection_data_containers.YTOrthoRay`,
-    :class:`~yt.data_objects.selection_data_contaners.YTRay`, or a
+    :class:`~yt.data_objects.selection_data_containers.YTRay`, or a
     :class:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay`
     object.  annotate_ray() will properly account for periodic rays across the
     volume.

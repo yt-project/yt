@@ -1,8 +1,9 @@
 # The yt Project
 
-[![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org/)
-[![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org/)
+[![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
+[![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-dev@python.org//)
 [![Build Status](https://img.shields.io/travis/yt-project/yt.svg?branch=master)](https://travis-ci.org/yt-project/yt)
+[![codecov](https://codecov.io/gh/yt-project/yt/branch/master/graph/badge.svg)](https://codecov.io/gh/yt-project/yt)
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](http://numfocus.org)
@@ -24,16 +25,22 @@ paper](http://adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
 in; if you use yt in the preparation of a publication, please consider citing
 it.
 
+## Code of Conduct
+
+yt abides by a code of conduct partially modified from the PSF code of conduct,
+and is found [in our contributing
+guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-code-of-conduct).
+
 ## Installation
 
-If you're using conda with [conda-forge](http://conda-forge.github.io/), you
-can install the most recent stable version by running:
+You can install the most recent stable version of yt either with conda from
+[conda-forge](http://conda-forge.github.io/):
 
 ```
 conda install -c conda-forge yt
 ```
 
-or by doing:
+or with pip:
 
 ```
 pip install yt
@@ -46,30 +53,47 @@ repository:
 conda install -c http://use.yt/with_conda yt
 ```
 
-To get set up with a development version, you can clone this repository and
-install like this:
+To get set up with a development version, you want to clone this repository:
 
 ```
 git clone https://github.com/yt-project/yt yt-git
 cd yt-git
-python setup.py develop
 ```
 
-To set up yt in a virtualenv (and there are [many good
-reasons](https://packaging.python.org/installing/#creating-virtual-environments)
-to do so!) you can follow this prescription:
+and work within a conda environment:
 
 ```
-# Assuming you have cd'd into yt-git
+# Create a conda environment named yt-git
+$ conda create -n yt-git python=3.6
+# Activate it
+$ source activate yt-git
+# Make sure you run the latest version of conda
+$ conda update conda
+# Install yt's runtime dependencies
+$ conda install -c conda-forge yt --only-deps
+# Install yt's build dependencies
+$ conda install -c conda-forge cython
+# Make sure you run the latest version of pip
+$ pip install --upgrade pip
+$ pip install -v -e .
+# Output installed packages
+$ conda env export
+```
+
+Alternatively, you can install yt in a
+[virtualenv](https://packaging.python.org/installing/#creating-virtual-environments):
+
+```
 # It is conventional to create virtualenvs at ~/.virtualenv/
 $ mkdir -p ~/.virtualenv
 # Assuming your version of Python 3 is 3.4 or higher,
-# create a virtualenv named yt
-$ python3 -m venv ~/.virtualenv/yt
+# create a virtualenv named yt-git
+$ python3 -m venv ~/.virtualenv/yt-git
 # Activate it
-$ source ~/.virtualenv/yt/bin/activate
+$ source ~/.virtualenv/yt-git/bin/activate
 # Make sure you run the latest version of pip
 $ pip install --upgrade pip
+# Assuming you have cd'd into yt-git
 $ pip install -e .
 # Output installed packages
 $ pip freeze
@@ -130,10 +154,10 @@ We have some community and documentation resources available.
  * Our latest documentation is always at http://yt-project.org/docs/dev/ and it
    includes recipes, tutorials, and API documentation
  * The [discussion mailing
-   list](http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org/)
+   list](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
    should be your first stop for general questions
  * The [development mailing
-   list](http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org/) is
+   list](https://mail.python.org/mm3/archives/list/yt-dev@python.org//) is
    better suited for more development issues
  * You can also join us on Slack at yt-project.slack.com ([request an
    invite](http://yt-project.org/slack.html))

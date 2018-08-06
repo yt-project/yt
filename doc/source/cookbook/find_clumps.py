@@ -52,6 +52,16 @@ prj.save('clumps')
 # Reload the clump dataset.
 cds = yt.load(fn)
 
+# Clump annotation can also be done with the reloaded clump dataset.
+
+# Remove the original clump annotation
+prj.annotate_clear()
+
+# Get the leaves and add the callback.
+leaf_clumps_reloaded = cds.leaves
+prj.annotate_clumps(leaf_clumps_reloaded)
+prj.save('clumps_reloaded')
+
 # Query fields for clumps in the tree.
 print (cds.tree["clump", "center_of_mass"])
 print (cds.tree.children[0]["grid", "density"])

@@ -17,6 +17,7 @@ from yt.extern.six import string_types
 from yt.funcs import obj_length
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTDimensionalityError
+from yt.visualization.line_plot import LineBuffer
 
 class RegionExpression(object):
     _all_data = None
@@ -59,7 +60,7 @@ class RegionExpression(object):
             raise YTDimensionalityError(len(item), self.ds.dimensionality)
         if self.ds.dimensionality != 3:
             # We'll pass on this for the time being.
-            raise RuntimeError
+            raise YTDimensionalityError(self.ds.dimensionality, '3')
 
         # OK, now we need to look at our slices.  How many are a specific
         # coordinate?
@@ -155,23 +156,43 @@ class RegionExpression(object):
     def _create_ray(self, ray_slice):
         start_point = [self._spec_to_value(v) for v in ray_slice.start]
         end_point = [self._spec_to_value(v) for v in ray_slice.stop]
-        return self.ds.ray(start_point, end_point)
+        if getattr(ray_slice.step, "imag", 0.0) != 0.0:
+            return LineBuffer(self.ds, start_point, end_point, 
+                              int(ray_slice.step.imag))
+        else:
+            return self.ds.ray(start_point, end_point)
 
     def _create_ortho_ray(self, ray_tuple):
         axis = None
         new_slice = []
         coord = []
+        npoints = 0
+        start_point = []
+        end_point = []
         for ax, v in enumerate(ray_tuple):
             if not isinstance(v, slice):
-                coord.append(self._spec_to_value(v))
+                val = self._spec_to_value(v)
+                coord.append(val)
                 new_slice.append(slice(None, None, None))
+                start_point.append(val)
+                end_point.append(val)
             else:
                 if axis is not None: raise RuntimeError
-                axis = ax
-                new_slice.append(v)
-        if axis == 1: coord = [coord[1], coord[0]]
-        source = self._create_region(new_slice)
-        ray = self.ds.ortho_ray(axis, coord, data_source=source)
-        if getattr(new_slice[axis].step, "imag", 0.0) != 0.0:
-            raise NotImplementedError
+                if getattr(v.step, "imag", 0.0) != 0.0:
+                    npoints = int(v.step.imag)
+                    xi = self._spec_to_value(v.start)
+                    xf = self._spec_to_value(v.stop)
+                    dx = (xf-xi)/npoints
+                    start_point.append(xi+0.5*dx)
+                    end_point.append(xf-0.5*dx)
+                else:
+                    axis = ax
+                    new_slice.append(v)
+        if npoints > 0:
+            ray = LineBuffer(self.ds, start_point, end_point, npoints)
+        else:
+            if axis == 1:
+                coord = [coord[1], coord[0]]
+            source = self._create_region(new_slice)
+            ray = self.ds.ortho_ray(axis, coord, data_source=source)
         return ray

@@ -22,4 +22,4 @@ from .fields import \
       SkeletonFieldInfo
 
 from .io import \
-      IOHandlerSkeleton
+      SkeletonIOHandler

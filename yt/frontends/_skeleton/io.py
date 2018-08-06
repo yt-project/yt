@@ -16,9 +16,10 @@ Skeleton-specific IO functions
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-class IOHandlerSkeleton(BaseIOHandler):
+
+class SkeletonIOHandler(BaseIOHandler):
     _particle_reader = False
-    _dataset_type = "skeleton"
+    _dataset_type = 'skeleton'
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
@@ -33,7 +34,6 @@ class IOHandlerSkeleton(BaseIOHandler):
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
         pass
-
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # This needs to allocate a set of arrays inside a dictionary, where the

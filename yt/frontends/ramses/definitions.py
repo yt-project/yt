@@ -15,6 +15,8 @@ Definitions for RAMSES files
 #-----------------------------------------------------------------------------
 
 # These functions are RAMSES-specific
+from yt.config import ytcfg
+from yt.funcs import mylog
 
 def ramses_header(hvals):
     header = ( ('ncpu', 1, 'i'),
@@ -25,7 +27,7 @@ def ramses_header(hvals):
                ('nboundary', 1, 'i'),
                ('ngrid_current', 1, 'i'),
                ('boxlen', 1, 'd'),
-               ('nout', 3, 'I')
+               ('nout', 3, 'i')
               )
     yield header
     # TODO: REMOVE
@@ -41,11 +43,6 @@ def ramses_header(hvals):
                  ('timing', 5, 'd'),
                  ('mass_sph', 1, 'd') )
     yield next_set
-    tree_header = ( ('headl', hvals['nlevelmax'] * hvals['ncpu'], 'i'),
-                    ('taill', hvals['nlevelmax'] * hvals['ncpu'], 'i'),
-                    ('numbl', hvals['nlevelmax'] * hvals['ncpu'], 'i'),
-                  )
-    yield tree_header
 
 field_aliases = {
     'standard_five':     ('Density',
@@ -61,3 +58,21 @@ field_aliases = {
                           'Metallicity'),
 
 }
+
+particle_families = {
+    'DM': 1,
+    'star': 2,
+    'cloud': 3,
+    'dust': 4,
+    'star_tracer': -2,
+    'cloud_tracer': -3,
+    'dust_tracer': -4,
+    'gas_tracer': 0
+}
+
+if ytcfg.has_section('ramses-families'):
+    for key in particle_families.keys():
+        val = ytcfg.getint('ramses-families', key, fallback=None)
+        if val is not None:
+            mylog.info('Changing family %s from %s to %s' % (key, particle_families[key], val))
+            particle_families[key] = val

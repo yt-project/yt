@@ -194,13 +194,14 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
             field = (ftype, fname)
             for chunk in chunks:
                 for grid in chunk.objs:
-                    component = fname.replace("_", "/").replace("-", "_")
-                    if component.split("/")[0] not in grid.ftypes:
-                        continue
                     mask = grid._get_selector_mask(selector)
                     if mask is None:
                         continue
-                    data = get_component(ds, component, grid.findex, grid.foffset)
+                    component = fname.replace("_", "/").replace("-", "_")
+                    if component.split("/")[0] not in grid.ftypes:
+                        data = np.full(grid.ActiveDimensions, 0, dtype=np.float64)
+                    else:
+                        data = get_component(ds, component, grid.findex, grid.foffset)
                     # The following is a modified AMRGridPatch.select(...)
                     data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
                     count = grid.count(selector)

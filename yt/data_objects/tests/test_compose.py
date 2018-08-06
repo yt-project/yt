@@ -1,8 +1,9 @@
 import numpy as np
 
 from yt.testing import \
-    fake_random_ds, \
-    assert_array_equal
+    assert_array_equal, \
+    fake_amr_ds, \
+    fake_random_ds
 from yt.units.yt_array import \
     YTArray, \
     uintersect1d
@@ -147,3 +148,13 @@ def test_compose_overlap():
             id3 = data3['index', 'ID']
             id3.sort()
             assert_array_equal(uintersect1d(id1, id2), id3)
+
+def test_compose_max_level_min_level():
+    ds = fake_amr_ds()
+    ad = ds.all_data()
+    ad.max_level = 2
+    slc = ds.slice('x', 0.5, data_source=ad)
+    assert slc['grid_level'].max() == 2
+    frb = slc.to_frb(1.0, 128)
+    assert np.all(frb['Density'] > 0)
+    assert frb['grid_level'].max() == 2

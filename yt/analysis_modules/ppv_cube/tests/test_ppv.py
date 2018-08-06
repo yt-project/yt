@@ -59,3 +59,27 @@ def test_ppv():
     c = dE*np.exp(-((cube.vmid-E_shift)/delta_E)**2)/(np.sqrt(np.pi)*delta_E)
 
     assert_allclose_units(a, c, 1.0e-2)
+
+def test_ppv_nothermalbroad():
+
+    np.random.seed(seed=0x4d3d3d3)
+
+    dims = (16, 16, 128)
+    v_shift = 1.0e6*u.cm/u.s
+    sigma_v = 2.0e6*u.cm/u.s
+    data = {"density":(np.ones(dims),"g/cm**3"),
+            "velocity_x":(np.zeros(dims),"cm/s"),
+            "velocity_y":(np.zeros(dims),"cm/s"),
+            "velocity_z":(np.random.normal(loc=v_shift.v,scale=sigma_v.v,size=dims), "cm/s")}
+
+    ds = load_uniform_grid(data, dims)
+
+    cube = PPVCube(ds, "z", "density", (-100., 100., 128, "km/s"),
+                   dims=16, thermal_broad=False)
+
+    dv = cube.dv
+    v_noth = np.sqrt(2)*(sigma_v).in_units("km/s")
+    a = cube.data.mean(axis=(0,1)).v
+    b = dv*np.exp(-((cube.vmid+v_shift)/v_noth)**2)/(np.sqrt(np.pi)*v_noth)
+
+    assert_allclose_units(a, b, atol=5.0e-3)

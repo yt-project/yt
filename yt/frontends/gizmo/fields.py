@@ -16,6 +16,8 @@ Gizmo-specific fields
 
 from yt.fields.field_info_container import \
     FieldInfoContainer
+from yt.fields.magnetic_field import \
+    setup_magnetic_field_aliases
 from yt.fields.particle_fields import \
     add_volume_weighted_smoothed_field
 from yt.fields.species_fields import \
@@ -36,8 +38,9 @@ class GizmoFieldInfo(GadgetFieldInfo):
         ("Coordinates", ("code_length", ["particle_position"], None)),
         ("Velocity", ("code_velocity", ["particle_velocity"], None)),
         ("Velocities", ("code_velocity", ["particle_velocity"], None)),
+        ("MagneticField", ("code_magnetic", ["particle_magnetic_field"], None)),
         ("ParticleIDs", ("", ["particle_index"], None)),
-        ("InternalEnergy", ("code_velocity ** 2", ["thermal_energy"], None)),
+        ("InternalEnergy", ("code_specific_energy", ["thermal_energy"], None)),
         ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("Density", ("code_mass / code_length**3", ["density"], None)),
         ("MaximumTemperature", ("K", [], None)),
@@ -134,3 +137,9 @@ class GizmoFieldInfo(GadgetFieldInfo):
                     self, num_neighbors)
 
                 self.alias(("gas", field), fn[0])
+
+        magnetic_field = "MagneticField"
+        if (ptype, magnetic_field) in self.field_list:
+            setup_magnetic_field_aliases(
+                self, ptype, magnetic_field, ftype=ptype
+            )

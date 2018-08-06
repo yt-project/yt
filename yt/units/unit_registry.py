@@ -174,3 +174,15 @@ class UnitRegistry:
             lut[k] = tuple(unsan_v)
 
         return cls(lut=lut, add_default_symbols=False)
+
+    def list_same_dimensions(self, unit_object):
+        """
+        Return a list of base unit names that this registry knows about that
+        are of equivalent dimensions to *unit_object*.
+        """
+        equiv = [k for k, v in self.lut.items()
+                 if v[1] is unit_object.dimensions]
+        equiv += [n for n, u in self.unit_objs.items()
+                 if u.dimensions is unit_object.dimensions]
+        equiv = list(sorted(set(equiv)))
+        return equiv

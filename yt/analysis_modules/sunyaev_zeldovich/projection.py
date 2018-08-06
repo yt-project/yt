@@ -347,7 +347,8 @@ class SZProjection(object):
         self.data["TeSZ"] = self.ds.arr(Te, "keV")
 
     @parallel_root_only
-    def write_fits(self, filename, sky_scale=None, sky_center=None, clobber=True):
+    def write_fits(self, filename, sky_scale=None, sky_center=None, overwrite=True,
+                   **kwargs):
         r""" Export images to a FITS file. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
         optical depth. Distance units are in kpc, unless *sky_center*
@@ -363,13 +364,16 @@ class SZProjection(object):
         sky_center : tuple, optional
             The (RA, Dec) coordinate in degrees of the central pixel. Must
             be specified with *sky_scale*.
-        clobber : boolean, optional
+        overwrite : boolean, optional
             If the file already exists, do we overwrite?
+
+        Additional keyword arguments are passed to
+        :meth:`~astropy.io.fits.HDUList.writeto`.
 
         Examples
         --------
         >>> # This example just writes out a FITS file with kpc coords
-        >>> szprj.write_fits("SZbullet.fits", clobber=False)
+        >>> szprj.write_fits("SZbullet.fits", overwrite=False)
         >>> # This example uses sky coords
         >>> sky_scale = (1., "arcsec/kpc") # One arcsec per kpc
         >>> sky_center = (30., 45., "deg")
@@ -390,7 +394,7 @@ class SZProjection(object):
         fib = FITSImageData(self.data, fields=self.data.keys(), wcs=w)
         if sky_scale is not None and sky_center is not None:
             fib.create_sky_wcs(sky_center, sky_scale)
-        fib.writeto(filename, clobber=clobber)
+        fib.writeto(filename, overwrite=overwrite, **kwargs)
 
     @parallel_root_only
     def write_png(self, filename_prefix, cmap_name=None,

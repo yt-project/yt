@@ -51,10 +51,12 @@ from .plot_window import \
     AxisAlignedSlicePlot, \
     OffAxisSlicePlot, \
     ProjectionPlot, \
-    OffAxisProjectionPlot
+    OffAxisProjectionPlot, \
+    plot_2d
 
 from .line_plot import \
-    LinePlot
+    LinePlot, \
+    LineBuffer
 
 from .profile_plotter import \
     ProfilePlot, \

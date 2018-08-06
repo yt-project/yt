@@ -39,6 +39,8 @@ fields = OrderedDict(
 )
 
 g64 = "gizmo_64/output/snap_N64L16_135.hdf5"
+gmhd = "gizmo_mhd_mwdisk/gizmo_mhd_mwdisk.hdf5"
+
 
 @requires_ds(g64, big_data=True)
 def test_gizmo_64():
@@ -47,3 +49,29 @@ def test_gizmo_64():
     for test in sph_answer(ds, 'snap_N64L16_135', 524288, fields):
         test_gizmo_64.__name__ = test.description
         yield test
+
+
+@requires_ds(gmhd, big_data=True)
+def test_gizmo_mhd():
+    """
+    Magnetic fields should be loaded correctly when they are present.
+    """
+    kwargs = {
+        'bounding_box': [[-400, 400]] * 3,
+        'unit_system': 'code'
+    }
+    ds = data_dir_load(gmhd, kwargs=kwargs)
+    ad = ds.all_data()
+    ptype = 'PartType0'
+
+    # Test vector magnetic field
+    fmag = 'particle_magnetic_field'
+    f = ad[ptype, fmag]
+    assert str(f.units) == 'code_magnetic'
+    assert f.shape == (409013, 3)
+
+    # Test component magnetic fields
+    for axis in 'xyz':
+        f = ad[ptype, fmag + '_' + axis]
+        assert str(f.units) == 'code_magnetic'
+        assert f.shape == (409013,)

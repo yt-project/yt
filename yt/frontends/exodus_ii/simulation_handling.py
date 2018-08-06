@@ -21,7 +21,7 @@ class ExodusIISimulation(DatasetSeries):
     r"""
     Initialize an ExodusII Simulation object.
 
-    Upon creation, the input directoy is searched for valid ExodusIIDatasets.
+    Upon creation, the input directory is searched for valid ExodusIIDatasets.
     The get_time_series can be used to generate a DatasetSeries object.
 
     simulation_directory : str

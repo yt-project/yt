@@ -262,7 +262,7 @@ def modify_reference_frame(CoM, L, P=None, V=None):
 
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
-        postions). The array should be Nx3.
+        positions). The array should be Nx3.
 
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
@@ -376,7 +376,7 @@ def compute_rotational_velocity(CoM, L, P, V):
 
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
-        postions). The array should be Nx3.
+        positions). The array should be Nx3.
 
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
@@ -431,7 +431,7 @@ def compute_parallel_velocity(CoM, L, P, V):
 
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
-        postions). The array should be Nx3.
+        positions). The array should be Nx3.
 
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
@@ -477,7 +477,7 @@ def compute_radial_velocity(CoM, L, P, V):
 
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
-        postions). The array should be Nx3.
+        positions). The array should be Nx3.
 
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
@@ -531,7 +531,7 @@ def compute_cylindrical_radius(CoM, L, P, V):
 
     P : array
         The positions of the data to be modified (i.e. particle or grid cell
-        postions). The array should be Nx3.
+        positions). The array should be Nx3.
 
     V : array
         The velocities of the data to be modified (i.e. particle or grid cell
@@ -769,7 +769,7 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
             indexer[axis] = slice(index, index+1)
         # Use mean in odd and even case to coerce data type
         # and check, use out array.
-        result.append(np.mean(sorted[indexer], axis=axis, out=out))
+        result.append(np.mean(sorted[tuple(indexer)], axis=axis, out=out))
     return np.array(result)
 
 def get_perspective_matrix(fovy, aspect, z_near, z_far):
@@ -809,7 +809,7 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
     -----
     The usage of 4D homogeneous coordinates is for OpenGL and GPU
     hardware that automatically performs the divide by w operation.
-    See the following for more details about the OpenGL perpective matrices.
+    See the following for more details about the OpenGL perspective matrices.
 
     http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
     http://www.songho.ca/opengl/gl_projectionmatrix.html
@@ -880,7 +880,7 @@ def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     -----
     The usage of 4D homogeneous coordinates is for OpenGL and GPU
     hardware that automatically performs the divide by w operation.
-    See the following for more details about the OpenGL perpective matrices.
+    See the following for more details about the OpenGL perspective matrices.
 
     http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/orthographic-projection-matrix
     http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/

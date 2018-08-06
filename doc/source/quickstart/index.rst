@@ -4,7 +4,7 @@ yt Quickstart
 =============
 
 The quickstart is a series of worked examples of how to use much of the
-funtionality of yt.  These are simple, short introductions to give you a taste
+functionality of yt.  These are simple, short introductions to give you a taste
 of what the code can do and are not meant to be detailed walkthroughs.
 
 There are two ways in which you can go through the quickstart: interactively and
@@ -32,7 +32,7 @@ git:
    git clone https://github.com/yt-project/yt
 
 Now start the IPython notebook from within the repository (we presume you have
-yt installed):
+yt and [jupyter](https://jupyter.org/) installed):
 
 .. code-block:: bash
 

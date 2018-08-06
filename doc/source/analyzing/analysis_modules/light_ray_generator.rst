@@ -1,5 +1,12 @@
 .. _light-ray-generator:
 
+.. note::
+
+    Development of the LightRay module has been moved to the Trident
+    package. This version is deprecated and will be removed from yt
+    in a future release. See https://github.com/trident-project/trident
+    for further information.
+
 Light Ray Generator
 ===================
 
@@ -205,8 +212,8 @@ periodic simply by setting the ``periodic`` keyword to True.  This
 option should be used with caution as it will lead to the creation
 of disconnected ray segments within a single dataset.
 
-I want a continous trajectory over the entire ray.
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+I want a continuous trajectory over the entire ray.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Set the ``minimum_coherent_box_fraction`` keyword argument to a very
 large number, like infinity (`numpy.inf`).

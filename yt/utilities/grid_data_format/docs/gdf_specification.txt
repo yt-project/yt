@@ -13,7 +13,7 @@ Caveats and Notes
 #. We avoid having many attributes on many nodes, as access can be quite slow
 #. Cartesian data only for now
 #. All grids must have the same number of ghost zones.
-#. If “/grid_parent” does not exist, parentage relationships will be
+#. If "/grid_parent" does not exist, parentage relationships will be
    reconstructed and assumed to allow multiple grids
 #. No parentage can skip levels
 #. All grids are at the same time
@@ -28,7 +28,7 @@ Caveats and Notes
    this format.)
 #. All fluid fields in this version of the format are assumed to have the
    dimensionality of the grid they reside in plus any ghost zones, plus any
-   additionaly dimensionality required by the staggering property.
+   additionally dimensionality required by the staggering property.
 #. Particles may have dataspaces affiliated with them.  (See Enzo's
    OutputParticleTypeGrouping for more information.)  This enables a light
    wrapper around data formats with interspersed particle types.
@@ -173,7 +173,7 @@ These attributes will all be associated with ``/simulation_parameters``.
 ``domain_dimensions``
    dimensions in the top grid
 ``current_time``
-   current time in simulation, in seconds, from “start” of simulation
+   current time in simulation, in seconds, from "start" of simulation
 ``domain_left_edge``
    the left edge of the domain, in cm
 ``domain_right_edge``

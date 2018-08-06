@@ -24,13 +24,14 @@ from nose.tools import assert_true
 
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
-    assert_array_almost_equal, assert_raises
+    assert_array_almost_equal, assert_raises, assert_fname
 from yt.utilities.answer_testing.framework import \
     requires_ds, data_dir_load, PlotWindowAttributeTest
 from yt.utilities.exceptions import \
     YTInvalidFieldType
 from yt.visualization.api import \
-    SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
+    SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot, \
+    plot_2d
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.units import kboltz
 from yt.frontends.stream.api import load_uniform_grid
@@ -42,35 +43,7 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 
-def assert_fname(fname):
-    """Function that checks file type using libmagic"""
-    if fname is None:
-        return
-
-    with open(fname, 'rb') as fimg:
-        data = fimg.read()
-    image_type = ''
-
-    # see http://www.w3.org/TR/PNG/#5PNG-file-signature
-    if data.startswith(b'\211PNG\r\n\032\n'):
-        image_type = '.png'
-    # see http://www.mathguide.de/info/tools/media-types/image/jpeg
-    elif data.startswith(b'\377\330'):
-        image_type = '.jpeg'
-    elif data.startswith(b'%!PS-Adobe'):
-        data_str = data.decode("utf-8", "ignore")
-        if 'EPSF' in data_str[:data_str.index('\n')]:
-            image_type = '.eps'
-        else:
-            image_type = '.ps'
-    elif data.startswith(b'%PDF'):
-        image_type = '.pdf'
-
-    return image_type == os.path.splitext(fname)[1]
-
-
-TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
-              'test.ps', 'test.pdf']
+TEST_FLNMS = ['test.png']
 M7 = "DD0010/moving7_0010"
 WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
@@ -323,7 +296,7 @@ class TestPlotWindowSave(unittest.TestCase):
         for dim in range(3):
             slc = SlicePlot(test_ds, dim, 'density')
             for fname in TEST_FLNMS:
-                assert assert_fname(slc.save(fname)[0])
+                assert_fname(slc.save(fname)[0])
 
     def test_repr_html(self):
         test_ds = fake_random_ds(16)
@@ -335,7 +308,7 @@ class TestPlotWindowSave(unittest.TestCase):
         for dim in range(3):
             proj = ProjectionPlot(test_ds, dim, 'density')
             for fname in TEST_FLNMS:
-                assert assert_fname(proj.save(fname)[0])
+                assert_fname(proj.save(fname)[0])
 
     def test_projection_plot_ds(self):
         test_ds = fake_random_ds(16)
@@ -366,13 +339,13 @@ class TestPlotWindowSave(unittest.TestCase):
         test_ds = fake_random_ds(16)
         slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
         for fname in TEST_FLNMS:
-            assert assert_fname(slc.save(fname)[0])
+            assert_fname(slc.save(fname)[0])
 
     def test_offaxis_projection_plot(self):
         test_ds = fake_random_ds(16)
         prj = OffAxisProjectionPlot(test_ds, [1, 1, 1], "density")
         for fname in TEST_FLNMS:
-            assert assert_fname(prj.save(fname)[0])
+            assert_fname(prj.save(fname)[0])
 
     def test_creation_with_width(self):
         test_ds = fake_random_ds(16)
@@ -478,6 +451,9 @@ def test_frb_regen():
     slc = SlicePlot(ds, 2, 'density')
     slc.set_buff_size(1200)
     assert_equal(slc.frb['density'].shape, (1200, 1200))
+    slc.set_buff_size((400., 200.7))
+    assert_equal(slc.frb['density'].shape, (200, 400))
+
 
 def test_set_background_color():
     ds = fake_random_ds(32)
@@ -532,3 +508,45 @@ def test_set_unit():
     slc.set_unit('temperature', 'keV', equivalency='thermal')
     assert str(slc.frb['gas', 'temperature'].units) == 'keV'
 
+WD = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
+
+@requires_ds(WD)
+def test_plot_2d():
+    # Cartesian
+    ds = fake_random_ds((32,32,1), fields=('temperature',), units=('K',))
+    slc = SlicePlot(ds, "z", ["temperature"], width=(0.2,"unitary"),
+                    center=[0.4, 0.3, 0.5])
+    slc2 = plot_2d(ds, "temperature", width=(0.2,"unitary"),
+                   center=[0.4, 0.3])
+    slc3 = plot_2d(ds, "temperature", width=(0.2,"unitary"),
+                   center=ds.arr([0.4, 0.3], "cm"))
+    assert_array_equal(slc.frb['temperature'], slc2.frb['temperature'])
+    assert_array_equal(slc.frb['temperature'], slc3.frb['temperature'])
+    # Cylindrical
+    ds = data_dir_load(WD)
+    slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
+    slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
+    assert_array_equal(slc.frb['density'], slc2.frb['density'])
+
+def test_symlog_colorbar():
+    ds = fake_random_ds(16)
+
+    def _thresh_density(field, data):
+        wh = data['density'] < 0.5
+        ret = data['density']
+        ret[wh] = 0
+        return ret
+
+    def _neg_density(field, data):
+        return -data['threshold_density']
+
+    ds.add_field('threshold_density', function=_thresh_density,
+                 units='g/cm**3', sampling_type='cell')
+    ds.add_field('negative_density', function=_neg_density, units='g/cm**3',
+                 sampling_type='cell')
+
+    for field in ['density', 'threshold_density', 'negative_density']:
+        plot = SlicePlot(ds, 2, field)
+        plot.set_log(field, True, linthresh=0.1)
+        with tempfile.NamedTemporaryFile(suffix='png') as f:
+            plot.save(f.name)

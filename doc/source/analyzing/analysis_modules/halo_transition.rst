@@ -3,7 +3,7 @@
 Transitioning From yt-2 to yt-3
 ===============================
 
-If you're used to halo analysis in yt-2.x, heres a guide to
+If you're used to halo analysis in yt-2.x, here's a guide to
 how to update your analysis pipeline to take advantage of
 the new halo catalog infrastructure.  If you're starting
 from scratch, see :ref:`halo_catalog`.

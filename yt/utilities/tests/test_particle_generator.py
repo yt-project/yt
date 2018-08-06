@@ -100,10 +100,10 @@ def test_particle_generator():
     for field in field_list:
         pdata[field] = dd[field]
 
-    # Test the "from-list" generator and particle field clobber
+    # Test the "from-list" generator and particle field overwrite
     num_particles3 = num_particles+np.product(pdims)
     particles3 = FromListParticleGenerator(ds, num_particles3, pdata)
-    particles3.apply_to_stream(clobber=True)
+    particles3.apply_to_stream(overwrite=True)
 
     # Test the number of particles again
     particles_per_grid3 = [grid.NumberOfParticles for grid in ds.index.grids]

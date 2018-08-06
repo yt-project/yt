@@ -69,7 +69,7 @@ cdef class BVH:
 
     Currently, 2nd-order meshes are only supported for 20-node hexahedral elements.
     There, the primitive type is a bi-quadratic patch instead of a triangle, and
-    each intersection involves computing a Netwon-Raphson solve.
+    each intersection involves computing a Newton-Raphson solve.
 
     See yt/utilities/lib/primitives.pyx for the definitions of both of these primitive
     types.

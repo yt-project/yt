@@ -90,7 +90,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     s : 1d float ndarray
         ray parametric distance on range [0,len(ray)]
     rztheta : 2d float ndarray
-        ray grid cell intersections in cylidrical coordinates
+        ray grid cell intersections in cylindrical coordinates
     inds : 1d int ndarray
         indexes into the grid cells which the ray crosses in order.
 
@@ -145,7 +145,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     # compute first cut of indexes and thetas, which 
     # have been filtered by those values for which intersection
     # times are impossible (see above masks). Note that this is
-    # still independnent of z.
+    # still independent of z.
     inds = np.unique(np.concatenate([np.argwhere(tmmleft).flat, 
                                      np.argwhere(tpmleft).flat, 
                                      np.argwhere(tmmright).flat, 

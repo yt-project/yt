@@ -43,7 +43,8 @@ class ClumpValidator(object):
         return self.function(clump, *self.args, **self.kwargs)
     
 def _gravitationally_bound(clump, use_thermal_energy=True,
-                           use_particles=True, truncate=True):
+                           use_particles=True, truncate=True,
+                           num_threads=0):
     "True if clump is gravitationally bound."
 
     use_particles &= \
@@ -84,7 +85,7 @@ def _gravitationally_bound(clump, use_thermal_energy=True,
     potential = clump.data.ds.quan(G *
         gravitational_binding_energy(
             m, px, py, pz,
-            truncate, (kinetic / G).in_cgs()),
+            truncate, (kinetic / G).in_cgs(),num_threads=num_threads),
             kinetic.in_cgs().units)
 
     if truncate and potential >= kinetic:

@@ -4,7 +4,7 @@
 
 alias deactivate 'test $?_OLD_VIRTUAL_PATH != 0 && setenv PATH "$_OLD_VIRTUAL_PATH" && unset _OLD_VIRTUAL_PATH; test $?_OLD_VIRTUAL_YT_DEST != 0 && setenv YT_DEST "$_OLD_VIRTUAL_YT_DEST" && unset _OLD_VIRTUAL_YT_DEST; test $?_OLD_VIRTUAL_PYTHONPATH != 0 && setenv PYTHONPATH "$_OLD_VIRTUAL_PYTHONPATH" && unset _OLD_VIRTUAL_PYTHONPATH; test $?_OLD_VIRTUAL_LD_LIBRARY_PATH != 0 && setenv LD_LIBRARY_PATH "$_OLD_VIRTUAL_LD_LIBRARY_PATH" && unset _OLD_VIRTUAL_LD_LIBRARY_PATH; rehash; test $?_OLD_VIRTUAL_PROMPT != 0 && set prompt="$_OLD_VIRTUAL_PROMPT" && unset _OLD_VIRTUAL_PROMPT; unsetenv VIRTUAL_ENV; test "\!:*" != "nondestructive" && unalias deactivate'
 
-# Unset irrelavent variables.
+# Unset irrelevant variables.
 deactivate nondestructive
 
 setenv VIRTUAL_ENV "__YT_DIR__"

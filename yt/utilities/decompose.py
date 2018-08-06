@@ -64,7 +64,7 @@ def evaluate_domain_decomposition(n_d, pieces, ldom):
 
 
 def factorize_number(pieces):
-    """ Return array consiting of prime, its power and number of different
+    """ Return array consisting of prime, its power and number of different
         decompositions in three dimensions for this prime
     """
     factors = [factor for factor in decompose_to_primes(pieces)]

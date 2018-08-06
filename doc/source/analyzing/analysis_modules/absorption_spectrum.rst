@@ -1,5 +1,12 @@
 .. _absorption_spectrum:
 
+.. note::
+
+    Development of the AbsorptionSpectrum module has been moved to the
+    Trident package. This version is deprecated and will be removed from yt
+    in a future release. See https://github.com/trident-project/trident
+    for further information.
+
 Creating Absorption Spectra
 ===========================
 
@@ -431,6 +438,6 @@ guesses in order to find the true optimization minimum, rather than getting
 stuck in a local minimum. A set of hard coded initial parameter guesses
 for Lyman alpha lines is given by the function
 :func:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum_fit.get_test_lines`.
-Also included in these parameter guesses is an an initial guess of a high
-column cool line overlapping a lower column warm line, indictive of a
+Also included in these parameter guesses is an initial guess of a high
+column cool line overlapping a lower column warm line, indicative of a
 broad Lyman alpha (BLA) absorber.

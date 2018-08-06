@@ -86,7 +86,7 @@ class DualEPS(object):
 
     def return_field(self, plot):
         if isinstance(plot, (PlotWindow, PhasePlot)):
-            return plot.plots.keys()[0]
+            return list(plot.plots.keys())[0]
         else:
             return None
 
@@ -301,7 +301,7 @@ class DualEPS(object):
 
         Parameters
         ----------
-        plot : `yt.visalization.plot_window.PlotWindow`
+        plot : `yt.visualization.plot_window.PlotWindow`
             yt plot on which the axes are based.
         units : string
             Unit description that overrides yt's unit description.  Only
@@ -382,7 +382,7 @@ class DualEPS(object):
                  _ylog = False
             _tickcolor = None 
         elif isinstance(plot, PhasePlot):
-            k = plot.plots.keys()[0]
+            k = list(plot.plots.keys())[0]
             _xrange = plot[k].axes.get_xlim()
             _yrange = plot[k].axes.get_ylim()
             _xlog = plot.profile.x_log
@@ -490,7 +490,7 @@ class DualEPS(object):
 
         Parameters
         ----------
-        plot : `yt.visalization.plot_window.PlotWindow`
+        plot : `yt.visualization.plot_window.PlotWindow`
             yt plot that provides the image
         pos : tuple of floats
             Position of the origin of the image in centimeters.
@@ -517,7 +517,7 @@ class DualEPS(object):
             self.canvas = pyx.canvas.canvas()
         if isinstance(plot, (PlotWindow, PhasePlot)):
             if field is None:
-                self.field = plot.plots.keys()[0]
+                self.field = list(plot.plots.keys())[0]
                 mylog.warning("No field specified.  Choosing first field (%s)" % \
                               str(self.field))
             else:
@@ -627,7 +627,7 @@ class DualEPS(object):
 
         # Scale the colorbar
         shift = (0.5*(1.0-shrink[0])*size[0], 0.5*(1.0-shrink[1])*size[1])
-        # To facilitate strething rather than shrinking
+        # To facilitate stretching rather than shrinking
         # If stretched in both directions (makes no sense?) then y dominates. 
         if(shrink[0] > 1.0):
             shift = (0.05*self.figsize[0], 0.5*(1.0-shrink[1])*size[1])
@@ -1314,12 +1314,12 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
 def single_plot(plot, field=None, figsize=(12,12), cb_orient="right", 
                 bare_axes=False, savefig=None, colorbar=True, 
                 file_format='eps', **kwargs):
-    r"""Wrapper for DualEPS routines to create a figure directy from a yt
+    r"""Wrapper for DualEPS routines to create a figure directly from a yt
     plot.  Calls insert_image_yt, axis_box_yt, and colorbar_yt.
 
     Parameters
     ----------
-    plot : `yt.visalization.plot_window.PlotWindow`
+    plot : `yt.visualization.plot_window.PlotWindow`
         yt plot that provides the image and metadata
     figsize : tuple of floats
         Size of the figure in centimeters.

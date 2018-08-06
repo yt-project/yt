@@ -90,7 +90,7 @@ class FixedResolutionBuffer(object):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
-        self.buff_size = buff_size
+        self.buff_size = (int(buff_size[0]), int(buff_size[1]))
         self.antialias = antialias
         self.data = {}
         self._filters = []
@@ -204,7 +204,7 @@ class FixedResolutionBuffer(object):
 
     def convert_distance_x(self, distance):
         r"""This function converts code-space distance into pixel-space
-        distance in the x-coordiante.
+        distance in the x-coordinate.
 
         Parameters
         ----------
@@ -222,7 +222,7 @@ class FixedResolutionBuffer(object):
 
     def convert_distance_y(self, distance):
         r"""This function converts code-space distance into pixel-space
-        distance in the y-coordiante.
+        distance in the y-coordinate.
 
         Parameters
         ----------
@@ -252,7 +252,7 @@ class FixedResolutionBuffer(object):
         equivalency : string, optional
            If set, the equivalency to use to convert the current units to
            the new requested unit. If None, the unit conversion will be done
-           without an equivelancy
+           without an equivalency
 
         equivalency_kwargs : string, optional
            Keyword arguments to be passed to the equivalency. Only used if
@@ -268,7 +268,7 @@ class FixedResolutionBuffer(object):
                 unit, equivalency, **equivalency_kwargs)
             # equiv_array isn't necessarily an ImageArray. This is an issue
             # inherent to the way the unit system handles YTArray
-            # sublcasses and I don't see how to modify the unit system to
+            # subclasses and I don't see how to modify the unit system to
             # fix this. Instead, we paper over this issue and hard code
             # that equiv_array is an ImageArray
             self[field] = ImageArray(
@@ -296,8 +296,8 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
-    def export_fits(self, filename, fields=None, clobber=False,
-                    other_keys=None, units="cm"):
+    def export_fits(self, filename, fields=None, overwrite=False,
+                    other_keys=None, units="cm", **kwargs):
         r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
@@ -310,7 +310,7 @@ class FixedResolutionBuffer(object):
         fields : list of strings
             These fields will be pixelized and output. If "None", the keys of the
             FRB will be used.
-        clobber : boolean
+        overwrite : boolean
             If the file exists, this governs whether we will overwrite.
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
@@ -336,7 +336,7 @@ class FixedResolutionBuffer(object):
         if other_keys is not None:
             for k,v in other_keys.items():
                 fib.update_all_headers(k,v)
-        fib.writeto(filename, clobber=clobber)
+        fib.writeto(filename, overwrite=overwrite, **kwargs)
 
     def export_dataset(self, fields=None, nprocs=1):
         r"""Export a set of pixelized fields to an in-memory dataset that can be

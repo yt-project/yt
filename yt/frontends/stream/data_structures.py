@@ -385,7 +385,7 @@ def set_particle_types(data):
             particle_types[key] = False
     return particle_types
 
-def assign_particle_data(ds, pdata):
+def assign_particle_data(ds, pdata, bbox):
 
     """
     Assign particle data to the grids using MatchPointsToGrids. This
@@ -446,6 +446,26 @@ def assign_particle_data(ds, pdata):
                     "Cannot decompose particle data without position fields!")
             pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
             particle_grid_inds = pts.find_points_in_tree()
+            assigned_particles, = (particle_grid_inds >= 0).nonzero()
+            num_particles = particle_grid_inds.size
+            num_unassigned = num_particles - assigned_particles.size
+            if num_unassigned > 0:
+                m = ("Discarding %s particles (out of %s) that are outside "
+                     "bounding box. ")
+                eps = np.finfo(x.dtype).eps
+                s = np.array([[x.min() - eps, x.max() + eps],
+                              [y.min() - eps, y.max() + eps],
+                              [z.min() - eps, z.max() + eps]])
+                sug_bbox = [
+                    [min(bbox[0, 0], s[0, 0]), max(bbox[0, 1], s[0, 1])],
+                    [min(bbox[1, 0], s[1, 0]), max(bbox[1, 1], s[1, 1])],
+                    [min(bbox[2, 0], s[2, 0]), max(bbox[2, 1], s[2, 1])]]
+                m += ("Set bbox=%s to avoid this in the future.")
+                mylog.warn(m % (num_unassigned, num_particles, sug_bbox))
+                particle_grid_inds = particle_grid_inds[assigned_particles]
+                x = x[assigned_particles]
+                y = y[assigned_particles]
+                z = z[assigned_particles]
             idxs = np.argsort(particle_grid_inds)
             particle_grid_count = np.bincount(particle_grid_inds.astype("intp"),
                                               minlength=num_grids)
@@ -735,7 +755,13 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
     handler.refine_by = 2
-    handler.dimensionality = 3
+    if np.all(domain_dimensions[1:] == 1):
+        dimensionality = 1
+    elif domain_dimensions[2] == 1:
+        dimensionality = 2
+    else:
+        dimensionality = 3
+    handler.dimensionality = dimensionality
     handler.domain_dimensions = domain_dimensions
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
@@ -745,7 +771,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     # Now figure out where the particles go
     if number_of_particles > 0:
         # This will update the stream handler too
-        assign_particle_data(sds, pdata)
+        assign_particle_data(sds, pdata, bbox)
 
     return sds
 
@@ -925,7 +951,13 @@ def load_amr_grids(grid_data, domain_dimensions,
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
     handler.refine_by = refine_by
-    handler.dimensionality = 3
+    if np.all(domain_dimensions[1:] == 1):
+        dimensionality = 1
+    elif domain_dimensions[2] == 1:
+        dimensionality = 2
+    else:
+        dimensionality = 3
+    handler.dimensionality = dimensionality
     handler.domain_dimensions = domain_dimensions
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
@@ -1031,7 +1063,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
         # Now figure out where the particles go
         if number_of_particles > 0:
             # This will update the stream handler too
-            assign_particle_data(ds, pdata)
+            assign_particle_data(ds, pdata, bbox)
 
         cur_gc = ds.index.num_grids
 
@@ -1271,9 +1303,9 @@ class StreamHexahedralHierarchy(UnstructuredIndex):
 
     def _initialize_mesh(self):
         coords = self.stream_handler.fields.pop('coordinates')
-        connec = self.stream_handler.fields.pop('connectivity')
+        connect = self.stream_handler.fields.pop('connectivity')
         self.meshes = [StreamHexahedralMesh(0,
-          self.index_filename, connec, coords, self)]
+          self.index_filename, connect, coords, self)]
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
@@ -1671,10 +1703,10 @@ class StreamUnstructuredIndex(UnstructuredIndex):
 
     def _initialize_mesh(self):
         coords = ensure_list(self.stream_handler.fields.pop("coordinates"))
-        connec = ensure_list(self.stream_handler.fields.pop("connectivity"))
+        connect = ensure_list(self.stream_handler.fields.pop("connectivity"))
         self.meshes = [StreamUnstructuredMesh(
                        i, self.index_filename, c1, c2, self)
-                       for i, (c1, c2) in enumerate(zip(connec, repeat(coords[0])))]
+                       for i, (c1, c2) in enumerate(zip(connect, repeat(coords[0])))]
         self.mesh_union = MeshUnion("mesh_union", self.meshes)
 
     def _setup_data_io(self):
@@ -1720,6 +1752,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
 
     Parameters
     ----------
+
     connectivity : list of array_like or array_like
         This should either be a single 2D array or list of 2D arrays.  If this
         is a list, each element in the list corresponds to the connectivity
@@ -1735,7 +1768,11 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     node_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 2D numpy arrays,
         representing data defined at element vertices. For multiple meshes,
-        this must be a list of dicts.
+        this must be a list of dicts.  Note that these are not the values as a
+        function of the coordinates, but of the connectivity.  Their shape
+        should be the same as the connectivity.  This means that if the data is
+        in the shape of the coordinates, you may need to reshape them using the
+        `connectivity` array as an index.
     elem_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 1D numpy arrays, where
         each array has a length equal to the number of elements. The data
@@ -1765,29 +1802,33 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
         can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
 
-    >>> # Coordinates for vertices of two tetrahedra
-    >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5], [0.5, 1, 0.5],
-                                [0.5, 0.5, 0.0], [0.5, 0.5, 1.0]])
+    Examples
+    --------
 
-    >>> # The indices in the coordinates array of mesh vertices.
-    >>> # This mesh has two elements.
-    >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
+    Load a simple mesh consisting of two tets.
 
-    >>> # Field data defined at the centers of the two mesh elements.
-    >>> elem_data = {
-    ...     ('connect1', 'elem_field'): np.array([1, 2])
-    ... }
-
-    >>> # Field data defined at node vertices
-    >>> node_data = {
-    ...     ('connect1', 'node_field'): np.array([[0.0, 1.0, 2.0, 4.0],
-    ...                                           [0.0, 1.0, 2.0, 3.0]])
-    ... }
-
-    >>> ds = yt.load_unstructured_mesh(connectivity, coordinates,
-    ...                                elem_data=elem_data,
-    ...                                node_data=node_data)
-
+      >>> # Coordinates for vertices of two tetrahedra
+      >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5],
+      ...                         [0.5, 1, 0.5], [0.5, 0.5, 0.0],
+      ...                         [0.5, 0.5, 1.0]])
+      >>> # The indices in the coordinates array of mesh vertices.
+      >>> # This mesh has two elements.
+      >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
+      >>>
+      >>> # Field data defined at the centers of the two mesh elements.
+      >>> elem_data = {
+      ...     ('connect1', 'elem_field'): np.array([1, 2])
+      ... }
+      >>>
+      >>> # Field data defined at node vertices
+      >>> node_data = {
+      ...     ('connect1', 'node_field'): np.array([[0.0, 1.0, 2.0, 4.0],
+      ...                                           [0.0, 1.0, 2.0, 3.0]])
+      ... }
+      >>>
+      >>> ds = yt.load_unstructured_mesh(connectivity, coordinates,
+      ...                                elem_data=elem_data,
+      ...                                node_data=node_data)
     """
 
     dimensionality = coordinates.shape[1]

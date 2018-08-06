@@ -46,7 +46,7 @@ def parse_unit_dimension(unit_dimension):
     'kg**1*s**-2*A**-1'
     """
     if len(unit_dimension) is not 7:
-        mylog.error("open_pmd - SI must have 7 base dimensions!")
+        mylog.error("SI must have 7 base dimensions!")
     unit_dimension = np.asarray(unit_dimension, dtype=np.int)
     dim = []
     si = ["m",

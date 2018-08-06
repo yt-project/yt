@@ -224,8 +224,9 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         emp_Z = my_si.get_interpolator("metals", e_min, e_max, energy=False)
 
     def _emissivity_field(field, data):
-        dd = {"log_nH": np.log10(data["gas", "H_nuclei_density"]),
-              "log_T": np.log10(data["gas", "temperature"])}
+        with np.errstate(all='ignore'):
+            dd = {"log_nH": np.log10(data["gas", "H_nuclei_density"]),
+                  "log_T": np.log10(data["gas", "temperature"])}
 
         my_emissivity = np.power(10, em_0(dd))
         if metallicity is not None:
@@ -234,6 +235,8 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, em_Z(dd))
+
+        my_emissivity[np.isnan(my_emissivity)] = 0
 
         return data["gas","H_nuclei_density"]**2 * \
             YTArray(my_emissivity, "erg*cm**3/s")

@@ -16,8 +16,7 @@ from yt.units.unit_systems import UnitSystem
 from yt.units import dimensions
 from yt.convenience import load
 from yt.testing import assert_almost_equal, assert_allclose, requires_file, \
-    fake_random_ds
-from yt.config import ytcfg
+    fake_random_ds, disable_dataset_cache
 
 def test_unit_systems():
     goofy_unit_system = UnitSystem("goofy", "ly", "lbm", "hr", temperature_unit="R",
@@ -60,9 +59,8 @@ test_fields = ["density",
 
 gslr = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 @requires_file(gslr)
+@disable_dataset_cache
 def test_fields_diff_systems_sloshing():
-    ytcfg["yt","skip_dataset_cache"] = "True"
-
     ds_cgs = load(gslr)
     dd_cgs = ds_cgs.sphere("c", (15., "kpc"))
 
@@ -77,9 +75,8 @@ def test_fields_diff_systems_sloshing():
 
 etc = "enzo_tiny_cosmology/DD0046/DD0046"
 @requires_file(etc)
+@disable_dataset_cache
 def test_fields_diff_systems_etc():
-    ytcfg["yt","skip_dataset_cache"] = "True"
-
     ds_cgs = load(etc)
     dd_cgs = ds_cgs.sphere("max", (500., "kpc"))
 
@@ -97,8 +94,8 @@ def test_fields_diff_systems_etc():
 
 wdm = 'WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5'
 @requires_file(wdm)
+@disable_dataset_cache
 def test_tesla_magnetic_unit():
-    ytcfg["yt", "skip_dataset_cache"] = "True"
     for us in ['cgs', 'mks', 'code']:
         ds = load(wdm, unit_system=us,
                   units_override={'magnetic_unit': (1.0, 'T')})
