@@ -32,7 +32,7 @@ git:
    git clone https://github.com/yt-project/yt
 
 Now start the IPython notebook from within the repository (we presume you have
-yt installed):
+yt and [jupyter](https://jupyter.org/) installed):
 
 .. code-block:: bash
 

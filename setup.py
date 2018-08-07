@@ -15,8 +15,8 @@ from distutils.version import LooseVersion
 import pkg_resources
 
 
-if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 4):
-    print("yt currently supports Python 2.7 or versions newer than Python 3.4")
+if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 5):
+    print("yt currently supports Python 2.7 or versions newer than Python 3.5")
     print("certain features may fail unexpectedly and silently with older "
           "versions.")
     sys.exit(1)
@@ -420,5 +420,5 @@ setup(
     zip_safe=False,
     scripts=["scripts/iyt"],
     ext_modules=cython_extensions + extensions,
-    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*'
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*'
 )

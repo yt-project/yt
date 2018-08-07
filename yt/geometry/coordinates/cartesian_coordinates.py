@@ -300,6 +300,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 # one of field*weight, the other of just weight, and divide them
                 else:
                     weight_buff = np.zeros(size, dtype='float64')
+                    buff = np.zeros(size, dtype='float64')
                     wounits = data_source.ds.field_info[weight].output_units
                     for chunk in proj_reg.chunks([], 'io'):
                         data_source._initialize_projected_units([field], chunk)
@@ -312,7 +313,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, 'particle_mass'].in_units('g'),
                             chunk[ptype, 'density'].in_units('g/cm**3'),
                             chunk[field].in_units(ounits),
-                            bnds, kernel_name="cubic",
+                            bnds,
                             weight_field=chunk[weight].in_units(wounits))
                     mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
                                 (weight, size[0], size[1]))
@@ -327,7 +328,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, 'density'].in_units('g/cm**3'),
                             chunk[weight].in_units(wounits),
                             bnds)
-                    buff /= weight_buff
+                    normalization_2d_utility(buff, weight_buff)
             elif isinstance(data_source, YTSlice):
                 smoothing_style = getattr(self.ds, 'sph_smoothing_style',
                                           'scatter')

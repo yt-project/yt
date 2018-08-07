@@ -1516,64 +1516,49 @@ def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def off_axis_projection_SPH(np.float64_t[:] px, 
-                            np.float64_t[:] py, 
-                            np.float64_t[:] pz, 
-                            np.float64_t[:] particle_masses, 
+def off_axis_projection_SPH(np.float64_t[:] px,
+                            np.float64_t[:] py,
+                            np.float64_t[:] pz,
+                            np.float64_t[:] particle_masses,
                             np.float64_t[:] particle_densities,
-                            np.float64_t[:] smoothing_lengths, 
-                            bounds, 
+                            np.float64_t[:] smoothing_lengths,
+                            bounds,
                             center,
                             width,
                             np.float64_t[:] quantity_to_smooth,
-                            np.float64_t[:, :] projection_array, 
+                            np.float64_t[:, :] projection_array,
                             normal_vector,
                             weight_field=None):
     # Do nothing in event of a 0 normal vector
     if np.allclose(normal_vector, np.array([0., 0., 0.]), rtol=1e-09):
         return
 
-    cdef int num_particles = min(np.size(px), np.size(py), np.size(pz),
-                                 np.size(particle_masses), np.size(particle_densities),
-                                 np.size(smoothing_lengths), np.size(quantity_to_smooth))
+    cdef int num_particles = np.size(px)
     cdef np.float64_t[:, :] rotation_matrix = get_rotation_matrix(normal_vector)
     cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype='float_')
     cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype='float_')
-    cdef np.float64_t x_coordinate
-    cdef np.float64_t y_coordinate
-    cdef np.float64_t z_coordinate
+
     cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype='float_')
     cdef np.float64_t[:] rotated_coordinates
-    cdef np.float64_t[:] rotated_center = rotation_matmul(rotation_matrix, 
-                                                          np.array([center[0], center[1], center[2]]))
-    cdef np.float64_t bounds_x0 = bounds[0]
-    cdef np.float64_t bounds_x1 = bounds[1]
-    cdef np.float64_t bounds_y0 = bounds[2]
-    cdef np.float64_t bounds_y1 = bounds[3]
-    cdef np.float64_t bounds_z0 = bounds[4]
-    cdef np.float64_t bounds_z1 = bounds[5]
+    cdef np.float64_t[:] rotated_center
+    rotated_center = rotation_matmul(
+        rotation_matrix, np.array([center[0], center[1], center[2]]))
+
+    # set up the rotated bounds
     cdef np.float64_t rot_bounds_x0 = rotated_center[0] - width[0] / 2
     cdef np.float64_t rot_bounds_x1 = rotated_center[0] + width[0] / 2
     cdef np.float64_t rot_bounds_y0 = rotated_center[1] - width[1] / 2
     cdef np.float64_t rot_bounds_y1 = rotated_center[1] + width[1] / 2
 
     for i in range(num_particles):
-        x_coordinate = px[i]
-        y_coordinate = py[i]
-        z_coordinate = pz[i]
-        if x_coordinate > bounds_x1 or y_coordinate > bounds_y1:
-            continue
-        if x_coordinate < bounds_x0 or y_coordinate < bounds_y0:
-            continue
-        if z_coordinate < bounds_z0 or z_coordinate > bounds_z1:
-            continue
-        coordinate_matrix[0] = x_coordinate
-        coordinate_matrix[1] = y_coordinate
-        coordinate_matrix[2] = z_coordinate
-        rotated_coordinates = rotation_matmul(rotation_matrix, coordinate_matrix)
+        coordinate_matrix[0] = px[i]
+        coordinate_matrix[1] = py[i]
+        coordinate_matrix[2] = pz[i]
+        rotated_coordinates = rotation_matmul(
+            rotation_matrix, coordinate_matrix)
         px_rotated[i] = rotated_coordinates[0]
         py_rotated[i] = rotated_coordinates[1]
-        
+
     pixelize_sph_kernel_projection(projection_array,
                                    px_rotated,
                                    py_rotated,
@@ -1591,12 +1576,9 @@ def off_axis_projection_SPH(np.float64_t[:] px,
 cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix, 
                                      np.float64_t[:] coordinate_matrix):
     cdef np.float64_t[:] out = np.zeros(3)
-    cdef np.float64_t s = 0
     for i in range(3):
         for j in range(3):
-            s += rotation_matrix[i, j] * coordinate_matrix[j]
-        out[i] = s
-        s = 0
+            out[i] += rotation_matrix[i, j] * coordinate_matrix[j]
     return out
 
 
@@ -1604,8 +1586,9 @@ cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix,
 @cython.wraparound(False)
 cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
     """ Returns a numpy rotation matrix corresponding to the
-    rotation of the z-axis ([0, 0, 1]) to a given normal vector
-    https://math.stackexchange.com/a/476311
+    rotation of the given normal vector to the z-axis ([0, 0, 1]).
+    See https://math.stackexchange.com/a/476311 although note we return the
+    inverse of what's specified there.
     """
     cdef np.float64_t[:] normal_vector_np = np.array([normal_vector[0], normal_vector[1], normal_vector[2]], 
                                                      dtype='float_')
@@ -1626,9 +1609,9 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
                                                       [v[2], 0, -1 * v[0]],
                                                       [-1 * v[1], v[0], 0]], 
                                                       dtype='float_')
-    return np.identity(3, dtype='float_') + cross_product_matrix \
-        + np.matmul(cross_product_matrix, cross_product_matrix) \
-        * 1/(1+c)
+    return np.linalg.inv(np.identity(3, dtype='float_') + cross_product_matrix 
+                         + np.matmul(cross_product_matrix, cross_product_matrix)
+                         * 1/(1+c))
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)

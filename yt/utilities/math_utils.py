@@ -769,7 +769,7 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
             indexer[axis] = slice(index, index+1)
         # Use mean in odd and even case to coerce data type
         # and check, use out array.
-        result.append(np.mean(sorted[indexer], axis=axis, out=out))
+        result.append(np.mean(sorted[tuple(indexer)], axis=axis, out=out))
     return np.array(result)
 
 def get_perspective_matrix(fovy, aspect, z_near, z_far):

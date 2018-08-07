@@ -44,6 +44,7 @@ ATTR_ARGS = {"annotate_text": [(((5e-29, 5e7), "Hello YT"), {}),
 
 
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+ETC46 = "enzo_tiny_cosmology/DD0046/DD0046"
 
 @requires_ds(g30, big_data=True)
 def test_phase_plot_attributes():
@@ -141,26 +142,23 @@ class TestProfilePlotSave(unittest.TestCase):
             for fname in TEST_FLNMS:
                 assert_fname(p.save(fname)[0])
 
-ETC46 = "enzo_tiny_cosmology/DD0046/DD0046"
+    @requires_file(ETC46)
+    def test_profile_plot_multiple_field_multiple_plot(self):
+        ds = yt.load(ETC46)
+        sphere = ds.sphere("max", (1.0, "Mpc"))
+        profiles = []
+        profiles.append(yt.create_profile(
+            sphere, ["radius"],
+            fields=["density"], n_bins=32))
+        profiles.append(yt.create_profile(
+            sphere, ["radius"],
+            fields=["density"], n_bins=64))
+        profiles.append(yt.create_profile(
+            sphere, ["radius"],
+            fields=["dark_matter_density"], n_bins=64))
 
-@requires_file(ETC46)
-def test_profile_plot_multiple_field_multiple_plot():
-    ds = yt.load(ETC46)
-    sphere = ds.sphere("max", (1.0, "Mpc"))
-    profiles = []
-    profiles.append(yt.create_profile(
-        sphere, ["radius"],
-        fields=["density"],n_bins=32))
-    profiles.append(yt.create_profile(
-        sphere, ["radius"],
-        fields=["density"],n_bins=64))
-    profiles.append(yt.create_profile(
-        sphere, ["radius"],
-        fields=["dark_matter_density"],n_bins=64))
-
-    plot = yt.ProfilePlot.from_profiles(profiles)
-    with tempfile.NamedTemporaryFile(suffix='png') as f:
-        plot.save(name=f.name)
+        plot = yt.ProfilePlot.from_profiles(profiles)
+        assert_fname(plot.save()[0])
 
 @requires_file(ETC46)
 def test_set_units():
@@ -200,10 +198,19 @@ class TestAnnotations(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        cls.tmpdir = tempfile.mkdtemp()
+        cls.curdir = os.getcwd()
+        os.chdir(cls.tmpdir)
+
         ds = fake_random_ds(16)
         ad = ds.all_data()
         cls.fields = ["velocity_x", "velocity_y", "velocity_z"]
         cls.plot = yt.ProfilePlot(ad, "radius", cls.fields, weight_field=None)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.chdir(cls.curdir)
+        shutil.rmtree(cls.tmpdir)
 
     def test_annotations(self):
         # make sure we can annotate without erroring out
@@ -224,3 +231,27 @@ class TestAnnotations(unittest.TestCase):
 
         with self.assertRaises(YTFieldNotFound):
             self.plot.annotate_text(1e-1, 1e1, "Annotated text", "wrong_field_name")
+
+@requires_file(ETC46)
+def test_phaseplot_set_log():
+    ds = yt.load(ETC46)
+    sp = ds.sphere("max", (1.0, "Mpc"))
+    p1 = yt.ProfilePlot(sp, "radius", ("enzo", "Density"))
+    p2 = yt.PhasePlot(sp, ("enzo", "Density"), ("enzo", "Temperature"), "cell_mass")
+    # make sure we can set the log-scaling using the tuple without erroring out
+    p1.set_log(("enzo", "Density"), False)
+    p2.set_log(("enzo", "Temperature"), False)
+    assert p1.y_log["enzo", "Density"] is False
+    assert p2.y_log is False
+
+    # make sure we can set the log-scaling using a string without erroring out
+    p1.set_log("Density", True)
+    p2.set_log("Temperature", True)
+    assert p1.y_log["enzo", "Density"] is True
+    assert p2.y_log is True
+
+    # make sure we can set the log-scaling using a field object
+    p1.set_log(ds.fields.enzo.Density, False)
+    p2.set_log(ds.fields.enzo.Temperature, False)
+    assert p1.y_log["enzo", "Density"] is False
+    assert p2.y_log is False
