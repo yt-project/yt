@@ -69,8 +69,7 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
     pixelize_sph_gather, \
     interpolate_sph_arbitrary_positions_gather, \
-    normalization_3d_utility, \
-    normalization_1d_utility
+    normalization_3d_utility
 from yt.extern.tqdm import tqdm
 from yt.utilities.lib.cyoctree import CyOctree
 
@@ -2155,7 +2154,7 @@ class YTOctree(YTSelectionContainer3D):
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             n_ref=self.n_ref,
-            #data_version=self.ds._file_hash
+            data_version=self.ds._file_hash
         )
 
         if fname is not None:
@@ -2183,9 +2182,9 @@ class YTOctree(YTSelectionContainer3D):
             mylog.info('Loading octree from %s' % os.path.basename(fname))
             self._octree = CyOctree()
             self._octree.load(fname)
-            #if octree.hash != self.ds._file_hash:
-            #    mylog.info('Detected hash mismatch, regenerating Octree')
-            #else:
+            if self._octree.data_version != self.ds._file_hash:
+                mylog.info('Detected hash mismatch, regenerating Octree')
+                self._generate_tree(fname)
 
         # set up the x, y, z fields as the locations of the octs
         self['x'] = self._octree.cell_positions[:, 0]
@@ -2261,7 +2260,7 @@ class YTOctree(YTSelectionContainer3D):
             quant_to_smooth.append(chunk[fields].in_base("cgs").d)
 
         # order the particle properties based on the kdtree index
-        tree = self.ds.index.kdtree
+        kdtree = self.ds.index.kdtree
         pos = np.concatenate(pos)
         dens = np.concatenate(dens)
         mass = np.concatenate(mass)
@@ -2271,19 +2270,20 @@ class YTOctree(YTSelectionContainer3D):
         # interpolate the field value at the cell positions
         pbar = tqdm(desc="Interpolating (gather) SPH field {}".format(fields[0]),
                     total=self._octree.cell_positions.shape[0])
-        interpolate_sph_arbitrary_positions_gather(buff, pos[tree.idx, :],
+        interpolate_sph_arbitrary_positions_gather(buff, pos[kdtree.idx, :],
                                                    self._octree.cell_positions,
-                                                   hsml[tree.idx], mass[tree.idx],
-                                                   dens[tree.idx],
-                                                   quant_to_smooth[tree.idx],
-                                                   tree, pbar=pbar)
+                                                   hsml[kdtree.idx],
+                                                   mass[kdtree.idx],
+                                                   dens[kdtree.idx],
+                                                   quant_to_smooth[kdtree.idx],
+                                                   kdtree=kdtree, pbar=pbar,
+                                                   use_normalization=0)
         pbar.close()
 
         self[fields] = buff
 
     def scatter_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
-        buff_den = np.zeros(self['x'].shape[0], dtype="float64")
 
         ptype = fields[0]
         pbar = tqdm(desc="Interpolating (scatter) SPH field {}".format(fields[0]))
@@ -2296,14 +2296,10 @@ class YTOctree(YTSelectionContainer3D):
             pdens = chunk[(ptype,'density')].in_base("code").d
             field_quantity = chunk[fields].in_base("cgs").d
 
-            self.octree.interpolate_sph_cells(buff, px, py, pz, pmass, pdens,
+            self.tree.interpolate_sph_cells(buff, px, py, pz, pmass, pdens,
                                               hsml, field_quantity)
-            self.octree.interpolate_sph_cells(buff_den, px, py, pz, pmass, pdens,
-                                              hsml, np.ones(px.shape[0]))
             pbar.update(1)
 
         pbar.close()
-
-        normalization_1d_utility(buff, buff_den)
 
         self[fields] = buff

@@ -1066,23 +1066,32 @@ def interpolate_sph_arbitrary_positions_gather(
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        PyKDTree kdtree=None,
-        kernel_name="cubic", pbar=None):
+        PyKDTree kdtree=None, int use_normalization=1,
+        kernel_name="cubic", pbar=None, int n_neigh=32):
 
     cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
     cdef int index, i, j, particle
-    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(30, True)
-    cdef np.float64_t[:] buff_den = np.zeros((buff.shape[0]), dtype=float)
+    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neigh, True)
+    cdef np.float64_t[:] buff_den
+
+    # only allocate memory if we are doing the normalization
+    if use_normalization:
+        buff_den = np.zeros((buff.shape[0]), dtype=float)
 
     kernel_func = get_kernel_func(kernel_name)
-    for j in range(0, interpolation_positions.shape[0]):
-        if j % 20000 == 0:
-            if pbar is not None:
-                pbar.update(20000)
 
+    # loop through all the positions we want to interpolate the sph field onto
+    for j in range(0, interpolation_positions.shape[0]):
+        if j % 100000 == 0:
+            if pbar is not None:
+                pbar.update(100000)
+
+        # use the kdtree to find the nearest neighbors
         knn_position(interpolation_positions[j, :], particle_positions,
                      queue, kdtree)
 
+        # set the smoothing length squared to the square of the distance to the
+        # nearest neighbor
         h_j2 = queue.heap[0]
         ih_j2 = 1.0/h_j2
 
@@ -1099,10 +1108,13 @@ def interpolate_sph_arbitrary_positions_gather(
                                    kernel_func(q_ij))
 
             # see equations 6, 9, and 11 of the SPLASH paper
-            buff_den[j] += prefactor_j * kernel_func(q_ij)
             buff[j] += smoothed_quantity_j
 
-    normalization_1d_utility(buff, buff_den)
+            if use_normalization:
+                buff_den[j] += prefactor_j * kernel_func(q_ij)
+
+    if use_normalization:
+        normalization_1d_utility(buff, buff_den)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
