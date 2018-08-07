@@ -35,7 +35,7 @@ cdef struct Node:
 @cython.boundscheck(True)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef class PyOctree:
+cdef class CyOctree:
     cdef int _state                # 0 if tree is not built, 1 for a built tree
 
     cdef double _left_edge[3]      # boundary conditions for the octree

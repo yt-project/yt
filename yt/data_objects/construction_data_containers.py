@@ -72,7 +72,7 @@ from yt.utilities.lib.pixelization_routines import \
     normalization_3d_utility, \
     normalization_1d_utility
 from yt.extern.tqdm import tqdm
-from yt.utilities.lib.cyoctree import PyOctree
+from yt.utilities.lib.cyoctree import CyOctree
 
 class YTStreamline(YTSelectionContainer1D):
     """
@@ -2134,28 +2134,14 @@ class YTOctree(YTSelectionContainer3D):
         self.ptypes = self._sanitize_ptypes(ptypes)
 
         self._setup_data_source()
-        self.octree
+        self.tree
 
-    def _generate_octree(self, fname = None):
-        # for debug purpose force a rebuild
-        if fname is not None:
-            if os.path.exists(fname):
-                mylog.info('Loading octree from %s' % os.path.basename(fname))
-                octree = PyOctree()
-                octree.load(fname)
-                #if octree.hash != self.ds._file_hash:
-                #    mylog.info('Detected hash mismatch, regenerating Octree')
-                #else:
-                self._octree = octree
-                return
-
-        if isinstance(self.ptypes, list) and len(self.ptypes) > 1:
+    def _generate_tree(self, fname = None):
+        if isinstance(self.ptypes, list):
             positions = []
             for ptype in self.ptypes:
                 positions.append(self._data_source[(ptype, 'Coordinates')])
             positions = np.concatenate(positions)
-        elif isinstance(self.ptypes, list):
-            positions = self._data_source[(self.ptypes[0], 'Coordinates')]
         else:
             positions = self._data_source[(self.ptypes, 'Coordinates')]
 
@@ -2164,7 +2150,7 @@ class YTOctree(YTSelectionContainer3D):
             return
 
         mylog.info('Allocating Octree for %s particles' % positions.shape[0])
-        self._octree = PyOctree(
+        self._octree = CyOctree(
             positions.astype('float64'),
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
@@ -2172,27 +2158,34 @@ class YTOctree(YTSelectionContainer3D):
             #data_version=self.ds._file_hash
         )
 
-        mylog.info('Saving octree to file %s', fname)
         if fname is not None:
+            mylog.info('Saving octree to file %s', fname)
             self._octree.save(fname)
 
     @property
-    def octree(self):
+    def tree(self):
         if hasattr(self, '_octree'):
             return self._octree
 
         ds = self.ds
-
-        if getattr(ds, 'octree_filename', None) is None:
+        if getattr(ds, 'tree_filename', None) is None:
             if os.path.exists(ds.parameter_filename):
                 fname = ds.parameter_filename + ".octree"
             else:
                 # we don't want to write to disk for in-memory data
                 fname = None
         else:
-            fname = ds.octree_filename
+            fname = ds.tree_filename
 
-        self._generate_octree(fname)
+        if not os.path.exists(fname):
+            self._generate_tree(fname)
+        else:
+            mylog.info('Loading octree from %s' % os.path.basename(fname))
+            self._octree = CyOctree()
+            self._octree.load(fname)
+            #if octree.hash != self.ds._file_hash:
+            #    mylog.info('Detected hash mismatch, regenerating Octree')
+            #else:
 
         # set up the x, y, z fields as the locations of the octs
         self['x'] = self._octree.cell_positions[:, 0]
@@ -2240,9 +2233,11 @@ class YTOctree(YTSelectionContainer3D):
     def get_data(self, fields = None):
         if fields is None: return
 
-        if isinstance(fields, list):
+        if isinstance(fields, list) and len(fields) > 1:
             for field in fields: self.get_data(field)
             return
+        elif isinstance(fields, list):
+            fields = fields[0]
 
         if self.ds.sph_smoothing_style == "scatter":
             self.scatter_smooth(fields)
