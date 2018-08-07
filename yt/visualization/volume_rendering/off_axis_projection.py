@@ -22,7 +22,8 @@ from yt.utilities.lib.partitioned_grid import \
 from yt.units.unit_object import Unit
 from yt.data_objects.api import ImageArray
 from yt.utilities.lib.pixelization_routines import \
-    off_axis_projection_SPH
+    off_axis_projection_SPH, \
+    normalization_2d_utility
 import numpy as np
 
 
@@ -238,7 +239,7 @@ def off_axis_projection(data_source, center, normal_vector,
                     normal_vector,
                     north)
 
-            buf /= weight_buff
+            normalization_2d_utility(buf, weight_buff)
             item_unit = data_source.ds._get_field_info(item).units
             item_unit = Unit(item_unit, registry=data_source.ds.unit_registry)
             funits = item_unit
