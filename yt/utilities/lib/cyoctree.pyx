@@ -388,8 +388,9 @@ cdef class PyOctree:
 
         # TODO: we need to save the tree hash as well
         with open(fname,'wb') as f:
-            f.write(struct.pack('3d', self.num_particles, self.num_octs,
-                                      self.n_ref))
+            f.write(struct.pack('5d', self.num_particles, self.num_octs,
+                                      self.n_ref, self.over_refine_factor,
+                                      self.dense_factor))
             f.write(struct.pack('{}d'.format(self.num_particles),
                                 *self.idx))
             for i in range(self.num_octs):
@@ -417,8 +418,9 @@ cdef class PyOctree:
 
         cdef Node temp
         with open(fname,'rb') as f:
-            (self.num_particles, self.num_octs, self.n_ref) = \
-                struct.unpack('3d', f.read(24))
+            (self.num_particles, self.num_octs, self.n_ref,
+             self.over_refine_factor, self.dense_factor) = \
+                struct.unpack('5d', f.read(40))
             self.idx = \
                 np.asarray(struct.unpack('{}d'.format(self.num_particles),
                            f.read(8*self.num_particles)), dtype=np.int64)
@@ -431,6 +433,10 @@ cdef class PyOctree:
                 struct.unpack('10d?2di', f.read(108))
 
                 self.nodes.push_back(temp)
+
+        for i in range(3):
+            self._left_edge[i] = self.nodes[0].left_edge[i]
+            self._right_edge[i] = self.nodes[0].right_edge[i]
 
 cdef void split_helper(int start, int end, int num_children, int max_splits,
                        np.int64_t * split_arr, np.float64_t * pos,

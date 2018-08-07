@@ -1072,6 +1072,7 @@ def interpolate_sph_arbitrary_positions_gather(
     cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
     cdef int index, i, j, particle
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(30, True)
+    cdef np.float64_t[:] buff_den = np.zeros((buff.shape[0]), dtype=float)
 
     kernel_func = get_kernel_func(kernel_name)
     for j in range(0, interpolation_positions.shape[0]):
@@ -1098,7 +1099,10 @@ def interpolate_sph_arbitrary_positions_gather(
                                    kernel_func(q_ij))
 
             # see equations 6, 9, and 11 of the SPLASH paper
-            buff[j] += prefactor_j * kernel_func(q_ij)
+            buff_den[j] += prefactor_j * kernel_func(q_ij)
+            buff[j] += smoothed_quantity_j
+
+    normalization_1d_utility(buff, buff_den)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1614,6 +1618,16 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
         + np.matmul(cross_product_matrix, cross_product_matrix) \
         * 1/(1+c)
 
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def normalization_1d_utility(np.float64_t[:] num,
+                             np.float64_t[:] den):
+    cdef int i
+    for i in range(num.shape[0]):
+            if den[i] != 0.0:
+                num[i] = num[i] / den[i]
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)

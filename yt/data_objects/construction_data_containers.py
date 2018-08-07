@@ -69,7 +69,8 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
     pixelize_sph_gather, \
     interpolate_sph_arbitrary_positions_gather, \
-    normalization_3d_utility
+    normalization_3d_utility, \
+    normalization_1d_utility
 from yt.extern.tqdm import tqdm
 from yt.utilities.lib.cyoctree import PyOctree
 
@@ -2202,15 +2203,21 @@ class YTOctree(YTSelectionContainer3D):
         return self._octree
 
     def _sanitize_ptypes(self, ptypes):
-        # this needs correcting slightly
         if ptypes is None:
             return ['all']
 
         self.ds.index
-        # NOTE: work with lists
-        if ptypes not in self.ds.particle_types:
-            raise TypeError("%s not found. Particle type must be in the \
-                                dataset!".format(ptypes))
+        if isinstance(ptypes, list):
+            for ptype in ptypes:
+                if ptype not in self.ds.particle_types:
+                    mess = "{} not found. Particle type must ".format(ptype)
+                    mess += "be in the dataset!"
+                    raise TypeError(mess)
+        else:
+            if ptypes not in self.ds.particle_types:
+                    mess = "{} not found. Particle type must ".format(ptypes)
+                    mess += "be in the dataset!"
+                    raise TypeError(mess)
 
         return ptypes
 
@@ -2234,11 +2241,9 @@ class YTOctree(YTSelectionContainer3D):
     def get_data(self, fields = None):
         if fields is None: return
 
-        if isinstance(fields, list) and len(fields) > 1:
+        if isinstance(fields, list):
             for field in fields: self.get_data(field)
             return
-        elif isinstance(fields, list):
-            fields = fields[0]
 
         if self.ds.sph_smoothing_style == "scatter":
             self.scatter_smooth(fields)
@@ -2248,6 +2253,7 @@ class YTOctree(YTSelectionContainer3D):
     def gather_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
 
+        # for the gather approach we load up all of the data
         pos = []
         dens = []
         mass = []
@@ -2260,6 +2266,7 @@ class YTOctree(YTSelectionContainer3D):
             hsml.append(chunk[(fields[0], 'smoothing_length')].in_base("code").d)
             quant_to_smooth.append(chunk[fields].in_base("cgs").d)
 
+        # order the particle properties based on the kdtree index
         tree = self.ds.index.kdtree
         pos = np.concatenate(pos)
         dens = np.concatenate(dens)
@@ -2267,6 +2274,7 @@ class YTOctree(YTSelectionContainer3D):
         hsml = np.concatenate(hsml)
         quant_to_smooth = np.concatenate(quant_to_smooth)
 
+        # interpolate the field value at the cell positions
         pbar = tqdm(desc="Interpolating (gather) SPH field {}".format(fields[0]),
                     total=self._octree.cell_positions.shape[0])
         interpolate_sph_arbitrary_positions_gather(buff, pos[tree.idx, :],
@@ -2281,6 +2289,7 @@ class YTOctree(YTSelectionContainer3D):
 
     def scatter_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
+        buff_den = np.zeros(self['x'].shape[0], dtype="float64")
 
         ptype = fields[0]
         pbar = tqdm(desc="Interpolating (scatter) SPH field {}".format(fields[0]))
@@ -2295,7 +2304,12 @@ class YTOctree(YTSelectionContainer3D):
 
             self.octree.interpolate_sph_cells(buff, px, py, pz, pmass, pdens,
                                               hsml, field_quantity)
+            self.octree.interpolate_sph_cells(buff_den, px, py, pz, pmass, pdens,
+                                              hsml, np.ones(px.shape[0]))
             pbar.update(1)
+
         pbar.close()
+
+        normalization_1d_utility(buff, buff_den)
 
         self[fields] = buff
