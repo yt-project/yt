@@ -156,6 +156,44 @@ def test_basic_rotation_3():
 
 
 @requires_module('scipy')
+def test_basic_rotation_4():
+    """ Rotation of x-axis to z-axis and original z-axis to y-axis with the use
+    of the north_vector. All fake particles on z-axis should now be on the
+    y-Axis.  All fake particles on the x-axis should now be on the z-axis, and
+    all fake particles on the y-axis should now be on the x-axis.
+
+    (0, 0, 1) -> (0, 1)
+    (0, 0, 2) -> (0, 2)
+    (0, 0, 3) -> (0, 3)
+    In addition, (0, 0, 0) should contribute to the local maxima at (0, 0):
+    (0, 0, 0) -> (0, 0)
+    x-axis particles should be rotated and contribute to the local maxima at (0, 0):
+    (1, 0, 0) -> (0, 0)
+    and the y-axis particles shift into the positive x direction:
+    (0, 1, 0) -> (1, 0)
+    (0, 2, 0) -> (2, 0)
+    """
+    expected_maxima = ([0., 0., 0., 0., 1., 2.], [1., 2., 3., 0., 0., 0.])
+    normal_vector = np.array([1., 0., 0.])
+    north_vector = np.array([0., 0., 1.])
+    resolution = (64, 64)
+    ds = fake_sph_orientation_ds()
+    left_edge = ds.domain_left_edge
+    right_edge = ds.domain_right_edge
+    center = (left_edge + right_edge)/2
+    width = (right_edge - left_edge)
+    buf1 = OffAP.off_axis_projection(ds,
+                                     center,
+                                     normal_vector,
+                                     width,
+                                     resolution,
+                                     ('gas', 'density'),
+                                     north_vector=north_vector
+                                     )
+    find_compare_maxima(expected_maxima, buf1, resolution, width)
+
+
+@requires_module('scipy')
 def test_center_1():
     """ Change the center to [0, 3, 0] 
     Every point will be shifted by 3 in the y-domain
