@@ -18,7 +18,7 @@ from yt.geometry.particle_deposit cimport \
 
 cdef struct Node:
     double left_edge[3]
-    double right_edge[3]           # may be more efficient to store the width
+    double right_edge[3]
 
     unsigned long start            # instead which particles we store
     unsigned long end
@@ -27,8 +27,8 @@ cdef struct Node:
     unsigned long children         # position of 0th child, children are
                                    # contiguous
     bool leaf
-    unsigned long node_id          # these probably should be longs
-    unsigned long leaf_id          # not actually sure how useful this is
+    unsigned long node_id          # not sure if this is even useful
+    unsigned long leaf_id
     unsigned int depth
 
 
@@ -38,7 +38,7 @@ cdef struct Node:
 cdef class PyOctree:
     cdef int _state                # 0 if tree is not built, 1 for a built tree
 
-    cdef double _left_edge[3]      # boundary conditions for the oct
+    cdef double _left_edge[3]      # boundary conditions for the octree
     cdef double _right_edge[3]
     cdef np.int64_t[:] _idx        # ordering of particles used by the tree
 
@@ -48,9 +48,14 @@ cdef class PyOctree:
     cdef int num_particles
 
     cdef vector[Node] nodes        # This is an STL container to store the octs
-    cdef int _over_refine_factor
-    cdef int _max_splits
-    cdef int _num_children
+    cdef int _over_refine_factor   # how many "cells" are in a leaf node
+    cdef int _num_cells
+    cdef int _num_cells_per_dim
+
+    cdef int _dense_factor         # this allows the tree to be built with more
+                                   # 8 children
+    cdef int _max_splits           # these are pre calculated helper variables
+    cdef int _num_children         # for cell division
     cdef int _num_children_per_dim
 
     # this is use for interpolation and is global for the octree smoothing
@@ -58,7 +63,8 @@ cdef class PyOctree:
     cdef kernel_func kernel
 
     def __init__(self, double[:, ::1] &input_pos = None, left_edge = None,
-                 right_edge = None, int n_ref=32, int over_refine_factor=1):
+                 right_edge = None, int n_ref=32, int over_refine_factor=1,
+                 int dense_factor=1):
 
         # if this is the case, we are very likely just initialising an instance
         # and then going to load an existing Octree from memory, so we don't
@@ -67,6 +73,7 @@ cdef class PyOctree:
             return
 
         self.over_refine_factor = over_refine_factor
+        self.dense_factor = dense_factor
         self.n_ref = n_ref
         self.num_particles = input_pos.shape[0]
 
@@ -230,6 +237,16 @@ cdef class PyOctree:
     @over_refine_factor.setter
     def over_refine_factor(self, value):
         self._over_refine_factor = value
+        self._num_cells = 8**value
+        self._num_cells_per_dim = 2**value
+
+    @property
+    def dense_factor(self):
+        return self._dense_factor
+
+    @dense_factor.setter
+    def dense_factor(self, value):
+        self._dense_factor = value
         self._num_children = 2**(3 * value)
         self._max_splits = 2**(value - 1)
         self._num_children_per_dim  = 2**value
@@ -245,60 +262,110 @@ cdef class PyOctree:
     # TODO: re-write this to pass through in a much more efficient manner,
     # currently dreadfully slow
     @property
-    def leaf_positions(self):
-        cdef int i, j, z = 0
-        positions = []
+    def cell_positions(self):
+        cdef int i, j, z, k, l, num_leaves
+
+        # find all the leafs
+        num_leaves = 0
+        for i in range(self.nodes.size()):
+            if self.nodes[i].leaf == 1:
+                num_leaves += 1
+
+        cdef np.float64_t[:, :] pos = np.zeros((num_leaves*self._num_cells, 3),
+                                                dtype=float)
+        cdef double leftx, lefty, leftz, rightx, righty, rightz
+        z = 0
         for i in range(self.nodes.size()):
             if self.nodes[i].leaf == 0:
                 continue
-            else:
-                for j in range(3):
-                    positions.append((self.nodes[i].left_edge[j] +
-                                      self.nodes[i].right_edge[j]) / 2)
 
-                self.nodes[i].leaf_id = z
-                z+=1
+            leftx = self.nodes[i].left_edge[0]
+            lefty = self.nodes[i].left_edge[1]
+            leftz = self.nodes[i].left_edge[2]
+            rightx = self.nodes[i].right_edge[0]
+            righty = self.nodes[i].right_edge[1]
+            rightz = self.nodes[i].right_edge[2]
 
-        positions = np.asarray(positions)
-        return positions.reshape((-1,3))
+            self.nodes[i].leaf_id = z
 
-    cdef void smooth_onto_leaves(self, np.float64_t[:] buff, np.float64_t posx,
+            # we have to generate cell locations
+            dx = (rightx - leftx) / self._num_cells_per_dim
+            dy = (righty - lefty) / self._num_cells_per_dim
+            dz = (rightz - leftz) / self._num_cells_per_dim
+
+            for j in range(self._num_cells_per_dim):
+                for k in range(self._num_cells_per_dim):
+                    for l in range(self._num_cells_per_dim):
+                        pos[z, 0] = leftx + (j + 0.5) * dx
+                        pos[z, 1] = lefty + (k + 0.5) * dy
+                        pos[z, 2] = leftz + (l + 0.5) * dz
+                        z+=1
+
+        return np.asarray(pos)
+
+    cdef void smooth_onto_cells(self, np.float64_t[:] buff, np.float64_t posx,
                                  np.float64_t posy, np.float64_t posz,
                                  np.float64_t hsml, np.float64_t prefactor,
                                  Node * node):
 
         cdef Node * child
-        cdef double q_ij, diff_X, diff_y, diff_z
+        cdef int i, j, k, l
+        cdef double q_ij, diff_x, diff_y, diff_z, dx, dy, dz, voxel_hsml2
+        cdef double leftx, lefty, leftz, rightx, righty, rightz
 
         if node.leaf == 0:
             child = &self.nodes[node.children]
-            for i in range(8):
-                if child[i].left_edge[0] - posx < hsml and \
-                        posx - child[i].right_edge[0] < hsml:
-                    if child[i].left_edge[1] - posy < hsml and \
-                            posy - child[i].right_edge[1] < hsml:
-                        if child[i].left_edge[2] - posz < hsml and \
-                                posz - child[i].right_edge[2] < hsml:
-                            self.smooth_onto_leaves(buff, posx, posy, posz,
-                                                    hsml, prefactor, &child[i])
+            for i in range(self._num_children):
+                leftx = child[i].left_edge[0]
+                lefty = child[i].left_edge[1]
+                leftz = child[i].left_edge[2]
+                rightx = child[i].right_edge[0]
+                righty = child[i].right_edge[1]
+                rightz = child[i].right_edge[2]
+
+                if leftx - posx < hsml and posx - rightx < hsml:
+                    if lefty - posy < hsml and posy - righty < hsml:
+                        if leftz - posz < hsml and posz - rightz < hsml:
+                            self.smooth_onto_cells(buff, posx, posy, posz,
+                                                   hsml, prefactor, &child[i])
 
         else:
-            diff_x = ((node.left_edge[0] + node.right_edge[0]) / 2 - posx)
-            diff_x *= diff_x
-            diff_y = ((node.left_edge[1] + node.right_edge[1]) / 2 - posy)
-            diff_y *= diff_y
-            diff_z = ((node.left_edge[2] + node.right_edge[2]) / 2 - posz)
-            diff_z *= diff_z
+            leftx = node.left_edge[0]
+            lefty = node.left_edge[1]
+            leftz = node.left_edge[2]
+            rightx = node.right_edge[0]
+            righty = node.right_edge[1]
+            rightz = node.right_edge[2]
 
-            q_ij = math.sqrt((diff_x + diff_y + diff_z) / (hsml*hsml))
+            # we have to generate cell locations
+            dx = (rightx - leftx) / self._num_cells_per_dim
+            dy = (righty - lefty) / self._num_cells_per_dim
+            dz = (rightz - leftz) / self._num_cells_per_dim
 
-            buff[node.leaf_id] += prefactor * self.kernel(q_ij)
+            # loop through each cell and calculate the contribution
+            l = 0
+            for i in range(self._num_cells_per_dim):
+                for j in range(self._num_cells_per_dim):
+                    for k in range(self._num_cells_per_dim):
+                        diff_x = (leftx + (i + 0.5) * dx - posx)
+                        diff_x *= diff_x
+                        diff_y = (lefty + (j + 0.5) * dy - posy)
+                        diff_y *= diff_y
+                        diff_z = (leftz + (k + 0.5) * dz - posz)
+                        diff_z *= diff_z
 
-    def interpolate_sph_octs(self, np.float64_t[:] buff, np.float64_t[:] posx,
-                             np.float64_t[:] posy, np.float64_t[:] posz,
-                             np.float64_t[:] pmass, np.float64_t[:] pdens,
-                             np.float64_t[:] hsml, np.float64_t[:] field,
-                             kernel_name="cubic"):
+                        voxel_hsml2 = hsml*hsml
+                        q_ij = math.sqrt((diff_x + diff_y + diff_z) /
+                                                                    voxel_hsml2)
+
+                        buff[node.leaf_id + l] += prefactor * self.kernel(q_ij)
+                        l += 1
+
+    def interpolate_sph_cells(self, np.float64_t[:] buff, np.float64_t[:] posx,
+                              np.float64_t[:] posy, np.float64_t[:] posz,
+                              np.float64_t[:] pmass, np.float64_t[:] pdens,
+                              np.float64_t[:] hsml, np.float64_t[:] field,
+                              kernel_name="cubic"):
 
         self.kernel = get_kernel_func(kernel_name)
 
@@ -309,8 +376,8 @@ cdef class PyOctree:
             prefactor = pmass[i] / pdens[i] / hsml[i]**3
             prefactor *= field[i]
 
-            self.smooth_onto_leaves(buff, posx[i], posy[i], posz[i], hsml[i],
-                                    prefactor, &self.nodes[0])
+            self.smooth_onto_cells(buff, posx[i], posy[i], posz[i], hsml[i],
+                                  prefactor, &self.nodes[0])
 
     # TODO: this code is much slower than I would like, this is likely due to
     # the use of struct -> plan to replace this. A c++ approach is probably

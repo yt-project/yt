@@ -2195,9 +2195,9 @@ class YTOctree(YTSelectionContainer3D):
         self._generate_octree(fname)
 
         # set up the x, y, z fields as the locations of the octs
-        self['x'] = self._octree.leaf_positions[:, 0]
-        self['y'] = self._octree.leaf_positions[:, 1]
-        self['z'] = self._octree.leaf_positions[:, 2]
+        self['x'] = self._octree.cell_positions[:, 0]
+        self['y'] = self._octree.cell_positions[:, 1]
+        self['z'] = self._octree.cell_positions[:, 2]
 
         return self._octree
 
@@ -2258,7 +2258,7 @@ class YTOctree(YTSelectionContainer3D):
             dens.append(chunk[(fields[0],'density')].in_base("code").d)
             mass.append(chunk[(fields[0],'particle_mass')].in_base("code").d)
             hsml.append(chunk[(fields[0], 'smoothing_length')].in_base("code").d)
-            quant_to_smooth.append(chunk[fields].in_base("code").d)
+            quant_to_smooth.append(chunk[fields].in_base("cgs").d)
 
         tree = self.ds.index.kdtree
         pos = np.concatenate(pos)
@@ -2268,9 +2268,9 @@ class YTOctree(YTSelectionContainer3D):
         quant_to_smooth = np.concatenate(quant_to_smooth)
 
         pbar = tqdm(desc="Interpolating (gather) SPH field {}".format(fields[0]),
-                    total=self._octree.leaf_positions.shape[0])
+                    total=self._octree.cell_positions.shape[0])
         interpolate_sph_arbitrary_positions_gather(buff, pos[tree.idx, :],
-                                                   self._octree.leaf_positions,
+                                                   self._octree.cell_positions,
                                                    hsml[tree.idx], mass[tree.idx],
                                                    dens[tree.idx],
                                                    quant_to_smooth[tree.idx],
@@ -2291,10 +2291,10 @@ class YTOctree(YTSelectionContainer3D):
             hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
             pmass = chunk[(ptype,'particle_mass')].in_base("code").d
             pdens = chunk[(ptype,'density')].in_base("code").d
-            field_quantity = chunk[fields].d
+            field_quantity = chunk[fields].in_base("cgs").d
 
-            self.octree.interpolate_sph_octs(buff, px, py, pz, pmass, pdens,
-                                             hsml, field_quantity)
+            self.octree.interpolate_sph_cells(buff, px, py, pz, pmass, pdens,
+                                              hsml, field_quantity)
             pbar.update(1)
         pbar.close()
 
