@@ -1480,19 +1480,23 @@ def off_axis_projection_SPH(np.float64_t[:] px,
     cdef int num_particles = np.size(px)
     cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype='float_')
     cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype='float_')
-    cdef np.float64_t[:, :] normal_rotation_matrix = get_rotation_matrix(normal_vector, z_axis)
-    cdef np.float64_t[:] transformed_north_vector = np.matmul(normal_rotation_matrix, north_vector)
-    cdef np.float64_t[:, :] north_rotation_matrix = get_rotation_matrix(transformed_north_vector, y_axis)
-    cdef np.float64_t[:, :] rotation_matrix = np.matmul(north_rotation_matrix, normal_rotation_matrix)
+    cdef np.float64_t[:, :] normal_rotation_matrix
+    cdef np.float64_t[:] transformed_north_vector
+    cdef np.float64_t[:, :] north_rotation_matrix
+    cdef np.float64_t[:, :] rotation_matrix
+
+    normal_rotation_matrix = get_rotation_matrix(normal_vector, z_axis)
+    transformed_north_vector = np.matmul(normal_rotation_matrix, north_vector)
+    north_rotation_matrix = get_rotation_matrix(transformed_north_vector, y_axis)
+    rotation_matrix = np.matmul(north_rotation_matrix, normal_rotation_matrix)
+
     cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype='float_')
     cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype='float_')
-
     cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype='float_')
     cdef np.float64_t[:] rotated_coordinates
     cdef np.float64_t[:] rotated_center
     rotated_center = rotation_matmul(
-        rotation_matrix,
-        np.array([center[0], center[1], center[2]]))
+        rotation_matrix, np.array([center[0], center[1], center[2]]))
 
     # set up the rotated bounds
     cdef np.float64_t rot_bounds_x0 = rotated_center[0] - width[0] / 2
@@ -1552,10 +1556,10 @@ cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector, final_vector):
     # identity matrix
     if np.isclose(c, 1, rtol=1e-09):
         return np.identity(3, dtype='float_')
-    # if the normal vector is the negative final vector, return the negative
-    # identity matrix:
+    # if the normal vector is the negative final vector, return the appropriate
+    # rotation matrix for flipping your coordinate system.  
     if np.isclose(s, 0, rtol=1e-09):
-        return -np.identity(3, dtype='float_')
+        return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype='float_')
 
     cdef np.float64_t[:, :] cross_product_matrix = np.array([[0, -1 * v[2], v[1]],
                                                       [v[2], 0, -1 * v[0]],
