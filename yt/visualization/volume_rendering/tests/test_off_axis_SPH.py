@@ -71,6 +71,7 @@ def test_basic_rotation_1():
     """
     expected_maxima = ([0., 0., 0., 0., 1.], [0., -1., -2., -3., 0.])
     normal_vector = np.array([0., 1., 0.])
+    north_vector = np.array([0., 0., -1.])
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
@@ -82,7 +83,8 @@ def test_basic_rotation_1():
                                      normal_vector,
                                      width,
                                      resolution,
-                                     ('gas', 'density')  
+                                     ('gas', 'density'),
+                                     north_vector=north_vector
                                      )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
@@ -105,6 +107,7 @@ def test_basic_rotation_2():
     expected_maxima = ([-1., -2., -3., 0., 0., 0.], 
                        [0., 0., 0., 0., 1., 2.])
     normal_vector = np.array([1., 0., 0.])
+    north_vector = np.array([0., 1., 0.])
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
@@ -116,7 +119,8 @@ def test_basic_rotation_2():
                                      normal_vector,
                                      width,
                                      resolution,
-                                     ('gas', 'density')  
+                                     ('gas', 'density'),
+                                     north_vector=north_vector
                                      )
     find_compare_maxima(expected_maxima, buf1, resolution, width)
 
