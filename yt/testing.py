@@ -231,6 +231,8 @@ _geom_transforms = {
     'geographic' : ( (-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0) ), # latlonalt
     'internal_geographic' :
                    ( (-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0) ), # latlondep
+    'alt_az' :     #range, azimuth, elevation
+                   ( (0.0, -180.0, -90.0), (1000.0, 180.0, 90.0) ),
 }
 
 def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0):

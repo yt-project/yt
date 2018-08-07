@@ -78,7 +78,8 @@ from yt.geometry.coordinates.api import \
     SphericalCoordinateHandler, \
     GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler, \
-    InternalGeographicCoordinateHandler
+    InternalGeographicCoordinateHandler, \
+    AltAzCoordinateHandler
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
@@ -611,6 +612,8 @@ class Dataset(object):
             cls = InternalGeographicCoordinateHandler
         elif self.geometry == "spectral_cube":
             cls = SpectralCubeCoordinateHandler
+        elif self.geometry == 'alt_az':
+            cls = AltAzCoordinateHandler
         else:
             raise YTGeometryNotSupported(self.geometry)
         self.coordinates = cls(self, **kwargs)

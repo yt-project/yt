@@ -33,9 +33,8 @@ def test_geographic_coordinates():
     outer_r = ds.surface_height + ds.domain_width[2]
     assert_equal(dd["index","dtheta"], dd["index","dlatitude"]*np.pi/180.0)
     assert_equal(dd["index","dphi"], dd["index","dlongitude"]*np.pi/180.0)
-    # Note our terrible agreement here.
     assert_rel_equal(dd["cell_volume"].sum(dtype="float64"),
-                     (4.0/3.0) * np.pi * (outer_r**3 - inner_r**3), 3)
+                     (4.0/3.0) * np.pi * (outer_r**3 - inner_r**3), 10)
     assert_equal(dd["index", "path_element_altitude"], dd["index", "daltitude"])
     assert_equal(dd["index", "path_element_altitude"], dd["index", "dr"])
     # Note that latitude corresponds to theta, longitude to phi

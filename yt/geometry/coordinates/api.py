@@ -27,4 +27,5 @@ from .geographic_coordinates import \
      InternalGeographicCoordinateHandler
 from .spec_cube_coordinates import \
     SpectralCubeCoordinateHandler
-
+from .alt_az_coordinates import \
+    AltAzCoordinateHandler
