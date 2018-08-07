@@ -155,7 +155,7 @@ Clump Finder Callback
 
    import yt
    import numpy as np
-   from yt.analysis_modules.level_sets.api import \
+   from yt.data_objects.level_sets.api import \
        Clump, find_clumps, get_lowest_clumps
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
