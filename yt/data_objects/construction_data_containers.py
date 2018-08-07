@@ -2120,7 +2120,7 @@ class YTOctree(YTSelectionContainer3D):
                          ("index", "y"),
                          ("index", "z"))
     def __init__(self, left_edge, right_edge, n_ref=32, ptypes = None, fields = None,
-                 ds = None, use_pbar = True, field_parameters = None):
+                 ds = None, field_parameters = None):
         if field_parameters is None:
             center = None
         else:
@@ -2133,7 +2133,6 @@ class YTOctree(YTSelectionContainer3D):
         self.n_ref = n_ref
         self.ptypes = self._sanitize_ptypes(ptypes)
 
-        self._use_pbar = use_pbar
         self._setup_data_source()
         self.octree
 
