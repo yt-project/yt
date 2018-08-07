@@ -1537,18 +1537,15 @@ cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector, final_vector):
+cpdef np.float64_t[:, :] get_rotation_matrix(np.float64_t[:] normal_vector,
+                                             np.float64_t[:] final_vector):
     """ Returns a numpy rotation matrix corresponding to the
     rotation of the given normal vector to the specified final_vector.
     See https://math.stackexchange.com/a/476311 although note we return the
     inverse of what's specified there.
     """
-    cdef np.float64_t[:] normal_vector_np = np.array([normal_vector[0], normal_vector[1], normal_vector[2]], 
-                                                     dtype='float_')
-    cdef np.float64_t[:] final_vector_np = np.array([final_vector[0], final_vector[1], final_vector[2]], 
-                                                     dtype='float_')
-    cdef np.float64_t[:] normal_unit_vector = normal_vector_np / np.linalg.norm(normal_vector_np)
-    cdef np.float64_t[:] final_unit_vector = final_vector_np / np.linalg.norm(final_vector_np)
+    cdef np.float64_t[:] normal_unit_vector = normal_vector / np.linalg.norm(normal_vector)
+    cdef np.float64_t[:] final_unit_vector = final_vector / np.linalg.norm(final_vector)
     cdef np.float64_t[:] v = np.cross(final_unit_vector, normal_unit_vector)
     cdef np.float64_t s = np.linalg.norm(v)
     cdef np.float64_t c = np.dot(final_unit_vector, normal_unit_vector)
