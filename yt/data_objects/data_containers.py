@@ -1994,8 +1994,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
                 mv = max_val
             else:
                 mv = cons[level+1]
-            from yt.analysis_modules.level_sets.api import identify_contours
-            from yt.analysis_modules.level_sets.clump_handling import \
+            from yt.data_objects.level_sets.api import identify_contours
+            from yt.data_objects.level_sets.clump_handling import \
                 add_contour_field
             nj, cids = identify_contours(self, field, cons[level], mv)
             unique_contours = set([])

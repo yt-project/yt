@@ -25,7 +25,7 @@ from functools import wraps
 
 from numbers import Number
 
-from yt.analysis_modules.level_sets.clump_handling import \
+from yt.data_objects.level_sets.clump_handling import \
     Clump
 from yt.frontends.ytdata.data_structures import \
     YTClumpContainer
