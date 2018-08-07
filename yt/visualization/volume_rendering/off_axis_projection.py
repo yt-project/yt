@@ -138,8 +138,9 @@ def off_axis_projection(data_source, center, normal_vector,
 
         raise_error = False
 
-        # Assure that the field we're trying to off-axis project is a
-        # particle field or a 'gas' field.
+        # Assure that the field we're trying to off-axis project 
+        # has a field type as the SPH particle type or if the field is an 
+        # alias to an SPH field or is a 'gas' field
         if fi.alias_field:
             if fi.alias_name[0] != ptype:
                 raise_error = True
