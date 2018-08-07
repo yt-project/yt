@@ -18,7 +18,7 @@ def test_no_rotation():
     image buffer if processed directly through 
     pixelize_sph_kernel_projection
     """
-    normal_vector = np.array([0., 0., 1.])
+    normal_vector = [0., 0., 1.]
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
     ad = ds.all_data()
@@ -70,8 +70,8 @@ def test_basic_rotation_1():
         (1, 0, 0) -> (1, 0)
     """
     expected_maxima = ([0., 0., 0., 0., 1.], [0., -1., -2., -3., 0.])
-    normal_vector = np.array([0., 1., 0.])
-    north_vector = np.array([0., 0., -1.])
+    normal_vector = [0., 1., 0.]
+    north_vector = [0., 0., -1.]
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
@@ -106,8 +106,8 @@ def test_basic_rotation_2():
     """ 
     expected_maxima = ([-1., -2., -3., 0., 0., 0.], 
                        [0., 0., 0., 0., 1., 2.])
-    normal_vector = np.array([1., 0., 0.])
-    north_vector = np.array([0., 1., 0.])
+    normal_vector = [1., 0., 0.]
+    north_vector = [0., 1., 0.]
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
@@ -142,7 +142,7 @@ def test_basic_rotation_3():
     (0, 2, 0) -> (-2, 0)
     """ 
     expected_maxima = ([0., 0., -1., -2.], [0., -1., 0., 0.])
-    normal_vector = np.array([0., 0., -1.])
+    normal_vector = [0., 0., -1.]
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
@@ -178,8 +178,8 @@ def test_basic_rotation_4():
     (0, 2, 0) -> (2, 0)
     """
     expected_maxima = ([0., 0., 0., 0., 1., 2.], [1., 2., 3., 0., 0., 0.])
-    normal_vector = np.array([1., 0., 0.])
-    north_vector = np.array([0., 0., 1.])
+    normal_vector = [1., 0., 0.]
+    north_vector = [0., 0., 1.]
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
@@ -211,7 +211,7 @@ def test_center_1():
     (1, 0, 0) -> (1, -3)
     """
     expected_maxima = ([0., 0., 0., 1.], [-2., -1., -3., -3.])
-    normal_vector = np.array([0., 0., 1.])
+    normal_vector = [0., 0., 1.]
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
@@ -219,7 +219,7 @@ def test_center_1():
     # center = [(left_edge[0] + right_edge[0])/2,
     #            left_edge[1],
     #           (left_edge[2] + right_edge[2])/2]
-    center = np.array([0., 3., 0.])
+    center = [0., 3., 0.]
     width = (right_edge - left_edge)
     buf1 = OffAP.off_axis_projection(ds,
                                      center,
@@ -245,12 +245,12 @@ def test_center_2():
     (1, 0, 0) -> (1, 1)
     """
     expected_maxima = ([0., 0., 0., 1.], [2., 3., 1., 1.])
-    normal_vector = np.array([0., 0., 1.])
+    normal_vector = [0., 0., 1.]
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
-    center = np.array([0., -1., 0.])
+    center = [0., -1., 0.]
     width = (right_edge - left_edge)      
     buf1 = OffAP.off_axis_projection(ds,
                                      center,
@@ -269,12 +269,12 @@ def test_center_3():
     With this, we should not be able to see anything !
     """
     expected_maxima = ([], [])
-    normal_vector = np.array([0., 0., 1.])
+    normal_vector = [0., 0., 1.]
     resolution = (64, 64)
     ds = fake_sph_orientation_ds()
     left_edge = ds.domain_left_edge
     right_edge = ds.domain_right_edge
-    center = np.array([0., -1., 0.])
+    center = [0., -1., 0.]
     width = [(right_edge[0] - left_edge[0]),
              left_edge[1],
              (right_edge[2] - left_edge[2])]    

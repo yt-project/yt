@@ -118,6 +118,11 @@ def off_axis_projection(data_source, center, normal_vector,
 
     item = data_source._determine_fields([item])[0]
 
+    # Assure vectors are numpy arrays as expected by cython code
+    normal_vector = np.array(normal_vector, dtype='float64')
+    if north_vector is not None:
+        north_vector = np.array(north_vector, dtype='float64')
+
     # Sanitize units
     if not hasattr(center, "units"):
         center = data_source.ds.arr(center, 'code_length')
