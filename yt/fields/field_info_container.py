@@ -37,6 +37,7 @@ from .particle_fields import \
     particle_vector_functions, \
     particle_scalar_functions, \
     standard_particle_fields, \
+    non_local_particle_fields, \
     sph_whitelist_fields
 
 def tupleize(inp):
@@ -128,6 +129,7 @@ class FieldInfoContainer(dict):
         particle_deposition_functions(ptype, "particle_position",
             "particle_mass", self)
         standard_particle_fields(self, ptype)
+        non_local_particle_fields(self, ptype)
         # Now we check for any leftover particle fields
         for field in sorted(self.field_list):
             if field in self: continue

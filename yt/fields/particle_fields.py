@@ -753,6 +753,25 @@ def standard_particle_fields(registry, ptype,
                        validators=[ValidateParameter("normal"),
                                    ValidateParameter("center")])
 
+def non_local_particle_fields(registry, ptype,
+                             spos = "particle_position_%s",
+                             svel = "particle_velocity_%s"):
+    unit_system = registry.ds.unit_system
+
+    # Essentially, we need a way to find our nearest neighbors - then, using the
+    # nearest neighbors we can just iterate through - using the gradient of the
+    # kernel - and calculate the non-local field
+    # then this can be easily interpolated onto a pixel using the machinery we
+    # already have
+
+    def _vorticity_x(field, data):
+        """This field is a test"""
+        return data[ptype, 'velocity']
+
+    registry.add_field((ptype, "particle_vorticity_x"),
+                       sampling_type="particle",
+                       function=_vorticity_x,
+                       units=unit_system["velocity"])
 
 def add_particle_average(registry, ptype, field_name,
                          weight = "particle_mass",
