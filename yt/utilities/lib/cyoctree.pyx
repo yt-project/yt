@@ -1,3 +1,18 @@
+"""
+CyOctree building and SPH interpolation routines
+
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2018, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
 cimport numpy as np
 import numpy as np
 cimport cython
@@ -16,22 +31,63 @@ from libc.stdlib cimport malloc, free
 from yt.geometry.particle_deposit cimport \
     kernel_func, get_kernel_func
 
+# OCTREE IMPLEMENTATION DETAILS:
+#
+# The tree is made of of Nodes, which are C structs, containing the left edge,
+# the right end and other details so traverse (i.e child and parent location)
+#
+# The Nodes are stored in an STL vector - as such - it makes sense that the
+# parent and child addresses are long's which just describe the index in the STL
+# vector. I.e to access a parent,
+# &nodes[node.parent] will return the address of the parent node
+# The children are contiguous in memory, so the first child can be accessed with
+# &nodes[node.children] and the second with,
+# &nodes[node.children + 1] etc
+#
+# The tree is built with a non-recursive algorithm. We start my building the
+# root node. We enter the root node, and use the split_helper function to split
+# into 2**(3*dense_factor) children
+# NOTE: Despite being called an octree, the tree is actually of splitting into
+# different numbers of children
+#
+# The particles in each node are calculated using the separate utility function.
+# This loops through all the particles in the parent node and re-arranges them
+# such that they are in the order of which child node they are in. We then store
+# the indices of the positions array where the children of that node start and
+# stop.
+#
+# Once the first lot of children have been generated, they will be stored in the
+# STL vector like
+# nodes = [root, child 1, child 2, child 3, ...]
+# we then loop through this vector, calling the process_node method and  storing
+# new children as we generate them.
+#
+# A node will split into children if the Node contains more particles than n_ref
+# below this value, the Node will not split, this is called a leaf.
+#
+# To maintain backwards compatibility we also have the cell structure. This
+# means that each leaf is split into 2**(3*over_refine_factor) cells. When an
+# SPH field is interpolated onto the octree, we interpolate the value are the
+# centre of each cell. The cell locations, and particles they contain, are *NOT*
+# stored in memory instead this is calculated on the fly when a interpolation or
+# cell position request is made.
+# This adds a slight overhead for these functions, but reduces the memory usage
+# by 2**(3*over_refine_factor)
 
 cdef struct Node:
     double left_edge[3]
     double right_edge[3]
 
-    unsigned long start            #  star and end of particles we store
-    unsigned long end
+    np.int64_t start            #  star and end of particles we store
+    np.int64_t end
 
-    unsigned long parent           # position of parent in Octree.nodes
-    unsigned long children         # position of 0th child, children are
+    np.int64_t parent           # position of parent in Octree.nodes
+    np.int64_t children         # position of 0th child, children are
                                    # contiguous
     bool leaf
-    unsigned long node_id          # not sure if this is even useful
-    unsigned long leaf_id
-    unsigned int depth
-
+    np.int64_t node_id          # not sure if this is even useful
+    np.int64_t leaf_id
+    unsigned char depth
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -42,22 +98,23 @@ cdef class CyOctree:
     cdef np.int64_t[:] _idx        # ordering of particles used by the tree
 
     cdef int _n_ref                # number of particles per leaf
+    cdef np.int64_t _num_particles
 
-    cdef int num_octs
-    cdef int num_particles
+    cdef np.int64_t _data_version
 
     cdef vector[Node] nodes        # This is an STL container to store the octs
-    cdef int _over_refine_factor   # how many "cells" are in a leaf node
-    cdef int _num_cells
-    cdef int _num_cells_per_dim
 
+    # Cell structure
+    cdef int _over_refine_factor   # this allows the tree to be built with more
+                                   # than 8 cells per leaf
+    cdef int _num_cells            # 2**(3*_over_refine_factor)
+    cdef int _num_cells_per_dim    # 2**(_over_refine_factor)
+
+    # Children structure
     cdef int _dense_factor         # this allows the tree to be built with more
-                                   # than 8 children
-    cdef int _max_splits           # these are pre calculated helper variables
-    cdef int _num_children         # for cell division
-    cdef int _num_children_per_dim
-
-    cdef long data_version
+                                   # than 8 children per node
+    cdef int _num_children         # 2**(3*_dense_factor)
+    cdef int _num_children_per_dim # 2**(_dense_factor)
 
     # this is use for interpolation and is global for the octree smoothing
     # operations
@@ -65,7 +122,7 @@ cdef class CyOctree:
 
     def __init__(self, double[:, ::1] &input_pos = None, left_edge = None,
                  right_edge = None, int n_ref=32, int over_refine_factor=1,
-                 int dense_factor=1, long data_version=0):
+                 int dense_factor=1, np.int64_t data_version=0):
 
         # if this is the case, we are very likely just initialising an instance
         # and then going to load an existing Octree from memory, so we don't
@@ -83,17 +140,15 @@ cdef class CyOctree:
         # particle from the input is in which node
         self.idx = np.arange(0, input_pos.shape[0], dtype=np.int64)
 
-        # set up the bounds
+        # set up the bounds and root node
         self.setup_bounds(input_pos, left_edge, right_edge)
         self.setup_root(input_pos)
 
+        # reserve some space for the octs to be stored
         reserve(&self.nodes, 1000000)
 
         # now build the tree
         self.build_tree(&input_pos[0, 0])
-
-        # setup the final parameters
-        self.num_octs = self.nodes.size()
 
     cdef setup_bounds(self, double[:, ::1] &input_pos, left_edge=None,
                       right_edge=None):
@@ -113,7 +168,6 @@ cdef class CyOctree:
 
     cdef setup_root(self, double[:, ::1] &input_pos):
         cdef Node root
-
         root.left_edge = self._left_edge
         root.right_edge = self._right_edge
         root.parent = 0
@@ -162,7 +216,8 @@ cdef class CyOctree:
 
         # this sorts the children in the node and then stores the position of
         # the first and last particle in each node
-        split_helper(node.start, node.end, self._num_children, self._max_splits,
+        split_helper(node.start, node.end, self._num_children,
+                     self._num_children_per_dim - 1,
                      split_arr, input_pos, &self._idx[0], &node.left_edge[0],
                      &node.right_edge[0])
 
@@ -217,6 +272,22 @@ cdef class CyOctree:
         return sizeof(Node) * self.nodes.size()
 
     @property
+    def data_version(self):
+        return self._data_version
+
+    @data_version.setter
+    def data_version(self, value):
+        self._data_version = value
+
+    @property
+    def num_particles(self):
+        return self._num_particles
+
+    @num_particles.setter
+    def num_particles(self, value):
+        self._num_particles = value
+
+    @property
     def n_ref(self):
         return self._n_ref
 
@@ -225,13 +296,17 @@ cdef class CyOctree:
         self._n_ref = value
 
     @property
+    def num_octs(self):
+        return self.nodes.size()
+
+    @property
     def over_refine_factor(self):
         return self._over_refine_factor
 
     @over_refine_factor.setter
     def over_refine_factor(self, value):
         self._over_refine_factor = value
-        self._num_cells = 8**value
+        self._num_cells = 2**(3 * value)
         self._num_cells_per_dim = 2**value
 
     @property
@@ -242,7 +317,6 @@ cdef class CyOctree:
     def dense_factor(self, value):
         self._dense_factor = value
         self._num_children = 2**(3 * value)
-        self._max_splits = 2**(value - 1)
         self._num_children_per_dim  = 2**value
 
     @property
@@ -380,13 +454,13 @@ cdef class CyOctree:
 
         # TODO: we need to save the tree hash as well
         with open(fname,'wb') as f:
-            f.write(struct.pack('6d', self.num_particles, self.num_octs,
+            f.write(struct.pack('2Q3iQ', self.num_particles, self.num_octs,
                                       self.n_ref, self.over_refine_factor,
                                       self.dense_factor, self.data_version))
-            f.write(struct.pack('{}d'.format(self.num_particles),
+            f.write(struct.pack('{}Q'.format(self.num_particles),
                                 *self.idx))
             for i in range(self.num_octs):
-                f.write(struct.pack('10d?2di',
+                f.write(struct.pack('6d4Q?2Qi',
                                     self.nodes[i].left_edge[0],
                                     self.nodes[i].left_edge[1],
                                     self.nodes[i].left_edge[2],
@@ -409,21 +483,22 @@ cdef class CyOctree:
         self.reset()
 
         cdef Node temp
+        cdef np.int64_t num_octs
         with open(fname,'rb') as f:
-            (self.num_particles, self.num_octs, self.n_ref,
+            (self.num_particles, num_octs, self.n_ref,
              self.over_refine_factor, self.dense_factor,
              self.data_version) = \
-                struct.unpack('6d', f.read(48))
+                struct.unpack('2Q3iQ', f.read(40))
             self.idx = \
-                np.asarray(struct.unpack('{}d'.format(self.num_particles),
+                np.asarray(struct.unpack('{}Q'.format(self.num_particles),
                            f.read(8*self.num_particles)), dtype=np.int64)
-            reserve(&self.nodes, self.num_octs+1)
+            reserve(&self.nodes, num_octs+1)
             for i in range(self.num_octs):
                 (temp.left_edge[0], temp.left_edge[1], temp.left_edge[2],
                  temp.right_edge[0], temp.right_edge[1], temp.right_edge[2],
                  temp.start, temp.end, temp.parent, temp.children, temp.leaf,
                  temp.node_id, temp.leaf_id, temp.depth) = \
-                struct.unpack('10d?2di', f.read(108))
+                struct.unpack('6d4Q?2Qi', f.read(108))
 
                 self.nodes.push_back(temp)
 
@@ -434,10 +509,10 @@ cdef class CyOctree:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void split_helper(int start, int end, int num_children, int max_splits,
+cdef int split_helper(int start, int end, int num_children, int max_splits,
                        np.int64_t * split_arr, np.float64_t * pos,
                        np.int64_t * idx, np.float64_t * left,
-                       np.float64_t * right) nogil:
+                       np.float64_t * right) nogil except -1:
     cdef double lower = left[0]
     cdef double upper = right[0]
 
@@ -446,6 +521,8 @@ cdef void split_helper(int start, int end, int num_children, int max_splits,
 
     split(0, num_children, max_splits, 0, 0, split_arr, idx, pos, left, right,
           lower, upper)
+
+    return 0
 
 # This is a utility function which is able to catch errors when we attempt to
 # reserve too much memory
@@ -477,10 +554,10 @@ cdef int seperate(np.float64_t * array, np.int64_t * idx, int offset,  double va
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void split(int start, int end, int max_splits, int splits, int axis,
+cdef int split(int start, int end, int max_splits, int splits, int axis,
            np.int64_t * split_arr, np.int64_t * idx, np.float64_t * pos,
            np.float64_t * left_edge, np.float64_t * right_edge,
-           np.float64_t lower, np.float64_t upper) nogil:
+           np.float64_t lower, np.float64_t upper) nogil except -1:
     cdef int mid
     cdef double temp_value
 
@@ -502,3 +579,5 @@ cdef void split(int start, int end, int max_splits, int splits, int axis,
               left_edge, right_edge, lower, temp_value)
         split(mid, end, max_splits, splits, axis, split_arr, idx, pos,
               left_edge, right_edge, temp_value, upper)
+
+    return 0

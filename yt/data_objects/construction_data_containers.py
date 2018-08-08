@@ -2157,13 +2157,10 @@ class YTOctree(YTSelectionContainer3D):
         self.tree
 
     def _generate_tree(self, fname = None):
-        if isinstance(self.ptypes, list):
-            positions = []
-            for ptype in self.ptypes:
-                positions.append(self._data_source[(ptype, 'Coordinates')])
-            positions = np.concatenate(positions)
-        else:
-            positions = self._data_source[(self.ptypes, 'Coordinates')]
+        positions = []
+        for ptype in self.ptypes:
+            positions.append(self._data_source[(ptype, 'Coordinates')])
+        positions = np.concatenate(positions)
 
         if positions == []:
             self._octree = None
@@ -2184,6 +2181,9 @@ class YTOctree(YTSelectionContainer3D):
 
     @property
     def tree(self):
+        self.ds.index
+
+        # Chose _octree as _tree seems to be used
         if hasattr(self, '_octree'):
             return self._octree
 
@@ -2218,18 +2218,15 @@ class YTOctree(YTSelectionContainer3D):
         if ptypes is None:
             return ['all']
 
+        if not isinstance(ptypes, list):
+            ptypes = [ptypes]
+
         self.ds.index
-        if isinstance(ptypes, list):
-            for ptype in ptypes:
-                if ptype not in self.ds.particle_types:
-                    mess = "{} not found. Particle type must ".format(ptype)
-                    mess += "be in the dataset!"
-                    raise TypeError(mess)
-        else:
-            if ptypes not in self.ds.particle_types:
-                    mess = "{} not found. Particle type must ".format(ptypes)
-                    mess += "be in the dataset!"
-                    raise TypeError(mess)
+        for ptype in ptypes:
+            if ptype not in self.ds.particle_types:
+                mess = "{} not found. Particle type must ".format(ptype)
+                mess += "be in the dataset!"
+                raise TypeError(mess)
 
         return ptypes
 
@@ -2253,6 +2250,7 @@ class YTOctree(YTSelectionContainer3D):
     def get_data(self, fields = None):
         if fields is None: return
 
+        # not sure on the best way to do this
         if isinstance(fields, list) and len(fields) > 1:
             for field in fields: self.get_data(field)
             return
@@ -2267,7 +2265,9 @@ class YTOctree(YTSelectionContainer3D):
     def gather_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
 
-        # for the gather approach we load up all of the data
+        # for the gather approach we load up all of the data, this like other
+        # gather approaches is not memory conservative and with spatial chunking
+        # this can be fixed
         pos = []
         dens = []
         mass = []
@@ -2318,7 +2318,7 @@ class YTOctree(YTSelectionContainer3D):
             field_quantity = chunk[fields].in_base("cgs").d
 
             self.tree.interpolate_sph_cells(buff, px, py, pz, pmass, pdens,
-                                              hsml, field_quantity)
+                                             hsml, field_quantity)
             pbar.update(1)
 
         pbar.close()
