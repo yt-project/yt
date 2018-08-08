@@ -26,7 +26,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 class ParticleTrajectories(object):
     r"""A collection of particle trajectories in time over a series of
-    datasets. 
+    datasets.
 
     Parameters
     ----------
@@ -43,6 +43,8 @@ class ParticleTrajectories(object):
     suppress_logging : boolean
         Suppress yt's logging when iterating over the simulation time
         series. Default: False
+    ptype : str, optional
+        Only use this particle type. Default: None, which uses all particle type.
 
     Examples
     --------
@@ -59,7 +61,7 @@ class ParticleTrajectories(object):
     >>> for t in trajs :
     >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
     """
-    def __init__(self, outputs, indices, fields=None, suppress_logging=False):
+    def __init__(self, outputs, indices, fields=None, suppress_logging=False, ptype=None):
 
         indices.sort() # Just in case the caller wasn't careful
         self.field_data = YTFieldData()
@@ -72,6 +74,7 @@ class ParticleTrajectories(object):
         self.num_steps = len(outputs)
         self.times = []
         self.suppress_logging = suppress_logging
+        self.ptype = ptype
 
         if fields is None: fields = []
         fields = list(OrderedDict.fromkeys(fields))
@@ -79,19 +82,20 @@ class ParticleTrajectories(object):
         if self.suppress_logging:
             old_level = int(ytcfg.get("yt","loglevel"))
             mylog.setLevel(40)
-        
-        fds = {}
         ds_first = self.data_series[0]
         dd_first = ds_first.all_data()
-        idx_field = dd_first._determine_fields("particle_index")[0]
-        for field in ("particle_position_%s" % ax for ax in "xyz"):
-            fds[field] = dd_first._determine_fields(field)[0]
+
+        fds = {}
+        for field in (
+                "particle_index",
+                "particle_position_x", "particle_position_y", "particle_position_z"):
+            fds[field] = self._get_full_field_name(field)[0]
 
         my_storage = {}
         pbar = get_pbar("Constructing trajectory information", len(self.data_series))
         for i, (sto, ds) in enumerate(self.data_series.piter(storage=my_storage)):
             dd = ds.all_data()
-            newtags = dd[idx_field].d.astype("int64")
+            newtags = dd[fds["particle_index"]].d.astype("int64")
             mask = np.in1d(newtags, indices, assume_unique=True)
             sort = np.argsort(newtags[mask])
             array_indices = np.where(np.in1d(indices, newtags, assume_unique=True))[0]
@@ -137,9 +141,15 @@ class ParticleTrajectories(object):
 
     def has_key(self, key):
         return (key in self.field_data)
-    
+
     def keys(self):
         return self.field_data.keys()
+
+    def _get_full_field_name(self, field):
+        ds_first = self.data_series[0]
+        dd_first = ds_first.all_data()
+        ptype = self.ptype if self.ptype else 'all'
+        return dd_first._determine_fields((ptype, field))
 
     def __getitem__(self, key):
         """
@@ -150,13 +160,13 @@ class ParticleTrajectories(object):
         if key not in self.field_data:
             self._get_data([key])
         return self.field_data[key]
-    
+
     def __setitem__(self, key, val):
         """
         Sets a field to be some other value.
         """
         self.field_data[key] = val
-                        
+
     def __delitem__(self, key):
         """
         Delete the field from the trajectory
@@ -176,7 +186,7 @@ class ParticleTrajectories(object):
             for field in self.field_data.keys():
                 traj[field] = self[field][idx,:]
             yield traj
-            
+
     def __len__(self):
         """
         The number of individual trajectories
@@ -199,7 +209,7 @@ class ParticleTrajectories(object):
         >>> trajs.add_fields(["particle_mass", "particle_gpot"])
         """
         self._get_data(fields)
-                
+
     def _get_data(self, fields):
         """
         Get a list of fields to include in the trajectory collection.
@@ -226,7 +236,7 @@ class ParticleTrajectories(object):
                 if self.data_series[0]._get_field_info(*fds[field]).particle_type:
                     self.particle_fields.append(field)
                     new_particle_fields.append(field)
-                    
+
 
         grid_fields = [field for field in missing_fields
                        if field not in self.particle_fields]
@@ -234,7 +244,7 @@ class ParticleTrajectories(object):
         pbar = get_pbar("Generating [%s] fields in trajectories" %
                         ", ".join(missing_fields), self.num_steps)
         my_storage = {}
-        
+
         for i, (sto, ds) in enumerate(self.data_series.piter(storage=my_storage)):
             mask = self.masks[i]
             sort = self.sorts[i]
@@ -334,7 +344,7 @@ class ParticleTrajectories(object):
         Examples
         --------
         >>> trajs = ParticleTrajectories(my_fns, indices)
-        >>> trajs.write_out("orbit_trajectory")       
+        >>> trajs.write_out("orbit_trajectory")
         """
         fields = [field for field in sorted(self.field_data.keys())]
         num_fields = len(fields)
@@ -366,7 +376,7 @@ class ParticleTrajectories(object):
         Examples
         --------
         >>> trajs = ParticleTrajectories(my_fns, indices)
-        >>> trajs.write_out_h5("orbit_trajectories")                
+        >>> trajs.write_out_h5("orbit_trajectories")
         """
         fid = h5py.File(filename, "w")
         fid.create_dataset("particle_indices", dtype=np.int64,
