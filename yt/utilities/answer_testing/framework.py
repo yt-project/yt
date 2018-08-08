@@ -45,7 +45,8 @@ from yt.data_objects.time_series import SimulationTimeSeries
 from yt.utilities.exceptions import \
     YTNoOldAnswer, \
     YTCloudError, \
-    YTOutputNotIdentified
+    YTOutputNotIdentified, \
+    YTNoAnswerNameSpecified
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
@@ -146,14 +147,13 @@ class AnswerTesting(Plugin):
 
             # Create a local directory only when `options.answer_name` is
             # provided. If it is not provided then creating local directory
-            # will depend on the answer_name from the `prefix` value of the
-            # test, this case is handled in AnswerTestingTest.
-            if self.store_name is not None and options.store_results \
-                    and options.answer_name is not None:
+            # will depend on the `AnswerTestingTest.answer_name` value of the
+            # test, this case is handled in AnswerTestingTest class.
+            if options.store_results and options.answer_name is not None:
                 name_dir_path = os.path.join(output_dir, self.store_name)
                 if not os.path.isdir(name_dir_path):
                     os.makedirs(name_dir_path)
-                self.store_name= os.path.join(name_dir_path, self.store_name)
+                self.store_name = os.path.join(name_dir_path, self.store_name)
         else:
             storage_class = AnswerTestCloudStorage
 
@@ -337,6 +337,9 @@ class AnswerTestingTest(object):
     result_storage = None
     prefix = ""
     options = None
+    # This variable should be set if we are not providing `--answer-name` as
+    # command line parameter while running yt's answer testing using nosetests.
+    answer_name = None
     def __init__(self, ds_fn):
         if ds_fn is None:
             self.ds = None
@@ -350,28 +353,34 @@ class AnswerTestingTest(object):
             return
         nv = self.run()
 
+        # Test answer name should be provided either as command line parameters
+        # or by setting AnswerTestingTest.answer_name
+        if self.options.answer_name is None and self.answer_name is None:
+            raise YTNoAnswerNameSpecified()
+
         # This is for running answer test when `--answer-name` is not set in
         # nosetests command line arguments. In this case, set the answer_name
-        # from the `prefix` keyword in the test case
-        if self.options.answer_name is None and self.prefix:
+        # from the `answer_name` keyword in the test case
+        if self.options.answer_name is None:
             pyver = "py{}{}".format(sys.version_info.major,
                                     sys.version_info.minor)
-            self.prefix = "{}_{}".format(pyver, self.prefix)
+            self.answer_name = "{}_{}".format(pyver, self.answer_name)
 
             answer_store_dir = os.path.realpath(self.options.output_dir)
-            ref_name = os.path.join(answer_store_dir, self.prefix, self.prefix)
+            ref_name = os.path.join(answer_store_dir, self.answer_name,
+                                    self.answer_name)
             self.reference_storage.reference_name = ref_name
-            self.reference_storage.answer_name = self.prefix
+            self.reference_storage.answer_name = ref_name
 
             # If we are generating golden answers (passed --answer-store arg):
             # - create the answer directory for this test
             # - self.reference_storage.answer_name will be path to answer files
             if self.options.store_results:
-                answer_test_dir = os.path.join(answer_store_dir, self.prefix)
+                answer_test_dir = os.path.join(answer_store_dir,
+                                               self.answer_name)
                 if not os.path.isdir(answer_test_dir):
                     os.makedirs(answer_test_dir)
                 self.reference_storage.reference_name = None
-                self.reference_storage.answer_name = ref_name
 
         if self.reference_storage.reference_name is not None:
             # Compare test generated values against the golden answer

@@ -288,6 +288,19 @@ class YTNoOldAnswer(YTException):
         return "There is no old answer available.\n" + \
                str(self.path)
 
+class YTNoAnswerNameSpecified(YTException):
+    def __init__(self, message=None):
+        if message is None or message == "":
+            message = ("Answer name not provided for the answer testing test."
+                       "\n  Please specify --answer-name=<answer_name> in"
+                       " command line mode or in AnswerTestingTest.answer_name"
+                       " variable."
+                       )
+        self.message = message
+
+    def __str__(self):
+        return str(self.message)
+
 class YTCloudError(YTException):
     def __init__(self, path):
         self.path = path
