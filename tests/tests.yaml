@@ -71,9 +71,6 @@ answer_tests:
 
   local_unstructured_010:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py
-    - yt/visualization/tests/test_mesh_slices.py:test_tri2
-    - yt/visualization/tests/test_mesh_slices.py:test_quad2
-    - yt/visualization/tests/test_mesh_slices.py:test_multi_region
 
   local_boxlib_007:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
