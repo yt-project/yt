@@ -1993,6 +1993,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         cr = self.exclude_inside(field, min_value, max_value, units)
         return cr
+    
     def exclude_below(self, field, value, units=None):
         """
         This function will return a YTCutRegion where all of the regions
@@ -2044,10 +2045,10 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The YtCutRegion with the NaN entries of the field masked.
         """
         if(units == None):
-            field_cuts = ('obj["' + field + '"] != NaN')
+            field_cuts = ('~np.isnan(obj["' + field + '"])')
         else:
-            field_cuts = ('obj["' + field + '"].in_units("' + units + 
-                '") != NaN')
+            field_cuts = ('~np.isnan(obj["' + field + '"].in_units("' + units + 
+                '"))')
         cr = self.cut_region(field_cuts)
         return cr
 
