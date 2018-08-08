@@ -422,6 +422,43 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    def fill_extruded_grid_cell_mask(self, mesh):
+        cdef np.float64_t x_pos, y_pos, z_pos
+        cdef np.float64_t le[3]
+        cdef np.float64_t re[3]
+        # The third dimension here is always two
+        cdef np.ndarray[np.float64_t, ndim=3] grid_xy
+        cdef np.ndarray[np.float64_t, ndim=1] grid_z
+        cdef np.ndarray[np.uint8_t, ndim=1] mask
+        cdef int i, j, k, n, selected
+        cdef int total = 0
+        grid_xy = _ensure_code(mesh._grid_locations)
+        grid_z = _ensure_code(mesh._grid_extrusion)
+        cdef int nx = grid_xy.shape[0]
+        cdef int ny = grid_xy.shape[1]
+        assert(grid_xy.shape[2] == 2)
+        cdef int nz = grid_z.shape[0]
+        mask = np.zeros((nx-1, ny-1, nz-1), dtype='uint8')
+        for i in range(nx - 1):
+            for j in range(ny - 1):
+                for n in range(2):
+                    le[n] = fmin(fmin(grid_xy[i,j  ,n], grid_xy[i+1,j  ,n]),
+                                 fmin(grid_xy[i,j+1,n], grid_xy[i+1,j+1,n]))
+                    re[n] = fmax(fmax(grid_xy[i,j  ,n], grid_xy[i+1,j  ,n]),
+                                 fmax(grid_xy[i,j+1,n], grid_xy[i+1,j+1,n]))
+                for k in range(nz - 1):
+                    # These must be in increasing values
+                    le[2] = grid_z[k]
+                    re[2] = grid_z[k+1]
+                    selected = self.select_bbox(le, re)
+                    total += selected
+                    mask[i,j,k] = selected
+        if total == 0: return None
+        return mask.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def fill_mask(self, gobj):
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         child_mask = gobj.child_mask
