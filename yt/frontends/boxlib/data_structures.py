@@ -1309,7 +1309,7 @@ class NyxDataset(BoxlibDataset):
 
         # alias
         self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
-        if os.path.isdir(os.path.join(self.output_dir, "DM")):
+        if os.path.isfile(os.path.join(self.output_dir, "DM/Header")):
             # we have particles
             self.parameters["particles"] = 1 
             self.particle_types = ("DM",)
