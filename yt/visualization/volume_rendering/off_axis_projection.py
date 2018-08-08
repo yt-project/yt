@@ -22,7 +22,8 @@ from yt.utilities.lib.partitioned_grid import \
 from yt.units.unit_object import Unit
 from yt.data_objects.api import ImageArray
 from yt.utilities.lib.pixelization_routines import \
-    off_axis_projection_SPH
+    off_axis_projection_SPH, \
+    normalization_2d_utility
 import numpy as np
 
 
@@ -117,6 +118,11 @@ def off_axis_projection(data_source, center, normal_vector,
 
     item = data_source._determine_fields([item])[0]
 
+    # Assure vectors are numpy arrays as expected by cython code
+    normal_vector = np.array(normal_vector, dtype='float64')
+    if north_vector is not None:
+        north_vector = np.array(north_vector, dtype='float64')
+
     # Sanitize units
     if not hasattr(center, "units"):
         center = data_source.ds.arr(center, 'code_length')
@@ -132,11 +138,14 @@ def off_axis_projection(data_source, center, normal_vector,
 
         raise_error = False
 
+        # Assure that the field we're trying to off-axis project 
+        # has a field type as the SPH particle type or if the field is an 
+        # alias to an SPH field or is a 'gas' field
         if fi.alias_field:
             if fi.alias_name[0] != ptype:
                 raise_error = True
         else:
-            if fi.name[0] != ptype:
+            if fi.name[0] != ptype and fi.name[0] != 'gas':
                 raise_error = True
 
         if raise_error:
@@ -190,7 +199,8 @@ def off_axis_projection(data_source, center, normal_vector,
                     width.to('code_length').d,
                     chunk[item].in_units(ounits),
                     buf,
-                    normal_vector)
+                    normal_vector,
+                    north)
 
             path_length_unit = data_source.ds._get_field_info('smoothing_length').units
             path_length_unit = Unit(path_length_unit, registry=data_source.ds.unit_registry)
@@ -218,6 +228,7 @@ def off_axis_projection(data_source, center, normal_vector,
                     chunk[item].in_units(ounits),
                     buf,
                     normal_vector,
+                    north,
                     weight_field=chunk[weight].in_units(wounits))
 
             for chunk in data_source.chunks([], 'io'):
@@ -233,9 +244,10 @@ def off_axis_projection(data_source, center, normal_vector,
                     width.to('code_length').d,
                     chunk[weight].to(wounits),
                     weight_buff,
-                    normal_vector)
+                    normal_vector,
+                    north)
 
-            buf /= weight_buff
+            normalization_2d_utility(buf, weight_buff)
             item_unit = data_source.ds._get_field_info(item).units
             item_unit = Unit(item_unit, registry=data_source.ds.unit_registry)
             funits = item_unit

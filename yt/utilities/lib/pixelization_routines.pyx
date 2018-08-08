@@ -1528,16 +1528,31 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                             np.float64_t[:] quantity_to_smooth,
                             np.float64_t[:, :] projection_array,
                             normal_vector,
+                            north_vector,
                             weight_field=None):
     # Do nothing in event of a 0 normal vector
     if np.allclose(normal_vector, np.array([0., 0., 0.]), rtol=1e-09):
         return
 
+    # We want to do two rotations, one to first rotate our coordinates to have
+    # the normal vector be the z-axis (i.e., the viewer's perspective), and then
+    # another rotation to make the north-vector be the y-axis (i.e., north).
+    # Fortunately, total_rotation_matrix = rotation_matrix_1 x rotation_matrix_2
     cdef int num_particles = np.size(px)
-    cdef np.float64_t[:, :] rotation_matrix = get_rotation_matrix(normal_vector)
+    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype='float_')
+    cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype='float_')
+    cdef np.float64_t[:, :] normal_rotation_matrix
+    cdef np.float64_t[:] transformed_north_vector
+    cdef np.float64_t[:, :] north_rotation_matrix
+    cdef np.float64_t[:, :] rotation_matrix
+
+    normal_rotation_matrix = get_rotation_matrix(normal_vector, z_axis)
+    transformed_north_vector = np.matmul(normal_rotation_matrix, north_vector)
+    north_rotation_matrix = get_rotation_matrix(transformed_north_vector, y_axis)
+    rotation_matrix = np.matmul(north_rotation_matrix, normal_rotation_matrix)
+
     cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype='float_')
     cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype='float_')
-
     cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype='float_')
     cdef np.float64_t[:] rotated_coordinates
     cdef np.float64_t[:] rotated_center
@@ -1581,27 +1596,26 @@ cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix,
             out[i] += rotation_matrix[i, j] * coordinate_matrix[j]
     return out
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.float64_t[:, :] get_rotation_matrix(normal_vector):
+cpdef np.float64_t[:, :] get_rotation_matrix(np.float64_t[:] normal_vector,
+                                             np.float64_t[:] final_vector):
     """ Returns a numpy rotation matrix corresponding to the
-    rotation of the given normal vector to the z-axis ([0, 0, 1]).
+    rotation of the given normal vector to the specified final_vector.
     See https://math.stackexchange.com/a/476311 although note we return the
     inverse of what's specified there.
     """
-    cdef np.float64_t[:] normal_vector_np = np.array([normal_vector[0], normal_vector[1], normal_vector[2]], 
-                                                     dtype='float_')
-    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype='float_')
-    cdef np.float64_t[:] normal_unit_vector = normal_vector_np / np.linalg.norm(normal_vector_np)
-    cdef np.float64_t[:] v = np.cross(z_axis, normal_unit_vector)
+    cdef np.float64_t[:] normal_unit_vector = normal_vector / np.linalg.norm(normal_vector)
+    cdef np.float64_t[:] final_unit_vector = final_vector / np.linalg.norm(final_vector)
+    cdef np.float64_t[:] v = np.cross(final_unit_vector, normal_unit_vector)
     cdef np.float64_t s = np.linalg.norm(v)
-    cdef np.float64_t c = np.dot(z_axis, normal_unit_vector)
-    # if the normal vector is identical to the z-axis, just return the
+    cdef np.float64_t c = np.dot(final_unit_vector, normal_unit_vector)
+    # if the normal vector is identical to the final vector, just return the
     # identity matrix
     if np.isclose(c, 1, rtol=1e-09):
         return np.identity(3, dtype='float_')
-    # if the normal vector is the negative z-axis, return:
+    # if the normal vector is the negative final vector, return the appropriate
+    # rotation matrix for flipping your coordinate system.  
     if np.isclose(s, 0, rtol=1e-09):
         return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype='float_')
 
