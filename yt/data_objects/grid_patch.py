@@ -403,7 +403,7 @@ class AMRGridPatch(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        dim = self.ds.dimensionality
+        dim = np.squeeze(self.ds.dimensionality)
         nodal_flag = source.shape[:dim] - self.ActiveDimensions[:dim]        
         if sum(nodal_flag) == 0:
             dest[offset:offset+count] = source[mask]
