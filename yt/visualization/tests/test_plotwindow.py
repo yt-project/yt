@@ -20,13 +20,14 @@ import tempfile
 import unittest
 
 from distutils.version import LooseVersion
+from nose.plugins.attrib import attr
 from nose.tools import assert_true
 
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
-    assert_array_almost_equal, assert_raises, assert_fname
+    assert_array_almost_equal, assert_raises, ANSWER_TEST_TAG
 from yt.utilities.answer_testing.framework import \
-    requires_ds, data_dir_load, PlotWindowAttributeTest
+    requires_ds, data_dir_load, PlotWindowAttributeTest, GenericImageTest
 from yt.utilities.exceptions import \
     YTInvalidFieldType
 from yt.visualization.api import \
@@ -42,8 +43,6 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
-
-TEST_FLNMS = ['test.png']
 M7 = "DD0010/moving7_0010"
 WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
@@ -137,8 +136,19 @@ PROJECTION_METHODS = (
     'mip'
 )
 
+def compare(ds, plot, test_prefix, test_name, decimals=12):
+    def image_from_plot(filename_prefix):
+        return plot.save(filename_prefix)
+
+    image_from_plot.__name__ = "plot_window_{}".format(test_prefix)
+    test = GenericImageTest(ds, image_from_plot, decimals)
+    test.prefix = test_prefix
+    test.answer_name = test_name
+    return test
+
 def simple_contour(test_obj, plot):
-    plot.annotate_contour(test_obj.plot_field)
+    plot_args = {"linestyles": "solid"}
+    plot.annotate_contour(test_obj.plot_field, plot_args=plot_args)
 
 def simple_velocity(test_obj, plot):
     plot.annotate_velocity()
@@ -159,8 +169,9 @@ CALLBACK_TESTS = (
     #("simple_all", (simple_contour, simple_velocity, simple_streamlines)),
 )
 
+@attr(ANSWER_TEST_TAG)
 @requires_ds(M7)
-def test_attributes():
+def test_simple_attributes():
     """Test plot member functions that aren't callbacks"""
     plot_field = 'density'
     decimals = 12
@@ -171,12 +182,29 @@ def test_attributes():
             for args in ATTR_ARGS[attr_name]:
                 test = PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
                                                args, decimals)
-                test_attributes.__name__ = test.description
+                test_simple_attributes.__name__ = test.description
+                test.prefix = "attr_%s_%s" % (attr_name, ax)
+                test.answer_name = "plot_window_simple_attributes"
                 yield test
-                for n, r in CALLBACK_TESTS:
-                    yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
-                        args, decimals, callback_id=n, callback_runners=r)
 
+@attr(ANSWER_TEST_TAG)
+@requires_ds(M7)
+def test_callback_attributes():
+    """Test plot member functions that are callbacks"""
+    plot_field = 'density'
+    decimals = 12
+    ax = 'x'
+    ds = data_dir_load(M7)
+    for attr_name in ATTR_ARGS:
+        for args in ATTR_ARGS[attr_name]:
+            for n, r in CALLBACK_TESTS:
+                callback_test = PlotWindowAttributeTest(ds, plot_field, ax,
+                                                        attr_name, args,
+                                                        decimals, callback_id=n,
+                                                        callback_runners=r)
+                callback_test.prefix = "attr_%s_%s_%s" % (n, attr_name, ax)
+                callback_test.answer_name = "plot_window_callback_attributes"
+                yield callback_test
 
 @requires_ds(WT)
 def test_attributes_wt():
@@ -279,6 +307,68 @@ class TestSetWidth(unittest.TestCase):
         self._assert_05_075cm()
         assert_true(self.slc._axes_unit_names == ('cm', 'cm'))
 
+@attr(ANSWER_TEST_TAG)
+def test_slice_plot():
+    test_ds = fake_random_ds(16)
+    for dim in range(3):
+        slc = SlicePlot(test_ds, dim, 'density')
+        yield compare(test_ds, slc, test_prefix=str(dim),
+                      test_name="plot_window_slice_plot")
+
+@attr(ANSWER_TEST_TAG)
+def test_projection_plot():
+    test_ds = fake_random_ds(16)
+    for dim in range(3):
+        proj = ProjectionPlot(test_ds, dim, 'density')
+        yield compare(test_ds, proj, test_prefix=str(dim),
+                      test_name="plot_window_projection_plot")
+
+@attr(ANSWER_TEST_TAG)
+def test_projection_plot_ds():
+    test_ds = fake_random_ds(16)
+    reg = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
+    for dim in range(3):
+        proj = ProjectionPlot(test_ds, dim, 'density', data_source=reg)
+        yield compare(test_ds, proj, test_prefix=str(dim),
+                      test_name="plot_window_projection_plot_ds")
+
+@attr(ANSWER_TEST_TAG)
+def test_projection_plot_c():
+    test_ds = fake_random_ds(16)
+    for center in CENTER_SPECS:
+        proj = ProjectionPlot(test_ds, 0, 'density', center=center)
+        yield compare(test_ds, proj, test_prefix=str(center),
+                      test_name="plot_window_projection_plot_c")
+
+@attr(ANSWER_TEST_TAG)
+def test_projection_plot_wf():
+    test_ds = fake_random_ds(16)
+    for wf in WEIGHT_FIELDS:
+        proj = ProjectionPlot(test_ds, 0, 'density', weight_field=wf)
+        yield compare(test_ds, proj, test_prefix=str(wf),
+                      test_name="plot_window_projection_plot_wf")
+
+@attr(ANSWER_TEST_TAG)
+def test_projection_plot_m():
+    test_ds = fake_random_ds(16)
+    for method in PROJECTION_METHODS:
+        proj = ProjectionPlot(test_ds, 0, 'density', method=method)
+        yield compare(test_ds, proj, test_prefix=str(method),
+                      test_name="plot_window_projection_plot_m")
+
+@attr(ANSWER_TEST_TAG)
+def test_offaxis_slice_plot():
+    test_ds = fake_random_ds(16)
+    slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
+    yield compare(test_ds, slc, test_prefix="offaxis_slice_plot",
+                  test_name="plot_window_offaxis_slice_plot")
+
+@attr(ANSWER_TEST_TAG)
+def test_offaxis_projection_plot():
+    test_ds = fake_random_ds(16)
+    prj = OffAxisProjectionPlot(test_ds, [1, 1, 1], "density")
+    yield compare(test_ds, prj, test_prefix="offaxis_projection_plot",
+                  test_name="plot_window_offaxis_projection_plot")
 
 class TestPlotWindowSave(unittest.TestCase):
         
@@ -291,61 +381,10 @@ class TestPlotWindowSave(unittest.TestCase):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
 
-    def test_slice_plot(self):
-        test_ds = fake_random_ds(16)
-        for dim in range(3):
-            slc = SlicePlot(test_ds, dim, 'density')
-            for fname in TEST_FLNMS:
-                assert_fname(slc.save(fname)[0])
-
     def test_repr_html(self):
         test_ds = fake_random_ds(16)
         slc = SlicePlot(test_ds, 0, 'density')
         slc._repr_html_()
-
-    def test_projection_plot(self):
-        test_ds = fake_random_ds(16)
-        for dim in range(3):
-            proj = ProjectionPlot(test_ds, dim, 'density')
-            for fname in TEST_FLNMS:
-                assert_fname(proj.save(fname)[0])
-
-    def test_projection_plot_ds(self):
-        test_ds = fake_random_ds(16)
-        reg = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
-        for dim in range(3):
-            proj = ProjectionPlot(test_ds, dim, 'density', data_source=reg)
-            proj.save()
-
-    def test_projection_plot_c(self):
-        test_ds = fake_random_ds(16)
-        for center in CENTER_SPECS:
-            proj = ProjectionPlot(test_ds, 0, 'density', center=center)
-            proj.save()
-
-    def test_projection_plot_wf(self):
-        test_ds = fake_random_ds(16)
-        for wf in WEIGHT_FIELDS:
-            proj = ProjectionPlot(test_ds, 0, 'density', weight_field=wf)
-            proj.save()
-
-    def test_projection_plot_m(self):
-        test_ds = fake_random_ds(16)
-        for method in PROJECTION_METHODS:
-            proj = ProjectionPlot(test_ds, 0, 'density', method=method)
-            proj.save()
-
-    def test_offaxis_slice_plot(self):
-        test_ds = fake_random_ds(16)
-        slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
-        for fname in TEST_FLNMS:
-            assert_fname(slc.save(fname)[0])
-
-    def test_offaxis_projection_plot(self):
-        test_ds = fake_random_ds(16)
-        prj = OffAxisProjectionPlot(test_ds, [1, 1, 1], "density")
-        for fname in TEST_FLNMS:
-            assert_fname(prj.save(fname)[0])
 
     def test_creation_with_width(self):
         test_ds = fake_random_ds(16)
