@@ -314,25 +314,25 @@ def parse_nose_xml(nose_xml):
         eg. ['yt.visualization.tests.test_line_plots:test_multi_line_plot']
 
     """
-    missing_answers = []
-    failed_answers = []
+    missing_answers = set()
+    failed_answers = set()
     missing_errors = ["No such file or directory",
                       "There is no old answer available"]
     tree = ET.parse(nose_xml)
     testsuite = tree.getroot()
 
     for testcase in testsuite:
-        for error in testcase:
+        for error in testcase.iter('error'):
             test_name = testcase.attrib["classname"] + ":" \
                         + testcase.attrib["name"]
             if missing_errors[0] in error.attrib["message"] or \
                     missing_errors[1] in error.attrib["message"]:
-                    missing_answers.append(test_name)
+                    missing_answers.add(test_name)
 
             elif "Items are not equal" in error.attrib["message"]:
                 img_path = extract_image_locations(error.attrib["message"])
                 if img_path:
-                    failed_answers.append((test_name, img_path))
+                    failed_answers.add((test_name, img_path))
     return failed_answers, missing_answers
 
 if __name__ == "__main__":
