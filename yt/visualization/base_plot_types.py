@@ -48,6 +48,8 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                          'FigureManagerNbAgg'],
                 'agg': ['backend_agg', 'FigureCanvasAgg']}
 
+from ._mpl_imports import valid_transforms
+
 
 class CallbackWrapper(object):
     def __init__(self, viewer, window_plot, frb, field, font_properties,
@@ -93,7 +95,8 @@ class PlotMPL(object):
             figure.set_size_inches(fsize)
             self.figure = figure
         if axes is None:
-            self.axes = self.figure.add_axes(axrect, projection = mpl_proj)
+
+            self.axes = self.figure.add_axes(axrect)
         else:
             axes.cla()
             axes.set_position(axrect)
@@ -225,7 +228,7 @@ class ImagePlotMPL(PlotMPL):
         self.image = self.axes.imshow(
             data.to_ndarray(), origin='lower', extent=extent, norm=norm,
             vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
-            interpolation='nearest')
+            interpolation='nearest', projection=valid_transforms[mpl_proj])
         if (cbnorm == 'symlog'):
             if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
                 formatter_kwargs = {}

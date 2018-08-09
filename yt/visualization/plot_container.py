@@ -773,6 +773,38 @@ class ImagePlotContainer(PlotContainer):
         return self
 
     @invalidate_plot
+    def set_geo_projection(self, field, mpl_proj):
+        """set the matplotlib projection type, for now cartopy
+        projections are supported.
+
+        Parameters
+        ----------
+        field : string
+            the field to apply the projection type
+        mpl_proj : string
+            the projection type
+            valid options include: 'PlateCarree', 'Mollweide', 'Orthographic',
+            'Robinson'
+
+        >>> plot.set_geo_projection('AIRDENS', 'Mollweide')
+
+        """
+
+        from ._mpl_imports import cartopy_importer
+
+        if field == 'all':
+            fields = list(self.plots.keys())
+        else:
+            fields = [field]
+        for field in self.data_source._determine_fields(fields):
+            if mpl_proj = None:
+                projection = None
+            else:
+                projection = cartopy_importer(mpl_proj)
+            self.plots[field].projection = mpl_projection
+        return self
+
+    @invalidate_plot
     def set_cbar_minorticks(self, field, state):
         """turn colorbar minor ticks on or off in the current plot
 
