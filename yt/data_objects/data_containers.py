@@ -1866,10 +1866,39 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The YtCutRegion with the field equal to the given value masked.
         """
         if(units == None):
-            field_cuts = ('obj["' + field + '"] = ' + str(value))
+            field_cuts = ('obj["' + field + '"] != ' + str(value))
         else:
             field_cuts = ('obj["' + field + '"].in_units("' + units +
-                '") = ' + str(value))
+                '") != ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def include_equal(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field are equal to given value are included.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+        YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+        given in the field.
+
+        Returns
+        -------
+        cut_region : YtCutRegion
+            The YtCutRegion with the field equal to the given value included.
+        """
+        if(units == None):
+            field_cuts = ('obj["' + field + '"] == ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units +
+                '") == ' + str(value))
         cr = self.cut_region(field_cuts)
         return cr
 

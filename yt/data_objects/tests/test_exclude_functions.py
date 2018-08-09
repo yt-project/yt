@@ -34,6 +34,19 @@ def test_exclude_nan():
     no_nan_ds = ad.exclude_nan('density')
     assert_equal(no_nan_ds['density'], np.array(np.ones(10)))
 
+def test_equal():
+    test_array = np.ones((10, 10, 10))
+    test_array[1,1,:] = 2.
+    test_array[2,1,:] = 3.
+    data = dict(density=test_array)
+    ds = load_uniform_grid(data, test_array.shape,
+        length_unit='cm', nprocs=1)
+    ad = ds.all_data()
+    no_ones = ad.exclude_equal('density', 1.0)
+    assert np.all(no_ones['density'] != 1.0)
+    only_ones = ad.include_equal('density', 1.0)
+    assert np.all(only_ones['density'] == 1.0)
+
 def test_inside_outside():
     test_array = np.ones((10, 10, 10))
     test_array[1,1,:] = 2.
