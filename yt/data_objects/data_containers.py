@@ -1807,7 +1807,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YtCutRegion
             The YtCutRegion with the field above the given value masked.
         """
-        if(units == None):
+        if(units is None):
             field_cuts = ('obj["' + field + '"] <= ' + str(value))
         else:
             field_cuts = ('obj["' + field + '"].in_units("' + units +
@@ -1836,7 +1836,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YtCutRegion
             The YtCutRegion with the field above the given value masked.
         """
-        if(units == None):
+        if(units is None):
             field_cuts = ('obj["' + field + '"] > ' + str(value))
         else:
             field_cuts = ('obj["' + field + '"].in_units("' + units +
@@ -1865,7 +1865,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YtCutRegion
             The YtCutRegion with the field equal to the given value masked.
         """
-        if(units == None):
+        if(units is None):
             field_cuts = ('obj["' + field + '"] != ' + str(value))
         else:
             field_cuts = ('obj["' + field + '"].in_units("' + units +
@@ -1894,7 +1894,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YtCutRegion
             The YtCutRegion with the field equal to the given value included.
         """
-        if(units == None):
+        if(units is None):
             field_cuts = ('obj["' + field + '"] == ' + str(value))
         else:
             field_cuts = ('obj["' + field + '"].in_units("' + units +
@@ -1924,7 +1924,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YtCutRegion
             The YtCutRegion with the field inside the given interval excluded.
         """
-        if(units == None):
+        if(units is None):
             field_cuts = ('(obj["' + field + '"] <= ' + str(min_value) + 
                           ') | (obj["' + field + '"] >= ' + str(max_value) + 
                           ')')
@@ -1959,7 +1959,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YtCutRegion
             The YtCutRegion with the field inside the given interval excluded.
         """
-        if(units == None):
+        if(units is None):
             field_cuts = ('(obj["' + field + '"] > ' + str(min_value) + 
                           ') & (obj["' + field + '"] < ' + str(max_value) + 
                           ')')
@@ -2044,7 +2044,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YtCutRegion
             The YtCutRegion with the field below the given value masked.
         """
-        if(units == None):
+        if(units is None):
             field_cuts = ('obj["' + field + '"] >= ' + str(value))
         else:
             field_cuts = ('obj["' + field + '"].in_units("' + units + 
@@ -2073,7 +2073,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cut_region : YtCutRegion
             The YtCutRegion with the NaN entries of the field masked.
         """
-        if(units == None):
+        if(units is None):
             field_cuts = ('~np.isnan(obj["' + field + '"])')
         else:
             field_cuts = ('~np.isnan(obj["' + field + '"].in_units("' + units + 
@@ -2103,7 +2103,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The YtCutRegion with only regions with the field below the given 
             value included.
         """
-        if(units == None):
+        if(units is None):
             field_cuts = ('obj["' + field + '"] < ' + str(value))
         else:
             field_cuts = ('obj["' + field + '"].in_units("' + units + 
