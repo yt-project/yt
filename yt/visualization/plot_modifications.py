@@ -48,6 +48,7 @@ from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 from yt.utilities.exceptions import \
     YTDataTypeUnsupported
+
 callback_registry = {}
 
 def _verify_geometry(func):
