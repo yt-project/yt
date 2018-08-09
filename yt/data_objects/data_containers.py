@@ -1932,11 +1932,11 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         if(units == None):
             field_cuts = ('(obj["' + field + '"] > ' + str(min_value) + 
-                          ') | (obj["' + field + '"] < ' + str(max_value) + 
+                          ') & (obj["' + field + '"] < ' + str(max_value) + 
                           ')')
         else:
             field_cuts = ('(obj["' + field + '"].in_units("' + units + 
-                          '") > ' + str(min_value) + ') | (obj["' + field + 
+                          '") > ' + str(min_value) + ') & (obj["' + field + 
                           '"].in_units("' + units + '") < ' + str(max_value) +
                           ')')
         cr = self.cut_region(field_cuts)        
