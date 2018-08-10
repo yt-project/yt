@@ -1797,15 +1797,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The field in which the conditional will be applied.
         value : float
             The minimum value that will not be masked in the output
-        YTCutRegion.
+            YTCutRegion.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
 
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with the field above the given value masked.
+        cut_region : YTCutRegion
+            The YTCutRegion with the field above the given value masked.
         """
         if(units is None):
             field_cuts = ('obj["' + field + '"] <= ' + str(value))
@@ -1826,15 +1826,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The field in which the conditional will be applied.
         value : float
             The minimum value that will not be masked in the output
-        YTCutRegion.
+            YTCutRegion.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
 
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with the field above the given value masked.
+        cut_region : YTCutRegion
+            The YTCutRegion with the field above the given value masked.
         """
         if(units is None):
             field_cuts = ('obj["' + field + '"] > ' + str(value))
@@ -1855,15 +1855,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The field in which the conditional will be applied.
         value : float
             The minimum value that will not be masked in the output
-        YTCutRegion.
+            YTCutRegion.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
 
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with the field equal to the given value masked.
+        cut_region : YTCutRegion
+            The YTCutRegion with the field equal to the given value masked.
         """
         if(units is None):
             field_cuts = ('obj["' + field + '"] != ' + str(value))
@@ -1884,15 +1884,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The field in which the conditional will be applied.
         value : float
             The minimum value that will not be masked in the output
-        YTCutRegion.
+            YTCutRegion.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
 
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with the field equal to the given value included.
+        cut_region : YTCutRegion
+            The YTCutRegion with the field equal to the given value included.
         """
         if(units is None):
             field_cuts = ('obj["' + field + '"] == ' + str(value))
@@ -1917,12 +1917,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The maximum value inside the interval to be excluded.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
         
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with the field inside the given interval excluded.
+        cut_region : YTCutRegion
+            The YTCutRegion with the field inside the given interval excluded.
         """
         if(units is None):
             field_cuts = ('(obj["' + field + '"] <= ' + str(min_value) + 
@@ -1952,12 +1952,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The maximum value inside the interval to be excluded.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
         
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with the field inside the given interval excluded.
+        cut_region : YTCutRegion
+            The YTCutRegion with the field inside the given interval excluded.
         """
         if(units is None):
             field_cuts = ('(obj["' + field + '"] > ' + str(min_value) + 
@@ -1986,12 +1986,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The maximum value inside the interval to be excluded.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
 
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with the field outside the given interval excluded.
+        cut_region : YTCutRegion
+            The YTCutRegion with the field outside the given interval excluded.
         """
         cr = self.exclude_below(field, min_value, units)
         cr = cr.exclude_above(field, max_value, units)
@@ -2013,12 +2013,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The maximum value inside the interval to be excluded.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
 
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with the field outside the given interval excluded.
+        cut_region : YTCutRegion
+            The YTCutRegion with the field outside the given interval excluded.
         """
         cr = self.exclude_inside(field, min_value, max_value, units)
         return cr
@@ -2041,8 +2041,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with the field below the given value masked.
+        cut_region : YTCutRegion
+            The YTCutRegion with the field below the given value masked.
         """
         if(units is None):
             field_cuts = ('obj["' + field + '"] >= ' + str(value))
@@ -2063,15 +2063,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The field in which the conditional will be applied.
         value : float
             The minimum value that will not be masked in the output
-        YTCutRegion.
+            YTCutRegion.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
 
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with the NaN entries of the field masked.
+        cut_region : YTCutRegion
+            The YTCutRegion with the NaN entries of the field masked.
         """
         if(units is None):
             field_cuts = ('~np.isnan(obj["' + field + '"])')
@@ -2092,15 +2092,15 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The field in which the conditional will be applied.
         value : float
             The minimum value that will not be masked in the output
-        YTCutRegion.
+            YTCutRegion.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
 
         Returns
         -------
-        cut_region : YtCutRegion
-            The YtCutRegion with only regions with the field below the given 
+        cut_region : YTCutRegion
+            The YTCutRegion with only regions with the field below the given 
             value included.
         """
         if(units is None):

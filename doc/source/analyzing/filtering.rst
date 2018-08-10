@@ -105,13 +105,13 @@ filtering out unwanted regions. Such wrapper functions are methods of
           ad['density'][overpressure_and_fast])
 
 The following exclude and include functions are supported:
-   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_equal`` - Only include values equal to given value
-   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_equal``- Exclude values equal to given value
-   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_inside`` - Only include values inside closed interval
-   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_inside`` - Exclude values inside closed interval
-   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_outside`` - Only include values outside closed interval
-   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_outside`` - Exclude values outside closed interval 
-   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_nan`` - Exclude NaN values
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_equal` - Only include values equal to given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_equal`- Exclude values equal to given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_inside` - Only include values inside closed interval
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_inside` - Exclude values inside closed interval
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_outside` - Only include values outside closed interval
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_outside` - Exclude values outside closed interval 
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_nan` - Exclude NaN values
    
 Cut regions can also operate on particle fields, but a single cut region object
 cannot operate on both particle fields and mesh fields at the same time.
