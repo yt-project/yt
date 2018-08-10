@@ -16,8 +16,9 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import numpy as np
+
 from yt.utilities.on_demand_imports import _h5py as h5py
-import os
+
 from uuid import uuid4
 
 from yt.utilities.logger import ytLogger as mylog
@@ -41,7 +42,7 @@ class SwiftDataset(SPHDataset):
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
     _sph_ptype = "PartType0"
-    _suffix = ""
+    _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type='swift',
                  storage_filename=None,
@@ -57,6 +58,8 @@ class SwiftDataset(SPHDataset):
         Sets the units from the SWIFT internal unit system.
 
         Currently sets length, mass, time, and temperature.
+
+        Swift outputs in proper coordinates  no h factors required.
         """
         units = self._get_info_attributes("Units")
 
@@ -164,13 +167,10 @@ class SwiftDataset(SPHDataset):
             hydro=hydro,
             subgrid=subgrid)
 
-        # TODO: fix these
-        prefix = os.path.abspath(
-            os.path.join(os.path.dirname(self.parameter_filename),
-                         os.path.basename(self.parameter_filename).split(".", 1)[0]))
-
-        self.filename_template = self.parameter_filename
+        ## TODO: we need to deal with num_files per snapshot
         self.file_count = 1
+        print(header.keys())
+        self.filename_template = self.parameter_filename
 
         return
 
