@@ -677,34 +677,35 @@ def download_file(url, filename):
         return fancy_download_file(url, filename, requests)
 
 def fancy_download_file(url, filename, requests=None):
-    response = requests.get(url, stream=True)
-    total_length = response.headers.get('content-length')
+    with requests.get(url, stream=True) as response:
+        total_length = response.headers.get('content-length')
 
-    with open(filename, 'wb') as fh:
-        if total_length is None:
-            fh.write(response.content)
-        else:
-            blocksize = 4 * 1024 ** 2
-            iterations = int(float(total_length)/float(blocksize))
+        with open(filename, 'wb') as fh:
+            if total_length is None:
+                fh.write(response.content)
+            else:
+                blocksize = 4 * 1024 ** 2
+                iterations = int(float(total_length)/float(blocksize))
 
-            pbar = get_pbar(
-                'Downloading %s to %s ' % os.path.split(filename)[::-1],
-                iterations)
-            iteration = 0
-            for chunk in response.iter_content(chunk_size=blocksize):
-                fh.write(chunk)
-                iteration += 1
-                pbar.update(iteration)
-            pbar.finish()
-    return filename
+                pbar = get_pbar(
+                    'Downloading %s to %s ' % os.path.split(filename)[::-1],
+                    iterations)
+                iteration = 0
+                for chunk in response.iter_content(chunk_size=blocksize):
+                    fh.write(chunk)
+                    iteration += 1
+                    pbar.update(iteration)
+                pbar.finish()
+        return filename
 
 def simple_download_file(url, filename):
     class MyURLopener(urllib.request.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
-            raise RuntimeError("Attempt to download file from %s failed with error %s: %s." % \
-              (url, errcode, errmsg))
-    fn, h = MyURLopener().retrieve(url, filename)
-    return fn
+            raise RuntimeError("Attempt to download file from %s failed with "
+                               "error %s: %s." % (url, errcode, errmsg))
+    with contextlib.closing(MyURLopener()) as connection:
+        fn, h = connection.retrieve(url, filename)
+        return fn
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
