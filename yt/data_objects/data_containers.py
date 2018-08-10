@@ -2034,10 +2034,10 @@ class YTSelectionContainer3D(YTSelectionContainer):
             The field in which the conditional will be applied.
         value : float
             The minimum value that will not be masked in the output
-        YTCutRegion.
+            YTCutRegion.
         units : string or None
             The units of the value threshold. None will use the default units
-        given in the field.
+            given in the field.
 
         Returns
         -------
