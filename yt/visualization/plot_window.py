@@ -33,7 +33,8 @@ from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, symlog_transform, \
     get_log_minorticks, get_symlog_minorticks, \
-    invalidate_data, invalidate_plot, apply_callback
+    invalidate_data, invalidate_plot, invalidate_figure, \
+    apply_callback
 from .base_plot_types import CallbackWrapper
 
 from yt.data_objects.image_array import \
@@ -189,6 +190,7 @@ class PlotWindow(ImagePlotContainer):
         self.buff_size = buff_size
         self.antialias = antialias
         self._axes_unit_names = None
+        self._projection = None
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
@@ -438,6 +440,39 @@ class PlotWindow(ImagePlotContainer):
 
         """
         self.origin = origin
+        return self
+
+    @invalidate_plot
+    @invalidate_figure
+    def set_mpl_projection(self, mpl_proj):
+        """set the matplotlib projection type for a given field,
+        for now cartopy projections are supported.
+
+        Parameters
+        ----------
+        mpl_proj : string, tuple
+            if passed as a string, mpl_proj is the specified projection type,
+            if passed as a tuple, then the tuple's first entry is a string of
+            the projection type, and the args and kwargs are can be passed as
+            additional entries in the tuple. Valid projection type
+            options include: 'PlateCarree', 'Mollweide', 'Orthographic',
+            'Robinson'
+
+
+        Examples
+        ----------
+
+        >>> plot.set_mpl_projection('AIRDENS', 'Mollweide')
+        >>> plot.set_mpl_projection('AIRDENS', ('Mollweide', () ))
+        >>> plot.set_mpl_projection('AIRDENS', ('PlateCarree', () ,
+            {central_longitude=180, globe=None} ))
+
+        """
+
+        from ._mpl_imports import get_mpl_transform
+
+        projection = get_mpl_transform(mpl_proj)
+        self._projection = projection
         return self
 
     @invalidate_data
@@ -844,7 +879,7 @@ class PWViewerMPL(PlotWindow):
                 self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, font_size,
-                self.aspect, fig, axes, cax)
+                self.aspect, fig, axes, cax, self._projection)
 
             if not self._right_handed:
                 ax = self.plots[f].axes
@@ -1109,7 +1144,7 @@ class PWViewerMPL(PlotWindow):
         ----
         By default, when removing the axes, the patch on which the axes are
         drawn is disabled, making it impossible to later change e.g. the
-        background colour. To force the axes patch to be displayed while still 
+        background colour. To force the axes patch to be displayed while still
         hiding the axes, set the ``draw_frame`` keyword argument to ``True``.
         """
         if field is None:
@@ -1748,13 +1783,14 @@ class OffAxisProjectionPlot(PWViewerMPL):
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
     def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim,
-                 figure_size, fontsize, aspect, figure, axes, cax):
+                 figure_size, fontsize, aspect, figure, axes, cax, mpl_proj):
         from matplotlib.ticker import ScalarFormatter
         self._draw_colorbar = True
         self._draw_axes = True
         self._draw_frame = True
         self._fontsize = fontsize
         self._figure_size = figure_size
+        self._projection = mpl_proj
 
         # Compute layout
         fontscale = float(fontsize) / 18.0
@@ -1790,6 +1826,9 @@ class WindowPlotMPL(ImagePlotMPL):
             self.cb.formatter.set_scientific(True)
             self.cb.formatter.set_powerlimits((-2, 3))
             self.cb.update_ticks()
+
+    def _create_axes(self, axrect):
+        self.axes = self.figure.add_axes(axrect, projection=self._projection)
 
 
 def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
@@ -1967,7 +2006,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)
 
 def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
-            origin='center-window', fontsize=18, field_parameters=None, 
+            origin='center-window', fontsize=18, field_parameters=None,
             window_size=8.0, aspect=None, data_source=None):
     r"""Creates a plot of a 2D dataset
 
@@ -2058,7 +2097,7 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     """
     if ds.dimensionality != 2:
@@ -2078,11 +2117,11 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
             elif not isinstance(center, YTArray):
                 center = ds.arr(center, 'code_length')
             center.convert_to_units("code_length")
-        center = ds.arr([center[0], center[1], 
+        center = ds.arr([center[0], center[1],
                          ds.domain_center[2]])
     return AxisAlignedSlicePlot(ds, axis, fields, center=center, width=width,
-                                axes_unit=axes_unit, origin=origin, 
+                                axes_unit=axes_unit, origin=origin,
                                 fontsize=fontsize,
-                                field_parameters=field_parameters, 
+                                field_parameters=field_parameters,
                                 window_size=window_size, aspect=aspect,
                                 data_source=data_source)

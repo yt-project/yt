@@ -48,8 +48,6 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                          'FigureManagerNbAgg'],
                 'agg': ['backend_agg', 'FigureCanvasAgg']}
 
-from ._mpl_imports import valid_transforms
-
 
 class CallbackWrapper(object):
     def __init__(self, viewer, window_plot, frb, field, font_properties,
@@ -83,7 +81,7 @@ class PlotMPL(object):
 
     """
 
-    def __init__(self, fsize, axrect, figure, axes, mpl_proj = None):
+    def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
         import matplotlib.figure
         self._plot_valid = True
@@ -95,8 +93,7 @@ class PlotMPL(object):
             figure.set_size_inches(fsize)
             self.figure = figure
         if axes is None:
-
-            self.axes = self.figure.add_axes(axrect)
+            self._create_axes(axrect)
         else:
             axes.cla()
             axes.set_position(axrect)
@@ -110,6 +107,9 @@ class PlotMPL(object):
                 self.axes.tick_params(
                     which=which, axis=axis, direction='in', top=True, right=True
                 )
+
+    def _create_axes(self, axrect):
+        self.axes = self.figure.add_axes(axrect)
 
     def _set_canvas(self):
         self.interactivity = get_interactivity()
@@ -194,11 +194,9 @@ class ImagePlotMPL(PlotMPL):
     """A base class for yt plots made using imshow
 
     """
-    def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax,
-                 mpl_proj = None):
+    def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax):
         """Initialize ImagePlotMPL class object"""
-        super(ImagePlotMPL, self).__init__(fsize, axrect, figure, axes,
-                mpl_proj = mpl_proj)
+        super(ImagePlotMPL, self).__init__(fsize, axrect, figure, axes)
         self.zmin, self.zmax = zlim
         if cax is None:
             self.cax = self.figure.add_axes(caxrect)
@@ -228,7 +226,7 @@ class ImagePlotMPL(PlotMPL):
         self.image = self.axes.imshow(
             data.to_ndarray(), origin='lower', extent=extent, norm=norm,
             vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
-            interpolation='nearest', projection=valid_transforms[mpl_proj])
+            interpolation='nearest')
         if (cbnorm == 'symlog'):
             if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
                 formatter_kwargs = {}
