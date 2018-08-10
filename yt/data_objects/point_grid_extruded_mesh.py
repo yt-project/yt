@@ -40,6 +40,9 @@ class PointGridExtrudedMesh(YTSelectionContainer):
     _con_args = ('mesh_id', 'filename', '_grid_locations', '_grid_extrusion')
     def __init__(self, mesh_id, filename, xy_grid, extruded_grid, index):
         super(PointGridExtrudedMesh, self).__init__(index.dataset, None)
+        nx, ny = xy_grid.shape
+        nz = extruded_grid.shape[0]
+        self.ActiveDimensions = (nx - 1) * (ny - 1) * (nz - 1)
         self.filename = filename
         self.mesh_id = mesh_id
         # This is where we set up the connectivity information
