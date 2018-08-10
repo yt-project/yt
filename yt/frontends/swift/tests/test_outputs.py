@@ -14,7 +14,7 @@ Swift frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt import load
+#from yt import load
 
 #keplerian_ring = "KeplerianRing/keplerian_ring_test_data.hdf5"
 # TODO: ADd a cosmological test
