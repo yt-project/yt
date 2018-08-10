@@ -1,5 +1,5 @@
 """
-OWLS data-file handling function
+Swift data-file handling function
 
 
 
@@ -8,7 +8,7 @@ OWLS data-file handling function
 from __future__ import print_function
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
+# Copyright (c) 2018, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #

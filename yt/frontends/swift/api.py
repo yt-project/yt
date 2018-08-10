@@ -1,5 +1,5 @@
 """
-API for OWLS frontend
+API for SWIFT frontend
 
 
 
@@ -7,7 +7,7 @@ API for OWLS frontend
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
+# Copyright (c) 2018, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -22,3 +22,5 @@ from .fields import \
 
 from .io import \
     IOHandlerSwift
+
+from . import tests

@@ -1,5 +1,5 @@
 """
-Data structures for OWLS frontend
+Data structures for Swift frontend
 
 
 
@@ -8,7 +8,7 @@ Data structures for OWLS frontend
 from __future__ import print_function
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
+# Copyright (c) 2018, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -27,11 +27,12 @@ from yt.frontends.sph.data_structures import \
     SPHDataset, \
     SPHParticleIndex
 
-from .fields import \
-    SwiftFieldInfo
+from .fields import SwiftFieldInfo
 
 from yt.data_objects.static_output import \
     ParticleFile
+
+from yt.funcs import only_on_root
 
 class SwiftDataset(SPHDataset):
     _index_class = SPHParticleIndex
@@ -59,12 +60,21 @@ class SwiftDataset(SPHDataset):
 
         Currently sets length, mass, time, and temperature.
 
-        Swift outputs in proper coordinates  no h factors required.
+        Swift outputs in comoving coordinates and no h factors required.
         """
         units = self._get_info_attributes("Units")
 
-        self.length_unit = self.quan(
-            float(units["Unit length in cgs (U_L)"]), "cm")
+        if self.cosmological_simulation == 1:
+            only_on_root(
+                    mylog.info, "Assuming length units are in cm (comoving)")
+            self.length_unit = self.quan(
+                float(units["Unit length in cgs (U_L)"]), "cmcm")
+        else:
+            only_on_root(
+                    mylog.info, "Assuming length units are in cm (physical)")
+            self.length_unit = self.quan(
+                float(units["Unit length in cgs (U_L)"]), "cm")
+
         self.mass_unit = self.quan(
             float(units["Unit mass in cgs (U_M)"]), "g")
         self.time_unit = self.quan(
@@ -169,7 +179,6 @@ class SwiftDataset(SPHDataset):
 
         ## TODO: we need to deal with num_files per snapshot
         self.file_count = 1
-        print(header.keys())
         self.filename_template = self.parameter_filename
 
         return
