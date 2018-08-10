@@ -755,3 +755,12 @@ class YTCommandRequiresModule(YTException):
         msg += "or:\n"
         msg += "  pip install %s\n" % self.module
         return msg
+
+class YTConfigNotSet(YTException):
+    def __init__(self, var=None, extra_msg=""):
+        self.var = var
+        self.message = extra_msg
+
+    def __str__(self):
+        msg = "YT config variable %s is not set! %s" % (self.var, self.message)
+        return msg

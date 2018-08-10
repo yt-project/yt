@@ -1,0 +1,5 @@
+# List of datasets to be downloaded and cached
+# Dataset not present in this list will be removed from cache
+
+datasets:
+  Laser.tar.gz
