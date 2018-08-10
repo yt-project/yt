@@ -45,6 +45,8 @@ from yt.frontends.ytdata.data_structures import \
 from yt.funcs import \
     mylog, iterable, ensure_list, \
     fix_axis, fix_unitary, obj_length
+from yt.geometry.coordinates.geographic_coordinates import \
+    GeographicCoordinateHandler
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
@@ -62,6 +64,8 @@ from yt.utilities.exceptions import \
     YTInvalidFieldType, \
     YTUnitNotRecognized, \
     YTUnitConversionError
+
+from ._mpl_imports import get_mpl_transform
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
@@ -190,7 +194,12 @@ class PlotWindow(ImagePlotContainer):
         self.buff_size = buff_size
         self.antialias = antialias
         self._axes_unit_names = None
-        self._projection = None
+        if isinstance(data_source.ds.coordinates, GeographicCoordinateHandler):
+            self._projection = get_mpl_transform("PlateCarree")
+            self._transform = get_mpl_transform("PlateCarree")
+        else:
+            self._projection = None
+            self._transform = None
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
@@ -469,10 +478,9 @@ class PlotWindow(ImagePlotContainer):
 
         """
 
-        from ._mpl_imports import get_mpl_transform
-
         projection = get_mpl_transform(mpl_proj)
         self._projection = projection
+        self._transform = get_mpl_transform("PlateCarree")
         return self
 
     @invalidate_data
@@ -879,7 +887,8 @@ class PWViewerMPL(PlotWindow):
                 self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, font_size,
-                self.aspect, fig, axes, cax, self._projection)
+                self.aspect, fig, axes, cax, self._projection,
+                self._transform)
 
             if not self._right_handed:
                 ax = self.plots[f].axes
@@ -1783,7 +1792,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
     def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim,
-                 figure_size, fontsize, aspect, figure, axes, cax, mpl_proj):
+                 figure_size, fontsize, aspect, figure, axes, cax, mpl_proj,
+                 mpl_transform):
         from matplotlib.ticker import ScalarFormatter
         self._draw_colorbar = True
         self._draw_axes = True
@@ -1791,6 +1801,7 @@ class WindowPlotMPL(ImagePlotMPL):
         self._fontsize = fontsize
         self._figure_size = figure_size
         self._projection = mpl_proj
+        self._transform = mpl_transform
 
         # Compute layout
         fontscale = float(fontsize) / 18.0
