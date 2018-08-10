@@ -26,7 +26,7 @@ answer_tests:
   local_gadget_001:
     - yt/frontends/gadget/tests/test_outputs.py
 
-  local_gamer_002:
+  local_gamer_004:
     - yt/frontends/gamer/tests/test_outputs.py
 
   local_gdf_001:
