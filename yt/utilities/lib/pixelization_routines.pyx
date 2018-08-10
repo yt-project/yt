@@ -805,7 +805,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         else:
             idds[i] = 1.0 / dds[i]
 
-    with cython.boundscheck(False):
+    with nogil:#cython.boundscheck(False):
         for ci in range(conn.shape[0]):
 
             # Fill the vertices
@@ -841,25 +841,9 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
             if use == 0:
                 continue
 
-            # Now our bounding box intersects, so we get the extents of our pixel
-            # region which overlaps with the bounding box, and we'll check each
-            # pixel in there.
-            for pi in range(pstart[0], pend[0] + 1):
-                ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
-                for pj in range(pstart[1], pend[1] + 1):
-                    ppoint[1] = (pj + 0.5) * dds[1] + pLE[1]
-                    for pk in range(pstart[2], pend[2] + 1):
-                        ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
-                        # Now we just need to figure out if our ppoint is within
-                        # our set of vertices.
-                        sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
-                        if not sampler.check_inside(mapped_coord):
-                            continue
-                        if (num_field_vals == 1):
-                            img[pi, pj, pk] = field_vals[0]
-                        else:
-                            img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
-                                                                           field_vals)
+            sample_and_deposit_mesh(pstart, pend, dds, ppoint, pLE, pRE,
+                                    vertices, num_field_vals, field_vals, img,
+                                    sampler)
     free(vertices)
     free(field_vals)
     return img
@@ -967,3 +951,135 @@ def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
     free(vertices)
     free(field_vals)
     return arc_length, plot_values
+
+def pixelize_extruded_grid_mesh(np.ndarray[np.float64_t, ndim=3] xy_grid,
+                                np.ndarray[np.float64_t, ndim=1] z_grid,
+                                buff_size,
+                                np.ndarray[np.float64_t, ndim=4] field,
+                                extents):
+    cdef np.ndarray[np.float64_t, ndim=3] img
+    img = np.zeros(buff_size, dtype="float64")
+    cdef np.float64_t[:,:,:] img_view = img
+    # Most of this routine is identical to that included in the
+    # pixelize_element_mesh routine.  However, where we differ is that the
+    # connectivity and coordinate set up is different; instead of having
+    # connectivity that points into coordinates, we have z range and a host of
+    # adjacent (in memory) xy coordinates.
+    cdef np.float64_t pLE[3]
+    cdef np.float64_t pRE[3]
+    cdef np.float64_t LE[3]
+    cdef np.float64_t RE[3]
+    cdef int use
+    cdef np.int64_t n, i, pi, pj, pk, ci, cj, ck, oi, oj, ok
+    cdef np.int64_t pstart[3]
+    cdef np.int64_t pend[3]
+    cdef np.float64_t ppoint[3]
+    cdef np.float64_t idds[3]
+    cdef np.float64_t dds[3]
+    cdef np.float64_t *vertices
+    cdef np.float64_t *field_vals
+    cdef int nvertices = 8 # Always 8!
+    cdef int ndim = 3 # Should be three.
+    # Note that our fields are now 3D, so if we have multiple, that would be in
+    # the last dimension
+    cdef int num_field_vals = field.shape[3] 
+    cdef double[4] mapped_coord
+    cdef ElementSampler sampler
+
+    # Pick the right sampler and allocate storage for the mapped coordinate.
+    # Since it's always 8 dims, 3 dimensions, we use Q1Sampler3D.
+    sampler = Q1Sampler3D()
+
+    # allocate temporary storage
+    vertices = <np.float64_t *> malloc(ndim * sizeof(np.float64_t) * nvertices)
+    field_vals = <np.float64_t *> malloc(sizeof(np.float64_t) * num_field_vals)
+
+    # fill the image bounds and pixel size information here
+    for i in range(ndim):
+        pLE[i] = extents[i][0]
+        pRE[i] = extents[i][1]
+        dds[i] = (pRE[i] - pLE[i])/buff_size[i]
+        if dds[i] == 0.0:
+            idds[i] = 0.0
+        else:
+            idds[i] = 1.0 / dds[i]
+    cdef int nx, ny, nz
+    nx = xy_grid.shape[0] - 1
+    ny = xy_grid.shape[1] - 1
+    nz = z_grid.shape[0] - 1
+    cdef np.uint64_t nelements = nx*ny*nz
+
+    with nogil:
+        # Note that where we would have used conn.shape before, we have a
+        # number of elements that is one less than the extent of the arrays in
+        # each direction.
+        for ci in range(nx):
+            for cj in range(ny):
+                for ck in range(nz):
+                    # Fill the vertices
+                    LE[0] = LE[1] = LE[2] = 1e60
+                    RE[0] = RE[1] = RE[2] = -1e60
+
+                    for n in range(num_field_vals):
+                        field_vals[n] = field[ci, cj, ck, n]
+
+                    n = 0
+                    for oi in range(2):
+                        for oj in range(2):
+                            for ok in range(2):
+                                vertices[ndim*n + 0] = xy_grid[ci+oi, cj+oj, 0]
+                                vertices[ndim*n + 1] = xy_grid[ci+oi, cj+oj, 1]
+                                vertices[ndim*n + 2] = z_grid[ck+ok]
+                                n += 1
+                    for n in range(nvertices):
+                        for i in range(ndim):
+                            LE[i] = fmin(LE[i], vertices[ndim*n+i])
+                            RE[i] = fmax(RE[i], vertices[ndim*n+i])
+                    use = 1
+                    for i in range(ndim):
+                        if RE[i] < pLE[i] or LE[i] >= pRE[i]:
+                            use = 0
+                            break
+                        pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
+                        pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
+
+                    if use == 0:
+                        continue
+
+                    with gil:
+                        print(pend[0] - pstart[0] + 1, pend[1] - pstart[1] + 1)
+                    sample_and_deposit_mesh(pstart, pend, dds, ppoint, pLE, pRE,
+                                            vertices, num_field_vals, field_vals, 
+                                            img_view, sampler)
+    free(vertices)
+    free(field_vals)
+    return np.asarray(img)
+
+
+cdef void sample_and_deposit_mesh(np.int64_t pstart[3], np.int64_t pend[3],
+                             np.float64_t dds[3], np.float64_t ppoint[3],
+                             np.float64_t pLE[3], np.float64_t pRE[3],
+                             np.float64_t *vertices, int num_field_vals,
+                             np.float64_t *field_vals, np.float64_t[:,:,:] img,
+                             ElementSampler sampler) nogil:
+    # Now our bounding box intersects, so we get the extents of our pixel
+    # region which overlaps with the bounding box, and we'll check each
+    # pixel in there.
+    cdef double mapped_coord[4]
+    cdef int pi, pj, pk
+    for pi in range(pstart[0], pend[0] + 1):
+        ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
+        for pj in range(pstart[1], pend[1] + 1):
+            ppoint[1] = (pj + 0.5) * dds[1] + pLE[1]
+            for pk in range(pstart[2], pend[2] + 1):
+                ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
+                # Now we just need to figure out if our ppoint is within
+                # our set of vertices.
+                sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
+                if not sampler.check_inside(mapped_coord):
+                    continue
+                if (num_field_vals == 1):
+                    img[pi, pj, pk] = field_vals[0]
+                else:
+                    img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
+                                                                   field_vals)
