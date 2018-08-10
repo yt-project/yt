@@ -20,6 +20,7 @@ import weakref
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
+from yt.funcs import mylog
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
@@ -127,6 +128,22 @@ class CFRadialDataset(Dataset):
                  units_override=None):
         self.fluid_types += ('cf_radial',)
         self._handle = xarray.open_dataset(filename)
+        self.refine_by = 2
+        if 'x' not in self._handle.coords:
+            import pyart
+            radar = pyart.io.read_cfradial(filename)
+            grid = pyart.map.grid_from_radars(
+                (radar, ), grid_shape=(40, 200, 200),
+                grid_limits=((0., 2000.), (-1e5, 1e5), (-1e5, 1e5)),
+                fields=['reflectivity'])
+            new_filename = filename[:-3] + '_grid.nc'
+            mylog.warn(
+                'Saving a cartesian grid for file "%s" at "%s". '
+                'Data will be loaded from the cartesian grid.' % (
+                    filename, new_filename))
+            grid.write(new_filename)
+            self._handle = xarray.open_dataset(new_filename)
+            filename = new_filename
         super(CFRadialDataset, self).__init__(
             filename, dataset_type,
             units_override=units_override)
