@@ -23,69 +23,12 @@ from yt.frontends.sph.io import \
 
 class IOHandlerSwift(IOHandlerSPH):
     _dataset_type = "swift"
-    _vector_fields = ("Coordinates", "Velocity", "Velocities")
-    _var_mass = None
 
     def __init__(self, ds, *args, **kwargs):
-        self._fields = []
-        self._ptypes = []
-        self._known_ptypes = ['PartType0']
-        self.data_files = set([])
         super(IOHandlerSwift, self).__init__(ds, *args, **kwargs)
-
-    @property
-    def var_mass(self):
-        return []
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
-
-    _field_size = 4
-    def _calculate_field_offsets(self, field_list, pcount,
-                                 offset, df_start, file_size=None):
-        # field_list is (ftype, fname) but the blocks are ordered
-        # (fname, ftype) in the file.
-        pos = offset
-        fs = self._field_size
-        offsets = {}
-
-        for field in self._fields:
-            if field == "ParticleIDs" and self.ds.long_ids:
-                fs = 8
-            else:
-                fs = 4
-            if not any((ptype, field) in field_list
-                       for ptype in self._ptypes):
-                continue
-            pos += 20  # skip block header
-            any_ptypes = False
-            for ptype in self._ptypes:
-                if field == "Mass" and ptype not in self.var_mass:
-                    continue
-                if (ptype, field) not in field_list:
-                    continue
-                start_offset = df_start * fs
-                if field in self._vector_fields:
-                    start_offset *= self._vector_fields[field]
-                pos += start_offset
-                offsets[(ptype, field)] = pos
-                any_ptypes = True
-                remain_offset = (pcount[ptype] - df_start) * fs
-                if field in self._vector_fields:
-                    remain_offset *= self._vector_fields[field]
-                pos += remain_offset
-            pos += 4
-            if not any_ptypes:
-                pos -= 8
-        if file_size is not None:
-            if (file_size != pos): #ignore the rest of format 2 
-                diff = file_size - pos
-                possible = []
-                for ptype, psize in sorted(pcount.items()):
-                    if psize == 0: continue
-                    if float(diff) / psize == int(float(diff)/psize):
-                        possible.append(ptype)
-        return offsets
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
@@ -157,6 +100,7 @@ class IOHandlerSwift(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
+
         for data_file in sorted(data_files, key=lambda x: x.filename):
             si, ei = data_file.start, data_file.end
             f = h5py.File(data_file.filename, "r")
@@ -174,10 +118,9 @@ class IOHandlerSwift(IOHandlerSPH):
                 del coords
                 if mask is None:
                     continue
-
                 for field in field_list:
-                    if field is 'Mass':
-                        data = g['Masses'][si:ei][mask, ...]
+                    if field in ("Mass", "Masses"):
+                        data = g[self.ds._particle_mass_name][si:ei][mask, ...]
                     else:
                         data = g[field][si:ei][mask, ...]
 
@@ -198,31 +141,23 @@ class IOHandlerSwift(IOHandlerSPH):
         f = h5py.File(data_file.filename, "r")
         fields = []
         cname = self.ds._particle_coordinates_name  # Coordinates
-        mname = self.ds._particle_mass_name  # Mass
+        mname = self.ds._particle_mass_name  # Coordinates
 
-        # loop over all keys in OWLS hdf5 file
-        #--------------------------------------------------
         for key in f.keys():
-            # only want particle data
-            #--------------------------------------
             if not key.startswith("PartType"):
                 continue
 
-            # particle data group
-            #--------------------------------------
             g = f[key]
             if cname not in g:
                 continue
 
-            # note str => not unicode!
             ptype = str(key)
-            if ptype not in self.var_mass:
-                fields.append((ptype, mname))
-
-            # loop over all keys in PartTypeX group
-            #----------------------------------------
             for k in g.keys():
                     kk = k
+                    # a little hack to deal with swift masses
+                    if str(kk) == mname:
+                        fields.append((ptype, "Mass"))
+                        continue
                     if not hasattr(g[kk], "shape"):
                         continue
                     if len(g[kk].shape) > 1:
@@ -231,4 +166,3 @@ class IOHandlerSwift(IOHandlerSPH):
 
         f.close()
         return fields, {}
-

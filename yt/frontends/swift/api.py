@@ -22,4 +22,3 @@ from .fields import \
 
 from .io import \
     IOHandlerSwift
-

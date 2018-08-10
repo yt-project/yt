@@ -32,34 +32,12 @@ from .fields import \
 from yt.data_objects.static_output import \
     ParticleFile
 
-from yt.frontends.gadget.definitions import \
-    SNAP_FORMAT_2_OFFSET
-
-class SwiftParticleIndex(SPHParticleIndex):
-    def __init__(self, ds, dataset_type):
-        super(SwiftParticleIndex, self).__init__(ds, dataset_type)
-
-class SwiftBinaryFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id, range=None):
-        with open(filename, "rb") as f:
-            f.seek(f.tell() + SNAP_FORMAT_2_OFFSET) 
-            self._position_offset = f.tell()
-            f.seek(0, os.SEEK_END)
-            self._file_size = f.tell()
-
-        super(SwiftBinaryFile, self).__init__(ds, io, filename, file_id, range)
-
-    def _calculate_offsets(self, field_list, pcounts):
-        self.field_offsets = self.io._calculate_field_offsets(
-            field_list, pcounts, self._position_offset, self.start,
-            self._file_size)
-
 class SwiftDataset(SPHDataset):
-    _index_class = SwiftParticleIndex
+    _index_class = SPHParticleIndex
     _field_info_class = SwiftFieldInfo
-    _file_class = SwiftBinaryFile
+    _file_class = ParticleFile
 
-    _particle_mass_name = "Mass"
+    _particle_mass_name = "Masses"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
     _sph_ptype = "PartType0"
@@ -80,13 +58,14 @@ class SwiftDataset(SPHDataset):
 
         Currently sets length, mass, time, and temperature.
         """
-
         units = self._get_info_attributes("Units")
 
         self.length_unit = self.quan(
             float(units["Unit length in cgs (U_L)"]), "cm")
-        self.mass_unit = self.quan(float(units["Unit mass in cgs (U_M)"]), "g")
-        self.time_unit = self.quan(float(units["Unit time in cgs (U_t)"]), "s")
+        self.mass_unit = self.quan(
+            float(units["Unit mass in cgs (U_M)"]), "g")
+        self.time_unit = self.quan(
+            float(units["Unit time in cgs (U_t)"]), "s")
         self.temperature_unit = self.quan(
             float(units["Unit temperature in cgs (U_T)"]), "K")
 

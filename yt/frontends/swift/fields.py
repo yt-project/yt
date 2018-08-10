@@ -19,18 +19,8 @@ from yt.frontends.sph.fields import \
     SPHFieldInfo
 
 class SwiftFieldInfo(SPHFieldInfo):
-    _num_neighbors = 48
+    '''
+    '''
 
     def __init__(self, *args, **kwargs):
         super(SwiftFieldInfo,self).__init__( *args, **kwargs )
-
-    def setup_particle_fields(self, ptype):
-        """ additional particle fields derived from those in snapshot.
-        we also need to add the smoothed fields here b/c setup_fluid_fields
-        is called before setup_particle_fields. """
-
-        super(SwiftFieldInfo, self).setup_particle_fields(
-            ptype, num_neighbors=self._num_neighbors)
-
-    def setup_fluid_fields(self):
-        return
