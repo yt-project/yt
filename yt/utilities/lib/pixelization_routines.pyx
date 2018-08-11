@@ -1023,14 +1023,26 @@ def pixelize_extruded_grid_mesh(np.ndarray[np.float64_t, ndim=3] xy_grid,
                     for n in range(num_field_vals):
                         field_vals[n] = field[ci, cj, ck, n]
 
-                    n = 0
-                    for oi in range(2):
-                        for oj in range(2):
-                            for ok in range(2):
-                                vertices[ndim*n + 0] = xy_grid[ci+oi, cj+oj, 0]
-                                vertices[ndim*n + 1] = xy_grid[ci+oi, cj+oj, 1]
-                                vertices[ndim*n + 2] = z_grid[ck+ok]
-                                n += 1
+                    for ok in range(2):
+                        # n = 0, oi = 0, oj = 0, ok = 0
+                        vertices[ok*12 + 0] = xy_grid[ci, cj, 0]
+                        vertices[ok*12 + 1] = xy_grid[ci, cj, 1]
+                        vertices[ok*12 + 2] = z_grid[ck + ok]
+
+                        # n = 1, oi = 1, oj = 0, ok = 0
+                        vertices[ok*12 + 3] = xy_grid[ci+1, cj, 0]
+                        vertices[ok*12 + 4] = xy_grid[ci+1, cj, 1]
+                        vertices[ok*12 + 5] = z_grid[ck + ok]
+
+                        # n = 0, oi = 1, oj = 1, ok = 0
+                        vertices[ok*12 + 6] = xy_grid[ci+1, cj+1, 0]
+                        vertices[ok*12 + 7] = xy_grid[ci+1, cj+1, 1]
+                        vertices[ok*12 + 8] = z_grid[ck + ok]
+
+                        # n = 0, oi = 0, oj = 1, ok = 0
+                        vertices[ok*12 + 9] = xy_grid[ci, cj+1, 0]
+                        vertices[ok*12 + 10] = xy_grid[ci, cj+1, 1]
+                        vertices[ok*12 + 11] = z_grid[ck + ok]
                     for n in range(nvertices):
                         for i in range(ndim):
                             LE[i] = fmin(LE[i], vertices[ndim*n+i])
@@ -1046,8 +1058,6 @@ def pixelize_extruded_grid_mesh(np.ndarray[np.float64_t, ndim=3] xy_grid,
                     if use == 0:
                         continue
 
-                    with gil:
-                        print(pend[0] - pstart[0] + 1, pend[1] - pstart[1] + 1)
                     sample_and_deposit_mesh(pstart, pend, dds, ppoint, pLE, pRE,
                                             vertices, num_field_vals, field_vals, 
                                             img_view, sampler)
