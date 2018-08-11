@@ -736,11 +736,16 @@ class StreamlineCallback(PlotCallback):
     from the associated data, skipping every *factor* datapoints like
     'quiver'. *density* is the index of the amount of the streamlines.
     *field_color* is a field to be used to colormap the streamlines.
+    If *display_threshold* is supplied, any streamline segments where
+    *field_color* is less than the threshold will be removed by having
+    their line width set to 0.
     """
     _type_name = "streamlines"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, field_x, field_y, factor=16,
-                 density=1, field_color=None, plot_args=None):
+                 density=1, field_color=None,
+                 display_threshold=None,
+                 plot_args=None):
         PlotCallback.__init__(self)
         def_plot_args = {}
         self.field_x = field_x
@@ -748,6 +753,7 @@ class StreamlineCallback(PlotCallback):
         self.field_color = field_color
         self.factor = factor
         self.dens = density
+        self.display_threshold = display_threshold
         if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
 
@@ -777,8 +783,29 @@ class StreamlineCallback(PlotCallback):
                         plot.data['pdx'], plot.data['pdy'],
                         plot.data[self.field_color],
                         (x0, x1, y0, y1))
+
+            if self.display_threshold:
+
+                mask = (field_colors > self.display_threshold)
+                lwdefault = matplotlib.rcParams['lines.linewidth']
+
+                if 'linewidth' in self.plot_args:
+                    linewidth = self.plot_args['linewidth']
+                else:
+                    linewidth = lwdefault
+
+                try:
+                    linewidth *= mask
+                    self.plot_args['linewidth'] = linewidth
+                except ValueError:
+                    err_msg = "Error applying display threshold: linewidth" + \
+                              "must have shape ({}, {}) or be scalar"
+                    err_msg = err_msg.format(ny, nx)
+                    raise ValueError(err_msg)
+
         else:
             field_colors = None
+
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,

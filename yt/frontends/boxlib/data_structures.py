@@ -1309,7 +1309,7 @@ class NyxDataset(BoxlibDataset):
 
         # alias
         self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
-        if os.path.isdir(os.path.join(self.output_dir, "DM")):
+        if os.path.isfile(os.path.join(self.output_dir, "DM/Header")):
             # we have particles
             self.parameters["particles"] = 1 
             self.particle_types = ("DM",)
@@ -1350,7 +1350,7 @@ def _guess_pcast(vals):
 
 def _read_raw_field_names(raw_file):
     header_files = glob.glob(raw_file + "*_H")
-    return [hf.split("/")[-1][:-2] for hf in header_files]
+    return [hf.split(os.sep)[-1][:-2] for hf in header_files]
 
 
 def _string_to_numpy_array(s):
@@ -1559,7 +1559,7 @@ class WarpXDataset(BoxlibDataset):
         self.periodicity = ensure_tuple(periodicity)
 
         particle_types = glob.glob(self.output_dir + "/*/Header")
-        particle_types = [cpt.split("/")[-2] for cpt in particle_types]
+        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)
@@ -1606,7 +1606,7 @@ class AMReXDataset(BoxlibDataset):
     def _parse_parameter_file(self):
         super(AMReXDataset, self)._parse_parameter_file()
         particle_types = glob.glob(self.output_dir + "/*/Header")
-        particle_types = [cpt.split("/")[-2] for cpt in particle_types]
+        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)

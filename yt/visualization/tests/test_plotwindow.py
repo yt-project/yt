@@ -550,3 +550,16 @@ def test_symlog_colorbar():
         plot.set_log(field, True, linthresh=0.1)
         with tempfile.NamedTemporaryFile(suffix='png') as f:
             plot.save(f.name)
+
+def test_nan_data():
+    data = np.random.random((16, 16, 16)) - 0.5
+    data[:9, :9, :9] = np.nan
+
+    data = {'density': data}
+
+    ds = load_uniform_grid(data, [16, 16, 16])
+
+    plot = SlicePlot(ds, 'z', 'density')
+
+    with tempfile.NamedTemporaryFile(suffix='png') as f:
+        plot.save(f.name)

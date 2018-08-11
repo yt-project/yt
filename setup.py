@@ -409,7 +409,13 @@ setup(
     cmdclass={'sdist': sdist, 'build_ext': build_ext},
     author="The yt project",
     author_email="yt-dev@python.org",
-    url="http://yt-project.org/",
+    url="https://github.com/yt-project/yt",
+    project_urls={
+        'Homepage': 'https://yt-project.org/',
+        'Documentation': 'https://yt-project.org/doc/',
+        'Source': 'https://github.com/yt-project/yt/',
+        'Tracker': 'https://github.com/yt-project/yt/issues'
+    },
     license="BSD 3-Clause",
     zip_safe=False,
     scripts=["scripts/iyt"],

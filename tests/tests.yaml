@@ -26,7 +26,7 @@ answer_tests:
   local_gadget_001:
     - yt/frontends/gadget/tests/test_outputs.py
 
-  local_gamer_002:
+  local_gamer_004:
     - yt/frontends/gamer/tests/test_outputs.py
 
   local_gdf_001:
@@ -71,11 +71,6 @@ answer_tests:
 
   local_unstructured_010:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py
-    - yt/visualization/tests/test_mesh_slices.py:test_tri2
-    - yt/visualization/tests/test_mesh_slices.py:test_quad2
-    - yt/visualization/tests/test_mesh_slices.py:test_multi_region
-    - yt/visualization/tests/test_line_plots.py:test_line_plot
-    - yt/visualization/tests/test_line_plots.py:test_multi_line_plot
 
   local_boxlib_007:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
