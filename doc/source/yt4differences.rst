@@ -133,7 +133,46 @@ The following is a code example:
 
     prj.save()
 
+Octree
+^^^^^^
+
+Whilst the move away from the global octree is a promising one in terms of
+perfomance and dealing with SPH data in a more intuitive manner, it does remove
+a useful feature. We are aware that many uses will have older scripts which take
+advantage of the global octree.
+
+As such, we have added support to smooth SPH data onto an octree when desired by
+the users. The new octree is designed to give results consistent with those of
+the previous octree, but the new octree takes advantage of the scatter and
+gather machinery also added.
+
+.. code-block:: python
+
+    import yt
+
+    ds = yt.load('GadgetDiskGalaxy/snapshot_200.hdf5')
+    left = np.array([0, 0, 0], dtype='float64')
+    right = np.array([64000, 64000, 64000], dtype='float64')
+
+    # generate an octree
+    octree = ds.octree(left, right, n_ref=64)
+
+    # the density will be calculated using SPH scatter
+    density = octree[('PartType0', 'density')]
+
+    # this will return the x positions of the octs
+    x = octree['x']
+
+The above code can be modified to use the scatter approach by using
+`ds.sph_smoothing_style = 'gather'` before any field access. The octree also
+accepts `over_refine_factor` which behaves identically to that in the previous
+branch, this determines how many cells are in each leaf.
+
+The new octree also has the ability to not be an octree. We have a new kwarg,
+`density_factor` which allows the construction of dense trees. In a traditional
+octree, if a leaf has more particles that a critical value `n_ref`, then it
+divides into 8 new children (hence the name oct). The value of `density_factor`
+allows the node to divide into 2**(3*density_factor).
+
 API Changes
 -----------
-
-
