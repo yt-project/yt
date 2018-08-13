@@ -454,27 +454,90 @@ class PlotWindow(ImagePlotContainer):
     @invalidate_plot
     @invalidate_figure
     def set_mpl_projection(self, mpl_proj):
-        """set the matplotlib projection type for a given field,
-        for now cartopy projections are supported.
+        r"""
+        Set the matplotlib projection type with a cartopy transform function
+
+        Given a string or a tuple argument, this will project the data onto
+        the plot axes with the chosen transform function.
+
+        Assumes that the underlying data has a PlateCarree transform type.
+
+        To annotate the plot with coastlines or other annotations,
+        `_setup_plots()` will need to be called after this function
+        to make the axes available for annotation.
 
         Parameters
         ----------
         mpl_proj : string, tuple
             if passed as a string, mpl_proj is the specified projection type,
-            if passed as a tuple, then the tuple's first entry is a string of
-            the projection type, and the args and kwargs are can be passed as
-            additional entries in the tuple. Valid projection type
-            options include: 'PlateCarree', 'Mollweide', 'Orthographic',
-            'Robinson'
+            if passed as a tuple, then tuple will take the form of
+            ("ProjectionType", (args)) or ("ProjectionType", (args), {kwargs})
+            Valid projection type options include:
+                'PlateCarree', 'LambertConformal', 'LabmbertCylindrical',
+                'Mercator', 'Miller', 'Mollweide', 'Orthographic',
+                'Robinson', 'Stereographic', 'TransverseMercator',
+                'InterruptedGoodeHomolosine', 'RotatedPole', 'OGSB',
+                'EuroPP', 'Geostationary', 'Gnomonic', 'NorthPolarStereo',
+                'OSNI', 'SouthPolarStereo', 'AlbersEqualArea',
+                'AzimuthalEquidistant', 'Sinusoidal', 'UTM',
+                'NearsidePerspective', 'LambertAzimuthalEqualArea'
 
 
         Examples
-        ----------
+        --------
 
-        >>> plot.set_mpl_projection('AIRDENS', 'Mollweide')
-        >>> plot.set_mpl_projection('AIRDENS', ('Mollweide', () ))
-        >>> plot.set_mpl_projection('AIRDENS', ('PlateCarree', () ,
-            {central_longitude=180, globe=None} ))
+        This will create a Mollweide projection using Mollweide default values
+        and annotate it with coastlines
+
+        >>> import yt
+        >>> ds = yt.load("")
+        >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
+        >>> p.set_mpl_projection('AIRDENS', 'Mollweide')
+        >>> p._setup_plots()
+        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.show()
+
+        This will move the PlateCarree central longitude to 90 degrees and
+        annotate with coastlines.
+
+        >>> import yt
+        >>> ds = yt.load("")
+        >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
+        >>> p.set_mpl_projection('AIRDENS', ('PlateCarree', () ,
+        ...                      {central_longitude=90, globe=None} ))
+        >>> p._setup_plots()
+        >>> p.plots['AIRDENS'].axes.set_global()
+        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.show()
+
+
+        This will create a RoatatedPole projection with the unrotated pole
+        position at 37.5 degrees latitude and 177.5 degrees longitude by
+        passing them in as args.
+
+
+        >>> import yt
+        >>> ds = yt.load("")
+        >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
+        >>> p.set_mpl_projection(('RotatedPole', (177.5, 37.5))
+        >>> p._setup_plots()
+        >>> p.plots['AIRDENS'].axes.set_global()
+        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.show()
+
+        This will create a RoatatedPole projection with the unrotated pole
+        position at 37.5 degrees latitude and 177.5 degrees longitude by
+        passing them in as kwargs.
+
+        >>> import yt
+        >>> ds = yt.load("")
+        >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
+        >>> p.set_mpl_projection(('RotatedPole', (), {'pole_latitude':37.5,
+        ...                       'pole_longitude':177.5}))
+        >>> p._setup_plots()
+        >>> p.plots['AIRDENS'].axes.set_global()
+        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.show()
 
         """
 

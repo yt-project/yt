@@ -10,12 +10,32 @@ transform_list = ['PlateCarree', 'LambertConformal', 'LabmbertCylindrical',
                   'NearsidePerspective', 'LambertAzimuthalEqualArea']
 
 def cartopy_importer(transform_name):
+    r"""Convenience function to import cartopy projection types
+    """
+
     def _func(*args, **kwargs):
         import cartopy.crs
         return getattr(cartopy.crs, transform_name)(*args, **kwargs)
     return _func
 
 def get_mpl_transform(mpl_proj):
+    r"""This returns an instantiated transform function given a transform
+    function name and arguments.
+
+    Parameters
+    ----------
+    mpl_proj : string or tuple
+        the matplotlib projection type. Can take the form of string or tuple.
+
+    Examples
+    --------
+
+    >>> get_mpl_transform("PlateCarree")
+
+    >>> get_mpl_transform(('RotatedPole', (), {'pole_latitude':37.5,
+    ...                    'pole_longitude':177.5}))
+
+    """
     # first check to see if the tranform dict is empty, if it is fill it with
     # the cartopy functions
     if not valid_transforms:
