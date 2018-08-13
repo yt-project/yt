@@ -223,7 +223,7 @@ class ImagePlotMPL(PlotMPL):
             cmap = get_brewer_cmap(cmap)
         vmin = float(self.zmin) if self.zmax is not None else None
         vmax = float(self.zmax) if self.zmax is not None else None
-        from ._mpl_imports import get_mpl_transform
+        from .geo_plot_utils import get_mpl_transform
         self.image = self.axes.imshow(
             data.to_ndarray(), origin='lower', extent=extent, norm=norm,
             vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,

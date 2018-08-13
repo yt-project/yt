@@ -65,7 +65,7 @@ from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
     YTUnitConversionError
 
-from ._mpl_imports import get_mpl_transform
+from .geo_plot_utils import get_mpl_transform
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
