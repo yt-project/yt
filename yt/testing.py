@@ -482,7 +482,7 @@ def fake_sph_orientation_ds():
 
     return load_particles(data=data, length_unit=1.0, bbox=bbox)
 
-def fake_sph_grid_ds():
+def fake_sph_grid_ds(hsml_factor=1.0):
     """Returns an in-memory SPH dataset useful for testing
 
     This dataset should have 27 particles with the particles arranged uniformly
@@ -519,7 +519,7 @@ def fake_sph_grid_ds():
         'particle_velocity_x': (np.zeros(npart), 'cm/s'),
         'particle_velocity_y': (np.zeros(npart), 'cm/s'),
         'particle_velocity_z': (np.zeros(npart), 'cm/s'),
-        'smoothing_length': (0.05*np.ones(npart), 'cm'),
+        'smoothing_length': (0.05*np.ones(npart)*hsml_factor, 'cm'),
         'density': (np.ones(npart), 'g/cm**3'),
         'temperature': (np.ones(npart), 'K'),
     }

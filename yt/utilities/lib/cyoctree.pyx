@@ -78,14 +78,14 @@ cdef struct Node:
     double left_edge[3]
     double right_edge[3]
 
-    np.int64_t start            #  star and end of particles we store
+    np.int64_t start                #  star and end of particles we store
     np.int64_t end
 
-    np.int64_t parent           # position of parent in Octree.nodes
-    np.int64_t children         # position of 0th child, children are
-                                   # contiguous
+    np.int64_t parent               # position of parent in Octree.nodes
+    np.int64_t children             # position of 0th child, children are
+                                    # contiguous
     bool leaf
-    np.int64_t node_id          # not sure if this is even useful
+    np.int64_t node_id              # not sure if this is even useful
     np.int64_t leaf_id
     unsigned char depth
 
@@ -93,28 +93,28 @@ cdef struct Node:
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef class CyOctree:
-    cdef double _left_edge[3]      # boundary conditions for the octree
+    cdef double _left_edge[3]       # boundary conditions for the octree
     cdef double _right_edge[3]
-    cdef np.int64_t[:] _idx        # ordering of particles used by the tree
+    cdef np.int64_t[:] _idx         # ordering of particles used by the tree
 
-    cdef int _n_ref                # number of particles per leaf
+    cdef int _n_ref                 # number of particles per leaf
     cdef np.int64_t _num_particles
 
     cdef np.int64_t _data_version
 
-    cdef vector[Node] nodes        # This is an STL container to store the octs
+    cdef vector[Node] nodes         # This is an STL container to store the octs
 
     # Cell structure
-    cdef int _over_refine_factor   # this allows the tree to be built with more
-                                   # than 8 cells per leaf
-    cdef int _num_cells            # 2**(3*_over_refine_factor)
-    cdef int _num_cells_per_dim    # 2**(_over_refine_factor)
+    cdef int _over_refine_factor    # this allows the tree to be built with more
+                                    # than 8 cells per leaf
+    cdef int _num_cells             # 2**(3*_over_refine_factor)
+    cdef int _num_cells_per_dim     # 2**(_over_refine_factor)
 
     # Children structure
-    cdef int _density_factor         # this allows the tree to be built with more
-                                   # than 8 children per node
-    cdef int _num_children         # 2**(3*_density_factor)
-    cdef int _num_children_per_dim # 2**(_density_factor)
+    cdef int _density_factor        # this allows the tree to be built with more
+                                    # than 8 children per node
+    cdef int _num_children          # 2**(3*_density_factor)
+    cdef int _num_children_per_dim  # 2**(_density_factor)
 
     # this is use for interpolation and is global for the octree smoothing
     # operations
@@ -461,13 +461,12 @@ cdef class CyOctree:
     # TODO: this code is much slower than I would like, this is likely due to
     # the use of struct -> plan to replace this. A c++ approach is probably
     # faster and more intuitive
-    def save(self, fname = None, tree_hash = 0):
+    def save(self, fname = None):
         if fname is None:
             raise ValueError("A filename must be specified to save the octree!")
 
-        # TODO: we need to save the tree hash as well
         with open(fname,'wb') as f:
-            f.write(struct.pack('2Q3iQ', self.num_particles, self.num_octs,
+            f.write(struct.pack('2Q3iq', self.num_particles, self.num_octs,
                                       self.n_ref, self.over_refine_factor,
                                       self.density_factor, self.data_version))
             f.write(struct.pack('{}Q'.format(self.num_particles),
@@ -501,7 +500,7 @@ cdef class CyOctree:
             (self.num_particles, num_octs, self.n_ref,
              self.over_refine_factor, self.density_factor,
              self.data_version) = \
-                struct.unpack('2Q3iQ', f.read(40))
+                struct.unpack('2Q3iq', f.read(40))
             self.idx = \
                 np.asarray(struct.unpack('{}Q'.format(self.num_particles),
                            f.read(8*self.num_particles)), dtype=np.int64)

@@ -1055,8 +1055,8 @@ def pixelize_sph_kernel_projection(
                     # now we just use the kernel projection
                     buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
 
-@cython.initializedcheck(False)
-@cython.boundscheck(False)
+@cython.initializedcheck(True)
+@cython.boundscheck(True)
 @cython.wraparound(False)
 @cython.cdivision(True)
 def interpolate_sph_arbitrary_positions_gather(
@@ -1067,11 +1067,11 @@ def interpolate_sph_arbitrary_positions_gather(
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
         PyKDTree kdtree=None, int use_normalization=1,
-        kernel_name="cubic", pbar=None, int n_neigh=32):
+        kernel_name="cubic", pbar=None, int num_neigh=32):
 
     cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
     cdef int index, i, j, particle
-    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neigh, True)
+    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
     cdef np.float64_t[:] buff_den
 
     # only allocate memory if we are doing the normalization
@@ -1097,12 +1097,12 @@ def interpolate_sph_arbitrary_positions_gather(
 
         #  Now we know which pixels to deposit onto for this particle
         for i in range(queue.max_elements):
-            particle = queue.pids[i]
+            particle = kdtree.idx[queue.pids[i]]
 
             # do the interpolation here
             prefactor_j = (pmass[particle] / pdens[particle] /
                            hsml[particle]**3)
-            q_ij = math.sqrt(queue.heap[particle]*ih_j2)
+            q_ij = math.sqrt(queue.heap[i]*ih_j2)
             smoothed_quantity_j = (prefactor_j *
                                    quantity_to_smooth[particle] *
                                    kernel_func(q_ij))

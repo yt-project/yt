@@ -2157,7 +2157,7 @@ class YTOctree(YTSelectionContainer3D):
                          ("index", "y"),
                          ("index", "z"))
     def __init__(self, left_edge=None, right_edge=None, n_ref=32, over_refine_factor=1,
-                 density_factor=1, ptypes = None, ds = None,
+                 density_factor=1, ptypes = None, force_build=False, ds = None,
                  field_parameters = None):
         if field_parameters is None:
             center = None
@@ -2169,17 +2169,54 @@ class YTOctree(YTSelectionContainer3D):
         self.left_edge = self._sanitize_edge(left_edge)
         self.right_edge = self._sanitize_edge(right_edge)
         self.n_ref = n_ref
-        self.density_factor = n_ref
-        self.over_refine_factor = n_ref
+        self.density_factor = density_factor
+        self.over_refine_factor = over_refine_factor
         self.ptypes = self._sanitize_ptypes(ptypes)
 
         self._setup_data_source()
         self.tree
 
+    def __eq__(self, other):
+        same = True
+
+        if self.left_edge is None:
+            self.left_edge = np.array([])
+        if self.right_edge is None:
+            self.right_edge = np.array([])
+
+        if self.left_edge.any() != other.left_edge.any():
+            same = False
+        if self.right_edge.any() != other.right_edge.any():
+            same = False
+
+        if self.n_ref != other.n_ref:
+            same = False
+        if self.over_refine_factor != other.over_refine_factor:
+            same = False
+        if self.density_factor != other.density_factor:
+            same = False
+        if self.ptypes != other.ptypes:
+            same = False
+
+        if self['x'].any() != other['x'].any():
+            same = False
+        if self['y'].any() != other['y'].any():
+            same = False
+        if self['z'].any() != other['z'].any():
+            same = False
+
+        if self.ds._file_hash != other.ds._file_hash:
+            same = False
+
+        if self.tree.num_particles != other.tree.num_particles:
+            same = False
+
+        return same
+
     def _generate_tree(self, fname = None):
         positions = []
         for ptype in self.ptypes:
-            positions.append(self._data_source[(ptype, 'Coordinates')])
+            positions.append(self._data_source[(ptype, 'particle_position')])
         positions = np.concatenate(positions)
 
         if positions == []:
@@ -2187,6 +2224,7 @@ class YTOctree(YTSelectionContainer3D):
             return
 
         mylog.info('Allocating Octree for %s particles' % positions.shape[0])
+        self.loaded = False
         self._octree = CyOctree(
             positions.astype('float64'),
             left_edge=self.ds.domain_left_edge,
@@ -2219,9 +2257,12 @@ class YTOctree(YTSelectionContainer3D):
         else:
             fname = ds.tree_filename
 
-        if not os.path.exists(fname):
+        if fname is None:
+            self._generate_tree(fname)
+        elif not os.path.exists(fname):
             self._generate_tree(fname)
         else:
+            self.loaded = True
             mylog.info('Loading octree from %s' % os.path.basename(fname))
             self._octree = CyOctree()
             self._octree.load(fname)
@@ -2279,7 +2320,8 @@ class YTOctree(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
 
-        if self.ds.sph_smoothing_style == "scatter":
+        smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+        if smoothing_style == "scatter":
             self.scatter_smooth(fields)
         else:
             self.gather_smooth(fields)
@@ -2287,7 +2329,8 @@ class YTOctree(YTSelectionContainer3D):
     def gather_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
 
-        normalize = self.ds.use_sph_normalization
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
+        num_neighbors = getattr(self.ds, 'num_neighbors', 32)
 
         # for the gather approach we load up all of the data, this like other
         # gather approaches is not memory conservative and with spatial chunking
@@ -2302,7 +2345,7 @@ class YTOctree(YTSelectionContainer3D):
             dens.append(chunk[(fields[0],'density')].in_base("code").d)
             mass.append(chunk[(fields[0],'particle_mass')].in_base("code").d)
             hsml.append(chunk[(fields[0], 'smoothing_length')].in_base("code").d)
-            quant_to_smooth.append(chunk[fields].in_base("cgs").d)
+            quant_to_smooth.append(chunk[fields].in_base("code").d)
 
         # order the particle properties based on the kdtree index
         kdtree = self.ds.index.kdtree
@@ -2315,14 +2358,16 @@ class YTOctree(YTSelectionContainer3D):
         # interpolate the field value at the cell positions
         pbar = tqdm(desc="Interpolating (gather) SPH field {}".format(fields[0]),
                     total=self._octree.cell_positions.shape[0])
-        interpolate_sph_arbitrary_positions_gather(buff, pos[kdtree.idx, :],
+        interpolate_sph_arbitrary_positions_gather(buff, pos,
                                                    self._octree.cell_positions,
-                                                   hsml[kdtree.idx],
-                                                   mass[kdtree.idx],
-                                                   dens[kdtree.idx],
-                                                   quant_to_smooth[kdtree.idx],
+                                                   hsml,
+                                                   mass,
+                                                   dens,
+                                                   quant_to_smooth,
                                                    kdtree=kdtree, pbar=pbar,
+                                                   num_neigh=num_neighbors,
                                                    use_normalization=normalize)
+
         pbar.close()
 
         self[fields] = buff
@@ -2330,7 +2375,7 @@ class YTOctree(YTSelectionContainer3D):
     def scatter_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
 
-        normalize = self.ds.use_sph_normalization
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
         if normalize:
             buff_den = np.zeros(self['x'].shape[0], dtype="float64")
         else:
@@ -2345,7 +2390,7 @@ class YTOctree(YTSelectionContainer3D):
             hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
             pmass = chunk[(ptype,'particle_mass')].in_base("code").d
             pdens = chunk[(ptype,'density')].in_base("code").d
-            field_quantity = chunk[fields].in_base("cgs").d
+            field_quantity = chunk[fields].in_base("code").d
 
             self.tree.interpolate_sph_cells(buff, buff_den, px, py, pz, pmass,
                                             pdens, hsml, field_quantity,
