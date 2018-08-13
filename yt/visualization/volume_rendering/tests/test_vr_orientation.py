@@ -11,6 +11,7 @@ Answer test to verify VR orientation and rotation is correct
 # -----------------------------------------------------------------------------
 
 
+import os
 import numpy as np
 from nose.plugins.attrib import attr
 from yt.testing import ANSWER_TEST_TAG, fake_vr_orientation_test_ds
@@ -41,6 +42,18 @@ def test_orientation():
     tf.sample_colormap(0.3, 0.01, colormap="coolwarm")
 
     n_frames = 5
+    orientations = [[1.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0],
+                    [0.0, 0.0, 1.0],
+                    [0.5, 0.4, 0.7],
+                    [-0.3, -0.1, 0.8]]
+
+    # Reduced number of run in case of Travis, since this test reaches
+    # 50 min Travis runtime limit
+    if "TRAVIS" in os.environ:
+        n_frames = 1
+        orientations = orientations[-2:]
+
     theta = np.pi / n_frames
     decimals = 12
     test_name = "vr_orientation"
@@ -88,11 +101,6 @@ def test_orientation():
             test4.answer_name = test_name
             yield test4
 
-    orientations = [ [1.0, 0.0, 0.0],
-                     [0.0, 1.0, 0.0],
-                     [0.0, 0.0, 1.0],
-                     [0.5, 0.4, 0.7],
-                     [-0.3, -0.1, 0.8] ]
     center = [0.5, 0.5, 0.5]
     width = [1.0, 1.0, 1.0]
 
