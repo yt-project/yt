@@ -69,7 +69,8 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
     pixelize_sph_gather, \
     interpolate_sph_arbitrary_positions_gather, \
-    normalization_3d_utility
+    normalization_3d_utility, \
+    normalization_1d_utility
 from yt.extern.tqdm import tqdm
 from yt.utilities.lib.cyoctree import CyOctree
 
@@ -2265,6 +2266,8 @@ class YTOctree(YTSelectionContainer3D):
     def gather_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
 
+        normalize = self.ds.use_sph_normalization
+
         # for the gather approach we load up all of the data, this like other
         # gather approaches is not memory conservative and with spatial chunking
         # this can be fixed
@@ -2298,13 +2301,19 @@ class YTOctree(YTSelectionContainer3D):
                                                    dens[kdtree.idx],
                                                    quant_to_smooth[kdtree.idx],
                                                    kdtree=kdtree, pbar=pbar,
-                                                   use_normalization=0)
+                                                   use_normalization=normalize)
         pbar.close()
 
         self[fields] = buff
 
     def scatter_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
+
+        normalize = self.ds.use_sph_normalization
+        if normalize:
+            buff_den = np.zeros(self['x'].shape[0], dtype="float64")
+        else:
+            buff_den = np.empty(0)
 
         ptype = fields[0]
         pbar = tqdm(desc="Interpolating (scatter) SPH field {}".format(fields[0]))
@@ -2317,9 +2326,13 @@ class YTOctree(YTSelectionContainer3D):
             pdens = chunk[(ptype,'density')].in_base("code").d
             field_quantity = chunk[fields].in_base("cgs").d
 
-            self.tree.interpolate_sph_cells(buff, px, py, pz, pmass, pdens,
-                                             hsml, field_quantity)
+            self.tree.interpolate_sph_cells(buff, buff_den, px, py, pz, pmass,
+                                            pdens, hsml, field_quantity,
+                                            use_normalization=normalize)
             pbar.update(1)
+
+        if normalize:
+            normalization_1d_utility(buff, buff_den)
 
         pbar.close()
 

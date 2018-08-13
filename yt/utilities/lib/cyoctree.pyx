@@ -369,10 +369,13 @@ cdef class CyOctree:
 
         return np.asarray(pos)
 
-    cdef void smooth_onto_cells(self, np.float64_t[:] buff, np.float64_t posx,
-                                 np.float64_t posy, np.float64_t posz,
-                                 np.float64_t hsml, np.float64_t prefactor,
-                                 Node * node):
+    cdef void smooth_onto_cells(self, np.float64_t[:] buff,
+                                np.float64_t[:] buff_den, np.float64_t posx,
+                                np.float64_t posy, np.float64_t posz,
+                                np.float64_t hsml, np.float64_t prefactor,
+                                np.float64_t prefactor_norm,
+                                Node * node,
+                                int use_normalization=0):
 
         cdef Node * child
         cdef int i, j, k, l
@@ -392,9 +395,12 @@ cdef class CyOctree:
                 if leftx - posx < hsml and posx - rightx < hsml:
                     if lefty - posy < hsml and posy - righty < hsml:
                         if leftz - posz < hsml and posz - rightz < hsml:
-                            self.smooth_onto_cells(buff, posx, posy, posz,
-                                                   hsml, prefactor, &child[i])
-
+                            self.smooth_onto_cells(buff, buff_den, posx,
+                                                   posy, posz,
+                                                   hsml, prefactor,
+                                                   prefactor_norm,
+                                                   &child[i],
+                                                   use_normalization)
         else:
             leftx = node.left_edge[0]
             lefty = node.left_edge[1]
@@ -424,26 +430,33 @@ cdef class CyOctree:
                         q_ij = math.sqrt((diff_x + diff_y + diff_z) /
                                                                     voxel_hsml2)
 
+                        if use_normalization:
+                            buff_den[node.leaf_id + l] += (prefactor_norm *
+                                                            self.kernel(q_ij))
                         buff[node.leaf_id + l] += prefactor * self.kernel(q_ij)
                         l += 1
 
-    def interpolate_sph_cells(self, np.float64_t[:] buff, np.float64_t[:] posx,
+    def interpolate_sph_cells(self, np.float64_t[:] buff,
+                              np.float64_t[:] buff_den,
+                              np.float64_t[:] posx,
                               np.float64_t[:] posy, np.float64_t[:] posz,
                               np.float64_t[:] pmass, np.float64_t[:] pdens,
                               np.float64_t[:] hsml, np.float64_t[:] field,
-                              kernel_name="cubic"):
+                              kernel_name="cubic", int use_normalization=0):
 
         self.kernel = get_kernel_func(kernel_name)
 
         cdef int i
-        cdef double prefactor
+        cdef double prefactor, prefactor_norm
 
         for i in range(posx.shape[0]):
             prefactor = pmass[i] / pdens[i] / hsml[i]**3
+            prefactor_norm = prefactor
             prefactor *= field[i]
 
-            self.smooth_onto_cells(buff, posx[i], posy[i], posz[i], hsml[i],
-                                  prefactor, &self.nodes[0])
+            self.smooth_onto_cells(buff, buff_den, posx[i], posy[i], posz[i], hsml[i],
+                                   prefactor, prefactor_norm, &self.nodes[0],
+                                   use_normalization=use_normalization)
 
     # TODO: this code is much slower than I would like, this is likely due to
     # the use of struct -> plan to replace this. A c++ approach is probably
@@ -493,7 +506,7 @@ cdef class CyOctree:
                 np.asarray(struct.unpack('{}Q'.format(self.num_particles),
                            f.read(8*self.num_particles)), dtype=np.int64)
             reserve(&self.nodes, num_octs+1)
-            for i in range(self.num_octs):
+            for i in range(num_octs):
                 (temp.left_edge[0], temp.left_edge[1], temp.left_edge[2],
                  temp.right_edge[0], temp.right_edge[1], temp.right_edge[2],
                  temp.start, temp.end, temp.parent, temp.children, temp.leaf,
