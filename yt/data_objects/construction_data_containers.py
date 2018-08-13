@@ -2127,9 +2127,25 @@ class YTOctree(YTSelectionContainer3D):
     n_ref: int
         This is the maximum number of particles per leaf in the resulting
         octree.
+    over_refine_factor: int
+        Each leaf has a number of cells, the number of cells is equal to
+        2**(3*over_refine_factor)
+    density_factor: int
+        This tells the tree that each node must divide into
+        2**(3*density_factor) children if it contains more particles than n_ref
+    ptypes: list
+        This is the type of particles to include when building the tree. This
+        will default to all particles
 
     Examples
     --------
+
+    octree = ds.octree(n_ref=64, over_refine_factor=2)
+    x_positions_of_cells = octree['x']
+    y_positions_of_cells = octree['x']
+    z_positions_of_cells = octree['x']
+    density_of_gas_in_cells = octree[('gas', 'density')]
+
     """
     _spatial = True
     _type_name = "octree"
@@ -2140,8 +2156,9 @@ class YTOctree(YTSelectionContainer3D):
                          ("index", "x"),
                          ("index", "y"),
                          ("index", "z"))
-    def __init__(self, left_edge, right_edge, n_ref=32, ptypes = None, fields = None,
-                 ds = None, field_parameters = None):
+    def __init__(self, left_edge=None, right_edge=None, n_ref=32, over_refine_factor=1,
+                 density_factor=1, ptypes = None, ds = None,
+                 field_parameters = None):
         if field_parameters is None:
             center = None
         else:
@@ -2152,6 +2169,8 @@ class YTOctree(YTSelectionContainer3D):
         self.left_edge = self._sanitize_edge(left_edge)
         self.right_edge = self._sanitize_edge(right_edge)
         self.n_ref = n_ref
+        self.density_factor = n_ref
+        self.over_refine_factor = n_ref
         self.ptypes = self._sanitize_ptypes(ptypes)
 
         self._setup_data_source()
@@ -2173,11 +2192,13 @@ class YTOctree(YTSelectionContainer3D):
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             n_ref=self.n_ref,
+            over_refine_factor=self.over_refine_factor,
+            density_factor=self.density_factor,
             data_version=self.ds._file_hash
         )
 
         if fname is not None:
-            mylog.info('Saving octree to file %s', fname)
+            mylog.info('Saving octree to file %s' % os.path.basename(fname))
             self._octree.save(fname)
 
     @property

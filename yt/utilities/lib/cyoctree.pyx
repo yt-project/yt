@@ -46,7 +46,7 @@ from yt.geometry.particle_deposit cimport \
 #
 # The tree is built with a non-recursive algorithm. We start my building the
 # root node. We enter the root node, and use the split_helper function to split
-# into 2**(3*dense_factor) children
+# into 2**(3*density_factor) children
 # NOTE: Despite being called an octree, the tree is actually of splitting into
 # different numbers of children
 #
@@ -111,10 +111,10 @@ cdef class CyOctree:
     cdef int _num_cells_per_dim    # 2**(_over_refine_factor)
 
     # Children structure
-    cdef int _dense_factor         # this allows the tree to be built with more
+    cdef int _density_factor         # this allows the tree to be built with more
                                    # than 8 children per node
-    cdef int _num_children         # 2**(3*_dense_factor)
-    cdef int _num_children_per_dim # 2**(_dense_factor)
+    cdef int _num_children         # 2**(3*_density_factor)
+    cdef int _num_children_per_dim # 2**(_density_factor)
 
     # this is use for interpolation and is global for the octree smoothing
     # operations
@@ -122,7 +122,7 @@ cdef class CyOctree:
 
     def __init__(self, double[:, ::1] &input_pos = None, left_edge = None,
                  right_edge = None, int n_ref=32, int over_refine_factor=1,
-                 int dense_factor=1, np.int64_t data_version=0):
+                 int density_factor=1, np.int64_t data_version=0):
 
         # if this is the case, we are very likely just initialising an instance
         # and then going to load an existing Octree from memory, so we don't
@@ -132,7 +132,7 @@ cdef class CyOctree:
 
         self.data_version = data_version
         self.over_refine_factor = over_refine_factor
-        self.dense_factor = dense_factor
+        self.density_factor = density_factor
         self.n_ref = n_ref
         self.num_particles = input_pos.shape[0]
 
@@ -310,12 +310,12 @@ cdef class CyOctree:
         self._num_cells_per_dim = 2**value
 
     @property
-    def dense_factor(self):
-        return self._dense_factor
+    def density_factor(self):
+        return self._density_factor
 
-    @dense_factor.setter
-    def dense_factor(self, value):
-        self._dense_factor = value
+    @density_factor.setter
+    def density_factor(self, value):
+        self._density_factor = value
         self._num_children = 2**(3 * value)
         self._num_children_per_dim  = 2**value
 
@@ -469,7 +469,7 @@ cdef class CyOctree:
         with open(fname,'wb') as f:
             f.write(struct.pack('2Q3iQ', self.num_particles, self.num_octs,
                                       self.n_ref, self.over_refine_factor,
-                                      self.dense_factor, self.data_version))
+                                      self.density_factor, self.data_version))
             f.write(struct.pack('{}Q'.format(self.num_particles),
                                 *self.idx))
             for i in range(self.num_octs):
@@ -499,7 +499,7 @@ cdef class CyOctree:
         cdef np.int64_t num_octs
         with open(fname,'rb') as f:
             (self.num_particles, num_octs, self.n_ref,
-             self.over_refine_factor, self.dense_factor,
+             self.over_refine_factor, self.density_factor,
              self.data_version) = \
                 struct.unpack('2Q3iQ', f.read(40))
             self.idx = \
