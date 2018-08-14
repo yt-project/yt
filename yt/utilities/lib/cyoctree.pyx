@@ -123,7 +123,8 @@ cdef class CyOctree:
 
     def __init__(self, double[:, ::1] &input_pos = None, left_edge = None,
                  right_edge = None, int n_ref=32, int over_refine_factor=1,
-                 int density_factor=1, np.int64_t data_version=0, max_depth=20):
+                 int density_factor=1, np.int64_t data_version=0,
+                 int max_depth=20):
 
         # if this is the case, we are very likely just initialising an instance
         # and then going to load an existing Octree from memory, so we don't
@@ -131,6 +132,8 @@ cdef class CyOctree:
         if input_pos is None:
             return
 
+        # These don't have setters as these would invalidate the tree which is
+        # a feature we don't have
         self._data_version = data_version
         self._n_ref = n_ref
         self._num_particles = input_pos.shape[0]
