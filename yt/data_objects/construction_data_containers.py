@@ -2370,7 +2370,8 @@ class YTOctree(YTSelectionContainer3D):
 
         pbar.close()
 
-        self[fields] = buff
+        units = self.ds._get_field_info(fields).units
+        self[fields] = self.ds.arr(buff, units)
 
     def scatter_smooth(self, fields):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
@@ -2402,4 +2403,5 @@ class YTOctree(YTSelectionContainer3D):
 
         pbar.close()
 
-        self[fields] = buff
+        units = self.ds._get_field_info(fields).units
+        self[fields] = self.ds.arr(buff, units)
