@@ -194,7 +194,7 @@ cdef class CyOctree:
     cdef reset(self):
         # clear the big memory users before we load an octree from memory
         self.nodes.clear()
-        self._idx = np.zeros(1, dtype=int)-1
+        self._idx = np.zeros(1, dtype=np.int64)-1
 
     cdef int build_tree(self, double * input_pos):
         # generate an array to store the which particles are in each child oct
