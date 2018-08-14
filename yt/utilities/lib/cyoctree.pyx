@@ -105,6 +105,7 @@ cdef class CyOctree:
     cdef vector[Node] nodes         # This is an STL container to store the octs
 
     # Cell structure
+    cdef int _max_depth
     cdef int _over_refine_factor    # this allows the tree to be built with more
                                     # than 8 cells per leaf
     cdef int _num_cells             # 2**(3*_over_refine_factor)
@@ -122,7 +123,7 @@ cdef class CyOctree:
 
     def __init__(self, double[:, ::1] &input_pos = None, left_edge = None,
                  right_edge = None, int n_ref=32, int over_refine_factor=1,
-                 int density_factor=1, np.int64_t data_version=0):
+                 int density_factor=1, np.int64_t data_version=0, max_depth=20):
 
         # if this is the case, we are very likely just initialising an instance
         # and then going to load an existing Octree from memory, so we don't
@@ -130,15 +131,18 @@ cdef class CyOctree:
         if input_pos is None:
             return
 
-        self.data_version = data_version
+        self._data_version = data_version
+        self._n_ref = n_ref
+        self._num_particles = input_pos.shape[0]
+        self._max_depth = max_depth
+
+        # setting the properties which determines how children divide
         self.over_refine_factor = over_refine_factor
         self.density_factor = density_factor
-        self.n_ref = n_ref
-        self.num_particles = input_pos.shape[0]
 
         # set up the initial idx of the particles, this keeps track of which
         # particle from the input is in which node
-        self.idx = np.arange(0, input_pos.shape[0], dtype=np.int64)
+        self._idx = np.arange(0, input_pos.shape[0], dtype=np.int64)
 
         # set up the bounds and root node
         self.setup_bounds(input_pos, left_edge, right_edge)
@@ -208,7 +212,7 @@ cdef class CyOctree:
 
     cdef int process_node(self, Node * node, double * input_pos,
                           np.int64_t * split_arr) nogil:
-        if(node.end - node.start <= 3*self._n_ref):
+        if(node.end - node.start <= 3*self._n_ref or node.depth > self._max_depth):
             return 0
 
         # node is no longer a leaf
@@ -217,7 +221,7 @@ cdef class CyOctree:
         # this sorts the children in the node and then stores the position of
         # the first and last particle in each node
         split_helper(node.start, node.end, self._num_children,
-                     self._num_children_per_dim - 1,
+                     self._density_factor,
                      split_arr, input_pos, &self._idx[0], &node.left_edge[0],
                      &node.right_edge[0])
 
@@ -272,28 +276,20 @@ cdef class CyOctree:
         return sizeof(Node) * self.nodes.size()
 
     @property
+    def max_depth(self):
+        return self._max_depth
+
+    @property
     def data_version(self):
         return self._data_version
-
-    @data_version.setter
-    def data_version(self, value):
-        self._data_version = value
 
     @property
     def num_particles(self):
         return self._num_particles
 
-    @num_particles.setter
-    def num_particles(self, value):
-        self._num_particles = value
-
     @property
     def n_ref(self):
         return self._n_ref
-
-    @n_ref.setter
-    def n_ref(self, value):
-        self._n_ref = value
 
     @property
     def num_octs(self):
@@ -302,6 +298,10 @@ cdef class CyOctree:
     @property
     def over_refine_factor(self):
         return self._over_refine_factor
+
+    @property
+    def idx(self):
+        return np.asarray(self._idx)
 
     @over_refine_factor.setter
     def over_refine_factor(self, value):
@@ -318,14 +318,6 @@ cdef class CyOctree:
         self._density_factor = value
         self._num_children = 2**(3 * value)
         self._num_children_per_dim  = 2**value
-
-    @property
-    def idx(self):
-        return np.asarray(self._idx)
-
-    @idx.setter
-    def idx(self, array):
-        self._idx = array
 
     @property
     def cell_positions(self):
@@ -466,9 +458,9 @@ cdef class CyOctree:
             raise ValueError("A filename must be specified to save the octree!")
 
         with open(fname,'wb') as f:
-            f.write(struct.pack('2Q3iq', self.num_particles, self.num_octs,
-                                      self.n_ref, self.over_refine_factor,
-                                      self.density_factor, self.data_version))
+            f.write(struct.pack('2Q3iq', self._num_particles, self.num_octs,
+                                      self._n_ref, self.over_refine_factor,
+                                      self.density_factor, self._data_version))
             f.write(struct.pack('{}Q'.format(self.num_particles),
                                 *self.idx))
             for i in range(self.num_octs):
@@ -497,11 +489,11 @@ cdef class CyOctree:
         cdef Node temp
         cdef np.int64_t num_octs
         with open(fname,'rb') as f:
-            (self.num_particles, num_octs, self.n_ref,
+            (self._num_particles, num_octs, self._n_ref,
              self.over_refine_factor, self.density_factor,
-             self.data_version) = \
+             self._data_version) = \
                 struct.unpack('2Q3iq', f.read(40))
-            self.idx = \
+            self._idx = \
                 np.asarray(struct.unpack('{}Q'.format(self.num_particles),
                            f.read(8*self.num_particles)), dtype=np.int64)
             reserve(&self.nodes, num_octs+1)

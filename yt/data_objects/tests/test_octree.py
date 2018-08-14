@@ -12,7 +12,7 @@ Tests for YTOctree
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 from yt.testing import \
-    fake_sph_grid_ds, fake_sph_orientation_ds, assert_equal
+    fake_sph_grid_ds, assert_almost_equal
 from yt.data_objects.construction_data_containers import YTOctree
 import tempfile
 import os
@@ -24,7 +24,6 @@ def test_building_tree():
     Test function to build an octree and make sure correct number of particles
     '''
     ds = fake_sph_grid_ds()
-    print(ds.field_list)
     octree = ds.octree(n_ref=1)
     assert(type(octree) == YTOctree)
     assert(octree['x'].shape[0] == 456)
@@ -60,24 +59,34 @@ def test_sph_interpolation_scatter():
     answer testing
     '''
 
-    ds = fake_sph_grid_ds(hsml_factor=15.0)
+    ds = fake_sph_grid_ds(hsml_factor=26.0)
     ds.use_sph_normalization = False
-    octree = ds.octree(n_ref=1, over_refine_factor=1)
+    octree = ds.octree(n_ref=5, over_refine_factor=0)
     density = octree[('all', 'density')]
-    print(density)
+    answers = np.array([1.00434706, 1.00434706, 1.00434706, 1.00434706,
+                         1.00434706, 1.00434706, 1.00434706, 0.7762907,
+                         0.89250848, 0.89250848, 0.97039088, 0.89250848,
+                         0.97039088, 0.97039088, 1.01156175])
+
+    assert_almost_equal(density, answers)
 
 def test_sph_interpolation_gather():
     '''
     Just generate an octree, perform some SPH interpolation and check with some
     answer testing
     '''
-    ds = fake_sph_grid_ds(hsml_factor=15.0)
+    ds = fake_sph_grid_ds(hsml_factor=26.0)
     ds.sph_smoothing_style = 'gather'
     ds.num_neighbors = 5
     ds.use_sph_normalization = False
-    octree = ds.octree(n_ref=1, over_refine_factor=1)
+    octree = ds.octree(n_ref=5, over_refine_factor=0)
     density = octree[('all', 'density')]
-    print(density)
+    answers = np.array([0.59240874, 0.59240874, 0.59240874, 0.59240874,
+                        0.59240874, 0.59240874, 0.59240874, 0.10026846,
+                        0.77014968, 0.77014968, 0.96127825, 0.77014968,
+                        0.96127825, 0.96127825, 1.21183996])
+
+    assert_almost_equal(density, answers)
 
 def test_over_refine_factor():
     '''
@@ -95,5 +104,4 @@ def test_density_factor():
     ds = fake_sph_grid_ds()
     octree = ds.octree(n_ref=1, density_factor=2)
     num_cells = octree['x'].shape[0]
-    print(num_cells)
-    assert(num_cells == 1)
+    assert(num_cells == 512)
