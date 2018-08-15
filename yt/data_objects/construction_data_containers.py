@@ -2320,12 +2320,12 @@ class YTOctree(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
 
-        smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
         sph_ptype = getattr(self.ds, '_sph_ptype', 'None')
-        normalize = getattr(self.ds, 'use_sph_normalization', True)
-
-        units = self.ds._get_field_info(fields).units
         if fields[0] == sph_ptype:
+            smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+            normalize = getattr(self.ds, 'use_sph_normalization', True)
+
+            units = self.ds._get_field_info(fields).units
             if smoothing_style == "scatter":
                 self.scatter_smooth(fields, units, normalize)
             else:
@@ -2336,7 +2336,7 @@ class YTOctree(YTSelectionContainer3D):
             raise NotImplementedError
 
     def gather_smooth(self, fields, units, normalize):
-        buff = np.zeros(self['x'].shape[0], dtype="float64")
+        buff = np.zeros(self[('index', 'x')].shape[0], dtype="float64")
 
         num_neighbors = getattr(self.ds, 'num_neighbors', 32)
 
@@ -2381,10 +2381,10 @@ class YTOctree(YTSelectionContainer3D):
         self[fields] = self.ds.arr(buff, units)
 
     def scatter_smooth(self, fields, units, normalize):
-        buff = np.zeros(self['x'].shape[0], dtype="float64")
+        buff = np.zeros(self[('index', 'x')].shape[0], dtype="float64")
 
         if normalize:
-            buff_den = np.zeros(self['x'].shape[0], dtype="float64")
+            buff_den = np.zeros(buff.shape[0], dtype="float64")
         else:
             buff_den = np.empty(0)
 
