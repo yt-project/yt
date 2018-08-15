@@ -53,7 +53,6 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
-    - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
 
   local_tipsy_002:
     - yt/frontends/tipsy/tests/test_outputs.py
