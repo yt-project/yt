@@ -1638,9 +1638,15 @@ class ParticleCallback(PlotCallback):
         if iterable(self.width):
             validate_width_tuple(self.width)
             self.width = plot.data.ds.quan(self.width[0], self.width[1])
+        elif isinstance(self.width, YTQuantity):
+            self.width = plot.data.ds.quan(self.width.value, self.width.units)
+        else:
+            self.width = plot.data.ds.quan(self.width, "code_length")
         # we construct a rectangular prism
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
+        x0 = plot.xlim[0].to("code_length")
+        x1 = plot.xlim[1].to("code_length")
+        y0 = plot.ylim[0].to("code_length")
+        y1 = plot.ylim[1].to("code_length")
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
@@ -1705,7 +1711,8 @@ class ParticleCallback(PlotCallback):
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
         LE[zax] = data.center[zax] - self.width*0.5
-        RE[zax] = data.center[zax] + self.width*0.5
+        LE[zax].convert_to_units("code_length")
+        RE[zax] = LE[zax] + self.width
         if self.region is not None \
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
