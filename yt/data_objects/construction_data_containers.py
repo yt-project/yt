@@ -2271,9 +2271,9 @@ class YTOctree(YTSelectionContainer3D):
                 self._generate_tree(fname)
 
         # set up the x, y, z fields as the locations of the octs
-        self['x'] = self._octree.cell_positions[:, 0]
-        self['y'] = self._octree.cell_positions[:, 1]
-        self['z'] = self._octree.cell_positions[:, 2]
+        self[('index', 'x')] = self._octree.cell_positions[:, 0]
+        self[('index', 'y')] = self._octree.cell_positions[:, 1]
+        self[('index', 'z')] = self._octree.cell_positions[:, 2]
 
         return self._octree
 
@@ -2330,6 +2330,8 @@ class YTOctree(YTSelectionContainer3D):
                 self.scatter_smooth(fields, units, normalize)
             else:
                 self.gather_smooth(fields, units, normalize)
+        elif fields[0] == 'index':
+            return self[fields]
         else:
             raise NotImplementedError
 
