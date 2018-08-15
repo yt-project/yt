@@ -2141,9 +2141,9 @@ class YTOctree(YTSelectionContainer3D):
     --------
 
     octree = ds.octree(n_ref=64, over_refine_factor=2)
-    x_positions_of_cells = octree['x']
-    y_positions_of_cells = octree['x']
-    z_positions_of_cells = octree['x']
+    x_positions_of_cells = octree[('index', 'x')]
+    y_positions_of_cells = octree[('index', 'y')]
+    z_positions_of_cells = octree[('index', 'z')]
     density_of_gas_in_cells = octree[('gas', 'density')]
 
     """
@@ -2321,15 +2321,21 @@ class YTOctree(YTSelectionContainer3D):
             fields = fields[0]
 
         smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
-        if smoothing_style == "scatter":
-            self.scatter_smooth(fields)
-        else:
-            self.gather_smooth(fields)
+        sph_ptype = getattr(self.ds, '_sph_ptype', 'None')
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
 
-    def gather_smooth(self, fields):
+        units = self.ds._get_field_info(fields).units
+        if fields[0] == sph_ptype:
+            if smoothing_style == "scatter":
+                self.scatter_smooth(fields, units, normalize)
+            else:
+                self.gather_smooth(fields, units, normalize)
+        else:
+            raise NotImplementedError
+
+    def gather_smooth(self, fields, units, normalize):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
 
-        normalize = getattr(self.ds, 'use_sph_normalization', True)
         num_neighbors = getattr(self.ds, 'num_neighbors', 32)
 
         # for the gather approach we load up all of the data, this like other
@@ -2356,6 +2362,7 @@ class YTOctree(YTSelectionContainer3D):
         quant_to_smooth = np.concatenate(quant_to_smooth)
 
         # interpolate the field value at the cell positions
+        # NOTE: this can be incredibly memory heavy
         pbar = tqdm(desc="Interpolating (gather) SPH field {}".format(fields[0]),
                     total=self._octree.cell_positions.shape[0])
         interpolate_sph_arbitrary_positions_gather(buff, pos,
@@ -2367,16 +2374,13 @@ class YTOctree(YTSelectionContainer3D):
                                                    kdtree=kdtree, pbar=pbar,
                                                    num_neigh=num_neighbors,
                                                    use_normalization=normalize)
-
         pbar.close()
 
-        units = self.ds._get_field_info(fields).units
         self[fields] = self.ds.arr(buff, units)
 
-    def scatter_smooth(self, fields):
+    def scatter_smooth(self, fields, units, normalize):
         buff = np.zeros(self['x'].shape[0], dtype="float64")
 
-        normalize = getattr(self.ds, 'use_sph_normalization', True)
         if normalize:
             buff_den = np.zeros(self['x'].shape[0], dtype="float64")
         else:
@@ -2397,11 +2401,9 @@ class YTOctree(YTSelectionContainer3D):
                                             pdens, hsml, field_quantity,
                                             use_normalization=normalize)
             pbar.update(1)
+        pbar.close()
 
         if normalize:
             normalization_1d_utility(buff, buff_den)
 
-        pbar.close()
-
-        units = self.ds._get_field_info(fields).units
         self[fields] = self.ds.arr(buff, units)

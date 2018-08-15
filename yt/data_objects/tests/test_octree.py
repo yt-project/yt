@@ -26,7 +26,7 @@ def test_building_tree():
     ds = fake_sph_grid_ds()
     octree = ds.octree(n_ref=1)
     assert(type(octree) == YTOctree)
-    assert(octree['x'].shape[0] == 456)
+    assert(octree[('index', 'x')].shape[0] == 456)
 
 def test_saving_loading():
     '''
@@ -61,14 +61,15 @@ def test_sph_interpolation_scatter():
 
     ds = fake_sph_grid_ds(hsml_factor=26.0)
     ds.use_sph_normalization = False
+    ds._sph_ptype = 'io'
     octree = ds.octree(n_ref=5, over_refine_factor=0)
-    density = octree[('all', 'density')]
+    density = octree[('io', 'density')]
     answers = np.array([1.00434706, 1.00434706, 1.00434706, 1.00434706,
                          1.00434706, 1.00434706, 1.00434706, 0.7762907,
                          0.89250848, 0.89250848, 0.97039088, 0.89250848,
                          0.97039088, 0.97039088, 1.01156175])
 
-    assert_almost_equal(density, answers)
+    assert_almost_equal(density.d, answers)
 
 def test_sph_interpolation_gather():
     '''
@@ -76,17 +77,19 @@ def test_sph_interpolation_gather():
     answer testing
     '''
     ds = fake_sph_grid_ds(hsml_factor=26.0)
+    ds.index
     ds.sph_smoothing_style = 'gather'
     ds.num_neighbors = 5
     ds.use_sph_normalization = False
+    ds._sph_ptype = 'io'
     octree = ds.octree(n_ref=5, over_refine_factor=0)
-    density = octree[('all', 'density')]
+    density = octree[('io', 'density')]
     answers = np.array([0.59240874, 0.59240874, 0.59240874, 0.59240874,
                         0.59240874, 0.59240874, 0.59240874, 0.10026846,
                         0.77014968, 0.77014968, 0.96127825, 0.77014968,
                         0.96127825, 0.96127825, 1.21183996])
 
-    assert_almost_equal(density, answers)
+    assert_almost_equal(density.d, answers)
 
 def test_over_refine_factor():
     '''
@@ -94,7 +97,7 @@ def test_over_refine_factor():
     '''
     ds = fake_sph_grid_ds()
     octree = ds.octree(n_ref=1, over_refine_factor=2)
-    num_cells = octree['x'].shape[0]
+    num_cells = octree[('index', 'x')].shape[0]
     assert(num_cells == 3648)
 
 def test_density_factor():
@@ -103,5 +106,5 @@ def test_density_factor():
     '''
     ds = fake_sph_grid_ds()
     octree = ds.octree(n_ref=1, density_factor=2)
-    num_cells = octree['x'].shape[0]
+    num_cells = octree[('index', 'x')].shape[0]
     assert(num_cells == 512)

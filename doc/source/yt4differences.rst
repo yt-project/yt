@@ -161,7 +161,7 @@ gather machinery also added.
     density = octree[('PartType0', 'density')]
 
     # this will return the x positions of the octs
-    x = octree['x']
+    x = octree[('index', 'x')]
 
 The above code can be modified to use the scatter approach by using
 `ds.sph_smoothing_style = 'gather'` before any field access. The octree also
