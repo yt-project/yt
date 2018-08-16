@@ -1,12 +1,10 @@
 """
-Data structures for Swift frontend
+Data structures for SWIFT frontend
 
 
 
 
 """
-from __future__ import print_function
-
 #-----------------------------------------------------------------------------
 # Copyright (c) 2018, yt Development Team.
 #
@@ -14,24 +12,17 @@ from __future__ import print_function
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
 import numpy as np
-
 from yt.utilities.on_demand_imports import _h5py as h5py
-
 from uuid import uuid4
 
 from yt.utilities.logger import ytLogger as mylog
-
 from yt.frontends.sph.data_structures import \
     SPHDataset, \
     SPHParticleIndex
-
 from .fields import SwiftFieldInfo
-
 from yt.data_objects.static_output import \
     ParticleFile
-
 from yt.funcs import only_on_root
 
 class SwiftDataset(SPHDataset):
@@ -60,18 +51,18 @@ class SwiftDataset(SPHDataset):
 
         Currently sets length, mass, time, and temperature.
 
-        Swift outputs in comoving coordinates and no h factors required.
+        SWIFT uses comoving co-ordinates without the usual h-factors.
         """
         units = self._get_info_attributes("Units")
 
         if self.cosmological_simulation == 1:
-            only_on_root(
-                    mylog.info, "Assuming length units are in cm (comoving)")
+            msg = "Assuming length units are in comoving centimetres"
+            only_on_root(mylog.info, msg)
             self.length_unit = self.quan(
                 float(units["Unit length in cgs (U_L)"]), "cmcm")
         else:
-            only_on_root(
-                    mylog.info, "Assuming length units are in cm (physical)")
+            msg = "Assuming length units are in physical centimetres"
+            only_on_root(mylog.info, msg)
             self.length_unit = self.quan(
                 float(units["Unit length in cgs (U_L)"]), "cm")
 
@@ -177,7 +168,7 @@ class SwiftDataset(SPHDataset):
             hydro=hydro,
             subgrid=subgrid)
 
-        ## TODO: we need to deal with num_files per snapshot
+        # SWIFT never has multi file snapshots
         self.file_count = 1
         self.filename_template = self.parameter_filename
 
@@ -195,7 +186,7 @@ class SwiftDataset(SPHDataset):
         # Attempt to open the file, if it's not a hdf5 then this will fail:
         try:
             handle = h5py.File(filename, "r")
-        except:
+        except (FileNotFoundError, OSError) as e:
             valid = False
 
         # If we have been able to open the file, we can check for the specific
@@ -203,7 +194,7 @@ class SwiftDataset(SPHDataset):
         try:
             valid = handle["Header"].attrs["Code"] == b"SWIFT"
             handle.close()
-        except:
+        except KeyError as e:
             valid = False
 
         return valid

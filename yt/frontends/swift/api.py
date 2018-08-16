@@ -1,8 +1,12 @@
 """
 API for SWIFT frontend
 
+The SWIFT code can be found here:
+http://icc.dur.ac.uk/swift/
 
+This frontend is similar in IO to gadget, but has a lot of major differences.
 
+Created by Ashley Kelly (a.j.kelly@durham.ac.uk)
 
 """
 

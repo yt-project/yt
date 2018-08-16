@@ -1,11 +1,10 @@
 """
-Swift data-file handling function
+SWIFT data-file handling function
 
 
 
 
 """
-from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2018, yt Development Team.
@@ -30,87 +29,81 @@ class IOHandlerSwift(IOHandlerSPH):
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
+    # NOTE: we refer to sub_files in the next sections, these sub_files may
+    # actually be full data_files.
+    # In the event data_files are too big, yt breaks them up into sub_files and
+    # we sort of treat them as files in the chunking system
+
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
+        # yt has the concept of sub_files, i.e, we break up big files into
+        # virtual sub_files to deal with the chunking system
         chunks = list(chunks)
-        data_files = set([])
+        sub_files = set([])
         for chunk in chunks:
             for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: x.filename):
-            si, ei = data_file.start, data_file.end
-            f = h5py.File(data_file.filename, "r")
+                sub_files.update(obj.data_files)
+        for sub_file in sorted(sub_files, key=lambda x: x.filename):
+            si, ei = sub_file.start, sub_file.end
+            f = h5py.File(sub_file.filename, "r")
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
-                if data_file.total_particles[ptype] == 0:
+                if sub_file.total_particles[ptype] == 0:
                     continue
-                x = f["/%s/Coordinates" % ptype][si:ei, 0].astype("float64")
-                y = f["/%s/Coordinates" % ptype][si:ei, 1].astype("float64")
-                z = f["/%s/Coordinates" % ptype][si:ei, 2].astype("float64")
+                # these should already be float64
+                pos = f["/%s/Coordinates" % ptype][si:ei, :]
                 if ptype == self.ds._sph_ptype:
-                    hsml = f[
-                        "/%s/SmoothingLength" % ptype][si:ei].astype("float64")
+                    hsml = self._get_smoothing_length(sub_file)
                 else:
                     hsml = 0.0
-                yield ptype, (x, y, z), hsml
+                yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2]), hsml
             f.close()
 
-    def _yield_coordinates(self, data_file, needed_ptype=None):
-        si, ei = data_file.start, data_file.end
-        f = h5py.File(data_file.filename)
+    def _yield_coordinates(self, sub_file, needed_ptype=None):
+        si, ei = sub_file.start, sub_file.end
+        f = h5py.File(sub_file.filename)
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
         for key in f.keys():
-            if not key.startswith("PartType"):
+            if (not key.startswith("PartType") or "Coordinates" not in f[key]
+                or needed_ptype and key != needed_ptype):
                 continue
-            if "Coordinates" not in f[key]:
-                continue
-            if needed_ptype and key != needed_ptype:
-                continue
-            ds = f[key]["Coordinates"][si:ei,...]
-            dt = ds.dtype.newbyteorder("N") # Native
-            pos = np.empty(ds.shape, dtype=dt)
-            pos[:] = ds
+            pos = f[key]["Coordinates"][si:ei,...]
             yield key, pos
         f.close()
 
-    def _get_smoothing_length(self, data_file, position_dtype, position_shape):
+    def _get_smoothing_length(self, sub_file, pdtype=None, pshape=None):
+        # We do not need the pdtype and the pshape, but some frontends do so we
+        # accept them and then just ignore them
         ptype = self.ds._sph_ptype
         ind = int(ptype[-1])
-        si, ei = data_file.start, data_file.end
-        with h5py.File(data_file.filename) as f:
+        si, ei = sub_file.start, sub_file.end
+        with h5py.File(sub_file.filename) as f:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
             pcount = np.clip(pcount - si, 0, ei - si)
-            ds = f[ptype]["SmoothingLength"][si:ei,...]
-            dt = ds.dtype.newbyteorder("N") # Native
-            if position_dtype is not None and dt < position_dtype:
-                # Sometimes positions are stored in double precision
-                # but smoothing lengths are stored in single precision.
-                # In these cases upcast smoothing length to double precision
-                # to avoid ValueErrors when we pass these arrays to Cython.
-                dt = position_dtype
-            hsml = np.empty(ds.shape, dtype=dt)
-            hsml[:] = ds
+            # we upscale to float64
+            hsml = f[ptype]["SmoothingLength"][si:ei,...].astype("float64")
             return hsml
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        data_files = set([])
+        sub_files = set([])
         for chunk in chunks:
             for obj in chunk.objs:
-                data_files.update(obj.data_files)
+                sub_files.update(obj.data_files)
 
-        for data_file in sorted(data_files, key=lambda x: x.filename):
-            si, ei = data_file.start, data_file.end
-            f = h5py.File(data_file.filename, "r")
+        for sub_file in sorted(sub_files, key=lambda x: x.filename):
+            si, ei = sub_file.start, sub_file.end
+            f = h5py.File(sub_file.filename, "r")
             for ptype, field_list in sorted(ptf.items()):
-                if data_file.total_particles[ptype] == 0:
+                if sub_file.total_particles[ptype] == 0:
                     continue
                 g = f["/%s" % ptype]
-                coords = g["Coordinates"][si:ei].astype("float64")
+                # this should load as float64
+                coords = g["Coordinates"][si:ei]
                 if ptype == 'PartType0':
-                    hsmls = g["SmoothingLength"][si:ei].astype("float64")
+                    hsmls = self._get_smoothing_length(sub_file)
                 else:
                     hsmls = 0.0
                 mask = selector.select_points(
@@ -132,6 +125,8 @@ class IOHandlerSwift(IOHandlerSPH):
         f = h5py.File(data_file.filename, "r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         f.close()
+        # if this data_file was a sub_file, then we just extract the region
+        # defined by the subfile
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
         npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount))
@@ -154,7 +149,6 @@ class IOHandlerSwift(IOHandlerSPH):
             ptype = str(key)
             for k in g.keys():
                     kk = k
-                    # a little hack to deal with swift masses
                     if str(kk) == mname:
                         fields.append((ptype, "Mass"))
                         continue
