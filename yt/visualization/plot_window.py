@@ -228,6 +228,11 @@ class PlotWindow(ImagePlotContainer):
                 self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
+
+            if field in self._log_config:
+                log, linthresh = self._log_config[field]
+                self._set_log_helper(field, log, linthresh=linthresh)
+        
         self.setup_callbacks()
         self._setup_plots()
 

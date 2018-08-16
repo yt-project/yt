@@ -1310,3 +1310,12 @@ def sglob(pattern):
     Return the results of a glob through the sorted() function.
     """
     return sorted(glob.glob(pattern))
+
+class DictWithFactory(dict):
+    def __init__(self, factory):
+        self.factory = factory
+
+    def __missing__(self, key):
+        val = self.factory(key)
+        self[key] = val
+        return val
