@@ -69,11 +69,11 @@ used if you simply need to access the NumPy arrays:
 
     import yt
     ds = yt.load('Enzo_64/DD0042/data0042')
-    ad = ds.all_data()
+    ad = ad.all_data()
     overpressure_and_fast = (ad["pressure"] > 1e-14) & (ad["velocity_magnitude"].in_units('km/s') > 1e2)
     print('Density of all data: ad["density"] = \n%s' % ad['density'])
     print('Density of "overpressure and fast" data: ad["density"][overpressure_and_fast] = \n%s' %
-          ad['density'][overpressure_and_fast])
+          overpressure_and_fast['density'])
 
 .. _cut-regions:
 
@@ -112,6 +112,11 @@ The following exclude and include functions are supported:
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_outside` - Only include values outside closed interval
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_outside` - Exclude values outside closed interval 
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_nan` - Exclude NaN values
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_above` - Only include values above given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_above` - Exclude values above given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_below` - Only include values below given balue
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_below` - Exclude values below given value
+
    
 Cut regions can also operate on particle fields, but a single cut region object
 cannot operate on both particle fields and mesh fields at the same time.
