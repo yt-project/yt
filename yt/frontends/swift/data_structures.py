@@ -186,7 +186,7 @@ class SwiftDataset(SPHDataset):
         # Attempt to open the file, if it's not a hdf5 then this will fail:
         try:
             handle = h5py.File(filename, "r")
-        except (FileNotFoundError, OSError):
+        except IOError:
             valid = False
 
         # If we have been able to open the file, we can check for the specific
