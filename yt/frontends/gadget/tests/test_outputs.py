@@ -27,7 +27,7 @@ isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"
 BE_Gadget = "BigEndianGadgetBinary/BigEndianGadgetBinary"
 LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
-keplerian_ring = "KeplerianRing/keplerian_ring_test_data.hdf5"
+keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
 
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
