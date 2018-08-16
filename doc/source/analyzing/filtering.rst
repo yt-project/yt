@@ -101,8 +101,8 @@ filtering out unwanted regions. Such wrapper functions are methods of
    overpressure_and_fast = overpressure_and_fast.include_above('velocity_magnitude', 1e2, 'km/s')
 
    print('Density of all data: ad["density"] = \n%s' % ad['density'])
-   print('Density of "overpressure and fast" data: ad["density"][overpressure_and_fast] = \n%s' %
-          ad['density'][overpressure_and_fast])
+   print('Density of "overpressure and fast" data: overpressure_and_fast['density'] = \n%s' %
+          overpressure_and_fast['density'])
 
 The following exclude and include functions are supported:
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_equal` - Only include values equal to given value
