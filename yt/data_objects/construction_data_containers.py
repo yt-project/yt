@@ -2198,11 +2198,11 @@ class YTOctree(YTSelectionContainer3D):
         if self.ptypes != other.ptypes:
             same = False
 
-        if self['x'].any() != other['x'].any():
+        if self[('index', 'x')].any() != other[('index', 'x')].any():
             same = False
-        if self['y'].any() != other['y'].any():
+        if self[('index', 'y')].any() != other[('index', 'y')].any():
             same = False
-        if self['z'].any() != other['z'].any():
+        if self[('index', 'z')].any() != other[('index', 'z')].any():
             same = False
 
         if self.ds._file_hash != other.ds._file_hash:
