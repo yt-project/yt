@@ -186,7 +186,7 @@ class SwiftDataset(SPHDataset):
         # Attempt to open the file, if it's not a hdf5 then this will fail:
         try:
             handle = h5py.File(filename, "r")
-        except (FileNotFoundError, OSError) as e:
+        except (FileNotFoundError, OSError):
             valid = False
 
         # If we have been able to open the file, we can check for the specific
@@ -194,7 +194,7 @@ class SwiftDataset(SPHDataset):
         try:
             valid = handle["Header"].attrs["Code"] == b"SWIFT"
             handle.close()
-        except KeyError as e:
+        except KeyError:
             valid = False
 
         return valid
