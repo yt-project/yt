@@ -546,9 +546,16 @@ class GadgetHDF5Dataset(GadgetDataset):
             fh = h5py.File(args[0], mode='r')
             valid = all(ng in fh["/"] for ng in need_groups) and \
                 not any(vg in fh["/"] for vg in veto_groups)
-            valid = fh["Header"].attrs["Code"] != b"SWIFT"
             fh.close()
         except:
             valid = False
             pass
+
+        try:
+            fh = h5py.File(args[0], mode='r')
+            valid = fh["Header"].attrs["Code"] != b"SWIFT"
+            fh.close()
+        except (IOError, KeyError) as e:
+            pass
+
         return valid
