@@ -69,10 +69,10 @@ used if you simply need to access the NumPy arrays:
 
     import yt
     ds = yt.load('Enzo_64/DD0042/data0042')
-    ad = ad.all_data()
+    ad = ds.all_data()
     overpressure_and_fast = (ad["pressure"] > 1e-14) & (ad["velocity_magnitude"].in_units('km/s') > 1e2)
     print('Density of all data: ad["density"] = \n%s' % ad['density'])
-    print('Density of "overpressure and fast" data: ad["density"][overpressure_and_fast] = \n%s' %
+    print('Density of "overpressure and fast" data: overpressure_and_fast['density'] = \n%s' %
           overpressure_and_fast['density'])
 
 .. _cut-regions:
