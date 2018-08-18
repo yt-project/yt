@@ -213,8 +213,9 @@ class FITSImageData(object):
                         short_unit = unit[0]
                     key = "{}unit".format(short_unit)
                     value = getattr(self, "{}_unit".format(unit))
-                    hdu.header[key] = float(value.value)
-                    hdu.header.comments[key] = value.units
+                    if value is not None:
+                        hdu.header[key] = float(value.value)
+                        hdu.header.comments[key] = value.units
                 if self.current_time is not None:
                     hdu.header["time"] = float(self.current_time.value)
                     hdu.header.comments["time"] = self.current_time.units
@@ -277,7 +278,7 @@ class FITSImageData(object):
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if unit is None:
                 if ds is not None:
-                    u = getattr(ds, attr)
+                    u = getattr(ds, attr, None)
                 elif attr == "velocity_unit":
                     u = self.length_unit / self.time_unit
                 elif attr == "magnetic_unit":
@@ -287,6 +288,7 @@ class FITSImageData(object):
                     u = cgs_unit
             else:
                 u = unit
+
             if isinstance(u, string_types):
                 uq = YTQuantity(1.0, u)
             elif isinstance(u, numeric_type):
@@ -296,7 +298,7 @@ class FITSImageData(object):
             elif isinstance(u, tuple):
                 uq = YTQuantity(u[0], u[1])
             else:
-                raise RuntimeError("%s (%s) is invalid." % (attr, u))
+                uq = None
             setattr(self, attr, uq)
 
     def set_wcs(self, wcs, wcsname=None, suffix=None):
