@@ -412,18 +412,13 @@ class FITSDataset(Dataset):
 
         self._determine_wcs()
 
+        self.current_time = 0.0
+
         self.domain_dimensions = np.array(self.dims)[:self.dimensionality]
         if self.dimensionality == 2:
             self.domain_dimensions = np.append(self.domain_dimensions,
                                                [int(1)])
         self._determine_bbox()
-
-        # Get the current time
-        if "time" in self.primary_header:
-            self.current_time = self.quan(self.primary_header["time"],
-                                          self.primary_header.comments["time"])
-        else:
-            self.current_time = self.quan(0.0, "s")
 
         # For now we'll ignore these
         self.periodicity = (False,)*3
@@ -520,6 +515,12 @@ def find_axes(axis_names, prefixes):
 
 class YTFITSDataset(FITSDataset):
     _field_info_class = YTFITSFieldInfo
+
+    def _parse_parameter_file(self):
+        super(YTFITSDataset, self)._parse_parameter_file()
+        # Get the current time
+        if "time" in self.primary_header:
+            self.current_time = self.primary_header["time"]
 
     def _set_code_unit_attributes(self):
         """
