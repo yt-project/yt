@@ -626,7 +626,7 @@ class FITSImageBuffer(FITSImageData):
 
 def sanitize_fits_unit(unit):
     if unit == "Mpc":
-        mylog.info("Changing FITS file unit to kpc.")
+        mylog.info("Changing FITS file length unit to kpc.")
         unit = "kpc"
     elif unit == "au":
         unit = "AU"
