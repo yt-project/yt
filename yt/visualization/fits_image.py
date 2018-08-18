@@ -18,6 +18,7 @@ from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity, YTArray
+from yt.units.unit_object import Unit
 from yt.units import dimensions
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
@@ -262,14 +263,15 @@ class FITSImageData(object):
             self.set_wcs(wcs)
 
     def _fix_current_time(self, ds, current_time):
+        tunit = Unit(self.time_unit)
         if current_time is None:
             if ds is not None:
                 current_time = ds.current_time
         elif isinstance(current_time, numeric_type):
-            current_time = YTQuantity(current_time, self.time_unit)
+            current_time = YTQuantity(current_time, tunit)
         elif isinstance(current_time, tuple):
             current_time = YTQuantity(current_time[0], current_time[1])
-        self.current_time = current_time
+        self.current_time = current_time.to_value(tunit)
 
     def _set_units(self, ds, base_units):
         attrs = ('length_unit', 'mass_unit', 'time_unit', 
