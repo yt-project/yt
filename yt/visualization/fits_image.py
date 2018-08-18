@@ -322,7 +322,24 @@ class FITSImageData(object):
                 if suffix is not None:
                     kk += suffix
                 img.header[kk] = v
-
+    
+    def convolve(self, field, kernel):
+        conv = _astropy.conv
+        if field not in self.keys():
+            raise KeyError("%s not an image!" % field)
+        idx = self.fields.index(field)
+        if not isinstance(kernel, conv.Kernel):
+            if not isinstance(kernel, numeric_type):
+                pix_scale = YTQuantity(self.wcs.cdelt[0], self.wcs.cunit[0])
+                if isinstance(kernel, tuple):
+                    stddev = YTQuantity(kernel[0], kernel[1]).to(self.wcs.cunit[0])
+                else:
+                    stddev = kernel.to(self.wcs.cunit[0])
+                kernel = stddev/pix_scale
+            kernel = conv.Gaussian2DKernel(stddev=kernel)
+        self.hdulist[idx].data = conv.convolve(self.hdulist[idx].data, 
+                                               kernel)
+        
     def update_header(self, field, key, value):
         """
         Update the FITS header for *field* with a
