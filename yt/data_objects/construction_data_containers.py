@@ -2177,41 +2177,7 @@ class YTOctree(YTSelectionContainer3D):
         self.tree
 
     def __eq__(self, other):
-        same = True
-
-        if self.left_edge is None:
-            self.left_edge = np.array([])
-        if self.right_edge is None:
-            self.right_edge = np.array([])
-
-        if self.left_edge.any() != other.left_edge.any():
-            same = False
-        if self.right_edge.any() != other.right_edge.any():
-            same = False
-
-        if self.n_ref != other.n_ref:
-            same = False
-        if self.over_refine_factor != other.over_refine_factor:
-            same = False
-        if self.density_factor != other.density_factor:
-            same = False
-        if self.ptypes != other.ptypes:
-            same = False
-
-        if self[('index', 'x')].any() != other[('index', 'x')].any():
-            same = False
-        if self[('index', 'y')].any() != other[('index', 'y')].any():
-            same = False
-        if self[('index', 'z')].any() != other[('index', 'z')].any():
-            same = False
-
-        if self.ds._file_hash != other.ds._file_hash:
-            same = False
-
-        if self.tree.num_particles != other.tree.num_particles:
-            same = False
-
-        return same
+        return self.tree == other.tree
 
     def _generate_tree(self, fname = None):
         positions = []

@@ -34,73 +34,75 @@ from yt.geometry.particle_deposit cimport \
 # OCTREE IMPLEMENTATION DETAILS:
 #
 # The tree is made of of Nodes, which are C structs, containing the left edge,
-# the right end and other details so traverse (i.e child and parent location)
+# the right end and other details to traverse (i.e child and parent indexes in
+# the nodes container).
 #
-# The Nodes are stored in an STL vector - as such - it makes sense that the
+# The nodes are stored in an STL vector - as such - it makes sense that the
 # parent and child addresses are long's which just describe the index in the STL
-# vector. I.e to access a parent,
+# vector. i.e to access a parent,
 # &nodes[node.parent] will return the address of the parent node
 # The children are contiguous in memory, so the first child can be accessed with
 # &nodes[node.children] and the second with,
 # &nodes[node.children + 1] etc
 #
-# The tree is built with a non-recursive algorithm. We start my building the
+# The tree is built with a non-recursive algorithm. We start by building the
 # root node. We enter the root node, and use the split_helper function to split
-# into 2**(3*density_factor) children
+# into 2**(3*density_factor) children. We recursively work out which particles
+# are in each child by sorting the particle positions array so values less than
+# the split value are on one side, and values greater on the other. We then only
+# need to store the first and last particle in an oct and from that we know
+# every particle within the oct, in the octree sorted positions array.
 # NOTE: Despite being called an octree, the tree is actually of splitting into
 # different numbers of children
 #
-# The particles in each node are calculated using the separate utility function.
-# This loops through all the particles in the parent node and re-arranges them
-# such that they are in the order of which child node they are in. We then store
-# the indices of the positions array where the children of that node start and
-# stop.
-#
 # Once the first lot of children have been generated, they will be stored in the
-# STL vector like
+# STL vector. The STL container will now contain the following,
 # nodes = [root, child 1, child 2, child 3, ...]
-# we then loop through this vector, calling the process_node method and  storing
-# new children as we generate them.
+# where only the root has been processed.
+# We then loop through this vector, calling the process_node method and storing
+# new children as we generate them and then eventually processing those untl no
+# new children are generated.
 #
-# A node will split into children if the Node contains more particles than n_ref
-# below this value, the Node will not split, this is called a leaf.
+# A node will split into children if the node contains more particles than
+# n_ref. Below this value, the node will not split, this is called a leaf.
 #
 # To maintain backwards compatibility we also have the cell structure. This
 # means that each leaf is split into 2**(3*over_refine_factor) cells. When an
-# SPH field is interpolated onto the octree, we interpolate the value are the
+# SPH field is interpolated onto the octree, we interpolate the value at the
 # centre of each cell. The cell locations, and particles they contain, are *NOT*
-# stored in memory instead this is calculated on the fly when a interpolation or
-# cell position request is made.
-# This adds a slight overhead for these functions, but reduces the memory usage
-# by 2**(3*over_refine_factor)
+# stored in memory instead these are calculated on the fly when a interpolation or
+# cell position request is made. This has appeared to be a good trade of between
+# memory and performance so far. Storing the cells, and all the necessary
+# information in memory would increase the memory usage by num_leaves *
+# 2**(3*over_refine_factor).
 
 cdef struct Node:
     double left_edge[3]
     double right_edge[3]
 
-    np.int64_t start                #  star and end of particles we store
-    np.int64_t end
+    np.int64_t start                # First particle we store in pos array
+    np.int64_t end                  # Last particle we store
 
-    np.int64_t parent               # position of parent in Octree.nodes
-    np.int64_t children             # position of 0th child, children are
+    np.int64_t parent               # Index of parent in nodes container
+    np.int64_t children             # Index of 1st child, children are
                                     # contiguous
     bool leaf
-    np.int64_t node_id              # not sure if this is even useful
-    np.int64_t leaf_id
+    np.int64_t node_id              # Not sure if this is even useful
+    np.int64_t leaf_id              # This is used in depositions (maybe)
     unsigned char depth
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef class CyOctree:
-    cdef double _left_edge[3]       # boundary conditions for the octree
+    cdef double _left_edge[3]       # Boundary conditions for the octree
     cdef double _right_edge[3]
-    cdef np.int64_t[:] _idx         # ordering of particles used by the tree
+    cdef np.int64_t[:] _idx         # Ordering of particles used by the tree
 
-    cdef int _n_ref                 # number of particles per leaf
+    cdef int _n_ref                 # Max number of particles per leaf
     cdef np.int64_t _num_particles
 
-    cdef np.int64_t _data_version
+    cdef np.int64_t _data_version   # Used to decide when to re-build a tree
 
     cdef vector[Node] nodes         # This is an STL container to store the octs
 
@@ -117,7 +119,7 @@ cdef class CyOctree:
     cdef int _num_children          # 2**(3*_density_factor)
     cdef int _num_children_per_dim  # 2**(_density_factor)
 
-    # this is use for interpolation and is global for the octree smoothing
+    # This is use for interpolation and is global for the Octree smoothing
     # operations
     cdef kernel_func kernel
 
@@ -126,35 +128,38 @@ cdef class CyOctree:
                  int density_factor=1, np.int64_t data_version=0,
                  int max_depth=20):
 
-        # if this is the case, we are very likely just initialising an instance
-        # and then going to load an existing Octree from memory, so we don't
+        # If this is the case, we are very likely just initialising an instance
+        # and then going to load an existing Octree from disk, so we don't
         # really need to do anything
         if input_pos is None:
             return
 
         # These don't have setters as these would invalidate the tree which is
         # a feature we don't have
+        # TODO: Add invalidation feature
         self._data_version = data_version
         self._n_ref = n_ref
         self._num_particles = input_pos.shape[0]
         self._max_depth = max_depth
 
-        # setting the properties which determines how children divide
+        # Setting the properties which determines how children divide
         self.over_refine_factor = over_refine_factor
         self.density_factor = density_factor
 
-        # set up the initial idx of the particles, this keeps track of which
-        # particle from the input is in which node
+        # Set up the initial idx of the particles, this keeps track of which
+        # particle is which in the tree ordered array
         self._idx = np.arange(0, input_pos.shape[0], dtype=np.int64)
 
-        # set up the bounds and root node
+        # Set up the bounds and root node
         self.setup_bounds(input_pos, left_edge, right_edge)
         self.setup_root(input_pos)
 
-        # reserve some space for the octs to be stored
+        # Reserve some space for the octs to be stored -> this is a conversative
+        # amount and if we exceed this the STL container will reallocate. This
+        # will *not* invalidate any pointers
         reserve(&self.nodes, 1000000)
 
-        # now build the tree
+        # Now build the tree
         self.build_tree(&input_pos[0, 0])
 
     cdef setup_bounds(self, double[:, ::1] &input_pos, left_edge=None,
@@ -177,9 +182,9 @@ cdef class CyOctree:
         cdef Node root
         root.left_edge = self._left_edge
         root.right_edge = self._right_edge
-        root.parent = 0
+        root.parent = 0 # Not strictly true and could lead to an issue later
 
-        root.start = 0
+        root.start = 0                  # Always true in the yt context
         root.end = input_pos.shape[0]*3
 
         root.children = 0
@@ -188,23 +193,23 @@ cdef class CyOctree:
         root.leaf_id = 0
         root.node_id = 0
 
-        # store the root in the nodes array
+        # Store the root in the nodes array
         self.nodes.push_back(root)
 
     cdef reset(self):
-        # clear the big memory users before we load an octree from memory
+        # Clear the big memory users before we load an octree from disk
         self.nodes.clear()
         self._idx = np.zeros(1, dtype=np.int64)-1
 
     cdef int build_tree(self, double * input_pos):
-        # generate an array to store the which particles are in each child oct
+        # Generate an array to store the which particles are in each child oct
         cdef np.int64_t * split_arr
         split_arr = <np.int64_t*> malloc((self._num_children + 1) *
                                                             sizeof(np.int64_t))
 
-        # loop through the octs in serial and process the nodes, i.e, sort the
+        # Loop through the nodes in serial and process them, i.e, sort the
         # particles and create the children, which will increase the node.size
-        # if we make children, then we iterate through those children
+        # then we iterate through those children
         cdef int num_nodes_processed = 0
         while num_nodes_processed < self.nodes.size():
             self.process_node(&self.nodes[num_nodes_processed], input_pos,
@@ -218,18 +223,18 @@ cdef class CyOctree:
         if(node.end - node.start <= 3*self._n_ref or node.depth > self._max_depth):
             return 0
 
-        # node is no longer a leaf
+        # Node is no longer a leaf
         node.leaf = 0
 
-        # this sorts the children in the node and then stores the position of
+        # This sorts the children in the node and then stores the position of
         # the first and last particle in each node
         split_helper(node.start, node.end, self._num_children,
                      self._density_factor,
                      split_arr, input_pos, &self._idx[0], &node.left_edge[0],
                      &node.right_edge[0])
 
-        # generate the node structures for the children, and store the position
-        # of the first and last particle they contain
+        # Generate the node structures for the children, and store the position
+        # of the first and last particles they contain
         self.generate_children(node, split_arr)
 
         return 0
@@ -242,18 +247,18 @@ cdef class CyOctree:
 
         node.children = self.nodes.size()
 
-        # set the properties which are the same for all children
+        # Set the properties which are the same for all children
         temp.parent = node.node_id
         temp.leaf = 1
         temp.depth = node.depth + 1
         temp.leaf_id = 0
 
-        # set up the values to be used to set the child boundaries
+        # Set up the values to be used to set the child boundaries
         dx = (node.right_edge[0] - node.left_edge[0]) / self._num_children_per_dim
         dy = (node.right_edge[1] - node.left_edge[1]) / self._num_children_per_dim
         dz = (node.right_edge[2] - node.left_edge[2]) / self._num_children_per_dim
 
-        # loop through and create the children setting the node dependent values
+        # Loop through and append the children setting the node dependent values
         z = node.children
         split_id = 0
         for i in range(self._num_children_per_dim):
@@ -326,7 +331,7 @@ cdef class CyOctree:
     def cell_positions(self):
         cdef int i, j, z, k, l, num_leaves
 
-        # find all the leafs
+        # Find all the leaves
         num_leaves = 0
         for i in range(self.nodes.size()):
             if self.nodes[i].leaf == 1:
@@ -364,6 +369,7 @@ cdef class CyOctree:
 
         return np.asarray(pos)
 
+    # TODO: move these to the location of the rest of the deposition operations
     cdef void smooth_onto_cells(self, np.float64_t[:] buff,
                                 np.float64_t[:] buff_den, np.float64_t posx,
                                 np.float64_t posy, np.float64_t posz,
@@ -377,6 +383,8 @@ cdef class CyOctree:
         cdef double q_ij, diff_x, diff_y, diff_z, dx, dy, dz, voxel_hsml2
         cdef double leftx, lefty, leftz, rightx, righty, rightz
 
+        # If not a leaf, then check if particle is in the children and go check
+        # through those. This is recursive - currently
         if node.leaf == 0:
             child = &self.nodes[node.children]
             for i in range(self._num_children):
@@ -404,12 +412,13 @@ cdef class CyOctree:
             righty = node.right_edge[1]
             rightz = node.right_edge[2]
 
-            # we have to generate cell locations
+            # We have to generate cell locations
             dx = (rightx - leftx) / self._num_cells_per_dim
             dy = (righty - lefty) / self._num_cells_per_dim
             dz = (rightz - leftz) / self._num_cells_per_dim
 
-            # loop through each cell and calculate the contribution
+            # Loop through each cell and calculate the contribution, l is the
+            # number of the cell we are in
             l = 0
             for i in range(self._num_cells_per_dim):
                 for j in range(self._num_cells_per_dim):
@@ -452,6 +461,29 @@ cdef class CyOctree:
             self.smooth_onto_cells(buff, buff_den, posx[i], posy[i], posz[i], hsml[i],
                                    prefactor, prefactor_norm, &self.nodes[0],
                                    use_normalization=use_normalization)
+
+    def __eq__(self, CyOctree other):
+        cdef bool same = True
+
+        for i in range(3):
+            if self._left_edge[i] != other._left_edge[i]:
+                same = False
+            if self._right_edge[i] != other._right_edge[i]:
+                same = False
+
+        if self._n_ref != other._n_ref:
+            same = False
+
+        if self._over_refine_factor != other._over_refine_factor:
+            same = False
+
+        if self._density_factor != other._density_factor:
+            same = False
+
+        if self._data_version != other._data_version:
+            same = False
+
+        return same
 
     # TODO: this code is much slower than I would like, this is likely due to
     # the use of struct -> plan to replace this. A c++ approach is probably
@@ -520,6 +552,10 @@ cdef int split_helper(int start, int end, int num_children, int max_splits,
                        np.int64_t * split_arr, np.float64_t * pos,
                        np.int64_t * idx, np.float64_t * left,
                        np.float64_t * right) nogil except -1:
+    '''
+    This takes in the split array and sets up the first and last particle, it
+    then calls the spit function.
+    '''
     cdef double lower = left[0]
     cdef double upper = right[0]
 
@@ -542,6 +578,13 @@ cdef int reserve(vector[Node] * vec, int amount) except +MemoryError:
 @cython.cdivision(True)
 cdef int seperate(np.float64_t * array, np.int64_t * idx, int offset,  double value,
                   np.int64_t start, np.int64_t end) nogil except -1:
+    '''
+    This takes in an axis, a value and the particles position array.
+
+    It splits the array so all values in the positions array with positions in
+    the axis dimension less than value are on the left, and those with a value
+    greater are on the right.
+    '''
     cdef np.int64_t index
     cdef np.int64_t idx_index = start // 3, idx_split = idx_index
     cdef np.int64_t split = start
@@ -565,6 +608,11 @@ cdef int split(int start, int end, int max_splits, int splits, int axis,
            np.int64_t * split_arr, np.int64_t * idx, np.float64_t * pos,
            np.float64_t * left_edge, np.float64_t * right_edge,
            np.float64_t lower, np.float64_t upper) nogil except -1:
+    '''
+    This splits the arrays recursively such that we split the particles in the
+    x, y and z axis such that we get 2**(density_factor) children. We store
+    which particles are in each children in the split_arr
+    '''
     cdef int mid
     cdef double temp_value
 
