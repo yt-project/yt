@@ -240,7 +240,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         from yt.data_objects.selection_data_containers import \
             YTSlice
         from yt.data_objects.construction_data_containers import \
-            YTKDTreeProj
+            YTParticleProj
         # We should be using fcoords
         field = data_source._determine_fields(field)[0]
         period = self.period[:2].copy() # dummy here
@@ -269,7 +269,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             ounits = data_source.ds.field_info[field].output_units
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
             py_name = 'particle_position_%s' % self.axis_name[self.y_axis[dim]]
-            if isinstance(data_source, YTKDTreeProj):
+            if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
                 le = data_source.data_source.left_edge.in_units('code_length')
                 re = data_source.data_source.right_edge.in_units('code_length')
