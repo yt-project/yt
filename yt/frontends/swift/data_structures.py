@@ -127,6 +127,7 @@ class SwiftDataset(SPHDataset):
         else:
             self.periodicity = [False] * self.dimensionality
 
+        # Units get attached to this
         self.current_time = float(header["Time"])
 
         # Now cosmology enters the fray, as a runtime parameter.
