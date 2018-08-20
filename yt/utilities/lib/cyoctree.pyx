@@ -462,7 +462,7 @@ cdef class CyOctree:
                                    prefactor, prefactor_norm, &self.nodes[0],
                                    use_normalization=use_normalization)
 
-    def __eq__(self, CyOctree other):
+    def __richcmp__(self, CyOctree other, op):
         cdef bool same = True
 
         for i in range(3):
@@ -483,7 +483,13 @@ cdef class CyOctree:
         if self._data_version != other._data_version:
             same = False
 
-        return same
+        if op == 2:
+            return same
+        if op == 3: # Not equal
+            return not same
+        else:
+            raise NotImplementedError(("Only == and != comparison operators " +
+                                      "have been added!")) 
 
     # TODO: this code is much slower than I would like, this is likely due to
     # the use of struct -> plan to replace this. A c++ approach is probably
