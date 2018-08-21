@@ -462,7 +462,7 @@ cdef class CyOctree:
                                    prefactor, prefactor_norm, &self.nodes[0],
                                    use_normalization=use_normalization)
 
-    def __richcmp__(self, CyOctree other, op):
+    def __richcmp__(self, other, op):
         cdef bool same = True
 
         for i in range(3):
