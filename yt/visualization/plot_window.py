@@ -11,6 +11,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
@@ -46,7 +47,6 @@ from .plot_container import (
     symlog_transform,
 )
 from .plot_modifications import callback_registry
-from yt.config import ytcfg
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
@@ -233,7 +233,7 @@ class PlotWindow(ImagePlotContainer):
             if field in self._log_config:
                 log, linthresh = self._log_config[field]
                 self._set_log_helper(field, log, linthresh=linthresh)
-        
+
         self.setup_callbacks()
         self._setup_plots()
 
@@ -304,20 +304,26 @@ class PlotWindow(ImagePlotContainer):
                     if self.data_source.weight_field is None:
                         # Try to get specific integration unit
                         path_length_unit = ytcfg.get(
-                            ('config', *field, 'path_length_unit'))
+                            ("config", *field, "path_length_unit")
+                        )
+
                         # Else get per-field-type integration unit
                         if path_length_unit is None:
                             path_length_unit = ytcfg.get(
-                                ('config', field[0], 'path_length_unit'), default=None)
+                                ("config", field[0], "path_length_unit")
+                            )
                         # Fallback on unit from dataset
                         if path_length_unit is None:
-                            ax_name = 'xyz'[self.data_source.axis]
+                            ax_name = "xyz"[self.data_source.axis]
                             path_element_name = ("index", "path_element_%s" % (ax_name))
-                            path_length_unit = self.ds.field_info[path_element_name].units
+                            path_length_unit = self.ds.field_info[
+                                path_element_name
+                            ].units
 
-                        path_length_unit = Unit(path_length_unit,
-                                                registry=self.ds.unit_registry)
-                        unit = (field_unit * path_length_unit)
+                        path_length_unit = Unit(
+                            path_length_unit, registry=self.ds.unit_registry
+                        )
+                        unit = field_unit * path_length_unit
                     else:
                         unit = field_unit
                 self.frb[field].convert_to_units(unit)
