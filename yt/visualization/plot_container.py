@@ -238,7 +238,8 @@ class PlotContainer:
 
         default_cmap = ytcfg.get("yt", "default_colormap")
         self._colormaps = DictWithFactory(default_from_config("cmap", default_cmap))
-        self._log_config = DictWithFactory(default_from_config("log"))
+        self._log_config = DictWithFactory(default_from_config("log", [None, None]))
+        self._log_config = DictWithFactory(default_from_config("units", None))
 
 
     @accepts_all_fields

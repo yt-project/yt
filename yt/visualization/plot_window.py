@@ -46,6 +46,7 @@ from .plot_container import (
     symlog_transform,
 )
 from .plot_modifications import callback_registry
+from yt.config import ytcfg
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
@@ -295,6 +296,31 @@ class PlotWindow(ImagePlotContainer):
         # At this point the frb has the valid bounds, size, aliasing, etc.
         if old_fields is None:
             self._frb._get_data_source_fields()
+
+            # New frb, apply default units (if any)
+            for field, field_unit in self._unit_config.items():
+                field_unit = Unit(field_unit, registry=self.ds.unit_registry)
+                if field_unit is not None:
+                    if self.data_source.weight_field is None:
+                        # Try to get specific integration unit
+                        path_length_unit = ytcfg.get(
+                            ('config', *field, 'path_length_unit'))
+                        # Else get per-field-type integration unit
+                        if path_length_unit is None:
+                            path_length_unit = ytcfg.get(
+                                ('config', field[0], 'path_length_unit'), default=None)
+                        # Fallback on unit from dataset
+                        if path_length_unit is None:
+                            ax_name = 'xyz'[self.data_source.axis]
+                            path_element_name = ("index", "path_element_%s" % (ax_name))
+                            path_length_unit = self.ds.field_info[path_element_name].units
+
+                        path_length_unit = Unit(path_length_unit,
+                                                registry=self.ds.unit_registry)
+                        unit = (field_unit * path_length_unit)
+                    else:
+                        unit = field_unit
+                self.frb[field].convert_to_units(unit)
         else:
             # Restore the old fields
             for key, unit in zip(old_fields, old_units):
