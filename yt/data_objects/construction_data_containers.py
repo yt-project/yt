@@ -2114,7 +2114,9 @@ class YTSurface(YTSelectionContainer3D):
         return model_uid
 
 class YTOctree(YTSelectionContainer3D):
-    """A 3D region with all the data filled into an octree.
+    """A 3D region with all the data filled into an octree. This container
+    will mean deposit particle fields onto octs using a kernel and SPH
+    smoothing.
 
     Parameters
     ----------
@@ -2192,7 +2194,7 @@ class YTOctree(YTSelectionContainer3D):
         mylog.info('Allocating Octree for %s particles' % positions.shape[0])
         self.loaded = False
         self._octree = CyOctree(
-            positions.astype('float64'),
+            positions.astype('float64', copy=False),
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             n_ref=self.n_ref,

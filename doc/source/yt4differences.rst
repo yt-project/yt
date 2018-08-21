@@ -146,6 +146,8 @@ the users. The new octree is designed to give results consistent with those of
 the previous octree, but the new octree takes advantage of the scatter and
 gather machinery also added.
 
+It should be noted that the 
+
 .. code-block:: python
 
     import yt
@@ -166,13 +168,13 @@ gather machinery also added.
 The above code can be modified to use the scatter approach by using
 `ds.sph_smoothing_style = 'gather'` before any field access. The octree also
 accepts `over_refine_factor` which behaves identically to that in the previous
-branch, this determines how many cells are in each leaf.
+branch, describing how many cells are in each leaf.
 
 The new octree also has the ability to not be an octree. We have a new kwarg,
 `density_factor` which allows the construction of dense trees. In a traditional
 octree, if a leaf has more particles that a critical value `n_ref`, then it
 divides into 8 new children (hence the name oct). The value of `density_factor`
-allows the node to divide into 2**(3*density_factor).
+allows the node to divide into 2^(3*density_factor).
 
 API Changes
 -----------
