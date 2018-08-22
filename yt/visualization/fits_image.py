@@ -9,12 +9,15 @@ FITSImageData Class
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+
 from yt.extern.six import string_types
 import numpy as np
+from itertools import count
 from yt.fields.derived_field import DerivedField
 from yt.funcs import mylog, iterable, fix_axis, ensure_list, \
     issue_deprecation_warning
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
+from yt.data_objects.image_array import ImageArray
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity, YTArray
@@ -195,18 +198,27 @@ class FITSImageData(object):
                 self.fields.append(fd)
 
         first = True
-        for name, field in zip(self.fields, fields):
+        for i, name, field in zip(count(), self.fields, fields):
             if name not in exclude_fields:
+                this_img = img_data[field]
                 if hasattr(img_data[field], "units"):
-                    self.field_units[name] = str(img_data[field].units)
+                    self.field_units[name] = str(this_img.units)
                 else:
                     self.field_units[name] = "dimensionless"
                 mylog.info("Making a FITS image of field %s" % name)
+                if isinstance(this_img, ImageArray):
+                    if i == 0:
+                        self.shape = this_img.shape[::-1]
+                    this_img = np.asarray(this_img)
+                else:
+                    if i == 0:
+                        self.shape = this_img.shape
+                    this_img = np.asarray(this_img.T)
                 if first:
-                    hdu = _astropy.pyfits.PrimaryHDU(np.array(img_data[field]))
+                    hdu = _astropy.pyfits.PrimaryHDU(this_img)
                     first = False
                 else:
-                    hdu = _astropy.pyfits.ImageHDU(np.array(img_data[field]))
+                    hdu = _astropy.pyfits.ImageHDU(this_img)
                 hdu.name = name
                 hdu.header["btype"] = name
                 hdu.header["bunit"] = re.sub('()', '', self.field_units[name])
@@ -224,7 +236,6 @@ class FITSImageData(object):
                     hdu.header["time"] = self.current_time
                 self.hdulist.append(hdu)
 
-        self.shape = self.hdulist[0].shape
         self.dimensionality = len(self.shape)
 
         if wcs is None:
