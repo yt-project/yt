@@ -50,7 +50,7 @@ class FITSImageData(object):
 
     def __init__(self, data, fields=None, length_unit=None, width=None, img_ctr=None,
                  wcs=None, current_time=None, time_unit=None, mass_unit=None, 
-                 velocity_unit=None, magnetic_unit=None, **kwargs):
+                 velocity_unit=None, magnetic_unit=None, ds=None, **kwargs):
         r""" Initialize a FITSImageData object.
 
         FITSImageData contains a collection of FITS ImageHDU instances and
@@ -121,7 +121,8 @@ class FITSImageData(object):
                                       "to 'units'.")
             length_unit = kwargs["units"]
 
-        ds = getattr(data, "ds", None)
+        if ds is None:
+            ds = getattr(data, "ds", None)
 
         self._set_units(ds, [length_unit, mass_unit, time_unit, velocity_unit,
                              magnetic_unit])
@@ -268,6 +269,9 @@ class FITSImageData(object):
         if current_time is None:
             if ds is not None:
                 current_time = ds.current_time
+            else:
+                self.current_time = 0.0
+                return
         elif isinstance(current_time, numeric_type):
             current_time = YTQuantity(current_time, tunit)
         elif isinstance(current_time, tuple):
@@ -1031,4 +1035,4 @@ class FITSOffAxisProjection(FITSImageData):
         center = ds.arr([0.0]*2, 'code_length')
         w, not_an_frb = construct_image(ds, normal, buf, center, image_res,
                                         width)
-        super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w)
+        super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w, ds=ds)
