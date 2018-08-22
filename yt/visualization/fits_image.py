@@ -599,9 +599,8 @@ class FITSImageData(object):
         return cls(data)
 
     def create_sky_wcs(self, sky_center, sky_scale,
-                       ctype=["RA---TAN","DEC--TAN"],
-                       crota=None, cd=None, pc=None,
-                       wcsname="celestial",
+                       ctype=None, crota=None, cd=None,
+                       pc=None, wcsname="celestial",
                        replace_old_wcs=True):
         """
         Takes a Cartesian WCS and converts it to one in a
@@ -615,7 +614,8 @@ class FITSImageData(object):
             Conversion between an angle unit and a length unit,
             e.g. (3.0, "arcsec/kpc")
         ctype : list of strings, optional
-            The type of the coordinate system to create.
+            The type of the coordinate system to create. Default:
+            A "tangential" projection. 
         crota : 2-element ndarray, optional
             Rotation angles between cartesian coordinates and
             the celestial coordinates.
@@ -630,6 +630,8 @@ class FITSImageData(object):
             FITSImageData instance. If false, a second WCS will 
             be added to the header. Default: True.
         """
+        if ctype is None:
+            ctype = ["RA---TAN", "DEC--TAN"]
         old_wcs = self.wcs
         naxis = old_wcs.naxis
         crval = [sky_center[0], sky_center[1]]
