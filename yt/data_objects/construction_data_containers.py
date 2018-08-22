@@ -2238,10 +2238,7 @@ class YTOctree(YTSelectionContainer3D):
                 mylog.info('Detected hash mismatch, regenerating Octree')
                 self._generate_tree(fname)
 
-        # set up the x, y, z fields as the locations of the octs
-        self[('index', 'x')] = self._octree.cell_positions[:, 0]
-        self[('index', 'y')] = self._octree.cell_positions[:, 1]
-        self[('index', 'z')] = self._octree.cell_positions[:, 2]
+        self[('index', 'coordinates')] = self._octree.cell_positions
 
         return self._octree
 
@@ -2316,7 +2313,7 @@ class YTOctree(YTSelectionContainer3D):
         mass = []
         quant_to_smooth = []
         hsml = []
-        for chunk in self.ds.all_data().chunks([fields], 'io'):
+        for chunk in self.ds.all_data().chunks(['all'], 'io'):
             pos.append(chunk[(fields[0],'particle_position')].in_base("code").d)
             dens.append(chunk[(fields[0],'density')].in_base("code").d)
             mass.append(chunk[(fields[0],'particle_mass')].in_base("code").d)
@@ -2358,7 +2355,7 @@ class YTOctree(YTSelectionContainer3D):
 
         ptype = fields[0]
         pbar = tqdm(desc="Interpolating (scatter) SPH field {}".format(fields[0]))
-        for chunk in self._data_source.chunks([fields], "io"):
+        for chunk in self._data_source.chunks(['all'], "io"):
             px = chunk[(ptype,'particle_position_x')].in_base("code").d
             py = chunk[(ptype,'particle_position_y')].in_base("code").d
             pz = chunk[(ptype,'particle_position_z')].in_base("code").d
