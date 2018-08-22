@@ -10,7 +10,6 @@ Tests for making unstructured mesh slices
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import numpy as np
 from nose.plugins.attrib import attr
 
 import yt
@@ -64,8 +63,8 @@ class TestGeoProjections(unittest.TestCase):
 
         assert isinstance(self.slc._projection, cartopy.crs.PlateCarree)
         assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
-        assert type(self.slc._projection) is \
-               type(self.slc.plots['Density'].axes.projection)
+        assert isinstance(self.slc._projection,
+                          type(self.slc.plots['Density'].axes.projection))
 
     def test_projection_transform(self):
         # remove UTM as a transform for testing
