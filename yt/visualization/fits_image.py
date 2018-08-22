@@ -28,6 +28,7 @@ import re
 import sys
 from numbers import Number as numeric_type
 
+
 class UnitfulHDU(object):
     def __init__(self, hdu):
         self.hdu = hdu
@@ -43,6 +44,7 @@ class UnitfulHDU(object):
     def __repr__(self):
         im_shape = " x ".join([str(s) for s in self.shape])
         return "FITSImage: %s (%s, %s)" % (self.name, im_shape, self.units)
+
 
 class FITSImageData(object):
 
@@ -322,8 +324,29 @@ class FITSImageData(object):
                 if suffix is not None:
                     kk += suffix
                 img.header[kk] = v
-    
+
     def convolve(self, field, kernel):
+        """
+        Convolve an image with a kernel, either a simple
+        Gaussian or one provided by AstroPy.
+
+        Parameters
+        ----------
+        field : string
+            The name of the field to convolve.
+        kernel : float, YTQuantity, (value, unit) tuple, or AstroPy Kernel object 
+            The kernel to convolve the image with. If this is an AstroPy Kernel
+            object, the image will be convolved with it. Otherwise, it is 
+            assumed that the kernel is a Gaussian and that this value is
+            the standard deviation. If a float, it is assumed that the units
+            are pixels, but a (value, unit) tuple or YTQuantity can be supplied
+            to specify the standard deviation in physical units.
+
+        Examples
+        --------
+        >>> fid = FITSSlice(ds, "z", "density")
+        >>> fid.convolve("density", (3.0, "kpc"))
+        """
         conv = _astropy.conv
         if field not in self.keys():
             raise KeyError("%s not an image!" % field)
@@ -332,14 +355,15 @@ class FITSImageData(object):
             if not isinstance(kernel, numeric_type):
                 pix_scale = YTQuantity(self.wcs.cdelt[0], self.wcs.cunit[0])
                 if isinstance(kernel, tuple):
-                    stddev = YTQuantity(kernel[0], kernel[1]).to(self.wcs.cunit[0])
+                    stddev = YTQuantity(kernel[0], 
+                                        kernel[1]).to(self.wcs.cunit[0])
                 else:
                     stddev = kernel.to(self.wcs.cunit[0])
                 kernel = stddev/pix_scale
             kernel = conv.Gaussian2DKernel(stddev=kernel)
         self.hdulist[idx].data = conv.convolve(self.hdulist[idx].data, 
                                                kernel)
-        
+
     def update_header(self, field, key, value):
         """
         Update the FITS header for *field* with a
@@ -638,8 +662,10 @@ class FITSImageData(object):
         else:
             self.set_wcs(new_wcs, wcsname=wcsname, suffix="a")
 
+
 class FITSImageBuffer(FITSImageData):
     pass
+
 
 def sanitize_fits_unit(unit):
     if unit == "Mpc":
@@ -650,6 +676,7 @@ def sanitize_fits_unit(unit):
     return unit
 
 axis_wcs = [[1,2],[0,2],[0,1]]
+
 
 def construct_image(ds, axis, data_source, center, width=None, image_res=None):
     if width is None:
@@ -703,6 +730,7 @@ def construct_image(ds, axis, data_source, center, width=None, image_res=None):
     w.wcs.ctype = ctype
     return w, frb
 
+
 def assert_same_wcs(wcs1, wcs2):
     from numpy.testing import assert_allclose
     assert wcs1.naxis == wcs2.naxis
@@ -730,6 +758,7 @@ def assert_same_wcs(wcs1, wcs2):
         assert pc1 == pc2
     else:
         assert_allclose(wcs1.wcs.pc, wcs2.wcs.pc)
+
 
 class FITSSlice(FITSImageData):
     r"""
@@ -845,6 +874,7 @@ class FITSProjection(FITSImageData):
         w, frb = construct_image(ds, axis, prj, dcenter, width=width, 
                                  image_res=image_res)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
+
 
 class FITSOffAxisSlice(FITSImageData):
     r"""
