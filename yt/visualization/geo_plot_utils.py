@@ -1,9 +1,9 @@
 valid_transforms={}
 
-transform_list = ['PlateCarree', 'LambertConformal', 'LabmbertCylindrical',
+transform_list = ['PlateCarree', 'LambertConformal', 'LambertCylindrical',
                   'Mercator', 'Miller', 'Mollweide', 'Orthographic',
                   'Robinson', 'Stereographic', 'TransverseMercator',
-                  'InterruptedGoodeHomolosine', 'RotatedPole', 'OGSB',
+                  'InterruptedGoodeHomolosine', 'RotatedPole', 'OSGB',
                   'EuroPP', 'Geostationary', 'Gnomonic', 'NorthPolarStereo',
                   'OSNI', 'SouthPolarStereo', 'AlbersEqualArea',
                   'AzimuthalEquidistant', 'Sinusoidal', 'UTM',
