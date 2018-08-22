@@ -680,7 +680,7 @@ def sanitize_fits_unit(unit):
 axis_wcs = [[1,2],[0,2],[0,1]]
 
 
-def construct_image(ds, axis, data_source, center, width=None, image_res=None):
+def construct_image(ds, axis, data_source, center, image_res, width):
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
         unit = ds.get_smallest_appropriate_unit(width[0])
@@ -689,18 +689,10 @@ def construct_image(ds, axis, data_source, center, width=None, image_res=None):
     else:
         width = ds.coordinates.sanitize_width(axis, width, None)
         unit = str(width[0].units)
-    if image_res is None:
-        ddims = ds.domain_dimensions*ds.refine_by**ds.index.max_level
-        if iterable(axis):
-            nx = ddims.max()
-            ny = ddims.max()
-        else:
-            nx, ny = [ddims[idx] for idx in axis_wcs[axis]]
+    if iterable(image_res):
+        nx, ny = image_res
     else:
-        if iterable(image_res):
-            nx, ny = image_res
-        else:
-            nx, ny = image_res, image_res
+        nx, ny = image_res, image_res
     dx = width[0]/nx
     dy = width[1]/ny
     crpix = [0.5*(nx+1), 0.5*(ny+1)]
@@ -774,6 +766,10 @@ class FITSSlice(FITSImageData):
         The axis of the slice. One of "x","y","z", or 0,1,2.
     fields : string or list of strings
         The fields to slice
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. A single value will be
+        used for both axes, whereas a tuple of values will be used for the
+        individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set 
@@ -804,18 +800,15 @@ class FITSSlice(FITSImageData):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
-    image_res : an int or 2-tuple of ints
-        Specify the resolution of the resulting image. If not provided, it will
-        be determined based on the minimum cell size of the dataset.
     """
-    def __init__(self, ds, axis, fields, center="c", width=None, 
-                 image_res=None, **kwargs):
+    def __init__(self, ds, axis, fields, image_res=512, center="c",
+                 width=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
-        w, frb = construct_image(ds, axis, slc, dcenter, width=width, 
-                                 image_res=image_res)
+        w, frb = construct_image(ds, axis, slc, dcenter, image_res,
+                                 width)
         super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
 
 
@@ -831,8 +824,10 @@ class FITSProjection(FITSImageData):
         The axis along which to project. One of "x","y","z", or 0,1,2.
     fields : string or list of strings
         The fields to project
-    weight_field : string
-        The field used to weight the projection.
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. A single value will be
+        used for both axes, whereas a tuple of values will be used for the
+        individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set 
@@ -863,18 +858,17 @@ class FITSProjection(FITSImageData):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
-    image_res : an int or 2-tuple of ints
-        Specify the resolution of the resulting image. If not provided, it will
-        be determined based on the minimum cell size of the dataset.
+    weight_field : string
+        The field used to weight the projection.
     """
-    def __init__(self, ds, axis, fields, center="c", width=None,
-                 weight_field=None, image_res=None, **kwargs):
+    def __init__(self, ds, axis, fields, image_res=512, 
+                 center="c", width=None, weight_field=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
-        w, frb = construct_image(ds, axis, prj, dcenter, width=width, 
-                                 image_res=image_res)
+        w, frb = construct_image(ds, axis, prj, dcenter, image_res,
+                                 width)
         super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
 
 
@@ -890,6 +884,10 @@ class FITSOffAxisSlice(FITSImageData):
         The vector normal to the projection plane.
     fields : string or list of strings
         The fields to slice
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. A single value will be
+        used for both axes, whereas a tuple of values will be used for the
+        individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
         The coordinate of the center of the image. If set to 'c', 'center' or
         left blank, the plot is centered on the middle of the domain. If set to
@@ -920,21 +918,19 @@ class FITSOffAxisSlice(FITSImageData):
         units are assumed, for example (0.2, 0.3) requests a plot that has an
         x width of 0.2 and a y width of 0.3 in code units.  If units are
         provided the resulting plot axis labels will use the supplied units.
-    image_res : an int or 2-tuple of ints
-        Specify the resolution of the resulting image.
     north_vector : a sequence of floats
         A vector defining the 'up' direction in the plot.  This
         option sets the orientation of the slicing plane.  If not
         set, an arbitrary grid-aligned north-vector is chosen.
     """
-    def __init__(self, ds, normal, fields, center='c', width=None,
-                 image_res=512, north_vector=None):
+    def __init__(self, ds, normal, fields, image_res=512, 
+                 center='c', width=None, north_vector=None):
         fields = ensure_list(fields)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         cut = ds.cutting(normal, center, north_vector=north_vector)
-        center = ds.arr([0.0] * 2, 'code_length')
-        w, frb = construct_image(ds, normal, cut, center, width=width,
-                                 image_res=image_res)
+        center = ds.arr([0.0]*2, 'code_length')
+        w, frb = construct_image(ds, normal, cut, center, image_res,
+                                 width)
         super(FITSOffAxisSlice, self).__init__(frb, fields=fields, wcs=w)
 
 
@@ -951,6 +947,10 @@ class FITSOffAxisProjection(FITSImageData):
         The vector normal to the projection plane.
     fields : string, list of strings
         The name of the field(s) to be plotted.
+    image_res : an int or 2-tuple of ints
+        Specify the resolution of the resulting image. A single value will be
+        used for both axes, whereas a tuple of values will be used for the
+        individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
          left blank, the plot is centered on the middle of the domain. If set 
@@ -987,8 +987,6 @@ class FITSOffAxisProjection(FITSImageData):
          are assumed
     weight_field : string
          The name of the weighting field.  Set to None for no weight.
-    image_res : an int or 2-tuple of ints
-        Specify the resolution of the resulting image. 
     north_vector : a sequence of floats
         A vector defining the 'up' direction in the plot.  This
         option sets the orientation of the slicing plane.  If not
@@ -1030,6 +1028,7 @@ class FITSOffAxisProjection(FITSImageData):
             buf[field] = off_axis_projection(source, center, normal, wd,
                                              res, field, north_vector=north_vector,
                                              method=method, weight=weight_field).swapaxes(0,1)
-        center = ds.arr([0.0] * 2, 'code_length')
-        w, not_an_frb = construct_image(ds, normal, buf, center, width=width, image_res=image_res)
+        center = ds.arr([0.0]*2, 'code_length')
+        w, not_an_frb = construct_image(ds, normal, buf, center, image_res,
+                                        width)
         super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w)
