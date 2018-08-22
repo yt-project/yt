@@ -601,7 +601,7 @@ class FITSImageData(object):
                        replace_old_wcs=True):
         """
         Takes a Cartesian WCS and converts it to one in a
-        celestial coordinate system.
+        sky-based coordinate system.
 
         Parameters
         ----------
@@ -619,6 +619,8 @@ class FITSImageData(object):
             Dimensioned coordinate transformation matrix.
         pc : 2x2-element ndarray, optional
             Coordinate transformation matrix.
+        wcsname : string, optional
+            The name of the WCS to be stored in the FITS header.
         replace_old_wcs : boolean, optional
             Whether or not to overwrite the default WCS of the 
             FITSImageData instance. If false, a second WCS will 
