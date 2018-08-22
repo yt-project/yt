@@ -282,10 +282,6 @@ class GridIndex(Index):
 
     def _identify_base_chunk(self, dobj):
         fast_index = None
-        def _gsort(g):
-            if g.filename is None:
-                return str(g.id)
-            return g.filename
         if dobj._type_name == "grid":
             dobj._chunk_info = np.empty(1, dtype='object')
             dobj._chunk_info[0] = weakref.proxy(dobj)
@@ -293,6 +289,10 @@ class GridIndex(Index):
             gi = dobj.selector.select_grids(self.grid_left_edge,
                                             self.grid_right_edge,
                                             self.grid_levels)
+            if any([g.filename is not None for g in self.grids[gi]]):
+                _gsort = _grid_sort_mixed
+            else:
+                _gsort = _grid_sort_id
             grids = list(sorted(self.grids[gi], key = _gsort))
             dobj._chunk_info = np.empty(len(grids), dtype='object')
             for i, g in enumerate(grids):
@@ -387,3 +387,12 @@ class GridIndex(Index):
                 with self.io.preload(dc, preload_fields, 
                             4.0 * size):
                     yield dc
+
+
+def _grid_sort_id(g):
+    return g.id
+
+def _grid_sort_mixed(g):
+    if g.filename is None:
+        return str(g.id)
+    return g.filename
