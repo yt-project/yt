@@ -160,10 +160,10 @@ cdef class CyOctree:
         # will *not* invalidate any pointers
         # This decreases the conversative amount and keeps retrying, unless we
         # stil fail even with a small reserve, then we error
-        cdef int exp_num_nodes = (2**(3 * self.density_factor) *
-                                  self._num_particles // n_ref)
+        cdef int exp_num_nodes = ((2**(3 * self.density_factor) *
+                                  self._num_particles) // n_ref + 8)
         cdef int failed = 1
-        while exp_num_nodes > 10000 and failed == 1:
+        while exp_num_nodes > 8 and failed == 1:
             try:
                 reserve(&self.nodes, exp_num_nodes)
                 failed = 0

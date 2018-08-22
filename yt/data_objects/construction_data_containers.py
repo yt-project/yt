@@ -2184,7 +2184,8 @@ class YTOctree(YTSelectionContainer3D):
     def _generate_tree(self, fname = None):
         positions = []
         for ptype in self.ptypes:
-            positions.append(self._data_source[(ptype, 'particle_position')])
+            positions.append(self._data_source[(ptype,
+                             'particle_position')].in_units("code_length").d)
         positions = np.concatenate(positions)
 
         if positions == []:
@@ -2195,8 +2196,8 @@ class YTOctree(YTSelectionContainer3D):
         self.loaded = False
         self._octree = CyOctree(
             positions.astype('float64', copy=False),
-            left_edge=self.ds.domain_left_edge,
-            right_edge=self.ds.domain_right_edge,
+            left_edge=self.ds.domain_left_edge.in_units("code_length"),
+            right_edge=self.ds.domain_right_edge.in_units("code_length"),
             n_ref=self.n_ref,
             over_refine_factor=self.over_refine_factor,
             density_factor=self.density_factor,
@@ -2238,7 +2239,11 @@ class YTOctree(YTSelectionContainer3D):
                 mylog.info('Detected hash mismatch, regenerating Octree')
                 self._generate_tree(fname)
 
-        self[('index', 'coordinates')] = self._octree.cell_positions
+        pos = ds.arr(self._octree.cell_positions, "code_length")
+        self[('index', 'coordinates')] = pos
+        self[('index', 'x')] = pos[:, 0]
+        self[('index', 'y')] = pos[:, 1]
+        self[('index', 'z')] = pos[:, 2]
 
         return self._octree
 
@@ -2313,7 +2318,7 @@ class YTOctree(YTSelectionContainer3D):
         mass = []
         quant_to_smooth = []
         hsml = []
-        for chunk in self.ds.all_data().chunks(['all'], 'io'):
+        for chunk in self.ds.all_data().chunks([fields], 'io'):
             pos.append(chunk[(fields[0],'particle_position')].in_base("code").d)
             dens.append(chunk[(fields[0],'density')].in_base("code").d)
             mass.append(chunk[(fields[0],'particle_mass')].in_base("code").d)
@@ -2355,7 +2360,7 @@ class YTOctree(YTSelectionContainer3D):
 
         ptype = fields[0]
         pbar = tqdm(desc="Interpolating (scatter) SPH field {}".format(fields[0]))
-        for chunk in self._data_source.chunks(['all'], "io"):
+        for chunk in self._data_source.chunks([fields], "io"):
             px = chunk[(ptype,'particle_position_x')].in_base("code").d
             py = chunk[(ptype,'particle_position_y')].in_base("code").d
             pz = chunk[(ptype,'particle_position_z')].in_base("code").d
