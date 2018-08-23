@@ -1477,7 +1477,9 @@ cdef class ParticleBitmapSelector:
         mi1 = ~(<np.uint64_t>0)
         cdef np.float64_t pos[3]
         cdef np.float64_t dds[3]
+        cdef np.uint64_t cur_ind[3]
         for i in range(3):
+            cur_ind[i] = 0
             pos[i] = self.DLE[i]
             dds[i] = self.DRE[i] - self.DLE[i]
         if mm_g is None:
@@ -1499,7 +1501,7 @@ cdef class ParticleBitmapSelector:
             mm_s0._compress(mm_s)
             return
         else:
-            self.recursive_morton_mask(level, pos, dds, mi1)
+            self.recursive_morton_mask(level, pos, dds, mi1, cur_ind)
         # Set coarse morton indices in order
         self.set_coarse_bool(mm_s0, mm_g0)
         self.set_refined_list(mm_s0, mm_g0)
@@ -1828,7 +1830,7 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     cdef int recursive_morton_mask(
         self, np.int32_t level, np.float64_t pos[3], 
-        np.float64_t dds[3], np.uint64_t mi1) except -1:
+        np.float64_t dds[3], np.uint64_t mi1, np.uint64_t cur_ind[3]) except -1:
         cdef np.uint64_t mi2
         cdef np.float64_t npos[3]
         cdef np.float64_t rpos[3]
@@ -1837,6 +1839,7 @@ cdef class ParticleBitmapSelector:
         cdef np.float64_t DLE[3]
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t ind2[3]
+        cdef np.uint64_t ncur_ind[3]
         cdef int i, j, k, m, sbbox
         PyErr_CheckSignals()
         for i in range(3):
@@ -1846,12 +1849,15 @@ cdef class ParticleBitmapSelector:
         for i in range(2):
             npos[0] = pos[0] + i*ndds[0]
             rpos[0] = npos[0] + ndds[0]
+            ncur_ind[0] = (cur_ind[0] << 1) + i
             for j in range(2):
                 npos[1] = pos[1] + j*ndds[1]
                 rpos[1] = npos[1] + ndds[1]
+                ncur_ind[1] = (cur_ind[1] << 1) + j
                 for k in range(2):
                     npos[2] = pos[2] + k*ndds[2]
                     rpos[2] = npos[2] + ndds[2]
+                    ncur_ind[2] = (cur_ind[2] << 1) + k
                     # Only recurse into selected cells
                     sbbox = self.selector.select_bbox_edge(npos, rpos)
                     if sbbox == 0: continue
@@ -1859,19 +1865,23 @@ cdef class ParticleBitmapSelector:
                         if sbbox == 1:
                             self.fill_subcells_mi1(npos, ndds)
                         else:
-                            self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                            self.recursive_morton_mask(nlevel, npos, ndds, mi1,
+                                                       ncur_ind)
                     elif nlevel == self.order1:
-                        mi1 = bounded_morton_dds(npos[0], npos[1], npos[2], self.DLE, ndds)
+                        mi1 = encode_morton_64bit(ncur_ind[0], ncur_ind[1],
+                                                  ncur_ind[2])
                         if sbbox == 2: # an edge cell
                             if self.is_refined(mi1) == 1:
-                                self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                                self.recursive_morton_mask(nlevel, npos, ndds,
+                                                           mi1, ncur_ind)
                         self.add_coarse(mi1, sbbox)
                         self.push_refined_bool(mi1)
                     elif nlevel < (self.order1 + self.order2):
                         if sbbox == 1:
                             self.fill_subcells_mi2(npos, ndds)
                         else:
-                            self.recursive_morton_mask(nlevel, npos, ndds, mi1)
+                            self.recursive_morton_mask(nlevel, npos, ndds, mi1,
+                                                       ncur_ind)
                     elif nlevel == (self.order1 + self.order2):
                         decode_morton_64bit(mi1,ind1)
                         for m in range(3):
