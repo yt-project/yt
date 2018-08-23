@@ -1830,6 +1830,15 @@ cdef class ParticleBitmapSelector:
                             ncur_ind[0], ncur_ind[1], ncur_ind[2])
                         if sbbox == 2: # an edge cell
                             if self.is_refined(mi1) == 1:
+                                # note we pass zeros here in the last argument
+                                # this is because we now need to generate
+                                # *refined* indices above order1 so we need to
+                                # start a new running count of refined indices.
+                                #
+                                # note that recursive_morton_mask does not
+                                # mutate the last argument (a new index is
+                                # calculated in each stack frame) so this is
+                                # safe
                                 self.recursive_morton_mask(
                                     nlevel, npos, ndds, mi1, zeros)
                         self.add_coarse(mi1, sbbox)
