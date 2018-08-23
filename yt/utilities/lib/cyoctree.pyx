@@ -571,7 +571,7 @@ cdef class CyOctree:
                  temp.right_edge[0], temp.right_edge[1], temp.right_edge[2],
                  temp.start, temp.end, temp.parent, temp.children, temp.leaf,
                  temp.node_id, temp.leaf_id, temp.depth) = \
-                struct.unpack('6d4Q?2QB', f.read(98))
+                struct.unpack('6d4Q?2QB', f.read(105))
                 self.nodes.push_back(temp)
 
         for i in range(3):
