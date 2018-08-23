@@ -61,7 +61,7 @@ class IOHandlerSwift(IOHandlerSPH):
 
     def _yield_coordinates(self, sub_file, needed_ptype=None):
         si, ei = sub_file.start, sub_file.end
-        f = h5py.File(sub_file.filename)
+        f = h5py.File(sub_file.filename, "r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
@@ -70,6 +70,7 @@ class IOHandlerSwift(IOHandlerSPH):
                 or needed_ptype and key != needed_ptype):
                 continue
             pos = f[key]["Coordinates"][si:ei,...]
+            pos.astype("float64", copy=False)
             yield key, pos
         f.close()
 
@@ -79,11 +80,12 @@ class IOHandlerSwift(IOHandlerSPH):
         ptype = self.ds._sph_ptype
         ind = int(ptype[-1])
         si, ei = sub_file.start, sub_file.end
-        with h5py.File(sub_file.filename) as f:
+        with h5py.File(sub_file.filename, "r") as f:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
             pcount = np.clip(pcount - si, 0, ei - si)
             # we upscale to float64
-            hsml = f[ptype]["SmoothingLength"][si:ei,...].astype("float64")
+            hsml = f[ptype]["SmoothingLength"][si:ei,...]
+            hsml.astype("float64", copy=False)
             return hsml
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -117,6 +119,8 @@ class IOHandlerSwift(IOHandlerSPH):
                     else:
                         data = g[field][si:ei][mask, ...]
 
+                    field.astype("float64", copy=False)
+                    data.astype("float64", copy=False)
                     yield (ptype, field), data
             f.close()
 
