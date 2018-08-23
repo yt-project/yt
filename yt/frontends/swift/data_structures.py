@@ -20,14 +20,14 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.frontends.sph.data_structures import \
     SPHDataset, \
     SPHParticleIndex
-from .fields import SwiftFieldInfo
+from yt.frontends.sph.fields import SPHFieldInfo
 from yt.data_objects.static_output import \
     ParticleFile
 from yt.funcs import only_on_root
 
 class SwiftDataset(SPHDataset):
     _index_class = SPHParticleIndex
-    _field_info_class = SwiftFieldInfo
+    _field_info_class = SPHFieldInfo
     _file_class = ParticleFile
 
     _particle_mass_name = "Masses"

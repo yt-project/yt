@@ -21,8 +21,8 @@ Created by Ashley Kelly (a.j.kelly@durham.ac.uk)
 from .data_structures import \
     SwiftDataset
 
-from .fields import \
-    SwiftFieldInfo
+from yt.frontends.sph.fields import \
+    SPHFieldInfo
 
 from .io import \
     IOHandlerSwift

@@ -33,7 +33,6 @@ class IOHandlerSwift(IOHandlerSPH):
     # actually be full data_files.
     # In the event data_files are too big, yt breaks them up into sub_files and
     # we sort of treat them as files in the chunking system
-
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         # yt has the concept of sub_files, i.e, we break up big files into
@@ -50,8 +49,8 @@ class IOHandlerSwift(IOHandlerSPH):
             for ptype, field_list in sorted(ptf.items()):
                 if sub_file.total_particles[ptype] == 0:
                     continue
-                # these should already be float64
                 pos = f["/%s/Coordinates" % ptype][si:ei, :]
+                pos = pos.astype("float64", copy=False)
                 if ptype == self.ds._sph_ptype:
                     hsml = self._get_smoothing_length(sub_file)
                 else:
@@ -70,7 +69,7 @@ class IOHandlerSwift(IOHandlerSPH):
                 or needed_ptype and key != needed_ptype):
                 continue
             pos = f[key]["Coordinates"][si:ei,...]
-            pos.astype("float64", copy=False)
+            pos = pos.astype("float64", copy=False)
             yield key, pos
         f.close()
 
@@ -85,7 +84,7 @@ class IOHandlerSwift(IOHandlerSPH):
             pcount = np.clip(pcount - si, 0, ei - si)
             # we upscale to float64
             hsml = f[ptype]["SmoothingLength"][si:ei,...]
-            hsml.astype("float64", copy=False)
+            hsml = hsml.astype("float64", copy=False)
             return hsml
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -119,7 +118,6 @@ class IOHandlerSwift(IOHandlerSPH):
                     else:
                         data = g[field][si:ei][mask, ...]
 
-                    field.astype("float64", copy=False)
                     data.astype("float64", copy=False)
                     yield (ptype, field), data
             f.close()
