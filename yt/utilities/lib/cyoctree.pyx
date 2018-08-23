@@ -532,7 +532,7 @@ cdef class CyOctree:
                                 *self.idx))
 
             for i in range(self.num_octs):
-                f.write(struct.pack('6d4Q?2Qi',
+                f.write(struct.pack('6d4Q?2QB',
                                     self.nodes[i].left_edge[0],
                                     self.nodes[i].left_edge[1],
                                     self.nodes[i].left_edge[2],
@@ -571,7 +571,7 @@ cdef class CyOctree:
                  temp.right_edge[0], temp.right_edge[1], temp.right_edge[2],
                  temp.start, temp.end, temp.parent, temp.children, temp.leaf,
                  temp.node_id, temp.leaf_id, temp.depth) = \
-                struct.unpack('6d4Q?2Qi', f.read(108))
+                struct.unpack('6d4Q?2QB', f.read(98))
                 self.nodes.push_back(temp)
 
         for i in range(3):
