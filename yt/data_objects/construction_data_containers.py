@@ -357,23 +357,17 @@ class YTProj(YTSelectionContainer2D):
             else:
                 self._projected_units[field] = field_unit
 
-class YTKDTreeProj(YTProj):
+class YTParticleProj(YTProj):
     """
-    TODO add docstring
+    A projection operation optimized for SPH particle data.
     """
     _type_name = "particle_proj"
     def __init__(self, field, axis, weight_field=None, center=None, ds=None,
                  data_source=None, style=None, method="integrate",
                  field_parameters=None, max_level=None):
-        super(YTKDTreeProj, self).__init__(
+        super(YTParticleProj, self).__init__(
             field, axis, weight_field, center, ds, data_source, style, method,
             field_parameters, max_level)
-
-        # ensure the dataset has a kdtree built
-        ds.index.kdtree
-
-    def _get_tree(self, nvals):
-        return self.ds.index.kdtree
 
     def _handle_chunk(self, chunk, fields, tree):
         raise NotImplementedError("Particle projections have not yet been "
