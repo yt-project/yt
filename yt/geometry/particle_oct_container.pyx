@@ -18,7 +18,7 @@ from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
     SparseOctreeContainer, OctKey, OctAllocationContainer
 cimport oct_visitors
 from oct_visitors cimport cind, OctVisitor
-from libc.stdlib cimport malloc, free, qsort
+from libc.stdlib cimport malloc, realloc, free, qsort
 from libc.math cimport floor, ceil, fmod
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport bounded_morton, \
@@ -1396,10 +1396,10 @@ cdef class ParticleBitmapSelector:
     cdef np.uint8_t[:] file_mask_p
     cdef np.uint8_t[:] file_mask_g
     # Uncompressed boolean
-    cdef np.uint8_t *refined_select_bool
-    cdef np.uint8_t *refined_ghosts_bool
-    cdef np.uint8_t *coarse_select_bool
-    cdef np.uint8_t *coarse_ghosts_bool
+    cdef np.uint8_t[:] refined_select_bool
+    cdef np.uint8_t[:] refined_ghosts_bool
+    cdef np.uint8_t[:] coarse_select_bool
+    cdef np.uint8_t[:] coarse_ghosts_bool
     cdef SparseUnorderedRefinedBitmask refined_ghosts_list
     cdef BoolArrayColl select_ewah
     cdef BoolArrayColl ghosts_ewah
@@ -1409,6 +1409,7 @@ cdef class ParticleBitmapSelector:
         cdef np.ndarray[np.uint8_t, ndim=1] periodicity = np.zeros(3, dtype='uint8')
         cdef np.ndarray[np.float64_t, ndim=1] DLE = np.zeros(3, dtype='float64')
         cdef np.ndarray[np.float64_t, ndim=1] DRE = np.zeros(3, dtype='float64')
+
         self.selector = selector
         self.bitmap = bitmap
         self.ngz = ngz
@@ -1427,47 +1428,23 @@ cdef class ParticleBitmapSelector:
         self.max_index2 = <np.uint64_t>(1 << self.order2)
         self.s1 = <np.uint64_t>(1 << (self.order1*3))
         self.s2 = <np.uint64_t>(1 << (self.order2*3))
-        self.pointers[0] = malloc( sizeof(np.int32_t) * (2*ngz+1)*3)
-        self.pointers[1] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
-        self.pointers[2] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
-        self.pointers[3] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
-        self.pointers[4] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
-        self.pointers[5] = malloc( sizeof(np.uint8_t) * bitmap.nfiles)
-        self.pointers[6] = malloc( sizeof(np.uint8_t) * bitmap.nfiles)
-        self.neighbors = <np.uint32_t[:2*ngz+1,:3]> self.pointers[0]
-        self.ind1_n = <np.uint64_t[:2*ngz+1,:3]> self.pointers[1]
-        self.ind2_n = <np.uint64_t[:2*ngz+1,:3]> self.pointers[2]
-        self.neighbor_list1 = <np.uint64_t[:((2*ngz+1)**3)]> self.pointers[3]
-        self.neighbor_list2 = <np.uint64_t[:((2*ngz+1)**3)]> self.pointers[4]
-        self.file_mask_p = <np.uint8_t[:bitmap.nfiles]> self.pointers[5]
-        self.file_mask_g = <np.uint8_t[:bitmap.nfiles]> self.pointers[6]
-        self.neighbors[:,:] = 0
-        self.file_mask_p[:] = 0
-        self.file_mask_g[:] = 0
-        # Uncompressed Boolean
-        self.pointers[7] = malloc( sizeof(np.uint8_t) * self.s2)
-        self.pointers[8] = malloc( sizeof(np.uint8_t) * self.s2)
-        self.pointers[9] = malloc( sizeof(np.uint8_t) * self.s1)
-        self.pointers[10] = malloc( sizeof(np.uint8_t) * self.s1)
-        self.refined_select_bool = <np.uint8_t *> self.pointers[7]
-        self.refined_ghosts_bool = <np.uint8_t *> self.pointers[8]
-        self.coarse_select_bool = <np.uint8_t *> self.pointers[9]
-        self.coarse_ghosts_bool = <np.uint8_t *> self.pointers[10]
-        cdef np.uint64_t mi
-        for mi in range(<np.int64_t>self.s2):
-            self.refined_select_bool[mi] = 0
-            self.refined_ghosts_bool[mi] = 0
-        for mi in range(<np.int64_t>self.s1):
-            self.coarse_select_bool[mi] = 0
-            self.coarse_ghosts_bool[mi] = 0
+
+        self.neighbors = np.zeros((2*ngz+1, 3), dtype='uint32')
+        self.ind1_n = np.zeros((2*ngz+1, 3), dtype='uint64')
+        self.ind2_n = np.zeros((2*ngz+1, 3), dtype='uint64')
+        self.neighbor_list1 = np.zeros((2*ngz+1)**3, dtype='uint64')
+        self.neighbor_list2 = np.zeros((2*ngz+1)**3, dtype='uint64')
+        self.file_mask_p = np.zeros(bitmap.nfiles, dtype='uint8')
+        self.file_mask_g = np.zeros(bitmap.nfiles, dtype='uint8')
+
+        self.refined_select_bool = np.zeros(self.s2, 'uint8')
+        self.refined_ghosts_bool = np.zeros(self.s2, 'uint8')
+        self.coarse_select_bool = np.zeros(self.s1, 'uint8')
+        self.coarse_ghosts_bool = np.zeros(self.s1, 'uint8')
+
         self.refined_ghosts_list = SparseUnorderedRefinedBitmask()
         self.select_ewah = BoolArrayColl(self.s1, self.s2)
         self.ghosts_ewah = BoolArrayColl(self.s1, self.s2)
-
-    def __dealloc__(self):
-        cdef int i
-        for i in range(11):
-            free(self.pointers[i])
 
     def fill_masks(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g = None):
         # Normal variables
@@ -1495,7 +1472,6 @@ cdef class ParticleBitmapSelector:
             rpos[i] = self.DRE[i] - self.bitmap.dds_mi2[i]/2.0
         sbbox = self.selector.select_bbox_edge(pos, rpos)
         if sbbox == 1:
-            # self.fill_subcells_mi1(pos, dds)
             for mi1 in range(<np.int64_t>self.s1):
                 mm_s0._set_coarse(mi1)
             mm_s0._compress(mm_s)
@@ -1591,7 +1567,7 @@ cdef class ParticleBitmapSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2, int bbox = 2):
+    cdef int add_refined(self, np.uint64_t mi1, np.uint64_t mi2, int bbox = 2) except -1:
         self.refined_select_bool[mi2] = 1
         # Neighbors
         if (self.ngz > 0):
@@ -1722,10 +1698,10 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     cdef void set_coarse_bool(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
         cdef np.uint64_t mi1
-        mm_s._set_coarse_array_ptr(self.coarse_select_bool)
+        mm_s._set_coarse_array_ptr(&self.coarse_select_bool[0])
         for mi1 in range(self.s1):
             self.coarse_select_bool[mi1] = 0
-        mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
+        mm_g._set_coarse_array_ptr(&self.coarse_ghosts_bool[0])
         for mi1 in range(self.s1):
             self.coarse_ghosts_bool[mi1] = 0
 
@@ -1742,10 +1718,10 @@ cdef class ParticleBitmapSelector:
     @cython.initializedcheck(False)
     cdef void push_refined_bool(self, np.uint64_t mi1):
         cdef np.uint64_t mi2
-        self.select_ewah._set_refined_array_ptr(mi1, self.refined_select_bool)
+        self.select_ewah._set_refined_array_ptr(mi1, &self.refined_select_bool[0])
         for mi2 in range(self.s2):
             self.refined_select_bool[mi2] = 0
-        self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
+        self.ghosts_ewah._set_refined_array_ptr(mi1, &self.refined_ghosts_bool[0])
         for mi2 in range(self.s2):
             self.refined_ghosts_bool[mi2] = 0
 
@@ -1762,13 +1738,14 @@ cdef class ParticleBitmapSelector:
                         if mm_s._get(mi1, mi2):
                             self.add_neighbors_refined(mi1, mi2)
                     # self.push_refined_bool(mi1)
-                    self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
+                    self.ghosts_ewah._set_refined_array_ptr(mi1,
+                                                            &self.refined_ghosts_bool[0])
                     for mi2 in range(self.s2):
                         self.refined_ghosts_bool[mi2] = 0
                 else:
                     self.add_neighbors_coarse(mi1)
         # Add ghost zones to bool array in order
-        mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
+        mm_g._set_coarse_array_ptr(&self.coarse_ghosts_bool[0])
         for mi1 in range(self.s1):
             self.coarse_ghosts_bool[mi1] = 0
         self.refined_ghosts_list._fill_bool(mm_g)
@@ -1777,53 +1754,33 @@ cdef class ParticleBitmapSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void fill_subcells_mi1(self, np.float64_t pos[3], np.float64_t dds[3]):
-        cdef int i, j, k
+    cdef int fill_subcells_mi1(self,
+                               np.uint64_t nlevel,
+                               np.uint64_t ind1[3]) except -1:
         cdef np.uint64_t imi, fmi
         cdef np.uint64_t mi
-        cdef np.uint64_t ind1[3]
-        cdef np.uint64_t indexgap[3]
-        for i in range(3):
-            ind1[i] = <np.uint64_t>((pos[i] - self.DLE[i])/self.bitmap.dds_mi1[i])
-            indexgap[i] = <np.uint64_t>(dds[i]/self.bitmap.dds_mi1[i])
+        cdef np.uint64_t indexgap = 1 << (self.bitmap.index_order1 - nlevel)
         imi = encode_morton_64bit(ind1[0], ind1[1], ind1[2])
-        fmi = encode_morton_64bit(ind1[0]+indexgap[0]-1, 
-                                  ind1[1]+indexgap[1]-1, 
-                                  ind1[2]+indexgap[2]-1)
+        fmi = encode_morton_64bit(
+            ind1[0]+indexgap-1, ind1[1]+indexgap-1, ind1[2]+indexgap-1)
         for mi in range(imi, fmi+1):
             self.add_coarse(mi, 1)
-        # for i in range(<np.int64_t>indexgap[0]):
-        #     for j in range(<np.int64_t>indexgap[1]):
-        #         for k in range(<np.int64_t>indexgap[2]):
-        #             mi = encode_morton_64bit(ind1[0]+i, ind1[1]+j, ind1[2]+k)
-        #             self.add_coarse(mi, 1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void fill_subcells_mi2(self, np.float64_t pos[3], np.float64_t dds[3]):
-        cdef int i, j, k
+    cdef int fill_subcells_mi2(self,
+                               np.uint64_t nlevel,
+                               np.uint64_t mi1,
+                               np.uint64_t ind2[3]) except -1:
         cdef np.uint64_t imi, fmi
-        cdef np.uint64_t mi1, mi2
-        cdef np.uint64_t ind1[3]
-        cdef np.uint64_t ind2[3]
-        cdef np.uint64_t indexgap[3]
-        for i in range(3):
-            ind1[i] = <np.uint64_t>((pos[i] - self.DLE[i])/self.bitmap.dds_mi1[i])
-            ind2[i] = <np.uint64_t>((pos[i] - (self.DLE[i]+self.bitmap.dds_mi1[i]*ind1[i]))/self.bitmap.dds_mi2[i])
-            indexgap[i] = <np.uint64_t>(dds[i]/self.bitmap.dds_mi2[i])
-        mi1 = encode_morton_64bit(ind1[0], ind1[1], ind1[2])
+        cdef np.uint64_t indexgap = 1 << (
+            self.bitmap.index_order2 - (nlevel - self.bitmap.index_order1))
         imi = encode_morton_64bit(ind2[0], ind2[1], ind2[2])
-        fmi = encode_morton_64bit(ind2[0]+indexgap[0]-1, 
-                                  ind2[1]+indexgap[1]-1, 
-                                  ind2[2]+indexgap[2]-1)
+        fmi = encode_morton_64bit(
+            ind2[0]+indexgap-1, ind2[1]+indexgap-1, ind2[2]+indexgap-1)
         for mi2 in range(imi, fmi+1):
             self.add_refined(mi1, mi2, 1)
-        # for i in range(<np.int64_t>indexgap[0]):
-        #     for j in range(<np.int64_t>indexgap[1]):
-        #         for k in range(<np.int64_t>indexgap[2]):
-        #             mi2 = encode_morton_64bit(ind2[0]+i, ind2[1]+j, ind2[2]+k)
-        #             self.add_refined(mi1, mi2, 1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1836,10 +1793,10 @@ cdef class ParticleBitmapSelector:
         cdef np.float64_t rpos[3]
         cdef np.float64_t ndds[3]
         cdef np.uint64_t nlevel
-        cdef np.float64_t DLE[3]
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t ind2[3]
         cdef np.uint64_t ncur_ind[3]
+        cdef np.uint64_t* zeros = [0, 0, 0] 
         cdef int i, j, k, m, sbbox
         PyErr_CheckSignals()
         for i in range(3):
@@ -1860,34 +1817,33 @@ cdef class ParticleBitmapSelector:
                     ncur_ind[2] = (cur_ind[2] << 1) + k
                     # Only recurse into selected cells
                     sbbox = self.selector.select_bbox_edge(npos, rpos)
-                    if sbbox == 0: continue
+                    if sbbox == 0:
+                        continue
                     if nlevel < self.order1:
                         if sbbox == 1:
-                            self.fill_subcells_mi1(npos, ndds)
+                            self.fill_subcells_mi1(nlevel, ncur_ind)
                         else:
-                            self.recursive_morton_mask(nlevel, npos, ndds, mi1,
-                                                       ncur_ind)
+                            self.recursive_morton_mask(
+                                nlevel, npos, ndds, mi1, ncur_ind)
                     elif nlevel == self.order1:
-                        mi1 = encode_morton_64bit(ncur_ind[0], ncur_ind[1],
-                                                  ncur_ind[2])
+                        mi1 = encode_morton_64bit(
+                            ncur_ind[0], ncur_ind[1], ncur_ind[2])
                         if sbbox == 2: # an edge cell
                             if self.is_refined(mi1) == 1:
-                                self.recursive_morton_mask(nlevel, npos, ndds,
-                                                           mi1, ncur_ind)
+                                self.recursive_morton_mask(
+                                    nlevel, npos, ndds, mi1, zeros)
                         self.add_coarse(mi1, sbbox)
                         self.push_refined_bool(mi1)
                     elif nlevel < (self.order1 + self.order2):
                         if sbbox == 1:
-                            self.fill_subcells_mi2(npos, ndds)
+                            self.fill_subcells_mi2(nlevel, mi1, ncur_ind)
                         else:
-                            self.recursive_morton_mask(nlevel, npos, ndds, mi1,
-                                                       ncur_ind)
+                            self.recursive_morton_mask(
+                                nlevel, npos, ndds, mi1, ncur_ind)
                     elif nlevel == (self.order1 + self.order2):
-                        decode_morton_64bit(mi1,ind1)
-                        for m in range(3):
-                            DLE[m] = self.DLE[m] + ndds[m]*ind1[m]*self.max_index2
-                        mi2 = bounded_morton_dds(npos[0], npos[1], npos[2], DLE, ndds)
-                        self.add_refined(mi1,mi2,sbbox)
+                        mi2 = encode_morton_64bit(
+                            ncur_ind[0], ncur_ind[1], ncur_ind[2])
+                        self.add_refined(mi1, mi2, sbbox)
         return 0
 
     @cython.boundscheck(False)
