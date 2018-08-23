@@ -18,7 +18,7 @@ from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
     SparseOctreeContainer, OctKey, OctAllocationContainer
 cimport oct_visitors
 from oct_visitors cimport cind, OctVisitor
-from libc.stdlib cimport malloc, realloc, free, qsort
+from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor, ceil, fmod
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport bounded_morton, \
