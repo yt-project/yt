@@ -491,7 +491,16 @@ cdef class CyOctree:
                                    &self.nodes[0],
                                    use_normalization=use_normalization)
 
-    def __eq__(self, CyOctree other):
+    def __richcmp__(self, CyOctree other, op):
+        if op == 2:
+            return self._is_equal(other)
+        elif op ==3:
+            return not self._is_equal(other)
+        else:
+            raise NotImplementedError(("Use == or !=, other comparisons have " +
+                                       "not been implemented."))
+
+    def _is_equal(self, CyOctree other):
         cdef bool same = True
 
         for i in range(3):
@@ -513,9 +522,6 @@ cdef class CyOctree:
             same = False
 
         return same
-
-    def __neq__(self, CyOctree other):
-        return not self == other
 
     # TODO: this code is much slower than I would like, this is likely due to
     # the use of struct -> plan to replace this. A c++ approach is probably
