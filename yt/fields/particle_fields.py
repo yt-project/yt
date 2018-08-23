@@ -63,7 +63,6 @@ sph_whitelist_fields = (
     'Fe_density'
 )
 
-
 def _field_concat(fname):
     def _AllFields(field, data):
         v = []
@@ -765,7 +764,14 @@ def non_local_particle_fields(registry, ptype,
     # already have
 
     def _vorticity_x(field, data):
-        """This field is a test"""
+        """This field is a test in which I will attempt to add the framework
+           to calculate non-local fields"""
+
+        # essentially this calculation needs to be,
+        # calculate or access nearest neighbors
+        # then use the gradient of a kernel
+        # loop over nearest neighbors
+
         return data[ptype, 'velocity']
 
     registry.add_field((ptype, "particle_vorticity_x"),
