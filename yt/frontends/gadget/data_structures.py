@@ -553,7 +553,7 @@ class GadgetHDF5Dataset(GadgetDataset):
 
         try:
             fh = h5py.File(args[0], mode='r')
-            valid = fh["Header"].attrs["Code"] != b"SWIFT"
+            valid = fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
             fh.close()
         except (IOError, KeyError, ImportError):
             pass

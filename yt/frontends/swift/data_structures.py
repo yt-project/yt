@@ -189,7 +189,7 @@ class SwiftDataset(SPHDataset):
         # Attempt to open the file, if it's not a hdf5 then this will fail:
         try:
             handle = h5py.File(filename, "r")
-            valid = handle["Header"].attrs["Code"] == b"SWIFT"
+            valid = handle["Header"].attrs["Code"].decode("utf-8") == "SWIFT"
             handle.close()
         except (IOError, KeyError, ImportError):
             valid = False
