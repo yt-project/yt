@@ -763,14 +763,24 @@ def non_local_particle_fields(registry, ptype,
     # then this can be easily interpolated onto a pixel using the machinery we
     # already have
 
+    def _nearest_neighbors(field, data):
+        # need to hook this into some cython routines
+
+        print("calcing nn")
+        return np.zeros((data[ptype, 'density'].shape[0], 1))
+
+    registry.add_field((ptype, "nearest_neighbors"),
+                       sampling_type="pa:rticle",
+                       function=_nearest_neighbors)
+
     def _vorticity_x(field, data):
         """This field is a test in which I will attempt to add the framework
            to calculate non-local fields"""
 
-        # essentially this calculation needs to be,
-        # calculate or access nearest neighbors
-        # then use the gradient of a kernel
-        # loop over nearest neighbors
+        # need a way to loop over nearest neighbors and do gradient, divergence
+        # and curl of a field. Also need a way to select the kernel and
+        # arbitrarily calculate the derviative
+        data[ptype, "nearest_neighbors"]
 
         return data[ptype, 'velocity']
 
