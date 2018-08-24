@@ -44,7 +44,8 @@ from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
 from yt.funcs import get_pbar
 from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
-from yt.utilities.lib.particle_kdtree_tools import knn_list_grid
+from yt.utilities.lib.particle_kdtree_tools import knn_list_grid, knn_position
+from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
 from yt.extern.tqdm import tqdm
 
 cdef int TABLE_NVALS=512
@@ -1054,6 +1055,67 @@ def pixelize_sph_kernel_projection(
                     # now we just use the kernel projection
                     buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
 
+@cython.initializedcheck(True)
+@cython.boundscheck(True)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def interpolate_sph_arbitrary_positions_gather(
+        np.float64_t[:] buff,
+        np.float64_t[:, :] particle_positions,
+        np.float64_t[:, :] interpolation_positions,
+        np.float64_t[:] hsml, np.float64_t[:] pmass,
+        np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth,
+        PyKDTree kdtree=None, int use_normalization=1,
+        kernel_name="cubic", pbar=None, int num_neigh=32):
+
+    cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
+    cdef int index, i, j, particle
+    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
+    cdef np.float64_t[:] buff_den
+
+    # only allocate memory if we are doing the normalization
+    if use_normalization:
+        buff_den = np.zeros((buff.shape[0]), dtype=float)
+
+    kernel_func = get_kernel_func(kernel_name)
+
+    # loop through all the positions we want to interpolate the sph field onto
+    for j in range(0, interpolation_positions.shape[0]):
+        if j % 100000 == 0:
+            if pbar is not None:
+                pbar.update(100000)
+
+        # use the kdtree to find the nearest neighbors
+        knn_position(interpolation_positions[j, :], particle_positions,
+                     queue, kdtree)
+
+        # set the smoothing length squared to the square of the distance to the
+        # nearest neighbor
+        h_j2 = queue.heap[0]
+        ih_j2 = 1.0/h_j2
+
+        #  Now we know which pixels to deposit onto for this particle
+        for i in range(queue.max_elements):
+            particle = kdtree.idx[queue.pids[i]]
+
+            # do the interpolation here
+            prefactor_j = (pmass[particle] / pdens[particle] /
+                           hsml[particle]**3)
+            q_ij = math.sqrt(queue.heap[i]*ih_j2)
+            smoothed_quantity_j = (prefactor_j *
+                                   quantity_to_smooth[particle] *
+                                   kernel_func(q_ij))
+
+            # see equations 6, 9, and 11 of the SPLASH paper
+            buff[j] += smoothed_quantity_j
+
+            if use_normalization:
+                buff_den[j] += prefactor_j * kernel_func(q_ij)
+
+    if use_normalization:
+        normalization_1d_utility(buff, buff_den)
+
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1142,8 +1204,7 @@ def pixelize_sph_kernel_slice(
 @cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_gather(np.float64_t[:, :, :] buff, np.float64_t[:] bounds,
-                        data_source, field, ptype,
-                        np.int64_t skipaxis=-1,
+                        data_source, field, ptype, np.int64_t skipaxis=-1,
                         normalize=True):
         cdef int i, j, k
         cdef np.float64_t[:, :, :] buff_den
@@ -1566,6 +1627,16 @@ cpdef np.float64_t[:, :] get_rotation_matrix(np.float64_t[:] normal_vector,
                          + np.matmul(cross_product_matrix, cross_product_matrix)
                          * 1/(1+c))
 
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def normalization_1d_utility(np.float64_t[:] num,
+                             np.float64_t[:] den):
+    cdef int i
+    for i in range(num.shape[0]):
+            if den[i] != 0.0:
+                num[i] = num[i] / den[i]
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)

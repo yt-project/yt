@@ -42,7 +42,7 @@ cdef struct axes_range:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int set_axes_range(axes_range *axes, skipaxis):
+cdef int set_axes_range(axes_range *axes, int skipaxis):
     axes.start = 0
     axes.stop = 3
     axes.step = 1
@@ -125,6 +125,63 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     pbar.update(n_particles-1)
     pbar.finish()
     return np.asarray(smoothing_length)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def knn_position(np.float64_t [::1] position,
+                      np.float64_t [:, ::1] tree_positions,
+                      BoundedPriorityQueue queue,
+                      PyKDTree kdtree,
+                      np.int64_t skipaxis=-1):
+
+    """This calcualtes the K nearest neighbors of an individual position
+
+    Parameters
+    ----------
+
+    position: array of floats (3)
+        The position to find the nearest neighbors
+    tree_positions: arrays of floats with shape (n_particles, 3)
+        The positions of particles in kdtree non-sorted order. Currently assumed
+        to be 3D postions.
+    queue: A BoundedPriorityQueue instance
+        This prevents the costant reallocation
+    kdtree: A PyKDTree instance
+        A kdtree to do nearest neighbors searches with
+    skipaxis: int
+        Any physics dimensions which should be ignored when calculating
+        distances, i.e in a projection plot
+    """
+
+    # the positions are the positions to find the k nn and the dists and pids
+    cdef KDTree* c_tree = kdtree._tree
+    cdef Node* leafnode
+    cdef np.float64_t* pos
+    cdef int skipidx = -1
+    cdef int extra_nodes
+
+    cdef axes_range axes
+    set_axes_range(&axes, skipaxis)
+
+    with nogil:
+        queue.size = 0
+        pos = &(position[0])
+
+        leafnode = c_tree.search(pos)
+        process_node_points(leafnode, queue, tree_positions, pos, skipidx, &axes)
+
+        # if we want more neighbors than particles in a leaf, then we
+        # loop through a few neighbors
+        extra_nodes = 0
+        while queue.size < queue.max_elements and extra_nodes < \
+                leafnode.all_neighbors.size():
+            process_node_points(c_tree.leaves[leafnode.all_neighbors[extra_nodes]],
+                            queue, tree_positions, pos, skipidx, &axes)
+            extra_nodes += 1
+
+        find_knn(c_tree.root, queue, tree_positions, pos, leafnode.leafid, skipidx,
+             &axes)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
