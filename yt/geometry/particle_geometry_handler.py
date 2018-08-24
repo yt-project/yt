@@ -150,9 +150,9 @@ class ParticleIndex(Index):
             self._initialize_coarse_index()
             self._initialize_refined_index()
             wdir = os.path.dirname(fname)
-            # Sometimes os mis-reports whether a directory is writable,
-            # So pass if writing the bitmask file fails.
             if not dont_cache and os.access(wdir, os.W_OK):
+                # Sometimes os mis-reports whether a directory is writable,
+                # So pass if writing the bitmask file fails.
                 try:
                     self.regions.save_bitmasks(fname)
                 except OSError:
