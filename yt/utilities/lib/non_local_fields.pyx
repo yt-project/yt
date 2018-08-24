@@ -20,6 +20,8 @@ cimport cython
 
 from libc.math cimport sqrt
 
+from cykdtree.kdtree cimport PyKDTree, KDTree
+from yt.utilities.lib.particle_kdtree_tools import knn_position
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
 
 def calculate_non_local_field(np.float64_t[:, ::1] output_buffer,
@@ -28,6 +30,7 @@ def calculate_non_local_field(np.float64_t[:, ::1] output_buffer,
                               np.float64_t[:] density,
                               np.float64_t[:] hsml,
                               np.float64_t[:, :] field_quantity,
+                              PyKDTree kdtree,
                               spatial_type=None,
                               int num_neighbors=32,
                               kernel='cubic'):
@@ -37,12 +40,13 @@ def calculate_non_local_field(np.float64_t[:, ::1] output_buffer,
     cdef np.float64_t[::1] kernel_values = np.zeros((3))
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neighbors, True)
 
-    # Access the gradient of the kernel
-
     # Get the function for the calculating the spatial derivatives
+    spatial_type = divergence
 
     for i in range(particle_positions.shape[0]):
         # calculate the nearest neighbors here
+        knn_position(particle_positions[i, :], particle_positions, queue,
+                     kdtree)
 
         for j in range(num_neighbors):
             # Calculate the pre-factor and the difference in fields
@@ -51,12 +55,18 @@ def calculate_non_local_field(np.float64_t[:, ::1] output_buffer,
             field_diff[:] = field_quantity[particle, :] - field_quantity[i, :]
 
             # Calculate the kernel values here
+            x = particle_positions[i, 0] - particle_positions[particle, 0]
+            y = particle_positions[i, 1] - particle_positions[particle, 1]
+            z = particle_positions[i, 2] - particle_positions[particle, 2]
+            q = math.sqrt((x*x + y*y + z*z)) / hsml
+            cubic_spline_grad(&kernel_values[0], q)
 
             # Add to the output buffer
             spatial_type(output_buffer[i, :], &kernel_values[0], &field_diff[0])
 
+#TODO: fix this
 cdef void cubic_spline_grad(np.float64_t * kernel_values,
-                                    np.float64_t x):
+                            np.float64_t x):
     cdef np.float64_t kernel
     # C is 8/pi
     cdef np.float64_t C = 2.5464790894703255

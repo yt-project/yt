@@ -61,6 +61,7 @@ yt/utilities/lib/mesh_triangulation.c
 yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/pixelization_routines.cpp
 yt/utilities/lib/misc_utilities.c
+yt/utilities/lib/non_local_fields.c
 yt/utilities/lib/particle_kdtree_tools.cpp
 yt/utilities/lib/particle_mesh_operations.c
 yt/utilities/lib/partitioned_grid.c
