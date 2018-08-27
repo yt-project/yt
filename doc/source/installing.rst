@@ -125,7 +125,9 @@ In addition, you can tell the install script to download and install some
 additional packages --- currently these include
 `PyX <http://pyx.sourceforge.net/>`_, the `Rockstar halo
 finder <http://arxiv.org/abs/1110.4372>`_, `SciPy <https://www.scipy.org/>`_,
-`Astropy <http://www.astropy.org/>`_, and the necessary dependencies for
+`Astropy <http://www.astropy.org/>`_, 
+`Cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_, 
+and the necessary dependencies for
 :ref:`unstructured mesh rendering <unstructured_mesh_rendering>`. The script has
 all of the options for installing optional packages near the top of the
 file. You should be able to open it and edit it without any knowledge of bash
@@ -395,8 +397,8 @@ which can be installed with ``pip``:
   $ pip install numpy cython
 
 You may also want to install some of yt's optional dependencies, including
-``jupyter``, ``h5py`` (which in turn depends on the HDF5 library), ``scipy``, or
-``astropy``,
+``jupyter``, ``h5py`` (which in turn depends on the HDF5 library), ``scipy``,
+``astropy``, or ``cartopy``.
 
 The source code for yt may be found on GitHub. If you prefer to install the
 development version of yt instead of the latest stable release, you will need

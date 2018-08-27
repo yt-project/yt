@@ -15,7 +15,7 @@ from nose.plugins.attrib import attr
 import yt
 import unittest
 import cartopy.crs
-from yt.testing import ANSWER_TEST_TAG, fake_amr_ds
+from yt.testing import ANSWER_TEST_TAG, fake_amr_ds, requires_module
 from yt.utilities.answer_testing.framework import GenericImageTest
 from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
 
@@ -40,6 +40,7 @@ def compare(ds, field, idir, test_prefix, test_name, transform,
     test.answer_name = test_name
     return test
 
+@requires_module("cartopy")
 @attr(ANSWER_TEST_TAG)
 def test_geo_slices_amr():
     ds = fake_amr_ds(geometry="geographic")
@@ -49,6 +50,7 @@ def test_geo_slices_amr():
             yield compare(ds, field, 'altitude', test_prefix=prefix,
                           test_name="geo_slices_amr", transform=transform)
 
+@requires_module("cartopy")
 class TestGeoProjections(unittest.TestCase):
 
     def setUp(self):
