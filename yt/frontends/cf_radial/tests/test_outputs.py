@@ -80,10 +80,25 @@ def test_origin_longitude():
     assert_almost_equal(ds.origin_longitude.values, -97.5939)
 
 @requires_file(cf)
-def test_domain_dimensions()::
+def test_domain_dimensions():
+    ds = data_dir_load(cf)
+    domain_dim_array = ([251, 251, 46])
+    assert_equal(ds.domain_dimensions, domain_dim_array)
 
-@requires_files(cf)
+@requires_file(cf)
+def test_domain_center():
+    ds = data_dir_load(cf)
+    domain_center_array = ([0.0, 0.0, 7500.0])
+    assert_equal(ds.domain_center, domain_center_array)
+
+@requires_file(cf)
 def test_domain_left_edge():
+    ds = data_dir_load(cf)
+    domain_left_array = ([-50000.0, -50000.0, 0.0])
+    assert_equal(ds.domain_left_edge, domain_left_array)
 
-@requires_files(cf)
+@requires_file(cf)
 def test_domain_right_edge():
+    ds = data_dir_load(cf)
+    domain_right_array = ([50000.0, 50000.0, 15000.0])
+    assert_equal(ds.domain_right_edge, domain_right_array)
