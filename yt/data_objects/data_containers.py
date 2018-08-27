@@ -638,7 +638,10 @@ class YTDataContainer(object):
         otherwise Glue will be started.
         """
         from glue.core import DataCollection, Data
-        from glue.qt.glue_application import GlueApplication
+        try:
+            from glue.app.qt.application import GlueApplication
+        except ImportError:
+            from glue.qt.glue_application import GlueApplication
 
         gdata = Data(label=label)
         for component_name in fields:
