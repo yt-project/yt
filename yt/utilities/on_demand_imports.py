@@ -148,6 +148,34 @@ class astropy_imports(object):
 
 _astropy = astropy_imports()
 
+class cartopy_imports(object):
+    _name = "cartopy"
+
+    _crs = None
+    @property
+    def crs(self):
+        if self._crs is None:
+            try:
+                import cartopy.crs as crs
+            except ImportError:
+                crs = NotAModule(self._name)
+            self._crs = crs
+        return self._crs
+
+    _version = None
+    @property
+    def __version__(self):
+        if self._version is None:
+            try:
+                import cartopy
+                version = cartopy.__version__
+            except ImportError:
+                version = NotAModule(self._name)
+            self._version = version
+        return self._version
+
+_cartopy = cartopy_imports()
+
 class scipy_imports(object):
     _name = "scipy"
     _integrate = None
@@ -204,7 +232,7 @@ class scipy_imports(object):
                 special = NotAModule(self._name)
             self._special = special
         return self._special
-    
+
     _signal = None
     @property
     def signal(self):

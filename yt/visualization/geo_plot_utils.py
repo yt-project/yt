@@ -14,7 +14,7 @@ def cartopy_importer(transform_name):
     """
 
     def _func(*args, **kwargs):
-        import cartopy.crs
+        from yt.utilities.on_demand_imports import _cartopy as cartopy
         return getattr(cartopy.crs, transform_name)(*args, **kwargs)
     return _func
 
