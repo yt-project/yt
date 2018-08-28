@@ -6,7 +6,7 @@ from yt.testing import fake_random_ds, requires_module
 def setup_func():
     ytcfg["yt", "__withintesting"] = "True"
 
-@requires_module('glue')
+@requires_module('glue.core')
 @nose.with_setup(setup_func)
 def test_glue_data_object():
     ds = fake_random_ds(16)
