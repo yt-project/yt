@@ -637,12 +637,16 @@ class YTDataContainer(object):
         the Glue environment, you can pass a *data_collection* object,
         otherwise Glue will be started.
         """
+        from yt.config import ytcfg
         from glue.core import DataCollection, Data
-        try:
-            from glue.app.qt.application import GlueApplication
-        except ImportError:
-            from glue.qt.glue_application import GlueApplication
-
+        if ytcfg.getboolean("yt", "__withintesting"):
+            from glue.core.application_base import \
+                Application as GlueApplication
+        else:
+            try:
+                from glue.app.qt.application import GlueApplication
+            except ImportError:
+                from glue.qt.glue_application import GlueApplication
         gdata = Data(label=label)
         for component_name in fields:
             gdata.add_component(self[component_name], component_name)
@@ -650,7 +654,12 @@ class YTDataContainer(object):
         if data_collection is None:
             dc = DataCollection([gdata])
             app = GlueApplication(dc)
-            app.start()
+            try:
+                app.start()
+            except AttributeError:
+                # In testing we're using a dummy glue application object
+                # that doesn't have a start method
+                pass
         else:
             data_collection.append(gdata)
 
