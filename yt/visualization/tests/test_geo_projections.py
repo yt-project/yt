@@ -14,7 +14,6 @@ from nose.plugins.attrib import attr
 
 import yt
 import unittest
-import cartopy.crs
 from yt.testing import ANSWER_TEST_TAG, fake_amr_ds, requires_module
 from yt.utilities.answer_testing.framework import GenericImageTest
 from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
