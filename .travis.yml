@@ -78,13 +78,13 @@ jobs:
     - stage: tests
       name: "Python: 2.7 Unit Tests"
       python: 2.7
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0 REQUESTS=
+      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0 REQUESTS= GLUE= PYQT=
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
       name: "Python: 2.7 Unit Tests"
       python: 2.7
-      env: FLAKE8= REQUESTS=
+      env: FLAKE8= REQUESTS= GLUE= PYQT=
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
@@ -102,7 +102,7 @@ jobs:
     - stage: tests
       name: "Python: 2.7 Answer Tests"
       python: 2.7
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0
+      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0 GLUE= PYQT=
       script: coverage run $(which nosetests) -c nose_answer.cfg
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 
@@ -118,6 +118,7 @@ jobs:
       os: osx
       osx_image: xcode7.3
       language: generic  # https://github.com/travis-ci/travis-ci/issues/2312
+      env: FLAKE8= REQUESTS= GLUE= PYQT=
       cache:
         pip: false
         directories:
