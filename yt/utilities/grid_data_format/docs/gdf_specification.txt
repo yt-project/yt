@@ -28,7 +28,7 @@ Caveats and Notes
    this format.)
 #. All fluid fields in this version of the format are assumed to have the
    dimensionality of the grid they reside in plus any ghost zones, plus any
-   additionaly dimensionality required by the staggering property.
+   additionally dimensionality required by the staggering property.
 #. Particles may have dataspaces affiliated with them.  (See Enzo's
    OutputParticleTypeGrouping for more information.)  This enables a light
    wrapper around data formats with interspersed particle types.

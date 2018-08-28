@@ -26,16 +26,13 @@ There are five main communication channels for yt:
    chat service that many teams use to organize their work. You can get an
    invite to yt's Slack organization by clicking the "Join us @ Slack" button
    on this page: http://yt-project.org/community.html
- * `yt-users <http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org>`_
+ * `yt-users <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_
    is a relatively high-traffic mailing list where people are encouraged to ask
    questions about the code, figure things out and so on.
- * `yt-dev <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_ is
+ * `yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_ is
    a much lower-traffic mailing list designed to focus on discussions of
    improvements to the code, ideas about planning, development issues, and so
    on.
- * `yt-svn <http://lists.spacepope.org/listinfo.cgi/yt-svn-spacepope.org>`_ is
-   the (now-inaccurately titled) mailing list where all pushes to the primary
-   repository are sent.
 
 The easiest way to get involved with yt is to read the mailing lists, hang out
 in IRC or slack chat, and participate.  If someone asks a question you know the
@@ -70,7 +67,7 @@ email it to us and we'll add it to the `Gallery
 <http://yt-project.org/gallery.html>`_.
 
 We're eager to show off the images and movies you make with yt, so please feel
-free to drop `us <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_
+free to drop `us <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_
 a line and let us know if you've got something great!
 
 Technical Contributions
@@ -199,7 +196,7 @@ associated social events, and one-to-one interactions.
 
 The yt Community Code of Conduct was adapted from the
 `Astropy Community Code of Conduct
-<http://www.astropy.org/about.html#codeofconduct>`_,
+<http://www.astropy.org/code_of_conduct.html>`_,
 which was partially inspired by the PSF code of conduct.
 
 .. _contributing-code:
@@ -214,7 +211,7 @@ the community!  yt is developed using git, primarily because it enables
 very easy and straightforward submission of revisions.  We're eager to hear
 from you, and if you are developing yt, we encourage you to subscribe to the
 `developer mailing list
-<http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_. Please feel
+<https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_. Please feel
 free to hack around, commit changes, and send them upstream.
 
 .. note:: If you already know how to use the `git version control system
@@ -264,7 +261,7 @@ provide further assistance or guidance.
 Licensing
 +++++++++
 
-yt is `licensed <http://blog.yt-project.org/post/Relicensing.html>`_ under the
+yt is `licensed <http://blog.yt-project.org/post/Relicensing/>`_ under the
 BSD 3-clause license.  Versions previous to yt-2.6 were released under the GPLv3.
 
 All contributed code must be BSD-compatible.  If you'd rather not license in
@@ -758,7 +755,7 @@ Source code style guide
    ``is`` or ``is not``.
  * If you are comparing with a numpy boolean array, just refer to the array.
    Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
- * Never comapre with None using ``==`` or ``!=``, use ``is None`` or
+ * Never compare with None using ``==`` or ``!=``, use ``is None`` or
    ``is not None``.
  * Use ``statement is not True`` instead of ``not statement is True``
  * Only one statement per line, do not use semicolons to put two or more

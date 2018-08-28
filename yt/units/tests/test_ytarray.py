@@ -36,6 +36,7 @@ from yt.units.yt_array import \
     YTArray, YTQuantity, \
     unary_operators, binary_operators, \
     uconcatenate, uintersect1d, \
+    uhstack, uvstack, ustack, \
     uunion1d, loadtxt, savetxt
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
@@ -658,7 +659,7 @@ def test_selecting():
 
 def test_iteration():
     """
-    Test that iterating over a YTArray returns a sequence of YTQuantity insances
+    Test that iterating over a YTArray returns a sequence of YTQuantity instances
     """
     a = np.arange(3)
     b = YTArray(np.arange(3), 'cm')
@@ -675,6 +676,8 @@ def test_fix_length():
     length = ds.quan(1.0, 'code_length')
     new_length = fix_length(length, ds=ds)
     assert_equal(YTQuantity(10, 'cm'), new_length)
+
+    assert_raises(RuntimeError, fix_length, (length, 'code_length'), ds)
 
 def test_code_unit_combinations():
     """
@@ -815,7 +818,8 @@ def unary_ufunc_comparison(ufunc, a):
     elif ufunc is np.invert:
         assert_raises(TypeError, ufunc, a)
     elif hasattr(np, 'isnat') and ufunc is np.isnat:
-        assert_raises(ValueError, ufunc, a)
+        # numpy 1.13 raises ValueError, numpy 1.14 and newer raise TypeError
+        assert_raises((TypeError, ValueError), ufunc, a)
     else:
         # There shouldn't be any untested ufuncs.
         assert_true(False)
@@ -1271,18 +1275,32 @@ def test_ytarray_coercion():
 def test_numpy_wrappers():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([2, 3, 4, 5, 6], 'cm')
+    a3 = YTArray([7, 8, 9, 10, 11], 'cm')
     catenate_answer = [1, 2, 3, 2, 3, 4, 5, 6]
     intersect_answer = [2, 3]
     union_answer = [1, 2, 3, 4, 5, 6]
+    vstack_answer = [[2, 3, 4, 5, 6],
+                     [7, 8, 9,10, 11]]
 
-    assert_array_equal(YTArray(catenate_answer, 'cm'), uconcatenate((a1, a2)))
+    assert_array_equal(YTArray(catenate_answer, 'cm'),
+                       uconcatenate((a1, a2)))
     assert_array_equal(catenate_answer, np.concatenate((a1, a2)))
 
-    assert_array_equal(YTArray(intersect_answer, 'cm'), uintersect1d(a1, a2))
+    assert_array_equal(YTArray(intersect_answer, 'cm'),
+                       uintersect1d(a1, a2))
     assert_array_equal(intersect_answer, np.intersect1d(a1, a2))
 
     assert_array_equal(YTArray(union_answer, 'cm'), uunion1d(a1, a2))
     assert_array_equal(union_answer, np.union1d(a1, a2))
+
+    assert_array_equal(YTArray(catenate_answer, 'cm'), uhstack([a1, a2]))
+    assert_array_equal(catenate_answer, np.hstack([a1, a2]))
+
+    assert_array_equal(YTArray(vstack_answer, 'cm'), uvstack([a2, a3]))
+    assert_array_equal(vstack_answer, np.vstack([a2, a3]))
+
+    assert_array_equal(YTArray(vstack_answer, 'cm'), ustack([a2, a3]))
+    assert_array_equal(vstack_answer, np.stack([a2, a3]))
 
 def test_dimensionless_conversion():
     a = YTQuantity(1, 'Zsun')

@@ -1307,7 +1307,7 @@ class PerspectiveCamera(Camera):
             else:
                 # The corner is on the backwards, then put it outside of the
                 # image It can not be simply removed because it may connect to
-                # other corner within the image, which produces visible domian
+                # other corner within the image, which produces visible domain
                 # boundary line
                 sight_length = np.sqrt(self.width[0]**2+self.width[1]**2) / \
                                np.sqrt(1 - sight_angle_cos**2)

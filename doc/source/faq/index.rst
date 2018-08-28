@@ -20,7 +20,7 @@ How can I tell what version of yt I'm using?
 If you run into problems with yt and you're writing to the mailing list
 or contacting developers on IRC, they will likely want to know what version of
 yt you're using.  Oftentimes, you'll want to know both the yt version,
-as well as the last changeset that was committed to the branch you're using.
+as well as the last changeset that was comitted to the branch you're using.
 To reveal this, go to a command line and type:
 
 .. code-block:: bash
@@ -60,9 +60,9 @@ Code Errors and Failures
 yt fails saying that it cannot import yt modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is commonly exhibited with this error:
-``ImportError: cannot import name obtain_rvec``.  This is likely because
-you need to rebuild the source.  You can do this automatically by running:
+This is commonly exhibited with an error about not being able to import code
+that is part of yt. This is likely because the code that is failing to import
+needs to be compiled or recompiled, You can do this automatically by running:
 
 .. code-block:: bash
 

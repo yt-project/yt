@@ -30,7 +30,7 @@ from __future__ import print_function
 # 7. For every halo in ball-query result, execute numpy's intersect1d on
 #    particle IDs
 # 8. Parentage is described by a fraction of particles that pass from one to
-#    the other; we have both descendent fractions and ancestory fractions. 
+#    the other; we have both descendent fractions and ancestor fractions. 
 
 
 import numpy as np
@@ -226,9 +226,9 @@ class EnzoFOFMergerBranch(object):
         self.progenitor = -1
         max_relationship = 0.0
         halo_count = 0
-        sorted_keys = sorted(tree.relationships[output_num][halo_id].keys())
-        for k in sorted_keys:
-            if not str(k).isdigit(): continue
+        keys = list(tree.relationships[output_num][halo_id].keys())
+        keys.remove('NumberOfParticles')
+        for k in sorted(keys):
             v = tree.relationships[output_num][halo_id][k]
             if v[1] > min_relation and halo_count < max_children:
                 halo_count += 1
@@ -490,7 +490,7 @@ class EnzoFOFMergerTree(object):
         It stores info from the FOF_groups file: location, mass, id, etc.
         """
         f = h5py.File("%s/%s" % (self.FOF_directory, filename), 'a')
-        cycle_fin = self.redshifts.keys()[-1]
+        cycle_fin = sorted(list(self.redshifts.keys()))[-1]
         halo_id = self.levels[cycle_fin][0].halo_id
         halo = "halo%05d" % halo_id
         if halo in f:

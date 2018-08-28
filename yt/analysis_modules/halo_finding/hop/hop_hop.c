@@ -50,11 +50,11 @@ void smMergeHash(SMX smx,int pi,int nSmooth,int *pList,float *fList);
 void ReSizeSMX(SMX smx, int nSmooth);
  
 void PrepareKD(KD kd);
-void binOutHop(SMX smx, HC *my_comm, float densthres);
+void binOutHop(SMX smx, HC *my_comm, float densthresh);
 void outGroupMerge(SMX smx, HC *my_comm);
 
 /* void main(int argc,char **argv) */
-void hop_main(KD kd, HC *my_comm, float densthres)
+void hop_main(KD kd, HC *my_comm, float densthresh)
 {
   /*	KD kd; */
 	SMX smx;
@@ -152,7 +152,7 @@ void hop_main(KD kd, HC *my_comm, float densthres)
 	if (bMerge) free(smx->hash);
  
 	if (bGroup&2) {
-	    binOutHop(smx, my_comm, densthres);
+	    binOutHop(smx, my_comm, densthresh);
 	}
 	if (bGroup) {free(smx->densestingroup); free(smx->nmembers);}
 	smFinish(smx);
@@ -520,7 +520,7 @@ routines */
     return;
 }
  
-void binOutHop(SMX smx, HC *my_comm, float densthres)
+void binOutHop(SMX smx, HC *my_comm, float densthresh)
 /* Write Group tag for each particle.  Particles should be ordered. */
 /* Binary file: nActive, nGroups, list of Groups */
 {
@@ -535,7 +535,7 @@ void binOutHop(SMX smx, HC *my_comm, float densthres)
     //s->ID = ivector(1,s->numlist);
     for (j=0;j<smx->kd->nActive;j++) {
       //s->ID[1+j] = smx->kd->p[j].iID; /* S Skory's addition */
-      if (NP_DENS(smx->kd,j) < densthres) s->ntag[j+1] = -1;
+      if (NP_DENS(smx->kd,j) < densthresh) s->ntag[j+1] = -1;
       else s->ntag[j+1] = smx->kd->p[j].iHop;
 
     }

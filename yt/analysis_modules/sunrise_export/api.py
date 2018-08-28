@@ -17,7 +17,7 @@ from yt.funcs import issue_deprecation_warning
 
 issue_deprecation_warning(
     "The sunrise_exporter module has been deprecated. This code has been "
-    "moved to the yt attic (https://bitbucket.org/yt_analysis/yt_attic) and "
+    "moved to the yt attic (https://github.com/yt-project/yt_attic) and "
     "will be removed in a future release.")
 
 from .sunrise_exporter import \

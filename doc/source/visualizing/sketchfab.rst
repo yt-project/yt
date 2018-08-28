@@ -10,7 +10,7 @@ Surface Objects and Extracting Isocontour Information
 -----------------------------------------------------
 
 yt contains an implementation of the `Marching Cubes
-<http://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
+<https://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
 3D data objects.  This provides two things.  The first is to identify
 isocontours and return either the geometry of those isocontours or to return
 another field value sampled along that isocontour.  The second piece of
@@ -30,13 +30,13 @@ your isosurfaces.
 
 
 Surfaces can be exported in `OBJ format
-<http://en.wikipedia.org/wiki/Wavefront_.obj_file>`_, values can be samples
+<https://en.wikipedia.org/wiki/Wavefront_.obj_file>`_, values can be samples
 at the center of each face of the surface, and flux of a given field could be
 calculated over the surface.  This means you can, for instance, extract an
 isocontour in density and calculate the mass flux over that isocontour.  It
 also means you can export a surface from yt and view it in something like
-`Blender <http://www.blender.org/>`_, `MeshLab
-<http://meshlab.sourceforge.net/>`_, or even on your Android or iOS device in
+`Blender <https://www.blender.org/>`_, `MeshLab
+<http://www.meshlab.net>`_, or even on your Android or iOS device in
 `MeshPad <http://www.meshpad.org/>`_ or `MeshLab Android
 <https://play.google.com/store/apps/details?id=it.isticnr.meshlab&hl=en>`_.
 
@@ -76,7 +76,7 @@ Exporting to a File
 -------------------
 
 If you want to export this to a `PLY file
-<http://en.wikipedia.org/wiki/PLY_(file_format)>`_ you can call the routine
+<https://en.wikipedia.org/wiki/PLY_(file_format)>`_ you can call the routine
 ``export_ply``, which will write to a file and optionally sample a field at
 every face or vertex, outputting a color value to the file as well.  This file
 can then be viewed in MeshLab, Blender or on the website `Sketchfab.com
@@ -154,7 +154,7 @@ OBJ and MTL Files
 If the ability to maneuver around an isosurface of your 3D simulation in
 `Sketchfab <https://sketchfab.com>`_ cost you half a day of work (let's be
 honest, 2 days), prepare to be even less productive.  With a new  `OBJ file
-<http://en.wikipedia.org/wiki/Wavefront_.obj_file>`_ exporter, you can now
+<https://en.wikipedia.org/wiki/Wavefront_.obj_file>`_ exporter, you can now
 upload multiple surfaces of different transparencies in the same file.
 The following code snippet produces two files which contain the vertex info
 (surfaces.obj) and color/transparency info (surfaces.mtl) for a 3D
@@ -209,7 +209,7 @@ the usual way.  For example, the above script produces:
 
    <iframe frameborder="0" height="480" width="854" allowFullScreen
    webkitallowfullscreen="true" mozallowfullscreen="true"
-   src="http://skfb.ly/5k4j2fdcb?autostart=0&transparent=0&autospin=0&controls=1&watermark=1">
+   src="https://skfb.ly/5k4j2fdcb?autostart=0&transparent=0&autospin=0&controls=1&watermark=1">
    </iframe>
 
 Importing to MeshLab and Blender

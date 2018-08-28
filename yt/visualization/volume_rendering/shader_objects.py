@@ -242,7 +242,7 @@ class NoOpFragmentShader(FragmentShader):
 
 class PassthroughFragmentShader(FragmentShader):
     '''A first pass fragment shader that performs no operation. Used for debug
-    puproses. It's distinct from NoOpFragmentShader, because of the number of
+    purposes. It's distinct from NoOpFragmentShader, because of the number of
     uniforms'''
     _source = "passthrough.fragmentshader"
     _shader_name = "passthrough.f"
@@ -261,7 +261,7 @@ class TransferFunctionFragmentShader(FragmentShader):
     _shader_name = "transfer_function.f"
 
 class DefaultVertexShader(VertexShader):
-    '''A first pass vertex shader that tranlates the location of vertices from
+    '''A first pass vertex shader that translates the location of vertices from
     the world coordinates to the viewing plane coordinates'''
     _source = "default.vertexshader"
     _shader_name = "default.v"

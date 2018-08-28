@@ -27,6 +27,7 @@ from yt.testing import \
     assert_almost_equal
 from yt.units.unit_registry import UnitRegistry
 from yt.units import electrostatic_unit, elementary_charge
+from yt.units.unit_object import default_unit_registry
 
 # dimensions
 from yt.units.dimensions import \
@@ -523,3 +524,14 @@ def test_creation_from_ytarray():
     assert_equal((u1/u2).base_value, electrostatic_unit/elementary_charge)
 
     assert_raises(UnitParseError, Unit, [1, 2, 3]*elementary_charge)
+
+def test_list_same_dimensions():
+    reg = default_unit_registry
+    for name1, u1 in reg.unit_objs.items():
+        for name2 in reg.list_same_dimensions(u1):
+            if name2 == name1: continue
+            if name2 in reg.unit_objs:
+                dim2 = reg.unit_objs[name2].dimensions
+            else:
+                _, dim2, _, _ = reg.lut[name2]
+            assert_true(u1.dimensions is dim2)

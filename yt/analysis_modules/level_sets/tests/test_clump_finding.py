@@ -26,6 +26,8 @@ from yt.analysis_modules.level_sets.api import \
     get_lowest_clumps
 from yt.convenience import \
     load
+from yt.fields.derived_field import \
+    ValidateParameter
 from yt.frontends.stream.api import \
     load_uniform_grid
 from yt.testing import \
@@ -54,8 +56,7 @@ def test_clump_finding():
             "particle_mass": np.ones(n_p),
             "particle_position_x": px,
             "particle_position_y": px,
-            "particle_position_z": px,
-            "number_of_particles": n_p}
+            "particle_position_z": px}
 
     ds = load_uniform_grid(data, dims)
 
@@ -104,7 +105,8 @@ def test_clump_tree_save():
     find_clumps(master_clump, c_min, c_max, step)
     leaf_clumps = get_lowest_clumps(master_clump)
 
-    fn = master_clump.save_as_dataset(fields=["density", "particle_mass"])
+    fn = master_clump.save_as_dataset(fields=["density", "x", "y", "z",
+                                              "particle_mass"])
     ds2 = load(fn)
 
     # compare clumps in the tree
@@ -135,3 +137,43 @@ def test_clump_tree_save():
 
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
+
+i30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+@requires_file(i30)
+def test_clump_field_parameters():
+    """
+    Make sure clump finding on fields with field parameters works.
+    """
+
+    def _also_density(field, data):
+        factor = data.get_field_parameter("factor")
+        return factor * data["density"]
+
+    ds = data_dir_load(i30)
+    ds.add_field("also_density", function=_also_density,
+                 units=ds.fields.gas.density.units,
+                 sampling_type="cell",
+                 validators=[ValidateParameter("factor")])
+    data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
+                          (8, 'kpc'), (1, 'kpc'))
+    data_source.set_field_parameter("factor", 1)
+
+    step = 2.0
+    field = ("gas", "density")
+    c_min = 10**np.floor(np.log10(data_source[field]).min()  )
+    c_max = 10**np.floor(np.log10(data_source[field]).max()+1)
+
+    master_clump_1 = Clump(data_source, ("gas", "density"))
+    master_clump_1.add_validator("min_cells", 20)
+    master_clump_2 = Clump(data_source, ("gas", "also_density"))
+    master_clump_2.add_validator("min_cells", 20)
+
+
+    find_clumps(master_clump_1, c_min, c_max, step)
+    find_clumps(master_clump_2, c_min, c_max, step)
+    leaf_clumps_1 = get_lowest_clumps(master_clump_1)
+    leaf_clumps_2 = get_lowest_clumps(master_clump_2)
+
+    for c1, c2 in zip(leaf_clumps_1, leaf_clumps_2):
+        assert_array_equal(c1["gas", "density"],
+                           c2["gas", "density"])

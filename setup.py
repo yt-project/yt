@@ -15,8 +15,8 @@ from distutils.version import LooseVersion
 import pkg_resources
 
 
-if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 3):
-    print("yt currently supports Python 2.7 or versions newer than Python 3.4")
+if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 5):
+    print("yt currently supports Python 2.7 or versions newer than Python 3.5")
     print("certain features may fail unexpectedly and silently with older "
           "versions.")
     sys.exit(1)
@@ -39,12 +39,8 @@ VERSION = "3.5.dev0"
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
 
-try:
-    import pypandoc
-    long_description = pypandoc.convert_file('README.md', 'rst')
-except (ImportError, IOError):
-    with open('README.md') as file:
-        long_description = file.read()
+with open('README.md') as file:
+    long_description = file.read()
 
 if check_for_openmp() is True:
     omp_args = ['-fopenmp']
@@ -178,11 +174,23 @@ cython_extensions = [
     Extension("yt.utilities.lib.alt_ray_tracers",
               ["yt/utilities/lib/alt_ray_tracers.pyx"],
               libraries=std_libs),
+    Extension("yt.utilities.lib.misc_utilities",
+              ["yt/utilities/lib/misc_utilities.pyx"],
+              extra_compile_args=omp_args,
+              extra_link_args=omp_args,
+              libraries=std_libs),
+    Extension("yt.frontends.ramses.io_utils",
+              ["yt/frontends/ramses/io_utils.pyx"],
+              include_dirs=["yt/utilities/lib"],
+              libraries=std_libs),
+    Extension("yt.utilities.cython_fortran_utils",
+              ["yt/utilities/cython_fortran_utils.pyx"],
+              libraries=std_libs),
 ]
 
 lib_exts = [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
-    "interpolators", "misc_utilities", "basic_octree", "image_utilities",
+    "interpolators", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "mesh_utilities",
     "amr_kdtools", "lenses", "distance_queue", "allocation_container"
 ]
@@ -330,22 +338,7 @@ class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython
     # generated C files are included in source distribution.
     # See http://stackoverflow.com/a/18418524/1382869
-    # subclass setuptools source distribution builder to ensure cython
-    # generated C files are included in source distribution and readme
-    # is converted from markdown to restructured text.  See
-    # http://stackoverflow.com/a/18418524/1382869
     def run(self):
-        # Make sure the compiled Cython files in the distribution are
-        # up-to-date
-
-        try:
-            import pypandoc
-        except ImportError:
-            raise RuntimeError(
-                'Trying to create a source distribution without pypandoc. '
-                'The readme will not render correctly on pypi without '
-                'pypandoc so we are exiting.'
-            )
         # Make sure the compiled Cython files in the distribution are up-to-date
         from Cython.Build import cythonize
         cythonize(cython_extensions)
@@ -356,6 +349,7 @@ setup(
     version=VERSION,
     description="An analysis and visualization toolkit for volumetric data",
     long_description = long_description,
+    long_description_content_type='text/markdown',
     classifiers=["Development Status :: 5 - Production/Stable",
                  "Environment :: Console",
                  "Intended Audience :: Science/Research",
@@ -391,14 +385,22 @@ setup(
         'IPython>=1.0',
     ],
     extras_require = {
-        'hub':  ["girder_client"]
+        'hub':  ["girder_client"],
+        'mapserver': ["bottle"]
     },
     cmdclass={'sdist': sdist, 'build_ext': build_ext},
     author="The yt project",
-    author_email="yt-dev@lists.spacepope.org",
-    url="http://yt-project.org/",
+    author_email="yt-dev@python.org",
+    url="https://github.com/yt-project/yt",
+    project_urls={
+        'Homepage': 'https://yt-project.org/',
+        'Documentation': 'https://yt-project.org/doc/',
+        'Source': 'https://github.com/yt-project/yt/',
+        'Tracker': 'https://github.com/yt-project/yt/issues'
+    },
     license="BSD 3-Clause",
     zip_safe=False,
     scripts=["scripts/iyt"],
     ext_modules=cython_extensions + extensions,
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*'
 )

@@ -18,6 +18,7 @@ Currently, yt is able to perform the following actions in parallel:
 * Projections (:ref:`projection-plots`)
 * Slices (:ref:`slice-plots`)
 * Cutting planes (oblique slices) (:ref:`off-axis-slices`)
+* Covering grids (:ref:`examining-grid-data-in-a-fixed-resolution-array`)
 * Derived Quantities (total mass, angular momentum, etc) (:ref:`creating_derived_quantities`,
   :ref:`derived-quantities`)
 * 1-, 2-, and 3-D profiles (:ref:`generating-profiles-and-histograms`)
@@ -210,6 +211,7 @@ The following operations use chunk decomposition:
 * Projections (see :ref:`available-objects`)
 * Slices (see :ref:`available-objects`)
 * Cutting planes (see :ref:`available-objects`)
+* Covering grids (see :ref:`construction-objects`)
 * Derived Quantities (see :ref:`derived-quantities`)
 * 1-, 2-, and 3-D profiles (see :ref:`generating-profiles-and-histograms`)
 * Isocontours & flux calculations (see :ref:`surfaces`)
@@ -428,7 +430,7 @@ the calculation if the disk is already swamped with activity.
 The best advice for these sort of calculations is to run with just a few
 processors and go from there, seeing if it the runtime improves noticeably.
 
-**Projections, Slices, and Cutting Planes**
+**Projections, Slices, Cutting Planes and Covering Grids**
 
 Projections, slices and cutting planes are the most common methods of creating
 two-dimensional representations of data.  All three have been parallelized in a
@@ -459,6 +461,8 @@ chunk-based fashion.
 * **Cutting planes**: cutting planes are parallelized exactly as slices are.
   However, in contrast to slices, because the data-selection operation can be
   much more time consuming, cutting planes often benefit from parallelism.
+  
+* **Covering Grids**: covering grids are parallelized exactly as slices are.
 
 Object-Based
 ++++++++++++

@@ -20,7 +20,6 @@ import uuid
 import weakref
 import warnings
 
-
 from collections import defaultdict
 
 from yt.config import ytcfg
@@ -40,16 +39,18 @@ from yt.utilities.file_handler import \
     FITSFileHandler
 from yt.utilities.io_handler import \
     io_registry
-from .fields import FITSFieldInfo
+from .fields import FITSFieldInfo, \
+    WCSFITSFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
+from yt.funcs import issue_deprecation_warning
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, \
     prefixable_units, \
     unit_prefixes
 from yt.units import dimensions
-from yt.utilities.on_demand_imports import _astropy, NotAModule
-
+from yt.utilities.on_demand_imports import \
+    _astropy, NotAModule
 
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
@@ -57,10 +58,16 @@ delimiters = ["*", "/", "-", "^", "(", ")"]
 delimiters += [str(i) for i in range(10)]
 regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 
-spec_names = {"V":"Velocity",
-              "F":"Frequency",
-              "E":"Energy",
-              "W":"Wavelength"}
+spec_names = {"V": "Velocity",
+              "F": "Frequency",
+              "E": "Energy",
+              "W": "Wavelength"}
+
+space_prefixes = list(set(lon_prefixes + lat_prefixes))
+sky_prefixes = set(space_prefixes)
+sky_prefixes.difference_update({"X", "Y", "LINEAR"})
+sky_prefixes = list(sky_prefixes)
+spec_prefixes = list(spec_names.keys())
 
 field_from_unit = {"Jy":"intensity",
                    "K":"temperature"}
@@ -68,8 +75,8 @@ field_from_unit = {"Jy":"intensity",
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
     def __init__(self, id, index, level):
-        AMRGridPatch.__init__(self, id, filename = index.index_filename,
-                              index = index)
+        AMRGridPatch.__init__(self, id, filename=index.index_filename,
+                              index=index)
         self.Parent = None
         self.Children = []
         self.Level = 0
@@ -136,19 +143,7 @@ class FITSHierarchy(GridIndex):
             return True
 
     def _detect_output_fields(self):
-        ds = self.dataset
         self.field_list = []
-        if ds.events_data:
-            for k,v in ds.events_info.items():
-                fname = "event_"+k
-                mylog.info("Adding field %s to the list of fields." % (fname))
-                self.field_list.append(("io",fname))
-                if k in ["x","y"]:
-                    field_unit = "code_length"
-                else:
-                    field_unit = v
-                self.dataset.field_units[("io",fname)] = field_unit
-            return
         self._axis_map = {}
         self._file_map = {}
         self._ext_map = {}
@@ -200,7 +195,7 @@ class FITSHierarchy(GridIndex):
                         self._axis_map[fname] = k
                         self._file_map[fname] = fits_file
                         self._ext_map[fname] = j
-                        self._scale_map[fname] = [0.0,1.0]
+                        self._scale_map[fname] = [0.0, 1.0]
                         if "bzero" in hdu.header:
                             self._scale_map[fname][0] = hdu.header["bzero"]
                         if "bscale" in hdu.header:
@@ -224,44 +219,26 @@ class FITSHierarchy(GridIndex):
 
         # If nprocs > 1, decompose the domain into virtual grids
         if self.num_grids > 1:
-            if self.ds.z_axis_decomp:
-                dz = ds.quan(1.0, "code_length")*ds.spectral_factor
-                self.grid_dimensions[:,2] = np.around(float(ds.domain_dimensions[2])/
-                                                            self.num_grids).astype("int")
-                self.grid_dimensions[-1,2] += (ds.domain_dimensions[2] % self.num_grids)
-                self.grid_left_edge[0,2] = ds.domain_left_edge[2]
-                self.grid_left_edge[1:,2] = ds.domain_left_edge[2] + \
-                                            np.cumsum(self.grid_dimensions[:-1,2])*dz
-                self.grid_right_edge[:,2] = self.grid_left_edge[:,2]+self.grid_dimensions[:,2]*dz
-                self.grid_left_edge[:,:2] = ds.domain_left_edge[:2]
-                self.grid_right_edge[:,:2] = ds.domain_right_edge[:2]
-                self.grid_dimensions[:,:2] = ds.domain_dimensions[:2]
-            else:
-                bbox = np.array([[le,re] for le, re in zip(ds.domain_left_edge,
-                                                           ds.domain_right_edge)])
-                dims = np.array(ds.domain_dimensions)
-                psize = get_psize(dims, self.num_grids)
-                gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
-                self.grid_left_edge = self.ds.arr(gle, "code_length")
-                self.grid_right_edge = self.ds.arr(gre, "code_length")
-                self.grid_dimensions = np.array([shape for shape in shapes], dtype="int32")
+            self._domain_decomp()
         else:
             self.grid_left_edge[0,:] = ds.domain_left_edge
             self.grid_right_edge[0,:] = ds.domain_right_edge
             self.grid_dimensions[0] = ds.domain_dimensions
 
-        if ds.events_data:
-            try:
-                self.grid_particle_count[:] = ds.primary_header["naxis2"]
-            except KeyError:
-                self.grid_particle_count[:] = 0.0
-            self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
-            self._particle_indices[1] = self.grid_particle_count.squeeze()
-
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels[i,0])
+
+    def _domain_decomp(self):
+        bbox = np.array([self.ds.domain_left_edge,
+                         self.ds.domain_right_edge]).transpose()
+        dims = self.ds.domain_dimensions
+        psize = get_psize(dims, self.num_grids)
+        gle, gre, shapes, slices = decompose_array(dims, psize, bbox)
+        self.grid_left_edge = self.ds.arr(gle, "code_length")
+        self.grid_right_edge = self.ds.arr(gre, "code_length")
+        self.grid_dimensions = np.array(shapes, dtype="int32")
 
     def _populate_grid_objects(self):
         for i in range(self.num_grids):
@@ -298,6 +275,58 @@ class FITSHierarchy(GridIndex):
             yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
                               cache = cache)
 
+def find_primary_header(fileh):
+    # Sometimes the primary hdu doesn't have an image
+    if len(fileh) > 1 and fileh[0].header["naxis"] == 0:
+        first_image = 1
+    else:
+        first_image = 0
+    header = fileh[first_image].header
+    return header, first_image
+
+def check_fits_valid(args):
+    ext = args[0].rsplit(".", 1)[-1]
+    if ext.upper() in ("GZ", "FZ"):
+        # We don't know for sure that there will be > 1
+        ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
+    if ext.upper() not in ("FITS", "FTS"):
+        return None
+    elif isinstance(_astropy.pyfits, NotAModule):
+        raise RuntimeError("This appears to be a FITS file, but AstroPy is not installed.")
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=UserWarning, append=True)
+            fileh = _astropy.pyfits.open(args[0])
+        header, _ = find_primary_header(fileh)
+        if header["naxis"] >= 2:
+            return fileh
+        else:
+            fileh.close()
+    except:
+        pass
+    return None
+
+def check_sky_coords(args, ndim):
+    fileh = check_fits_valid(args)
+    if fileh is not None:
+        try:
+            if (len(fileh) > 1 and
+                fileh[1].name == "EVENTS" and ndim == 2):
+                fileh.close()
+                return True
+            else:
+                header, _ = find_primary_header(fileh)
+                if header["naxis"] < ndim:
+                    return False
+                axis_names = [header.get("ctype%d" % (i + 1), "")
+                              for i in range(header["naxis"])]
+                x = find_axes(axis_names, sky_prefixes + spec_prefixes)
+                fileh.close()
+                return x >= ndim
+        except:
+            pass
+    return False
+
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
     _field_info_class = FITSFieldInfo
@@ -310,8 +339,6 @@ class FITSDataset(Dataset):
                  nprocs=None,
                  storage_filename=None,
                  nan_mask=None,
-                 spectral_factor=1.0,
-                 z_axis_decomp=False,
                  suppress_astropy_warnings=True,
                  parameters=None,
                  units_override=None,
@@ -321,9 +348,6 @@ class FITSDataset(Dataset):
             parameters = {}
         parameters["nprocs"] = nprocs
         self.specified_parameters = parameters
-
-        self.z_axis_decomp = z_axis_decomp
-        self.spectral_factor = spectral_factor
 
         if suppress_astropy_warnings:
             warnings.filterwarnings('ignore', module="astropy", append=True)
@@ -359,65 +383,6 @@ class FITSDataset(Dataset):
                                              do_not_scale_image_data=True,
                                              ignore_blank=True)
                 self._handle._fits_files.append(f)
-
-        if len(self._handle) > 1 and self._handle[1].name == "EVENTS":
-            self.events_data = True
-            self.first_image = 1
-            self.primary_header = self._handle[self.first_image].header
-            self.naxis = 2
-            self.wcs = _astropy.pywcs.WCS(naxis=2)
-            self.events_info = {}
-            for k,v in self.primary_header.items():
-                if k.startswith("TTYP"):
-                    if v.lower() in ["x","y"]:
-                        num = k.strip("TTYPE")
-                        self.events_info[v.lower()] = (self.primary_header["TLMIN"+num],
-                                                       self.primary_header["TLMAX"+num],
-                                                       self.primary_header["TCTYP"+num],
-                                                       self.primary_header["TCRVL"+num],
-                                                       self.primary_header["TCDLT"+num],
-                                                       self.primary_header["TCRPX"+num])
-                    elif v.lower() in ["energy","time"]:
-                        num = k.strip("TTYPE")
-                        unit = self.primary_header["TUNIT"+num].lower()
-                        if unit.endswith("ev"): unit = unit.replace("ev","eV")
-                        self.events_info[v.lower()] = unit
-            self.axis_names = [self.events_info[ax][2] for ax in ["x","y"]]
-            self.reblock = 1
-            if "reblock" in self.specified_parameters:
-                self.reblock = self.specified_parameters["reblock"]
-            self.wcs.wcs.cdelt = [self.events_info["x"][4]*self.reblock,
-                                  self.events_info["y"][4]*self.reblock]
-            self.wcs.wcs.crpix = [(self.events_info["x"][5]-0.5)/self.reblock+0.5,
-                                  (self.events_info["y"][5]-0.5)/self.reblock+0.5]
-            self.wcs.wcs.ctype = [self.events_info["x"][2],self.events_info["y"][2]]
-            self.wcs.wcs.cunit = ["deg","deg"]
-            self.wcs.wcs.crval = [self.events_info["x"][3],self.events_info["y"][3]]
-            self.dims = [(self.events_info["x"][1]-self.events_info["x"][0])/self.reblock,
-                         (self.events_info["y"][1]-self.events_info["y"][0])/self.reblock]
-        else:
-            self.events_data = False
-            # Sometimes the primary hdu doesn't have an image
-            if len(self._handle) > 1 and self._handle[0].header["naxis"] == 0:
-                self.first_image = 1
-            else:
-                self.first_image = 0
-            self.primary_header = self._handle[self.first_image].header
-            self.naxis = self.primary_header["naxis"]
-            self.axis_names = [self.primary_header.get("ctype%d" % (i+1),"LINEAR")
-                               for i in range(self.naxis)]
-            self.dims = [self.primary_header["naxis%d" % (i+1)]
-                         for i in range(self.naxis)]
-            wcs = _astropy.pywcs.WCS(header=self.primary_header)
-            if self.naxis == 4:
-                self.wcs = _astropy.pywcs.WCS(naxis=3)
-                self.wcs.wcs.crpix = wcs.wcs.crpix[:3]
-                self.wcs.wcs.cdelt = wcs.wcs.cdelt[:3]
-                self.wcs.wcs.crval = wcs.wcs.crval[:3]
-                self.wcs.wcs.cunit = [str(unit) for unit in wcs.wcs.cunit][:3]
-                self.wcs.wcs.ctype = [type for type in wcs.wcs.ctype][:3]
-            else:
-                self.wcs = wcs
 
         self.refine_by = 2
 
@@ -459,17 +424,12 @@ class FITSDataset(Dataset):
             beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value
         else:
             beam_size = 1.0
-        self.unit_registry.add("beam",beam_size,dimensions=dimensions.solid_angle)
-        if self.spec_cube:
-            units = self.wcs_2d.wcs.cunit[0]
-            if units == "deg": units = "degree"
-            if units == "rad": units = "radian"
-            pixel_area = np.prod(np.abs(self.wcs_2d.wcs.cdelt))
-            pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
-            pixel_dims = pixel_area.units.dimensions
-            self.unit_registry.add("pixel",float(pixel_area.value),dimensions=pixel_dims)
+        self.unit_registry.add("beam", beam_size, dimensions=dimensions.solid_angle)
 
     def _parse_parameter_file(self):
+
+        self._determine_structure()
+        self._determine_axes()
 
         if self.parameter_filename.startswith("InMemory"):
             self.unique_identifier = time.time()
@@ -484,7 +444,10 @@ class FITSDataset(Dataset):
 
         # Sometimes a FITS file has a 4D datacube, in which case
         # we take the 4th axis and assume it consists of different fields.
-        if self.dimensionality == 4: self.dimensionality = 3
+        if self.dimensionality == 4: 
+            self.dimensionality = 3
+
+        self._determine_wcs()
 
         self.domain_dimensions = np.array(self.dims)[:self.dimensionality]
         if self.dimensionality == 2:
@@ -514,154 +477,56 @@ class FITSDataset(Dataset):
         self.current_redshift = self.omega_lambda = self.omega_matter = \
             self.hubble_constant = self.cosmological_simulation = 0.0
 
-        if self.dimensionality == 2 and self.z_axis_decomp:
-            mylog.warning("You asked to decompose along the z-axis, but this is a 2D dataset. " +
-                          "Ignoring.")
-            self.z_axis_decomp = False
-
-        if self.events_data: self.specified_parameters["nprocs"] = 1
-
-        # If nprocs is None, do some automatic decomposition of the domain
-        if self.specified_parameters["nprocs"] is None:
-            if self.z_axis_decomp:
-                nprocs = np.around(self.domain_dimensions[2]/8).astype("int")
-            else:
-                nprocs = np.around(np.prod(self.domain_dimensions)/32**self.dimensionality).astype("int")
-            self.parameters["nprocs"] = max(min(nprocs, 512), 1)
-        else:
-            self.parameters["nprocs"] = self.specified_parameters["nprocs"]
-
-        # Check to see if this data is in some kind of (Lat,Lon,Vel) format
-        self.spec_cube = False
-        self.wcs_2d = None
-        x = 0
-        for p in lon_prefixes+lat_prefixes+list(spec_names.keys()):
-            y = np_char.startswith(self.axis_names[:self.dimensionality], p)
-            x += np.any(y)
-        if x == self.dimensionality:
-            if self.axis_names == ['LINEAR','LINEAR']:
-                self.wcs_2d = self.wcs
-                self.lat_axis = 1
-                self.lon_axis = 0
-                self.lat_name = "Y"
-                self.lon_name = "X"
-            else:
-                self._setup_spec_cube()
+        self._determine_nprocs()
 
         # Now we can set up some of our parameters for convenience.
-        #self.parameters['wcs'] = dict(self.wcs.to_header())
         for k, v in self.primary_header.items():
             self.parameters[k] = v
         # Remove potential default keys
         self.parameters.pop('', None)
 
-    def _setup_spec_cube(self):
-
-        self.spec_cube = True
-        self.geometry = "spectral_cube"
-
-        end = min(self.dimensionality+1,4)
-        if self.events_data:
-            ctypes = self.axis_names
+    def _determine_nprocs(self):
+        # If nprocs is None, do some automatic decomposition of the domain
+        if self.specified_parameters["nprocs"] is None:
+            nprocs = np.around(np.prod(self.domain_dimensions)/32**self.dimensionality).astype("int")
+            self.parameters["nprocs"] = max(min(nprocs, 512), 1)
         else:
-            ctypes = np.array([self.primary_header["CTYPE%d" % (i)]
-                               for i in range(1,end)])
+            self.parameters["nprocs"] = self.specified_parameters["nprocs"]
 
-        log_str = "Detected these axes: "+"%s "*len(ctypes)
-        mylog.info(log_str % tuple([ctype for ctype in ctypes]))
+    def _determine_structure(self):
+        self.primary_header, self.first_image = find_primary_header(self._handle)
+        self.naxis = self.primary_header["naxis"]
+        self.axis_names = [self.primary_header.get("ctype%d" % (i+1),"LINEAR")
+                           for i in range(self.naxis)]
+        self.dims = [self.primary_header["naxis%d" % (i+1)]
+                     for i in range(self.naxis)]
 
-        self.lat_axis = np.zeros((end-1), dtype="bool")
-        for p in lat_prefixes:
-            self.lat_axis += np_char.startswith(ctypes, p)
-        self.lat_axis = np.where(self.lat_axis)[0][0]
-        self.lat_name = ctypes[self.lat_axis].split("-")[0].lower()
-
-        self.lon_axis = np.zeros((end-1), dtype="bool")
-        for p in lon_prefixes:
-            self.lon_axis += np_char.startswith(ctypes, p)
-        self.lon_axis = np.where(self.lon_axis)[0][0]
-        self.lon_name = ctypes[self.lon_axis].split("-")[0].lower()
-
-        if self.lat_axis == self.lon_axis and self.lat_name == self.lon_name:
-            self.lat_axis = 1
-            self.lon_axis = 0
-            self.lat_name = "Y"
-            self.lon_name = "X"
-
-        if self.wcs.naxis > 2:
-
-            self.spec_axis = np.zeros((end-1), dtype="bool")
-            for p in spec_names.keys():
-                self.spec_axis += np_char.startswith(ctypes, p)
-            self.spec_axis = np.where(self.spec_axis)[0][0]
-            self.spec_name = spec_names[ctypes[self.spec_axis].split("-")[0][0]]
-
-            self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
-            self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
-            self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.lon_axis, self.lat_axis]]
-            self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.lon_axis, self.lat_axis]]
-            self.wcs_2d.wcs.cunit = [str(self.wcs.wcs.cunit[self.lon_axis]),
-                                     str(self.wcs.wcs.cunit[self.lat_axis])]
-            self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
-                                     self.wcs.wcs.ctype[self.lat_axis]]
-
-            self._p0 = self.wcs.wcs.crpix[self.spec_axis]
-            self._dz = self.wcs.wcs.cdelt[self.spec_axis]
-            self._z0 = self.wcs.wcs.crval[self.spec_axis]
-            self.spec_unit = str(self.wcs.wcs.cunit[self.spec_axis])
-
-            if self.spectral_factor == "auto":
-                self.spectral_factor = float(max(self.domain_dimensions[[self.lon_axis,
-                                                                         self.lat_axis]]))
-                self.spectral_factor /= self.domain_dimensions[self.spec_axis]
-                mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
-            Dz = self.domain_right_edge[self.spec_axis]-self.domain_left_edge[self.spec_axis]
-            dre = self.domain_right_edge
-            dre[self.spec_axis] = (self.domain_left_edge[self.spec_axis] +
-                                   self.spectral_factor*Dz)
-            self.domain_right_edge = dre
-            self._dz /= self.spectral_factor
-            self._p0 = (self._p0-0.5)*self.spectral_factor + 0.5
-
+    def _determine_wcs(self):
+        wcs = _astropy.pywcs.WCS(header=self.primary_header)
+        if self.naxis == 4:
+            self.wcs = _astropy.pywcs.WCS(naxis=3)
+            self.wcs.wcs.crpix = wcs.wcs.crpix[:3]
+            self.wcs.wcs.cdelt = wcs.wcs.cdelt[:3]
+            self.wcs.wcs.crval = wcs.wcs.crval[:3]
+            self.wcs.wcs.cunit = [str(unit) for unit in wcs.wcs.cunit][:3]
+            self.wcs.wcs.ctype = [type for type in wcs.wcs.ctype][:3]
         else:
+            self.wcs = wcs
 
-            self.wcs_2d = self.wcs
-            self.spec_axis = 2
-            self.spec_name = "z"
-            self.spec_unit = "code_length"
-
-    def spec2pixel(self, spec_value):
-        sv = self.arr(spec_value).in_units(self.spec_unit)
-        return self.arr((sv.v-self._z0)/self._dz+self._p0,
-                        "code_length")
-
-    def pixel2spec(self, pixel_value):
-        pv = self.arr(pixel_value, "code_length")
-        return self.arr((pv.v-self._p0)*self._dz+self._z0,
-                        self.spec_unit)
+    def _determine_axes(self):
+        self.lat_axis = 1
+        self.lon_axis = 0
+        self.lat_name = "Y"
+        self.lon_name = "X"
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        ext = args[0].rsplit(".", 1)[-1]
-        if ext.upper() in ("GZ", "FZ"):
-            # We don't know for sure that there will be > 1
-            ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
-        if ext.upper() not in ("FITS", "FTS"):
+        fileh = check_fits_valid(args)
+        if fileh is None:
             return False
-        elif isinstance(_astropy.pyfits, NotAModule):
-            raise RuntimeError("This appears to be a FITS file, but AstroPy is not installed.")
-        try:
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore', category=UserWarning, append=True)
-                fileh = _astropy.pyfits.open(args[0])
-            valid = fileh[0].header["naxis"] >= 2
-            if len(fileh) > 1:
-                valid = fileh[1].header["naxis"] >= 2 or valid
+        else:
             fileh.close()
-            return valid
-        except:
-            pass
-        return False
+            return True
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -676,3 +541,264 @@ class FITSDataset(Dataset):
 
     def close(self):
         self._handle.close()
+
+def find_axes(axis_names, prefixes):
+    x = 0
+    for p in prefixes:
+        y = np_char.startswith(axis_names, p)
+        x += np.any(y)
+    return x
+
+class SkyDataFITSDataset(FITSDataset):
+    _field_info_class = WCSFITSFieldInfo
+
+    def _determine_wcs(self):
+        super(SkyDataFITSDataset, self)._determine_wcs()
+        end = min(self.dimensionality+1, 4)
+        self.ctypes = np.array([self.primary_header["CTYPE%d" % (i)]
+                                for i in range(1, end)])
+        self.wcs_2d = self.wcs
+
+    def _parse_parameter_file(self):
+        super(SkyDataFITSDataset, self)._parse_parameter_file()
+
+        end = min(self.dimensionality + 1, 4)
+
+        self.geometry = "spectral_cube"
+
+        log_str = "Detected these axes: "+"%s "*len(self.ctypes)
+        mylog.info(log_str % tuple([ctype for ctype in self.ctypes]))
+
+        self.lat_axis = np.zeros((end-1), dtype="bool")
+        for p in lat_prefixes:
+            self.lat_axis += np_char.startswith(self.ctypes, p)
+        self.lat_axis = np.where(self.lat_axis)[0][0]
+        self.lat_name = self.ctypes[self.lat_axis].split("-")[0].lower()
+
+        self.lon_axis = np.zeros((end-1), dtype="bool")
+        for p in lon_prefixes:
+            self.lon_axis += np_char.startswith(self.ctypes, p)
+        self.lon_axis = np.where(self.lon_axis)[0][0]
+        self.lon_name = self.ctypes[self.lon_axis].split("-")[0].lower()
+
+        if self.lat_axis == self.lon_axis and self.lat_name == self.lon_name:
+            self.lat_axis = 1
+            self.lon_axis = 0
+            self.lat_name = "Y"
+            self.lon_name = "X"
+
+        self.spec_axis = 2
+        self.spec_name = "z"
+        self.spec_unit = ""
+
+    def _set_code_unit_attributes(self):
+        super(SkyDataFITSDataset, self)._set_code_unit_attributes()
+        units = self.wcs_2d.wcs.cunit[0]
+        if units == "deg":
+            units = "degree"
+        if units == "rad":
+            units = "radian"
+        pixel_area = np.prod(np.abs(self.wcs_2d.wcs.cdelt))
+        pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
+        pixel_dims = pixel_area.units.dimensions
+        self.unit_registry.add("pixel", float(pixel_area.value), dimensions=pixel_dims)
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        return check_sky_coords(args, 2)
+
+class SpectralCubeFITSHierarchy(FITSHierarchy):
+
+    def _domain_decomp(self):
+        dz = self.ds.quan(1.0, "code_length") * self.ds.spectral_factor
+        self.grid_dimensions[:, 2] = np.around(float(self.ds.domain_dimensions[2]) /
+                                               self.num_grids).astype("int")
+        self.grid_dimensions[-1, 2] += (self.ds.domain_dimensions[2] % self.num_grids)
+        self.grid_left_edge[0, 2] = self.ds.domain_left_edge[2]
+        self.grid_left_edge[1:, 2] = self.ds.domain_left_edge[2] + \
+                                     np.cumsum(self.grid_dimensions[:-1, 2]) * dz
+        self.grid_right_edge[:, 2] = self.grid_left_edge[:, 2] + self.grid_dimensions[:, 2] * dz
+        self.grid_left_edge[:, :2] = self.ds.domain_left_edge[:2]
+        self.grid_right_edge[:, :2] = self.ds.domain_right_edge[:2]
+        self.grid_dimensions[:, :2] = self.ds.domain_dimensions[:2]
+
+
+class SpectralCubeFITSDataset(SkyDataFITSDataset):
+    _index_class = SpectralCubeFITSHierarchy
+    def __init__(self, filename,
+                 auxiliary_files=[],
+                 nprocs=None,
+                 storage_filename=None,
+                 nan_mask=None,
+                 spectral_factor=1.0,
+                 suppress_astropy_warnings=True,
+                 parameters=None,
+                 units_override=None,
+                 unit_system="cgs",
+                 z_axis_decomp=None):
+        self.spectral_factor = spectral_factor
+        if z_axis_decomp is not None:
+            issue_deprecation_warning("The 'z_axis_decomp' argument is deprecated, "
+                                      "as this decomposition is now performed for "
+                                      "spectral-cube FITS datasets automatically.")
+        super(SpectralCubeFITSDataset, self).__init__(filename, nprocs=nprocs,
+            auxiliary_files=auxiliary_files, storage_filename=storage_filename,
+            suppress_astropy_warnings=suppress_astropy_warnings, nan_mask=nan_mask,
+            parameters=parameters, units_override=units_override,
+            unit_system=unit_system)
+
+    def _parse_parameter_file(self):
+        super(SpectralCubeFITSDataset, self)._parse_parameter_file()
+
+        self.geometry = "spectral_cube"
+
+        end = min(self.dimensionality+1,4)
+
+        self.spec_axis = np.zeros(end-1, dtype="bool")
+        for p in spec_names.keys():
+            self.spec_axis += np_char.startswith(self.ctypes, p)
+        self.spec_axis = np.where(self.spec_axis)[0][0]
+        self.spec_name = spec_names[self.ctypes[self.spec_axis].split("-")[0][0]]
+
+        self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
+        self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
+        self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.lon_axis, self.lat_axis]]
+        self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.lon_axis, self.lat_axis]]
+        self.wcs_2d.wcs.cunit = [str(self.wcs.wcs.cunit[self.lon_axis]),
+                                 str(self.wcs.wcs.cunit[self.lat_axis])]
+        self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
+                                 self.wcs.wcs.ctype[self.lat_axis]]
+
+        self._p0 = self.wcs.wcs.crpix[self.spec_axis]
+        self._dz = self.wcs.wcs.cdelt[self.spec_axis]
+        self._z0 = self.wcs.wcs.crval[self.spec_axis]
+        self.spec_unit = str(self.wcs.wcs.cunit[self.spec_axis])
+
+        if self.spectral_factor == "auto":
+            self.spectral_factor = float(max(self.domain_dimensions[[self.lon_axis,
+                                                                     self.lat_axis]]))
+            self.spectral_factor /= self.domain_dimensions[self.spec_axis]
+            mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
+        Dz = self.domain_right_edge[self.spec_axis]-self.domain_left_edge[self.spec_axis]
+        dre = self.domain_right_edge
+        dre[self.spec_axis] = (self.domain_left_edge[self.spec_axis] +
+                               self.spectral_factor*Dz)
+        self.domain_right_edge = dre
+        self._dz /= self.spectral_factor
+        self._p0 = (self._p0-0.5)*self.spectral_factor + 0.5
+
+    def _determine_nprocs(self):
+        # If nprocs is None, do some automatic decomposition of the domain
+        if self.specified_parameters["nprocs"] is None:
+            nprocs = np.around(self.domain_dimensions[2] / 8).astype("int")
+            self.parameters["nprocs"] = max(min(nprocs, 512), 1)
+        else:
+            self.parameters["nprocs"] = self.specified_parameters["nprocs"]
+
+    def spec2pixel(self, spec_value):
+        sv = self.arr(spec_value).in_units(self.spec_unit)
+        return self.arr((sv.v-self._z0)/self._dz+self._p0,
+                        "code_length")
+
+    def pixel2spec(self, pixel_value):
+        pv = self.arr(pixel_value, "code_length")
+        return self.arr((pv.v-self._p0)*self._dz+self._z0,
+                        self.spec_unit)
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        return check_sky_coords(args, 3)
+
+class EventsFITSHierarchy(FITSHierarchy):
+
+    def _detect_output_fields(self):
+        ds = self.dataset
+        self.field_list = []
+        for k,v in ds.events_info.items():
+            fname = "event_"+k
+            mylog.info("Adding field %s to the list of fields." % (fname))
+            self.field_list.append(("io",fname))
+            if k in ["x","y"]:
+                field_unit = "code_length"
+            else:
+                field_unit = v
+            self.dataset.field_units[("io",fname)] = field_unit
+        return
+
+    def _parse_index(self):
+        super(EventsFITSHierarchy, self)._parse_index()
+        try:
+            self.grid_particle_count[:] = self.dataset.primary_header["naxis2"]
+        except KeyError:
+            self.grid_particle_count[:] = 0.0
+        self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
+        self._particle_indices[1] = self.grid_particle_count.squeeze()
+
+class EventsFITSDataset(SkyDataFITSDataset):
+    _index_class = EventsFITSHierarchy
+    def __init__(self, filename,
+                 storage_filename=None,
+                 suppress_astropy_warnings=True,
+                 reblock=1,
+                 parameters=None,
+                 units_override=None,
+                 unit_system="cgs"):
+        self.reblock = reblock
+        super(EventsFITSDataset, self).__init__(filename, nprocs=1,
+            storage_filename=storage_filename, parameters=parameters,
+            suppress_astropy_warnings=suppress_astropy_warnings,
+            units_override=units_override, unit_system=unit_system)
+
+    def _determine_structure(self):
+        self.first_image = 1
+        self.primary_header = self._handle[self.first_image].header
+        self.naxis = 2
+
+    def _determine_wcs(self):
+        self.wcs = _astropy.pywcs.WCS(naxis=2)
+        self.events_info = {}
+        for k, v in self.primary_header.items():
+            if k.startswith("TTYP"):
+                if v.lower() in ["x", "y"]:
+                    num = k.strip("TTYPE")
+                    self.events_info[v.lower()] = (self.primary_header["TLMIN" + num],
+                                                   self.primary_header["TLMAX" + num],
+                                                   self.primary_header["TCTYP" + num],
+                                                   self.primary_header["TCRVL" + num],
+                                                   self.primary_header["TCDLT" + num],
+                                                   self.primary_header["TCRPX" + num])
+                elif v.lower() in ["energy", "time"]:
+                    num = k.strip("TTYPE")
+                    unit = self.primary_header["TUNIT" + num].lower()
+                    if unit.endswith("ev"):
+                        unit = unit.replace("ev", "eV")
+                    self.events_info[v.lower()] = unit
+        self.axis_names = [self.events_info[ax][2] for ax in ["x", "y"]]
+        if "reblock" in self.specified_parameters:
+            issue_deprecation_warning("'reblock' is now a keyword argument that "
+                                      "can be passed to 'yt.load'. This behavior "
+                                      "is deprecated.")
+            self.reblock = self.specified_parameters["reblock"]
+        self.wcs.wcs.cdelt = [self.events_info["x"][4] * self.reblock,
+                              self.events_info["y"][4] * self.reblock]
+        self.wcs.wcs.crpix = [(self.events_info["x"][5] - 0.5) / self.reblock + 0.5,
+                              (self.events_info["y"][5] - 0.5) / self.reblock + 0.5]
+        self.wcs.wcs.ctype = [self.events_info["x"][2], self.events_info["y"][2]]
+        self.wcs.wcs.cunit = ["deg", "deg"]
+        self.wcs.wcs.crval = [self.events_info["x"][3], self.events_info["y"][3]]
+        self.dims = [(self.events_info["x"][1] - self.events_info["x"][0]) / self.reblock,
+                     (self.events_info["y"][1] - self.events_info["y"][0]) / self.reblock]
+        self.ctypes = self.axis_names
+        self.wcs_2d = self.wcs
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        fileh = check_fits_valid(args)
+        if fileh is not None:
+            try:
+                valid = fileh[1].name == "EVENTS"
+                fileh.close()
+                return valid
+            except:
+                pass
+        return False

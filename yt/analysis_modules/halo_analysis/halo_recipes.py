@@ -78,7 +78,7 @@ def calculate_virial_quantities(hc, fields,
         calculate virial quantities.
         Default: ("gas", "overdensity")
     critical_overdensity : float
-        The value of the overdensity at which to evaulate the virial quantities.
+        The value of the overdensity at which to evaluate the virial quantities.
         Overdensity is with respect to the critical density.
         Default: 200
 

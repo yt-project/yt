@@ -18,7 +18,7 @@ from yt.utilities import physical_constants as pc
 
 class UnitSystemConstants(object):
     """
-    A class to faciliate conversions of physical constants into a given unit
+    A class to facilitate conversions of physical constants into a given unit
     system specified by *name*.
     """
     def __init__(self, name):
@@ -52,7 +52,7 @@ class UnitSystem(object):
         The base temperature unit of this unit system. Defaults to "K".
     angle_unit : string, optional
         The base angle unit of this unit system. Defaults to "rad".
-    curent_mks_unit : string, optional
+    current_mks_unit : string, optional
         The base current unit of this unit system. Only used in MKS 
         or MKS-based unit systems.
     registry : :class:`yt.units.unit_registry.UnitRegistry` object

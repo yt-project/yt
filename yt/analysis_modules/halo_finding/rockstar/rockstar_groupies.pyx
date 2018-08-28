@@ -89,7 +89,7 @@ cdef import from "distance.h":
 
 cdef import from "config_vars.h":
     # Rockstar cleverly puts all of the config variables inside a templated
-    # definition of their vaiables.
+    # definition of their variables.
     char *FILE_FORMAT
     np.float64_t PARTICLE_MASS
 

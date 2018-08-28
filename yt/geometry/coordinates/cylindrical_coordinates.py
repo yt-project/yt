@@ -96,7 +96,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                  units = "code_length")
 
     def pixelize(self, dimension, data_source, field, bounds, size,
-                 antialias = True, periodic = True):
+                 antialias = True, periodic = False):
+        # Note that above, we set periodic by default to be *false*.  This is
+        # because our pixelizers, at present, do not handle periodicity
+        # correctly, and if you change the "width" of a cylindrical plot, it
+        # double-counts in the edge buffers.  See, for instance, issue 1669.
         ax_name = self.axis_name[dimension]
         if ax_name in ('r', 'theta'):
             return self._ortho_pixelize(data_source, field, bounds, size,
@@ -187,15 +191,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         theta_ax = self.axis_id['theta']
         z_ax = self.axis_id['z']
         if ax_name == "r":
-            # zeros everywhere
             display_center[theta_ax] = self.ds.domain_center[theta_ax]
             display_center[z_ax] = self.ds.domain_center[z_ax]
         elif ax_name == "theta":
-            # Note we are using domain_right_edge, not domain_width, so that in
-            # cases where DLE is not zero we go to the inner edge.
-            display_center[r_ax] = self.ds.domain_right_edge[r_ax]/2.0
-            display_center[z_ax] = self.ds.domain_center[z_ax]
-            # zeros for the others
+            # use existing center value
+            for idx in (r_ax, z_ax): display_center[idx] = center[idx]
         return center, display_center
 
     def sanitize_width(self, axis, width, depth):

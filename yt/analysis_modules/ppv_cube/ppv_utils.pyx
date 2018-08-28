@@ -2,7 +2,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from yt.utilities.physical_constants import kboltz
-from libc.math cimport exp, fabs, sqrt
+from libc.math cimport exp, sqrt
 
 cdef double kb = kboltz.v
 cdef double pi = np.pi
@@ -24,13 +24,7 @@ def compute_weight(np.uint8_t thermal_broad,
     w = np.zeros(n)
 
     for i in range(n):
-        if thermal_broad:
-            if T[i] > 0.0:
-                v2_th = 2.*kb*T[i]/m_part
-                w[i] = dv*exp(-v[i]*v[i]/v2_th)/sqrt(v2_th*pi)
-        else:
-            x = 1.-fabs(v[i])/dv
-            if x > 0.0:
-                w[i] = x
+        v2_th = 2.*kb*T[i]/m_part
+        w[i] = dv*exp(-v[i]*v[i]/v2_th)/sqrt(v2_th*pi)
                 
     return w

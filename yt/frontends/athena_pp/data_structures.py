@@ -272,7 +272,7 @@ class AthenaPPDataset(Dataset):
             self.no_cgs_equiv_length = True
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
                           ("temperature", "K")]:
-            # We set these to cgs for now, but they may have been overriden
+            # We set these to cgs for now, but they may have been overridden
             if getattr(self, unit+'_unit', None) is not None:
                 continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)

@@ -70,7 +70,7 @@ class ARTIndex(OctreeIndex):
         """
         # Overloaded
         ds = self.dataset
-        return (1.0/ds.domain_dimensions.astype('f8') /
+        return (ds.domain_width /ds.domain_dimensions /
                 (2**self.max_level)).min()
 
     def _initialize_oct_handler(self):
@@ -201,9 +201,6 @@ class ARTDataset(Dataset):
             match = None
             for possible in possibles:
                 if possible.endswith(numericstr+suffix):
-                    if os.path.basename(possible).startswith(prefix):
-                        match = possible
-                elif possible.endswith(suffix):
                     if os.path.basename(possible).startswith(prefix):
                         match = possible
             if match is not None:
@@ -690,7 +687,7 @@ class ARTDomainSubset(OctreeSubset):
         This is called from IOHandler. It takes content
         which is a binary stream, reads the requested field
         over this while domain. It then uses oct_handler fill
-        to reorgnize values from IO read index order to
+        to reorganize values from IO read index order to
         the order they are in in the octhandler.
         """
         oct_handler = self.oct_handler
@@ -742,7 +739,7 @@ class ARTDomainFile(object):
     # and since these headers are defined in only a single file it's
     # best to leave them in the static output
     _last_mask = None
-    _last_seletor_id = None
+    _last_selector_id = None
 
     def __init__(self, ds, nvar, oct_handler, domain_id):
         self.nvar = nvar

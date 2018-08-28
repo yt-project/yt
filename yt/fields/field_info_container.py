@@ -173,7 +173,7 @@ class FieldInfoContainer(dict):
             #print "Aliasing %s => %s" % (alias, source)
             self.alias(alias, source)
 
-    def setup_fluid_aliases(self):
+    def setup_fluid_aliases(self, ftype='gas'):
         known_other_fields = dict(self.known_other_fields)
         for field in sorted(self.field_list):
             if not isinstance(field, tuple):
@@ -199,7 +199,7 @@ class FieldInfoContainer(dict):
             self.add_output_field(field, sampling_type="cell", units = units,
                                   display_name = display_name)
             for alias in aliases:
-                self.alias(("gas", alias), field)
+                self.alias((ftype, alias), field)
 
     def add_field(self, name, sampling_type, function=None, **kwargs):
         """

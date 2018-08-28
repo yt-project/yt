@@ -14,10 +14,12 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import hashlib
+import matplotlib
 from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it
 import numpy as np
+import functools
 import importlib
 import os
 import unittest
@@ -37,6 +39,7 @@ from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
 
+ANSWER_TEST_TAG = "answer_test"
 # Expose assert_true and assert_less_equal from unittest.TestCase
 # this is adopted from nose. Doing this here allows us to avoid importing
 # nose at the top level.
@@ -199,7 +202,6 @@ def fake_random_ds(
     for field, offset, u in zip(fields, offsets, units):
         v = (prng.random_sample(ndims) - offset) * peak_value
         if field[0] == "all":
-            data['number_of_particles'] = v.size
             v = v.ravel()
         data[field] = (v, u)
     if particles:
@@ -217,7 +219,6 @@ def fake_random_ds(
             for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
                 data['io', f] = (prng.random_sample(size=particles) - 0.5, 'cm/s')
             data['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
-        data['number_of_particles'] = particles
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs,
                            unit_system=unit_system, bbox=bbox)
     return ug
@@ -259,7 +260,6 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0):
             for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
                 gdata['io', f] = (prng.random_sample(particles) - 0.5, 'cm/s')
             gdata['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
-            gdata['number_of_particles'] = particles
         data.append(gdata)
     bbox = np.array([LE, RE]).T
     return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox)
@@ -274,7 +274,7 @@ def fake_particle_ds(
                   "particle_velocity_z"),
         units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s'),
         negative = (False, False, False, False, True, True, True),
-        npart = 16**3, length_unit=1.0):
+        npart = 16**3, length_unit=1.0, data=None):
     from yt.frontends.stream.api import load_particles
 
     prng = RandomState(0x4d3d3d3)
@@ -287,8 +287,11 @@ def fake_particle_ds(
             offsets.append(0.5)
         else:
             offsets.append(0.0)
-    data = {}
+    data = data if data else {}
     for field, offset, u in zip(fields, offsets, units):
+        if field in data:
+            v = data[field]
+            continue
         if "position" in field:
             v = prng.normal(loc=0.5, scale=0.25, size=npart)
             np.clip(v, 0.0, 1.0, v)
@@ -446,6 +449,58 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     ds = load_uniform_grid(data, arr.shape, bbox=bbox)
     return ds
 
+
+def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=None):
+    # Implementation taken from url:
+    # http://docs.hyperion-rt.org/en/stable/advanced/indepth_oct.html
+
+
+    if refined in (None, True):
+        refined = [True]
+    if refined is False:
+        refined = [False]
+        return refined
+
+    # Loop over subcells
+    for subcell in range(8):
+        # Insert criterion for whether cell should be sub-divided. Here we
+        # just use a random number to demonstrate.
+        divide = prng.random_sample() < 0.12
+
+        # Append boolean to overall list
+        refined.append(divide)
+
+        # If the cell is sub-divided, recursively divide it further
+        if divide:
+            construct_octree_mask(prng, refined)
+    return refined
+
+def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=None, quantities=None,
+                   bbox=None, sim_time=0.0, length_unit=None, mass_unit=None,
+                   time_unit=None, velocity_unit=None, magnetic_unit=None,
+                   periodicity=(True, True, True), over_refine_factor=1,
+                   partial_coverage=1, unit_system="cgs"):
+    from yt.frontends.stream.api import load_octree
+    octree_mask = np.asarray(construct_octree_mask(prng=prng, refined=refined),
+                             dtype=np.uint8)
+    particles = np.sum(np.invert(octree_mask))
+
+    if quantities is None:
+        quantities = {}
+        quantities[('gas', 'density')] = prng.random_sample((particles, 1))
+        quantities[('gas', 'velocity_x')] = prng.random_sample((particles, 1))
+        quantities[('gas', 'velocity_y')] = prng.random_sample((particles, 1))
+        quantities[('gas', 'velocity_z')] = prng.random_sample((particles, 1))
+
+    ds = load_octree(octree_mask=octree_mask, data=quantities, bbox=bbox,
+                     sim_time=sim_time, length_unit=length_unit,
+                     mass_unit=mass_unit, time_unit=time_unit,
+                     velocity_unit=velocity_unit, magnetic_unit=magnetic_unit,
+                     periodicity=periodicity, partial_coverage=partial_coverage,
+                     over_refine_factor=over_refine_factor,
+                     unit_system=unit_system)
+    return ds
+
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword
@@ -581,8 +636,20 @@ def requires_file(req_file):
         else:
             return ffalse
 
+def disable_dataset_cache(func):
+    @functools.wraps(func)
+    def newfunc(*args, **kwargs):
+        restore_cfg_state = False
+        if ytcfg.get("yt", "skip_dataset_cache") == "False":
+            ytcfg["yt","skip_dataset_cache"] = "True"
+        rv = func(*args, **kwargs)
+        if restore_cfg_state:
+            ytcfg["yt","skip_dataset_cache"] = "False"
+        return rv
+    return newfunc
+
+@disable_dataset_cache
 def units_override_check(fn):
-    ytcfg["yt","skip_dataset_cache"] = "True"
     units_list = ["length","time","mass","velocity",
                   "magnetic","temperature"]
     ds1 = load(fn)
@@ -596,7 +663,6 @@ def units_override_check(fn):
             units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
     del ds1
     ds2 = load(fn, units_override=units_override)
-    ytcfg["yt","skip_dataset_cache"] = "False"
     assert(len(ds2.units_override) > 0)
     for u in units_list:
         unit_attr = getattr(ds2, "%s_unit" % u, None)
@@ -847,7 +913,7 @@ def check_results(func):
     ... def field_checker(dd, field_name):
     ...     return dd[field_name]
 
-    >>> field_cheker(ds.all_data(), 'density', result_basename='density')
+    >>> field_checker(ds.all_data(), 'density', result_basename='density')
 
     """
     def compute_results(func):
@@ -973,7 +1039,7 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
         Array obtained (possibly with attached units)
     desired : array-like
         Array to compare with (possibly with attached units)
-    rtol : float, oprtional
+    rtol : float, optional
         Relative tolerance, defaults to 1e-7
     atol : float or quantity, optional
         Absolute tolerance. If units are attached, they must be consistent
@@ -1044,5 +1110,36 @@ def assert_fname(fname):
     elif data.startswith(b'%PDF'):
         image_type = '.pdf'
 
-    return image_type == os.path.splitext(fname)[1]
+    extension = os.path.splitext(fname)[1]
 
+    assert image_type == extension, \
+        ("Expected an image of type '%s' but '%s' is an image of type '%s'" %
+         (extension, fname, image_type))
+
+def requires_backend(backend):
+    """ Decorator to check for a specified matplotlib backend.
+
+    This decorator returns the decorated function if the specified `backend`
+    is same as of `matplotlib.get_backend()`, otherwise returns null function.
+    It could be used to execute function only when a particular `backend` of
+    matplotlib is being used.
+
+    Parameters
+    ----------
+    backend : String
+        The value which is compared with the current matplotlib backend in use.
+
+    Returns
+    -------
+    Decorated function or null function
+
+    """
+    def ffalse(func):
+        return lambda: None
+
+    def ftrue(func):
+        return func
+
+    if backend.lower() == matplotlib.get_backend().lower():
+        return ftrue
+    return ffalse

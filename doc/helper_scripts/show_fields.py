@@ -205,7 +205,7 @@ for frontend in current_frontends:
             else:
                 field_info_names.append("BoxlibFieldInfo")
     elif frontend == "chombo":
-        # remove low dimensional field info containters for ChomboPIC
+        # remove low dimensional field info containers for ChomboPIC
         field_info_names = [f for f in field_info_names if '1D' not in f
                             and '2D' not in f]
 

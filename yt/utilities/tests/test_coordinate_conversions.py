@@ -51,7 +51,7 @@ def test_spherical_coordinate_conversion():
     assert_array_almost_equal(calc_theta, real_theta)
     assert_array_almost_equal(calc_phi, real_phi)
 
-def test_cylindrical_coordiante_conversion():
+def test_cylindrical_coordinate_conversion():
     normal = [0, 0, 1]
     real_r =     [ 0.47021498,  0.75970506,  0.94676179,  0.96327853,  
                    0.79516968,  0.96904193,  1.00437346,  1.3344104 ]    

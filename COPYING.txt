@@ -45,7 +45,7 @@ diverse institutions, scientific, and technical backgrounds.
 Until the fall of 2013, yt was licensed under the GPLv3.  However, with consent
 from all developers and on a public mailing list, yt has been relicensed under
 the BSD 3-clause under a shared copyright model.  For more information, see:
-http://lists.spacepope.org/pipermail/yt-dev-spacepope.org/2013-July/003239.html
+https://mail.python.org/mm3/archives/list/yt-dev@python.org/thread/G4DJDDGB4PSZFJVPWRSHNOSUMTISXC4X/
 All versions of yt prior to this licensing change are available under the
 GPLv3; all subsequent versions are available under the BSD 3-clause license.
 

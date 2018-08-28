@@ -41,7 +41,6 @@ from yt.visualization.api import \
     ParticlePhasePlot
 from yt.units.yt_array import YTArray
 
-
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
@@ -215,7 +214,7 @@ class TestParticlePhasePlotSave(unittest.TestCase):
         particle_phases[0]._repr_html_()
         for p in particle_phases:
             for fname in TEST_FLNMS:
-                assert assert_fname(p.save(fname)[0])
+                assert_fname(p.save(fname)[0])
 
 tgal = 'TipsyGalaxy/galaxy.00300'
 @requires_file(tgal)
@@ -228,8 +227,8 @@ def test_particle_phase_plot_semantics():
                         ('Gas', 'density'),
                         ('Gas', 'temperature'),
                         ('Gas', 'particle_mass'))
-    plot.set_log('density', True)
-    plot.set_log('temperature', True)
+    plot.set_log(('Gas', 'density'), True)
+    plot.set_log(('Gas', 'temperature'), True)
     p = plot.profile
 
     # bin extrema are field extrema
@@ -247,8 +246,8 @@ def test_particle_phase_plot_semantics():
     dylogybins = logybins[1:] - logybins[:-1]
     assert_allclose(dylogybins, dylogybins[0])
 
-    plot.set_log('density', False)
-    plot.set_log('temperature', False)
+    plot.set_log(('Gas', 'density'), False)
+    plot.set_log(('Gas', 'temperature'), False)
     p = plot.profile
 
     # bin extrema are field extrema
@@ -263,6 +262,34 @@ def test_particle_phase_plot_semantics():
 
     dybins = p.y_bins[1:] - p.y_bins[:-1]
     assert_allclose(dybins, dybins[0])
+
+@requires_file(tgal)
+def test_set_units():
+    ds = load(tgal)
+    sp = ds.sphere("max", (1.0, "Mpc"))
+    pp = ParticlePhasePlot(sp, ("Gas", "density"), ("Gas", "temperature"), ("Gas", "particle_mass"))
+    # make sure we can set the units using the tuple without erroring out
+    pp.set_unit(("Gas", "particle_mass"), "Msun")
+
+@requires_file(tgal)
+def test_switch_ds():
+    """
+    Tests the _switch_ds() method for ParticleProjectionPlots that as of
+    25th October 2017 requires a specific hack in plot_container.py
+    """
+    ds = load(tgal)
+    ds2 = load(tgal)
+
+    plot = ParticlePlot(
+        ds,
+        ("Gas", "particle_position_x"),
+        ("Gas", "particle_position_y"),
+        ("Gas", "density"),
+    )
+
+    plot._switch_ds(ds2)
+
+    return
 
 class TestParticleProjectionPlotSave(unittest.TestCase):
 
@@ -280,7 +307,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         for dim in range(3):
             pplot = ParticleProjectionPlot(test_ds, dim, "particle_mass")
             for fname in TEST_FLNMS:
-                assert assert_fname(pplot.save(fname)[0])
+                assert_fname(pplot.save(fname)[0])
 
     def test_particle_plot_ds(self):
         test_ds = fake_particle_ds()
@@ -319,3 +346,26 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
             [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
             [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
             [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
+
+def test_particle_plot_instance():
+    """
+    Tests the type of plot instance returned by ParticlePlot.
+
+    If x_field and y_field are any combination of valid particle_position in x,
+    y or z axis,then ParticleProjectionPlot instance is expected.
+
+
+    """
+    ds = fake_particle_ds()
+    x_field = ('all', 'particle_position_x')
+    y_field = ('all', 'particle_position_y')
+    z_field = ('all', 'particle_velocity_x')
+
+    plot = ParticlePlot(ds, x_field, y_field)
+    assert isinstance(plot, ParticleProjectionPlot)
+
+    plot = ParticlePlot(ds, y_field, x_field)
+    assert isinstance(plot, ParticleProjectionPlot)
+
+    plot = ParticlePlot(ds, x_field, z_field)
+    assert isinstance(plot, ParticlePhasePlot)

@@ -17,6 +17,8 @@ import numpy as np
 
 from yt.funcs import \
      mylog
+from yt.units.yt_array import \
+    uconcatenate
 from yt.visualization.fixed_resolution import \
     FixedResolutionBuffer
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -198,25 +200,25 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
     del add_y_left
 
     # Add the hanging cells back to the projection data.
-    proj.field_data["px"] = proj.field_data["px"].unit_quantity * \
-      np.concatenate([proj.field_data["px"].d, add_x_px.d, add_y_px.d,
-                      add2_x_px.d, add2_y_px.d])
-    proj.field_data["py"] = proj.field_data["py"].unit_quantity * \
-        np.concatenate([proj.field_data["py"].d, add_x_py.d, add_y_py.d,
-                        add2_x_py.d, add2_y_py.d])
-    proj.field_data["pdx"] = proj.field_data["pdx"].unit_quantity * \
-        np.concatenate([proj.field_data["pdx"].d, add_x_pdx.d, add_y_pdx.d,
-                        add2_x_pdx.d, add2_y_pdx.d])
-    proj.field_data["pdy"] = proj.field_data["pdy"].unit_quantity * \
-        np.concatenate([proj.field_data["pdy"].d, add_x_pdy.d, add_y_pdy.d,
-                        add2_x_pdy.d, add2_y_pdy.d])
-    proj.field_data[proj_field] = proj.field_data["pdy"].unit_quantity * \
-        np.concatenate([proj.field_data[proj_field].d, add_x_field.d, add_y_field.d,
-                        add2_x_field.d, add2_y_field.d])
-    proj.field_data["weight_field"] = proj.field_data["weight_field"].unit_quantity * \
-        np.concatenate([proj.field_data["weight_field"].d,
-                        add_x_weight_field.d, add_y_weight_field.d,
-                        add2_x_weight_field.d, add2_y_weight_field.d])
+    proj.field_data["px"] = uconcatenate(
+        [proj.field_data["px"], add_x_px,
+         add_y_px, add2_x_px, add2_y_px])
+    proj.field_data["py"] = uconcatenate(
+        [proj.field_data["py"], add_x_py,
+         add_y_py, add2_x_py, add2_y_py])
+    proj.field_data["pdx"] = uconcatenate(
+        [proj.field_data["pdx"], add_x_pdx,
+         add_y_pdx, add2_x_pdx, add2_y_pdx])
+    proj.field_data["pdy"] = uconcatenate(
+        [proj.field_data["pdy"], add_x_pdy,
+         add_y_pdy, add2_x_pdy, add2_y_pdy])
+    proj.field_data[proj_field] = uconcatenate(
+        [proj.field_data[proj_field], add_x_field,
+         add_y_field, add2_x_field, add2_y_field])
+    proj.field_data["weight_field"] = uconcatenate(
+        [proj.field_data["weight_field"],
+         add_x_weight_field, add_y_weight_field,
+         add2_x_weight_field, add2_y_weight_field])
 
     # Delete original copies of hanging cells.
     del add_x_px, add_y_px, add2_x_px, add2_y_px

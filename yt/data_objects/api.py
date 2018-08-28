@@ -22,10 +22,6 @@ from .octree_subset import \
 from .static_output import \
     Dataset
 
-from .particle_io import \
-    ParticleIOHandler, \
-    particle_handler_registry
-
 from .profiles import \
     create_profile, \
     Profile1D, \

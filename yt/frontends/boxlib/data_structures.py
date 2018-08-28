@@ -493,6 +493,8 @@ class BoxlibHierarchy(GridIndex):
         mylog.debug("Done creating grid objects")
 
     def _reconstruct_parent_child(self):
+        if (self.max_level == 0):
+            return
         mask = np.empty(len(self.grids), dtype='int32')
         mylog.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
@@ -566,7 +568,18 @@ class BoxlibHierarchy(GridIndex):
                                                         is_checkpoint,
                                                         extra_field_names)
 
-        base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
+        num_parts = self.particle_headers[directory_name].num_particles
+        if self.ds._particle_type_counts is None:
+            self.ds._particle_type_counts = {}
+        self.ds._particle_type_counts[directory_name] = num_parts
+
+        base = os.path.join(self.ds.output_dir, directory_name)
+        if (len(glob.glob(os.path.join(base, "Level_?", "DATA_????"))) > 0):
+            base_particle_fn = os.path.join(base, "Level_%d", "DATA_%.4d")
+        elif (len(glob.glob(os.path.join(base, "Level_?", "DATA_?????"))) > 0):
+            base_particle_fn = os.path.join(base, "Level_%d", "DATA_%.5d")
+        else:
+            return
 
         gid = 0
         for lev, data in self.particle_headers[directory_name].data_map.items():
@@ -779,7 +792,7 @@ class BoxlibDataset(Dataset):
             # We use a default of two, as Nyx doesn't always output this value
             ref_factors = [2] * (self._max_level + 1)
         # We can't vary refinement factors based on dimension, or whatever else
-        # they are vaied on.  In one curious thing, I found that some Castro 3D
+        # they are varied on.  In one curious thing, I found that some Castro 3D
         # data has only two refinement factors, which I don't know how to
         # understand.
         self.ref_factors = ref_factors
@@ -1296,7 +1309,7 @@ class NyxDataset(BoxlibDataset):
 
         # alias
         self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
-        if os.path.isdir(os.path.join(self.output_dir, "DM")):
+        if os.path.isfile(os.path.join(self.output_dir, "DM/Header")):
             # we have particles
             self.parameters["particles"] = 1 
             self.particle_types = ("DM",)
@@ -1326,7 +1339,10 @@ def _guess_pcast(vals):
             pcast = float
         else:
             pcast = int
-    vals = [pcast(value) for value in vals.split()]
+    if pcast == bool:
+        vals = [value=="T" for value in vals.split()]
+    else:
+        vals = [pcast(value) for value in vals.split()]
     if len(vals) == 1:
         vals = vals[0]
     return vals
@@ -1334,7 +1350,7 @@ def _guess_pcast(vals):
 
 def _read_raw_field_names(raw_file):
     header_files = glob.glob(raw_file + "*_H")
-    return [hf.split("/")[-1][:-2] for hf in header_files]
+    return [hf.split(os.sep)[-1][:-2] for hf in header_files]
 
 
 def _string_to_numpy_array(s):
@@ -1447,21 +1463,19 @@ class WarpXHierarchy(BoxlibHierarchy):
         # Additional WarpX particle information (used to set up species)
         self.warpx_header = WarpXHeader(self.ds.output_dir + "/WarpXHeader")
         
-        i = 0
         for key, val in self.warpx_header.data.items():
             if key.startswith("species_"):
+                i = int(key.split("_")[-1])
                 charge_name = 'particle%.1d_charge' % i
                 mass_name = 'particle%.1d_mass' % i
                 self.parameters[charge_name] = val[0]
                 self.parameters[mass_name] = val[1]
-                i = i + 1
                 
     def _detect_output_fields(self):
         super(WarpXHierarchy, self)._detect_output_fields()
 
         # now detect the optional, non-cell-centered fields
         self.raw_file = self.ds.output_dir + "/raw_fields/"
-        self.ds.fluid_types += ("raw",)
         self.raw_fields = _read_raw_field_names(self.raw_file + 'Level_0/')
         self.field_list += [('raw', f) for f in self.raw_fields]
         self.raw_field_map = {}
@@ -1495,6 +1509,10 @@ class WarpXDataset(BoxlibDataset):
                  storage_filename=None,
                  units_override=None,
                  unit_system="mks"):
+
+        self.default_fluid_type = "mesh"
+        self.default_field = ("mesh", "density")
+        self.fluid_types = ("mesh", "index", "raw")
 
         super(WarpXDataset, self).__init__(output_dir,
                                            cparam_filename,
@@ -1540,16 +1558,16 @@ class WarpXDataset(BoxlibDataset):
             periodicity += [True]  # pad to 3D
         self.periodicity = ensure_tuple(periodicity)
 
-        
-
-        species_list = []
-        species_dirs = glob.glob(self.output_dir + "/particle*")
-        for species in species_dirs:
-            species_list.append(species[len(self.output_dir)+1:])
-        self.particle_types = tuple(species_list)
-        self.particle_types_raw = self.particle_types
-
-
+        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
+        if len(particle_types) > 0:
+            self.parameters["particles"] = 1
+            self.particle_types = tuple(particle_types)
+            self.particle_types_raw = self.particle_types
+        else:
+            self.particle_types = ()
+            self.particle_types_raw = ()
+            
     def _set_code_unit_attributes(self):
         setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))
         setdefaultattr(self, 'mass_unit', self.quan(1.0, "kg"))
@@ -1591,7 +1609,7 @@ class AMReXDataset(BoxlibDataset):
     def _parse_parameter_file(self):
         super(AMReXDataset, self)._parse_parameter_file()
         particle_types = glob.glob(self.output_dir + "/*/Header")
-        particle_types = [cpt.split("/")[-2] for cpt in particle_types]
+        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)

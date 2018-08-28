@@ -1,5 +1,12 @@
 .. _absorption_spectrum:
 
+.. note::
+
+    Development of the AbsorptionSpectrum module has been moved to the
+    Trident package. This version is deprecated and will be removed from yt
+    in a future release. See https://github.com/trident-project/trident
+    for further information.
+
 Creating Absorption Spectra
 ===========================
 

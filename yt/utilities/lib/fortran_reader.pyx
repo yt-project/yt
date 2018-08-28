@@ -308,7 +308,7 @@ def fill_child_mask(np.ndarray[np.int64_t, ndim=2] file_locations,
                     np.ndarray[np.uint8_t, ndim=4] art_child_masks,
                     np.ndarray[np.uint8_t, ndim=3] child_mask):
 
-    #loop over file_locations, for each row exracting the index & LE
+    #loop over file_locations, for each row extracting the index & LE
     #of the oct we will pull pull from art_child_masks
     #then use the art_child_masks info to fill in child_mask
     cdef int i,ioct,x,y,z

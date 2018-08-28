@@ -26,8 +26,6 @@ from distutils.version import LooseVersion
 from collections import defaultdict
 from functools import wraps
 
-from .tick_locators import LogLocator, LinearLocator
-
 from yt.config import \
     ytcfg
 from yt.data_objects.time_series import \
@@ -47,6 +45,7 @@ from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.visualization.color_maps import \
     yt_colormaps
+
 
 def invalidate_data(f):
     @wraps(f)
@@ -156,25 +155,17 @@ field_transforms = {}
 
 
 class FieldTransform(object):
-    def __init__(self, name, func, locator):
+    def __init__(self, name, func):
         self.name = name
         self.func = func
-        self.locator = locator
         field_transforms[name] = self
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
-    def ticks(self, mi, ma):
-        try:
-            ticks = self.locator(mi, ma)
-        except:
-            ticks = []
-        return ticks
-
-log_transform = FieldTransform('log10', np.log10, LogLocator())
-linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
-symlog_transform = FieldTransform('symlog', None, LogLocator())
+log_transform = FieldTransform('log10', np.log10)
+linear_transform = FieldTransform('linear', lambda x: x)
+symlog_transform = FieldTransform('symlog', None)
 
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):
@@ -302,7 +293,7 @@ class PlotContainer(object):
         return self
 
     def _setup_plots(self):
-        # Left blank to be overriden in subclasses
+        # Left blank to be overridden in subclasses
         pass
 
     def _initialize_dataset(self, ts):
@@ -322,10 +313,20 @@ class PlotContainer(object):
                 raise RuntimeError("The data_source keyword argument "
                                    "is only defined for projections.")
             kwargs['data_source'] = data_source
-        new_object = getattr(new_ds, name)(**kwargs)
+
         self.ds = new_ds
+
+        # A _hack_ for ParticleProjectionPlots
+        if name == 'Particle':
+            from yt.visualization.particle_plots import \
+            ParticleAxisAlignedDummyDataSource
+            new_object = ParticleAxisAlignedDummyDataSource(ds=self.ds, **kwargs)
+        else:
+            new_object = getattr(new_ds, name)(**kwargs)
+
         self.data_source = new_object
         self._data_valid = self._plot_valid = False
+
         for d in 'xyz':
             lim_name = d+'lim'
             if hasattr(self, lim_name):
@@ -443,9 +444,11 @@ class PlotContainer(object):
 
         Parameters
         ----------
-        name : string
-           The base of the filename.  If name is a directory or if name is not
-           set, the filename of the dataset is used.
+        name : string or tuple
+           The base of the filename. If name is a directory or if name is not
+           set, the filename of the dataset is used. For a tuple, the
+           resulting path will be given by joining the elements of the
+           tuple
         suffix : string
            Specify the image type by its suffix. If not specified, the output
            type will be inferred from the filename. Defaults to PNG.
@@ -457,6 +460,8 @@ class PlotContainer(object):
         """
         names = []
         if mpl_kwargs is None: mpl_kwargs = {}
+        if isinstance(name, (tuple, list)):
+            name = os.path.join(*name)
         if name is None:
             name = str(self.ds)
         name = os.path.expanduser(name)

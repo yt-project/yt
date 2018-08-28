@@ -323,7 +323,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         if name in self._vector_fields:
             factor = self._vector_fields[name]
             arr = arr.reshape((count // factor, factor), order="C")
-        return arr.astype(self._float_type)
+        return arr
 
     def _get_morton_from_position(self, data_file, count, offset_count,
                                   regions, DLE, DRE):

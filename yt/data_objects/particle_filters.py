@@ -15,16 +15,15 @@ This is a library for defining and using particle filters.
 #-----------------------------------------------------------------------------
 
 import copy
-from collections import defaultdict
-
 from contextlib import contextmanager
 
 from yt.fields.field_info_container import \
     NullFunc, TranslationFunc
+from yt.funcs import mylog
 from yt.utilities.exceptions import YTIllDefinedFilter
 
-# One to many mapping
-filter_registry = defaultdict(list)
+# One to one mapping
+filter_registry = {}
 
 class DummyFieldInfo(object):
     particle_type = True
@@ -52,13 +51,6 @@ class ParticleFilter(object):
             if f[0] != self.filtered_type: continue
             if tr.shape != filter.shape and tr.shape[0] != filter.shape[0]:
                 raise YTIllDefinedFilter(self, tr.shape, filter.shape)
-            elif filter.size == 0:
-                # Filtering empty set.  This keeps our dimensions correct.
-                # Otherwise we end up with out-of-axis and shape problems.
-                d = tr.copy() 
-            elif len(tr.shape) > len(filter.shape):
-                # Filter must always be 1D
-                d = tr[filter,:]
             else:
                 d = tr[filter]
             dobj.field_data[self.name, f[1]] = d
@@ -87,7 +79,9 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     A particle filter is a short name that corresponds to an algorithm for
     filtering a set of particles into a subset.  This is useful for creating new
     particle types based on a cut on a particle field, such as particle mass, ID
-    or type.
+    or type. After defining a new filter, it still needs to be added to the
+    dataset by calling
+    :func:`~yt.data_objects.static_output.add_particle_filter`.
 
     .. note::
        Alternatively, you can make use of the
@@ -131,7 +125,9 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
     if requires is None:
         requires = []
     filter = ParticleFilter(name, function, requires, filtered_type)
-    filter_registry[name].append(filter)
+    if filter_registry.get(name, None) is not None:
+        mylog.warning('The %s particle filter already exists. Overriding.' % name)
+    filter_registry[name] = filter
 
 
 def particle_filter(name=None, requires=None, filtered_type='all'):

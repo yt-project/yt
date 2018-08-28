@@ -116,8 +116,14 @@ cdef class SelectorObject:
         self._hash_initialized = 0
         cdef np.float64_t [:] DLE
         cdef np.float64_t [:] DRE
-        self.min_level = getattr(dobj, "min_level", 0)
-        self.max_level = getattr(dobj, "max_level", 99)
+        min_level = getattr(dobj, "min_level", None)
+        max_level = getattr(dobj, "max_level", None)
+        if min_level is None:
+            min_level = 0
+        if max_level is None:
+            max_level = 99
+        self.min_level = min_level
+        self.max_level = max_level
         self.overlap_cells = 0
 
         ds = getattr(dobj, 'ds', None)
@@ -642,14 +648,18 @@ cdef class PointSelector(SelectorObject):
     cdef np.float64_t p[3]
 
     def __init__(self, dobj):
+        cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
+        cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
         for i in range(3):
             self.p[i] = _ensure_code(dobj.p[i])
 
             # ensure the point lies in the domain
             if self.periodicity[i]:
                 self.p[i] = np.fmod(self.p[i], self.domain_width[i])
-                if self.p[i] < 0.0:
+                if self.p[i] < DLE[i]:
                     self.p[i] += self.domain_width[i]
+                elif self.p[i] >= DRE[i]:
+                    self.p[i] -= self.domain_width[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1990,6 +2000,8 @@ cdef class ComposeSelector(SelectorObject):
     def __init__(self, dobj, selector1, selector2):
         self.selector1 = selector1
         self.selector2 = selector2
+        self.min_level = max(selector1.min_level, selector2.min_level)
+        self.max_level = min(selector1.max_level, selector2.max_level)
 
     def select_grids(self,
                      np.ndarray[np.float64_t, ndim=2] left_edges,
@@ -2080,20 +2092,15 @@ def points_in_cells(
 
     n_p = px.size
     n_c = cx.size
-    mask = np.ones(n_p, dtype="bool")
+    mask = np.zeros(n_p, dtype="bool")
 
     for p in range(n_p):
         for c in range(n_c):
-            if fabs(px[p] - cx[c]) > 0.5 * dx[c]:
-                mask[p] = False
-                continue
-            if fabs(py[p] - cy[c]) > 0.5 * dy[c]:
-                mask[p] = False
-                continue
-            if fabs(pz[p] - cz[c]) > 0.5 * dz[c]:
-                mask[p] = False
-                continue
-            if mask[p]: break
+            if (fabs(px[p] - cx[c]) <= 0.5 * dx[c] and
+                fabs(py[p] - cy[c]) <= 0.5 * dy[c] and
+                fabs(pz[p] - cz[c]) <= 0.5 * dz[c]):
+                mask[p] = True
+                break
 
     return mask
 

@@ -694,13 +694,16 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if not iterable(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
-        for chunk in self._data_source.chunks(fields, "io"):
+        for chunk in parallel_objects(self._data_source.chunks(fields, "io")):
             input_fields = [chunk[field] for field in fields]
             # NOTE: This usage of "refine_by" is actually *okay*, because it's
             # being used with respect to iref, which is *already* scaled!
             fill_region(input_fields, output_fields, self.level,
                         self.global_startindex, chunk.icoords, chunk.ires,
                         domain_dims, refine_by)
+        if self.comm.size > 1:
+            for i in range(len(fields)):
+                output_fields[i] = self.comm.mpi_allreduce(output_fields[i], op="sum")
         for name, v in zip(fields, output_fields):
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)
@@ -779,7 +782,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         Examples
         --------
         >>> cube.write_to_gdf("clumps.h5", ["density","temperature"], nprocs=16,
-        ...                   clobber=True)
+        ...                   overwrite=True)
         """
         data = {}
         for field in fields:
@@ -919,7 +922,9 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         self._final_start_index = self.global_startindex
 
     def _setup_data_source(self, level_state = None):
-        if level_state is None: return
+        if level_state is None:
+            super(YTSmoothedCoveringGrid, self)._setup_data_source()
+            return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
         level_state.data_source = self.ds.region(
@@ -1758,8 +1763,8 @@ class YTSurface(YTSelectionContainer3D):
             if sample_type == "face" and \
                 color_field not in self.field_data:
                 self[color_field]
-            elif sample_type == "vertex" and \
-                color_field not in self.vertex_data:
+            elif (sample_type == "vertex" and
+                  color_field not in self.vertex_samples):
                 self.get_data(color_field, sample_type, no_ghost=no_ghost)
         self._export_ply(filename, bounds, color_field, color_map, color_log,
                          sample_type)

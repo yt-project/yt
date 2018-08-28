@@ -203,8 +203,8 @@ Ask the mailing list
 
 If you still haven't yet found a solution, feel free to
 write to the mailing list regarding your problems.  There are two mailing lists,
-`yt-users <http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org>`_ and
-`yt-dev <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_.  The
+`yt-users <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_ and
+`yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_.  The
 first should be used for asking for help, suggesting features and so on, and
 the latter has more chatter about the way the code is developed and discussions
 of changes and feature improvements.
@@ -225,7 +225,7 @@ Submit a bug report
 If you have gone through all of the above steps, and you're still encountering
 problems, then you have found a bug.  To submit a bug report, you can either
 directly create one through the GitHub `web interface
-<http://github.org/yt-project/yt/issues/new>`_.  Alternatively, email the
+<https://github.com/yt-project/yt/issues/new>`_.  Alternatively, email the
 ``yt-users`` mailing list and we will construct a new ticket in your stead.
 Remember to include the information about your problem you identified in
 :ref:`this step <isolate_and_document>`.

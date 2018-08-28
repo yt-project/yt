@@ -39,7 +39,10 @@ from numbers import Number as numeric_type
 
 from yt.extern.six.moves import urllib
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.exceptions import YTInvalidWidthError
+from yt.utilities.lru_cache import lru_cache
+from yt.utilities.exceptions import \
+    YTInvalidWidthError, \
+    YTEquivalentDimsError
 from yt.extern.tqdm import tqdm
 from yt.units.yt_array import YTArray, YTQuantity
 from functools import wraps
@@ -48,7 +51,7 @@ from functools import wraps
 
 def iterable(obj):
     """
-    Grabbed from Python Cookbook / matploblib.cbook.  Returns true/false for
+    Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
     *obj* iterable.
     """
     try: len(obj)
@@ -289,7 +292,7 @@ def insert_ipython(num_up=1):
     """
     Placed inside a function, this will insert an IPython interpreter at that
     current location.  This will enabled detailed inspection of the current
-    exeuction environment, as well as (optional) modification of that environment.
+    execution environment, as well as (optional) modification of that environment.
     *num_up* refers to how many frames of the stack get stripped off, and
     defaults to 1 so that this function itself is stripped off.
     """
@@ -749,12 +752,8 @@ def get_yt_supp():
     # Now we think we have our supplemental repository.
     return supp_path
 
-def fix_length(length, ds=None):
-    assert ds is not None
-    if ds is not None:
-        registry = ds.unit_registry
-    else:
-        registry = None
+def fix_length(length, ds):
+    registry = ds.unit_registry
     if isinstance(length, YTArray):
         if registry is not None:
             length.units.registry = registry
@@ -763,7 +762,9 @@ def fix_length(length, ds=None):
         return YTArray(length, 'code_length', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
     unit_is_string = isinstance(length[1], string_types)
-    if length_valid_tuple and unit_is_string:
+    length_is_number = (isinstance(length[0], numeric_type) and not
+                        isinstance(length[0], YTArray))
+    if length_valid_tuple and unit_is_string and length_is_number:
         return YTArray(*length, registry=registry)
     else:
         raise RuntimeError("Length %s is invalid" % str(length))
@@ -860,7 +861,11 @@ def get_output_filename(name, keyword, suffix):
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
-    ensure_dir(my_dir)
+    # If path is a file in the current directory, like "test.txt", then my_dir
+    # would be an empty string, resulting in FileNotFoundError when passed to
+    # ensure_dir. Let's avoid that.
+    if my_dir:
+        ensure_dir(my_dir)
 
 def ensure_dir(path):
     r"""Parallel safe directory maker."""
@@ -878,15 +883,23 @@ def ensure_dir(path):
 
 def validate_width_tuple(width):
     if not iterable(width) or len(width) != 2:
-        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
-    if not isinstance(width[0], numeric_type) and isinstance(width[1], string_types):
+        raise YTInvalidWidthError(
+            "width (%s) is not a two element tuple" % width)
+    is_numeric = isinstance(width[0], numeric_type)
+    length_has_units = isinstance(width[0], YTArray)
+    unit_is_string = isinstance(width[1], string_types)
+    if not is_numeric or length_has_units and unit_is_string:
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)
 
+_first_cap_re = re.compile('(.)([A-Z][a-z]+)')
+_all_cap_re = re.compile('([a-z0-9])([A-Z])')
+
+@lru_cache(maxsize=128, typed=False)
 def camelcase_to_underscore(name):
-    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
-    return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    s1 = _first_cap_re.sub(r'\1_\2', name)
+    return _all_cap_re.sub(r'\1_\2', s1).lower()
 
 def set_intersection(some_list):
     if len(some_list) == 0: return set([])
@@ -981,11 +994,18 @@ def enable_plugins():
                 os.path.join(old_config_dir, my_plugin_name),
                 os.path.join(CONFIG_DIR, my_plugin_name))
         mylog.info("Loading plugins from %s", _fn)
-        execdict = yt.__dict__.copy()
+        ytdict = yt.__dict__
+        execdict = ytdict.copy()
         execdict['add_field'] = my_plugins_fields.add_field
+        localdict = {}
         with open(_fn) as f:
             code = compile(f.read(), _fn, 'exec')
-            exec(code, execdict)
+            exec(code, execdict, localdict)
+        ytnamespace = list(ytdict.keys())
+        for k in localdict.keys():
+            if k not in ytnamespace:
+                if callable(localdict[k]):
+                    setattr(yt, k, localdict[k])
 
 def fix_unitary(u):
     if u == '1':
@@ -1138,9 +1158,9 @@ def parse_h5_attr(f, attr):
     else:
         return val
 
-def issue_deprecation_warning(msg):
+def issue_deprecation_warning(msg, stacklevel=3):
     from numpy import VisibleDeprecationWarning
-    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=3)
+    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
 
 def obj_length(v):
     if iterable(v):
@@ -1149,3 +1169,95 @@ def obj_length(v):
         # If something isn't iterable, we return 0 
         # to signify zero length (aka a scalar).
         return 0
+
+def handle_mks_cgs(values, field_units):
+    try:
+        values = values.to(field_units)
+    except YTEquivalentDimsError as e:
+        values = values.to_equivalent(e.new_units, e.base)
+    return values
+
+def validate_3d_array(obj):
+    if not iterable(obj) or len(obj) != 3:
+        raise TypeError("Expected an array of size (3,), received '%s' of "
+                        "length %s" % (str(type(obj)).split("'")[1], len(obj)))
+
+def validate_float(obj):
+    """Validates if the passed argument is a float value.
+
+    Raises an exception if `obj` is a single float value
+    or a YTQunatity of size 1.
+
+    Parameters
+    ----------
+    obj : Any
+        Any argument which needs to be checked for a single float value.
+
+    Raises
+    ------
+    TypeError
+        Raised if `obj` is not a single float value or YTQunatity
+
+    Examples
+    --------
+    >>> validate_float(1)
+    >>> validate_float(1.50)
+    >>> validate_float(YTQuantity(1,"cm"))
+    >>> validate_float((1,"cm"))
+    >>> validate_float([1, 1, 1])
+    Traceback (most recent call last):
+    ...
+    TypeError: Expected a numeric value (or size-1 array), received 'list' of length 3
+
+    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2,"cm")])
+    Traceback (most recent call last):
+    ...
+    TypeError: Expected a numeric value (or size-1 array), received 'list' of length 2
+    """
+    if isinstance(obj, tuple):
+        if len(obj) != 2 or not isinstance(obj[0], numeric_type)\
+                or not isinstance(obj[1], string_types):
+            raise TypeError("Expected a numeric value (or tuple of format "
+                            "(float, String)), received an inconsistent tuple "
+                            "'%s'." % str(obj))
+        else:
+            return
+    if iterable(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
+        raise TypeError("Expected a numeric value (or size-1 array), "
+                        "received '%s' of length %s"
+                        % (str(type(obj)).split("'")[1], len(obj)))
+
+
+def validate_iterable(obj):
+    if obj is not None and not iterable(obj):
+        raise TypeError("Expected an iterable object,"
+                        " received '%s'" % str(type(obj)).split("'")[1])
+
+def validate_object(obj, data_type):
+    if obj is not None and not isinstance(obj, data_type):
+        raise TypeError("Expected an object of '%s' type, received '%s'"
+                        % (str(data_type).split("'")[1],
+                        str(type(obj)).split("'")[1]))
+
+def validate_axis(ds, axis):
+    if ds is not None:
+        valid_axis = ds.coordinates.axis_name.keys()
+    else:
+        valid_axis = [0, 1, 2, 'x', 'y', 'z', 'X', 'Y', 'Z']
+    if axis not in valid_axis:
+        raise TypeError("Expected axis of int or char type (can be %s), "
+                        "received '%s'." % (list(valid_axis), axis))
+
+def validate_center(center):
+    if isinstance(center, string_types):
+        c = center.lower()
+        if c not in ["c", "center", "m", "max", "min"] \
+                and not c.startswith("max_") and not c.startswith("min_"):
+            raise TypeError("Expected 'center' to be in ['c', 'center', "
+                            "'m', 'max', 'min'] or the prefix to be "
+                            "'max_'/'min_', received '%s'." % center)
+    elif not isinstance(center, (numeric_type, YTQuantity)) \
+            and not iterable(center):
+        raise TypeError("Expected 'center' to be a numeric object of type "
+                        "list/tuple/np.ndarray/YTArray/YTQuantity, "
+                        "received '%s'." % str(type(center)).split("'")[1])

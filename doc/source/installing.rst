@@ -385,7 +385,7 @@ source include:
 
 - ``git``
 - A C compiler such as ``gcc`` or ``clang``
-- ``Python 2.7``, ``Python 3.4``, or ``Python 3.5``
+- ``Python 2.7``, ``Python 3.5``, or ``Python 3.6``
 
 In addition, building yt from source requires ``numpy`` and ``cython``
 which can be installed with ``pip``:
@@ -416,7 +416,7 @@ development version of yt instead of the latest stable release, you will need
   you might need ``sudo`` depending on where python is installed. See `This
   StackOverflow discussion
   <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
-  if you are curious why ``--install-option="--prefix="`` is neccessary on some systems.
+  if you are curious why ``--install-option="--prefix="`` is necessary on some systems.
 
 This will install yt into a folder in your home directory
 (``$HOME/.local/lib64/python2.7/site-packages`` on Linux,

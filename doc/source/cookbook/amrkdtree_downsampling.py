@@ -42,7 +42,7 @@ render_source.set_field('density')
 sc.render()
 sc.save("v1.png", sigma_clip=6.0)
 
-# This operation was substantiall faster.  Now lets modify the low resolution
+# This operation was substantially faster.  Now lets modify the low resolution
 # rendering until we find something we like.
 
 tf = render_source.transfer_function

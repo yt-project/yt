@@ -1,17 +1,13 @@
 from __future__ import print_function
-import yt
-from yt.testing import \
-    assert_equal, \
-    requires_file
-from yt.data_objects.particle_filters import \
-    add_particle_filter, particle_filter
+
+from nose.tools import assert_raises
+
+from yt.data_objects.particle_filters import add_particle_filter, particle_filter
+from yt.testing import assert_equal, fake_random_ds
+from yt.utilities.exceptions import YTIllDefinedFilter, \
+    YTIllDefinedParticleFilter
 
 
-# Dataset required for this test
-iso_galaxy = 'IsolatedGalaxy/galaxy0030/galaxy0030'
-
-
-@requires_file(iso_galaxy)
 def test_add_particle_filter():
     """Test particle filters created via add_particle_filter
 
@@ -22,47 +18,155 @@ def test_add_particle_filter():
     """
 
     def stars(pfilter, data):
-        filter_field = (pfilter.filtered_type, "creation_time")
-        return (data.ds.current_time - data[filter_field]) > 0
+        filter_field = (pfilter.filtered_type, "particle_mass")
+        return data[filter_field] > 0.5
 
-    add_particle_filter("stars", function=stars, filtered_type='all',
+    add_particle_filter("stars1", function=stars, filtered_type='all',
+                        requires=["particle_mass"])
+    ds = fake_random_ds(16, nprocs=8, particles=16)
+    ds.add_particle_filter('stars1')
+    assert ('deposit', 'stars1_cic') in ds.derived_field_list
+
+    # Test without requires field
+    add_particle_filter("stars2", function=stars)
+    ds = fake_random_ds(16, nprocs=8, particles=16)
+    ds.add_particle_filter('stars2')
+    assert ('deposit', 'stars2_cic') in ds.derived_field_list
+
+    # Test adding filter with fields not defined on the ds
+    with assert_raises(YTIllDefinedParticleFilter) as ex:
+        add_particle_filter("bad_stars", function=stars,
+                            filtered_type='all', requires=["wrong_field"])
+        ds.add_particle_filter('bad_stars')
+    actual = str(ex.exception)
+    desired = '\nThe fields\n\t(\'all\', \'wrong_field\'),\nrequired by the' \
+              ' "bad_stars" particle filter, are not defined for this dataset.'
+    assert_equal(actual, desired)
+
+def test_add_particle_filter_overriding():
+    """Test the add_particle_filter overriding"""
+    from yt.data_objects.particle_filters import filter_registry
+    from yt.funcs import mylog
+
+    def star_0(pfilter, data):
+        pass
+
+    def star_1(pfilter, data):
+        pass
+
+    # Use a closure to store whether the warning was called
+    def closure(status):
+        def warning_patch(*args, **kwargs):
+            status[0] = True
+
+        def was_called():
+            return status[0]
+
+        return warning_patch, was_called
+
+    ## Test 1: we add a dummy particle filter
+    add_particle_filter("dummy", function=star_0, filtered_type='all',
                         requires=["creation_time"])
-    ds = yt.load(iso_galaxy)
-    ds.add_particle_filter('stars')
-    ad = ds.all_data()
-    ad['deposit', 'stars_cic']
-    assert True
+    assert 'dummy' in filter_registry
+    assert_equal(filter_registry['dummy'].function, star_0)
 
-@requires_file(iso_galaxy)
-def test_particle_filter():
+    ## Test 2: we add another dummy particle filter.
+    ##         a warning is expected. We use the above closure to
+    ##         check that.
+    # Store the original warning function
+    warning = mylog.warning
+    monkey_warning, monkey_patch_was_called = closure([False])
+    mylog.warning = monkey_warning
+    add_particle_filter("dummy", function=star_1, filtered_type='all',
+                        requires=["creation_time"])
+    assert_equal(filter_registry['dummy'].function, star_1)
+    assert_equal(monkey_patch_was_called(), True)
+
+    # Restore the original warning function
+    mylog.warning = warning
+
+def test_particle_filter_decorator():
     """Test the particle_filter decorator"""
 
-    @particle_filter(filtered_type='all', requires=['creation_time'])
-    def stars(pfilter, data):
-        filter_field = (pfilter.filtered_type, "creation_time")
-        return (data.ds.current_time - data[filter_field]) > 0
+    @particle_filter(filtered_type='all', requires=['particle_mass'])
+    def heavy_stars(pfilter, data):
+        filter_field = (pfilter.filtered_type, "particle_mass")
+        return data[filter_field] > 0.5
 
-    ds = yt.load(iso_galaxy)
-    ds.add_particle_filter('stars')
+    ds = fake_random_ds(16, nprocs=8, particles=16)
+    ds.add_particle_filter('heavy_stars')
+    assert 'heavy_stars' in ds.particle_types
+    assert ('deposit', 'heavy_stars_cic') in ds.derived_field_list
+
+    # Test name of particle filter
+    @particle_filter(name="my_stars", filtered_type='all',
+                     requires=['particle_mass'])
+    def custom_stars(pfilter, data):
+        filter_field = (pfilter.filtered_type, "particle_mass")
+        return data[filter_field] == 0.5
+
+    ds = fake_random_ds(16, nprocs=8, particles=16)
+    ds.add_particle_filter('my_stars')
+    assert 'my_stars' in ds.particle_types
+    assert ('deposit', 'my_stars_cic') in ds.derived_field_list
+
+def test_particle_filter_exceptions():
+    @particle_filter(filtered_type='all', requires=['particle_mass'])
+    def filter1(pfilter, data):
+        return data
+
+    ds = fake_random_ds(16, nprocs=8, particles=16)
+    ds.add_particle_filter('filter1')
+
     ad = ds.all_data()
-    ad['deposit', 'stars_cic']
-    assert True
+    with assert_raises(YTIllDefinedFilter):
+        ad['filter1', 'particle_mass'].shape[0]
 
-@requires_file(iso_galaxy)
+    @particle_filter(filtered_type='all', requires=['particle_mass'])
+    def filter2(pfilter, data):
+        filter_field = ('io', "particle_mass")
+        return data[filter_field] > 0.5
+
+    ds.add_particle_filter('filter2')
+    ad = ds.all_data()
+    ad['filter2', 'particle_mass'].min()
+
+def test_particle_filter_dependency():
+    """
+    Test dataset add_particle_filter which should automatically add
+    the dependency of the filter.
+    """
+
+    @particle_filter(filtered_type='all', requires=['particle_mass'])
+    def h_stars(pfilter, data):
+        filter_field = (pfilter.filtered_type, "particle_mass")
+        return data[filter_field] > 0.5
+
+    @particle_filter(filtered_type='h_stars', requires=['particle_mass'])
+    def hh_stars(pfilter, data):
+        filter_field = (pfilter.filtered_type, "particle_mass")
+        return data[filter_field] > 0.9
+
+    ds = fake_random_ds(16, nprocs=8, particles=16)
+    ds.add_particle_filter('hh_stars')
+    assert 'hh_stars' in ds.particle_types
+    assert 'h_stars' in ds.particle_types
+    assert ('deposit', 'hh_stars_cic') in ds.derived_field_list
+    assert ('deposit', 'h_stars_cic') in ds.derived_field_list
+
 def test_covering_grid_particle_filter():
-    @particle_filter(requires=["particle_type"], filtered_type='all')
-    def stars(pfilter, data):
-        filter = data[(pfilter.filtered_type, "particle_type")] == 2
-        return filter
+    @particle_filter(filtered_type='all', requires=['particle_mass'])
+    def heavy_stars(pfilter, data):
+        filter_field = (pfilter.filtered_type, "particle_mass")
+        return data[filter_field] > 0.5
 
-    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    ds = fake_random_ds(16, nprocs=8, particles=16)
+    ds.add_particle_filter('heavy_stars')
 
-    ds.add_particle_filter('stars')
-
-    for grid in ds.index.grids[20:31]:
+    for grid in ds.index.grids:
         cg = ds.covering_grid(grid.Level, grid.LeftEdge, grid.ActiveDimensions)
-        
-        assert_equal(cg['stars', 'particle_ones'].shape[0],
-                     grid['stars', 'particle_ones'].shape[0])
-        assert_equal(cg['stars', 'particle_mass'].shape[0],
-                     grid['stars', 'particle_mass'].shape[0])
+
+        assert_equal(cg['heavy_stars', 'particle_mass'].shape[0],
+                     grid['heavy_stars', 'particle_mass'].shape[0])
+        assert_equal(cg['heavy_stars', 'particle_mass'].shape[0],
+                     grid['heavy_stars', 'particle_mass'].shape[0])

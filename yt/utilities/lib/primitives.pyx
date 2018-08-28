@@ -267,7 +267,7 @@ cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
     cdef cython.floating fv = dot(N2, S) + d2
     cdef cython.floating err = fmax(fabs(fu), fabs(fv))
 
-    # begin Newton interation
+    # begin Newton iteration
     cdef cython.floating tol = 1.0e-5
     cdef int iterations = 0
     cdef int max_iter = 10
@@ -483,7 +483,7 @@ cdef RayHitData compute_tet_patch_hit(cython.floating[6][3] verts,
     cdef cython.floating fv = dot(N2, S) + d2
     cdef cython.floating err = fmax(fabs(fu), fabs(fv))
 
-    # begin Newton interation
+    # begin Newton iteration
     cdef cython.floating tol = 1.0e-5
     cdef int iterations = 0
     cdef int max_iter = 10
