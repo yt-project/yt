@@ -62,6 +62,8 @@ class TestGeoProjections(unittest.TestCase):
 
     def test_projection_setup(self):
 
+        from yt.utilities.on_demand_imports import _cartopy as cartopy
+
         assert isinstance(self.slc._projection, cartopy.crs.PlateCarree)
         assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
         assert isinstance(self.slc._projection,
@@ -70,6 +72,8 @@ class TestGeoProjections(unittest.TestCase):
     def test_projection_transform(self):
         # remove UTM as a transform for testing
         # since it has a required arg
+        from yt.utilities.on_demand_imports import _cartopy as cartopy
+
         transform_list.remove('UTM')
         for transform in transform_list:
             self.slc.set_mpl_projection(transform)
