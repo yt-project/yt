@@ -1259,7 +1259,7 @@ class Dataset(object):
         else:
             raise RuntimeError
 
-        if isinstance(self.index, OctreeIndex):
+        if not isinstance(self.index, OctreeIndex):
             raise NotImplementedError(
                 'The mesh deposition scheme is only implemented for oct-based datasets.')
 
