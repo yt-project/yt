@@ -491,6 +491,37 @@ available are:
 * ``smoothed`` - this is a special deposition type.  See discussion below for
   more information, in :ref:`sph-fields`.
 
+.. _deposited-mesh-fields:
+
+Deposited Mesh Fields
+---------------------
+
+In order to turn mesh fields into discrete particle field, yt provides
+a mechanism to do cell depositions onto particles. This operation is
+the inverse operation as :ref:`deposited-particle-fields`: for each
+particle the cell containing the particle is found and the value of
+the deposed field in the cell is assigned to the particle. This is for
+example useful when using tracer particles to have access to the
+Eulerian information for Lagrangian particles.
+
+The deposed fields are named ``(ptype, cell_ftype_fname)`` where
+``ptype`` is the particle type onto which the deposition occurs,
+``ftype`` is the mesh field name (e.g. ``gas``) and ``fname`` is the
+field (e.g. ``temperature``, ``density``, ...). You can directly use
+the ``add_deposited_mesh_field`` function defined on each dataset to
+depose a field onto the particles like so:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   ds.add_deposited_mesh_field(('gas', 'temperature'), ptype='all')
+
+   print('The temperature at the location of the particles is')
+   print(ds.r['all', 'cell_gas_temperature'])
+
+
 .. _sph-fields:
 
 SPH Fields
