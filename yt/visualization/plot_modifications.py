@@ -1583,7 +1583,7 @@ class HaloCatalogCallback(PlotCallback):
             # but I dont really want to reimplement get_sanitized_width...
             width = data.ds.arr(self.width[0], self.width[1]).in_units('code_length')
 
-            indices = np.where((pz > c-width) & (pz < c+width))
+            indices = np.where((pz > c-0.5*width) & (pz < c+0.5*width))
 
             px = px[indices]
             py = py[indices]
