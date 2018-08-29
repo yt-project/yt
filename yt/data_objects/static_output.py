@@ -1337,8 +1337,7 @@ class Dataset(object):
         units = self.field_info[ptype, deposit_field].units
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
-                    "nearest": "nn", "simple_smooth": "ss", "count": "count",
-                    "mesh_id": "mesh_id"}
+                    "nearest": "nn", "simple_smooth": "ss", "count": "count"}
         field_name = "%s_" + name_map[method] + "_%s"
         field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
 
@@ -1360,12 +1359,9 @@ class Dataset(object):
             if method == 'weighted_mean':
                 fields.append(data[ptype, weight_field])
             fields = [np.ascontiguousarray(f) for f in fields]
-            if method == 'mesh_id':
-                d = data.mesh_deposit(pos)
-            else:
-                d = data.deposit(pos, fields, method=method,
-                                kernel_name=kernel_name)
-                d = data.ds.arr(d, input_units=units)
+            d = data.deposit(pos, fields, method=method,
+                            kernel_name=kernel_name)
+            d = data.ds.arr(d, input_units=units)
             if method == 'weighted_mean':
                 d[np.isnan(d)] = 0.0
             return d
