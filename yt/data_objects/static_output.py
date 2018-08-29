@@ -82,6 +82,7 @@ from yt.geometry.coordinates.api import \
     GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler, \
     InternalGeographicCoordinateHandler
+from yt.geometry.oct_geometry_handler import OctreeIndex
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
@@ -1262,6 +1263,10 @@ class Dataset(object):
             ftype, deposit_field = deposit_field[0], deposit_field[1]
         else:
             raise RuntimeError
+
+        if isinstance(self.index, OctreeIndex):
+            raise NotImplementedError(
+                'The mesh deposition scheme is only implemented for oct-based datasets.')
 
         units = self.field_info[ftype, deposit_field].units
         take_log = self.field_info[ftype, deposit_field].take_log
