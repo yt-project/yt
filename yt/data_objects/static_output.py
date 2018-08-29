@@ -1256,7 +1256,41 @@ class Dataset(object):
         self.field_dependencies.update(deps)
 
     def add_deposited_mesh_field(self, deposit_field, ptype='all'):
-        """Add a new deposited particle field
+        """Add a new deposited mesh field
+
+        Creates a new particle field which has the value of the
+        *deposit_field* at the location of each particle of type
+        *ptype*.
+
+        Parameters
+        ----------
+
+        deposit_field : tuple
+           The field name tuple of the mesh field to be deposited onto
+           the particles. This must be a field name tuple so yt can
+           appropriately infer the correct particle type.
+        ptype : string, default 'all'
+           The particle type onto which the deposition will occur.
+
+        Returns
+        -------
+
+        The field name tuple for the newly created field.
+
+        Examples
+        --------
+        >>> ds = yt.load('output_00080/info_00080.txt')
+        ... ds.add_deposited_mesh_field(('gas', 'density'), ptype='all')
+
+        >>> print('The density at the location of the particle is:')
+        ... print(ds.r['all', 'cell_gas_density'])
+        The density at the location of the particle is:
+        [9.33886124e-30 1.22174333e-28 1.20402333e-28 ... 2.77410331e-30
+         8.79467609e-31 3.50665136e-30] g/cm**3
+
+        >>> len(ds.r['all', 'cell_gas_density']) == len(ds.r['all', 'particle_ones'])
+        True
+
         """
         self.index
         if isinstance(deposit_field, tuple):
