@@ -141,7 +141,6 @@ class TestDataContainers(unittest.TestCase):
         ds = fake_particle_ds()
         dd = ds.all_data()
 
-
         @particle_filter(requires=['particle_mass'], filtered_type='io')
         def massive(pfilter, data):
             return data[(pfilter.filtered_type, 'particle_mass')].to('code_mass') > 0.5

@@ -1311,7 +1311,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             # We need to create the field on the raw particle types
             # for particles types (when the field is not directly
             # defined for the derived particle type only)
-               # field not in self.ds.field_list and \
             if field not in self.ds.derived_field_list and \
                field[0] in self.ds.filtered_particle_types:
                 f = self.ds.known_filters[field[0]]
