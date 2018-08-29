@@ -6,7 +6,6 @@ from yt.testing import \
 from numpy.testing import \
     assert_raises
 import yt
-from numpy.random import RandomState
 from numpy.testing import assert_array_less
 import numpy as np
 

@@ -16,8 +16,6 @@ The field detector.
 import numpy as np
 from collections import defaultdict
 from yt.units.yt_array import YTArray
-import yt.geometry.particle_deposit as particle_deposit
-from yt.funcs import mylog
 from .field_exceptions import \
     NeedsGridType
 
