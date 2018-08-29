@@ -1634,10 +1634,10 @@ class ParticleCallback(PlotCallback):
         self.minimum_mass = minimum_mass
         self.alpha = alpha
         self.data_source=data_source
-
         if self.minimum_mass is not None:
             warnings.warn("The minimum_mass keyword is deprecated.  Please use "
                           "an appropriate particle filter and the ptype keyword instead.")
+
 
     def __call__(self, plot):
         data = plot.data
@@ -1655,7 +1655,7 @@ class ParticleCallback(PlotCallback):
                        "See https://github.com/yt-project/yt/issues/1933 for further details.")
             self.region=self.data_source
         else:
-            self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
+            self.region=self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
         ax = data.axis
         xax = plot.data.ds.coordinates.x_axis[ax]
         yax = plot.data.ds.coordinates.y_axis[ax]
