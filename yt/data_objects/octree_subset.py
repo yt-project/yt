@@ -202,7 +202,7 @@ class OctreeSubset(YTSelectionContainer):
         npart = len(positions)
         nocts = (self.domain_ind >= 0).sum()
         # We allocate number of zones, not number of octs
-        op = particle_deposit.MeshIdentifier(npart, 'none')
+        op = particle_deposit.CellIdentifier(npart, 'none')
         op.initialize(npart)
         mylog.debug("Depositing %s Octs onto %s (%s^3) particles",
                     nocts, positions.shape[0], positions.shape[0]**0.3333333)

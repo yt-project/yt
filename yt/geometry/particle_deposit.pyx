@@ -433,10 +433,33 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
 deposit_weighted_mean = WeightedMeanParticleField
 
 cdef class MeshIdentifier(ParticleDepositOperation):
-    cdef np.int64_t[:] indexes, cell_index
     # This is a tricky one!  What it does is put into the particle array the
     # value of the oct or block (grids will always be zero) identifier that a
     # given particle resides in
+    def initialize(self):
+        self.update_values = 1
+
+    @cython.cdivision(True)
+    cdef int process(self, int dim[3], int ipart,
+                      np.float64_t left_edge[3],
+                      np.float64_t dds[3],
+                      np.int64_t offset,
+                      np.float64_t ppos[3],
+                      np.float64_t[:] fields,
+                      np.int64_t domain_ind
+                      ) except -1:
+        fields[0] = domain_ind
+        return 0
+
+    def finalize(self):
+        return
+
+deposit_mesh_id = MeshIdentifier
+
+cdef class CellIdentifier(ParticleDepositOperation):
+    cdef np.int64_t[:] indexes, cell_index
+    # This method stores the offset of the grid containing each particle
+    # and compute the index of the cell in the oct.
     def initialize(self, int npart):
         self.indexes = np.zeros(npart, dtype=np.int64, order='F') - 1
         self.cell_index = np.zeros(npart, dtype=np.int64, order='F') - 1
@@ -467,7 +490,7 @@ cdef class MeshIdentifier(ParticleDepositOperation):
     def finalize(self):
         return np.asarray(self.indexes), np.asarray(self.cell_index)
 
-deposit_mesh_id = MeshIdentifier
+deposit_cell_id = CellIdentifier
 
 cdef class NNParticleField(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] nnfield
