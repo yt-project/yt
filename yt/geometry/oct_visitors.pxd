@@ -35,7 +35,7 @@ cdef class OctVisitor:
     cdef np.uint64_t last
     cdef np.int64_t global_index
     cdef np.int64_t pos[3]       # position in ints
-    cdef np.uint8_t ind[3]              # cell position
+    cdef np.uint8_t ind[3]       # cell position
     cdef int dims
     cdef np.int32_t domain
     cdef np.int8_t level

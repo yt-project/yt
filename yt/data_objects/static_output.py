@@ -710,7 +710,7 @@ class Dataset(object):
         return True
 
     def _setup_filtered_type(self, filter):
-        # Check if the filtered_type of this filter is known, 
+        # Check if the filtered_type of this filter is known,
         # otherwise add it first if it is in the filter_registry
         if filter.filtered_type not in self.known_filters.keys():
             if filter.filtered_type in filter_registry:
@@ -973,7 +973,7 @@ class Dataset(object):
                     self.magnetic_unit = \
                         self.magnetic_unit.to_equivalent('gauss', 'CGS')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        create_code_unit_system(self.unit_registry, 
+        create_code_unit_system(self.unit_registry,
                                 current_mks_unit=current_mks_unit)
         if unit_system == "code":
             unit_system = unit_system_registry[self.unit_registry.unit_system_id]
@@ -1254,6 +1254,49 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
+    def add_deposited_mesh_field(self, deposit_field, ptype):
+        """Add a new deposited particle field
+        """
+        self.index
+        if isinstance(deposit_field, tuple):
+            ftype, deposit_field = deposit_field[0], deposit_field[1]
+        else:
+            raise RuntimeError
+
+        units = self.field_info[ftype, deposit_field].units
+        take_log = self.field_info[ftype, deposit_field].take_log
+        field_name = "cell_%s_%s" % (ftype, deposit_field)
+
+        def _deposit_field(field, data):
+            """
+            Create a grid field for particle quantities using given method.
+            """
+            pos = data[ptype, "particle_position"]
+            # Get the mesh data. Note: we need to transpose here
+            # because of the ordering
+            mesh_data = data[ftype, deposit_field].T.reshape(-1)
+
+            # Do mesh deposition
+            igrid, icell = data.mesh_deposit(pos)
+
+            # Some particle may be missing so we need to be careful
+            ids = igrid * 8 + icell
+            mask = ids >= 0
+            ret = data.ds.arr(np.empty(len(pos)), input_units=units)
+            ret[ mask] = mesh_data[ids[mask]]
+            ret[~mask] = np.nan
+
+            return ret
+
+        self.add_field(
+            (ptype, field_name),
+            function=_deposit_field,
+            sampling_type="particle",
+            units=units,
+            take_log=take_log,
+            validators=[ValidateSpatial()])
+        return (ptype, field_name)
+
     def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
                                      weight_field='particle_mass'):
         """Add a new deposited particle field
@@ -1294,7 +1337,8 @@ class Dataset(object):
         units = self.field_info[ptype, deposit_field].units
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
-                    "nearest": "nn", "simple_smooth": "ss", "count": "count"}
+                    "nearest": "nn", "simple_smooth": "ss", "count": "count",
+                    "mesh_id": "mesh_id"}
         field_name = "%s_" + name_map[method] + "_%s"
         field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
 
@@ -1316,9 +1360,12 @@ class Dataset(object):
             if method == 'weighted_mean':
                 fields.append(data[ptype, weight_field])
             fields = [np.ascontiguousarray(f) for f in fields]
-            d = data.deposit(pos, fields, method=method,
-                             kernel_name=kernel_name)
-            d = data.ds.arr(d, input_units=units)
+            if method == 'mesh_id':
+                d = data.mesh_deposit(pos)
+            else:
+                d = data.deposit(pos, fields, method=method,
+                                kernel_name=kernel_name)
+                d = data.ds.arr(d, input_units=units)
             if method == 'weighted_mean':
                 d[np.isnan(d)] = 0.0
             return d
@@ -1454,7 +1501,7 @@ class Dataset(object):
             The symbol for the new unit.
         value : tuple or ~yt.units.yt_array.YTQuantity
             The definition of the new unit in terms of some other units. For example,
-            one would define a new "mph" unit with (1.0, "mile/hr") 
+            one would define a new "mph" unit with (1.0, "mile/hr")
         tex_repr : string, optional
             The LaTeX representation of the new unit. If one is not supplied, it will
             be generated automatically based on the symbol string.
@@ -1469,7 +1516,7 @@ class Dataset(object):
         >>> two_weeks = YTQuantity(14.0, "days")
         >>> ds.define_unit("fortnight", two_weeks)
         """
-        _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr, 
+        _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr,
                      offset=offset, prefixable=prefixable)
 
 def _reconstruct_ds(*args, **kwargs):
