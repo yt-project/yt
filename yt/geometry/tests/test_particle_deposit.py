@@ -8,6 +8,10 @@ from yt.testing import \
     requires_file
 from numpy.testing import \
     assert_raises
+import yt
+from numpy.testing import assert_array_less
+import numpy as np
+
 
 def test_cic_deposit():
     ds = fake_random_ds(64, nprocs = 8, particles=64**3)
@@ -28,3 +32,23 @@ def test_one_zone_octree_deposit():
 
     sp = ds.sphere(hpos, hrvir*10)
     assert sp['deposit', 'io_cic'].shape == (1,)
+
+@requires_file(RAMSES)
+def test_mesh_deposition():
+    ds = yt.load(RAMSES)
+    ds.add_deposited_mesh_field(('index', 'x'), ptype='all')
+    ds.add_deposited_mesh_field(('index', 'dx'), ptype='all')
+
+    dx = ds.r['all', 'cell_index_dx']
+    x = ds.r['all', 'cell_index_x']
+    xpart = ds.r['all', 'particle_position_x']
+
+    dist = (x - xpart) / dx
+
+    upper = np.ones_like(dx) / 2
+
+    # Some particles are out of their domain, skip them
+    mask = np.isfinite(dist)
+
+    assert_array_less(dist[mask], upper[mask])
+    assert_array_less(-dist[mask], upper[mask])
