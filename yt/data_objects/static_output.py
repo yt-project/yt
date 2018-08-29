@@ -1249,7 +1249,7 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-    def add_deposited_mesh_field(self, deposit_field, ptype):
+    def add_deposited_mesh_field(self, deposit_field, ptype='all'):
         """Add a new deposited particle field
         """
         self.index
