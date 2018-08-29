@@ -1308,7 +1308,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         nfields = []
         apply_fields = defaultdict(list)
         for field in self._determine_fields(fields):
-            if field[0] in self.ds.filtered_particle_types:
+            # We need to create the field on the raw particle types
+            # for particles types (when the field is not directly
+            # defined for the derived particle type only)
+            finfo = self.ds.field_info[field]
+
+            if field[0] in self.ds.filtered_particle_types and \
+               finfo._function.__name__ == '_TranslationFunc':
                 f = self.ds.known_filters[field[0]]
                 apply_fields[field[0]].append(
                     (f.filtered_type, field[1]))
