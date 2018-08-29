@@ -36,6 +36,9 @@ from yt.utilities.math_utils import \
     get_sph_theta, get_sph_phi, \
     modify_reference_frame
 
+from yt.utilities.lib.non_local_particle_fields import \
+    calculate_non_local_field
+
 from .vector_operations import \
     create_magnitude_field
 
@@ -752,7 +755,8 @@ def standard_particle_fields(registry, ptype,
                        validators=[ValidateParameter("normal"),
                                    ValidateParameter("center")])
 
-def non_local_particle_fields(registry, ptype,
+def non_local_particle_fields(registry, ptype, sph_type, kdtree,
+                              num_neighbors,
                              spos = "particle_position_%s",
                              svel = "particle_velocity_%s"):
     unit_system = registry.ds.unit_system
@@ -762,32 +766,31 @@ def non_local_particle_fields(registry, ptype,
     # kernel - and calculate the non-local field
     # then this can be easily interpolated onto a pixel using the machinery we
     # already have
-
-    def _nearest_neighbors(field, data):
-        # need to hook this into some cython routines
-
-        print("calcing nn")
-        return np.zeros((data[ptype, 'density'].shape[0], 1))
-
-    registry.add_field((ptype, "nearest_neighbors"),
-                       sampling_type="pa:rticle",
-                       function=_nearest_neighbors)
+    #
+    print("passing")
 
     def _vorticity_x(field, data):
         """This field is a test in which I will attempt to add the framework
            to calculate non-local fields"""
 
-        # need a way to loop over nearest neighbors and do gradient, divergence
-        # and curl of a field. Also need a way to select the kernel and
-        # arbitrarily calculate the derviative
-        data[ptype, "nearest_neighbors"]
+        print(field, data.field_list)
 
-        return data[ptype, 'velocity']
+        output_buffer = np.zeros(data[ptype, 'particle_position'].shape[0],
+                                 dtype="float64")
+        calculate_non_local_field(output_buffer,
+                                  data[(ptype, 'particle_position')],
+                                  data[(ptype, 'particle_mass')],
+                                  data[(ptype, 'density')],
+                                  data[(ptype, 'SmoothingLength')],
+                                  data[(ptype, 'Velocities')],
+                                  kdtree,
+                                  num_neighbors=32)
 
-    registry.add_field((ptype, "particle_vorticity_x"),
-                       sampling_type="particle",
-                       function=_vorticity_x,
-                       units=unit_system["velocity"])
+        return output_buffer
+
+    registry.add_field((ptype, "ash_vorticity_x"),
+                       sampling_type="sph_particle",
+                       function=_vorticity_x)
 
 def add_particle_average(registry, ptype, field_name,
                          weight = "particle_mass",

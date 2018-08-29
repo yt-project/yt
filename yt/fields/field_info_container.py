@@ -61,7 +61,7 @@ class FieldInfoContainer(dict):
     extra_union_fields = ()
 
     def __init__(self, ds, field_list, slice_info = None):
-        self._show_field_errors = []
+        self._show_field_errors = [('PartType0', 'ash_vorticity_x')]
         self.ds = ds
         # Now we start setting things up.
         self.field_list = field_list
@@ -129,7 +129,6 @@ class FieldInfoContainer(dict):
         particle_deposition_functions(ptype, "particle_position",
             "particle_mass", self)
         standard_particle_fields(self, ptype)
-        non_local_particle_fields(self, ptype)
         # Now we check for any leftover particle fields
         for field in sorted(self.field_list):
             if field in self: continue
@@ -139,9 +138,11 @@ class FieldInfoContainer(dict):
                 continue
             self.add_output_field(field, sampling_type="particle",
                                   units = self.ds.field_units.get(field, ""))
-        self.setup_smoothed_fields(ptype, 
+        self.setup_smoothed_fields(ptype,
                                    num_neighbors=num_neighbors,
                                    ftype=ftype)
+        non_local_particle_fields(self, ptype, ftype, self.ds.index.kdtree,
+                                  num_neighbors=num_neighbors)
 
     def setup_extra_union_fields(self, ptype="all"):
         if ptype != "all":
@@ -376,11 +377,13 @@ class FieldInfoContainer(dict):
         for field in fields_to_check:
             mylog.debug("Checking %s", field)
             if field not in self: raise RuntimeError
+            print("throwing fake data at field", field)
             fi = self[field]
             try:
                 fd = fi.get_dependencies(ds = self.ds)
             except Exception as e:
                 if field in self._show_field_errors:
+                    print("failed: ", field, e)
                     raise
                 if type(e) != YTFieldNotFound:
                     # if we're doing field tests, raise an error
