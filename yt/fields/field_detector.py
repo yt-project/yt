@@ -16,6 +16,8 @@ The field detector.
 import numpy as np
 from collections import defaultdict
 from yt.units.yt_array import YTArray
+import yt.geometry.particle_deposit as particle_deposit
+from yt.funcs import mylog
 from .field_exceptions import \
     NeedsGridType
 
@@ -163,10 +165,17 @@ class FieldDetector(defaultdict):
     def deposit(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
 
+    def mesh_deposit(self, pos, **kwargs):
+        npart = len(pos)
+        nmax = self.nd**3
+        return (np.random.randint(nmax // 8, size=npart),
+                np.random.randint(8, size=npart))
+
     def smooth(self, *args, **kwargs):
         tr = np.random.random((self.nd, self.nd, self.nd))
         if kwargs['method'] == "volume_weighted":
             return [tr]
+
         return tr
 
     def particle_operation(self, *args, **kwargs):

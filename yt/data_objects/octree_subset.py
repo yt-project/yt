@@ -195,6 +195,26 @@ class OctreeSubset(YTSelectionContainer):
         if vals is None: return
         return np.asfortranarray(vals)
 
+    def mesh_deposit(self, positions):
+        r"""TODO
+        """
+        # Here we perform our particle deposition.
+        npart = len(positions)
+        nocts = (self.domain_ind >= 0).sum()
+        # We allocate number of zones, not number of octs
+        op = particle_deposit.MeshIdentifier(npart, 'none')
+        op.initialize(npart)
+        mylog.debug("Depositing %s Octs onto %s (%s^3) particles",
+                    nocts, positions.shape[0], positions.shape[0]**0.3333333)
+        pos = np.asarray(positions.convert_to_units("code_length"),
+                         dtype="float64")
+        # We should not need the following if we know in advance all our fields
+        # need no casting.
+        op.process_octree(self.oct_handler, self.domain_ind, pos, None,
+            self.domain_id, self._domain_offset)
+        igrid, icell = op.finalize()
+        return np.asfortranarray(igrid), np.asfortranarray(icell)
+
     def smooth(self, positions, fields = None, index_fields = None,
                method = None, create_octree = False, nneighbors = 64,
                kernel_name = 'cubic'):

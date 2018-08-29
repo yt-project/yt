@@ -111,6 +111,9 @@ cdef inline np.float64_t sph_kernel_wendland6(np.float64_t x):
         kernel = 0.
     return kernel * C
 
+cdef inline np.float64_t sph_kernel_dummy(np.float64_t x):
+    return 0
+
 # I don't know the way to use a dict in a cdef class.
 # So in order to mimic a registry functionality,
 # I manually created a function to lookup the kernel functions.
@@ -128,6 +131,8 @@ cdef inline kernel_func get_kernel_func(str kernel_name):
         return sph_kernel_wendland4
     elif kernel_name == 'wendland6':
         return sph_kernel_wendland6
+    elif kernel_name == 'none':
+        return sph_kernel_dummy
     else:
         raise NotImplementedError
 
@@ -136,7 +141,7 @@ cdef class ParticleDepositOperation:
     cdef kernel_func sph_kernel
     cdef public object nvals
     cdef public int update_values
-    cdef int process(self, int dim[3], np.float64_t left_edge[3],
+    cdef int process(self, int dim[3], int ipart, np.float64_t left_edge[3],
                      np.float64_t dds[3], np.int64_t offset,
                      np.float64_t ppos[3], np.float64_t[:] fields,
                      np.int64_t domain_ind) except -1
