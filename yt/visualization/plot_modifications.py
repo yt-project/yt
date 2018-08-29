@@ -1635,6 +1635,10 @@ class ParticleCallback(PlotCallback):
         self.alpha = alpha
         self.data_source=data_source
 
+        if self.minimum_mass is not None:
+            warnings.warn("The minimum_mass keyword is deprecated.  Please use "
+                          "an appropriate particle filter and the ptype keyword instead.")
+
     def __call__(self, plot):
         data = plot.data
         if iterable(self.width):
@@ -1646,7 +1650,9 @@ class ParticleCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         if type(self.data_source)==YTCutRegion:
-            mylog.warn("Parameter 'width' is ignored in annotate_particles if the data_source is a cut_region.")
+            mylog.warn("Parameter 'width' is ignored in annotate_particles if the "
+                       "data_source is a cut_region. "
+                       "See https://github.com/yt-project/yt/issues/1933 for further details.")
             self.region=self.data_source
         else:
             self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
@@ -1671,6 +1677,9 @@ class ParticleCallback(PlotCallback):
                                                         y0, y1, period_y)
         gg = ( ( particle_x >= x0 ) & ( particle_x <= x1 )
            &   ( particle_y >= y0 ) & ( particle_y <= y1 ) )
+        if self.minimum_mass is not None:
+            gg &= (self.region[pt, "particle_mass"] >= self.minimum_mass)
+            if gg.sum() == 0: return
         px, py = [particle_x[gg][::self.stride], particle_y[gg][::self.stride]]
         px, py = self.convert_to_plot(plot, [px, py])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
