@@ -55,7 +55,7 @@ class CFRadialIOHandler(BaseIOHandler):
 
         rv = {}
         for field in fields:
-            rv[field] = np.empty( size, dtype='float64')
+            rv[field] = np.empty(size, dtype='float64')
 
         offset = 0
 

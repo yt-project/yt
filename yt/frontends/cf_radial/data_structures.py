@@ -13,10 +13,12 @@ CF Radial data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 import os
 import stat
 import weakref
+
+import numpy as np
+import xarray
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -32,7 +34,6 @@ try:
 except NameError:
     FileNotFoundError = IOError
 
-import xarray
 
 class CFRadialGrid(AMRGridPatch):
     _id_offset = 0

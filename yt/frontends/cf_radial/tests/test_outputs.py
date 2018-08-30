@@ -19,7 +19,6 @@ from yt.testing import \
     requires_file, \
     units_override_check
 from yt.utilities.answer_testing.framework import \
-    small_patch_amr, \
     data_dir_load
 from ..data_structures import CFRadialDataset
 
@@ -65,7 +64,7 @@ def test_units():
     ad = ds.all_data()
     for field in _fields_units.keys():
         check_field_units(ad, field, _fields_units[field])
-    
+
 def check_field_units(ad, field, value):
     assert str(ad["cf_radial", field].units) == value
 
