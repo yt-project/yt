@@ -67,6 +67,14 @@ class YTFieldNotFound(YTException):
     def __str__(self):
         return "Could not find field '%s' in %s." % (self.fname, self.ds)
 
+class YTParticleTypeNotFound(YTException):
+    def __init__(self, fname, ds):
+        self.fname = fname
+        self.ds = ds
+
+    def __str__(self):
+        return ("Could not find particle_type '%s' in %s." % (self.fname, self.ds))
+
 class YTSceneFieldNotFound(YTException):
     pass
 
