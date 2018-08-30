@@ -531,6 +531,7 @@ class Extrema(DerivedQuantity):
                 for mis, mas in zip(values[::2], values[1::2])]
 
 class SampleAtMaxFieldValues(DerivedQuantity):
+    _sign = -1
     r"""
     Calculates the maximum value and returns whichever fields are asked to be
     sampled.
@@ -562,7 +563,7 @@ class SampleAtMaxFieldValues(DerivedQuantity):
 
     def process_chunk(self, data, field, sample_fields):
         field = data._determine_fields(field)[0]
-        ma = array_like_field(data, -HUGE, field)
+        ma = array_like_field(data, self._sign*HUGE, field)
         vals = [array_like_field(data, -1, sf) for sf in sample_fields]
         maxi = -1
         if data[field].size > 0:
@@ -605,6 +606,7 @@ class MaxLocation(SampleAtMaxFieldValues):
         return rv
 
 class SampleAtMinFieldValues(SampleAtMaxFieldValues):
+    _sign = 1
     r"""
     Calculates the minimum value and returns whichever fields are asked to be
     sampled.
