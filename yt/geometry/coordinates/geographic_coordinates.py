@@ -168,12 +168,12 @@ class GeographicCoordinateHandler(CoordinateHandler):
             return self._cyl_pixelize(data_source, field, bounds, size,
                                           antialias, dimension)
         elif self.axis_name[dimension] == self.radial_axis:
-            return self._cartesian_pixelize(data_source, field, bounds, size,
+            return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
         else:
             raise NotImplementedError
 
-    def _cartesian_pixelize(self, data_source, field, bounds, size, antialias,
+    def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                             dimension, periodic):
 
         period = self.period[:2].copy()
@@ -193,21 +193,6 @@ class GeographicCoordinateHandler(CoordinateHandler):
                            data_source[field],
                            bounds, int(antialias),
                            period, int(periodic))
-        return buff
-
-    def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
-                        dim, periodic):
-        # For a radial axis, px will correspond to longitude and py will
-        # correspond to latitude.
-        px = (data_source["px"].d + 180) * np.pi/180
-        pdx = data_source["pdx"].d * np.pi/180
-        py = (data_source["py"].d + 90) * np.pi/180
-        pdy = data_source["pdy"].d * np.pi/180
-        # First one in needs to be the equivalent of "theta", which is
-        # longitude
-        buff = pixelize_aitoff(px, pdx, py, pdy,
-                               size, data_source[field], None,
-                               None).transpose()
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
