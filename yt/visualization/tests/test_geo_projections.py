@@ -27,7 +27,9 @@ def compare(ds, field, idir, test_prefix, test_name, transform,
             decimals=12, annotate=False):
     def slice_image(filename_prefix):
         sl = yt.SlicePlot(ds, idir, field)
+        sl.set_mpl_projection(transform)
         if annotate:
+            sl._setup_plots()
             sl.annotate_mesh_lines()
         sl.set_log('all', False)
         image_file = sl.save(filename_prefix)
