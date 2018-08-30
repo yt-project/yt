@@ -173,9 +173,6 @@ class PlotWindow(ImagePlotContainer):
     window_size : float
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
-    window_size : float
-        The size of the window on the longest axis (in units of inches),
-        including the margins but not the colorbar.
     right_handed : boolean
         Whether the implicit east vector for the image generated is set to make a right
         handed coordinate system with a north vector and the normal vector, the

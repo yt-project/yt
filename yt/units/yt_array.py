@@ -531,6 +531,10 @@ class YTArray(np.ndarray):
         """
         return str(self.view(np.ndarray)) + ' ' + str(self.units)
 
+    def __format__(self, format_spec):
+        ret = super(YTArray, self).__format__(format_spec)
+        return ret + ' {}'.format(self.units)
+
     #
     # Start unit conversion methods
     #
