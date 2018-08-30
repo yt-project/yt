@@ -580,7 +580,6 @@ class SampleAtMaxFieldValues(DerivedQuantity):
         return np.argmax(arr)
 
 class MaxLocation(SampleAtMaxFieldValues):
-    _sign = 1
     r"""
     Calculates the maximum value plus the x, y, and z position of the maximum.
 
@@ -607,6 +606,7 @@ class MaxLocation(SampleAtMaxFieldValues):
         return rv
 
 class SampleAtMinFieldValues(SampleAtMaxFieldValues):
+    _sign = 1
     r"""
     Calculates the minimum value and returns whichever fields are asked to be
     sampled.
