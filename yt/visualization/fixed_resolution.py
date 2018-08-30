@@ -588,13 +588,13 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         data = self.data_source.dd[item]
 
         # Handle periodicity
-        dx = x_data - self.bounds[0]
-        dy = y_data - self.bounds[2]
+        dx = x_data.in_units("code_length").d - bounds[0]
+        dy = y_data.in_units("code_length").d - bounds[2]
         if self.periodic:
-            dx %= self._period[0]
-            dy %= self._period[1]
-        px = dx / (self.bounds[1] - self.bounds[0])
-        py = dy / (self.bounds[3] - self.bounds[2])
+            dx %= float(self._period[0].in_units("code_length"))
+            dy %= float(self._period[1].in_units("code_length"))
+        px = dx / (bounds[1] - bounds[0])
+        py = dy / (bounds[3] - bounds[2])
 
         # select only the particles that will actually show up in the image
         mask = np.logical_and(np.logical_and(px >= 0.0, px <= 1.0),
