@@ -1313,8 +1313,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             # defined for the derived particle type only)
             finfo = self.ds.field_info[field]
 
-            if field[0] in self.ds.filtered_particle_types and \
-               finfo._function.__name__ == '_TranslationFunc':
+            if field[0] in self.ds.filtered_particle_types and finfo._inherited:
                 f = self.ds.known_filters[field[0]]
                 apply_fields[field[0]].append(
                     (f.filtered_type, field[1]))
