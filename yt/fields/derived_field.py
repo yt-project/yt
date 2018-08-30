@@ -100,7 +100,7 @@ class DerivedField(object):
        that the field defined at the centers of the 4 edges that are normal to the
        x axis, while nodal_flag = [1, 1, 1] would be defined at the 8 cell corners.
     """
-    _inherited_particle_filter = False  # True for fields that were inherited
+    _inherited_particle_filter = False
     def __init__(self, name, sampling_type, function, units=None,
                  take_log=True, validators=None,
                  particle_type=None, vector_field=False, display_field=True,
