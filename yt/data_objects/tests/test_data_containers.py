@@ -14,7 +14,7 @@ from yt.testing import assert_equal, fake_random_ds, fake_amr_ds,\
     fake_particle_ds, requires_module
 from yt.utilities.exceptions import YTFieldNotFound, YTException
 
-class TestDataContainers(object):
+class TestDataContainers(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.tmpdir = tempfile.mkdtemp()
@@ -161,8 +161,7 @@ class TestDataContainers(object):
 
         def test_this(fname):
             data = dd[fname]
-
             assert_equal(data.shape[0], expected_size)
 
         for fname in fields_to_test:
-            yield test_this, fname
+            test_this(fname)
