@@ -587,12 +587,14 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         y_data = self.data_source.dd[ftype, self.y_field]
         data = self.data_source.dd[item]
 
-        # Handle periodicity
+        # handle periodicity
         dx = x_data.in_units("code_length").d - bounds[0]
         dy = y_data.in_units("code_length").d - bounds[2]
         if self.periodic:
             dx %= float(self._period[0].in_units("code_length"))
             dy %= float(self._period[1].in_units("code_length"))
+
+        # convert to pixels
         px = dx / (bounds[1] - bounds[0])
         py = dy / (bounds[3] - bounds[2])
 
