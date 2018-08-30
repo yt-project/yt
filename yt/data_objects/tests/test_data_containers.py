@@ -154,5 +154,14 @@ class TestDataContainers(unittest.TestCase):
         ds.add_field(('massive', 'test'), function=fun,
                      sampling_type='particle', units='code_mass')
 
-        # Access the field
-        dd['massive', 'test']
+        expected_size = (dd['io', 'particle_mass'].to('code_mass') > 0.5).sum()
+
+        fields_to_test = (f for f in ds.derived_field_list
+                          if f[0] == 'massive')
+
+        def test_this(fname):
+            data = dd[fname]
+            assert_equal(data.shape[0], expected_size)
+
+        for fname in fields_to_test:
+            test_this(fname)
