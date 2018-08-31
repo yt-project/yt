@@ -448,8 +448,7 @@ Overplotting Particle Positions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_particles(self, width, p_size=1.0, col='k', marker='o',\
-                                 stride=1, ptype='all', minimum_mass=None, \
-                                 alpha=1.0)
+                                 stride=1, ptype='all', alpha=1.0, data_source=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ParticleCallback`.)
@@ -457,8 +456,11 @@ Overplotting Particle Positions
    Adds particle positions, based on a thick slab along ``axis`` with a
    ``width`` along the line of sight.  ``p_size`` controls the number of pixels
    per particle, and ``col`` governs the color.  ``ptype`` will restrict plotted
-   particles to only those that are of a given type.  ``minimum_mass`` will
-   require that the particles be of a given mass minimum mass in solar units.
+   particles to only those that are of a given type.  ``data_source`` will only
+   plot particles contained within the data_source object.
+
+   WARNING: if ``data_source`` is a :class:`yt.data_objects.selection_data_containers.YTCutRegion`
+   then the ``width`` parameter is ignored.
 
 .. python-script::
 
@@ -466,6 +468,15 @@ Overplotting Particle Positions
    ds = yt.load("Enzo_64/DD0043/data0043")
    p = yt.ProjectionPlot(ds, "x", "density", center='m', width=(10, 'Mpc'))
    p.annotate_particles((10, 'Mpc'))
+   p.save()
+
+   To plot only the central particles
+.. python-script::
+   import yt
+   ds = yt.load("Enzo_64/DD0043/data0043")
+   p = yt.ProjectionPlot(ds, "x", "density", center='m', width=(10, 'Mpc'))
+   sp = ds.sphere([0.5,0.5,0.5],ds.quan(1,'Mpc'))
+   p.annotate_particles((10, 'Mpc'),data_source=sp)
    p.save()
 
 .. _annotate-sphere:

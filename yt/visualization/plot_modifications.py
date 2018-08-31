@@ -31,6 +31,7 @@ from yt.analysis_modules.halo_analysis.halo_catalog import \
     HaloCatalog
 from yt.frontends.ytdata.data_structures import \
     YTClumpContainer
+from yt.data_objects.selection_data_containers import YTCutRegion
 from yt.data_objects.data_containers import \
     YTDataContainer
 from yt.data_objects.static_output import \
@@ -299,16 +300,16 @@ class VelocityCallback(PlotCallback):
     """
     Adds a 'quiver' plot of velocity to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* and *plot_args* allows you to 
-    pass in matplotlib arguments (see matplotlib.axes.Axes.quiver 
-    for more info). if *normalize* is True, the velocity fields 
-    will be scaled by their local (in-plane) length, allowing 
-    morphological features to be more clearly seen for fields 
+    length unit using *scale_units* and *plot_args* allows you to
+    pass in matplotlib arguments (see matplotlib.axes.Axes.quiver
+    for more info). if *normalize* is True, the velocity fields
+    will be scaled by their local (in-plane) length, allowing
+    morphological features to be more clearly seen for fields
     with substantial variation in field strength.
     """
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, factor=16, scale=None, scale_units=None, 
+    def __init__(self, factor=16, scale=None, scale_units=None,
                  normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.factor = factor
@@ -344,7 +345,7 @@ class VelocityCallback(PlotCallback):
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
-                                 normalize=self.normalize, bv_x=bv_x, 
+                                 normalize=self.normalize, bv_x=bv_x,
                                  bv_y=bv_y, plot_args=self.plot_args)
         return qcb(plot)
 
@@ -352,15 +353,15 @@ class MagFieldCallback(PlotCallback):
     """
     Adds a 'quiver' plot of magnetic field to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* and *plot_args* allows you to pass 
+    length unit using *scale_units* and *plot_args* allows you to pass
     in matplotlib arguments (see matplotlib.axes.Axes.quiver for more info).
-    if *normalize* is True, the magnetic fields will be scaled by their 
+    if *normalize* is True, the magnetic fields will be scaled by their
     local (in-plane) length, allowing morphological features to be more
     clearly seen for fields with substantial variation in field strength.
     """
     _type_name = "magnetic_field"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
-    def __init__(self, factor=16, scale=None, scale_units=None, 
+    def __init__(self, factor=16, scale=None, scale_units=None,
                  normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.factor = factor
@@ -376,8 +377,8 @@ class MagFieldCallback(PlotCallback):
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
                                         "cutting_plane_magnetic_field_y",
-                                        self.factor, scale=self.scale, 
-                                        scale_units=self.scale_units, 
+                                        self.factor, scale=self.scale,
+                                        scale_units=self.scale_units,
                                         normalize=self.normalize,
                                         plot_args=self.plot_args)
         else:
@@ -386,9 +387,9 @@ class MagFieldCallback(PlotCallback):
             axis_names = plot.data.ds.coordinates.axis_name
             xv = "magnetic_field_%s" % (axis_names[xax])
             yv = "magnetic_field_%s" % (axis_names[yax])
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
-                                 normalize=self.normalize, 
+                                 normalize=self.normalize,
                                  plot_args=self.plot_args)
         return qcb(plot)
 
@@ -397,10 +398,10 @@ class QuiverCallback(PlotCallback):
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints.
     *scale* is the data units per arrow length unit using *scale_units*
-    and *plot_args* allows you to pass in matplotlib arguments (see 
-    matplotlib.axes.Axes.quiver for more info). if *normalize* is True, 
-    the fields will be scaled by their local (in-plane) length, allowing 
-    morphological features to be more clearly seen for fields with 
+    and *plot_args* allows you to pass in matplotlib arguments (see
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is True,
+    the fields will be scaled by their local (in-plane) length, allowing
+    morphological features to be more clearly seen for fields with
     substantial variation in field strength.
     """
     _type_name = "quiver"
@@ -464,7 +465,7 @@ class QuiverCallback(PlotCallback):
             nn = np.sqrt(pixX**2 + pixY**2)
             pixX /= nn
             pixY /= nn
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale,
                           scale_units=self.scale_units, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -599,7 +600,7 @@ class GridBoundaryCallback(PlotCallback):
     edgecolors='#00FFFF', or edgecolor='0.3', where the last is a float in 0-1
     scale indicating gray).  Note that setting edgecolors overrides cmap if you
     have both set to non-None values.  Cutoff for display is at min_pix
-    wide. draw_ids puts the grid id a the corner of the grid (but its not so 
+    wide. draw_ids puts the grid id a the corner of the grid (but its not so
     great in projections...).  id_loc determines which corner holds the grid id.
     One can set min and maximum level of grids to display, and
     can change the linewidth of the displayed grids.
@@ -607,7 +608,7 @@ class GridBoundaryCallback(PlotCallback):
     _type_name = "grids"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
 
-    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, 
+    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20,
                  draw_ids=False, id_loc="lower left",
                  periodic=True, min_level=None, max_level=None,
                  cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
@@ -926,10 +927,10 @@ class CuttingQuiverCallback(PlotCallback):
     Get a quiver plot on top of a cutting plane, using *field_x* and
     *field_y*, skipping every *factor* datapoint in the discretization.
     *scale* is the data units per arrow length unit using *scale_units*
-    and *plot_args* allows you to pass in matplotlib arguments (see 
-    matplotlib.axes.Axes.quiver for more info). if *normalize* is True, 
-    the fields will be scaled by their local (in-plane) length, allowing 
-    morphological features to be more clearly seen for fields with 
+    and *plot_args* allows you to pass in matplotlib arguments (see
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is True,
+    the fields will be scaled by their local (in-plane) length, allowing
+    morphological features to be more clearly seen for fields with
     substantial variation in field strength.
     """
     _type_name = "cquiver"
@@ -981,7 +982,7 @@ class CuttingQuiverCallback(PlotCallback):
             pixX /= nn
             pixY /= nn
 
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale,
                           scale_units=self.scale_units, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -1681,16 +1682,16 @@ class ParticleCallback(PlotCallback):
     *width* along the line of sight.  *p_size* controls the number of
     pixels per particle, and *col* governs the color.  *ptype* will
     restrict plotted particles to only those that are of a given type.
-    Particles with masses below *minimum_mass* will not be plotted.
-    *alpha* determines the opacity of the marker symbol used in the scatter
-    plot.
+    *alpha* determines the opacity of the marker symbol used in the scatter.
+    An alternate data source can be specified with *data_source*, but by
+    default the plot's data source will be queried.
     """
     _type_name = "particles"
     region = None
     _descriptor = None
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1,
-                 ptype='all', minimum_mass=None, alpha=1.0):
+                 ptype='all', minimum_mass=None, alpha=1.0, data_source=None):
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
@@ -1700,6 +1701,11 @@ class ParticleCallback(PlotCallback):
         self.ptype = ptype
         self.minimum_mass = minimum_mass
         self.alpha = alpha
+        self.data_source=data_source
+        if self.minimum_mass is not None:
+            warnings.warn("The minimum_mass keyword is deprecated.  Please use "
+                          "an appropriate particle filter and the ptype keyword instead.")
+
 
     def __call__(self, plot):
         data = plot.data
@@ -1717,7 +1723,13 @@ class ParticleCallback(PlotCallback):
         y1 = plot.ylim[1].to("code_length")
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
+        if type(self.data_source)==YTCutRegion:
+            mylog.warn("Parameter 'width' is ignored in annotate_particles if the "
+                       "data_source is a cut_region. "
+                       "See https://github.com/yt-project/yt/issues/1933 for further details.")
+            self.region=self.data_source
+        else:
+            self.region=self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
         ax = data.axis
         xax = plot.data.ds.coordinates.x_axis[ax]
         yax = plot.data.ds.coordinates.y_axis[ax]
@@ -1733,14 +1745,14 @@ class ParticleCallback(PlotCallback):
                   plot.data.ds.domain_right_edge[yax]
         period_x = plot.data.ds.domain_width[xax]
         period_y = plot.data.ds.domain_width[yax]
-        particle_x, particle_y = self._enforce_periodic(reg[pt, field_x],
-                                                        reg[pt, field_y],
+        particle_x, particle_y = self._enforce_periodic(self.region[pt, field_x],
+                                                        self.region[pt, field_y],
                                                         x0, x1, period_x,
                                                         y0, y1, period_y)
         gg = ( ( particle_x >= x0 ) & ( particle_x <= x1 )
            &   ( particle_y >= y0 ) & ( particle_y <= y1 ) )
         if self.minimum_mass is not None:
-            gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
+            gg &= (self.region[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
         px, py = [particle_x[gg][::self.stride], particle_y[gg][::self.stride]]
         px, py = self.convert_to_plot(plot, [px, py])
@@ -1756,16 +1768,16 @@ class ParticleCallback(PlotCallback):
                           y0, y1, period_y):
         #  duplicate particles if periodic in that direction AND if the plot
         #  extends outside the domain boundaries.
-        if self.periodic_x and x0 > self.LE[0]:
+        if self.periodic_x and x0 > self.RE[0]:
             particle_x = uhstack((particle_x, particle_x + period_x))
             particle_y = uhstack((particle_y, particle_y))
-        if self.periodic_x and x1 < self.RE[0]:
+        if self.periodic_x and x1 < self.LE[0]:
             particle_x = uhstack((particle_x, particle_x - period_x))
             particle_y = uhstack((particle_y, particle_y))
-        if self.periodic_y and y0 > self.LE[1]:
+        if self.periodic_y and y0 > self.RE[1]:
             particle_y = uhstack((particle_y, particle_y + period_y))
             particle_x = uhstack((particle_x, particle_x))
-        if self.periodic_y and y1 < self.RE[1]:
+        if self.periodic_y and y1 < self.LE[1]:
             particle_y = uhstack((particle_y, particle_y - period_y))
             particle_x = uhstack((particle_x, particle_x))
         return particle_x, particle_y
@@ -1785,7 +1797,7 @@ class ParticleCallback(PlotCallback):
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
             return self.region
-        self.region = data.ds.region(data.center, LE, RE)
+        self.region = data.ds.region(data.center, LE, RE, data_source=self.data_source)
         return self.region
 
 class TitleCallback(PlotCallback):
@@ -1807,7 +1819,7 @@ class TitleCallback(PlotCallback):
 
 class MeshLinesCallback(PlotCallback):
     """
-    Adds mesh lines to the plot. Only works for unstructured or 
+    Adds mesh lines to the plot. Only works for unstructured or
     semi-structured mesh data. For structured grid data, see
     GridBoundaryCallback or CellEdgesCallback.
 
@@ -1835,17 +1847,17 @@ class MeshLinesCallback(PlotCallback):
 
     def promote_2d_to_3d(self, coords, indices, plot):
         new_coords = np.zeros((2*coords.shape[0], 3))
-        new_connects = np.zeros((indices.shape[0], 2*indices.shape[1]), 
+        new_connects = np.zeros((indices.shape[0], 2*indices.shape[1]),
                                 dtype=np.int64)
-    
+
         new_coords[0:coords.shape[0],0:2] = coords
         new_coords[0:coords.shape[0],2] = plot.ds.domain_left_edge[2]
         new_coords[coords.shape[0]:,0:2] = coords
         new_coords[coords.shape[0]:,2] = plot.ds.domain_right_edge[2]
-        
+
         new_connects[:,0:indices.shape[1]] = indices
         new_connects[:,indices.shape[1]:] = indices + coords.shape[0]
-    
+
         return new_coords, new_connects
 
     def __call__(self, plot):
@@ -1863,7 +1875,7 @@ class MeshLinesCallback(PlotCallback):
                 pass
             coords = m.connectivity_coords
             indices = m.connectivity_indices - m._index_offset
-            
+
             num_verts = indices.shape[1]
             num_dims = coords.shape[1]
 
@@ -1874,7 +1886,7 @@ class MeshLinesCallback(PlotCallback):
 
             tri_indices = triangulate_indices(indices.astype(np.int_))
             points = coords[tri_indices]
-        
+
             tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
             tfc(plot)
 
@@ -2212,8 +2224,8 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
-                 max_frac=0.16, min_frac=0.015, coord_system='axis', 
-                 text_args=None, size_bar_args=None, draw_inset_box=False, 
+                 max_frac=0.16, min_frac=0.015, coord_system='axis',
+                 text_args=None, size_bar_args=None, draw_inset_box=False,
                  inset_box_args=None, scale_text_format="{scale} {units}"):
 
         def_size_bar_args = {
@@ -2294,7 +2306,7 @@ class ScaleCallback(PlotCallback):
             self.coeff = max_scale.v
             self.unit = max_scale.units
         self.scale = YTQuantity(self.coeff, self.unit)
-        text = self.scale_text_format.format(scale=int(self.coeff), 
+        text = self.scale_text_format.format(scale=int(self.coeff),
                                              units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
