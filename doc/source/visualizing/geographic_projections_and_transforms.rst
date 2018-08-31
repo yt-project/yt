@@ -54,11 +54,23 @@ option of `PlateCarree` will be displayed.
     p = yt.SlicePlot(ds, "altitude", 'AIRDENS')
 
 If an option other than `PlateCarree` is desired, the plot projection type can
-be set manually with the `set_mpl_projection` function. This next code block
-sets the projection to a `Robinson` projection from the default `PlateCarree`.
+be set manually either in the arguments for `SlicePlot` or 
+with the `set_mpl_projection` function. The next two code blocks show how to 
+sets the projection to a `Robinson` projection from the default `PlateCarree`
+using either method.
 
 .. code-block:: python
 
+    ds = yt.load_uniform_grid(data, sizes, 1.0, geometry=("geographic", dims),
+    bbox=bbox)
+    p = yt.SlicePlot(ds, "altitude", 'AIRDENS', geo_projection="Robinson")
+    p.show()
+
+.. code-block:: python
+
+    ds = yt.load_uniform_grid(data, sizes, 1.0, geometry=("geographic", dims),
+    bbox=bbox)
+    p = yt.SlicePlot(ds, "altitude", 'AIRDENS')
     p.set_mpl_projection('Robinson')
     p.show()
 
@@ -83,13 +95,17 @@ Additional arguments can be passed to the projection function for further
 customization. If additional arguments are desired, then rather than passing a
 string of the projection name, one would pass a 2 or 3-item tuple.
 
-The function `set_mpl_projection()` can take one of three input types:
+The function `set_mpl_projection()` and the `geo_projection` argument 
+can take one of three input types:
 
 .. code-block:: python
 
     set_mpl_projection('ProjectionType')
     set_mpl_projection(('ProjectionType', (args)))
     set_mpl_projection(('ProjectionType', (args), {kwargs}))
+    yt.SlicePlot(... , geo_projection="ProjectionType")
+    yt.SlicePlot(... , geo_projection=("ProjectionType", (args)))
+    yt.SlicePlot(... , geo_projection=("ProjectionType", (args), {kwargs}))
 
 Further examples of using the geographic transforms with this dataset
 can be found in :ref:`cookbook-geographic_projections`.
