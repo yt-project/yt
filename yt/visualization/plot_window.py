@@ -177,12 +177,24 @@ class PlotWindow(ImagePlotContainer):
         Whether the implicit east vector for the image generated is set to make a right
         handed coordinate system with a north vector and the normal vector, the
         direction of the 'window' into the data.
+    geo_projection : string or a 2- to 3- length sequence describing a
+        geographic projection.
+        ==================================    ====================================
+        format                                example
+        ==================================    ====================================
+        '{projection name}'                   'Orthgraphic'
+        ('{projection name}', (args))         ('RotatedPole',(177.5, 37.5))
+        ('{proj name}',(args), {kwargs})      ('RotatedPole', (),
+                                               {'pole_latitude':37.5,
+                                                'pole_longitude':177.5})
+
+        ==================================    ====================================
 
     """
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
                  periodic=True, origin='center-window', oblique=False, right_handed=True,
                  window_size=8.0, fields=None, fontsize=18, aspect=None,
-                 setup=False):
+                 setup=False, geo_projection=None):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
@@ -192,7 +204,10 @@ class PlotWindow(ImagePlotContainer):
         self.antialias = antialias
         self._axes_unit_names = None
         if isinstance(data_source.ds.coordinates, GeographicCoordinateHandler):
-            self._projection = get_mpl_transform("PlateCarree")
+            if geo_projection:
+                self._projection = get_mpl_transform(geo_projection)
+            else:
+                self._projection = get_mpl_transform("PlateCarree")
             self._transform = get_mpl_transform("PlateCarree")
         else:
             self._projection = None
@@ -1342,6 +1357,18 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     data_source: YTSelectionContainer object
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
+    geo_projection : string or a 2- to 3- length sequence describing a
+        geographic projection.
+        ==================================    ====================================
+        format                                example
+        ==================================    ====================================
+        '{projection name}'                   'Orthgraphic'
+        ('{projection name}', (args))         ('RotatedPole',(177.5, 37.5))
+        ('{proj name}',(args), {kwargs})      ('RotatedPole', (),
+                                               {'pole_latitude':37.5,
+                                                'pole_longitude':177.5})
+
+        ==================================    ====================================
 
     Examples
     --------
@@ -1359,7 +1386,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  origin='center-window', right_handed=True, fontsize=18, field_parameters=None,
-                 window_size=8.0, aspect=None, data_source=None):
+                 window_size=8.0, aspect=None, data_source=None, geo_projection=None):
         # this will handle time series data and controllers
         axis = fix_axis(axis, ds)
         (bounds, center, display_center) = \
@@ -1384,7 +1411,9 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         validate_mesh_fields(slc, fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
-                             window_size=window_size, aspect=aspect, right_handed=right_handed)
+                             window_size=window_size, aspect=aspect,
+                             right_handed=right_handed,
+                             geo_projection=geo_projection)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -2017,6 +2046,18 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
+    geo_projection : string or a 2- to 3- length sequence describing a
+        geographic projection.
+        ==================================    ====================================
+        format                                example
+        ==================================    ====================================
+        '{projection name}'                   'Orthgraphic'
+        ('{projection name}', (args))         ('RotatedPole',(177.5, 37.5))
+        ('{proj name}',(args), {kwargs})      ('RotatedPole', (),
+                                               {'pole_latitude':37.5,
+                                                'pole_longitude':177.5})
+
+        ==================================    ====================================
 
     Raises
     ------

@@ -20,7 +20,7 @@ from .coordinate_handler import \
     _unknown_coord, \
     _get_coord_fields
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder, pixelize_aitoff, pixelize_cartesian
+    pixelize_cylinder, pixelize_cartesian
 
 class GeographicCoordinateHandler(CoordinateHandler):
     radial_axis = "altitude"

@@ -18,6 +18,8 @@ from yt.testing import ANSWER_TEST_TAG, fake_amr_ds, requires_module
 from yt.utilities.answer_testing.framework import GenericImageTest
 from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
 
+transform_list.remove('UTM')
+
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
@@ -56,7 +58,6 @@ class TestGeoProjections(unittest.TestCase):
 
     def setUp(self):
         self.ds = fake_amr_ds(geometry="geographic")
-        self.slc = yt.SlicePlot(self.ds, "altitude", "Density")
 
     def tearDown(self):
         del self.ds
@@ -65,18 +66,30 @@ class TestGeoProjections(unittest.TestCase):
     def test_projection_setup(self):
 
         from yt.utilities.on_demand_imports import _cartopy as cartopy
+        self.slc = yt.SlicePlot(self.ds, "altitude", "Density")
 
         assert isinstance(self.slc._projection, cartopy.crs.PlateCarree)
         assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
         assert isinstance(self.slc._projection,
                           type(self.slc.plots['Density'].axes.projection))
 
-    def test_projection_transform(self):
-        # remove UTM as a transform for testing
-        # since it has a required arg
+    def test_projection_setup_modified(self):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
 
-        transform_list.remove('UTM')
+        for transform in transform_list:
+            self.slc = yt.SlicePlot(self.ds, "altitude", "Density",
+                                    geo_projection=transform)
+            proj_type = type(get_mpl_transform(transform))
+
+            assert isinstance(self.slc._projection, proj_type)
+            assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
+            assert isinstance(self.slc.plots['Density'].axes.projection,
+                              proj_type)
+
+    def test_projection_transform(self):
+        from yt.utilities.on_demand_imports import _cartopy as cartopy
+        self.slc = yt.SlicePlot(self.ds, "altitude", "Density")
+
         for transform in transform_list:
             self.slc.set_mpl_projection(transform)
             proj_type = type(get_mpl_transform(transform))
