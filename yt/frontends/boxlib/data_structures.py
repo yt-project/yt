@@ -1309,7 +1309,7 @@ class NyxDataset(BoxlibDataset):
 
         # alias
         self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
-        if os.path.isdir(os.path.join(self.output_dir, "DM")):
+        if os.path.isfile(os.path.join(self.output_dir, "DM/Header")):
             # we have particles
             self.parameters["particles"] = 1 
             self.particle_types = ("DM",)
@@ -1564,7 +1564,10 @@ class WarpXDataset(BoxlibDataset):
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)
             self.particle_types_raw = self.particle_types
-
+        else:
+            self.particle_types = ()
+            self.particle_types_raw = ()
+            
     def _set_code_unit_attributes(self):
         setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))
         setdefaultattr(self, 'mass_unit', self.quan(1.0, "kg"))

@@ -155,7 +155,7 @@ Clump Finder Callback
 
    import yt
    import numpy as np
-   from yt.analysis_modules.level_sets.api import \
+   from yt.data_objects.level_sets.api import \
        Clump, find_clumps, get_lowest_clumps
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -329,7 +329,9 @@ Overplot Halo Annotations
 
    Accepts a :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
    and plots a circle at the location of each halo with the radius of the
-   circle corresponding to the virial radius of the halo.  If ``width`` is set
+   circle corresponding to the virial radius of the halo. Also accepts a
+   :ref:`loaded halo catalog dataset <halo-catalog-data>` or a data
+   container from a halo catalog dataset. If ``width`` is set
    to None (default) all halos are plotted, otherwise it accepts a tuple in
    the form (1.0, ‘Mpc’) to only display halos that fall within a slab with
    width ``width`` centered on the center of the plot data.  The appearance of
@@ -358,16 +360,12 @@ Overplot Halo Annotations
 .. python-script::
 
    import yt
-   from yt.analysis_modules.halo_analysis.halo_catalog import HaloCatalog
 
    data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
    halos_ds = yt.load('rockstar_halos/halos_0.0.bin')
 
-   hc = HaloCatalog(halos_ds=halos_ds)
-   hc.create()
-
    prj = yt.ProjectionPlot(data_ds, 'z', 'density')
-   prj.annotate_halos(hc, annotate_field='particle_identifier')
+   prj.annotate_halos(halos_ds, annotate_field='particle_identifier')
    prj.save()
 
 .. _annotate-image-line:

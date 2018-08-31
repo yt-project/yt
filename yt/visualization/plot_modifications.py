@@ -25,11 +25,17 @@ from functools import wraps
 
 from numbers import Number
 
-from yt.analysis_modules.level_sets.clump_handling import \
+from yt.data_objects.level_sets.clump_handling import \
     Clump
+from yt.analysis_modules.halo_analysis.halo_catalog import \
+    HaloCatalog
 from yt.frontends.ytdata.data_structures import \
     YTClumpContainer
 from yt.data_objects.selection_data_containers import YTCutRegion
+from yt.data_objects.data_containers import \
+    YTDataContainer
+from yt.data_objects.static_output import \
+    Dataset
 from yt.funcs import \
     iterable, \
     mylog, \
@@ -1469,30 +1475,78 @@ class HaloCatalogCallback(PlotCallback):
     in a halo catalog with radii corresponding to the
     virial radius of each halo.
 
-    circle_args: Contains the arguments controlling the
+    Parameters
+    ----------
+    halo_catalog : Dataset, DataContainer, or HaloCatalog
+        The object containing halos to be overplotted. This can
+        be a HaloCatalog object, a loaded halo catalog dataset,
+        or a data container from a halo catalog dataset.
+    circle_args : list
+        Contains the arguments controlling the
         appearance of the circles, supplied to the
         Matplotlib patch Circle.
-    width: the width over which to select halos to plot,
+    width : tuple
+        The width over which to select halos to plot,
         useful when overplotting to a slice plot. Accepts
         a tuple in the form (1.0, 'Mpc').
-    annotate_field: Accepts a field contained in the
+    annotate_field : str
+        A field contained in the
         halo catalog to add text to the plot near the halo.
         Example: annotate_field = 'particle_mass' will
         write the halo mass next to each halo.
-    radius_field: Accepts a field contained in the halo
+    radius_field : str
+        A field contained in the halo
         catalog to set the radius of the circle which will
-        surround each halo.
-    center_field_prefix: Accepts a field prefix which will
+        surround each halo. Default: 'virial_radius'.
+    center_field_prefix : str
+        Accepts a field prefix which will
         be used to find the fields containing the coordinates
         of the center of each halo. Ex: 'particle_position'
         will result in the fields 'particle_position_x' for x
-        'particle_position_y' for y, and 'particle_position_z'
-        for z.
-    text_args: Contains the arguments controlling the text
+        'particle_position_y' for y, and 'particle_position_z' 
+        for z. Default: 'particle_position'.
+    text_args : dict
+        Contains the arguments controlling the text
         appearance of the annotated field.
-    factor: A number the virial radius is multiplied by for
+    factor : float
+        A number the virial radius is multiplied by for
         plotting the circles. Ex: factor = 2.0 will plot
         circles with twice the radius of each halo virial radius.
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> dds = yt.load("Enzo_64/DD0043/data0043")
+    >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
+    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density")
+    >>> p.annotate_halos(hds)
+    >>> p.save()
+
+    >>> # plot a subset of all halos
+    >>> import yt
+    >>> dds = yt.load("Enzo_64/DD0043/data0043")
+    >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
+    >>> # make a region half the width of the box
+    >>> dregion = dds.box(dds.domain_center - 0.25*dds.domain_width,
+    ...                   dds.domain_center + 0.25*dds.domain_width)
+    >>> hregion = hds.box(hds.domain_center - 0.25*hds.domain_width,
+    ...                   hds.domain_center + 0.25*hds.domain_width)
+    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density",
+    ...                       data_source=dregion, width=0.5)
+    >>> p.annotate_halos(hregion)
+    >>> p.save()
+
+    >>> # plot halos from a HaloCatalog
+    >>> import yt
+    >>> from yt.analysis_modules.halo_analysis.api import HaloCatalog
+    >>> dds = yt.load("Enzo_64/DD0043/data0043")
+    >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
+    >>> hc = HaloCatalog(data_ds=dds, halos_ds=hds)
+    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density")
+    >>> p.annotate_halos(hc)
+    >>> p.save()
+
     """
 
     _type_name = 'halos'
@@ -1508,7 +1562,21 @@ class HaloCatalogCallback(PlotCallback):
         PlotCallback.__init__(self)
         def_circle_args = {'edgecolor':'white', 'facecolor':'None'}
         def_text_args = {'color':'white'}
-        self.halo_catalog = halo_catalog
+
+        if isinstance(halo_catalog, YTDataContainer):
+            self.halo_data = halo_catalog
+        elif isinstance(halo_catalog, Dataset):
+            self.halo_data = halo_catalog.all_data()
+        elif isinstance(halo_catalog, HaloCatalog):
+            if halo_catalog.data_source.ds == halo_catalog.halos_ds:
+                self.halo_data = halo_catalog.data_source
+            else:
+                self.halo_data = halo_catalog.halos_ds.all_data()
+        else:
+            raise RuntimeError(
+                "halo_catalog argument must be a HaloCatalog object, " +
+                "a dataset, or a data container.")
+
         self.width = width
         self.radius_field = radius_field
         self.center_field_prefix = center_field_prefix
@@ -1535,7 +1603,7 @@ class HaloCatalogCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
 
-        halo_data= self.halo_catalog.halos_ds.all_data()
+        halo_data = self.halo_data
         axis_names = plot.data.ds.coordinates.axis_name
         xax = plot.data.ds.coordinates.x_axis[data.axis]
         yax = plot.data.ds.coordinates.y_axis[data.axis]
@@ -1584,7 +1652,7 @@ class HaloCatalogCallback(PlotCallback):
             # but I dont really want to reimplement get_sanitized_width...
             width = data.ds.arr(self.width[0], self.width[1]).in_units('code_length')
 
-            indices = np.where((pz > c-width) & (pz < c+width))
+            indices = np.where((pz > c-0.5*width) & (pz < c+0.5*width))
 
             px = px[indices]
             py = py[indices]
@@ -1644,9 +1712,15 @@ class ParticleCallback(PlotCallback):
         if iterable(self.width):
             validate_width_tuple(self.width)
             self.width = plot.data.ds.quan(self.width[0], self.width[1])
+        elif isinstance(self.width, YTQuantity):
+            self.width = plot.data.ds.quan(self.width.value, self.width.units)
+        else:
+            self.width = plot.data.ds.quan(self.width, "code_length")
         # we construct a rectangular prism
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
+        x0 = plot.xlim[0].to("code_length")
+        x1 = plot.xlim[1].to("code_length")
+        y0 = plot.ylim[0].to("code_length")
+        y1 = plot.ylim[1].to("code_length")
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         if type(self.data_source)==YTCutRegion:
@@ -1717,7 +1791,8 @@ class ParticleCallback(PlotCallback):
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
         LE[zax] = data.center[zax] - self.width*0.5
-        RE[zax] = data.center[zax] + self.width*0.5
+        LE[zax].convert_to_units("code_length")
+        RE[zax] = LE[zax] + self.width
         if self.region is not None \
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):

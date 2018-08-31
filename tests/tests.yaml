@@ -26,7 +26,7 @@ answer_tests:
   local_gadget_001:
     - yt/frontends/gadget/tests/test_outputs.py
 
-  local_gamer_002:
+  local_gamer_004:
     - yt/frontends/gamer/tests/test_outputs.py
 
   local_gdf_001:
@@ -50,7 +50,6 @@ answer_tests:
   local_pw_024:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
-    - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
@@ -70,12 +69,22 @@ answer_tests:
     - yt/analysis_modules/photon_simulator/tests/test_sloshing.py
 
   local_unstructured_010:
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py
-    - yt/visualization/tests/test_mesh_slices.py:test_tri2
-    - yt/visualization/tests/test_mesh_slices.py:test_quad2
-    - yt/visualization/tests/test_mesh_slices.py:test_multi_region
-    - yt/visualization/tests/test_line_plots.py:test_line_plot
-    - yt/visualization/tests/test_line_plots.py:test_multi_line_plot
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render_pyembree
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex20_render
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex20_render_pyembree
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex8_render
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex8_render_pyembree
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_perspective_mesh_render
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_perspective_mesh_render_pyembree
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_surface_mesh_render
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_surface_mesh_render_pyembree
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet10_render
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet10_render_pyembree
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet4_render
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet4_render_pyembree
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render_pyembree
 
   local_boxlib_007:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
