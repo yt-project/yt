@@ -837,11 +837,11 @@ class Dataset(object):
         """
         mylog.debug("Searching for minimum value of %s", field)
         source = self.all_data()
-        max_val, mx, my, mz = \
-            source.quantities.max_location(field)
+        min_val, mx, my, mz = \
+            source.quantities.min_location(field)
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
-              max_val, mx, my, mz)
-        return max_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+              min_val, mx, my, mz)
+        return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
 
     def find_field_values_at_point(self, fields, coords):
         """
