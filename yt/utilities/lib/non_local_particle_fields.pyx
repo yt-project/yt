@@ -24,7 +24,7 @@ from cykdtree.kdtree cimport PyKDTree, KDTree
 from yt.utilities.lib.particle_kdtree_tools import knn_position
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
 
-def calculate_non_local_field(np.float64_t[:, ::1] output_buffer,
+def calculate_non_local_field(np.float64_t[:] output_buffer,
                               np.float64_t[:, :] particle_positions,
                               np.float64_t[:] mass,
                               np.float64_t[:] density,
@@ -41,7 +41,7 @@ def calculate_non_local_field(np.float64_t[:, ::1] output_buffer,
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neighbors, True)
 
     # Get the function for the calculating the spatial derivatives
-    spatial_type = divergence
+    #spatial_type = divergence
 
     for i in range(particle_positions.shape[0]):
         # calculate the nearest neighbors here
@@ -50,19 +50,22 @@ def calculate_non_local_field(np.float64_t[:, ::1] output_buffer,
 
         for j in range(num_neighbors):
             # Calculate the pre-factor and the difference in fields
-            particle = queue.pids[j]
-            prefactor = mass[particle] / denstiy[particle]
-            field_diff[:] = field_quantity[particle, :] - field_quantity[i, :]
+            particle = kdtree.idx[queue.pids[j]]
+            prefactor = mass[particle] / density[particle]
+
+            for k in range(3):
+                field_diff[k] = (field_quantity[particle, k] -
+                                 field_quantity[i, k])
 
             # Calculate the kernel values here
             x = particle_positions[i, 0] - particle_positions[particle, 0]
             y = particle_positions[i, 1] - particle_positions[particle, 1]
             z = particle_positions[i, 2] - particle_positions[particle, 2]
-            q = math.sqrt((x*x + y*y + z*z)) / hsml
+            q = sqrt((x*x + y*y + z*z)) / hsml[particle]
             cubic_spline_grad(&kernel_values[0], q)
 
             # Add to the output buffer
-            spatial_type(output_buffer[i, :], &kernel_values[0], &field_diff[0])
+            divergence(&output_buffer[i], &kernel_values[0], &field_diff[0])
 
 #TODO: fix this
 cdef void cubic_spline_grad(np.float64_t * kernel_values,

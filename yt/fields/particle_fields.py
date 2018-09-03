@@ -21,8 +21,12 @@ from yt.fields.derived_field import \
     ValidateSpatial
 
 from yt.units.yt_array import \
+    YTArray, \
     uconcatenate, \
     ucross
+
+from yt.utilities.lib.non_local_particle_fields import \
+    calculate_non_local_field
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \
@@ -35,9 +39,6 @@ from yt.utilities.math_utils import \
     get_cyl_z, \
     get_sph_theta, get_sph_phi, \
     modify_reference_frame
-
-from yt.utilities.lib.non_local_particle_fields import \
-    calculate_non_local_field
 
 from .vector_operations import \
     create_magnitude_field
@@ -755,42 +756,44 @@ def standard_particle_fields(registry, ptype,
                        validators=[ValidateParameter("normal"),
                                    ValidateParameter("center")])
 
-def non_local_particle_fields(registry, ptype, sph_type, kdtree,
-                              num_neighbors,
-                             spos = "particle_position_%s",
-                             svel = "particle_velocity_%s"):
+def non_local_particle_fields(registry, ptype='PartType0',
+                              num_neighbors=32,
+                              ftype='gas',
+                              kdtree = None,
+                              spos = "particle_position_%s",
+                              svel = "particle_velocity_%s"):
     unit_system = registry.ds.unit_system
-
-    # Essentially, we need a way to find our nearest neighbors - then, using the
-    # nearest neighbors we can just iterate through - using the gradient of the
-    # kernel - and calculate the non-local field
-    # then this can be easily interpolated onto a pixel using the machinery we
-    # already have
-    #
-    print("passing")
 
     def _vorticity_x(field, data):
         """This field is a test in which I will attempt to add the framework
            to calculate non-local fields"""
 
-        print(field, data.field_list)
-
         output_buffer = np.zeros(data[ptype, 'particle_position'].shape[0],
                                  dtype="float64")
-        calculate_non_local_field(output_buffer,
-                                  data[(ptype, 'particle_position')],
-                                  data[(ptype, 'particle_mass')],
-                                  data[(ptype, 'density')],
-                                  data[(ptype, 'SmoothingLength')],
-                                  data[(ptype, 'Velocities')],
-                                  kdtree,
-                                  num_neighbors=32)
+        if output_buffer.shape[0] < num_neighbors:
+            data[(ptype, 'particle_position')]
+            data[(ptype, 'Velocities')]
+            data[(ptype, 'SmoothingLength')]
+            data[(ptype, 'density')]
+            data[(ptype, 'particle_mass')]
+        else:
+            calculate_non_local_field(output_buffer,
+                                      data[(ptype, 'particle_position')],
+                                      data[(ptype, 'particle_mass')],
+                                      data[(ptype, 'density')],
+                                      data[(ptype, 'SmoothingLength')],
+                                      data[(ptype, 'Velocities')],
+                                      kdtree,
+                                      num_neighbors=32)
 
-        return output_buffer
+        return YTArray(output_buffer,
+                       unit_system["velocity"]/unit_system["length"])
 
-    registry.add_field((ptype, "ash_vorticity_x"),
-                       sampling_type="sph_particle",
-                       function=_vorticity_x)
+    registry.add_field((ptype, "vorticity_x"),
+                       sampling_type="particle",
+                       function=_vorticity_x,
+                       units=unit_system["velocity"]/unit_system["length"],
+                       particle_type=True)
 
 def add_particle_average(registry, ptype, field_name,
                          weight = "particle_mass",
