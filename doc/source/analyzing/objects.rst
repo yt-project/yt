@@ -482,6 +482,15 @@ all the cells contained in a sphere at the center of our dataset.
    sp = ds.sphere('c', (10, 'kpc'))
    print(sp.quantities.angular_momentum_vector())
 
+Some quantities can be calculated for a specific particle type only. For example, to 
+get the center of mass of only the stars within the sphere:
+
+.. code-block:: python
+   ds=load("my_data")
+   sp=ds.sphere('c',(10,'kpc'))
+   print(sp.quantities.center_of_mass(use_gas=False,use_particles=True,particle_type='star'))
+
+
 Quickly Processing Data
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -576,21 +585,26 @@ Available Derived Quantities
 
 **Angular Momentum Vector**
     | Class :class:`~yt.data_objects.derived_quantities.AngularMomentumVector`
-    | Usage: ``angular_momentum_vector(use_gas=True, use_particles=True)``
+    | Usage: ``angular_momentum_vector(use_gas=True, use_particles=True, particle_type='all')``
     | The mass-weighted average angular momentum vector of the particles, gas,
-      or both.
+      or both. The quantity can be calculated for all particles or a given
+      particle_type only.
 
 **Bulk Velocity**
     | Class :class:`~yt.data_objects.derived_quantities.BulkVelocity`
-    | Usage: ``bulk_velocity(use_gas=True, use_particles=True)``
+    | Usage: ``bulk_velocity(use_gas=True, use_particles=True, particle_type='all')``
     | The mass-weighted average velocity of the particles, gas, or both.
+      The quantity can be calculated for all particles or a given 
+      particle_type only.
 
 **Center of Mass**
     | Class :class:`~yt.data_objects.derived_quantities.CenterOfMass`
-    | Usage: ``center_of_mass(use_cells=True, use_particles=False)``
+    | Usage: ``center_of_mass(use_cells=True, use_particles=False, particle_type='all')``
     | The location of the center of mass. By default, it computes of
       the *non-particle* data in the object, but it can be used on
-      particles, gas, or both.
+      particles, gas, or both. The quantity can be
+      calculated for all particles or a given particle_type only.
+
 
 **Extrema**
     | Class :class:`~yt.data_objects.derived_quantities.Extrema`
@@ -621,8 +635,9 @@ Available Derived Quantities
 
 **Spin Parameter**
     | Class :class:`~yt.data_objects.derived_quantities.SpinParameter`
-    | Usage: ``spin_parameter(use_gas=True, use_particles=True)``
-    | The spin parameter for the baryons using the particles, gas, or both.
+    | Usage: ``spin_parameter(use_gas=True, use_particles=True, particle_type='all')``
+    | The spin parameter for the baryons using the particles, gas, or both. The 
+      quantity can be calculated for all particles or a given particle_type only.
 
 **Total Mass**
     | Class :class:`~yt.data_objects.derived_quantities.TotalMass`

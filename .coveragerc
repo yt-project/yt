@@ -15,3 +15,5 @@ omit=*/api.py
 	 yt/utilities/lru_cache.py
 	 yt/utilities/poster/*
 	 yt/visualization/_mpl_imports.py
+
+ignore_errors = True

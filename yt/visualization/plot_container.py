@@ -26,8 +26,6 @@ from distutils.version import LooseVersion
 from collections import defaultdict
 from functools import wraps
 
-from .tick_locators import LogLocator, LinearLocator
-
 from yt.config import \
     ytcfg
 from yt.data_objects.time_series import \
@@ -157,25 +155,17 @@ field_transforms = {}
 
 
 class FieldTransform(object):
-    def __init__(self, name, func, locator):
+    def __init__(self, name, func):
         self.name = name
         self.func = func
-        self.locator = locator
         field_transforms[name] = self
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
-    def ticks(self, mi, ma):
-        try:
-            ticks = self.locator(mi, ma)
-        except:
-            ticks = []
-        return ticks
-
-log_transform = FieldTransform('log10', np.log10, LogLocator())
-linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
-symlog_transform = FieldTransform('symlog', None, LogLocator())
+log_transform = FieldTransform('log10', np.log10)
+linear_transform = FieldTransform('linear', lambda x: x)
+symlog_transform = FieldTransform('symlog', None)
 
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):

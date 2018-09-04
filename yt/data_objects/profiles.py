@@ -30,7 +30,7 @@ from yt.units.yt_array import \
 from yt.units.unit_object import Unit
 from yt.data_objects.field_data import YTFieldData
 from yt.utilities.exceptions import \
-    YTIllDefinedProfile
+    YTIllDefinedProfile, YTIllDefinedBounds
 from yt.utilities.lib.misc_utilities import \
     new_bin_profile1d, \
     new_bin_profile2d, \
@@ -1088,7 +1088,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 try:
                     field_ex = list(extrema[bin_field])
                 except KeyError:
-                    raise RuntimeError("Could not find field {0} or {1} in override_bins".format(bin_field[-1], bin_field))
+                    raise RuntimeError("Could not find field {0} or {1} in extrema".format(bin_field[-1], bin_field))
 
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
@@ -1157,6 +1157,8 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
 
     args = [data_source]
     for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
+        if mi <= 0 and l:
+            raise YTIllDefinedBounds(mi, ma)
         args += [f, n, mi, ma, l]
     kwargs = dict(weight_field=weight_field)
     if cls is ParticleProfile:

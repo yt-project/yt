@@ -472,14 +472,14 @@ of topologically disconnected structures, i.e., clump finding.
 
 .. autosummary::
 
-   ~yt.analysis_modules.level_sets.clump_handling.Clump
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.add_info_item
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.add_validator
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.save_as_dataset
-   ~yt.analysis_modules.level_sets.clump_handling.find_clumps
-   ~yt.analysis_modules.level_sets.clump_handling.get_lowest_clumps
-   ~yt.analysis_modules.level_sets.clump_info_items.add_clump_info
-   ~yt.analysis_modules.level_sets.clump_validators.add_validator
+   ~yt.data_objects.level_sets.clump_handling.Clump
+   ~yt.data_objects.level_sets.clump_handling.Clump.add_info_item
+   ~yt.data_objects.level_sets.clump_handling.Clump.add_validator
+   ~yt.data_objects.level_sets.clump_handling.Clump.save_as_dataset
+   ~yt.data_objects.level_sets.clump_handling.find_clumps
+   ~yt.data_objects.level_sets.clump_handling.get_lowest_clumps
+   ~yt.data_objects.level_sets.clump_info_items.add_clump_info
+   ~yt.data_objects.level_sets.clump_validators.add_validator
 
 .. _halo_analysis_ref:
 
