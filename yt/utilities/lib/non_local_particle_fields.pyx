@@ -24,14 +24,23 @@ from cykdtree.kdtree cimport PyKDTree, KDTree
 from yt.utilities.lib.particle_kdtree_tools import knn_position
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
 
-def calculate_non_local_field(np.float64_t[:] output_buffer,
-                              np.float64_t[:, :] particle_positions,
+ctypedef void (*spatial_operator) (np.float64_t *, np.float64_t *, np.float64_t *)
+cdef inline spatial_operator get_spatial_operator(str spatial_type):
+    if spatial_type == 'curl':
+        return curl
+    elif spatial_type == 'gradient':
+        return gradient
+    elif spatial_type == 'divergence':
+        return divergence
+
+
+def calculate_non_local_field(np.float64_t[:, :] particle_positions,
                               np.float64_t[:] mass,
                               np.float64_t[:] density,
                               np.float64_t[:] hsml,
                               np.float64_t[:, :] field_quantity,
                               PyKDTree kdtree,
-                              spatial_type=None,
+                              str spatial_type,
                               int num_neighbors=32,
                               kernel='cubic'):
     cdef int i, j, particle
@@ -41,7 +50,17 @@ def calculate_non_local_field(np.float64_t[:] output_buffer,
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neighbors, True)
 
     # Get the function for the calculating the spatial derivatives
-    #spatial_type = divergence
+    cdef spatial_operator operator
+    operator = get_spatial_operator(spatial_type)
+
+    # grad and curl both return a vector, divergence returns a scalar
+    output_dim = 3
+    if spatial_type == 'divergence':
+        output_dim = 1
+
+    cdef np.float64_t[:, ::1] output_buffer
+    output_buffer = np.zeros((field_quantity.shape[0], output_dim),
+                             dtype="float64")
 
     for i in range(particle_positions.shape[0]):
         # calculate the nearest neighbors here
@@ -65,9 +84,10 @@ def calculate_non_local_field(np.float64_t[:] output_buffer,
             cubic_spline_grad(&kernel_values[0], q)
 
             # Add to the output buffer
-            divergence(&output_buffer[i], &kernel_values[0], &field_diff[0])
+            operator(&output_buffer[i, 0], &kernel_values[0], &field_diff[0])
 
-#TODO: fix this
+    return output_buffer
+
 cdef void cubic_spline_grad(np.float64_t * kernel_values,
                             np.float64_t x):
     cdef np.float64_t kernel
@@ -84,24 +104,16 @@ cdef void cubic_spline_grad(np.float64_t * kernel_values,
     kernel_values[1] = kernel * C
     kernel_values[2] = kernel * C
 
-# TODO: finish this
-def output_vector(fields, spatial_type):
-    '''
-    This is a utility function to determine whether the output is a vector or a
-    scalar quantity
-    '''
-    return True
-
 cdef void gradient(np.float64_t * result, np.float64_t * kernel_values,
-                   np.float64_t field):
+                   np.float64_t * field):
     '''
     This takes in a scalar field and the 3 dimensional array of the gradient of
     the kernel values. This calculates the scalar field multiplied by the
     gradient of the kernel.
     '''
-    result[0] += kernel_values[0] * field
-    result[1] += kernel_values[1] * field
-    result[2] += kernel_values[2] * field
+    result[0] += kernel_values[0] * field[0]
+    result[1] += kernel_values[1] * field[0]
+    result[2] += kernel_values[2] * field[0]
 
 cdef void divergence(np.float64_t * result, np.float64_t * kernel_values,
                      np.float64_t * field):

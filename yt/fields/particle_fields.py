@@ -21,7 +21,6 @@ from yt.fields.derived_field import \
     ValidateSpatial
 
 from yt.units.yt_array import \
-    YTArray, \
     uconcatenate, \
     ucross
 
@@ -757,41 +756,42 @@ def standard_particle_fields(registry, ptype,
                                    ValidateParameter("center")])
 
 def non_local_particle_fields(registry, ptype='PartType0',
-                              num_neighbors=32,
-                              ftype='gas',
-                              kdtree = None,
                               spos = "particle_position_%s",
                               svel = "particle_velocity_%s"):
     unit_system = registry.ds.unit_system
 
-    def _vorticity_x(field, data):
+    def _vorticity(field, data):
         """This field is a test in which I will attempt to add the framework
            to calculate non-local fields"""
 
-        output_buffer = np.zeros(data[ptype, 'particle_position'].shape[0],
-                                 dtype="float64")
-        if output_buffer.shape[0] < num_neighbors:
-            data[(ptype, 'particle_position')]
-            data[(ptype, 'Velocities')]
+        field_name = 'Velocities'
+        spatial_type = 'curl'
+
+        # This is a hack to make sure we don't do a neighbor search on the test
+        # data, but we do check that all of the dependencies are present
+        if (data[(ptype, 'particle_position')].shape[0] <
+                data.ds.num_neighbors):
+            data[(ptype, field_name)]
             data[(ptype, 'SmoothingLength')]
             data[(ptype, 'density')]
             data[(ptype, 'particle_mass')]
+            output_buffer = np.zeros(1)
         else:
-            calculate_non_local_field(output_buffer,
-                                      data[(ptype, 'particle_position')],
-                                      data[(ptype, 'particle_mass')],
-                                      data[(ptype, 'density')],
-                                      data[(ptype, 'SmoothingLength')],
-                                      data[(ptype, 'Velocities')],
-                                      kdtree,
-                                      num_neighbors=32)
+            output_buffer = calculate_non_local_field(
+                                    data[(ptype, 'particle_position')],
+                                    data[(ptype, 'particle_mass')],
+                                    data[(ptype, 'density')],
+                                    data[(ptype, 'SmoothingLength')],
+                                    data[(ptype, field_name)],
+                                    data.ds.index.kdtree,
+                                    spatial_type,
+                                    num_neighbors=data.ds.num_neighbors)
 
-        return YTArray(output_buffer,
-                       unit_system["velocity"]/unit_system["length"])
+        return data.ds.arr(output_buffer, "code_velocity/code_length")
 
-    registry.add_field((ptype, "vorticity_x"),
+    registry.add_field((ptype, "vorticity"),
                        sampling_type="particle",
-                       function=_vorticity_x,
+                       function=_vorticity,
                        units=unit_system["velocity"]/unit_system["length"],
                        particle_type=True)
 
