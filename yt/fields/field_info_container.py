@@ -61,7 +61,7 @@ class FieldInfoContainer(dict):
     extra_union_fields = ()
 
     def __init__(self, ds, field_list, slice_info = None):
-        self._show_field_errors =[('PartType0', 'vorticity')]
+        self._show_field_errors = []
         self.ds = ds
         # Now we start setting things up.
         self.field_list = field_list
