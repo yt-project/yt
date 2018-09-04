@@ -766,11 +766,11 @@ def non_local_particle_fields(registry, ptype='PartType0',
 
         field_name = 'Velocities'
         spatial_type = 'curl'
+        num_neighbors = getattr(data, "num_neighbors", 32)
 
         # This is a hack to make sure we don't do a neighbor search on the test
         # data, but we do check that all of the dependencies are present
-        if (data[(ptype, 'particle_position')].shape[0] <
-                data.ds.num_neighbors):
+        if data[(ptype, 'particle_position')].shape[0] < num_neighbors:
             data[(ptype, field_name)]
             data[(ptype, 'SmoothingLength')]
             data[(ptype, 'density')]
@@ -785,7 +785,7 @@ def non_local_particle_fields(registry, ptype='PartType0',
                                     data[(ptype, field_name)],
                                     data.ds.index.kdtree,
                                     spatial_type,
-                                    num_neighbors=data.ds.num_neighbors)
+                                    num_neighbors=num_neighbors)
 
         return data.ds.arr(output_buffer, "code_velocity/code_length")
 
