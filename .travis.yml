@@ -57,8 +57,11 @@ install:
     pip install --upgrade pip
     pip install --upgrade wheel
     pip install --upgrade setuptools
+    if [[ -n ${CYTHON} ]]; then
+      pip install $CYTHON
+    fi
     # Install dependencies
-    pip install $MOCK $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS $CARTOPY $NOSE $NOSETIMER $REQUESTS $GLUE $PYQT
+    pip install $MOCK $NUMPY $SCIPY $H5PY $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS $CARTOPY $NOSE $NOSETIMER $REQUESTS $GLUE $PYQT
     # install yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       pip install -e .
