@@ -125,6 +125,10 @@ class GadgetDataset(SPHDataset):
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
         self._header_size = _compute_header_size(self._header_spec)
+        if self._header_size != 256:
+            only_on_root(
+                mylog.warn, "Non-standard header size! (%s instead of 256)",
+                self._header_size)
         self._field_spec = self._setup_binary_spec(
             field_spec, gadget_field_specs)
         self._ptype_spec = self._setup_binary_spec(
