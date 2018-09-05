@@ -54,6 +54,10 @@ def _byte_swap_32(x):
     return struct.unpack('>I', struct.pack('<I', x))[0]
 
 
+def _compute_header_size(header_spec):
+    return sum(field[1] * np.dtype(field[2]).itemsize for field in header_spec)
+
+
 def _get_gadget_format(filename, header_size=256):
     # check and return gadget binary format with file endianness
     ff = open(filename, 'rb')
@@ -120,8 +124,7 @@ class GadgetDataset(SPHDataset):
             return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
-        self._header_size = sum(field[1] * np.dtype(field[2]).itemsize
-                                for field in self._header_spec)
+        self._header_size = _compute_header_size(self._header_spec)
         self._field_spec = self._setup_binary_spec(
             field_spec, gadget_field_specs)
         self._ptype_spec = self._setup_binary_spec(
@@ -356,7 +359,7 @@ class GadgetDataset(SPHDataset):
         self.specific_energy_unit = self.quan(*specific_energy_unit)
 
     @staticmethod
-    def _validate_header(filename, header_size=256):
+    def _validate_header(filename, header_size):
         '''
         This method automatically detects whether the Gadget file is big/little endian
         and is not corrupt/invalid using the first 4 bytes in the file.  It returns a
@@ -414,8 +417,15 @@ class GadgetDataset(SPHDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        if 'header_spec' in kwargs:
+            # Compute header size if header is customized
+            header_spec = self._setup_binary_spec(
+                header_spec, gadget_header_specs)
+            header_size = self._compute_header_size(header_spec)
+        else:
+            header_size = 256
         # First 4 bytes used to check load
-        return GadgetDataset._validate_header(args[0])[0]
+        return GadgetDataset._validate_header(args[0], header_size)[0]
 
 
 class GadgetHDF5Dataset(GadgetDataset):
