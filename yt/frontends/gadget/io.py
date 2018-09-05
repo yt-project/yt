@@ -344,7 +344,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     def _initialize_index(self, data_file, regions):
         DLE = data_file.ds.domain_left_edge
         DRE = data_file.ds.domain_right_edge
-        self._float_type = data_file.ds._validate_header(data_file.filename)[1]
+        self._float_type = data_file.ds._validate_header(
+            data_file.filename, data_file.ds._header_size)[1]
         if self.index_ptype == "all":
             count = sum(data_file.total_particles.values())
             return self._get_morton_from_position(

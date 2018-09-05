@@ -54,7 +54,7 @@ def _byte_swap_32(x):
     return struct.unpack('>I', struct.pack('<I', x))[0]
 
 
-def _get_gadget_format(filename):
+def _get_gadget_format(filename, header_size=256):
     # check and return gadget binary format with file endianness
     ff = open(filename, 'rb')
     (rhead,) = struct.unpack('<I', ff.read(4))
@@ -63,9 +63,9 @@ def _get_gadget_format(filename):
         return 2, '>'
     elif (rhead == 8):
         return 2, '<'
-    elif (rhead == _byte_swap_32(256)):
+    elif (rhead == _byte_swap_32(header_size)):
         return 1, '>'
-    elif (rhead == 256):
+    elif (rhead == header_size):
         return 1, '<'
     else:
         raise RuntimeError("Incorrect Gadget format %s!" % str(rhead))
@@ -73,7 +73,7 @@ def _get_gadget_format(filename):
 
 class GadgetBinaryFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
-        gformat = _get_gadget_format(filename)
+        gformat = _get_gadget_format(filename, ds._header_size)
         with open(filename, "rb") as f:
             if gformat[0] == 2:
                 f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
@@ -120,6 +120,8 @@ class GadgetDataset(SPHDataset):
             return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
+        self._header_size = sum(field[1] * np.dtype(field[2]).itemsize
+                                for field in self._header_spec)
         self._field_spec = self._setup_binary_spec(
             field_spec, gadget_field_specs)
         self._ptype_spec = self._setup_binary_spec(
@@ -175,7 +177,7 @@ class GadgetDataset(SPHDataset):
     def _get_hvals(self):
         # The entries in this header are capitalized and named to match Table 4
         # in the GADGET-2 user guide.
-        gformat = _get_gadget_format(self.parameter_filename)
+        gformat = _get_gadget_format(self.parameter_filename, self._header_size)
         f = open(self.parameter_filename, 'rb')
         if gformat[0] == 2:
             f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
@@ -354,7 +356,7 @@ class GadgetDataset(SPHDataset):
         self.specific_energy_unit = self.quan(*specific_energy_unit)
 
     @staticmethod
-    def _validate_header(filename):
+    def _validate_header(filename, header_size=256):
         '''
         This method automatically detects whether the Gadget file is big/little endian
         and is not corrupt/invalid using the first 4 bytes in the file.  It returns a
@@ -380,9 +382,9 @@ class GadgetDataset(SPHDataset):
             f.close()
             return False, 1
         # Use value to check endianness
-        if rhead == 256:
+        if rhead == header_size:
             endianswap = '<'
-        elif rhead == _byte_swap_32(256):
+        elif rhead == _byte_swap_32(header_size):
             endianswap = '>'
         elif rhead in (8, _byte_swap_32(8)):
             # This is only true for snapshot format 2
@@ -397,7 +399,7 @@ class GadgetDataset(SPHDataset):
         np0 = sum(struct.unpack(endianswap + 'IIIIII', f.read(6 * 4)))
         # Read in size of position block. It should be 4 bytes per float,
         # with 3 coordinates (x,y,z) per particle. (12 bytes per particle)
-        f.seek(4 + 256 + 4, 0)
+        f.seek(4 + header_size + 4, 0)
         np1 = struct.unpack(endianswap + 'I', f.read(4))[0] / (4 * 3)
         f.close()
         # Compare
