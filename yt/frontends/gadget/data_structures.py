@@ -170,7 +170,8 @@ class GadgetDataset(SPHDataset):
             self.length_unit.convert_to_units('kpc')
             self.mass_unit.convert_to_units('Msun')
 
-    def _setup_binary_spec(self, spec, spec_dict):
+    @classmethod
+    def _setup_binary_spec(cls, spec, spec_dict):
         if isinstance(spec, str):
             _hs = ()
             for hs in spec.split("+"):
@@ -420,12 +421,12 @@ class GadgetDataset(SPHDataset):
             return False, 1
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, *args, **kwargs):
         if 'header_spec' in kwargs:
             # Compute header size if header is customized
-            header_spec = self._setup_binary_spec(
-                header_spec, gadget_header_specs)
-            header_size = self._compute_header_size(header_spec)
+            header_spec = cls._setup_binary_spec(
+                kwargs['header_spec'], gadget_header_specs)
+            header_size = _compute_header_size(header_spec)
         else:
             header_size = 256
         # First 4 bytes used to check load
