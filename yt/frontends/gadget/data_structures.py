@@ -50,16 +50,20 @@ def _fix_unit_ordering(unit):
     return unit
 
 
+def _byte_swap_32(x):
+    return struct.unpack('>I', struct.pack('<I', x))[0]
+
+
 def _get_gadget_format(filename):
     # check and return gadget binary format with file endianness
     ff = open(filename, 'rb')
     (rhead,) = struct.unpack('<I', ff.read(4))
     ff.close()
-    if (rhead == 134217728):
+    if (rhead == _byte_swap_32(8)):
         return 2, '>'
     elif (rhead == 8):
         return 2, '<'
-    elif (rhead == 65536):
+    elif (rhead == _byte_swap_32(256)):
         return 1, '>'
     elif (rhead == 256):
         return 1, '<'
@@ -367,7 +371,7 @@ class GadgetDataset(SPHDataset):
 
         # First int32 is 256 for a Gadget2 binary file with SnapFormat=1,
         # 8 for a Gadget2 binary file with SnapFormat=2 file,
-        # or the byte swapped equivalents (65536 and 134217728).
+        # or the byte swapped equivalents.
         # The int32 following the header (first 4+256 bytes) must equal this
         # number.
         try:
@@ -378,9 +382,9 @@ class GadgetDataset(SPHDataset):
         # Use value to check endianness
         if rhead == 256:
             endianswap = '<'
-        elif rhead == 65536:
+        elif rhead == _byte_swap_32(256):
             endianswap = '>'
-        elif rhead in (8, 134217728):
+        elif rhead in (8, _byte_swap_32(8)):
             # This is only true for snapshot format 2
             # we do not currently support double precision
             # snap format 2 data
