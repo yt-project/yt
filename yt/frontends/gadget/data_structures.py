@@ -376,6 +376,8 @@ class GadgetDataset(SPHDataset):
         # or the byte swapped equivalents.
         # The int32 following the header (first 4+256 bytes) must equal this
         # number.
+        # Note that 256 is the Gadget2 standard value, but other value could be
+        # set using the header_size argument.
         try:
             (rhead,) = struct.unpack('<I', f.read(4))
         except struct.error:
