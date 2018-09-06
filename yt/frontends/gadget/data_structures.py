@@ -127,8 +127,16 @@ class GadgetDataset(SPHDataset):
         self._header_size = _compute_header_size(self._header_spec)
         if self._header_size != 256:
             only_on_root(
-                mylog.warn, "Non-standard header size! (%s instead of 256)",
-                self._header_size)
+                mylog.warn,
+                "Non-standard header size is detected! "
+                "Gadget-2 standard header is 256 bytes, but yours is %s. "
+                "Make sure a non-standard header is actually expected. "
+                "Otherwise something is wrong, "
+                "and you might want to check how the dataset is loaded. "
+                "Futher information about header specification can be found in "
+                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",
+                self._header_size
+            )
         self._field_spec = self._setup_binary_spec(
             field_spec, gadget_field_specs)
         self._ptype_spec = self._setup_binary_spec(
