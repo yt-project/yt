@@ -9,6 +9,7 @@ from nose.tools import assert_raises
 from numpy.testing import assert_array_equal
 
 from yt.data_objects.data_containers import YTDataContainer
+from yt.data_objects.particle_filters import particle_filter
 from yt.testing import assert_equal, fake_random_ds, fake_amr_ds,\
     fake_particle_ds, requires_module
 from yt.utilities.exceptions import YTFieldNotFound
@@ -126,3 +127,34 @@ class TestDataContainers(unittest.TestCase):
         rho = q("particle_velocity_x", weight="particle_mass")
         with assert_raises(NotImplementedError):
             dd.extract_isocontours("density", rho, sample_values='x')
+
+    def test_derived_field(self):
+        # Test that derived field on filtered particles do not require
+        # their parent field to be created
+        ds = fake_particle_ds()
+        dd = ds.all_data()
+
+        @particle_filter(requires=['particle_mass'], filtered_type='io')
+        def massive(pfilter, data):
+            return data[(pfilter.filtered_type, 'particle_mass')].to('code_mass') > 0.5
+
+        ds.add_particle_filter('massive')
+
+        def fun(field, data):
+            return data[field.name[0], 'particle_mass']
+
+        # Add the field to the massive particles
+        ds.add_field(('massive', 'test'), function=fun,
+                     sampling_type='particle', units='code_mass')
+
+        expected_size = (dd['io', 'particle_mass'].to('code_mass') > 0.5).sum()
+
+        fields_to_test = (f for f in ds.derived_field_list
+                          if f[0] == 'massive')
+
+        def test_this(fname):
+            data = dd[fname]
+            assert_equal(data.shape[0], expected_size)
+
+        for fname in fields_to_test:
+            test_this(fname)

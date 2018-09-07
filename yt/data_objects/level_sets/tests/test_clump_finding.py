@@ -20,7 +20,7 @@ import shutil
 import tempfile
 
 
-from yt.analysis_modules.level_sets.api import \
+from yt.data_objects.level_sets.api import \
     Clump, \
     find_clumps, \
     get_lowest_clumps

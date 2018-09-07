@@ -155,7 +155,7 @@ Clump Finder Callback
 
    import yt
    import numpy as np
-   from yt.analysis_modules.level_sets.api import \
+   from yt.data_objects.level_sets.api import \
        Clump, find_clumps, get_lowest_clumps
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -329,7 +329,9 @@ Overplot Halo Annotations
 
    Accepts a :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
    and plots a circle at the location of each halo with the radius of the
-   circle corresponding to the virial radius of the halo.  If ``width`` is set
+   circle corresponding to the virial radius of the halo. Also accepts a
+   :ref:`loaded halo catalog dataset <halo-catalog-data>` or a data
+   container from a halo catalog dataset. If ``width`` is set
    to None (default) all halos are plotted, otherwise it accepts a tuple in
    the form (1.0, ‘Mpc’) to only display halos that fall within a slab with
    width ``width`` centered on the center of the plot data.  The appearance of
@@ -358,16 +360,12 @@ Overplot Halo Annotations
 .. python-script::
 
    import yt
-   from yt.analysis_modules.halo_analysis.halo_catalog import HaloCatalog
 
    data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
    halos_ds = yt.load('rockstar_halos/halos_0.0.bin')
 
-   hc = HaloCatalog(halos_ds=halos_ds)
-   hc.create()
-
    prj = yt.ProjectionPlot(data_ds, 'z', 'density')
-   prj.annotate_halos(hc, annotate_field='particle_identifier')
+   prj.annotate_halos(halos_ds, annotate_field='particle_identifier')
    prj.save()
 
 .. _annotate-image-line:
@@ -450,8 +448,7 @@ Overplotting Particle Positions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_particles(self, width, p_size=1.0, col='k', marker='o',\
-                                 stride=1, ptype='all', minimum_mass=None, \
-                                 alpha=1.0)
+                                 stride=1, ptype='all', alpha=1.0, data_source=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ParticleCallback`.)
@@ -459,8 +456,11 @@ Overplotting Particle Positions
    Adds particle positions, based on a thick slab along ``axis`` with a
    ``width`` along the line of sight.  ``p_size`` controls the number of pixels
    per particle, and ``col`` governs the color.  ``ptype`` will restrict plotted
-   particles to only those that are of a given type.  ``minimum_mass`` will
-   require that the particles be of a given mass minimum mass in solar units.
+   particles to only those that are of a given type.  ``data_source`` will only
+   plot particles contained within the data_source object.
+
+   WARNING: if ``data_source`` is a :class:`yt.data_objects.selection_data_containers.YTCutRegion`
+   then the ``width`` parameter is ignored.
 
 .. python-script::
 
@@ -468,6 +468,15 @@ Overplotting Particle Positions
    ds = yt.load("Enzo_64/DD0043/data0043")
    p = yt.ProjectionPlot(ds, "x", "density", center='m', width=(10, 'Mpc'))
    p.annotate_particles((10, 'Mpc'))
+   p.save()
+
+   To plot only the central particles
+.. python-script::
+   import yt
+   ds = yt.load("Enzo_64/DD0043/data0043")
+   p = yt.ProjectionPlot(ds, "x", "density", center='m', width=(10, 'Mpc'))
+   sp = ds.sphere([0.5,0.5,0.5],ds.quan(1,'Mpc'))
+   p.annotate_particles((10, 'Mpc'),data_source=sp)
    p.save()
 
 .. _annotate-sphere:

@@ -217,7 +217,7 @@ class Clump(TreeContainer):
         --------
 
         >>> import yt
-        >>> from yt.analysis_modules.level_sets.api import \
+        >>> from yt.data_objects.level_sets.api import \
         ...         Clump, find_clumps
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],

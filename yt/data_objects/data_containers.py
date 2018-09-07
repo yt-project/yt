@@ -660,9 +660,16 @@ class YTDataContainer(object):
         the Glue environment, you can pass a *data_collection* object,
         otherwise Glue will be started.
         """
+        from yt.config import ytcfg
         from glue.core import DataCollection, Data
-        from glue.qt.glue_application import GlueApplication
-
+        if ytcfg.getboolean("yt", "__withintesting"):
+            from glue.core.application_base import \
+                Application as GlueApplication
+        else:
+            try:
+                from glue.app.qt.application import GlueApplication
+            except ImportError:
+                from glue.qt.glue_application import GlueApplication
         gdata = Data(label=label)
         for component_name in fields:
             gdata.add_component(self[component_name], component_name)
@@ -670,7 +677,12 @@ class YTDataContainer(object):
         if data_collection is None:
             dc = DataCollection([gdata])
             app = GlueApplication(dc)
-            app.start()
+            try:
+                app.start()
+            except AttributeError:
+                # In testing we're using a dummy glue application object
+                # that doesn't have a start method
+                pass
         else:
             data_collection.append(gdata)
 
@@ -1331,7 +1343,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         nfields = []
         apply_fields = defaultdict(list)
         for field in self._determine_fields(fields):
-            if field[0] in self.ds.filtered_particle_types:
+            # We need to create the field on the raw particle types
+            # for particles types (when the field is not directly
+            # defined for the derived particle type only)
+            finfo = self.ds.field_info[field]
+
+            if field[0] in self.ds.filtered_particle_types and finfo._inherited_particle_filter:
                 f = self.ds.known_filters[field[0]]
                 apply_fields[field[0]].append(
                     (f.filtered_type, field[1]))
@@ -2033,8 +2050,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
                 mv = max_val
             else:
                 mv = cons[level+1]
-            from yt.analysis_modules.level_sets.api import identify_contours
-            from yt.analysis_modules.level_sets.clump_handling import \
+            from yt.data_objects.level_sets.api import identify_contours
+            from yt.data_objects.level_sets.clump_handling import \
                 add_contour_field
             nj, cids = identify_contours(self, field, cons[level], mv)
             unique_contours = set([])

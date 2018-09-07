@@ -47,7 +47,8 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
-                    if pcount == 0: continue
+                    if pcount == 0:
+                        continue
                     coords = f[ptype]["%sPos" % ptype].value.astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]

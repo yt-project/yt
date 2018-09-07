@@ -27,6 +27,8 @@ from yt.utilities.physical_constants import \
     gravitational_constant_cgs
 from yt.utilities.physical_ratios import HUGE
 from yt.extern.six import add_metaclass
+from yt.utilities.exceptions import \
+    YTParticleTypeNotFound
 
 derived_quantity_registry = {}
 
@@ -113,7 +115,7 @@ class WeightedAverageQuantity(DerivedQuantity):
 
     Returns a YTQuantity for each field requested; if one,
     it returns a single YTQuantity, if many, it returns a list of YTQuantities
-    in order of the listed fields.  
+    in order of the listed fields.
 
     Where f is the field and w is the weight, the weighted average is
     Sum_i(f_i \* w_i) / Sum_i(w_i).
@@ -194,7 +196,7 @@ class TotalQuantity(DerivedQuantity):
 class TotalMass(TotalQuantity):
     r"""
     Calculates the total mass of the object. Returns a YTArray where the
-    first element is total gas mass and the second element is total particle 
+    first element is total gas mass and the second element is total particle
     mass.
 
     Examples
@@ -234,6 +236,11 @@ class CenterOfMass(DerivedQuantity):
         Flag to include particles in the calculation.  Particles are ignored
         if not present.
         Default: False
+    particle_type: string
+        Flag to specify the field type of the particles to use. Useful for
+        particle-based codes where you don't want to use all of the particles
+        in your calculation.
+        Default: 'all'
 
     Examples
     --------
@@ -243,10 +250,12 @@ class CenterOfMass(DerivedQuantity):
     >>> print ad.quantities.center_of_mass()
 
     """
-    def count_values(self, use_gas = True, use_particles = False):
+    def count_values(self, use_gas = True, use_particles = False, particle_type='nbody'):
+        if use_particles and particle_type not in self.data_source.ds.particle_types:
+            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)        
         finfo = self.data_source.ds.field_info
         includes_gas = ("gas", "mass") in finfo
-        includes_particles = ("nbody", "particle_mass") in finfo
+        includes_particles = (particle_type, "particle_mass") in finfo
 
         self.use_gas = use_gas & includes_gas
         self.use_particles = use_particles & includes_particles
@@ -257,18 +266,18 @@ class CenterOfMass(DerivedQuantity):
         if self.use_particles:
             self.num_vals += 4
 
-    def process_chunk(self, data, use_gas = True, use_particles = False):
+    def process_chunk(self, data, use_gas = True, use_particles = False, particle_type="nbody"):
         vals = []
         if self.use_gas:
             vals += [(data["gas", ax] *
                       data["gas", "mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["gas", "mass"].sum(dtype=np.float64))
+            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
         if self.use_particles:
-            vals += [(data["nbody", "particle_position_%s" % ax] *
-                      data["nbody", "particle_mass"]).sum(dtype=np.float64)
+            vals += [(data[particle_type, "particle_position_%s" % ax] *
+                      data[particle_type, "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["all", "particle_mass"].sum(dtype=np.float64))
+            vals.append(data[particle_type, "particle_mass"].sum(dtype=np.float64))
         return vals
 
     def reduce_intermediate(self, values):
@@ -303,6 +312,11 @@ class BulkVelocity(DerivedQuantity):
         Flag to include particles in the calculation.  Particles are ignored
         if not present.
         Default: True
+    particle_type: string
+        Flag to specify the field type of the particles to use. Useful for
+        particle-based codes where you don't want to use all of the particles
+        in your calculation.
+        Default: 'all'
 
     Examples
     --------
@@ -312,7 +326,9 @@ class BulkVelocity(DerivedQuantity):
     >>> print ad.quantities.bulk_velocity()
 
     """
-    def count_values(self, use_gas = True, use_particles = False):
+    def count_values(self, use_gas = True, use_particles = False, particle_type= "all"):
+        if use_particles and particle_type not in self.data_source.ds.particle_types:
+            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
         # This is a list now
         self.num_vals = 0
         if use_gas:
@@ -320,18 +336,18 @@ class BulkVelocity(DerivedQuantity):
         if use_particles and 'nbody' in self.data_source.ds.particle_types:
             self.num_vals += 4
 
-    def process_chunk(self, data, use_gas = True, use_particles = False):
+    def process_chunk(self, data, use_gas = True, use_particles = False, particle_type= "nbody"):
         vals = []
         if use_gas:
             vals += [(data["gas", "velocity_%s" % ax] *
                       data["gas", "mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
             vals.append(data["gas", "mass"].sum(dtype=np.float64))
-        if use_particles and 'nbody' in data.ds.particle_types:
-            vals += [(data["nbody", "particle_velocity_%s" % ax] *
-                      data["nbody", "particle_mass"]).sum(dtype=np.float64)
+        if use_particles:
+            vals += [(data[particle_type, "particle_velocity_%s" % ax] *
+                      data[particle_type, "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["nbody", "particle_mass"].sum(dtype=np.float64))
+            vals.append(data[particle_type, "particle_mass"].sum(dtype=np.float64))
         return vals
 
     def reduce_intermediate(self, values):
@@ -410,9 +426,9 @@ class WeightedVariance(DerivedQuantity):
             my_mean = values[i]
             my_var2 = values[i + int(len(values) / 2)]
             all_mean = (my_weight * my_mean).sum(dtype=np.float64) / all_weight
-            rvals.append(self.data_source.ds.arr([(np.sqrt((my_weight * 
-                                                 (my_var2 + (my_mean - 
-                                                  all_mean)**2)).sum(dtype=np.float64) 
+            rvals.append(self.data_source.ds.arr([(np.sqrt((my_weight *
+                                                 (my_var2 + (my_mean -
+                                                  all_mean)**2)).sum(dtype=np.float64)
                                                   / all_weight)), all_mean]))
         return rvals
 
@@ -454,7 +470,9 @@ class AngularMomentumVector(DerivedQuantity):
     >>> print sp.quantities.angular_momentum_vector(use_gas=False, use_particles=True, particle_type='PartType0')
 
     """
-    def count_values(self, use_gas=True, use_particles=True, particle_type='all'):
+    def count_values(self, use_gas=True, use_particles=True, particle_type='nbody'):
+        if use_particles and particle_type not in self.data_source.ds.particle_types:
+            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
         num_vals = 0
         # create the index if it doesn't exist yet
         self.data_source.ds.index
@@ -469,7 +487,7 @@ class AngularMomentumVector(DerivedQuantity):
             num_vals += 4
         self.num_vals = num_vals
 
-    def process_chunk(self, data, **kwargs):
+    def process_chunk(self, data, use_gas = True, use_particles = False, particle_type= "all"):
         rvals = []
         if self.use_gas:
             rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
@@ -499,7 +517,7 @@ class Extrema(DerivedQuantity):
     r"""
     Calculates the min and max value of a field or list of fields.
     Returns a YTArray for each field requested.  If one, a single YTArray
-    is returned, if many, a list of YTArrays in order of field list is 
+    is returned, if many, a list of YTArrays in order of field list is
     returned.  The first element of each YTArray is the minimum of the
     field and the second is the maximum of the field.
 
@@ -549,6 +567,7 @@ class Extrema(DerivedQuantity):
                 for mis, mas in zip(values[::2], values[1::2])]
 
 class SampleAtMaxFieldValues(DerivedQuantity):
+    _sign = -1
     r"""
     Calculates the maximum value and returns whichever fields are asked to be
     sampled.
@@ -580,7 +599,7 @@ class SampleAtMaxFieldValues(DerivedQuantity):
 
     def process_chunk(self, data, field, sample_fields):
         field = data._determine_fields(field)[0]
-        ma = array_like_field(data, -HUGE, field)
+        ma = array_like_field(data, self._sign*HUGE, field)
         vals = [array_like_field(data, -1, sf) for sf in sample_fields]
         maxi = -1
         if data[field].size > 0:
@@ -624,6 +643,7 @@ class MaxLocation(SampleAtMaxFieldValues):
         return rv
 
 class SampleAtMinFieldValues(SampleAtMaxFieldValues):
+    _sign = 1
     r"""
     Calculates the minimum value and returns whichever fields are asked to be
     sampled.
@@ -698,23 +718,29 @@ class SpinParameter(DerivedQuantity):
         Flag to include particles in the calculation.  Particles are ignored
         if not present.
         Default: True
+    particle_type : str
+        Particle type to be used for Center of mass calculation when use_particle
+        = True.
+        Default: all
 
     Examples
     --------
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.center_of_mass()
+    >>> print ad.quantities.spin_parameter()
 
     """
     def count_values(self, **kwargs):
         self.num_vals = 3
 
-    def process_chunk(self, data, use_gas=True, use_particles=True):
+    def process_chunk(self, data, use_gas=True, use_particles=True, particle_type= "all"):
+        if use_particles and particle_type not in self.data_source.ds.particle_types:
+            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
         use_gas &= \
           (("gas", "mass") in self.data_source.ds.field_info)
         use_particles &= \
-          (("nbody", "particle_mass") in self.data_source.ds.field_info)
+          ((particle_type, "particle_mass") in self.data_source.ds.field_info)
         e = data.ds.quan(0., "erg")
         j = data.ds.quan(0., "g*cm**2/s")
         m = data.ds.quan(0., "g")
@@ -724,10 +750,10 @@ class SpinParameter(DerivedQuantity):
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
             m += data["gas", "mass"].sum(dtype=np.float64)
         if use_particles:
-            e += (data["nbody", "particle_velocity_magnitude"]**2 *
-                  data["nbody", "particle_mass"]).sum(dtype=np.float64)
-            j += data["nbody", "particle_angular_momentum_magnitude"].sum(dtype=np.float64)
-            m += data["nbody", "particle_mass"].sum(dtype=np.float64)
+            e += (data[particle_type, "particle_velocity_magnitude"]**2 *
+                  data[particle_type, "particle_mass"]).sum(dtype=np.float64)
+            j += data[particle_type, "particle_angular_momentum_magnitude"].sum(dtype=np.float64)
+            m += data[particle_type, "particle_mass"].sum(dtype=np.float64)
         return (e, j, m)
 
     def reduce_intermediate(self, values):

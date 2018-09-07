@@ -6,9 +6,13 @@ import yt
 from yt.testing import \
     fake_random_ds, \
     fake_sph_orientation_ds, \
+    fake_particle_ds, \
     assert_equal, \
     assert_rel_equal, \
-    requires_file
+    requires_file, \
+    assert_almost_equal
+
+from yt import particle_filter
 
 def setup():
     from yt.config import ytcfg
@@ -56,7 +60,7 @@ def test_variance():
             my_std, my_mean = ad.quantities["WeightedVariance"]("density", "cell_mass")
             a_mean = (ad["density"] * ad["cell_mass"]).sum() / ad["cell_mass"].sum()
             assert_rel_equal(my_mean, a_mean, 12)
-            a_std = np.sqrt((ad["cell_mass"] * (ad["density"] - a_mean)**2).sum() / 
+            a_std = np.sqrt((ad["cell_mass"] * (ad["density"] - a_mean)**2).sum() /
                             ad["cell_mass"].sum())
             assert_rel_equal(my_std, a_std, 12)
 
@@ -172,3 +176,31 @@ def test_sph_datasets_derived_quantities():
         ad.quantities.max_location('density')
         ad.quantities.total_mass()
         ad.quantities.weighted_average_quantity('density', 'mass')
+
+def test_derived_quantities_with_particle_types():
+
+    ds = fake_particle_ds()
+
+    @particle_filter(requires=["particle_position_x"], filtered_type='all')
+    def low_x(pfilter,data):
+        return data['particle_position_x'].in_units('code_length')<0.5
+    ds.add_particle_filter('low_x')
+
+    ad=ds.all_data()
+
+    for ptype in ['all','low_x']:
+        #Check bulk velocity
+        bulk_vx=(ad[(ptype,'particle_mass')]*ad[(ptype,'particle_velocity_x')]/ad[(ptype,'particle_mass')].sum()).sum()
+        assert_almost_equal(ad.quantities.bulk_velocity(use_gas=False,use_particles=True,particle_type=ptype)[0],bulk_vx,5)
+
+        #Check center of mass
+        com_x=(ad[(ptype,'particle_mass')]*ad[(ptype,'particle_position_x')]/ad[(ptype,'particle_mass')].sum()).sum()
+        assert_almost_equal(ad.quantities.center_of_mass(use_gas=False,use_particles=True,particle_type=ptype)[0],com_x,5)
+
+        #Check angular momentum vector
+        l_x=(ad[(ptype,'particle_specific_angular_momentum_x')]*ad[(ptype,'particle_mass')]/ad[(ptype,'particle_mass')].sum()).sum()
+        assert_almost_equal(ad.quantities.angular_momentum_vector(use_gas=False,use_particles=True,particle_type=ptype)[0],l_x,5)
+
+    #Check spin parameter values
+    assert_almost_equal(ad.quantities.spin_parameter(use_gas=False,use_particles=True),655.7311454765503)
+    assert_almost_equal(ad.quantities.spin_parameter(use_gas=False,use_particles=True,particle_type='low_x'),1309.164886405665)

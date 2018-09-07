@@ -190,6 +190,18 @@ scales and just want to take a closer look at the raw plot data.  See
 
 .. yt_cookbook:: show_hide_axes_colorbar.py
 
+
+.. _cookbook_label_formats:
+
+Setting Field Label Formats
+--------------------------
+
+This example illustrates how to change the label format for
+ion species from the default roman numeral style.
+
+.. yt_cookbook:: changing_label_formats.py
+
+
 .. _matplotlib-primitives:
 
 Accessing and Modifying Plots Directly
