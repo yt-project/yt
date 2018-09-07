@@ -58,7 +58,7 @@ def _compute_header_size(header_spec):
     return sum(field[1] * np.dtype(field[2]).itemsize for field in header_spec)
 
 
-def _get_gadget_format(filename, header_size=256):
+def _get_gadget_format(filename, header_size):
     # check and return gadget binary format with file endianness
     ff = open(filename, 'rb')
     (rhead,) = struct.unpack('<I', ff.read(4))

@@ -45,7 +45,7 @@ def write_block(fp, data, endian, fmt, block_id):
 
 
 def fake_gadget_binary(
-        filename,
+        filename='fake_gadget_binary',
         npart=(100, 100, 100, 0, 100, 0),
         header_spec='default',
         field_spec='default',
@@ -99,8 +99,8 @@ def fake_gadget_binary(
             # Generate and write field block
             data = []
             for pt in ptype:
-                data += [np.random.rand(npart[pt], dim).astype(dtype)]
-            data = np.concatenate(data)
+                data += [np.random.rand(npart[pt], dim)]
+            data = np.concatenate(data).astype(dtype)
             if field in block_ids:
                 block_id = block_ids[field]
             else:
