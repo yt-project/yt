@@ -732,19 +732,24 @@ class YTNonspatialDataset(YTGridDataset):
 
 class YTProfileDataset(YTNonspatialDataset):
     """Dataset for saved profile objects."""
+    fluid_types = ("data", "gas", "standard_deviation")
     def __init__(self, filename, unit_system="cgs"):
         super(YTProfileDataset, self).__init__(filename,
                                                unit_system=unit_system)
 
+    _profile = None
     @property
     def profile(self):
-        if self.dimensionality == 1:
-            return Profile1DFromDataset(self)
-        if self.dimensionality == 2:
-            return Profile2DFromDataset(self)
-        if self.dimensionality == 3:
-            return Profile3DFromDataset(self)
-        return None
+        if self._profile is None:
+            if self.dimensionality == 1:
+                self._profile = Profile1DFromDataset(self)
+            elif self.dimensionality == 2:
+                self._profile = Profile2DFromDataset(self)
+            elif self.dimensionality == 3:
+                self._profile = Profile3DFromDataset(self)
+            else:
+                self._profile = None
+        return self._profile
 
     def _parse_parameter_file(self):
         super(YTGridDataset, self)._parse_parameter_file()
