@@ -42,6 +42,8 @@ DEF UncompressedFormat = 'Pointer'
 ctypedef bint bitarrtype
 
 ctypedef pair[np.uint64_t, np.uint64_t] ind_pair
+ctypedef cmap[np.uint64_t, ewah_bool_array] ewahmap
+ctypedef cmap[np.uint64_t, ewah_bool_array].iterator ewahmap_it
 
 # cdef class EwahIterator:
 
@@ -78,9 +80,9 @@ cdef class FileBitmasks:
         cdef np.int32_t ifile
         cdef ewah_bool_array* arr1
         cdef ewah_bool_array* arr2
-        cdef cmap[np.uint64_t, ewah_bool_array] *map1
-        cdef cmap[np.uint64_t, ewah_bool_array] *map2
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap *map1
+        cdef ewahmap *map2
+        cdef ewahmap_it it_map1, it_map2
         if self.nfiles != solf.nfiles:
             return 0
         for ifile in range(self.nfiles): 
@@ -95,8 +97,8 @@ cdef class FileBitmasks:
             if arr1[0] != arr2[0]:
                 return 0
             # Map
-            map1 = (<cmap[np.uint64_t, ewah_bool_array] **> self.ewah_coll)[ifile]
-            map2 = (<cmap[np.uint64_t, ewah_bool_array] **> solf.ewah_coll)[ifile]
+            map1 = (<ewahmap **> self.ewah_coll)[ifile]
+            map2 = (<ewahmap **> solf.ewah_coll)[ifile]
             it_map1 = map1[0].begin()
             while (it_map1 != map1[0].end()):
                 it_map2 = map2[0].find(dereference(it_map1).first)
@@ -362,8 +364,8 @@ cdef class FileBitmasks:
         cdef ewah_map *ewah_coll1 = (<ewah_map **> self.ewah_coll)[ifile]
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
         cdef np.uint64_t nrefn, mi1
         # Keys
@@ -392,8 +394,8 @@ cdef class FileBitmasks:
         cdef ewah_map *ewah_coll1 = (<ewah_map **> self.ewah_coll)[ifile]
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2
         cdef np.uint64_t mi1
         cdef ewah_bool_array ewah_coar1, ewah_coar2
@@ -427,11 +429,11 @@ cdef class FileBitmasks:
         cdef ewah_map *ewah_coll1 = (<ewah_map **> self.ewah_coll)[ifile]
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
         cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
         cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
         cdef np.uint64_t mi1
         cdef ewah_bool_array ewah_coar1, ewah_coar2
@@ -470,11 +472,11 @@ cdef class FileBitmasks:
         cdef ewah_map *ewah_coll1 = (<ewah_map **> self.ewah_coll)[ifile]
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
         cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
         cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
         cdef np.uint64_t mi1
         cdef ewah_bool_array ewah_coar1, ewah_coar2
@@ -572,7 +574,7 @@ cdef class FileBitmasks:
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef ewahmap_it it_map
         cdef np.uint64_t nrefn, mi1
         cdef ewah_bool_array mi1_ewah
         # Write mi1 ewah & refinment ewah
@@ -598,7 +600,7 @@ cdef class FileBitmasks:
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef ewahmap_it it_map
         cdef np.uint64_t nrefn, mi1
         cdef ewah_bool_array mi1_ewah
         cdef int i
@@ -691,9 +693,9 @@ cdef class BoolArrayCollection:
 
         cdef ewah_bool_array *arr1
         cdef ewah_bool_array *arr2
-        cdef cmap[np.uint64_t, ewah_bool_array] *map1
-        cdef cmap[np.uint64_t, ewah_bool_array] *map2
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap *map1
+        cdef ewahmap *map2
+        cdef ewahmap_it it_map1, it_map2
         # == 
         if op == 2: 
             # Keys
@@ -707,8 +709,8 @@ cdef class BoolArrayCollection:
             if arr1[0] != arr2[0]:
                 return 0
             # Map
-            map1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
-            map2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+            map1 = <ewahmap *> self.ewah_coll
+            map2 = <ewahmap *> solf.ewah_coll
             it_map1 = map1[0].begin()
             while (it_map1 != map1[0].end()):
                 it_map2 = map2[0].find(dereference(it_map1).first)
@@ -937,14 +939,14 @@ cdef class BoolArrayCollection:
     cdef void _logicalor(self, BoolArrayCollection solf, BoolArrayCollection out):
         cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef ewahmap *ewah_coll1 = <ewahmap *> self.ewah_coll
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewah_bool_array *ewah_keys3 = <ewah_bool_array *> out.ewah_keys
         cdef ewah_bool_array *ewah_refn3 = <ewah_bool_array *> out.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll3 = <cmap[np.uint64_t, ewah_bool_array] *> out.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap *ewah_coll3 = <ewahmap *> out.ewah_coll
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
         cdef np.uint64_t nrefn, mi1
         # Keys
@@ -971,11 +973,11 @@ cdef class BoolArrayCollection:
     cdef void _append(self, BoolArrayCollection solf):
         cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef ewahmap *ewah_coll1 = <ewahmap *> self.ewah_coll
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
         cdef np.uint64_t nrefn, mi1
         # Keys
@@ -1004,11 +1006,11 @@ cdef class BoolArrayCollection:
     cdef bint _intersects(self, BoolArrayCollection solf):
         cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef ewahmap *ewah_coll1 = <ewahmap *> self.ewah_coll
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2
         cdef np.uint64_t mi1
         cdef ewah_bool_array ewah_coar1, ewah_coar2
@@ -1042,11 +1044,11 @@ cdef class BoolArrayCollection:
         cdef ewah_map *ewah_coll1 = <ewah_map *> self.ewah_coll
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
         cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
         cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
         cdef np.uint64_t mi1
         cdef ewah_bool_array ewah_coar1, ewah_coar2
@@ -1085,11 +1087,11 @@ cdef class BoolArrayCollection:
         cdef ewah_map *ewah_coll1 = <ewah_map *> self.ewah_coll
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
         cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
         cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
         cdef np.uint64_t mi1
         cdef ewah_bool_array ewah_coar1, ewah_coar2
@@ -1165,8 +1167,8 @@ cdef class BoolArrayCollection:
                                bint coarse_ghosts = 0):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef ewahmap *ewah_coll = <ewahmap *> self.ewah_coll
+        cdef ewahmap_it it_map
         cdef ewah_bool_iterator *iter_set1 = new ewah_bool_iterator(ewah_keys.begin())
         cdef ewah_bool_iterator *iter_end1 = new ewah_bool_iterator(ewah_keys.end())
         cdef ewah_bool_iterator *iter_set2
@@ -1254,8 +1256,8 @@ cdef class BoolArrayCollection:
         cdef sstream ss
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef ewahmap *ewah_coll = <ewahmap *> self.ewah_coll
+        cdef ewahmap_it it_map
         cdef np.uint64_t nrefn, mi1
         cdef ewah_bool_array mi1_ewah
         # Write mi1 ewah & refinment ewah
@@ -1283,8 +1285,8 @@ cdef class BoolArrayCollection:
         cdef sstream ss
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef ewahmap *ewah_coll = <ewahmap *> self.ewah_coll
+        cdef ewahmap_it it_map
         cdef np.uint64_t nrefn, mi1
         cdef ewah_bool_array mi1_ewah
         cdef int i
@@ -1574,9 +1576,9 @@ cdef class BoolArrayCollectionUncompressed:
             cdef bitarrtype *ewah_refn1 = <bitarrtype *> self.ewah_refn
             cdef bitarrtype *ewah_keys2 = <bitarrtype *> solf.ewah_keys
             cdef bitarrtype *ewah_refn2 = <bitarrtype *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap *ewah_coll1 = <ewahmap *> self.ewah_coll
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
         cdef np.uint64_t nrefn, mi1
         # TODO: Check if nele1 is equal?
@@ -1613,9 +1615,9 @@ cdef class BoolArrayCollectionUncompressed:
             cdef bitarrtype *ewah_refn1 = <bitarrtype *> self.ewah_refn
             cdef bitarrtype *ewah_keys2 = <bitarrtype *> solf.ewah_keys
             cdef bitarrtype *ewah_refn2 = <bitarrtype *> solf.ewah_refn
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
-        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewahmap *ewah_coll1 = <ewahmap *> self.ewah_coll
+        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
+        cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2
         cdef np.uint64_t mi1
         # No intersection
