@@ -41,6 +41,8 @@ DEF UncompressedFormat = 'Pointer'
 #ctypedef np.uint8_t bitarrtype
 ctypedef bint bitarrtype
 
+ctypedef pair[np.uint64_t, np.uint64_t] ind_pair
+
 # cdef class EwahIterator:
 
 #     def __cinit__(self void* citer):
@@ -1800,13 +1802,13 @@ cdef class SparseUnorderedBitmaskSet:
 # vector version
 cdef class SparseUnorderedRefinedBitmaskVector:
     def __cinit__(self):
-        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = new vector[pair[np.uint64_t,np.uint64_t]]()
+        cdef vector[ind_pair] *entries = new vector[ind_pair]()
         self.entries = <void *> entries
         self.total = 0
 
     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2):
-        cdef pair[np.uint64_t,np.uint64_t] ind
-        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef ind_pair ind
+        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
         ind.first = ind1
         ind.second = ind2
         entries[0].push_back(ind)
@@ -1818,8 +1820,8 @@ cdef class SparseUnorderedRefinedBitmaskVector:
 
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
         cdef np.uint64_t i, ind
-        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
-        cdef vector[pair[np.uint64_t,np.uint64_t]].iterator it
+        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
+        cdef vector[ind_pair].iterator it
         it = entries[0].begin()
         while it != entries[0].end():
             ind = dereference(it).first
@@ -1831,8 +1833,8 @@ cdef class SparseUnorderedRefinedBitmaskVector:
     cdef void _fill_ewah(self, BoolArrayCollection mm):
         self._remove_duplicates()
         cdef np.uint64_t mi1, mi2
-        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
-        cdef vector[pair[np.uint64_t,np.uint64_t]].iterator it
+        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
+        cdef vector[ind_pair].iterator it
         it = entries[0].begin()
         while it != entries[0].end():
             mi1 = dereference(it).first
@@ -1843,8 +1845,8 @@ cdef class SparseUnorderedRefinedBitmaskVector:
     cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
         self._remove_duplicates()
         cdef np.uint64_t mi1, mi2
-        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
-        cdef vector[pair[np.uint64_t,np.uint64_t]].iterator it
+        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
+        cdef vector[ind_pair].iterator it
         it = entries[0].begin()
         while it != entries[0].end():
             mi1 = dereference(it).first
@@ -1853,7 +1855,7 @@ cdef class SparseUnorderedRefinedBitmaskVector:
             preincrement(it)
 
     cdef void _reset(self):
-        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
         entries[0].erase(entries[0].begin(), entries[0].end())
         self.total = 0
 
@@ -1861,8 +1863,8 @@ cdef class SparseUnorderedRefinedBitmaskVector:
         cdef int i
         cdef np.ndarray[np.uint64_t, ndim=2] rv
         self._remove_duplicates()
-        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
-        cdef vector[pair[np.uint64_t,np.uint64_t]].iterator it
+        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
+        cdef vector[ind_pair].iterator it
         rv = np.empty((entries[0].size(),2),dtype='uint64')
         it = entries[0].begin()
         i = 0
@@ -1874,8 +1876,8 @@ cdef class SparseUnorderedRefinedBitmaskVector:
         return rv
 
     cdef void _remove_duplicates(self):
-        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
-        cdef vector[pair[np.uint64_t,np.uint64_t]].iterator last
+        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
+        cdef vector[ind_pair].iterator last
         sort(entries[0].begin(), entries[0].end())
         last = unique(entries[0].begin(), entries[0].end())
         entries[0].erase(last, entries[0].end())
@@ -1907,18 +1909,18 @@ cdef class SparseUnorderedRefinedBitmaskVector:
             self.total = 0
 
     def __dealloc__(self):
-        cdef vector[pair[np.uint64_t,np.uint64_t]] *entries = <vector[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
         del entries
 
 # Set version
 cdef class SparseUnorderedRefinedBitmaskSet:
     def __cinit__(self):
-        cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = new cset[pair[np.uint64_t,np.uint64_t]]()
+        cdef cset[ind_pair] *entries = new cset[ind_pair]()
         self.entries = <void *> entries
 
     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2):
-        cdef pair[np.uint64_t,np.uint64_t] ind
-        cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef ind_pair ind
+        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
         ind.first = ind1
         ind.second = ind2
         entries[0].insert(ind)
@@ -1940,8 +1942,8 @@ cdef class SparseUnorderedRefinedBitmaskSet:
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
         cdef np.uint64_t mi1, mi2
-        cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
-        cdef cset[pair[np.uint64_t,np.uint64_t]].iterator it
+        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
+        cdef cset[ind_pair].iterator it
         it = entries[0].begin()
         while it != entries[0].end():
             mi1 = dereference(it).first
@@ -1951,8 +1953,8 @@ cdef class SparseUnorderedRefinedBitmaskSet:
 
     cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
         cdef np.uint64_t mi1, mi2
-        cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
-        cdef cset[pair[np.uint64_t,np.uint64_t]].iterator it
+        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
+        cdef cset[ind_pair].iterator it
         it = entries[0].begin()
         while it != entries[0].end():
             mi1 = dereference(it).first
@@ -1961,7 +1963,7 @@ cdef class SparseUnorderedRefinedBitmaskSet:
             preincrement(it)
 
     cdef void _reset(self):
-        cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
         entries[0].clear()
 
     cdef to_array(self):
@@ -1980,6 +1982,6 @@ cdef class SparseUnorderedRefinedBitmaskSet:
         return rv
 
     def __dealloc__(self):
-        cdef cset[pair[np.uint64_t,np.uint64_t]] *entries = <cset[pair[np.uint64_t,np.uint64_t]]*> self.entries
+        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
         del entries
 
