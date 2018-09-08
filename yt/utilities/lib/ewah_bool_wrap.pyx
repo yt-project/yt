@@ -44,11 +44,7 @@ ctypedef bint bitarrtype
 ctypedef pair[np.uint64_t, np.uint64_t] ind_pair
 ctypedef cmap[np.uint64_t, ewah_bool_array] ewahmap
 ctypedef cmap[np.uint64_t, ewah_bool_array].iterator ewahmap_it
-
-# cdef class EwahIterator:
-
-#     def __cinit__(self void* citer):
-        
+ctypedef pair[np.uint64_t, ewah_bool_array] ewahmap_p
 
 cdef class FileBitmasks:
 
@@ -82,6 +78,7 @@ cdef class FileBitmasks:
         cdef ewah_bool_array* arr2
         cdef ewahmap *map1
         cdef ewahmap *map2
+        cdef ewahmap_p pair1, pair2
         cdef ewahmap_it it_map1, it_map2
         if self.nfiles != solf.nfiles:
             return 0
@@ -99,22 +96,18 @@ cdef class FileBitmasks:
             # Map
             map1 = (<ewahmap **> self.ewah_coll)[ifile]
             map2 = (<ewahmap **> solf.ewah_coll)[ifile]
-            it_map1 = map1[0].begin()
-            while (it_map1 != map1[0].end()):
-                it_map2 = map2[0].find(dereference(it_map1).first)
+            for pair1 in map1[0]:
+                it_map2 = map2[0].find(pair1.first)
                 if it_map2 == map2[0].end():
                     return 0
-                if dereference(it_map1).second != dereference(it_map2).second:
+                if pair1.second != dereference(it_map2).second:
                     return 0
-                preincrement(it_map1)
-            it_map2 = map2[0].begin()
-            while (it_map2 != map2[0].end()):
-                it_map1 = map1[0].find(dereference(it_map2).first)
+            for pair2 in map2[0]:
+                it_map1 = map1[0].find(pair2.first)
                 if it_map1 == map1[0].end():
                     return 0
-                if dereference(it_map2).second != dereference(it_map1).second:
+                if pair2.second != dereference(it_map1).second:
                     return 0
-                preincrement(it_map2)
             # Match
             return 1
         
