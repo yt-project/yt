@@ -183,29 +183,25 @@ cdef class FileBitmasks:
         coll_coll = <map[np.uint64_t, ewah_bool_array]*> coll.ewah_coll
         for ifile in range(self.nfiles):
             map_bitmask = (<map[np.uint64_t, ewah_bool_array]**> self.ewah_coll)[ifile]
-            it_mi1 = map_bitmask[0].begin()
-            while it_mi1 != map_bitmask[0].end():
-                mi1 = dereference(it_mi1).first
-                iarr = dereference(it_mi1).second
+            for it_mi1 in map_bitmask[0]:
+                mi1 = it_mi1.first
+                iarr = it_mi1.second
                 map_keys[mi1].logicaland(iarr, arr_two)
                 map_keys[mi1].logicalor(iarr, arr_swap)
                 map_keys[mi1].swap(arr_swap)
                 map_refn[mi1].logicalor(arr_two, arr_swap)
                 map_refn[mi1].swap(arr_swap)
-                preincrement(it_mi1)
         coll_coll[0] = map_refn
         # Count
         cdef int nc, nm
         nc = 0
         nm = 0
-        it_mi1 = map_refn.begin()
-        while it_mi1 != map_refn.end():
-            mi1 = dereference(it_mi1).first
-            iarr = dereference(it_mi1).second
+        for it_mi1 in map_refn:
+            mi1 = it_mi1.first
+            iarr = it_mi1.second
             nc += iarr.numberOfOnes()
             iarr = map_keys[mi1]
             nm += iarr.numberOfOnes()
-            preincrement(it_mi1)
         cdef tuple nout = (nc, nm)
         # Print
         if verbose == 1:
