@@ -684,7 +684,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if(hasattr(self.ds, '_sph_ptype') and len(part)>0):
             is_sph_field = self.ds._sph_ptype in part[0]
 
-        if len(part) > 0 and len(alias) == 0:
+        if len(part) > 0 and len(alias) == 0 and len(gen) == 0:
             if(is_sph_field):
                 self._fill_sph_particles(fields)
                 for field in fields:
