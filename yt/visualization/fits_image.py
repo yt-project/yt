@@ -83,13 +83,25 @@ class FITSImageData(object):
             The center coordinates of the image. If a list or NumPy array, 
             it is assumed to be in *units*. Only used if this information 
             is not already provided by *data*.
-        wcs : `astropy.wcs.WCS` instance, optional
+        wcs : `~astropy.wcs.WCS` instance, optional
             Supply an AstroPy WCS instance. Will override automatic WCS
             creation from FixedResolutionBuffers and YTCoveringGrids.
+        current_time : float, tuple, or YTQuantity, optional
+            The current time of the image(s). If not specified, one will
+            be set from the dataset if there is one. If a float, it will
+            be assumed to be in *time_unit* units.
         time_unit : string
             The default time units of the file. Defaults to "s".
         mass_unit : string
             The default time units of the file. Defaults to "g".
+        velocity_unit : string
+            The default velocity units of the file. Defaults to "cm/s".
+        magnetic_unit : string
+            The default magnetic units of the file. Defaults to "gauss".
+        ds : `~yt.static_output.Dataset` instance, optional
+            The dataset associated with the image(s), typically used
+            to transfer metadata to the header(s). Does not need to be
+            specified if *data* has a dataset as an attribute. 
 
         Examples
         --------
@@ -99,7 +111,8 @@ class FITSImageData(object):
         >>> prj = ds.proj(2, "kT", weight_field="density")
         >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
-        >>> f_kpc = FITSImageData(frb, fields="kT", units="kpc")
+        >>> f_kpc = FITSImageData(frb, fields="kT", length_unit="kpc",
+        ...                       time_unit=(1.0, "Gyr"))
         >>> # This example specifies a specific WCS.
         >>> from astropy.wcs import WCS
         >>> w = WCS(naxis=self.dimensionality)
