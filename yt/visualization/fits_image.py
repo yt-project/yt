@@ -114,9 +114,6 @@ class FITSImageData(object):
         >>> f_deg.writeto("temp.fits")
         """
 
-        self.fields = []
-        self.field_units = {}
-
         if "units" in kwargs:
             issue_deprecation_warning("The 'units' keyword argument has been replaced "
                                       "by the 'length_unit' keyword argument and the "
@@ -126,6 +123,9 @@ class FITSImageData(object):
 
         if ds is None:
             ds = getattr(data, "ds", None)
+
+        self.fields = []
+        self.field_units = {}
 
         self._set_units(ds, [length_unit, mass_unit, time_unit, velocity_unit,
                              magnetic_unit])
