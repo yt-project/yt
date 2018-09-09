@@ -696,6 +696,7 @@ def sanitize_fits_unit(unit):
         unit = "AU"
     return unit
 
+
 axis_wcs = [[1,2],[0,2],[0,1]]
 
 
@@ -741,7 +742,7 @@ def construct_image(ds, axis, data_source, center, image_res, width):
     w.wcs.crval = crval
     w.wcs.cunit = cunit
     w.wcs.ctype = ctype
-    return w, frb
+    return w, frb, unit
 
 
 def assert_same_wcs(wcs1, wcs2):
@@ -826,9 +827,10 @@ class FITSSlice(FITSImageData):
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
-        w, frb = construct_image(ds, axis, slc, dcenter, image_res,
-                                 width)
-        super(FITSSlice, self).__init__(frb, fields=fields, wcs=w)
+        w, frb, lunit = construct_image(ds, axis, slc, dcenter, image_res,
+                                        width)
+        super(FITSSlice, self).__init__(frb, fields=fields, 
+                                        length_unit=lunit, wcs=w)
 
 
 class FITSProjection(FITSImageData):
@@ -886,9 +888,10 @@ class FITSProjection(FITSImageData):
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
-        w, frb = construct_image(ds, axis, prj, dcenter, image_res,
-                                 width)
-        super(FITSProjection, self).__init__(frb, fields=fields, wcs=w)
+        w, frb, lunit = construct_image(ds, axis, prj, dcenter, image_res,
+                                        width)
+        super(FITSProjection, self).__init__(frb, fields=fields, 
+                                             length_unit=lunit, wcs=w)
 
 
 class FITSOffAxisSlice(FITSImageData):
@@ -948,9 +951,10 @@ class FITSOffAxisSlice(FITSImageData):
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         cut = ds.cutting(normal, center, north_vector=north_vector)
         center = ds.arr([0.0]*2, 'code_length')
-        w, frb = construct_image(ds, normal, cut, center, image_res,
-                                 width)
-        super(FITSOffAxisSlice, self).__init__(frb, fields=fields, wcs=w)
+        w, frb, lunit = construct_image(ds, normal, cut, center, 
+                                        image_res, width)
+        super(FITSOffAxisSlice, self).__init__(frb, fields=fields, 
+                                               length_unit=lunit, wcs=w)
 
 
 class FITSOffAxisProjection(FITSImageData):
@@ -1048,6 +1052,7 @@ class FITSOffAxisProjection(FITSImageData):
                                              res, field, north_vector=north_vector,
                                              method=method, weight=weight_field).swapaxes(0,1)
         center = ds.arr([0.0]*2, 'code_length')
-        w, not_an_frb = construct_image(ds, normal, buf, center, image_res,
-                                        width)
-        super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w, ds=ds)
+        w, not_an_frb, lunit = construct_image(ds, normal, buf, center, 
+                                               image_res, width)
+        super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w, 
+                                                    length_unit=lunit, ds=ds)
