@@ -740,15 +740,16 @@ class YTProfileDataset(YTNonspatialDataset):
     _profile = None
     @property
     def profile(self):
-        if self._profile is None:
-            if self.dimensionality == 1:
-                self._profile = Profile1DFromDataset(self)
-            elif self.dimensionality == 2:
-                self._profile = Profile2DFromDataset(self)
-            elif self.dimensionality == 3:
-                self._profile = Profile3DFromDataset(self)
-            else:
-                self._profile = None
+        if self._profile is not None:
+            return self._profile
+        if self.dimensionality == 1:
+            self._profile = Profile1DFromDataset(self)
+        elif self.dimensionality == 2:
+            self._profile = Profile2DFromDataset(self)
+        elif self.dimensionality == 3:
+            self._profile = Profile3DFromDataset(self)
+        else:
+            self._profile = None
         return self._profile
 
     def _parse_parameter_file(self):
