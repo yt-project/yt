@@ -306,7 +306,7 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
-    def to_fits(self, fields=None, other_keys=None, length_unit="cm",
+    def to_fits(self, fields=None, other_keys=None, length_unit=None,
                 **kwargs):
         r"""Export a set of pixelized fields to a FITS file.
 
@@ -316,14 +316,18 @@ class FixedResolutionBuffer(object):
         Parameters
         ----------
         fields : list of strings
-            These fields will be pixelized and output. If "None", the keys of the
-            FRB will be used.
+            These fields will be pixelized and output. If "None", the keys of 
+            the FRB will be used.
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
         length_unit : string, optional
-            the length units that the coordinates are written in, default 'cm'.
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
         """
         from yt.visualization.fits_image import FITSImageData
+
+        if length_unit is None:
+            length_unit = str(self.ds.unit_system["length"])
 
         if "units" in kwargs:
             issue_deprecation_warning("The 'units' keyword argument has been "
@@ -352,7 +356,7 @@ class FixedResolutionBuffer(object):
         return fid
 
     def export_fits(self, filename, fields=None, overwrite=False,
-                    other_keys=None, length_unit="cm", **kwargs):
+                    other_keys=None, length_unit=None, **kwargs):
         r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
@@ -370,7 +374,8 @@ class FixedResolutionBuffer(object):
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
         length_unit : string, optional
-            the length units that the coordinates are written in, default 'cm'.
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
         """
         issue_deprecation_warning("The 'export_fits' method of "
                                   "FixedResolutionBuffer is deprecated. "
