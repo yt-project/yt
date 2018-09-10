@@ -423,6 +423,7 @@ class YTDataContainer(object):
             obj.field_parameters = old_fp
 
     _key_fields = None
+
     def write_out(self, filename, fields=None, format="%0.16e"):
         """Write out the YTDataContainer object in a text file.
 
