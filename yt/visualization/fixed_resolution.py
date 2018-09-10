@@ -19,7 +19,8 @@ from yt.funcs import \
     get_output_filename, \
     mylog, \
     ensure_list, \
-    deprecate
+    deprecate, \
+    issue_deprecation_warning
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
@@ -85,8 +86,8 @@ class FixedResolutionBuffer(object):
                        ('index', 'r'), ('index', 'dr'),
                        ('index', 'phi'), ('index', 'dphi'),
                        ('index', 'theta'), ('index', 'dtheta'))
-    def __init__(self, data_source, bounds, buff_size, antialias = True,
-                 periodic = False):
+    def __init__(self, data_source, bounds, buff_size, antialias=True,
+                 periodic=False):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
@@ -285,7 +286,6 @@ class FixedResolutionBuffer(object):
                 equiv_array, equiv_array.units, equiv_array.units.registry,
                 self[field].info)
 
-
     def export_hdf5(self, filename, fields = None):
         r"""Export a set of fields to a set of HDF5 datasets.
 
@@ -306,8 +306,53 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
+    def to_fits(self, fields=None, other_keys=None, length_unit="cm",
+                **kwargs):
+        r"""Export a set of pixelized fields to a FITS file.
+
+        This will export a set of FITS images of either the fields specified
+        or all the fields already in the object.
+
+        Parameters
+        ----------
+        fields : list of strings
+            These fields will be pixelized and output. If "None", the keys of the
+            FRB will be used.
+        other_keys : dictionary, optional
+            A set of header keys and values to write into the FITS header.
+        length_unit : string, optional
+            the length units that the coordinates are written in, default 'cm'.
+        """
+        from yt.visualization.fits_image import FITSImageData
+
+        if "units" in kwargs:
+            issue_deprecation_warning("The 'units' keyword argument has been "
+                                      "replaced by the 'length_unit' keyword "
+                                      "argument and the former has been "
+                                      "deprecated. Setting 'length_unit' "
+                                      "to 'units'.")
+            length_unit = kwargs.pop("units")
+
+        if fields is None:
+            fields = list(self.data.keys())
+        else:
+            fields = ensure_list(fields)
+
+        if len(fields) == 0:
+            raise RuntimeError(
+                "No fields to export. Either pass a field or list of fields to "
+                "to_fits_data or access a field from the FixedResolutionBuffer "
+                "object."
+            )
+
+        fid = FITSImageData(self, fields=fields, length_unit=length_unit)
+        if other_keys is not None:
+            for k,v in other_keys.items():
+                fid.update_all_headers(k, v)
+        return fid
+
     def export_fits(self, filename, fields=None, overwrite=False,
-                    other_keys=None, units="cm", **kwargs):
+                    other_keys=None, length_unit="cm", **kwargs):
         r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
@@ -324,29 +369,17 @@ class FixedResolutionBuffer(object):
             If the file exists, this governs whether we will overwrite.
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
-        units : string, optional
+        length_unit : string, optional
             the length units that the coordinates are written in, default 'cm'.
         """
-
-        from yt.visualization.fits_image import FITSImageData
-
-        if fields is None:
-            fields = list(self.data.keys())
-        else:
-            fields = ensure_list(fields)
-
-        if len(fields) == 0:
-            raise RuntimeError(
-                "No fields to export. Either pass a field or list of fields to "
-                "export_fits or access a field from the fixed resolution buffer "
-                "object."
-            )
-
-        fib = FITSImageData(self, fields=fields, units=units)
-        if other_keys is not None:
-            for k,v in other_keys.items():
-                fib.update_all_headers(k,v)
-        fib.writeto(filename, overwrite=overwrite, **kwargs)
+        issue_deprecation_warning("The 'export_fits' method of "
+                                  "FixedResolutionBuffer is deprecated. "
+                                  "Use the 'to_fits_data' method to create "
+                                  "a FITSImageData instance and then "
+                                  "use its `writeto` method.")
+        fid = self.to_fits_data(fields=fields, other_keys=other_keys,
+                                length_unit=length_unit, **kwargs)
+        fid.writeto(filename, overwrite=overwrite, **kwargs)
 
     def export_dataset(self, fields=None, nprocs=1):
         r"""Export a set of pixelized fields to an in-memory dataset that can be
