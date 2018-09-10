@@ -51,9 +51,10 @@ class UnitfulHDU(object):
 
 class FITSImageData(object):
 
-    def __init__(self, data, fields=None, length_unit=None, width=None, img_ctr=None,
-                 wcs=None, current_time=None, time_unit=None, mass_unit=None, 
-                 velocity_unit=None, magnetic_unit=None, ds=None, **kwargs):
+    def __init__(self, data, fields=None, length_unit=None, width=None,
+                 img_ctr=None, wcs=None, current_time=None, time_unit=None,
+                 mass_unit=None, velocity_unit=None, magnetic_unit=None,
+                 ds=None, **kwargs):
         r""" Initialize a FITSImageData object.
 
         FITSImageData contains a collection of FITS ImageHDU instances and
@@ -132,7 +133,7 @@ class FITSImageData(object):
                                       "by the 'length_unit' keyword argument and the "
                                       "former has been deprecated. Setting 'length_unit' "
                                       "to 'units'.")
-            length_unit = kwargs["units"]
+            length_unit = kwargs.pop("units")
 
         if ds is None:
             ds = getattr(data, "ds", None)
