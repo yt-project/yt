@@ -941,6 +941,29 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         return bounds, size
 
+    def to_fits_data(self, fields, length_unit=None):
+        r"""Export a set of gridded fields to a FITS file.
+
+        This will export a set of FITS images of either the fields specified
+        or all the fields already in the object.
+
+        Parameters
+        ----------
+        fields : list of strings
+            These fields will be pixelized and output. If "None", the keys of the
+            FRB will be used.
+        length_unit : string, optional
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
+        """
+        from yt.visualization.fits_image import FITSImageData
+        if length_unit is None:
+            length_unit = str(self.ds.unit_system["length"])
+        fields = ensure_list(fields)
+        fid = FITSImageData(self, fields, length_unit=length_unit)
+        return fid
+
+
 class YTArbitraryGrid(YTCoveringGrid):
     """A 3D region with arbitrary bounds and dimensions.
 
