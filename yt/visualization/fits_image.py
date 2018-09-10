@@ -75,7 +75,8 @@ class FITSImageData(object):
             single array one field name must be specified.
         length_unit : string
             The units of the WCS coordinates and the length unit of the file. 
-            Defaults to "cm".
+            Defaults to the length unit of the dataset, if there is one, or
+            "cm" if there is not.
         width : float or YTQuantity
             The width of the image. Either a single value or iterable of values.
             If a float, assumed to be in *units*. Only used if this information 
@@ -714,7 +715,8 @@ def sanitize_fits_unit(unit):
 axis_wcs = [[1,2],[0,2],[0,1]]
 
 
-def construct_image(ds, axis, data_source, center, image_res, width):
+def construct_image(ds, axis, data_source, center, image_res, width,
+                    length_unit):
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
         unit = ds.get_smallest_appropriate_unit(width[0])
@@ -735,13 +737,15 @@ def construct_image(ds, axis, data_source, center, image_res, width):
     elif unit == "code_length":
         unit = ds.get_smallest_appropriate_unit(ds.quan(1.0, "code_length"))
     unit = sanitize_fits_unit(unit)
-    cunit = [unit]*2
+    if length_unit is None:
+        length_unit = unit
+    cunit = [length_unit]*2
     ctype = ["LINEAR"]*2
-    cdelt = [dx.in_units(unit), dy.in_units(unit)]
+    cdelt = [dx.in_units(length_unit), dy.in_units(length_unit)]
     if iterable(axis):
-        crval = center.in_units(unit)
+        crval = center.in_units(length_unit)
     else:
-        crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
+        crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
     if hasattr(data_source, 'to_frb'):
         if iterable(axis):
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
@@ -756,7 +760,7 @@ def construct_image(ds, axis, data_source, center, image_res, width):
     w.wcs.crval = crval
     w.wcs.cunit = cunit
     w.wcs.ctype = ctype
-    return w, frb, unit
+    return w, frb, length_unit
 
 
 def assert_same_wcs(wcs1, wcs2):
@@ -834,16 +838,19 @@ class FITSSlice(FITSImageData):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
+    length_unit : string, optional
+        the length units that the coordinates are written in. The default
+        is to use the default length unit of the dataset.
     """
     def __init__(self, ds, axis, fields, image_res=512, center="c",
-                 width=None, **kwargs):
+                 width=None, length_unit=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
         w, frb, lunit = construct_image(ds, axis, slc, dcenter, image_res,
-                                        width)
-        super(FITSSlice, self).__init__(frb, fields=fields, 
+                                        width, length_unit)
+        super(FITSSlice, self).__init__(frb, fields=fields,
                                         length_unit=lunit, wcs=w)
 
 
@@ -895,16 +902,20 @@ class FITSProjection(FITSImageData):
          provided the resulting plot axis labels will use the supplied units.
     weight_field : string
         The field used to weight the projection.
+    length_unit : string, optional
+        the length units that the coordinates are written in. The default
+        is to use the default length unit of the dataset.
     """
-    def __init__(self, ds, axis, fields, image_res=512, 
-                 center="c", width=None, weight_field=None, **kwargs):
+    def __init__(self, ds, axis, fields, image_res=512,
+                 center="c", width=None, weight_field=None,
+                 length_unit=None, **kwargs):
         fields = ensure_list(fields)
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
         w, frb, lunit = construct_image(ds, axis, prj, dcenter, image_res,
-                                        width)
-        super(FITSProjection, self).__init__(frb, fields=fields, 
+                                        width, length_unit)
+        super(FITSProjection, self).__init__(frb, fields=fields,
                                              length_unit=lunit, wcs=w)
 
 
@@ -958,16 +969,20 @@ class FITSOffAxisSlice(FITSImageData):
         A vector defining the 'up' direction in the plot.  This
         option sets the orientation of the slicing plane.  If not
         set, an arbitrary grid-aligned north-vector is chosen.
+    length_unit : string, optional
+        the length units that the coordinates are written in. The default
+        is to use the default length unit of the dataset.
     """
-    def __init__(self, ds, normal, fields, image_res=512, 
-                 center='c', width=None, north_vector=None):
+    def __init__(self, ds, normal, fields, image_res=512,
+                 center='c', width=None, north_vector=None,
+                 length_unit=None):
         fields = ensure_list(fields)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         cut = ds.cutting(normal, center, north_vector=north_vector)
         center = ds.arr([0.0]*2, 'code_length')
-        w, frb, lunit = construct_image(ds, normal, cut, center, 
-                                        image_res, width)
-        super(FITSOffAxisSlice, self).__init__(frb, fields=fields, 
+        w, frb, lunit = construct_image(ds, normal, cut, center,
+                                        image_res, width, length_unit)
+        super(FITSOffAxisSlice, self).__init__(frb, fields=fields,
                                                length_unit=lunit, wcs=w)
 
 
@@ -1045,10 +1060,14 @@ class FITSOffAxisProjection(FITSImageData):
     data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
         If specified, this will be the data source used for selecting regions 
         to project.
+    length_unit : string, optional
+        the length units that the coordinates are written in. The default
+        is to use the default length unit of the dataset.
     """
     def __init__(self, ds, normal, fields, center='c', width=(1.0, 'unitary'),
                  weight_field=None, image_res=512, data_source=None,
-                 north_vector=None, depth=(1.0, "unitary"), method='integrate'):
+                 north_vector=None, depth=(1.0, "unitary"),
+                 method='integrate', length_unit=None):
         fields = ensure_list(fields)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         buf = {}
@@ -1066,7 +1085,7 @@ class FITSOffAxisProjection(FITSImageData):
                                              res, field, north_vector=north_vector,
                                              method=method, weight=weight_field).swapaxes(0,1)
         center = ds.arr([0.0]*2, 'code_length')
-        w, not_an_frb, lunit = construct_image(ds, normal, buf, center, 
-                                               image_res, width)
-        super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w, 
+        w, not_an_frb, lunit = construct_image(ds, normal, buf, center,
+                                               image_res, width, length_unit)
+        super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w,
                                                     length_unit=lunit, ds=ds)
