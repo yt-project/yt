@@ -569,7 +569,10 @@ class YTFITSDataset(FITSDataset):
         if fileh is None:
             return False
         else:
-            isyt = fileh[0].header["WCSNAME"].strip() == "yt"
+            if "WCSNAME" in fileh[0].header:
+                isyt = fileh[0].header["WCSNAME"].strip() == "yt"
+            else:
+                isyt = False
             fileh.close()
             return isyt
 
