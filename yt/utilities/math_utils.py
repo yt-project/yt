@@ -1189,10 +1189,7 @@ def rotation_matrix_to_quaternion(rot_matrix):
     return np.array([w, x, y, z])
 
 def get_ortho_basis(normal):
-    xprime = np.cross([0.0,1.0,0.0],normal)
-    if np.sum(xprime) == 0: xprime = np.array([0.0, 0.0, 1.0])
-    yprime = np.cross(normal,xprime)
-    zprime = normal
+    zprime, xprime, yprime = ortho_find(normal)
     return (xprime, yprime, zprime)
 
 def get_sph_r(coords):
