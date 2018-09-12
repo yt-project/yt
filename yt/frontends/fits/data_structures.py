@@ -532,7 +532,7 @@ class YTFITSDataset(FITSDataset):
             if short_unit in self.primary_header:
                 # units should now be in header
                 u = self.quan(self.primary_header[short_unit],
-                              self.primary_header.comments[short_unit])
+                              self.primary_header.comments[short_unit].strip("[]"))
                 mylog.info("Found %s units of %s." % (unit, u))
             else:
                 if unit == "length":
