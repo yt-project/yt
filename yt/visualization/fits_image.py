@@ -248,7 +248,7 @@ class FITSImageData(object):
                     value = getattr(self, "{}_unit".format(unit))
                     if value is not None:
                         hdu.header[key] = float(value.value)
-                        hdu.header.comments[key] = value.units
+                        hdu.header.comments[key] = "[%s]" % value.units
                 if self.current_time is not None:
                     hdu.header["time"] = self.current_time
                 self.hdulist.append(hdu)
