@@ -501,9 +501,6 @@ class FITSDataset(Dataset):
     def close(self):
         self._handle.close()
 
-    def __repr__(self):
-        return self.filenames[0].rsplit(".", 1)[0]
-
 
 def find_axes(axis_names, prefixes):
     x = 0
