@@ -265,6 +265,10 @@ been deprecated, use profile.standard_deviation instead."""
             units = chunk.ds.field_info[field].output_units
             arr[:,i] = chunk[field][pfilter].in_units(units)
         if self.weight_field is not None:
+            if pfilter.shape != chunk[self.weight_field].shape:
+                raise YTProfileDataShape(
+                    self.bin_fields[0], bin_fields[0].shape,
+                    self.weight_field, chunk[self.weight_field].shape)
             units = chunk.ds.field_info[self.weight_field].output_units
             weight_data = chunk[self.weight_field].in_units(units)
         else:
