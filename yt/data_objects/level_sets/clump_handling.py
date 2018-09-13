@@ -23,7 +23,6 @@ from yt.frontends.ytdata.utilities import \
 from yt.funcs import \
     deprecate, \
     get_output_filename, \
-    iterable, \
     mylog
 from yt.extern.six import \
     string_types
@@ -73,10 +72,11 @@ class Clump(TreeContainer):
         if base is None:
             base = self
             self.total_clumps = 0
-            if clump_info is None:
-                self.set_default_clump_info()
-            else:
-                self.clump_info = clump_info
+
+        if clump_info is None:
+            self.set_default_clump_info()
+        else:
+            self.clump_info = clump_info
 
         self.base = base
         self.clump_id = self.base.total_clumps
@@ -193,7 +193,6 @@ class Clump(TreeContainer):
 
     def save_as_dataset(self, filename=None, fields=None):
         r"""Export clump tree to a reloadable yt dataset.
-
         This function will take a clump object and output a dataset
         containing the fields given in the ``fields`` list and all info
         items.  The resulting dataset can be reloaded as a yt dataset.
@@ -399,34 +398,12 @@ class Clump(TreeContainer):
         return self.valid
 
     def __reduce__(self):
-        return (_reconstruct_clump, 
-                (self.parent, self.field, self.min_val, self.max_val,
-                 self.valid, self.children, self.data, self.clump_info, 
-                 self.function))
-
-    def __getitem__(self,request):
+        raise RuntimeError(
+            "Pickling Clump instances is not supported. Please use "
+            "Clump.save_as_dataset instead")
+    
+    def __getitem__(self, request):
         return self.data[request]
-
-def _reconstruct_clump(parent, field, mi, ma, valid, children, 
-                       data, clump_info, 
-        function=None):
-    obj = object.__new__(Clump)
-    if iterable(parent):
-        try:
-            parent = parent[1]
-        except KeyError:
-            parent = parent
-    if children is None: children = []
-    obj.parent, obj.field, obj.min_val, obj.max_val, \
-      obj.valid, obj.children, obj.clump_info, obj.function = \
-        parent, field, mi, ma, valid, children, clump_info, function
-    # Now we override, because the parent/child relationship seems a bit
-    # unreliable in the unpickling
-    for child in children: child.parent = obj
-    obj.data = data[1] # Strip out the PF
-    obj.quantities = obj.data.quantities
-    if obj.parent is None: return (data[0], obj)
-    return obj
 
 def find_clumps(clump, min_val, max_val, d_clump):
     mylog.info("Finding clumps: min: %e, max: %e, step: %f" % 
