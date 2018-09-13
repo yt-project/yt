@@ -996,6 +996,8 @@ class ClumpContourCallback(PlotCallback):
     def __init__(self, clumps, plot_args=None):
         self.clumps = clumps
         if plot_args is None: plot_args = {}
+        if 'color' in plot_args:
+            plot_args['colors'] = plot_args.pop('color')
         self.plot_args = plot_args
 
     def __call__(self, plot):
