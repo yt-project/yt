@@ -120,9 +120,12 @@ class DatasetSeries(object):
         This parameter governs the behavior when .piter() is called on the
         resultant DatasetSeries object.  If this is set to False, the time
         series will not iterate in parallel when .piter() is called.  If
-        this is set to either True or an integer, it will be iterated with
-        1 or that integer number of processors assigned to each parameter
-        file provided to the loop.
+        this is set to either True, one processor will be allocated for
+        each iteration of the loop. If this is set to an integer, the loop
+        will be parallelized over this many workgroups. It the integer
+        value is less than the total number of available processors,
+        more than one processor will be allocated to a given loop iteration,
+        causing the functionality within the loop to be run in parallel.
     setup_function : callable, accepts a ds
         This function will be called whenever a dataset is loaded.
     mixed_dataset_types : True or False, default False
