@@ -1513,6 +1513,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     def _chunked_read(self, chunk):
         # There are several items that need to be swapped out
         # field_data, size, shape
+        obj_field_data = []
+        for obj in chunk.objs:
+            obj_field_data.append(obj.field_data)
+            obj.field_data = YTFieldData()
         old_field_data, self.field_data = self.field_data, YTFieldData()
         old_chunk, self._current_chunk = self._current_chunk, chunk
         old_locked, self._locked = self._locked, False
@@ -1520,6 +1524,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self.field_data = old_field_data
         self._current_chunk = old_chunk
         self._locked = old_locked
+        for obj in chunk.objs:
+            obj.field_data = obj_field_data.pop(0)
 
     @contextmanager
     def _activate_cache(self):
