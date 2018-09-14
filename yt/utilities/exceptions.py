@@ -687,8 +687,9 @@ class YTProfileDataShape(YTException):
         self.shape2 = shape2
 
     def __str__(self):
-        return "Profile fields must have same shape: %s is %s and %s is %s." % \
-          (self.field1, self.shape1, self.field2, self.shape2)
+        return ("Profile fields must have same shape: %s has " +
+                "shape %s and %s has shape %s.") % \
+                (self.field1, self.shape1, self.field2, self.shape2)
 
 class YTBooleanObjectError(YTException):
     def __init__(self, bad_object):

@@ -5,13 +5,20 @@ import tempfile
 import unittest
 import yt
 
+from nose.tools import \
+    assert_raises
+
 from yt.utilities.exceptions import \
     YTProfileDataShape
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import Profile1D, Profile2D, Profile3D,\
     create_profile
-from yt.testing import fake_random_ds, assert_equal, assert_raises,\
-    assert_rel_equal
+from yt.testing import \
+    assert_equal, \
+    assert_raises,\
+    assert_rel_equal, \
+    fake_random_ds, \
+    requires_module
 from yt.utilities.exceptions import YTIllDefinedProfile
 from yt.visualization.profile_plotter import ProfilePlot, PhasePlot
 
@@ -341,6 +348,7 @@ class TestBadProfiles(unittest.TestCase):
         # clean up
         shutil.rmtree(self.tmpdir)
 
+    @requires_module('h5py')
     def test_unequal_data_shape_profile(self):
         density = np.random.random(128)
         temperature = np.random.random(128)
@@ -355,14 +363,11 @@ class TestBadProfiles(unittest.TestCase):
 
         ds = yt.load('mydata.h5')
 
-        # We want this to fail with a YTProfileDataShape exception.
-        try:
-            yt.PhasePlot(ds.data, 'temperature', 'density', 'cell_mass')
-        except YTProfileDataShape:
-            return
+        assert_raises(
+            YTProfileDataShape,
+            yt.PhasePlot, ds.data, 'temperature', 'density', 'cell_mass')
 
-        assert False
-
+    @requires_module('h5py')
     def test_unequal_bin_field_profile(self):
         density = np.random.random(128)
         temperature = np.random.random(127)
@@ -377,10 +382,6 @@ class TestBadProfiles(unittest.TestCase):
 
         ds = yt.load('mydata.h5')
 
-        # We want this to fail with a YTProfileDataShape exception.
-        try:
-            yt.PhasePlot(ds.data, 'temperature', 'density', 'cell_mass')
-        except YTProfileDataShape:
-            return
-
-        assert False
+        assert_raises(
+            YTProfileDataShape,
+            yt.PhasePlot, ds.data, 'temperature', 'density', 'cell_mass')
