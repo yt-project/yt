@@ -304,7 +304,7 @@ Halo Catalogs
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHDF5
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHaloHDF5
    ~yt.frontends.gadget_fof.fields.GadgetFOFFieldInfo
-   ~yt.frontends.gadget_fof.fields.GadgetFIFHaloFieldInfo
+   ~yt.frontends.gadget_fof.fields.GadgetFOFHaloFieldInfo
    ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
    ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
    ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo
@@ -820,7 +820,7 @@ Function List
    ~yt.funcs.print_tb
    ~yt.funcs.rootonly
    ~yt.funcs.time_execution
-   ~yt.analysis_modules.level_sets.contour_finder.identify_contours
+   ~yt.data_objects.level_sets.contour_finder.identify_contours
    ~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_blocking_call
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects

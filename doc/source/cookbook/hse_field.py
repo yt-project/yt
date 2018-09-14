@@ -24,7 +24,7 @@ def _hse(field, data):
     h = np.sqrt((hx * hx + hy * hy + hz * hz) / (gx * gx + gy * gy + gz * gz))
     return h
 ds.add_field(('gas','HSE'), function=_hse, units="", take_log=False,
-             display_name='Hydrostatic Equilibrium')
+             display_name='Hydrostatic Equilibrium', sampling_type="cell")
 
 # The gradient operator requires periodic boundaries.  This dataset has
 # open boundary conditions.  We need to hack it for now (this will be fixed
