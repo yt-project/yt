@@ -114,8 +114,8 @@ def test_clump_tree_save():
     t2 = [c for c in ds2.tree]
     mt1 = ds.arr([c.info["cell_mass"][1] for c in t1])
     mt2 = ds2.arr([c["clump", "cell_mass"] for c in t2])
-    it1 = np.argsort(mt1).d.astype(int)
-    it2 = np.argsort(mt2).d.astype(int)
+    it1 = np.array(np.argsort(mt1).astype(int))
+    it2 = np.array(np.argsort(mt2).astype(int))
     assert_array_equal(mt1[it1], mt2[it2])
 
     for i1, i2 in zip(it1, it2):
@@ -131,8 +131,8 @@ def test_clump_tree_save():
     c2 = [c for c in ds2.leaves]
     mc1 = ds.arr([c.info["cell_mass"][1] for c in c1])
     mc2 = ds2.arr([c["clump", "cell_mass"] for c in c2])
-    ic1 = np.argsort(mc1).d.astype(int)
-    ic2 = np.argsort(mc2).d.astype(int)
+    ic1 = np.array(np.argsort(mc1).astype(int))
+    ic2 = np.array(np.argsort(mc2).astype(int))
     assert_array_equal(mc1[ic1], mc2[ic2])
 
     os.chdir(curdir)
