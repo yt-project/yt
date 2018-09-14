@@ -308,6 +308,8 @@ def check_sky_coords(args, ndim):
                     return False
                 axis_names = [header.get("ctype%d" % (i + 1), "")
                               for i in range(header["naxis"])]
+                if len(axis_names) == 3 and axis_names.count("LINEAR") == 2:
+                    return any(a[0] in spec_prefixes for a in axis_names)
                 x = find_axes(axis_names, sky_prefixes + spec_prefixes)
                 fileh.close()
                 return x >= ndim
