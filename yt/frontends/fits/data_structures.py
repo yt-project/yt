@@ -46,6 +46,10 @@ from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.funcs import issue_deprecation_warning
 from yt.units import dimensions
+from yt.units.unit_lookup_table import \
+    default_unit_symbol_lut, \
+    prefixable_units, \
+    unit_prefixes
 from yt.utilities.on_demand_imports import \
     _astropy, NotAModule
 
@@ -69,6 +73,7 @@ field_from_unit = {"Jy": "intensity",
 
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
+
     def __init__(self, id, index, level):
         AMRGridPatch.__init__(self, id, filename=index.index_filename,
                               index=index)
@@ -266,6 +271,7 @@ def find_primary_header(fileh):
     header = fileh[first_image].header
     return header, first_image
 
+
 def check_fits_valid(args):
     ext = args[0].rsplit(".", 1)[-1]
     if ext.upper() in ("GZ", "FZ"):
@@ -288,6 +294,7 @@ def check_fits_valid(args):
         pass
     return None
 
+
 def check_sky_coords(args, ndim):
     fileh = check_fits_valid(args)
     if fileh is not None:
@@ -307,6 +314,7 @@ def check_sky_coords(args, ndim):
         except:
             pass
     return False
+
 
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
@@ -376,14 +384,34 @@ class FITSDataset(Dataset):
         Generates the conversion to various physical _units based on the
         parameter file
         """
-        if "length_unit" not in self.units_override:
+        default_length_units = [u for u,v in default_unit_symbol_lut.items()
+                                if str(v[1]) == "(length)"]
+        more_length_units = []
+        for unit in default_length_units:
+            if unit in prefixable_units:
+                more_length_units += [prefix+unit for prefix in unit_prefixes]
+        default_length_units += more_length_units
+        file_units = []
+        cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
+        for unit in (_.to_string() for _ in cunits):
+            if unit in default_length_units:
+                file_units.append(unit)
+        if len(set(file_units)) == 1:
+            length_factor = self.wcs.wcs.cdelt[0]
+            length_unit = str(file_units[0])
+            mylog.info("Found length units of %s." % (length_unit))
+        elif "length_unit" not in self.units_override:
             self.no_cgs_equiv_length = True
-        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
+            mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
+            length_factor = 1.0
+            length_unit = "cm"
+        setdefaultattr(self, 'length_unit', self.quan(length_factor, length_unit))
+        for unit, cgs in [("time", "s"), ("mass", "g")]:
             # We set these to cgs for now, but they may have been overridden
             if getattr(self, unit+'_unit', None) is not None:
                 continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
-            setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
+            setdefaultattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                      (self.time_unit**2 * self.length_unit))
         self.magnetic_unit.convert_to_units("gauss")
