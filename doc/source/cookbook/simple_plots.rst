@@ -47,7 +47,7 @@ Simple 1D Line Plotting
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 This script shows how to make a ``LinePlot`` through a dataset.
-See :ref:`how-to-1d-line-plot` for more information.
+See :ref:`manual-line-plots` for more information.
 
 .. yt_cookbook:: simple_1d_line_plot.py
 
