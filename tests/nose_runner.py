@@ -80,18 +80,21 @@ def generate_tasks_input():
                       if DROP_TAG not in line])
     tests = yaml.load(data)
 
-    base_argv = ['--local-dir=%s' % answers_dir, '-s', '--nologcapture',
-                 '--with-answer-testing', '--answer-big-data', '--local',
-                 '--with-xunit']
+    base_argv = ['-s', '--nologcapture', '--with-xunit']
+
+    base_answer_argv = ['--local-dir=%s' % answers_dir, '--with-answer-testing',
+                        '--answer-big-data', '--local']
+
     args = []
 
     for test in list(tests["other_tests"].keys()):
         args.append(([test] + tests["other_tests"][test], True))
+        args.append(base_argv)
     for answer in list(tests["answer_tests"].keys()):
         if tests["answer_tests"][answer] is None:
             continue
         argv = ["{}_{}".format(pyver, answer)]
-        argv += base_argv
+        argv += base_argv + base_answer_argv
         argv.append('--answer-name=%s' % argv[0])
         argv += tests["answer_tests"][answer]
         args.append((argv, False))
