@@ -88,8 +88,7 @@ def generate_tasks_input():
     args = []
 
     for test in list(tests["other_tests"].keys()):
-        args.append(([test] + tests["other_tests"][test], True))
-        args.append(base_argv)
+        args.append(([test] + base_argv + tests["other_tests"][test], True))
     for answer in list(tests["answer_tests"].keys()):
         if tests["answer_tests"][answer] is None:
             continue
