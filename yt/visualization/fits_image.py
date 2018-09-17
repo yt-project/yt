@@ -293,7 +293,11 @@ class FITSImageData(object):
             self.set_wcs(wcs)
 
     def _fix_current_time(self, ds, current_time):
-        tunit = Unit(self.time_unit)
+        if ds is None:
+            registry = None
+        else:
+            registry = ds.unit_registry
+        tunit = Unit(self.time_unit, registry=registry)
         if current_time is None:
             if ds is not None:
                 current_time = ds.current_time
