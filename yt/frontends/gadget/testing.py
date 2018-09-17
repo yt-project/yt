@@ -37,7 +37,7 @@ def write_block(fp, data, endian, fmt, block_id):
         block_id_dtype = np.dtype(
             [('id', 'S', 4), ('offset', endian + 'i4', 1)]
         )
-        block_id_data = np.array(1, dtype=block_id_dtype)
+        block_id_data = np.zeros(1, dtype=block_id_dtype)
         block_id_data['id'] = block_id
         block_id_data['offset'] = data.nbytes + 8
         write_record(fp, block_id_data, endian)
