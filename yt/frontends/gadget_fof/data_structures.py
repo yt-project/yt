@@ -132,6 +132,42 @@ class GadgetFOFHDF5File(ParticleFile):
         self.total_offset = 0 # I think this is no longer needed
         super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
 
+    _coords = None
+    def _read_particle_positions(self, ptype, f=None):
+        """
+        Read all particle positions in this file.
+        """
+
+        if self._coords is not None:
+            return self._coords
+
+        pcount = self.total_particles[ptype]
+        if pcount == 0:
+            return None
+
+        dle = self.ds.domain_left_edge.to('code_length').v
+        dre = self.ds.domain_right_edge.to('code_length').v
+
+        if f is None:
+            close = True
+            f = h5py.File(self.filename, "r")
+        else:
+            close = False
+
+        # These are 32 bit numbers, so we give a little lee-way.
+        # Otherwise, for big sets of particles, we often will bump into the
+        # domain edges.  This helps alleviate that.
+        dx = 2. * np.finfo(f[ptype]["%sPos" % ptype].dtype).eps
+        pos = f[ptype]["%sPos" % ptype].value.astype("float64")
+        pos = np.resize(pos, (pcount, 3))
+        np.clip(pos, dle + dx, dre - dx, pos)
+
+        if close:
+            f.close()
+
+        self._coords = pos
+        return self._coords
+
 class GadgetFOFDataset(Dataset):
     _index_class = GadgetFOFParticleIndex
     _file_class = GadgetFOFHDF5File
