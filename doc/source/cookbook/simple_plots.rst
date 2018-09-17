@@ -47,7 +47,7 @@ Simple 1D Line Plotting
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 This script shows how to make a ``LinePlot`` through a dataset.
-See :ref:`how-to-1d-line-plot` for more information.
+See :ref:`manual-line-plots` for more information.
 
 .. yt_cookbook:: simple_1d_line_plot.py
 
@@ -194,7 +194,7 @@ scales and just want to take a closer look at the raw plot data.  See
 .. _cookbook_label_formats:
 
 Setting Field Label Formats
---------------------------
+---------------------------
 
 This example illustrates how to change the label format for
 ion species from the default roman numeral style.

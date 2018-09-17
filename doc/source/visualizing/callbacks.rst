@@ -470,7 +470,8 @@ Overplotting Particle Positions
    p.annotate_particles((10, 'Mpc'))
    p.save()
 
-   To plot only the central particles
+To plot only the central particles
+
 .. python-script::
    import yt
    ds = yt.load("Enzo_64/DD0043/data0043")

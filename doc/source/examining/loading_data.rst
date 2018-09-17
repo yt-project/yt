@@ -176,7 +176,7 @@ subdivided into "virtual grids". For this purpose, one can pass in the
 
 which will subdivide each original grid into ``nprocs`` grids. Note that this
 parameter is independent of the number of MPI tasks assigned to analyze the data
-set in parallel (see :ref:`_parallel-computation`), and ideally should be (much)
+set in parallel (see :ref:`parallel-computation`), and ideally should be (much)
 larger than this.
 
 .. note::
@@ -2200,7 +2200,7 @@ In verions of RAMSES more recent than December 2017, particles carry
 along a ``family`` array. The value of this array gives the kind of
 the particle, e.g. 1 for dark matter. It is possible to customize the
 association between particle type and family by customizing the yt
-config (see :ref:`configuration`), adding
+config (see :ref:`configuration-file`), adding
 
 .. code-block:: none
 
@@ -2244,7 +2244,7 @@ of the various particle formation time and age fields:
 
 +------------------+--------------------------+--------------------------------+
 | Simulation type  | Field name               | Description                    |
-|==================|==========================+================================+
+|==================+==========================+================================+
 | cosmological     | ``conformal_birth_time`` | Formation time in conformal    |
 |                  |                          | units (dimensionless)          |
 +------------------+--------------------------+--------------------------------+
