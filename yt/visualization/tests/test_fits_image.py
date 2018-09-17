@@ -43,9 +43,10 @@ def test_fits_image():
     prj = ds.proj("density", 2)
     prj_frb = prj.to_frb((0.5, "unitary"), 128)
 
-    fid1 = FITSImageData(prj_frb, fields=["density","temperature"], units="cm")
-    fits_prj = FITSProjection(ds, "z", [ds.fields.gas.density,"temperature"], image_res=128,
-                              width=(0.5,"unitary"))
+    fid1 = FITSImageData(prj_frb, fields=["density","temperature"],
+                         length_unit="cm")
+    fits_prj = FITSProjection(ds, "z", [ds.fields.gas.density,"temperature"],
+                              image_res=128, width=(0.5, "unitary"))
 
     assert_equal(fid1["density"].data, fits_prj["density"].data)
     assert_equal(fid1["temperature"].data, fits_prj["temperature"].data)
@@ -70,9 +71,10 @@ def test_fits_image():
     slc = ds.slice(2, 0.5)
     slc_frb = slc.to_frb((0.5, "unitary"), 128)
 
-    fid2 = FITSImageData(slc_frb, fields=["density","temperature"], units="cm")
-    fits_slc = FITSSlice(ds, "z", ["density",("gas","temperature")], image_res=128,
-                         width=(0.5,"unitary"))
+    fid2 = FITSImageData(slc_frb, fields=["density","temperature"],
+                         length_unit="cm")
+    fits_slc = FITSSlice(ds, "z", ["density",("gas","temperature")],
+                         image_res=128, width=(0.5,"unitary"))
 
     assert_equal(fid2["density"].data, fits_slc["density"].data)
     assert_equal(fid2["temperature"].data, fits_slc["temperature"].data)
@@ -87,10 +89,11 @@ def test_fits_image():
     cut = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
     cut_frb = cut.to_frb((0.5, "unitary"), 128)
 
-    fid3 = FITSImageData(cut_frb, fields=[("gas","density"), ds.fields.gas.temperature], units="cm")
+    fid3 = FITSImageData(cut_frb, fields=[("gas","density"), ds.fields.gas.temperature], 
+                         length_unit="cm")
     fits_cut = FITSOffAxisSlice(ds, [0.1, 0.2, -0.9], ["density","temperature"],
                                 image_res=128, center=[0.5, 0.42, 0.6],
-                                width=(0.5,"unitary"))
+                                width=(0.5, "unitary"))
 
     assert_equal(fid3["density"].data, fits_cut["density"].data)
     assert_equal(fid3["temperature"].data, fits_cut["temperature"].data)
