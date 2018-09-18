@@ -111,42 +111,39 @@ class UnitSystem(object):
                 repr += "  %s: %s\n" % (key, self.units_map[dim])
         return repr
 
-    @classmethod
-    def make_dataset_copy(cls, unit_registry, unit_system):
-        """
-        Make a copy of a unit system with a different unit registry.
-        To be sure we do it correctly and do not change the input 
-        registry, we create a brand new UnitSystem instance from the
-        input's information.
 
-        Parameters
-        ----------
-        unit_registry : UnitRegistry instance
-            The unit registry we want to use with this unit system,
-            most likely from a dataset.
-        unit_system : string
-            The name of the unit system we want to make a copy of 
-            with the new registry.
-        """
-        unit_system = unit_system_registry[unit_system]
-        base_units = ["length", "mass", "time", "temperature", "angle"]
-        if "current_mks" in unit_system._dims:
-            current_mks_unit = str(unit_system["current_mks"])
-            base_units.append("current_mks")
-        else:
-            current_mks_unit = None
-        sys_name = "{}_{}".format(unit_system.name, unit_registry.unit_system_id)
-        ds_unit_system = UnitSystem(sys_name, str(unit_system["length"]), 
-                                    str(unit_system["mass"]), 
-                                    str(unit_system["time"]), 
-                                    temperature_unit=str(unit_system["temperature"]),
-                                    angle_unit=str(unit_system["angle"]),
-                                    current_mks_unit=current_mks_unit,
-                                    registry=unit_registry)
-        for dim in unit_system._dims:
-            if dim not in base_units:
-                ds_unit_system[dim] = str(unit_system[dim])
-        return ds_unit_system
+def _make_unit_system_copy(unit_registry, unit_system):
+    """
+    Make a copy of a unit system with a different unit registry.
+
+    Parameters
+    ----------
+    unit_registry : UnitRegistry instance
+        The unit registry we want to use with this unit system,
+        most likely from a dataset.
+    unit_system : string
+        The name of the unit system we want to make a copy of 
+        with the new registry.
+    """
+    unit_system = unit_system_registry[unit_system]
+    base_units = ["length", "mass", "time", "temperature", "angle"]
+    if "current_mks" in unit_system._dims:
+        current_mks_unit = str(unit_system["current_mks"])
+        base_units.append("current_mks")
+    else:
+        current_mks_unit = None
+    sys_name = "{}_{}".format(unit_system.name, unit_registry.unit_system_id)
+    ds_unit_system = UnitSystem(sys_name, str(unit_system["length"]), 
+                                str(unit_system["mass"]), 
+                                str(unit_system["time"]), 
+                                temperature_unit=str(unit_system["temperature"]),
+                                angle_unit=str(unit_system["angle"]),
+                                current_mks_unit=current_mks_unit,
+                                registry=unit_registry)
+    for dim in unit_system._dims:
+        if dim not in base_units:
+            ds_unit_system[dim] = str(unit_system[dim])
+    return ds_unit_system
 
 
 def create_code_unit_system(unit_registry, current_mks_unit=None):
