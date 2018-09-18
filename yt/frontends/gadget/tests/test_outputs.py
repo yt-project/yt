@@ -15,13 +15,17 @@ Gadget frontend tests
 #-----------------------------------------------------------------------------
 
 from collections import OrderedDict
+from itertools import product
+import os
 
+import yt
 from yt.testing import requires_file
 from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     requires_ds, \
     sph_answer
 from yt.frontends.gadget.api import GadgetHDF5Dataset, GadgetDataset
+from yt.frontends.gadget.testing import fake_gadget_binary
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"
@@ -45,17 +49,24 @@ iso_fields = OrderedDict(
 iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
 
+def test_gadget_binary():
+    header_specs = ['default', 'default+pad32']
+    for header_spec, endian, fmt in product(header_specs, '<>', [1, 2]):
+        fake_snap = fake_gadget_binary(
+            header_spec=header_spec,
+            endian=endian,
+            fmt=fmt
+        )
+        ds = yt.load(fake_snap, header_spec=header_spec)
+        assert isinstance(ds, GadgetDataset)
+        ds.field_list
+        os.remove(fake_snap)
+
+
 @requires_file(isothermal_h5)
-@requires_file(isothermal_bin)
-@requires_file(BE_Gadget)
-@requires_file(LE_SnapFormat2)
-def test_gadget_dataset():
+def test_gadget_hdf5():
     assert isinstance(data_dir_load(isothermal_h5, kwargs=iso_kwargs),
                       GadgetHDF5Dataset)
-    assert isinstance(data_dir_load(isothermal_bin, kwargs=iso_kwargs),
-                      GadgetDataset)
-    assert isinstance(data_dir_load(BE_Gadget), GadgetDataset)
-    assert isinstance(data_dir_load(LE_SnapFormat2), GadgetDataset)
 
 
 @requires_file(keplerian_ring)
