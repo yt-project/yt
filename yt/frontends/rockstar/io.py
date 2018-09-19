@@ -53,6 +53,8 @@ class IOHandlerRockstarBinary(BaseIOHandler):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files,key=attrgetter("filename")):
             pcount = data_file.header['num_halos']
+            if pcount == 0:
+                continue
             with open(data_file.filename, "rb") as f:
                 pos = data_file._get_particle_positions(ptype, f=f)
                 yield "halos", (pos[:, i] for i in range(3))
@@ -69,6 +71,8 @@ class IOHandlerRockstarBinary(BaseIOHandler):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files,key=attrgetter("filename")):
             pcount = data_file.header['num_halos']
+            if pcount == 0:
+                continue
             with open(data_file.filename, "rb") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pos = data_file._get_particle_positions(ptype, f=f)
@@ -87,7 +91,8 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
-        if pcount == 0: return morton
+        if pcount == 0:
+            return morton
         ind = 0
         ptype = 'halos'
         with open(data_file.filename, "rb") as f:
