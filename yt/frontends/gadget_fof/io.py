@@ -134,7 +134,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 pos = data_file._read_particle_positions(ptype, f=f)
-                pos = data_file.ds.arr(pos, "code_length")
+                pos = self.ds.arr(pos, "code_length")
 
                 if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
                    np.any(pos.max(axis=0) > self.ds.domain_right_edge):
@@ -145,8 +145,8 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                 regions.add_data_file(pos, data_file.file_id)
                 morton[ind:ind+pos.shape[0]] = compute_morton(
                     pos[:,0], pos[:,1], pos[:,2],
-                    data_file.ds.domain_left_edge,
-                    data_file.ds.domain_right_edge)
+                    self.ds.domain_left_edge,
+                    self.ds.domain_right_edge)
                 ind += pos.shape[0]
         return morton
 

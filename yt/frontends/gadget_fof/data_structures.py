@@ -130,20 +130,21 @@ class GadgetFOFHDF5File(ParticleFile):
           {"Group": self.header["Ngroups_ThisFile"],
            "Subhalo": self.header["Nsubgroups_ThisFile"]}
         self.total_offset = 0 # I think this is no longer needed
+        self._coords = {}
         super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
 
-    _coords = None
     def _read_particle_positions(self, ptype, f=None):
         """
         Read all particle positions in this file.
         """
 
-        if self._coords is not None:
-            return self._coords
+        if ptype in self._coords:
+            return self._coords[ptype]
 
         pcount = self.total_particles[ptype]
         if pcount == 0:
-            return None
+            self._coords[ptype] = None
+            return self._coords[ptype]
 
         dle = self.ds.domain_left_edge.to('code_length').v
         dre = self.ds.domain_right_edge.to('code_length').v
@@ -159,14 +160,13 @@ class GadgetFOFHDF5File(ParticleFile):
         # domain edges.  This helps alleviate that.
         dx = 2. * np.finfo(f[ptype]["%sPos" % ptype].dtype).eps
         pos = f[ptype]["%sPos" % ptype].value.astype("float64")
-        pos = np.resize(pos, (pcount, 3))
         np.clip(pos, dle + dx, dre - dx, pos)
 
         if close:
             f.close()
 
-        self._coords = pos
-        return self._coords
+        self._coords[ptype] = pos
+        return self._coords[ptype]
 
 class GadgetFOFDataset(Dataset):
     _index_class = GadgetFOFParticleIndex
