@@ -5,8 +5,6 @@ Data structures for Gadget frontend
 
 
 """
-from __future__ import print_function
-
 #-----------------------------------------------------------------------------
 # Copyright (c) 2014, yt Development Team.
 #
@@ -63,9 +61,10 @@ class GadgetBinaryHeader(object):
     """
     def __init__(self, filename, header_spec):
         self.filename = filename
-        self.spec = GadgetDataset._setup_binary_spec(
-            header_spec, gadget_header_specs
-        )
+        if isinstance(header_spec, str):
+            header_spec = [header_spec]
+        self.spec = [GadgetDataset._setup_binary_spec(hs, gadget_header_specs)
+                     for hs in header_spec]
 
     @property
     def float_type(self):
@@ -78,7 +77,7 @@ class GadgetBinaryHeader(object):
             hvals = self.value
             np0 = sum(hvals['Npart'])
             with self.open() as f:
-                f.seek(4 + self.size + 4)
+                f.seek(self.position_offset)
                 # Calculate particle number assuming single precision
                 np1 = struct.unpack(endianswap + 'I', f.read(4))[0] / (4 * 3)
             if np1 == np0:
@@ -99,14 +98,14 @@ class GadgetBinaryHeader(object):
         the first 4 bytes of the file. For format 1, it's the header size. For
         format 2, it's always 8.
         """
-        header_size = self.size
+        first_header_size = self.size[0]
         # Read the first 4 bytes assuming little endian int32
         with self.open() as f:
             (rhead,) = struct.unpack('<I', f.read(4))
         # Foramt 1?
-        if rhead == header_size:
+        if rhead == first_header_size:
             return 1, '<'
-        elif rhead == _byte_swap_32(header_size):
+        elif rhead == _byte_swap_32(first_header_size):
             return 1, '>'
         # Format 2?
         elif rhead == 8:
@@ -118,25 +117,39 @@ class GadgetBinaryHeader(object):
                 "Gadget snapshot file is likely corrupted! "
                 "The first 4 bytes represent %s (as little endian int32). "
                 "But we are looking for %s (for format 1) or 8 (for format 2)."
-                % (rhead, header_size)
+                % (rhead, first_header_size)
             )
+
+    @property
+    def position_offset(self):
+        """Offset to the position block."""
+        n_header = len(self.size)
+        offset = 8 * n_header + sum(self.size)
+        if self.gadget_format[0] == 2:
+            offset += SNAP_FORMAT_2_OFFSET * (n_header + 1)
+        return offset
 
     @property
     def size(self):
         """Header size in bytes."""
-        return sum(field[1] * np.dtype(field[2]).itemsize
-                   for field in self.spec)
+        def single_header_size(single_header_spec):
+            return sum(field[1] * np.dtype(field[2]).itemsize
+                       for field in single_header_spec)
+        return [single_header_size(spec) for spec in self.spec]
 
     @property
     def value(self):
         """Header values as a dictionary."""
         # The entries in this header are capitalized and named to match Table 4
         # in the GADGET-2 user guide.
-        gformat = self.gadget_format
+        gformat, endianswap = self.gadget_format
         with self.open() as f:
-            if gformat[0] == 2:
-                f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
-            hvals = read_record(f, self.spec, endian=gformat[1])
+            hvals = {}
+            for spec in self.spec:
+                if gformat == 2:
+                    f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
+                hvals_new = read_record(f, spec, endian=endianswap)
+                hvals.update(hvals_new)
         for i in hvals:
             if len(hvals[i]) == 1:
                 hvals[i] = hvals[i][0]
@@ -162,10 +175,9 @@ class GadgetBinaryHeader(object):
 class GadgetBinaryFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         header = ds._header
+        n_header = len(header.size)
         self.header = header.value
-        self._position_offset = 4 + header.size + 4
-        if header.gadget_format[0] == 2:
-            self._position_offset += SNAP_FORMAT_2_OFFSET * 2
+        self._position_offset = header.position_offset
         with header.open() as f:
             self._file_size = f.seek(0, os.SEEK_END)
 
@@ -205,7 +217,7 @@ class GadgetDataset(SPHDataset):
             return
         self._header = GadgetBinaryHeader(filename, header_spec)
         header_size = self._header.size
-        if header_size != 256:
+        if header_size != [256]:
             only_on_root(
                 mylog.warn,
                 "Non-standard header size is detected! "

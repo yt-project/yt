@@ -50,7 +50,7 @@ iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
 
 def test_gadget_binary():
-    header_specs = ['default', 'default+pad32']
+    header_specs = ['default', 'default+pad32', ['default', 'pad32']]
     for header_spec, endian, fmt in product(header_specs, '<>', [1, 2]):
         fake_snap = fake_gadget_binary(
             header_spec=header_spec,
