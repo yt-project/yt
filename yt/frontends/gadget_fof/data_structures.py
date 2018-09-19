@@ -142,9 +142,11 @@ class GadgetFOFHDF5File(ParticleFile):
             return self._coords[ptype]
 
         pcount = self.total_particles[ptype]
+        cache_pos = getattr(self.ds, "cache_positions", False)
         if pcount == 0:
-            self._coords[ptype] = None
-            return self._coords[ptype]
+            if cache_pos:
+                self._coords[ptype] = None
+            return None
 
         dle = self.ds.domain_left_edge.to('code_length').v
         dre = self.ds.domain_right_edge.to('code_length').v
@@ -165,8 +167,9 @@ class GadgetFOFHDF5File(ParticleFile):
         if close:
             f.close()
 
-        self._coords[ptype] = pos
-        return self._coords[ptype]
+        if cache_pos:
+            self._coords[ptype] = pos
+        return pos
 
 class GadgetFOFDataset(Dataset):
     _index_class = GadgetFOFParticleIndex
@@ -175,10 +178,12 @@ class GadgetFOFDataset(Dataset):
 
     def __init__(self, filename, dataset_type="gadget_fof_hdf5",
                  n_ref=16, over_refine_factor=1, index_ptype="all",
-                 unit_base=None, units_override=None, unit_system="cgs"):
+                 unit_base=None, units_override=None, unit_system="cgs",
+                 cache_positions=True):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         self.index_ptype = index_ptype
+        self.cache_positions = cache_positions
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
