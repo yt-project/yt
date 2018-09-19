@@ -54,39 +54,120 @@ def _byte_swap_32(x):
     return struct.unpack('>I', struct.pack('<I', x))[0]
 
 
-def _compute_header_size(header_spec):
-    return sum(field[1] * np.dtype(field[2]).itemsize for field in header_spec)
+class GadgetBinaryHeader(object):
+    """A convenient interface to Gadget binary header.
+    
+    This is a helper class to facilitate the main dataset and IO classes.
+    The main usage is through the GadgetDataset._header attribute. It is also
+    used stand-alone in GadgetDataset._is_valid method.
+    """
+    def __init__(self, filename, header_spec):
+        self.filename = filename
+        self.spec = GadgetDataset._setup_binary_spec(
+            header_spec, gadget_header_specs
+        )
 
+    @property
+    def float_type(self):
+        """Determine whether the floats are single or double precision."""
+        gformat, endianswap = self.gadget_format
+        # We do not currently support double precision snapshot format 2
+        if gformat == 2:
+            return 'f4'
+        else:
+            hvals = self.value
+            np0 = sum(hvals['Npart'])
+            with self.open() as f:
+                f.seek(4 + self.size + 4)
+                # Calculate particle number assuming single precision
+                np1 = struct.unpack(endianswap + 'I', f.read(4))[0] / (4 * 3)
+            if np1 == np0:
+                return 'f4'
+            elif np1 == 2 * np0:
+                return 'f8'
+            else:
+                raise RuntimeError(
+                    "Gadget snapshot file is likely corrupted! "
+                    "Cannot determine float type."
+                )
 
-def _get_gadget_format(filename, header_size):
-    # check and return gadget binary format with file endianness
-    ff = open(filename, 'rb')
-    (rhead,) = struct.unpack('<I', ff.read(4))
-    ff.close()
-    if (rhead == _byte_swap_32(8)):
-        return 2, '>'
-    elif (rhead == 8):
-        return 2, '<'
-    elif (rhead == _byte_swap_32(header_size)):
-        return 1, '>'
-    elif (rhead == header_size):
-        return 1, '<'
-    else:
-        raise RuntimeError("Incorrect Gadget format %s!" % str(rhead))
+    @property
+    def gadget_format(self):
+        """Determine Gadget snapshot format and endianness.
+        
+        The difference between Gadget snapshot format 1 and 2 can be told from
+        the first 4 bytes of the file. For format 1, it's the header size. For
+        format 2, it's always 8.
+        """
+        header_size = self.size
+        # Read the first 4 bytes assuming little endian int32
+        with self.open() as f:
+            (rhead,) = struct.unpack('<I', f.read(4))
+        # Foramt 1?
+        if rhead == header_size:
+            return 1, '<'
+        elif rhead == _byte_swap_32(header_size):
+            return 1, '>'
+        # Format 2?
+        elif rhead == 8:
+            return 2, '<'
+        elif rhead == _byte_swap_32(8):
+            return 2, '>'
+        else:
+            raise RuntimeError(
+                "Gadget snapshot file is likely corrupted! "
+                "The first 4 bytes represent %s (as little endian int32). "
+                "But we are looking for %s (for format 1) or 8 (for format 2)."
+                % (rhead, header_size)
+            )
+
+    @property
+    def size(self):
+        """Header size in bytes."""
+        return sum(field[1] * np.dtype(field[2]).itemsize
+                   for field in self.spec)
+
+    @property
+    def value(self):
+        """Header values as a dictionary."""
+        # The entries in this header are capitalized and named to match Table 4
+        # in the GADGET-2 user guide.
+        gformat = self.gadget_format
+        with self.open() as f:
+            if gformat[0] == 2:
+                f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
+            hvals = read_record(f, self.spec, endian=gformat[1])
+        for i in hvals:
+            if len(hvals[i]) == 1:
+                hvals[i] = hvals[i][0]
+        return hvals
+
+    def open(self):
+        """Open snapshot file."""
+        for filename in [self.filename, self.filename + '.0']:
+            if os.path.exists(filename):
+                return open(filename, 'rb')
+
+    def validate(self):
+        """Validate data integrity."""
+        try:
+            self.open().close()
+            self.gadget_format
+            self.float_type
+        except (IOError, struct.error, RuntimeError):
+            return False
+        return True
 
 
 class GadgetBinaryFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
-        gformat = _get_gadget_format(filename, ds._header_size)
-        with open(filename, "rb") as f:
-            if gformat[0] == 2:
-                f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
-            self.header = read_record(f, ds._header_spec, endian=gformat[1])
-            if gformat[0] == 2:
-                f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
-            self._position_offset = f.tell()
-            f.seek(0, os.SEEK_END)
-            self._file_size = f.tell()
+        header = ds._header
+        self.header = header.value
+        self._position_offset = 4 + header.size + 4
+        if header.gadget_format[0] == 2:
+            self._position_offset += SNAP_FORMAT_2_OFFSET * 2
+        with header.open() as f:
+            self._file_size = f.seek(0, os.SEEK_END)
 
         super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id)
 
@@ -122,10 +203,9 @@ class GadgetDataset(SPHDataset):
                  w_a = 0.0):
         if self._instantiated:
             return
-        self._header_spec = self._setup_binary_spec(
-            header_spec, gadget_header_specs)
-        self._header_size = _compute_header_size(self._header_spec)
-        if self._header_size != 256:
+        self._header = GadgetBinaryHeader(filename, header_spec)
+        header_size = self._header.size
+        if header_size != 256:
             only_on_root(
                 mylog.warn,
                 "Non-standard header size is detected! "
@@ -135,7 +215,7 @@ class GadgetDataset(SPHDataset):
                 "and you might want to check how the dataset is loaded. "
                 "Futher information about header specification can be found in "
                 "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",
-                self._header_size
+                header_size
             )
         self._field_spec = self._setup_binary_spec(
             field_spec, gadget_field_specs)
@@ -191,17 +271,7 @@ class GadgetDataset(SPHDataset):
         return os.path.basename(self.parameter_filename).split(".")[0]
 
     def _get_hvals(self):
-        # The entries in this header are capitalized and named to match Table 4
-        # in the GADGET-2 user guide.
-        gformat = _get_gadget_format(self.parameter_filename, self._header_size)
-        f = open(self.parameter_filename, 'rb')
-        if gformat[0] == 2:
-            f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
-        hvals = read_record(f, self._header_spec, endian=gformat[1])
-        for i in hvals:
-            if len(hvals[i]) == 1:
-                hvals[i] = hvals[i][0]
-        return hvals
+        return self._header.value
 
     def _parse_parameter_file(self):
 
@@ -371,74 +441,14 @@ class GadgetDataset(SPHDataset):
         specific_energy_unit = _fix_unit_ordering(specific_energy_unit)
         self.specific_energy_unit = self.quan(*specific_energy_unit)
 
-    @staticmethod
-    def _validate_header(filename, header_size):
-        '''
-        This method automatically detects whether the Gadget file is big/little endian
-        and is not corrupt/invalid using the first 4 bytes in the file.  It returns a
-        tuple of (Valid, endianswap) where Valid is a boolean that is true if the file
-        is a Gadget binary file, and endianswap is the endianness character '>' or '<'.
-        '''
-        try:
-            f = open(filename, 'rb')
-        except IOError:
-            try:
-                f = open(filename + ".0")
-            except IOError:
-                return False, 1
-
-        # First int32 is 256 for a Gadget2 binary file with SnapFormat=1,
-        # 8 for a Gadget2 binary file with SnapFormat=2 file,
-        # or the byte swapped equivalents.
-        # The int32 following the header (first 4+256 bytes) must equal this
-        # number.
-        # Note that 256 is the Gadget2 standard value, but other value could be
-        # set using the header_size argument.
-        try:
-            (rhead,) = struct.unpack('<I', f.read(4))
-        except struct.error:
-            f.close()
-            return False, 1
-        # Use value to check endianness
-        if rhead == header_size:
-            endianswap = '<'
-        elif rhead == _byte_swap_32(header_size):
-            endianswap = '>'
-        elif rhead in (8, _byte_swap_32(8)):
-            # This is only true for snapshot format 2
-            # we do not currently support double precision
-            # snap format 2 data
-            f.close()
-            return True, 'f4'
-        else:
-            f.close()
-            return False, 1
-        # Read in particle number from header
-        np0 = sum(struct.unpack(endianswap + 'IIIIII', f.read(6 * 4)))
-        # Read in size of position block. It should be 4 bytes per float,
-        # with 3 coordinates (x,y,z) per particle. (12 bytes per particle)
-        f.seek(4 + header_size + 4, 0)
-        np1 = struct.unpack(endianswap + 'I', f.read(4))[0] / (4 * 3)
-        f.close()
-        # Compare
-        if np0 == np1:
-            return True, 'f4'
-        elif np1 == 2*np0:
-            return True, 'f8'
-        else:
-            return False, 1
-
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         if 'header_spec' in kwargs:
-            # Compute header size if header is customized
-            header_spec = cls._setup_binary_spec(
-                kwargs['header_spec'], gadget_header_specs)
-            header_size = _compute_header_size(header_spec)
+            header_spec = kwargs['header_spec']
         else:
-            header_size = 256
-        # First 4 bytes used to check load
-        return GadgetDataset._validate_header(args[0], header_size)[0]
+            header_spec = 'default'
+        header = GadgetBinaryHeader(args[0], header_spec)
+        return header.validate()
 
 
 class GadgetHDF5Dataset(GadgetDataset):
