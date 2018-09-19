@@ -1267,16 +1267,25 @@ padding at the end, you can specify this with:
 
 .. code-block:: python
 
-   header_spec = ["default", "pad256"]
+   header_spec = "default+pad256"
 
-This can then be supplied to the constructor.  Note that you can also do this
-manually, for instance with:
-
+Note that a single string like this means a single header block.  To specify
+multiple header blocks, use a list of strings instead:
 
 .. code-block:: python
 
-   header_spec = ["default", (('some_value', 8, 'd'),
-                              ('another_value', 1, 'i'))]
+  header_spec = ["default", "pad256"]
+
+This can then be supplied to the constructor.  Note that you can also define
+header items manually, for instance with:
+
+.. code-block:: python
+
+   from yt.frontends.gadget.definitions import gadget_header_specs
+
+   gadget_header_specs["custom"] = (('some_value', 8, 'd'),
+                                    ('another_value', 1, 'i'))
+   header_spec = "default+custom"
 
 The letters correspond to data types from the Python struct module.  Please
 feel free to submit alternate header types to the main yt repository.
