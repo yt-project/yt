@@ -85,6 +85,27 @@ class HaloCatalogHDF5File(HaloCatalogFile):
         super(HaloCatalogHDF5File, self).__init__(
             ds, io, filename, file_id)
 
+    def _read_particle_positions(self, ptype, f=None):
+        """
+        Read all particle positions in this file.
+        """
+
+        if f is None:
+            close = True
+            f = h5py.File(self.filename, "r")
+        else:
+            close = False
+
+        pcount = self.header["num_halos"]
+        pos = np.empty((pcount, 3), dtype="float64")
+        for i, ax in enumerate('xyz'):
+            pos[:, i] = f["particle_position_%s" % ax].value
+
+        if close:
+            f.close()
+
+        return pos
+
 class HaloCatalogDataset(SavedDataset):
     _index_class = ParticleIndex
     _file_class = HaloCatalogHDF5File
@@ -97,9 +118,10 @@ class HaloCatalogDataset(SavedDataset):
 
     def __init__(self, filename, dataset_type="halocatalog_hdf5",
                  n_ref = 16, over_refine_factor = 1, units_override=None,
-                 unit_system="cgs"):
+                 unit_system="cgs", cache_positions=True):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
+        self.cache_positions = cache_positions
         super(HaloCatalogDataset, self).__init__(filename, dataset_type,
                                                  units_override=units_override,
                                                  unit_system=unit_system)
