@@ -20,8 +20,9 @@ import stat
 import numpy as np
 
 from yt.data_objects.static_output import \
-    Dataset, \
-    ParticleFile
+    Dataset
+from yt.frontends.halo_catalog.data_structures import \
+    HaloCatalogFile
 from yt.funcs import \
     setdefaultattr
 from yt.geometry.particle_geometry_handler import \
@@ -32,7 +33,7 @@ from yt.utilities.cosmology import \
 from .fields import AHFHalosFieldInfo
 
 
-class AHFHalosFile(ParticleFile):
+class AHFHalosFile(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
         root, _ = os.path.splitext(filename)
         candidates = glob.glob(root + '*.AHF_halos')
@@ -57,6 +58,17 @@ class AHFHalosFile(ParticleFile):
             names = [name.split('(')[0] for name in names]
             return names
 
+    def _read_particle_positions(self, ptype, f=None):
+        """
+        Read all particle positions in this file.
+        """
+
+        halos = self.read_data(usecols=['Xc', 'Yc', 'Zc'])
+        pos = np.empty((halos.size, 3), dtype="float64")
+        for i, ax in enumerate('XYZ'):
+            pos[:, i] = halos['%sc' % ax].astype('float64')
+
+        return pos
 
 class AHFHalosDataset(Dataset):
     _index_class = ParticleIndex
@@ -66,13 +78,14 @@ class AHFHalosDataset(Dataset):
     def __init__(self, filename, dataset_type='ahf',
                  n_ref=16, over_refine_factor=1,
                  units_override=None, unit_system='cgs',
-                 hubble_constant=1.0):
+                 hubble_constant=1.0, cache_positions=True):
         root, _ = os.path.splitext(filename)
         self.log_filename = root + '.log'
         self.hubble_constant = hubble_constant
 
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
+        self.cache_positions = cache_positions
         super(AHFHalosDataset, self).__init__(
             filename, dataset_type=dataset_type,
             units_override=units_override, unit_system=unit_system

@@ -39,10 +39,8 @@ class IOHandlerAHFHalos(BaseIOHandler):
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
         for data_file in self._get_data_files(chunks, ptf):
-            halos = data_file.read_data(usecols=['Xc', 'Yc', 'Zc'])
-            x = halos['Xc'].astype('float64')
-            y = halos['Yc'].astype('float64')
-            z = halos['Zc'].astype('float64')
+            pos = data_file._get_particle_positions('halos')
+            x, y, z = (pos[:, i] for i in range(3))
             yield 'halos', (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -52,14 +50,14 @@ class IOHandlerAHFHalos(BaseIOHandler):
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
         for data_file in self._get_data_files(chunks, ptf):
-            cols = ['Xc', 'Yc', 'Zc']
+            cols = []
             for field_list in ptf.values():
                 cols.extend(field_list)
             cols = list(set(cols))
             halos = data_file.read_data(usecols=cols)
-            x = halos['Xc'].astype('float64')
-            y = halos['Yc'].astype('float64')
-            z = halos['Zc'].astype('float64')
+            pos = data_file._get_particle_positions('halos')
+            x, y, z = (pos[:, i] for i in range(3))
+            yield 'halos', (x, y, z)
             mask = selector.select_points(x, y, z, 0.0)
             del x, y, z
             if mask is None: continue
@@ -69,7 +67,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
                     yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        halos = data_file.read_data(usecols=['ID', 'Xc', 'Yc', 'Zc'])
+        halos = data_file.read_data(usecols=['ID'])
         pcount = len(halos['ID'])
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug('Initializing index % 5i (% 7i particles)',
@@ -77,19 +75,10 @@ class IOHandlerAHFHalos(BaseIOHandler):
         if pcount == 0:
             return morton
         ind = 0
-        pos = np.empty((pcount, 3), dtype='float64')
+        pos = data_file._get_particle_positions('halos')
         pos = data_file.ds.arr(pos, 'code_length')
-        dx = np.finfo(halos['Xc'].dtype).eps
-        dx = 2.0 * self.ds.quan(dx, 'code_length')
-        pos[:, 0] = halos['Xc']
-        pos[:, 1] = halos['Yc']
-        pos[:, 2] = halos['Zc']
         dle = self.ds.domain_left_edge
         dre = self.ds.domain_right_edge
-        # These are 32 bit numbers, so we give a little lee-way.
-        # Otherwise, for big sets of particles, we often will bump into the
-        # domain edges.  This helps alleviate that.
-        np.clip(pos, dle + dx, dre - dx, pos)
         if np.any(pos.min(axis=0) < dle) or np.any(pos.max(axis=0) > dre):
             raise YTDomainOverflow(pos.min(axis=0),
                                    pos.max(axis=0),
