@@ -46,7 +46,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
         for data_file in sorted(data_files):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
-                    coords = data_file._read_particle_positions(ptype, f=f)
+                    coords = data_file._get_particle_positions(ptype, f=f)
                     if coords is None:
                         continue
                     x = coords[:, 0]
@@ -84,7 +84,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0:
                         continue
-                    coords = data_file._read_particle_positions(ptype, f=f)
+                    coords = data_file._get_particle_positions(ptype, f=f)
                     x = coords[:, 0]
                     y = coords[:, 1]
                     z = coords[:, 2]
@@ -133,7 +133,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
             for ptype in ptypes:
                 if data_file.total_particles[ptype] == 0:
                     continue
-                pos = data_file._read_particle_positions(ptype, f=f)
+                pos = data_file._get_particle_positions(ptype, f=f)
                 pos = self.ds.arr(pos, "code_length")
 
                 if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
