@@ -2,7 +2,6 @@ import numpy as np
 
 from .definitions import (
     gadget_field_specs,
-    gadget_header_specs,
     gadget_ptype_specs,
 )
 from .data_structures import (

@@ -175,7 +175,6 @@ class GadgetBinaryHeader(object):
 class GadgetBinaryFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         header = ds._header
-        n_header = len(header.size)
         self.header = header.value
         self._position_offset = header.position_offset
         with header.open() as f:
