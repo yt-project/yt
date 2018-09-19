@@ -44,14 +44,47 @@ class HaloCatalogParticleIndex(ParticleIndex):
               [cls(self.dataset, self.io,
                    self.dataset.parameter_filename, 0)]
 
-class HaloCatalogHDF5File(ParticleFile):
+class HaloCatalogFile(ParticleFile):
+    def __init__(self, ds, io, filename, file_id):
+        self._coords = {}
+        super(HaloCatalogFile, self).__init__(
+            ds, io, filename, file_id)
+
+    def _read_particle_positions(self, ptype, f=None):
+        raise NotImplementedError
+
+    def _get_particle_positions(self, ptype, f=None):
+        if ptype in self._coords:
+            return self._coords[ptype]
+
+        pcount = self.total_particles[ptype]
+        cache_pos = getattr(self.ds, "cache_positions", False)
+        if pcount == 0:
+            if cache_pos:
+                self._coords[ptype] = None
+            return None
+
+        # These are 32 bit numbers, so we give a little lee-way.
+        # Otherwise, for big sets of particles, we often will bump into the
+        # domain edges.  This helps alleviate that.
+        dle = self.ds.domain_left_edge.to('code_length').v
+        dre = self.ds.domain_right_edge.to('code_length').v
+        dx = 2. * np.finfo(np.float32).eps
+        pos = self._read_particle_positions(ptype, f=f)
+        np.clip(pos, dle + dx, dre - dx, pos)
+
+        if cache_pos:
+            self._coords[ptype] = pos
+        return pos
+
+class HaloCatalogHDF5File(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
             self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
+        super(HaloCatalogHDF5File, self).__init__(
+            ds, io, filename, file_id)
 
-        super(HaloCatalogHDF5File, self).__init__(ds, io, filename, file_id)
-    
 class HaloCatalogDataset(SavedDataset):
     _index_class = ParticleIndex
     _file_class = HaloCatalogHDF5File

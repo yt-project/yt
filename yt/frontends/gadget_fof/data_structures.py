@@ -25,13 +25,14 @@ import weakref
 from yt.data_objects.data_containers import \
     YTSelectionContainer
 from yt.data_objects.static_output import \
-    Dataset, \
-    ParticleFile
+    Dataset
 from yt.frontends.gadget.data_structures import \
     _fix_unit_ordering
 from yt.frontends.gadget_fof.fields import \
     GadgetFOFFieldInfo, \
     GadgetFOFHaloFieldInfo
+from yt.frontends.halo_catalog.data_structures import \
+    HaloCatalogFile
 from yt.funcs import \
     only_on_root, \
     setdefaultattr
@@ -115,7 +116,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
 
-class GadgetFOFHDF5File(ParticleFile):
+class GadgetFOFHDF5File(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
             self.header = \
@@ -129,8 +130,7 @@ class GadgetFOFHDF5File(ParticleFile):
         self.total_particles = \
           {"Group": self.header["Ngroups_ThisFile"],
            "Subhalo": self.header["Nsubgroups_ThisFile"]}
-        self.total_offset = 0 # I think this is no longer needed
-        self._coords = {}
+        self.total_offset = 0
         super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
 
     def _read_particle_positions(self, ptype, f=None):
@@ -138,37 +138,17 @@ class GadgetFOFHDF5File(ParticleFile):
         Read all particle positions in this file.
         """
 
-        if ptype in self._coords:
-            return self._coords[ptype]
-
-        pcount = self.total_particles[ptype]
-        cache_pos = getattr(self.ds, "cache_positions", False)
-        if pcount == 0:
-            if cache_pos:
-                self._coords[ptype] = None
-            return None
-
-        dle = self.ds.domain_left_edge.to('code_length').v
-        dre = self.ds.domain_right_edge.to('code_length').v
-
         if f is None:
             close = True
             f = h5py.File(self.filename, "r")
         else:
             close = False
 
-        # These are 32 bit numbers, so we give a little lee-way.
-        # Otherwise, for big sets of particles, we often will bump into the
-        # domain edges.  This helps alleviate that.
-        dx = 2. * np.finfo(f[ptype]["%sPos" % ptype].dtype).eps
         pos = f[ptype]["%sPos" % ptype].value.astype("float64")
-        np.clip(pos, dle + dx, dre - dx, pos)
 
         if close:
             f.close()
 
-        if cache_pos:
-            self._coords[ptype] = pos
         return pos
 
 class GadgetFOFDataset(Dataset):
