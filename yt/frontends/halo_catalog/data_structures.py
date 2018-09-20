@@ -64,14 +64,13 @@ class HaloCatalogFile(ParticleFile):
                 self._coords[ptype] = None
             return None
 
-        # These are 32 bit numbers, so we give a little lee-way.
-        # Otherwise, for big sets of particles, we often will bump into the
-        # domain edges.  This helps alleviate that.
+        # Correct for periodicity.
         dle = self.ds.domain_left_edge.to('code_length').v
-        dre = self.ds.domain_right_edge.to('code_length').v
-        dx = 2. * np.finfo(np.float32).eps
+        dw = self.ds.domain_width.to('code_length').v
         pos = self._read_particle_positions(ptype, f=f)
-        np.clip(pos, dle + dx, dre - dx, pos)
+        np.subtract(pos, dle, out=pos)
+        np.mod(pos, dw, out=pos)
+        np.add(pos, dle, out=pos)
 
         if cache_pos:
             self._coords[ptype] = pos
