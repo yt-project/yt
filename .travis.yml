@@ -1,5 +1,6 @@
 language: python
 sudo: required
+dist: xenial
 cache:
   pip: true
   directories:
@@ -66,7 +67,7 @@ install:
 jobs:
   include:
     - stage: lint
-      python: 3.6
+      python: 3.7
       env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS= REQUESTS= GLUE= PYQT=
       script: flake8 yt/
 
@@ -76,7 +77,7 @@ jobs:
       script: flake8 yt/
 
     - stage: tests
-      name: "Python: 2.7 Unit Tests"
+      name: "Minimal Dependency Version Unit Tests"
       python: 2.7
       env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0 REQUESTS= GLUE= PYQT=
       script: coverage run $(which nosetests) -c nose_unit.cfg
@@ -100,6 +101,12 @@ jobs:
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
+      name: "Python: 3.7 Unit Tests"
+      python: 3.6
+      env: FLAKE8= REQUESTS=
+      script: coverage run $(which nosetests) -c nose_unit.cfg
+
+    - stage: tests
       name: "Python: 2.7 Answer Tests"
       python: 2.7
       env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0 GLUE= PYQT=
@@ -107,8 +114,8 @@ jobs:
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 
     - stage: tests
-      name: "Python: 3.6 Answer Tests"
-      python: 3.6
+      name: "Python: 3.7 Answer Tests"
+      python: 3.7
       env: FLAKE8=
       script: coverage run $(which nosetests) -c nose_answer.cfg
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
