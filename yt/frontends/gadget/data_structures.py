@@ -652,6 +652,7 @@ class GadgetHDF5Dataset(GadgetDataset):
 
         return valid
 
+
 class ArepoHDF5Dataset(GadgetHDF5Dataset):
     _field_info_class = ArepoFieldInfo
 
