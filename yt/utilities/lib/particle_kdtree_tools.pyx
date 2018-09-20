@@ -117,7 +117,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] tree_positions,
 cdef int knn_position(np.float64_t[:, ::1] tree_positions,
                       np.float64_t[::1] position,
                       BoundedPriorityQueue queue, KDTree * kdtree,
-                      np.int64_t skipaxis=-1):
+                      np.int64_t skipaxis):
 
     """This calculates the K nearest neighbors of an individual position which
        can be called from python
@@ -160,7 +160,7 @@ cdef int knn_grid(np.float64_t[:, ::1] tree_positions,
                   np.float64_t[:, :, :, ::1] dists,
                   np.int64_t[:, :, :, ::1] pids,  KDTree * kdtree,
                   np.float64_t[:] bounds, np.int64_t[:] size,
-                  np.int64_t skipaxis=-1):
+                  np.int64_t skipaxis):
 
     """This calculates the K nearest neighbors of a uniform grid with a bounds
     and size that have been input. This is useful for slice plots, arbitrary
