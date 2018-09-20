@@ -1691,11 +1691,6 @@ the same redshift, additional analysis can be performed for each halo using
 :ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
 to the other halo catalogs shown here.
 
-For all halo catalog datasets, the halo positions will be cached to speed
-up subsequent field access. For extremely large datasets, this may increase
-memory usage indesirably. If this is the case, the caching of the positions
-can be disabled by providing ``cache_positions=False`` to ``yt.load``.
-
 .. _ahf:
 
 Amiga Halo Finder

@@ -46,7 +46,6 @@ class HaloCatalogParticleIndex(ParticleIndex):
 
 class HaloCatalogFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
-        self._coords = {}
         super(HaloCatalogFile, self).__init__(
             ds, io, filename, file_id)
 
@@ -54,14 +53,8 @@ class HaloCatalogFile(ParticleFile):
         raise NotImplementedError
 
     def _get_particle_positions(self, ptype, f=None):
-        if ptype in self._coords:
-            return self._coords[ptype]
-
         pcount = self.total_particles[ptype]
-        cache_pos = getattr(self.ds, "cache_positions", False)
         if pcount == 0:
-            if cache_pos:
-                self._coords[ptype] = None
             return None
 
         # Correct for periodicity.
@@ -72,8 +65,6 @@ class HaloCatalogFile(ParticleFile):
         np.mod(pos, dw, out=pos)
         np.add(pos, dle, out=pos)
 
-        if cache_pos:
-            self._coords[ptype] = pos
         return pos
 
 class HaloCatalogHDF5File(HaloCatalogFile):
@@ -117,10 +108,9 @@ class HaloCatalogDataset(SavedDataset):
 
     def __init__(self, filename, dataset_type="halocatalog_hdf5",
                  n_ref = 16, over_refine_factor = 1, units_override=None,
-                 unit_system="cgs", cache_positions=True):
+                 unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        self.cache_positions = cache_positions
         super(HaloCatalogDataset, self).__init__(filename, dataset_type,
                                                  units_override=units_override,
                                                  unit_system=unit_system)

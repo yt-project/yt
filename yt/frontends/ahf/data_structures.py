@@ -78,14 +78,13 @@ class AHFHalosDataset(Dataset):
     def __init__(self, filename, dataset_type='ahf',
                  n_ref=16, over_refine_factor=1,
                  units_override=None, unit_system='cgs',
-                 hubble_constant=1.0, cache_positions=True):
+                 hubble_constant=1.0):
         root, _ = os.path.splitext(filename)
         self.log_filename = root + '.log'
         self.hubble_constant = hubble_constant
 
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        self.cache_positions = cache_positions
         super(AHFHalosDataset, self).__init__(
             filename, dataset_type=dataset_type,
             units_override=units_override, unit_system=unit_system
