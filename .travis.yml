@@ -102,7 +102,7 @@ jobs:
 
     - stage: tests
       name: "Python: 3.7 Unit Tests"
-      python: 3.6
+      python: 3.7
       env: FLAKE8= REQUESTS=
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
