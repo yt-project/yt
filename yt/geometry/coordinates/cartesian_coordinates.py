@@ -30,7 +30,7 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_slice, \
     pixelize_sph_kernel_projection, \
     pixelize_element_mesh_line, \
-    pixelize_sph_gather, \
+    interpolate_sph_grid_gather, \
     normalization_2d_utility
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
@@ -385,8 +385,33 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                     # then we do the interpolation
                     buff_temp = np.zeros(buff_size, dtype="float64")
-                    pixelize_sph_gather(buff_temp, buff_bounds, self.ds,
-                                        field, ptype, normalize=normalize)
+
+                    tree_positions = []
+                    hsml = []
+                    pmass = []
+                    pdens = []
+                    quantity_to_smooth = []
+                    for chunk in self.ds.chunks([field],"io"):
+                        tree_positions.append(chunk[(ptype,
+                                                     'particle_position')].in_base("code").d)
+                        hsml.append(chunk[(ptype,
+                                           'smoothing_length')].in_base("code").d)
+                        pmass.append(chunk[(ptype,
+                                           'particle_mass')].in_base("code").d)
+                        pdens.append(chunk[(ptype,
+                                           'density')].in_base("code").d)
+                        quantity_to_smooth.append(chunk[field].d)
+
+                    tree_positions = np.concatenate(tree_positions)[self.kdtree.idx, :]
+                    hsml = np.concatenate(hsml)[self.kdtree.idx]
+                    pmass = np.concatenate(pmass)[self.kdtree.idx]
+                    pdens = np.concatenate(pdens)[self.kdtree.idx]
+                    quantity_to_smooth = np.concatenate(quantity_to_smooth)[self.kdtree.idx]
+
+                    interpolate_sph_grid_gather(buff, tree_positions, bounds,
+                                                hsml, pmass, pdens,
+                                                quantity_to_smooth, self.kdtree,
+                                                use_normalization=True)
 
                     # we swap the axes back so the axis which was sliced over
                     # is the last axis, as this is the "z" axis of the plots.

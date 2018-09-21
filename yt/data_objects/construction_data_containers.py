@@ -67,8 +67,8 @@ from yt.units.yt_array import YTArray
 import yt.extern.six as six
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
-    pixelize_sph_gather, \
-    interpolate_sph_arbitrary_positions_gather, \
+    interpolate_sph_grid_gather, \
+    interpolate_sph_gather, \
     normalization_3d_utility, \
     normalization_1d_utility
 from yt.extern.tqdm import tqdm
@@ -780,10 +780,35 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         if(smoothing_style == "gather"):
             for field in fields:
-                buff = np.zeros(self.ActiveDimensions, dtype="float64")
+                buff = np.zeros(size, dtype="float64")
 
-                pixelize_sph_gather(buff, bounds, self.ds, field,
-                                    ptype, normalize=normalize)
+                tree_positions = []
+                hsml = []
+                pmass = []
+                pdens = []
+                quantity_to_smooth = []
+                for chunk in self.ds.all_data().chunks([field],"io"):
+                    tree_positions.append(chunk[(ptype,
+                                                 'particle_position')].in_base("code").d)
+                    hsml.append(chunk[(ptype,
+                                       'smoothing_length')].in_base("code").d)
+                    pmass.append(chunk[(ptype,
+                                       'particle_mass')].in_base("code").d)
+                    pdens.append(chunk[(ptype,
+                                       'density')].in_base("code").d)
+                    quantity_to_smooth.append(chunk[field].d)
+
+                kdtree = self.ds.index.kdtree
+                tree_positions = np.concatenate(tree_positions)[kdtree.idx, :]
+                hsml = np.concatenate(hsml)[kdtree.idx]
+                pmass = np.concatenate(pmass)[kdtree.idx]
+                pdens = np.concatenate(pdens)[kdtree.idx]
+                quantity_to_smooth = np.concatenate(quantity_to_smooth)[kdtree.idx]
+
+                interpolate_sph_grid_gather(buff[:, :, :], tree_positions, bounds,
+                                            hsml, pmass, pdens,
+                                            quantity_to_smooth, kdtree,
+                                            use_normalization=True)
 
                 fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(buff, fi.units)
@@ -2331,15 +2356,10 @@ class YTOctree(YTSelectionContainer3D):
         # NOTE: this can be incredibly memory heavy
         pbar = tqdm(desc="Interpolating (gather) SPH field {}".format(fields[0]),
                     total=self._octree.cell_positions.shape[0])
-        interpolate_sph_arbitrary_positions_gather(buff, pos,
-                                                   self._octree.cell_positions,
-                                                   hsml,
-                                                   mass,
-                                                   dens,
-                                                   quant_to_smooth,
-                                                   kdtree=kdtree, pbar=pbar,
-                                                   num_neigh=num_neighbors,
-                                                   use_normalization=normalize)
+        interpolate_sph_gather(buff, pos, self._octree.cell_positions,
+                               hsml, mass, dens, quant_to_smooth, kdtree,
+                               use_normalization=normalize,
+                               num_neigh=num_neighbors)
         pbar.close()
 
         self[fields] = self.ds.arr(buff, units)

@@ -1,16 +1,16 @@
 cimport numpy as np
 cimport cython
 
-from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
+from cykdtree.kdtree cimport KDTree, uint64_t
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
 
-cdef int knn_position(np.float64_t[:, ::1] tree_positions,
-                      np.float64_t[::1] position,
-                      BoundedPriorityQueue queue, KDTree * kdtree,
-                      np.int64_t skipaxis)
+cdef struct axes_range:
+    int start
+    int stop
+    int step
 
-cdef int knn_grid(np.float64_t[:, ::1] tree_positions,
-                  np.float64_t[:, :, :, ::1] dists,
-                  np.int64_t[:, :, :, ::1] pids,  KDTree * kdtree,
-                  np.float64_t[:] bounds, np.int64_t[:] size,
-                  np.int64_t skipaxis)
+cdef int set_axes_range(axes_range *axes, int skipaxis)
+
+cdef int find_neighbors(np.float64_t * pos, np.float64_t[:, ::1] tree_positions,
+                        BoundedPriorityQueue queue, KDTree * c_tree,
+                        uint64_t skipidx, axes_range * axes) nogil except -1
