@@ -20,16 +20,10 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
-import yt.utilities.fortran_utils as fpu
+from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTFileNotParseable
-from yt.extern.six import PY3
 import re
-
-if PY3:
-    from io import BytesIO as IO
-else:
-    from cStringIO import StringIO as IO
 
 def convert_ramses_ages(ds, conformal_ages):
     tf = ds.t_frw
@@ -77,7 +71,7 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
     '''
     tr = {}
     ds = subset.domain.ds
-    with open(fname, "rb") as f:
+    with FortranFile(fname) as fd:
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
         # positions into the same domain as the octs themselves.
@@ -85,9 +79,9 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
             if count == 0:
                 tr[field] = np.empty(0, dtype=data_types[field])
                 continue
-            f.seek(foffsets[field])
+            fd.seek(foffsets[field])
             dt = data_types[field]
-            tr[field] = fpu.read_vector(f, dt)
+            tr[field] = fd.read_vector(dt)
             if field[1].startswith("particle_position"):
                 np.divide(tr[field], ds["boxlen"], tr[field])
             if ds.cosmological_simulation and field[1] == "particle_birth_time":
@@ -102,51 +96,43 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"
 
-    def _generic_fluid_handler(self, chunks, selector, fields, size, ftype):
+    def _read_fluid_selection(self, chunks, selector, fields, size):
         tr = defaultdict(list)
 
+        # Set of field types
+        ftypes = set(f[0] for f in fields)
         for chunk in chunks:
-            for subset in chunk.objs:
-                fname = None
-                for fh in subset.domain.field_handlers:
-                    if fh.ftype == ftype:
-                        file_handler = fh
-                        fname = fh.fname
-                        break
+            # Gather fields by type to minimize i/o operations
+            for ft in ftypes:
+                # Get all the fields of the same type
+                field_subs = list(
+                    filter(lambda f: f[0]==ft, fields))
 
-                if fname is None:
-                    raise YTFieldTypeNotFound(ftype)
+                # Loop over subsets
+                for subset in chunk.objs:
+                    fname = None
+                    for fh in subset.domain.field_handlers:
+                        if fh.ftype == ft:
+                            file_handler = fh
+                            fname = fh.fname
+                            break
 
-                # Now we read the entire thing
-                with open(fname, "rb") as f:
-                    content = IO(f.read())
-                # This contains the boundary information, so we skim through
-                # and pick off the right vectors
-                rv = subset.fill(content, fields, selector, file_handler)
-                for ft, f in fields:
-                    d = rv.pop(f)
-                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
-                        f, d.size, d.min(), d.max(), d.size)
-                    tr[(ft, f)].append(d)
+                    if fname is None:
+                        raise YTFieldTypeNotFound(ft)
+
+                    # Now we read the entire thing
+                    with FortranFile(fname) as fd:
+                        # This contains the boundary information, so we skim through
+                        # and pick off the right vectors
+                        rv = subset.fill(fd, field_subs, selector, file_handler)
+                    for ft, f in field_subs:
+                        d = rv.pop(f)
+                        mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
+                            f, d.size, d.min(), d.max(), d.size)
+                        tr[(ft, f)].append(d)
         d = {}
         for field in fields:
             d[field] = np.concatenate(tr.pop(field))
-
-        return d
-
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        d = {}
-
-        # Group fields by field type
-        for ft in set(f[0] for f in fields):
-            # Select the fields for the current reader
-            fields_subs = list(
-                filter(lambda f: f[0]==ft,
-                       fields))
-
-            newd = self._generic_fluid_handler(chunks, selector, fields_subs, size,
-                                               ft)
-            d.update(newd)
 
         return d
 
@@ -227,7 +213,7 @@ def _read_part_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile('# version: *(\d+)')
+    VERSION_RE = re.compile(r'# version: *(\d+)')
     VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping
@@ -284,7 +270,7 @@ def _read_fluid_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile('# version: *(\d+)')
+    VERSION_RE = re.compile(r'# version: *(\d+)')
     VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping

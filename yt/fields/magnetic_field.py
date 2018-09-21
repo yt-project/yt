@@ -178,10 +178,12 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
 def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     r"""
-    This routine sets up special aliases between dataset-specific magnetic fields
-    and the default magnetic fields in yt so that unit conversions between different
-    unit systems can be handled properly. This is only called from the `setup_fluid_fields`
-    method of a frontend's :class:`FieldInfoContainer` instance.
+    This routine sets up special aliases between dataset-specific magnetic
+    fields and the default magnetic fields in yt so that unit conversions
+    between different unit systems can be handled properly. This is only called
+    from the `setup_fluid_fields` method (for grid dataset) or the
+    `setup_gas_particle_fields` method (for particle dataset) of a frontend's
+    :class:`FieldInfoContainer` instance.
 
     Parameters
     ----------
@@ -203,8 +205,16 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     ...         setup_magnetic_field_aliases(self, "chombo", ["bx%s" % ax for ax in [1,2,3]])
     """
     unit_system = registry.ds.unit_system
-    ds_fields = [(ds_ftype, fd) for fd in ds_fields]
-    if ds_fields[0] not in registry:
+    if isinstance(ds_fields, list):
+        # If ds_fields is a list, we assume a grid dataset
+        sampling_type = "local"
+        ds_fields = [(ds_ftype, fd) for fd in ds_fields]
+        ds_field = ds_fields[0]
+    else:
+        # Otherwise, we assume a particle dataset
+        sampling_type = "particle"
+        ds_field = (ds_ftype, ds_fields)
+    if ds_field not in registry:
         return
     from_units = Unit(registry[ds_fields[0]].units,
                       registry=registry.ds.unit_registry)
@@ -218,12 +228,28 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         convert = lambda x: x.in_units(to_units)
     else:
         convert = lambda x: x.to_equivalent(to_units, equiv)
-    def mag_field(fd):
-        def _mag_field(field, data):
-            return convert(data[fd])
-        return _mag_field
-    for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields):
-        registry.add_field((ftype,"magnetic_field_%s" % ax),
-                           sampling_type="local",
-                           function=mag_field(fd),
-                           units=unit_system[to_units.dimensions])
+    units = unit_system[to_units.dimensions]
+
+    # Add fields
+    if sampling_type in ["cell", "local"]:
+        # Grid dataset case
+        def mag_field(fd):
+            def _mag_field(field, data):
+                return convert(data[fd])
+            return _mag_field
+        for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields):
+            registry.add_field((ftype,"magnetic_field_%s" % ax),
+                               sampling_type=sampling_type,
+                               function=mag_field(fd),
+                               units=units)
+    else:
+        # Particle dataset case
+        def mag_field(ax):
+            def _mag_field(field, data):
+                return convert(data[ds_field][:, 'xyz'.index(ax)])
+            return _mag_field
+        for ax in registry.ds.coordinates.axis_order:
+            registry.add_field((ftype, "particle_magnetic_field_%s" % ax),
+                               sampling_type=sampling_type,
+                               function=mag_field(ax),
+                               units=units)

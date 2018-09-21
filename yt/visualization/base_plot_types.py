@@ -210,9 +210,10 @@ class ImagePlotMPL(PlotMPL):
             norm = matplotlib.colors.Normalize()
         elif (cbnorm == 'symlog'):
             if cblinthresh is None:
-                cblinthresh = (data.max()-data.min())/10.
+                cblinthresh = float((np.nanmax(data)-np.nanmin(data))/10.)
             norm = matplotlib.colors.SymLogNorm(
-                cblinthresh, vmin=float(data.min()), vmax=float(data.max()))
+                cblinthresh, vmin=float(np.nanmin(data)),
+                vmax=float(np.nanmax(data)))
         extent = [float(e) for e in extent]
         # tuple colormaps are from palettable (or brewer2mpl)
         if isinstance(cmap, tuple):
@@ -232,23 +233,23 @@ class ImagePlotMPL(PlotMPL):
                 **formatter_kwargs)
             self.cb = self.figure.colorbar(
                 self.image, self.cax, format=formatter)
-            if data.min() >= 0.0:
-                yticks = [data.min().v] + list(
+            if np.nanmin(data) >= 0.0:
+                yticks = [np.nanmin(data).v] + list(
                     10**np.arange(np.rint(np.log10(cblinthresh)),
-                                  np.ceil(np.log10(data.max())) + 1))
-            elif data.max() <= 0.0:
+                                  np.ceil(np.log10(np.nanmax(data))) + 1))
+            elif np.nanmax(data) <= 0.0:
                 yticks = list(
                     -10**np.arange(
-                        np.floor(np.log10(-data.min())),
+                        np.floor(np.log10(-np.nanmin(data))),
                         np.rint(np.log10(cblinthresh)) - 1, -1)) + \
-                    [data.max().v]
+                    [np.nanmax(data).v]
             else:
                 yticks = list(
-                    -10**np.arange(np.floor(np.log10(-data.min())),
+                    -10**np.arange(np.floor(np.log10(-np.nanmin(data))),
                                    np.rint(np.log10(cblinthresh))-1, -1)) + \
                     [0] + \
                     list(10**np.arange(np.rint(np.log10(cblinthresh)),
-                                       np.ceil(np.log10(data.max()))+1))
+                                       np.ceil(np.log10(np.nanmax(data)))+1))
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)

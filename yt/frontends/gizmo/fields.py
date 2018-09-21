@@ -141,3 +141,9 @@ class GizmoFieldInfo(GadgetFieldInfo):
                        function=_metal_density_field,
                        units=self.ds.unit_system["density"])
         self.alias(("gas", "metal_density"), (ptype, "metal_density"))
+
+        magnetic_field = "MagneticField"
+        if (ptype, magnetic_field) in self.field_list:
+            setup_magnetic_field_aliases(
+                self, ptype, magnetic_field, ftype=ptype
+            )

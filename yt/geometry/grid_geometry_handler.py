@@ -131,7 +131,7 @@ class GridIndex(Index):
         #   1 = number of cells
         #   2 = blank
         desc = {'names': ['numgrids','numcells','level'],
-                'formats':['Int64']*3}
+                'formats':['int64']*3}
         self.level_stats = blankRecordArray(desc, MAXLEVEL)
         self.level_stats['level'] = [i for i in range(MAXLEVEL)]
         self.level_stats['numgrids'] = [0 for i in range(MAXLEVEL)]

@@ -600,6 +600,7 @@ two element tuples.
 
 Flipping the plot view axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 By default, all :class:`~yt.visualization.plot_window.PlotWindow` objects plot
 with the assumption that the eastern direction on the plot forms a right handed
 coordinate system with the ``normal`` and ``north_vector`` for the system, whether
@@ -1096,7 +1097,7 @@ function of radius. The xlabel is set to "Radius", for all plots, and the ylabel
    plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
                     weight_field=None)
    plot.set_xlabel("Radius")
-   plot.set_ylabel("x-velocity", "velocity in x direction")
+   plot.set_ylabel("velocity_x", "velocity in x direction")
    plot.save()
 
 Adding plot title

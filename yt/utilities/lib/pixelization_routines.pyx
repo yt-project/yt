@@ -16,6 +16,7 @@ Pixelization routines
 import numpy as np
 cimport numpy as np
 cimport cython
+
 from cython.view cimport array as cvarray
 cimport libc.math as math
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, \
@@ -41,6 +42,11 @@ from yt.geometry.particle_deposit cimport \
     kernel_func, get_kernel_func
 from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
+from yt.funcs import get_pbar
+from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
+from yt.utilities.lib.particle_kdtree_tools import knn_list_grid, knn_position
+from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
+from yt.extern.tqdm import tqdm
 
 cdef int TABLE_NVALS=512
 
@@ -566,11 +572,12 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
                 r_i += 0.5*dx
             theta_i += dthetamin
 
-cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
-                                np.float64_t *x, np.float64_t *y):
+cdef int aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
+                               np.float64_t *x, np.float64_t *y) except -1:
     cdef np.float64_t z = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2.0))
     x[0] = math.cos(phi) * math.sin(theta / 2.0) / z
     y[0] = math.sin(phi) / z
+    return 0
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -585,8 +592,8 @@ def pixelize_aitoff(np.float64_t[:] theta,
                     np.float64_t theta_offset = 0.0,
                     np.float64_t phi_offset = 0.0):
     # http://paulbourke.net/geometry/transformationprojection/
-    # longitude is -pi to pi
-    # latitude is -pi/2 to pi/2
+    # (theta) longitude is -pi to pi
+    # (phi) latitude is -pi/2 to pi/2
     # z^2 = 1 + cos(latitude) cos(longitude/2)
     # x = cos(latitude) sin(longitude/2) / z
     # y = sin(latitude) / z
@@ -879,8 +886,8 @@ cdef class SPHKernelInterpolationTable:
     cdef public object kernel_name
     cdef kernel_func kernel
     cdef np.float64_t[::1] table
-    cdef np.float64_t[::1] qxy2_vals
-    cdef np.float64_t qxy2_range, iqxy2_range
+    cdef np.float64_t[::1] q2_vals
+    cdef np.float64_t q2_range, iq2_range
 
     def __init__(self, kernel_name):
         self.kernel_name = kernel_name
@@ -891,63 +898,63 @@ cdef class SPHKernelInterpolationTable:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef np.float64_t integrate_qxy2(self, np.float64_t qxy2) nogil:
+    cdef np.float64_t integrate_q2(self, np.float64_t q2) nogil:
         # See equation 30 of the SPLASH paper
         cdef int i
-        # Our bounds are -sqrt(R*R - qxy2) and sqrt(R*R-qxy2)
+        # Our bounds are -sqrt(R*R - q2) and sqrt(R*R-q2)
         # And our R is always 1; note that our smoothing kernel functions
         # expect it to run from 0 .. 1, so we multiply the integrand by 2
         cdef int N = 200
         cdef np.float64_t qz
         cdef np.float64_t R = 1
-        cdef np.float64_t R0 = -math.sqrt(R*R-qxy2)
-        cdef np.float64_t R1 = math.sqrt(R*R-qxy2)
+        cdef np.float64_t R0 = -math.sqrt(R*R-q2)
+        cdef np.float64_t R1 = math.sqrt(R*R-q2)
         cdef np.float64_t dR = (R1-R0)/N
         # Set to our bounds
         cdef np.float64_t integral = 0.0
-        integral += self.kernel(math.sqrt(R0*R0 + qxy2))
-        integral += self.kernel(math.sqrt(R1*R1 + qxy2))
+        integral += self.kernel(math.sqrt(R0*R0 + q2))
+        integral += self.kernel(math.sqrt(R1*R1 + q2))
         # We're going to manually conduct a trapezoidal integration
         for i in range(1, N):
             qz = R0 + i * dR
-            integral += 2.0*self.kernel(math.sqrt(qz*qz + qxy2))
+            integral += 2.0*self.kernel(math.sqrt(qz*qz + q2))
         integral *= (R1-R0)/(2*N)
         return integral
-        
+
     def populate_table(self):
         cdef int i
         self.table = cvarray(format="d", shape=(TABLE_NVALS,),
                              itemsize=sizeof(np.float64_t))
-        self.qxy2_vals = cvarray(format="d", shape=(TABLE_NVALS,),
+        self.q2_vals = cvarray(format="d", shape=(TABLE_NVALS,),
                              itemsize=sizeof(np.float64_t))
         # We run from 0 to 1 here over R
         for i in range(TABLE_NVALS):
-            self.qxy2_vals[i] = i * 1.0/(TABLE_NVALS-1)
-            self.table[i] = self.integrate_qxy2(self.qxy2_vals[i])
+            self.q2_vals[i] = i * 1.0/(TABLE_NVALS-1)
+            self.table[i] = self.integrate_q2(self.q2_vals[i])
 
-        self.qxy2_range = self.qxy2_vals[TABLE_NVALS-1] - self.qxy2_vals[0]
-        self.iqxy2_range = (TABLE_NVALS-1)/self.qxy2_range
+        self.q2_range = self.q2_vals[TABLE_NVALS-1] - self.q2_vals[0]
+        self.iq2_range = (TABLE_NVALS-1)/self.q2_range
 
     @cython.initializedcheck(False)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef inline np.float64_t interpolate(self, np.float64_t qxy2) nogil:
+    cdef inline np.float64_t interpolate(self, np.float64_t q2) nogil:
         cdef int index
         cdef np.float64_t F_interpolate
-        index = <int>((qxy2 - self.qxy2_vals[0])*(self.iqxy2_range))
+        index = <int>((q2 - self.q2_vals[0])*(self.iq2_range))
         if index >= TABLE_NVALS:
             return 0.0
         F_interpolate = self.table[index] + (
                 (self.table[index+1] - self.table[index])
-               *(qxy2 - self.qxy2_vals[index])*self.iqxy2_range)
+               *(q2 - self.q2_vals[index])*self.iq2_range)
         return F_interpolate
 
-    def interpolate_array(self, np.float64_t[:] qxy2_vals):
-        cdef np.float64_t[:] ret = np.empty(qxy2_vals.shape[0])
+    def interpolate_array(self, np.float64_t[:] q2_vals):
+        cdef np.float64_t[:] ret = np.empty(q2_vals.shape[0])
         cdef int i
-        for i in range(qxy2_vals.shape[0]):
-            ret[i] = self.interpolate(qxy2_vals[i])
+        for i in range(q2_vals.shape[0]):
+            ret[i] = self.interpolate(q2_vals[i])
         return np.array(ret)
 
 @cython.initializedcheck(False)
@@ -967,9 +974,9 @@ def pixelize_sph_kernel_projection(
         weight_field=None):
 
     cdef np.intp_t xsize, ysize
-    cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
+    cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t qxy2, posx_diff, posy_diff, ih_j2
+    cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
     cdef int index, i, j
     cdef np.float64_t[:] _weight_field
@@ -997,8 +1004,8 @@ def pixelize_sph_kernel_projection(
 
     with nogil:
         # loop through every particle
-        for j in prange(0, posx.shape[0]):
-            if j % 1000 == 0:
+        for j in range(0, posx.shape[0]):
+            if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
 
@@ -1017,11 +1024,11 @@ def pixelize_sph_kernel_projection(
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             ih_j2 = 1.0/h_j2
 
-            w_j = pmass[j] / pdens[j] / hsml[j]**3
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**2
             if weight_field is None:
-                coeff = w_j * hsml[j] * quantity_to_smooth[j]
+                prefactor_j *= quantity_to_smooth[j]
             else:
-                coeff = w_j * hsml[j] * quantity_to_smooth[j] * _weight_field[j]
+                prefactor_j *= quantity_to_smooth[j] * _weight_field[j]
 
             # found pixels we deposit on, loop through those pixels
             for xi in range(x0, x1):
@@ -1040,13 +1047,74 @@ def pixelize_sph_kernel_projection(
                     posy_diff = posy_diff * posy_diff
                     if posy_diff > h_j2: continue
 
-                    qxy2 = (posx_diff + posy_diff) * ih_j2
-                    if qxy2 >= 1:
+                    q_ij2 = (posx_diff + posy_diff) * ih_j2
+                    if q_ij2 >= 1:
                         continue
 
                     # see equation 32 of the SPLASH paper
                     # now we just use the kernel projection
-                    buff[xi, yi] +=  coeff * itab.interpolate(qxy2)
+                    buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
+
+@cython.initializedcheck(True)
+@cython.boundscheck(True)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def interpolate_sph_arbitrary_positions_gather(
+        np.float64_t[:] buff,
+        np.float64_t[:, :] particle_positions,
+        np.float64_t[:, :] interpolation_positions,
+        np.float64_t[:] hsml, np.float64_t[:] pmass,
+        np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth,
+        PyKDTree kdtree=None, int use_normalization=1,
+        kernel_name="cubic", pbar=None, int num_neigh=32):
+
+    cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
+    cdef int index, i, j, particle
+    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
+    cdef np.float64_t[:] buff_den
+
+    # only allocate memory if we are doing the normalization
+    if use_normalization:
+        buff_den = np.zeros((buff.shape[0]), dtype=float)
+
+    kernel_func = get_kernel_func(kernel_name)
+
+    # loop through all the positions we want to interpolate the sph field onto
+    for j in range(0, interpolation_positions.shape[0]):
+        if j % 100000 == 0:
+            if pbar is not None:
+                pbar.update(100000)
+
+        # use the kdtree to find the nearest neighbors
+        knn_position(interpolation_positions[j, :], particle_positions,
+                     queue, kdtree)
+
+        # set the smoothing length squared to the square of the distance to the
+        # nearest neighbor
+        h_j2 = queue.heap[0]
+        ih_j2 = 1.0/h_j2
+
+        #  Now we know which pixels to deposit onto for this particle
+        for i in range(queue.max_elements):
+            particle = kdtree.idx[queue.pids[i]]
+
+            # do the interpolation here
+            prefactor_j = (pmass[particle] / pdens[particle] /
+                           hsml[particle]**3)
+            q_ij = math.sqrt(queue.heap[i]*ih_j2)
+            smoothed_quantity_j = (prefactor_j *
+                                   quantity_to_smooth[particle] *
+                                   kernel_func(q_ij))
+
+            # see equations 6, 9, and 11 of the SPLASH paper
+            buff[j] += smoothed_quantity_j
+
+            if use_normalization:
+                buff_den[j] += prefactor_j * kernel_func(q_ij)
+
+    if use_normalization:
+        normalization_1d_utility(buff, buff_den)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1058,22 +1126,17 @@ def pixelize_sph_kernel_slice(
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        bounds, kernel_name="cubic",
-        use_normalization=True):
+        bounds, kernel_name="cubic"):
 
     # similar method to pixelize_sph_kernel_projection
     cdef np.intp_t xsize, ysize
-    cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
+    cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t qxy, posx_diff, posy_diff, ih_j
+    cdef np.float64_t q_ij, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j
     cdef int index, i, j
-    cdef np.float64_t[:, :] buff_num
-    cdef np.float64_t[:, :] buff_denom
 
     xsize, ysize = buff.shape[0], buff.shape[1]
-    buff_num = np.zeros((xsize, ysize), dtype='f8')
-    buff_denom = np.zeros((xsize, ysize), dtype='f8')
 
     x_min = bounds[0]
     x_max = bounds[1]
@@ -1087,15 +1150,12 @@ def pixelize_sph_kernel_slice(
 
     kernel_func = get_kernel_func(kernel_name)
 
-    # define this to avoid using the use_normalization python object
-    # in the tight loop
-    cdef np.intp_t use_norm = int(use_normalization)
-
     with nogil:
-        for j in prange(0, posx.shape[0]):
-            if j % 1000 == 0:
+        for j in range(0, posx.shape[0]):
+            if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
+
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
             x0 = iclip(x0-1, 0, xsize)
@@ -1110,18 +1170,17 @@ def pixelize_sph_kernel_slice(
             h_j = math.sqrt(h_j2)
             ih_j = 1.0/h_j
 
-            w_j = pmass[j] / pdens[j] / hsml[j]**3
-            coeff = w_j * quantity_to_smooth[j]
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
+            prefactor_j *= quantity_to_smooth[j]
 
             # Now we know which pixels to deposit onto for this particle,
             # so loop over them and add this particle's contribution
-
             for xi in range(x0, x1):
                 x = (xi + 0.5) * dx + x_min
 
                 posx_diff = posx[j] - x
                 posx_diff = posx_diff * posx_diff
-                if posx_diff > 2 * h_j2:
+                if posx_diff > h_j2:
                     continue
 
                 for yi in range(y0, y1):
@@ -1129,30 +1188,226 @@ def pixelize_sph_kernel_slice(
 
                     posy_diff = posy[j] - y
                     posy_diff = posy_diff * posy_diff
-                    if posy_diff > 2 * h_j2:
+                    if posy_diff > h_j2:
                         continue
 
-                    # note that yt's kernel functions use a different convention
-                    # than the SPLASH paper (following Gadget-2), and qxy is
-                    # twice the value of q used in the SPLASH paper
-                    qxy = 2.0 * math.sqrt(posx_diff + posy_diff) * ih_j
-                    if qxy >= 1:
+                    # see equation 4 of the SPLASH paper
+                    q_ij = math.sqrt(posx_diff + posy_diff) * ih_j
+                    if q_ij >= 1:
                         continue
 
                     # see equations 6, 9, and 11 of the SPLASH paper
-                    if use_norm:
-                        buff_num[xi, yi] += coeff * kernel_func(qxy)
-                        buff_denom[xi, yi] += w_j * kernel_func(qxy)
-                    else:
-                        buff[xi, yi] += coeff * kernel_func(qxy)
-    if use_norm:
-        # now we can calculate the normalized image buffer we want to 
-        # return, being careful to avoid producing NaNs in the result
+                    buff[xi, yi] += prefactor_j * kernel_func(q_ij)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def pixelize_sph_gather(np.float64_t[:, :, :] buff, np.float64_t[:] bounds,
+                        data_source, field, ptype, np.int64_t skipaxis=-1,
+                        normalize=True):
+        cdef int i, j, k
+        cdef np.float64_t[:, :, :] buff_den
+
+        tree = data_source.index.kdtree
+
+        if normalize:
+            buff_den = np.zeros((buff.shape[0], buff.shape[1], buff.shape[2]),
+                                dtype="float64")
+
+        size = np.array([buff.shape[0], buff.shape[1], buff.shape[2]],
+                        dtype="int64")
+        pids = np.zeros((size[0], size[1], size[2], data_source.num_neighbors),
+                        dtype="int64") - 1
+        dists = np.zeros((size[0], size[1], size[2], data_source.num_neighbors),
+                         dtype="float64") - 1
+
+        pos = []
+        for chunk in data_source.all_data().chunks([field], 'io'):
+                    pos.append(chunk[(ptype,'particle_position')].in_base("code").d)
+        pos = np.concatenate(pos)
+        pos = pos[tree.idx, :]
+
+        knn_list_grid(pos, dists, pids, tree, bounds, size, data_source.num_neighbors,
+                 skipaxis=skipaxis)
+        del pos
+
+        # perform the deposition onto the pixels -> do it twice to
+        # allow normalization
+        pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+        ounits = data_source.field_info[field].output_units
+        offset = 0
+        for i, chunk in enumerate(
+                 data_source.all_data().chunks([field], 'io')):
+            pixelize_sph_kernel_gather_arbitrary_grid(buff, pids, dists,
+                chunk[(ptype,'smoothing_length')].in_base("code").d,
+                chunk[(ptype,'particle_mass')].in_base("code").d,
+                chunk[(ptype,'density')].in_base("code").d,
+                chunk[field].in_units(ounits).d, tree=tree, offset=offset)
+            if normalize:
+                pixelize_sph_kernel_gather_arbitrary_grid(buff_den, pids, dists,
+                    chunk[(ptype,'smoothing_length')].in_base("code").d,
+                    chunk[(ptype,'particle_mass')].in_base("code").d,
+                    chunk[(ptype,'density')].in_base("code").d,
+                    np.ones(chunk[(ptype,'density')].shape[0]),
+                    tree=tree, offset=offset)
+
+            offset += chunk[(ptype,'density')].shape[0]
+            pbar.update(1)
+        pbar.close()
+
+        if normalize:
+            normalization_3d_utility(buff, buff_den)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
+        np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
+        np.float64_t[:] hsml, np.float64_t[:] pmass,
+        np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth,
+        bounds, pbar=None, kernel_name="cubic"):
+
+    cdef np.intp_t xsize, ysize, zsize
+    cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, prefactor_j
+    cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
+    cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff
+    cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
+    cdef int index, i, j, k
+
+    xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
+
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+    z_min = bounds[4]
+    z_max = bounds[5]
+
+    dx = (x_max - x_min) / xsize
+    dy = (y_max - y_min) / ysize
+    dz = (z_max - z_min) / zsize
+    idx = 1.0/dx
+    idy = 1.0/dy
+    idz = 1.0/dz
+
+    kernel_func = get_kernel_func(kernel_name)
+
+    with nogil:
+        for j in range(0, posx.shape[0]):
+            if j % 50000 == 0:
+                with gil:
+                    if(pbar is not None):
+                        pbar.update(50000)
+                    PyErr_CheckSignals()
+
+            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
+            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
+            x0 = iclip(x0-1, 0, xsize)
+            x1 = iclip(x1+1, 0, xsize)
+
+            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
+            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
+            y0 = iclip(y0-1, 0, ysize)
+            y1 = iclip(y1+1, 0, ysize)
+
+            z0 = <np.int64_t> ( (posz[j] - hsml[j] - z_min) * idz)
+            z1 = <np.int64_t> ( (posz[j] + hsml[j] - z_min) * idz)
+            z0 = iclip(z0-1, 0, zsize)
+            z1 = iclip(z1+1, 0, zsize)
+
+            h_j3 = fmax(hsml[j]*hsml[j]*hsml[j], dx*dy*dz)
+            h_j = math.cbrt(h_j3)
+            h_j2 = h_j*h_j
+            ih_j = 1/h_j
+
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
+            prefactor_j *= quantity_to_smooth[j]
+
+            # Now we know which voxels to deposit onto for this particle,
+            # so loop over them and add this particle's contribution
+            for xi in range(x0, x1):
+                x = (xi + 0.5) * dx + x_min
+
+                posx_diff = posx[j] - x
+                posx_diff = posx_diff * posx_diff
+                if posx_diff > h_j2:
+                    continue
+
+                for yi in range(y0, y1):
+                    y = (yi + 0.5) * dy + y_min
+
+                    posy_diff = posy[j] - y
+                    posy_diff = posy_diff * posy_diff
+                    if posy_diff > h_j2:
+                        continue
+
+                    for zi in range(z0, z1):
+                        z = (zi + 0.5) * dz + z_min
+
+                        posz_diff = posz[j] - z
+                        posz_diff = posz_diff * posz_diff
+                        if posz_diff > h_j2:
+                            continue
+
+                        # see equation 4 of the SPLASH paper
+                        q_ij = math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
+                        if q_ij >= 1:
+                            continue
+
+                        buff[xi, yi, zi] += prefactor_j * kernel_func(q_ij)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
+        np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists,
+        np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth, PyKDTree tree=None, np.int64_t
+        offset=0, kernel_name="cubic"):
+
+    cdef np.intp_t xsize, ysize, zsize
+    cdef np.float64_t prefactor_ij, smoothed_quantity_j
+    cdef np.int64_t xi, yi, zi, pi
+    cdef np.float64_t q_ij, h_j2, ih_j2
+    cdef int count, i, j, k, particle
+    cdef np.int64_t[:] tree_id
+
+    if tree is not None:
+        tree_id = tree.idx.astype("int64")
+
+    xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
+
+    kernel_func = get_kernel_func(kernel_name)
+
+    with nogil:
         for xi in range(xsize):
             for yi in range(ysize):
-                if buff_denom[xi, yi] == 0:
-                    continue
-                buff[xi, yi] += buff_num[xi, yi] / buff_denom[xi, yi]
+                for zi in range(zsize):
+                    # we set the smoothing length squared of the voxel to the
+                    # distance to its furthest nearest neighbor squared.
+                    h_j2 = dists[xi, yi, zi, 0]
+                    ih_j2 = 1/h_j2
+
+                    for pi in range(pids.shape[3]):
+                        if tree is not None:
+                            particle = tree_id[pids[xi, yi, zi, pi]] - offset
+                            if(particle < 0 or particle > pmass.shape[0]):
+                                continue
+                        else:
+                            particle = pids[xi, yi, zi, pi]
+
+                        prefactor_ij = (pmass[particle] / pdens[particle] /
+                                        hsml[particle]**3)
+                        q_ij = math.sqrt(dists[xi, yi, zi, pi]*ih_j2)
+                        smoothed_quantity_j = (prefactor_ij *
+                                               quantity_to_smooth[particle] *
+                                               kernel_func(q_ij))
+
+                        buff[xi, yi, zi] += smoothed_quantity_j
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,
@@ -1257,3 +1512,154 @@ def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
     free(vertices)
     free(field_vals)
     return arc_length, plot_values
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def off_axis_projection_SPH(np.float64_t[:] px,
+                            np.float64_t[:] py,
+                            np.float64_t[:] pz,
+                            np.float64_t[:] particle_masses,
+                            np.float64_t[:] particle_densities,
+                            np.float64_t[:] smoothing_lengths,
+                            bounds,
+                            center,
+                            width,
+                            np.float64_t[:] quantity_to_smooth,
+                            np.float64_t[:, :] projection_array,
+                            normal_vector,
+                            north_vector,
+                            weight_field=None):
+    # Do nothing in event of a 0 normal vector
+    if np.allclose(normal_vector, np.array([0., 0., 0.]), rtol=1e-09):
+        return
+
+    # We want to do two rotations, one to first rotate our coordinates to have
+    # the normal vector be the z-axis (i.e., the viewer's perspective), and then
+    # another rotation to make the north-vector be the y-axis (i.e., north).
+    # Fortunately, total_rotation_matrix = rotation_matrix_1 x rotation_matrix_2
+    cdef int num_particles = np.size(px)
+    cdef np.float64_t[:] z_axis = np.array([0., 0., 1.], dtype='float_')
+    cdef np.float64_t[:] y_axis = np.array([0., 1., 0.], dtype='float_')
+    cdef np.float64_t[:, :] normal_rotation_matrix
+    cdef np.float64_t[:] transformed_north_vector
+    cdef np.float64_t[:, :] north_rotation_matrix
+    cdef np.float64_t[:, :] rotation_matrix
+
+    normal_rotation_matrix = get_rotation_matrix(normal_vector, z_axis)
+    transformed_north_vector = np.matmul(normal_rotation_matrix, north_vector)
+    north_rotation_matrix = get_rotation_matrix(transformed_north_vector, y_axis)
+    rotation_matrix = np.matmul(north_rotation_matrix, normal_rotation_matrix)
+
+    cdef np.float64_t[:] px_rotated = np.empty(num_particles, dtype='float_')
+    cdef np.float64_t[:] py_rotated = np.empty(num_particles, dtype='float_')
+    cdef np.float64_t[:] coordinate_matrix = np.empty(3, dtype='float_')
+    cdef np.float64_t[:] rotated_coordinates
+    cdef np.float64_t[:] rotated_center
+    rotated_center = rotation_matmul(
+        rotation_matrix, np.array([center[0], center[1], center[2]]))
+
+    # set up the rotated bounds
+    cdef np.float64_t rot_bounds_x0 = rotated_center[0] - width[0] / 2
+    cdef np.float64_t rot_bounds_x1 = rotated_center[0] + width[0] / 2
+    cdef np.float64_t rot_bounds_y0 = rotated_center[1] - width[1] / 2
+    cdef np.float64_t rot_bounds_y1 = rotated_center[1] + width[1] / 2
+
+    for i in range(num_particles):
+        coordinate_matrix[0] = px[i]
+        coordinate_matrix[1] = py[i]
+        coordinate_matrix[2] = pz[i]
+        rotated_coordinates = rotation_matmul(
+            rotation_matrix, coordinate_matrix)
+        px_rotated[i] = rotated_coordinates[0]
+        py_rotated[i] = rotated_coordinates[1]
+
+    pixelize_sph_kernel_projection(projection_array,
+                                   px_rotated,
+                                   py_rotated,
+                                   smoothing_lengths,
+                                   particle_masses,
+                                   particle_densities,
+                                   quantity_to_smooth,
+                                   [rot_bounds_x0, rot_bounds_x1,
+                                    rot_bounds_y0, rot_bounds_y1],
+                                    weight_field=weight_field)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.float64_t[:] rotation_matmul(np.float64_t[:, :] rotation_matrix, 
+                                     np.float64_t[:] coordinate_matrix):
+    cdef np.float64_t[:] out = np.zeros(3)
+    for i in range(3):
+        for j in range(3):
+            out[i] += rotation_matrix[i, j] * coordinate_matrix[j]
+    return out
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef np.float64_t[:, :] get_rotation_matrix(np.float64_t[:] normal_vector,
+                                             np.float64_t[:] final_vector):
+    """ Returns a numpy rotation matrix corresponding to the
+    rotation of the given normal vector to the specified final_vector.
+    See https://math.stackexchange.com/a/476311 although note we return the
+    inverse of what's specified there.
+    """
+    cdef np.float64_t[:] normal_unit_vector = normal_vector / np.linalg.norm(normal_vector)
+    cdef np.float64_t[:] final_unit_vector = final_vector / np.linalg.norm(final_vector)
+    cdef np.float64_t[:] v = np.cross(final_unit_vector, normal_unit_vector)
+    cdef np.float64_t s = np.linalg.norm(v)
+    cdef np.float64_t c = np.dot(final_unit_vector, normal_unit_vector)
+    # if the normal vector is identical to the final vector, just return the
+    # identity matrix
+    if np.isclose(c, 1, rtol=1e-09):
+        return np.identity(3, dtype='float_')
+    # if the normal vector is the negative final vector, return the appropriate
+    # rotation matrix for flipping your coordinate system.  
+    if np.isclose(s, 0, rtol=1e-09):
+        return np.array([[0, -1, 0],[-1, 0, 0],[0, 0, -1]], dtype='float_')
+
+    cdef np.float64_t[:, :] cross_product_matrix = np.array([[0, -1 * v[2], v[1]],
+                                                      [v[2], 0, -1 * v[0]],
+                                                      [-1 * v[1], v[0], 0]], 
+                                                      dtype='float_')
+    return np.linalg.inv(np.identity(3, dtype='float_') + cross_product_matrix 
+                         + np.matmul(cross_product_matrix, cross_product_matrix)
+                         * 1/(1+c))
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def normalization_1d_utility(np.float64_t[:] num,
+                             np.float64_t[:] den):
+    cdef int i
+    for i in range(num.shape[0]):
+            if den[i] != 0.0:
+                num[i] = num[i] / den[i]
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def normalization_2d_utility(np.float64_t[:, :] num,
+                             np.float64_t[:, :] den):
+    cdef int i, j
+    for i in range(num.shape[0]):
+        for j in range(num.shape[1]):
+            if den[i, j] != 0.0:
+                num[i, j] = num[i, j] / den[i, j]
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def normalization_3d_utility(np.float64_t[:, :, :] num,
+                             np.float64_t[:, :, :] den):
+    cdef int i, j, k
+    for i in range(num.shape[0]):
+        for j in range(num.shape[1]):
+            for k in range(num.shape[2]):
+                if den[i, j, k] != 0.0:
+                    num[i, j, k] = num[i, j, k] / den[i, j, k]
+

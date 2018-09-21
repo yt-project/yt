@@ -38,4 +38,4 @@ def get_nodal_slices(shape, nodal_flag):
             for k, sl_k in enumerate(dir_slices[2]):
                 slices.append([sl_i, sl_j, sl_k])
                 
-    return slices
+    return tuple(slices)

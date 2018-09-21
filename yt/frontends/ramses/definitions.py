@@ -27,7 +27,7 @@ def ramses_header(hvals):
                ('nboundary', 1, 'i'),
                ('ngrid_current', 1, 'i'),
                ('boxlen', 1, 'd'),
-               ('nout', 3, 'I')
+               ('nout', 3, 'i')
               )
     yield header
     # TODO: REMOVE

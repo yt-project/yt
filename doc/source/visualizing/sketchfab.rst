@@ -209,7 +209,7 @@ the usual way.  For example, the above script produces:
 
    <iframe frameborder="0" height="480" width="854" allowFullScreen
    webkitallowfullscreen="true" mozallowfullscreen="true"
-   src="http://skfb.ly/5k4j2fdcb?autostart=0&transparent=0&autospin=0&controls=1&watermark=1">
+   src="https://skfb.ly/5k4j2fdcb?autostart=0&transparent=0&autospin=0&controls=1&watermark=1">
    </iframe>
 
 Importing to MeshLab and Blender

@@ -1754,6 +1754,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
 
     Parameters
     ----------
+
     connectivity : list of array_like or array_like
         This should either be a single 2D array or list of 2D arrays.  If this
         is a list, each element in the list corresponds to the connectivity
@@ -1769,7 +1770,11 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     node_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 2D numpy arrays,
         representing data defined at element vertices. For multiple meshes,
-        this must be a list of dicts.
+        this must be a list of dicts.  Note that these are not the values as a
+        function of the coordinates, but of the connectivity.  Their shape
+        should be the same as the connectivity.  This means that if the data is
+        in the shape of the coordinates, you may need to reshape them using the
+        `connectivity` array as an index.
     elem_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 1D numpy arrays, where
         each array has a length equal to the number of elements. The data
@@ -1799,29 +1804,33 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
         can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
 
-    >>> # Coordinates for vertices of two tetrahedra
-    >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5], [0.5, 1, 0.5],
-                                [0.5, 0.5, 0.0], [0.5, 0.5, 1.0]])
+    Examples
+    --------
 
-    >>> # The indices in the coordinates array of mesh vertices.
-    >>> # This mesh has two elements.
-    >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
+    Load a simple mesh consisting of two tets.
 
-    >>> # Field data defined at the centers of the two mesh elements.
-    >>> elem_data = {
-    ...     ('connect1', 'elem_field'): np.array([1, 2])
-    ... }
-
-    >>> # Field data defined at node vertices
-    >>> node_data = {
-    ...     ('connect1', 'node_field'): np.array([[0.0, 1.0, 2.0, 4.0],
-    ...                                           [0.0, 1.0, 2.0, 3.0]])
-    ... }
-
-    >>> ds = yt.load_unstructured_mesh(connectivity, coordinates,
-    ...                                elem_data=elem_data,
-    ...                                node_data=node_data)
-
+      >>> # Coordinates for vertices of two tetrahedra
+      >>> coordinates = np.array([[0.0, 0.0, 0.5], [0.0, 1.0, 0.5],
+      ...                         [0.5, 1, 0.5], [0.5, 0.5, 0.0],
+      ...                         [0.5, 0.5, 1.0]])
+      >>> # The indices in the coordinates array of mesh vertices.
+      >>> # This mesh has two elements.
+      >>> connectivity = np.array([[0, 1, 2, 4], [0, 1, 2, 3]])
+      >>>
+      >>> # Field data defined at the centers of the two mesh elements.
+      >>> elem_data = {
+      ...     ('connect1', 'elem_field'): np.array([1, 2])
+      ... }
+      >>>
+      >>> # Field data defined at node vertices
+      >>> node_data = {
+      ...     ('connect1', 'node_field'): np.array([[0.0, 1.0, 2.0, 4.0],
+      ...                                           [0.0, 1.0, 2.0, 3.0]])
+      ... }
+      >>>
+      >>> ds = yt.load_unstructured_mesh(connectivity, coordinates,
+      ...                                elem_data=elem_data,
+      ...                                node_data=node_data)
     """
 
     dimensionality = coordinates.shape[1]

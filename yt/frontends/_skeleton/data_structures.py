@@ -30,8 +30,8 @@ class SkeletonGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        super(SkeletonGrid, self).__init__(self, id, filename=index.index_filename,
-                              index=index)
+        super(SkeletonGrid, self).__init__(
+            id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -51,7 +51,7 @@ class SkeletonHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        super(SkeletonHierarchy, self).__init__(self, ds, dataset_type)
+        super(SkeletonHierarchy, self).__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
@@ -97,7 +97,7 @@ class SkeletonDataset(Dataset):
                  storage_filename=None,
                  units_override=None):
         self.fluid_types += ('skeleton',)
-        super(SkeletonDataset, self).__init__(self, filename, dataset_type,
+        super(SkeletonDataset, self).__init__(filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid

@@ -23,12 +23,16 @@ import re
 
 from functools import wraps
 
+from numbers import Number
+
 from yt.analysis_modules.level_sets.clump_handling import \
     Clump
 from yt.frontends.ytdata.data_structures import \
     YTClumpContainer
 from yt.funcs import \
-    mylog, iterable
+    iterable, \
+    mylog, \
+    validate_width_tuple
 from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity, YTArray, uhstack
 from yt.visualization.image_writer import apply_colormap
@@ -145,17 +149,20 @@ class PlotCallback(object):
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
 
-        x0 = np.array(np.tile(plot.xlim[0],ncoord))
-        x1 = np.array(np.tile(plot.xlim[1],ncoord))
+        x0 = np.array(np.tile(plot.xlim[0].to('code_length'),ncoord))
+        x1 = np.array(np.tile(plot.xlim[1].to('code_length'),ncoord))
         xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
         xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
 
-        y0 = np.array(np.tile(plot.ylim[0],ncoord))
-        y1 = np.array(np.tile(plot.ylim[1],ncoord))
+        y0 = np.array(np.tile(plot.ylim[0].to('code_length'),ncoord))
+        y1 = np.array(np.tile(plot.ylim[1].to('code_length'),ncoord))
         yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
         yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
 
-        ccoord = np.array(coord)
+        try:
+            ccoord = np.array(coord.to('code_length'))
+        except AttributeError:
+            ccoord = np.array(coord)
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
@@ -586,14 +593,16 @@ class GridBoundaryCallback(PlotCallback):
     edgecolors='#00FFFF', or edgecolor='0.3', where the last is a float in 0-1
     scale indicating gray).  Note that setting edgecolors overrides cmap if you
     have both set to non-None values.  Cutoff for display is at min_pix
-    wide. draw_ids puts the grid id in the corner of the grid.  (Not so great in
-    projections...).  One can set min and maximum level of grids to display, and
+    wide. draw_ids puts the grid id a the corner of the grid (but its not so 
+    great in projections...).  id_loc determines which corner holds the grid id.
+    One can set min and maximum level of grids to display, and
     can change the linewidth of the displayed grids.
     """
     _type_name = "grids"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
 
-    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False,
+    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, 
+                 draw_ids=False, id_loc="lower left",
                  periodic=True, min_level=None, max_level=None,
                  cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
         PlotCallback.__init__(self)
@@ -601,6 +610,7 @@ class GridBoundaryCallback(PlotCallback):
         self.min_pix = min_pix
         self.min_pix_ids = min_pix_ids
         self.draw_ids = draw_ids  # put grid numbers in the corner.
+        self.id_loc = id_loc
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
@@ -683,16 +693,42 @@ class GridBoundaryCallback(PlotCallback):
                 linewidth=self.linewidth)
             plot._axes.add_collection(grid_collection)
 
-            if self.draw_ids:
-                visible_ids = np.logical_and(
+            visible_ids = np.logical_and(
                     np.logical_and(xwidth > self.min_pix_ids,
                                    ywidth > self.min_pix_ids),
                     np.logical_and(levels >= min_level, levels <= max_level))
-                for i in np.where(visible_ids)[0]:
-                    plot._axes.text(
-                        left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
-                        left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
-                        "%d" % block_ids[i], clip_on=True)
+
+            if self.id_loc and not self.draw_ids:
+                mylog.warn("Supplied id_loc but draw_ids is False. Not drawing grid ids")
+
+            if self.draw_ids:
+                id_loc = self.id_loc.lower() # Make case-insensitive
+                plot_ids = np.where(visible_ids)[0]
+                x = np.empty(plot_ids.size)
+                y = np.empty(plot_ids.size)
+                for i,n in enumerate(plot_ids):
+                    if id_loc == "lower left":
+                        x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
+                        y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
+                    elif id_loc == "lower right":
+                        x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
+                                                   * (xx1 - xx0) / xpix)
+                        y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
+                    elif id_loc == "upper left":
+                        x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
+                        y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
+                    elif id_loc == "upper right":
+                        x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
+                                                   * (xx1 - xx0) / xpix)
+                        y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
+                    else:
+                        raise RuntimeError(
+                               "Unrecognized id_loc value ('%s'). "
+                               "Allowed values are 'lower left', lower right', "
+                               "'upper left', and 'upper right'." % self.id_loc
+                               )
+                    plot._axes.text(x[i], y[i],
+                                    "%d" % block_ids[n], clip_on=True)
 
 class StreamlineCallback(PlotCallback):
     """
@@ -700,11 +736,16 @@ class StreamlineCallback(PlotCallback):
     from the associated data, skipping every *factor* datapoints like
     'quiver'. *density* is the index of the amount of the streamlines.
     *field_color* is a field to be used to colormap the streamlines.
+    If *display_threshold* is supplied, any streamline segments where
+    *field_color* is less than the threshold will be removed by having
+    their line width set to 0.
     """
     _type_name = "streamlines"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, field_x, field_y, factor=16,
-                 density=1, field_color=None, plot_args=None):
+                 density=1, field_color=None,
+                 display_threshold=None,
+                 plot_args=None):
         PlotCallback.__init__(self)
         def_plot_args = {}
         self.field_x = field_x
@@ -712,6 +753,7 @@ class StreamlineCallback(PlotCallback):
         self.field_color = field_color
         self.factor = factor
         self.dens = density
+        self.display_threshold = display_threshold
         if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
 
@@ -741,8 +783,29 @@ class StreamlineCallback(PlotCallback):
                         plot.data['pdx'], plot.data['pdy'],
                         plot.data[self.field_color],
                         (x0, x1, y0, y1))
+
+            if self.display_threshold:
+
+                mask = (field_colors > self.display_threshold)
+                lwdefault = matplotlib.rcParams['lines.linewidth']
+
+                if 'linewidth' in self.plot_args:
+                    linewidth = self.plot_args['linewidth']
+                else:
+                    linewidth = lwdefault
+
+                try:
+                    linewidth *= mask
+                    self.plot_args['linewidth'] = linewidth
+                except ValueError:
+                    err_msg = "Error applying display threshold: linewidth" + \
+                              "must have shape ({}, {}) or be scalar"
+                    err_msg = err_msg.format(ny, nx)
+                    raise ValueError(err_msg)
+
         else:
             field_colors = None
+
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
@@ -1370,8 +1433,10 @@ class TextLabelCallback(PlotCallback):
         # consistent with other text labels in this figure
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+        if self.inset_box_args is not None:
+            kwargs['bbox'] = self.inset_box_args
         label = plot._axes.text(x, y, self.text, transform=self.transform,
-                                bbox=self.inset_box_args, **kwargs)
+                                **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -1571,10 +1636,8 @@ class ParticleCallback(PlotCallback):
     def __call__(self, plot):
         data = plot.data
         if iterable(self.width):
-            w = plot.data.ds.quan(self.width[0], self.width[1]).in_units("code_length")
-            self.width = np.float64(w)
-        elif isinstance(self.width, YTQuantity):
-            self.width = np.float64(plot.data.ds.quan(self.width).in_units("code_length"))
+            validate_width_tuple(self.width)
+            self.width = plot.data.ds.quan(self.width[0], self.width[1])
         # we construct a rectangular prism
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -1605,9 +1668,8 @@ class ParticleCallback(PlotCallback):
         if self.minimum_mass is not None:
             gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
-        px, py = self.convert_to_plot(plot,
-                    [np.array(particle_x[gg][::self.stride]),
-                     np.array(particle_y[gg][::self.stride])])
+        px, py = [particle_x[gg][::self.stride], particle_y[gg][::self.stride]]
+        px, py = self.convert_to_plot(plot, [px, py])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
@@ -1642,8 +1704,8 @@ class ParticleCallback(PlotCallback):
         zax = axis
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
-        LE[zax] = data.center[zax].ndarray_view() - self.width*0.5
-        RE[zax] = data.center[zax].ndarray_view() + self.width*0.5
+        LE[zax] = data.center[zax] - self.width*0.5
+        RE[zax] = data.center[zax] + self.width*0.5
         if self.region is not None \
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
@@ -1848,6 +1910,12 @@ class TimestampCallback(PlotCallback):
 
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
+    time_offset : float, (value, unit) tuple, or YTQuantity, optional
+        Apply an offset to the time shown in the annotation from the
+        value of the current time. If a scalar value with no units is
+        passed in, the value of the *time_unit* kwarg is used for the
+        units. Default: None, meaning no offset.
+
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: ``{'color':'white',
@@ -1871,13 +1939,16 @@ class TimestampCallback(PlotCallback):
     def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True,
                  redshift=False, time_format="t = {time:.1f} {units}",
                  time_unit=None, redshift_format="z = {redshift:.2f}",
-                 draw_inset_box=False, coord_system='axis',
+                 draw_inset_box=False, coord_system='axis', time_offset=None,
                  text_args=None, inset_box_args=None):
 
-        def_text_args = {'color':'white', 'horizontalalignment':'center',
-                         'verticalalignment':'top'}
-        def_inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black',
-                              'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
+        def_text_args = {'color': 'white',
+                         'horizontalalignment': 'center',
+                         'verticalalignment': 'top'}
+        def_inset_box_args = {'boxstyle': 'square,pad=0.3',
+                              'facecolor': 'black',
+                              'linewidth': 3,
+                              'edgecolor': 'white', 'alpha': 0.5}
 
         # Set position based on corner argument.
         self.pos = (x_pos, y_pos)
@@ -1888,6 +1959,7 @@ class TimestampCallback(PlotCallback):
         self.redshift_format = redshift_format
         self.time_unit = time_unit
         self.coord_system = coord_system
+        self.time_offset = time_offset
         if text_args is None: text_args = def_text_args
         self.text_args = text_args
         if inset_box_args is None: inset_box_args = def_inset_box_args
@@ -1935,6 +2007,15 @@ class TimestampCallback(PlotCallback):
                                             plot.ds.current_time,
                                             quantity='time')
             t = plot.ds.current_time.in_units(self.time_unit)
+            if self.time_offset is not None:
+                if isinstance(self.time_offset, tuple):
+                    toffset = plot.ds.quan(self.time_offset[0], self.time_offset[1])
+                elif isinstance(self.time_offset, Number):
+                    toffset = plot.ds.quan(self.time_offset, self.time_unit)
+                elif not isinstance(self.time_offset, YTQuantity):
+                    raise RuntimeError("'time_offset' must be a float, tuple, or"
+                                       "YTQuantity!")
+                t -= toffset.in_units(self.time_unit)
             self.text += self.time_format.format(time=float(t),
                                                  units=self.time_unit)
 
@@ -2038,6 +2119,12 @@ class ScaleCallback(PlotCallback):
         object that represents the inset box.
         Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
 
+    scale_text_format : string, optional
+        This specifies the format of the scalebar value assuming "scale" is the
+        numerical value and "unit" is units of the scale (e.g. 'cm', 'kpc', etc.)
+        The scale can be specified to arbitrary precision according to printf
+        formatting codes. The format string must only specify "scale" and "units".
+        Example: "Length = {scale:.2f} {units}". Default: "{scale} {units}"
 
     Example
     -------
@@ -2050,9 +2137,9 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
-                 max_frac=0.16, min_frac=0.015, coord_system='axis',
-                 text_args=None, size_bar_args=None, draw_inset_box=False,
-                 inset_box_args=None):
+                 max_frac=0.16, min_frac=0.015, coord_system='axis', 
+                 text_args=None, size_bar_args=None, draw_inset_box=False, 
+                 inset_box_args=None, scale_text_format="{scale} {units}"):
 
         def_size_bar_args = {
             'pad': 0.05,
@@ -2077,6 +2164,7 @@ class ScaleCallback(PlotCallback):
         self.max_frac = max_frac
         self.min_frac = min_frac
         self.coord_system = coord_system
+        self.scale_text_format = scale_text_format
         if size_bar_args is None:
             self.size_bar_args = def_size_bar_args
         else:
@@ -2131,7 +2219,8 @@ class ScaleCallback(PlotCallback):
             self.coeff = max_scale.v
             self.unit = max_scale.units
         self.scale = YTQuantity(self.coeff, self.unit)
-        text = "{scale} {units}".format(scale=int(self.coeff), units=self.unit)
+        text = self.scale_text_format.format(scale=int(self.coeff), 
+                                             units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
         size_vertical = self.size_bar_args.pop(

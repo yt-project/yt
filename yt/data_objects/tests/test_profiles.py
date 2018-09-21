@@ -1,25 +1,13 @@
 import yt
 import numpy as np
 
-from yt.data_objects.particle_filters import \
-    add_particle_filter
-from yt.data_objects.profiles import \
-    Profile1D, \
-    Profile2D, \
-    Profile3D, \
+from yt.data_objects.particle_filters import add_particle_filter
+from yt.data_objects.profiles import Profile1D, Profile2D, Profile3D,\
     create_profile
-from yt.testing import \
-    fake_random_ds, \
-    fake_sph_orientation_ds, \
-    assert_equal, \
-    assert_raises, \
-    assert_rel_equal, \
-    requires_file
-from yt.utilities.exceptions import \
-    YTIllDefinedProfile
-from yt.visualization.profile_plotter import \
-    ProfilePlot, \
-    PhasePlot
+from yt.testing import fake_random_ds, assert_equal, assert_raises,\
+    assert_rel_equal, fake_sph_orientation_ds
+from yt.utilities.exceptions import YTIllDefinedProfile
+from yt.visualization.profile_plotter import ProfilePlot, PhasePlot
 
 _fields = ("density", "temperature", "dinosaurs", "tribbles")
 _units = ("g/cm**3", "K", "dyne", "erg")
@@ -275,7 +263,6 @@ def test_particle_profile_negative_field():
             weight_field=None, deposition='cic',
             accumulation=True, fractional=True)
 
-@requires_file("IsolatedGalaxy/galaxy0030/galaxy0030")
 def test_profile_zero_weight():
     def DMparticles(pfilter, data):
         filter = data[(pfilter.filtered_type, "particle_type")] == 1
@@ -287,10 +274,14 @@ def test_profile_zero_weight():
     add_particle_filter("DM", function=DMparticles,
                         filtered_type='io', requires=["particle_type"])
 
-    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    _fields = ("particle_position_x", "particle_position_y",
+               "particle_position_z", "particle_mass", "particle_velocity_x",
+               "particle_velocity_y", "particle_velocity_z", "particle_type")
+    _units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s', 'dimensionless')
+    ds = fake_random_ds(32, particle_fields=_fields,
+                        particle_field_units=_units, particles=16)
 
     ds.add_particle_filter('DM')
-
     ds.add_field(("gas", "DM_cell_mass"), units="g", function=DM_in_cell_mass,
                  sampling_type='cell')
 
@@ -298,13 +289,39 @@ def test_profile_zero_weight():
 
     profile = yt.create_profile(sp,
                                 [("gas", "density")],
-                                [("gas", "temperature")],
+                                [("gas", "radial_velocity")],
                                 weight_field=("gas", "DM_cell_mass"))
 
-    assert not np.any(np.isnan(profile['gas', 'temperature']))
+    assert not np.any(np.isnan(profile['gas', 'radial_velocity']))
 
 def test_profile_sph_data():
     ds = fake_sph_orientation_ds()
     # test we create a profile without raising YTIllDefinedProfile
     yt.create_profile(ds.all_data(), ['density', 'temperature'],
                       ['kinetic_energy'], weight_field=None)
+
+def test_profile_override_limits():
+    ds = fake_random_ds(64, nprocs = 8, fields = _fields, units = _units)
+
+    sp = ds.sphere(ds.domain_center, (10, 'kpc'))
+    obins = np.linspace(-5,5,10)
+    profile = yt.create_profile(sp,
+                                [ "density"],["temperature"],
+                                override_bins={"density":(obins, "g/cm**3")})
+    assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
+
+    profile = yt.create_profile(sp,
+                                [ "density", "dinosaurs"],["temperature"],
+                                override_bins={"density":(obins, "g/cm**3"),
+                                               "dinosaurs":obins})
+    assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
+    assert_equal(ds.arr(obins, "dyne"), profile.y_bins)
+
+    profile = yt.create_profile(sp,
+                                [ "density", "dinosaurs", "tribbles"],["temperature"],
+                                override_bins={"density":(obins, "g/cm**3"),
+                                               "dinosaurs":obins,
+                                               "tribbles":(obins, "erg")})
+    assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
+    assert_equal(ds.arr(obins, "dyne"), profile.y_bins)
+    assert_equal(ds.arr(obins, "erg"), profile.z_bins)
