@@ -6,12 +6,12 @@ Geographic Projections and Transforms
 Geographic data that is on a sphere can be visualized by projecting that data
 onto a representation of that sphere flattened into 2d space. There exist a
 number of projection types, which can be found in the `the cartopy
-documentation <https://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html>`_.
+documentation <https://scitools.org.uk/cartopy/docs/latest/crs/projections.html>`_.
 With support from `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_, 
 ``yt`` now supports these projection 
 types for geographically loaded data.
 Underlying data is assumed to have a transform of `PlateCarree
-<https://scitools.org.uk/cartopy/docs/v0.15/crs/projections.html#platecarree>`_,
+<https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`_,
 which is data on a flattened, rectangular, latitude/longitude grid. The data
 transform is what system your data is defined with and the data projection is
 what the resulting plot will display. For more information on this difference,
