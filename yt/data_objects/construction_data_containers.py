@@ -747,12 +747,13 @@ class YTCoveringGrid(YTSelectionContainer3D):
         bounds, size = self._get_grid_bounds_size()
 
         normalize = getattr(self.ds, 'use_sph_normalization', True)
+        buff = np.zeros(size, dtype="float64")
+
         if(smoothing_style == "scatter"):
             for field in fields:
-                dest = np.zeros(size, dtype="float64")
-
                 if normalize:
-                    dest_den = np.zeros(size, dtype="float64")
+                    buff_den = np.zeros(size, dtype="float64")
+
 
                 pbar = tqdm(desc="Interpolating SPH field {}".format(field))
                 for chunk in self._data_source.chunks([field],"io"):
@@ -764,24 +765,23 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     dens = chunk[(ptype,'density')].in_base("code").d
                     field_quantity = chunk[field].d
 
-                    pixelize_sph_kernel_arbitrary_grid(dest, px, py, pz, hsml,
-                                    mass, dens, field_quantity, bounds, pbar)
+                    pixelize_sph_kernel_arbitrary_grid(buff, px, py, pz, hsml,
+                                    mass, dens, field_quantity, bounds,
+                                    pbar=pbar)
                     if normalize:
-                        pixelize_sph_kernel_arbitrary_grid(dest_den, px, py, pz,
-                                    hsml, mass, dens, np.ones(hsml.shape[0]),
-                                    bounds)
+                        pixelize_sph_kernel_arbitrary_grid(buff_den, px, py, pz,
+                                    hsml, mass, dens, np.ones(dens.shape[0]),
+                                    bounds, pbar=pbar)
 
                 if normalize:
-                    normalization_3d_utility(dest, dest_den)
+                    normalization_3d_utility(buff, buff_den)
 
                 fi = self.ds._get_field_info(field)
-                self[field] = self.ds.arr(dest, fi.units)
+                self[field] = self.ds.arr(buff, fi.units)
                 pbar.close()
 
         if(smoothing_style == "gather"):
             for field in fields:
-                buff = np.zeros(size, dtype="float64")
-
                 tree_positions = []
                 hsml = []
                 pmass = []
@@ -805,13 +805,16 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 pdens = np.concatenate(pdens)[kdtree.idx]
                 quantity_to_smooth = np.concatenate(quantity_to_smooth)[kdtree.idx]
 
-                interpolate_sph_grid_gather(buff[:, :, :], tree_positions, bounds,
+                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+                interpolate_sph_grid_gather(buff, tree_positions, bounds,
                                             hsml, pmass, pdens,
                                             quantity_to_smooth, kdtree,
-                                            use_normalization=True)
+                                            use_normalization=normalize,
+                                            pbar=pbar)
 
                 fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(buff, fi.units)
+                pbar.close()
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
@@ -2352,7 +2355,7 @@ class YTOctree(YTSelectionContainer3D):
         hsml = np.concatenate(hsml)
         quant_to_smooth = np.concatenate(quant_to_smooth)
 
-        # interpolate the field value at the cell positions
+        # Interpolate the field value at the cell positions
         # NOTE: this can be incredibly memory heavy
         pbar = tqdm(desc="Interpolating (gather) SPH field {}".format(fields[0]),
                     total=self._octree.cell_positions.shape[0])

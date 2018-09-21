@@ -1057,10 +1057,8 @@ def pixelize_sph_kernel_projection(
                     # now we just use the kernel projection
                     buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
 
-@cython.initializedcheck(True)
-@cython.boundscheck(True)
+@cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
 def interpolate_sph_gather(np.float64_t[:] buff,
         np.float64_t[:, ::1] tree_positions, np.float64_t[:, ::1] field_positions,
         np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
@@ -1123,10 +1121,8 @@ def interpolate_sph_gather(np.float64_t[:] buff,
     if use_normalization:
         normalization_1d_utility(buff, buff_den)
 
-@cython.initializedcheck(True)
-@cython.boundscheck(True)
+@cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
 def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
         np.float64_t[:, ::1] tree_positions, np.float64_t[:] bounds,
         np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
@@ -1302,7 +1298,6 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef int index, i, j, k
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
-
     x_min = bounds[0]
     x_max = bounds[1]
     y_min = bounds[2]
@@ -1601,33 +1596,8 @@ cpdef np.float64_t[:, :] get_rotation_matrix(np.float64_t[:] normal_vector,
                          + np.matmul(cross_product_matrix, cross_product_matrix)
                          * 1/(1+c))
 
-@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
-def normalization_1d_utility(np.float64_t[:] num,
-                             np.float64_t[:] den):
-    cdef int i
-    for i in range(num.shape[0]):
-            if den[i] != 0.0:
-                num[i] = num[i] / den[i]
-
-@cython.initializedcheck(False)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def normalization_2d_utility(np.float64_t[:, :] num,
-                             np.float64_t[:, :] den):
-    cdef int i, j
-    for i in range(num.shape[0]):
-        for j in range(num.shape[1]):
-            if den[i, j] != 0.0:
-                num[i, j] = num[i, j] / den[i, j]
-
-@cython.initializedcheck(False)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def normalization_3d_utility(np.float64_t[:, :, :] num,
                              np.float64_t[:, :, :] den):
     cdef int i, j, k
@@ -1637,3 +1607,21 @@ def normalization_3d_utility(np.float64_t[:, :, :] num,
                 if den[i, j, k] != 0.0:
                     num[i, j, k] = num[i, j, k] / den[i, j, k]
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def normalization_2d_utility(np.float64_t[:, :] num,
+                          np.float64_t[:, :] den):
+    cdef int i, j
+    for i in range(num.shape[0]):
+        for j in range(num.shape[1]):
+            if den[i, j] != 0.0:
+                num[i, j] = num[i, j] / den[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def normalization_1d_utility(np.float64_t[:] num,
+                             np.float64_t[:] den):
+    cdef int i
+    for i in range(num.shape[0]):
+        if den[i] != 0.0:
+            num[i] = num[i] / den[i]

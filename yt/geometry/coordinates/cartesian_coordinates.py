@@ -413,7 +413,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                                 quantity_to_smooth, self.kdtree,
                                                 use_normalization=True)
 
-                    # we swap the axes back so the axis which was sliced over
+                    # We swap the axes back so the axis which was sliced over
                     # is the last axis, as this is the "z" axis of the plots.
                     if z != 2:
                         buff_temp = buff_temp.swapaxes(2, z)
