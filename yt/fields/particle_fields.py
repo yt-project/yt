@@ -303,7 +303,7 @@ def standard_particle_fields(registry, ptype,
         # adding in the unit registry allows us to have a reference to the
         # dataset and thus we will always get the correct units after applying
         # the cross product.
-        return -ucross(r_vec, v_vec, registry=data.ds.unit_registry)
+        return ucross(r_vec, v_vec, registry=data.ds.unit_registry)
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
