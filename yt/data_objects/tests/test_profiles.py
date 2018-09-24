@@ -5,9 +5,6 @@ import tempfile
 import unittest
 import yt
 
-from nose.tools import \
-    assert_raises
-
 from yt.utilities.exceptions import \
     YTProfileDataShape
 from yt.data_objects.particle_filters import add_particle_filter
