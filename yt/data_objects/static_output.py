@@ -1315,15 +1315,9 @@ class Dataset(object):
             # because of the ordering
             mesh_data = data[ftype, deposit_field].T.reshape(-1)
 
-            # Do mesh deposition
-            igrid, icell = data.mesh_deposit(pos)
-
-            # Some particle may be missing so we need to be careful
-            ids = igrid * 8 + icell
-            mask = ids >= 0
-            ret = data.ds.arr(np.empty(len(pos)), input_units=units)
-            ret[ mask] = mesh_data[ids[mask]]
-            ret[~mask] = np.nan
+            # Perform deposition and add units
+            ret = data.ds.arr(data.mesh_deposit(pos, mesh_data),
+                              input_units=units)
 
             return ret
 
