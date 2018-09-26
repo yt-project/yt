@@ -163,7 +163,7 @@ class FieldDetector(defaultdict):
     def deposit(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
 
-    def mesh_deposit(self, pos, **kwargs):
+    def mesh_deposit(self, pos, mesh_field, **kwargs):
         npart = len(pos)
         nmax = self.nd**3
         return (np.random.randint(nmax // 8, size=npart),

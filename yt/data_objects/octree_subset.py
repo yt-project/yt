@@ -195,11 +195,29 @@ class OctreeSubset(YTSelectionContainer):
         if vals is None: return
         return np.asfortranarray(vals)
 
-    def mesh_deposit(self, positions):
-        r"""TODO
+    def mesh_deposit(self, positions, mesh_field):
+        r"""Operate on the particles, in a mesh-against-particle
+        fashion, with exclusively local input.
+
+        This uses the octree indexing system to call a "mesh
+        deposition" operation (defined in yt/geometry/particle_deposit.pyx).
+        For each particle, the function returns the value of the cell
+        containing the particle.
+
+        Parameters
+        ----------
+        positions : array_like (Nx3)
+            The positions of all of the particles to be examined.
+        mesh_field : array_like (M,)
+            The value of the field to deposit.
+
+        Returns
+        -------
+        List of fortran-ordered, particle-like arrays containing the
+        value of the mesh at the location of the particles.
         """
         # Here we perform our particle deposition.
-        npart = len(positions)
+        npart = positions.shape[0]
         nocts = (self.domain_ind >= 0).sum()
         # We allocate number of zones, not number of octs
         op = particle_deposit.CellIdentifier(npart, 'none')
@@ -208,12 +226,25 @@ class OctreeSubset(YTSelectionContainer):
                     nocts, positions.shape[0], positions.shape[0]**0.3333333)
         pos = np.asarray(positions.convert_to_units("code_length"),
                          dtype="float64")
-        # We should not need the following if we know in advance all our fields
-        # need no casting.
+
         op.process_octree(self.oct_handler, self.domain_ind, pos, None,
             self.domain_id, self._domain_offset)
         igrid, icell = op.finalize()
-        return np.asfortranarray(igrid), np.asfortranarray(icell)
+
+        igrid = np.asfortranarray(igrid)
+        icell = np.asfortranarray(icell)
+
+        # Some particle may fall outside of the local domain, so we
+        # need to be careful here
+        ids = igrid*8 + icell
+        mask = ids >= 0
+
+        # Fill the return array
+        ret = np.empty(npart)
+        ret[ mask] = mesh_field[ids[mask]]
+        ret[~mask] = np.nan
+
+        return ret
 
     def smooth(self, positions, fields = None, index_fields = None,
                method = None, create_octree = False, nneighbors = 64,
