@@ -166,8 +166,7 @@ class FieldDetector(defaultdict):
     def mesh_deposit(self, pos, mesh_field, **kwargs):
         npart = len(pos)
         nmax = self.nd**3
-        return (np.random.randint(nmax // 8, size=npart),
-                np.random.randint(8, size=npart))
+        return np.random.rand(npart)
 
     def smooth(self, *args, **kwargs):
         tr = np.random.random((self.nd, self.nd, self.nd))
