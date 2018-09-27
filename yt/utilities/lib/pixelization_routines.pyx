@@ -48,7 +48,6 @@ from yt.utilities.lib.particle_kdtree_tools cimport find_neighbors, \
     axes_range, \
     set_axes_range
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
-from yt.extern.tqdm import tqdm
 
 cdef int TABLE_NVALS=512
 
@@ -1138,6 +1137,7 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
     cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
     cdef np.float64_t[:, :, :] buff_den
     cdef KDTree * ctree = kdtree._tree
+    cdef int prog
 
     # Which dimensions shall we use for spatial distances?
     cdef axes_range axes
@@ -1149,23 +1149,25 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
                              buff.shape[2]], dtype="float64")
 
     kernel_func = get_kernel_func(kernel_name)
-
     dx = (bounds[1] - bounds[0]) / buff.shape[0]
     dy = (bounds[3] - bounds[2]) / buff.shape[1]
     dz = (bounds[5] - bounds[4]) / buff.shape[2]
 
     # Loop through all the positions we want to interpolate the SPH field onto
-    pbar = tqdm(desc="Interpolating (gather) SPH field",
-                    total=buff.shape[0]*buff.shape[1]*buff.shape[2])
+    pbar = get_pbar(title="Interpolating (gather) SPH field",
+                    maxval=(buff.shape[0]*buff.shape[1]*buff.shape[2] //
+                            10000)*10000)
+
+    prog = 0
     with nogil:
         for i in range(0, buff.shape[0]):
             for j in range(0, buff.shape[1]):
                 for k in range(0, buff.shape[2]):
-                    if (i*j*k) % 10000 == 0:
+                    prog += 1
+                    if prog % 10000 == 0:
                         with gil:
                             PyErr_CheckSignals()
-                            pbar.update(10000)
-
+                            pbar.update(prog)
 
                     queue.size = 0
 
@@ -1200,7 +1202,6 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
 
                         if use_normalization:
                             buff_den[i, j, k] += prefactor_j * kernel_func(q_ij)
-    pbar.close()
 
     if use_normalization:
         normalization_3d_utility(buff, buff_den)

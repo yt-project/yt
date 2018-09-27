@@ -743,17 +743,15 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         ptype = self.ds._sph_ptype
         smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
 
         bounds, size = self._get_grid_bounds_size()
 
-        normalize = getattr(self.ds, 'use_sph_normalization', True)
-        buff = np.zeros(size, dtype="float64")
-
         if(smoothing_style == "scatter"):
             for field in fields:
+                buff = np.zeros(size, dtype="float64")
                 if normalize:
                     buff_den = np.zeros(size, dtype="float64")
-
 
                 pbar = tqdm(desc="Interpolating SPH field {}".format(field))
                 for chunk in self._data_source.chunks([field],"io"):
@@ -782,8 +780,9 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         if(smoothing_style == "gather"):
             num_neighbors = getattr(self.ds, 'num_neighbors', 32)
-
             for field in fields:
+                buff = np.zeros(size, dtype="float64")
+
                 tree_positions = []
                 hsml = []
                 pmass = []
