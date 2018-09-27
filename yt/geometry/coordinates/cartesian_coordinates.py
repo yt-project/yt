@@ -391,7 +391,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     pmass = []
                     pdens = []
                     quantity_to_smooth = []
-                    for chunk in data_source.all_data().chunk([field],"io"):
+                    for chunk in self.ds.all_data().chunks([field],"io"):
                         tree_positions.append(chunk[(ptype,
                                                      'particle_position')].in_base("code").d)
                         hsml.append(chunk[(ptype,
@@ -402,15 +402,18 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                            'density')].in_base("code").d)
                         quantity_to_smooth.append(chunk[field].d)
 
-                    tree_positions = np.concatenate(tree_positions)[self.kdtree.idx, :]
-                    hsml = np.concatenate(hsml)[self.kdtree.idx]
-                    pmass = np.concatenate(pmass)[self.kdtree.idx]
-                    pdens = np.concatenate(pdens)[self.kdtree.idx]
-                    quantity_to_smooth = np.concatenate(quantity_to_smooth)[self.kdtree.idx]
+                    kdtree = self.ds.index.kdtree
+                    tree_positions = np.concatenate(tree_positions)[kdtree.idx, :]
+                    hsml = np.concatenate(hsml)[kdtree.idx]
+                    pmass = np.concatenate(pmass)[kdtree.idx]
+                    pdens = np.concatenate(pdens)[kdtree.idx]
+                    quantity_to_smooth = np.concatenate(quantity_to_smooth)[kdtree.idx]
 
-                    interpolate_sph_grid_gather(buff, tree_positions, bounds,
-                                                hsml, pmass, pdens,
-                                                quantity_to_smooth, self.kdtree,
+                    num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+                    interpolate_sph_grid_gather(buff_temp, tree_positions,
+                                                buff_bounds, hsml, pmass, pdens,
+                                                quantity_to_smooth, kdtree,
+                                                num_neigh=num_neighbors,
                                                 use_normalization=True)
 
                     # We swap the axes back so the axis which was sliced over
