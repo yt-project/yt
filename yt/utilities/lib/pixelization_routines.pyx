@@ -1162,9 +1162,9 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
                     queue.size = 0
 
                     # Update the current position
-                    pos[0] = bounds[0] + i * dx
-                    pos[1] = bounds[2] + j * dy
-                    pos[2] = bounds[4] + k * dz
+                    pos[0] = bounds[0] + (i + 0.5) * dx
+                    pos[1] = bounds[2] + (j + 0.5) * dy
+                    pos[2] = bounds[4] + (k + 0.5) * dz
 
                     # Use the KDTree to find the nearest neighbors
                     find_neighbors(pos_ptr, tree_positions, queue, ctree, -1, &axes)

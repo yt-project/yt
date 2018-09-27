@@ -781,6 +781,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 pbar.close()
 
         if(smoothing_style == "gather"):
+            num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+
             for field in fields:
                 tree_positions = []
                 hsml = []
@@ -810,6 +812,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                                             hsml, pmass, pdens,
                                             quantity_to_smooth, kdtree,
                                             use_normalization=normalize,
+                                            num_neigh=num_neighbors,
                                             pbar=pbar)
 
                 fi = self.ds._get_field_info(field)

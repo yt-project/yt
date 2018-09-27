@@ -391,7 +391,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     pmass = []
                     pdens = []
                     quantity_to_smooth = []
-                    for chunk in self.ds.chunks([field],"io"):
+                    for chunk in data_source.all_data().chunk([field],"io"):
                         tree_positions.append(chunk[(ptype,
                                                      'particle_position')].in_base("code").d)
                         hsml.append(chunk[(ptype,
