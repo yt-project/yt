@@ -1157,8 +1157,8 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
     # Loop through all the positions we want to interpolate the SPH field onto
     with nogil:
         for i in range(0, buff.shape[0]):
-            for j in range(0, buff.shape[0]):
-                for k in range(0, buff.shape[0]):
+            for j in range(0, buff.shape[1]):
+                for k in range(0, buff.shape[2]):
                     queue.size = 0
 
                     # Update the current position
