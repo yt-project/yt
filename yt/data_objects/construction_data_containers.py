@@ -807,17 +807,14 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 pdens = np.concatenate(pdens)[kdtree.idx]
                 quantity_to_smooth = np.concatenate(quantity_to_smooth)[kdtree.idx]
 
-                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
                 interpolate_sph_grid_gather(buff, tree_positions, bounds,
                                             hsml, pmass, pdens,
                                             quantity_to_smooth, kdtree,
                                             use_normalization=normalize,
-                                            num_neigh=num_neighbors,
-                                            pbar=pbar)
+                                            num_neigh=num_neighbors)
 
                 fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(buff, fi.units)
-                pbar.close()
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
@@ -2360,13 +2357,10 @@ class YTOctree(YTSelectionContainer3D):
 
         # Interpolate the field value at the cell positions
         # NOTE: this can be incredibly memory heavy
-        pbar = tqdm(desc="Interpolating (gather) SPH field {}".format(fields[0]),
-                    total=self._octree.cell_positions.shape[0])
         interpolate_sph_gather(buff, pos, self._octree.cell_positions,
                                hsml, mass, dens, quant_to_smooth, kdtree,
                                use_normalization=normalize,
                                num_neigh=num_neighbors)
-        pbar.close()
 
         self[fields] = self.ds.arr(buff, units)
 

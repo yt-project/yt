@@ -1155,10 +1155,18 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
     dz = (bounds[5] - bounds[4]) / buff.shape[2]
 
     # Loop through all the positions we want to interpolate the SPH field onto
+    pbar = tqdm(desc="Interpolating (gather) SPH field",
+                    total=buff.shape[0]*buff.shape[1]*buff.shape[2])
     with nogil:
         for i in range(0, buff.shape[0]):
             for j in range(0, buff.shape[1]):
                 for k in range(0, buff.shape[2]):
+                    if (i*j*k) % 10000 == 0:
+                        with gil:
+                            PyErr_CheckSignals()
+                            pbar.update(10000)
+
+
                     queue.size = 0
 
                     # Update the current position
@@ -1192,6 +1200,7 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
 
                         if use_normalization:
                             buff_den[i, j, k] += prefactor_j * kernel_func(q_ij)
+    pbar.close()
 
     if use_normalization:
         normalization_3d_utility(buff, buff_den)
