@@ -414,7 +414,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                                 buff_bounds, hsml, pmass, pdens,
                                                 quantity_to_smooth, kdtree,
                                                 num_neigh=num_neighbors,
-                                                use_normalization=True)
+                                                use_normalization=normalize)
 
                     # We swap the axes back so the axis which was sliced over
                     # is the last axis, as this is the "z" axis of the plots.
