@@ -17,7 +17,8 @@ import numpy as np
 from collections import defaultdict
 from yt.units.yt_array import YTArray
 from .field_exceptions import \
-    NeedsGridType
+    NeedsGridType, \
+    NeedsKDTree
 
 class FieldDetector(defaultdict):
     Level = 1
@@ -119,6 +120,11 @@ class FieldDetector(defaultdict):
                 for i in nfd.requested_parameters:
                     if i not in self.requested_parameters:
                         self.requested_parameters.append(i)
+            except NeedsKDTree:
+                # so basically we need to pass a dataset which has a KDTree,
+                # smoothing lengths and ability to return other fake fields
+                print("Need KDTree")
+                print(self[('PartType0', 'particle_position')])
             if vv is not None:
                 if not self.flat: self[item] = vv
                 else: self[item] = vv.ravel()

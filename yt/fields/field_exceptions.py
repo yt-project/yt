@@ -28,6 +28,10 @@ class NeedsOriginalGrid(NeedsGridType):
     def __init__(self):
         self.ghost_zones = 0
 
+class NeedsKDTree(ValidationException):
+    def __init__(self):
+        return
+
 class NeedsDataField(ValidationException):
     def __init__(self, missing_fields):
         self.missing_fields = missing_fields

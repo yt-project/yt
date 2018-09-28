@@ -18,7 +18,8 @@ import numpy as np
 
 from yt.fields.derived_field import \
     ValidateParameter, \
-    ValidateSpatial
+    ValidateSpatial,\
+    ValidateNonLocal
 
 from yt.units.yt_array import \
     uconcatenate, \
@@ -770,28 +771,30 @@ def non_local_particle_fields(registry, ptype='PartType0',
 
         # This is a hack to make sure we don't do a neighbor search on the test
         # data, but we do check that all of the dependencies are present
-        if data[(ptype, 'particle_position')].shape[0] < num_neighbors:
+        if data[(ptype, 'density')].shape[0] < num_neighbors:
             data[(ptype, field_name)]
             data[(ptype, 'SmoothingLength')]
             data[(ptype, 'density')]
             data[(ptype, 'particle_mass')]
             output_buffer = np.zeros(1)
         else:
-            output_buffer = calculate_non_local_field(
-                                    data[(ptype, 'particle_position')],
-                                    data[(ptype, 'particle_mass')],
-                                    data[(ptype, 'density')],
-                                    data[(ptype, 'SmoothingLength')],
-                                    data[(ptype, field_name)],
-                                    data.ds.index.kdtree,
-                                    spatial_type,
-                                    num_neighbors=num_neighbors)
+            #output_buffer = calculate_non_local_field(
+            #                        data[(ptype, 'particle_position')],
+            #                        data[(ptype, 'particle_mass')],
+            #                        data[(ptype, 'density')],
+            #                        data[(ptype, 'SmoothingLength')],
+            #                        data[(ptype, field_name)],
+            #                        data.ds.index.kdtree,
+            #                        spatial_type,
+            #                        num_neighbors=num_neighbors)
+            output_buffer = np.zeros(data[(ptype, 'density')].shape[0])
 
         return data.ds.arr(output_buffer, "code_velocity/code_length")
 
     registry.add_field((ptype, "vorticity"),
                        sampling_type="particle",
                        function=_vorticity,
+                       validators = [ValidateNonLocal()],
                        units=unit_system["velocity"]/unit_system["length"],
                        particle_type=True)
 

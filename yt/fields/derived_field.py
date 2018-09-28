@@ -26,7 +26,8 @@ from .field_exceptions import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter, \
-    FieldUnitsError
+    FieldUnitsError, \
+    NeedsKDTree
 from .field_detector import \
     FieldDetector
 from yt.units.unit_object import \
@@ -453,6 +454,21 @@ class ValidateSpatial(FieldValidator):
         if self.ghost_zones <= data._num_ghost_zones:
             return True
         raise NeedsGridType(self.ghost_zones,self.fields)
+
+class ValidateNonLocal(FieldValidator):
+    def __init__(self, fields=None):
+        """
+        This validator ensures that the data handed has mutiple particles and
+        has a KDTree
+        """
+        FieldValidator.__init__(self)
+        self.fields = fields
+
+    def __call__(self, data):
+        # When we say spatial information, we really mean
+        # that it has a three-dimensional data structure
+        #if isinstance(data, FieldDetector): return True
+        raise NeedsKDTree
 
 class ValidateGridType(FieldValidator):
     def __init__(self):
