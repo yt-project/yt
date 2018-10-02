@@ -21,11 +21,9 @@ from yt.fields.derived_field import \
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
-    deprecate, \
+    issue_deprecation_warning, \
     get_output_filename, \
     mylog
-from yt.extern.six import \
-    string_types
 from yt.utilities.tree_container import \
     TreeContainer
 
@@ -93,6 +91,18 @@ class Clump(TreeContainer):
         # Return value of validity function.
         self.valid = None
 
+    _leaves = None
+    @property
+    def leaves(self):
+        if self._leaves is not None:
+            return self._leaves
+
+        self._leaves = []
+        for clump in self:
+            if not clump.children:
+                self._leaves.append(clump)
+        return self._leaves
+
     def add_validator(self, validator, *args, **kwargs):
         """
         Add a validating function to determine whether the clump should 
@@ -139,14 +149,6 @@ class Clump(TreeContainer):
         self.clump_info = []
         for child in self.children:
             child.clear_clump_info()
-
-    @deprecate("Clump.save_as_dataset")
-    def write_info(self, level, f_ptr):
-        "Writes information for clump using the list of items in clump_info."
-
-        for item in self.base.clump_info:
-            value = item(self)
-            f_ptr.write("%s%s\n" % ('\t'*level, value))
 
     def find_children(self, min_val, max_val = None):
         if self.children:
@@ -440,45 +442,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
 def get_lowest_clumps(clump, clump_list=None):
     "Return a list of all clumps at the bottom of the index."
 
-    if clump_list is None: clump_list = []
-    if len(clump.children) == 0:
-        clump_list.append(clump)
-    else:
-        for child in clump.children:
-            get_lowest_clumps(child, clump_list=clump_list)
-
-    return clump_list
-
-@deprecate("Clump.save_as_dataset")
-def write_clump_index(clump, level, fh):
-    top = False
-    if isinstance(fh, string_types):
-        fh = open(fh, "w")
-        top = True
-    for q in range(level):
-        fh.write("\t")
-    fh.write("Clump at level %d:\n" % level)
-    clump.write_info(level, fh)
-    fh.write("\n")
-    fh.flush()
-    for child in clump.children:
-        write_clump_index(child, (level+1), fh)
-    if top:
-        fh.close()
-
-@deprecate("Clump.save_as_dataset")
-def write_clumps(clump, level, fh):
-    top = False
-    if isinstance(fh, string_types):
-        fh = open(fh, "w")
-        top = True
-    if len(clump.children) == 0:
-        fh.write("%sClump:\n" % ("\t"*level))
-        clump.write_info(level, fh)
-        fh.write("\n")
-        fh.flush()
-    else:
-        for child in clump.children:
-            write_clumps(child, 0, fh)
-    if top:
-        fh.close()
+    issue_deprecation_warning(
+        "This function has been deprecated in favor of accessing a " +
+        "clump's leaf nodes via 'clump.leaves'.")
+    return clump.leaves
