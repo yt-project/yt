@@ -43,10 +43,10 @@ def generate_failed_answers_html(failed_answers):
 
     Parameters
     ----------
-    failed_answers : list of tuples (string, dict)
-        Collection of tuples where the first part is a string denoting the
-        test name, the second part is a dictionary that stores the actual,
-        expected and difference plot file locations of the test.
+    failed_answers : dict mapping string to dict
+        the key is a string denoting the test name, the value is a 
+        dictionary that stores the actual, expected and difference plot 
+        file locations of the test.
 
     Returns
     -------
@@ -96,7 +96,7 @@ def generate_failed_answers_html(failed_answers):
 
     rows = []
 
-    for test_name, images in failed_answers:
+    for test_name, images in failed_answers.items():
         encoded_images = {}
         for key in images:
             with open(images[key], "rb") as img:
@@ -150,10 +150,10 @@ def upload_failed_answers(failed_answers):
 
     Parameters
     ----------
-    failed_answers : list of tuples (string, dict)
-        Collection of tuples where the first part is a string denoting the
-        test name, the second part is a dictionary that stores the actual,
-        expected and difference plot file locations of the test.
+    failed_answers : dict mapping string to dict
+        the key is a string denoting the test name, the value is a 
+        dictionary that stores the actual, expected and difference plot 
+        file locations of the test.
 
     Returns
     -------
@@ -315,7 +315,7 @@ def parse_nose_xml(nose_xml):
 
     """
     missing_answers = set()
-    failed_answers = set()
+    failed_answers = dict()
     missing_errors = ["No such file or directory",
                       "There is no old answer available"]
     tree = ET.parse(nose_xml)
@@ -323,17 +323,25 @@ def parse_nose_xml(nose_xml):
 
     for testcase in testsuite:
         for error in testcase.iter('error'):
-            test_name = testcase.attrib["classname"] + ":" \
-                        + testcase.attrib["name"]
-            if missing_errors[0] in error.attrib["message"] or \
-                    missing_errors[1] in error.attrib["message"]:
-                    missing_answers.add(test_name)
-
-            elif "Items are not equal" in error.attrib["message"]:
-                img_path = extract_image_locations(error.attrib["message"])
-                if img_path:
-                    failed_answers.add((test_name, img_path))
+            handle_error(error, testcase, missing_errors, missing_answers, 
+                         failed_answers)
+        for error in testcase.iter('failure'):
+            handle_error(error, testcase, missing_errors, missing_answers, 
+                         failed_answers)
     return failed_answers, missing_answers
+
+
+def handle_error(error, testcase, missing_errors, missing_answers, 
+                 failed_answers):
+    test_name = testcase.attrib["classname"] + ":" + testcase.attrib["name"]
+    if ((missing_errors[0] in error.attrib["message"] or
+         missing_errors[1] in error.attrib["message"])):
+        missing_answers.add(test_name)
+    elif "Items are not equal" in error.attrib["message"]:
+        img_path = extract_image_locations(error.attrib["message"])
+        if img_path:
+            failed_answers[test_name] = img_path
+
 
 if __name__ == "__main__":
     """Report failed answer tests of cloud platforms like Travis, Appveyor
