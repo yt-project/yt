@@ -41,18 +41,8 @@ def test_orientation():
     tf.sample_colormap(0.6, 0.01, colormap="coolwarm")
     tf.sample_colormap(0.3, 0.01, colormap="coolwarm")
 
-    n_frames = 5
-    orientations = [[1.0, 0.0, 0.0],
-                    [0.0, 1.0, 0.0],
-                    [0.0, 0.0, 1.0],
-                    [0.5, 0.4, 0.7],
-                    [-0.3, -0.1, 0.8]]
-
-    # Reduced number of run in case of Travis, since this test reaches
-    # 50 min Travis runtime limit
-    if "TRAVIS" in os.environ:
-        n_frames = 1
-        orientations = orientations[-2:]
+    n_frames = 1
+    orientations = [[-0.3, -0.1, 0.8]]
 
     theta = np.pi / n_frames
     decimals = 12
