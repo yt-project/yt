@@ -58,10 +58,9 @@ answer_tests:
   local_tipsy_002:
     - yt/frontends/tipsy/tests/test_outputs.py
 
-  local_varia_009:
+  local_varia_010:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
-    - yt/visualization/volume_rendering/tests/test_vr_orientation.py
     - yt/fields/tests/test_xray_fields.py
 
   local_photon_002:
