@@ -11,7 +11,6 @@ Answer test to verify VR orientation and rotation is correct
 # -----------------------------------------------------------------------------
 
 
-import os
 import numpy as np
 from nose.plugins.attrib import attr
 from yt.testing import ANSWER_TEST_TAG, fake_vr_orientation_test_ds
