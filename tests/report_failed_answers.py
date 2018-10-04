@@ -165,9 +165,10 @@ def upload_failed_answers(failed_answers):
     # convert html str to bytes
     html = html.encode()
     response = upload_to_curldrop(data=html, filename="failed_answers_{}.html")
+    
     return response
 
-def generate_missing_answers(answer_dir, missing_answers):
+def generate_answers(answer_dir, answers):
     """Generate golden answers
 
     Generates golden answers for the list of answers in `missing_answers` and
@@ -178,7 +179,7 @@ def generate_missing_answers(answer_dir, missing_answers):
     answer_dir : string
         directory location to save the generated answers
 
-    missing_answers : list of string
+    answers : list of string
         Collection of missing answer tests specifying full name of the test.
         eg. ['yt.visualization.tests.test_line_plots:test_multi_line_plot']
 
@@ -200,7 +201,7 @@ def generate_missing_answers(answer_dir, missing_answers):
                            exit=False)
     return status
 
-def upload_missing_answers(missing_answers):
+def upload_answers(answers):
     """Uploads answers not present in answer-store
 
     This function generates the answers for tests that are not present in
@@ -208,7 +209,7 @@ def upload_missing_answers(missing_answers):
 
     Parameters
     ----------
-    missing_answers : list of string
+    answers : list of string
         Collection of missing answer tests specifying full name of the test.
         eg. ['yt.visualization.tests.test_line_plots:test_multi_line_plot']
 
@@ -228,7 +229,7 @@ def upload_missing_answers(missing_answers):
     answer_dir = os.path.join(tmpdir, "answer-store")
     zip_file = os.path.join(tmpdir, "new-answers")
 
-    status = generate_missing_answers(answer_dir, missing_answers)
+    status = generate_answers(answer_dir, answers)
     if status:
         zip_file = shutil.make_archive(zip_file, 'zip', answer_dir)
         data = iter(FileStreamer(open(zip_file, 'rb')))
@@ -386,9 +387,17 @@ if __name__ == "__main__":
                    " URL: " + response.text.split("\n")[1] +
                    COLOR_RESET + FLAG_EMOJI)
             log.info(msg)
+        response = upload_answers(failed_answers)
+        if response.ok:
+            msg = (FLAG_EMOJI + COLOR_CYAN +
+                   "Successfully uploaded answer(s) for failed test at URL: " +
+                   response.text.split("\n")[1] + ". Please commit these "
+                   "answers in the repository's answer-store." +
+                   COLOR_RESET + FLAG_EMOJI)
+            log.info(msg)
 
     if args.upload_missing_answers and missing_answers:
-        response = upload_missing_answers(missing_answers)
+        response = upload_answers(missing_answers)
         if response.ok:
             msg = (FLAG_EMOJI + COLOR_CYAN +
                    "Successfully uploaded missing answer(s) at URL: " +
