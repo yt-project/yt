@@ -227,6 +227,8 @@ def upload_answers(answers):
     # Create temporary location to save new answers
     tmpdir = tempfile.mkdtemp()
     answer_dir = os.path.join(tmpdir, "answer-store")
+    if not os.path.exists(answer_dir):
+        os.mkdir(answer_dir)
     zip_file = os.path.join(tmpdir, "new-answers")
 
     status = generate_answers(answer_dir, answers)
