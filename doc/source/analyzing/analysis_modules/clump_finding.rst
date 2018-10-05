@@ -150,14 +150,13 @@ The entire clump tree can traversed with a loop syntax:
    for clump in master_clump:
        print(clump.clump_id)
 
-The :func:`~yt.data_objects.level_sets.clump_handling.get_lowest_clumps`
-function will return a list of the individual clumps that have no children
-of their own (the leaf clumps).
+The ``leaves`` attribute of a ``Clump`` object will return a list of the
+individual clumps that have no children of their own (the leaf clumps).
 
 .. code:: python
 
    # Get a list of just the leaf nodes.
-   leaf_clumps = get_lowest_clumps(master_clump)
+   leaf_clumps = master_clump.leaves
 
    print(leaf_clumps[0]["gas", "density"])
    print(leaf_clumps[0]["all", "particle_mass"])

@@ -848,7 +848,6 @@ Math Utilities
    ~yt.utilities.math_utils.ortho_find
    ~yt.utilities.math_utils.quartiles
    ~yt.utilities.math_utils.get_rotation_matrix
-   ~yt.utilities.math_utils.get_ortho_basis
    ~yt.utilities.math_utils.get_sph_r
    ~yt.utilities.math_utils.resize_vector
    ~yt.utilities.math_utils.get_sph_theta

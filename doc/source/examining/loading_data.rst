@@ -1678,6 +1678,16 @@ loaded and aliased to ``("PartType0", "particle_magnetic_field")``. The
 corresponding component field like ``("PartType0", "particle_magnetic_field_x")``
 would be added automatically.
 
+Note that ``("PartType4", "StellarFormationTime")`` field has different
+meanings depending on whether it is a cosmological simulation. For cosmological
+runs this is the scale factor at the redshift when the star particle formed.
+For non-cosmological runs it is the time when the star particle formed. (See the
+`GIZMO User Guide <http://www.tapir.caltech.edu/~phopkins/Site/GIZMO_files/gizmo_documentation.html>`_)
+For this reason, ``("PartType4", "StellarFormationTime")`` is loaded as a
+dimensionless field. We defined two related fields
+``("PartType4", "creation_time")``, and ``("PartType4", "age")`` with physical
+units for your convenience.
+
 For Gizmo outputs written as raw binary outputs, you may have to specify
 a bounding box, field specification, and units as are done for standard
 Gadget outputs.  See :ref:`loading-gadget-data` for more information.
