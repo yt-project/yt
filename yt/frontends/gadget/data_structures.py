@@ -59,6 +59,8 @@ class GadgetBinaryHeader(object):
     The main usage is through the GadgetDataset._header attribute. It is also
     used stand-alone in GadgetDataset._is_valid method.
     """
+    _placeholder_keys = ['unused', 'empty']
+
     def __init__(self, filename, header_spec):
         self.filename = filename
         if isinstance(header_spec, str):
@@ -143,6 +145,7 @@ class GadgetBinaryHeader(object):
         # The entries in this header are capitalized and named to match Table 4
         # in the GADGET-2 user guide.
         gformat, endianswap = self.gadget_format
+        # Read header
         with self.open() as f:
             hvals = {}
             for spec in self.spec:
@@ -150,6 +153,11 @@ class GadgetBinaryHeader(object):
                     f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
                 hvals_new = read_record(f, spec, endian=endianswap)
                 hvals.update(hvals_new)
+        # Remove placeholder keys
+        for key in self._placeholder_keys:
+            if key in hvals:
+                del hvals[key]
+        # Convert length 1 list to scalar value
         for i in hvals:
             if len(hvals[i]) == 1:
                 hvals[i] = hvals[i][0]
