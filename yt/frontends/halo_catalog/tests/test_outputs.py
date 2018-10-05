@@ -50,7 +50,7 @@ def fake_halo_catalog(data):
     return filename
 
 class HaloCatalogTest(TempDirTest):
-    requires_module('h5py')
+    @requires_module('h5py')
     def test_halo_catalog(self):
         rs = np.random.RandomState(3670474)
         n_halos = 100
@@ -72,7 +72,7 @@ class HaloCatalogTest(TempDirTest):
             f2.sort()
             assert_array_equal(f1, f2)
 
-    requires_module('h5py')
+    @requires_module('h5py')
     def test_halo_catalog_boundary_particles(self):
         rs = np.random.RandomState(3670474)
         n_halos = 100
