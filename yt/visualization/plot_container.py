@@ -22,7 +22,6 @@ import numpy as np
 import matplotlib
 import os
 
-from distutils.version import LooseVersion
 from collections import defaultdict
 from functools import wraps
 
@@ -666,6 +665,8 @@ class ImagePlotContainer(PlotContainer):
         self._colormaps = defaultdict(
             lambda: ytcfg.get("yt", "default_colormap"))
         self._cbar_minorticks = {}
+        self._background_color = PlotDictionary(
+            self.data_source, lambda: 'w')
         self._colorbar_label = PlotDictionary(
             self.data_source, lambda: None)
 
@@ -719,10 +720,7 @@ class ImagePlotContainer(PlotContainer):
                 except KeyError:
                     cmap = getattr(matplotlib.cm, cmap)
             color = cmap(0)
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            self.plots[actual_field].axes.set_axis_bgcolor(color)
-        else:
-            self.plots[actual_field].axes.set_facecolor(color)
+        self._background_color[actual_field] = color
         return self
 
     @invalidate_plot
