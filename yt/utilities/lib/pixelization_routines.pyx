@@ -1058,12 +1058,20 @@ def pixelize_sph_kernel_projection(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def interpolate_sph_gather(np.float64_t[:] buff,
+def interpolate_sph_positions_gather(np.float64_t[:] buff,
         np.float64_t[:, ::1] tree_positions, np.float64_t[:, ::1] field_positions,
         np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth, PyKDTree kdtree,
         int use_normalization=1, kernel_name="cubic", pbar=None,
         int num_neigh=32):
+
+    '''
+    This function takes in arbitrary positions, field_positions, at which to
+    perform a nearest neighbor search and perform SPH interpolation.
+
+    The results are stored in the buffer, buff, which is in the same order as
+    the field_positions are put in.
+    '''
 
     cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
     cdef np.float64_t * pos_ptr
@@ -1128,6 +1136,12 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
         np.float64_t[:] quantity_to_smooth, PyKDTree kdtree,
         int use_normalization=1, kernel_name="cubic", pbar=None,
         int num_neigh=32):
+    '''
+    This function takes in the bounds and number of cells in a grid (well,
+    actually we implicity calculate this from the size of buff). Then we can
+    perform nearest neighbor search and SPH interpolation at the centre of each
+    cell in the grid.
+    '''
 
     cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
     cdef np.float64_t dx, dy, dz

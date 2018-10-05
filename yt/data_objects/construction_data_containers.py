@@ -68,7 +68,7 @@ import yt.extern.six as six
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
     interpolate_sph_grid_gather, \
-    interpolate_sph_gather, \
+    interpolate_sph_positions_gather, \
     normalization_3d_utility, \
     normalization_1d_utility
 from yt.extern.tqdm import tqdm
@@ -2356,10 +2356,10 @@ class YTOctree(YTSelectionContainer3D):
 
         # Interpolate the field value at the cell positions
         # NOTE: this can be incredibly memory heavy
-        interpolate_sph_gather(buff, pos, self._octree.cell_positions,
-                               hsml, mass, dens, quant_to_smooth, kdtree,
-                               use_normalization=normalize,
-                               num_neigh=num_neighbors)
+        interpolate_sph_positions_gather(buff, pos, self._octree.cell_positions,
+                                         hsml, mass, dens, quant_to_smooth, kdtree,
+                                         use_normalization=normalize,
+                                         num_neigh=num_neighbors)
 
         self[fields] = self.ds.arr(buff, units)
 
