@@ -361,7 +361,6 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                 if smoothing_style == 'scatter':
                     buff = np.zeros(size, dtype='float64')
-                    print("scatter")
 
                     if normalize:
                         buff_den = np.zeros(size, dtype='float64')
@@ -398,7 +397,6 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     # in that dimension
                     x, y, z = self.x_axis[dim], self.y_axis[dim], dim
 
-                    print("gather")
                     buff_size = np.zeros(3, dtype="int64")
                     buff_size[x] = size[0]
                     buff_size[y] = size[1]
