@@ -32,25 +32,20 @@ metal_elements = ["He", "C", "N", "O", "Ne",
                   "Mg", "Si", "S", "Ca", "Fe"]
 
 class GizmoFieldInfo(GadgetFieldInfo):
+    # The known fields list is according to the GIZMO User Guide. See
+    # http://www.tapir.caltech.edu/~phopkins/Site/GIZMO_files/gizmo_documentation.html#snaps-reading
     known_particle_fields = (
-        ("Mass", ("code_mass", ["particle_mass"], None)),
-        ("Masses", ("code_mass", ["particle_mass"], None)),
         ("Coordinates", ("code_length", ["particle_position"], None)),
-        ("Velocity", ("code_velocity", ["particle_velocity"], None)),
         ("Velocities", ("code_velocity", ["particle_velocity"], None)),
-        ("MagneticField", ("code_magnetic", ["particle_magnetic_field"], None)),
         ("ParticleIDs", ("", ["particle_index"], None)),
+        ("Masses", ("code_mass", ["particle_mass"], None)),
         ("InternalEnergy", ("code_specific_energy", ["thermal_energy"], None)),
-        ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("Density", ("code_mass / code_length**3", ["density"], None)),
-        ("MaximumTemperature", ("K", [], None)),
-        ("Temperature", ("K", ["temperature"], None)),
-        ("Epsilon", ("code_length", [], None)),
-        ("Metals", ("code_metallicity", ["metallicity"], None)),
-        ("Metallicity", ("code_metallicity", ["metallicity"], None)),
-        ("Phi", ("code_length", [], None)),
+        ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
+        ("ElectronAbundance", ("", [], None)),
+        ("NeutralHydrogenAbundance", ("", [], None)),
         ("StarFormationRate", ("Msun / yr", [], None)),
-        ("FormationTime", ("code_time", ["creation_time"], None)),
+        ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Metallicity_00", ("", ["metallicity"], None)),
         ("Metallicity_01", ("", ["He_metallicity"], None)),
         ("Metallicity_02", ("", ["C_metallicity"], None)),
@@ -62,6 +57,17 @@ class GizmoFieldInfo(GadgetFieldInfo):
         ("Metallicity_08", ("", ["S_metallicity"], None)),
         ("Metallicity_09", ("", ["Ca_metallicity"], None)),
         ("Metallicity_10", ("", ["Fe_metallicity"], None)),
+        ("ArtificialViscosity", ("", [], None)),
+        ("MagneticField",
+         ("code_magnetic", ["particle_magnetic_field"], None)),
+        ("DivergenceOfMagneticField",
+         ("code_magnetic / code_length", [], None)),
+        ("StellarFormationTime", ("", [], None)),
+        # "StellarFormationTime" has different meanings in (non-)cosmological
+        # runs, so units are left blank here.
+        ("BH_Mass", ("code_mass", [], None)),
+        ("BH_Mdot", ("code_mass / code_time", [], None)),
+        ("BH_Mass_AlphaDisk", ("code_mass", [], None)),
     )
 
     def __init__(self, *args, **kwargs):
@@ -75,6 +81,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
         if ptype in ("PartType0",):
             self.setup_gas_particle_fields(ptype)
             setup_species_fields(self, ptype)
+        if ptype in ("PartType4",):
+            self.setup_star_particle_fields(ptype)
 
     def setup_gas_particle_fields(self, ptype):
         super(GizmoFieldInfo, self).setup_gas_particle_fields(ptype)
@@ -143,3 +151,29 @@ class GizmoFieldInfo(GadgetFieldInfo):
             setup_magnetic_field_aliases(
                 self, ptype, magnetic_field, ftype=ptype
             )
+
+    def setup_star_particle_fields(self, ptype):
+        def _creation_time(field, data):
+            if data.ds.cosmological_simulation:
+                a_form = data['StellarFormationTime']
+                z_form = 1 / a_form - 1
+                creation_time = data.ds.cosmology.t_from_z(z_form)
+            else:
+                t_form = data["StellarFormationTime"]
+                creation_time = data.ds.arr(t_form, "code_time")
+            return creation_time
+
+        self.add_field(
+            (ptype, "creation_time"),
+            sampling_type="particle",
+            function=_creation_time,
+            units=self.ds.unit_system["time"])
+
+        def _age(field, data):
+            return data.ds.current_time - data["creation_time"]
+
+        self.add_field(
+            (ptype, "age"),
+            sampling_type="particle",
+            function=_age,
+            units=self.ds.unit_system["time"])
