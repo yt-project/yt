@@ -203,15 +203,14 @@ class PlotWindow(ImagePlotContainer):
         self.buff_size = buff_size
         self.antialias = antialias
         self._axes_unit_names = None
-        if isinstance(data_source.ds.coordinates, GeographicCoordinateHandler):
-            if geo_projection:
-                self._projection = get_mpl_transform(geo_projection)
-            else:
-                self._projection = get_mpl_transform("PlateCarree")
-            self._transform = get_mpl_transform("PlateCarree")
-        else:
-            self._projection = None
-            self._transform = None
+
+        xform = data_source.ds.coordinates.data_property['transform']
+        if geo_projection:
+            # override the default projection if the user defines one
+            data_source.ds.coordinates.data_property['projection'] = geo_projection
+        proj = data_source.ds.coordinates.data_property['projection']
+        self._projection = get_mpl_transform(proj)
+        self._transform = get_mpl_transform(xform)
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields

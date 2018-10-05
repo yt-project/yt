@@ -76,6 +76,8 @@ class CoordinateHandler(object):
     def __init__(self, ds, ordering):
         self.ds = weakref.proxy(ds)
         self.axis_order = ordering
+        self.data_property = {'transform': None,
+                              'projection': None}
 
     def setup_fields(self):
         # This should return field definitions for x, y, z, r, theta, phi
