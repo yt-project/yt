@@ -21,11 +21,9 @@ from yt.fields.derived_field import \
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
-    deprecate, \
+    issue_deprecation_warning, \
     get_output_filename, \
     mylog
-from yt.extern.six import \
-    string_types
 from yt.utilities.tree_container import \
     TreeContainer
 
@@ -55,7 +53,6 @@ def add_contour_field(ds, contour_key):
                  units='')
 
 class Clump(TreeContainer):
-    children = None
     def __init__(self, data, field, parent=None,
                  clump_info=None, validators=None,
                  base=None, contour_key=None,
@@ -67,6 +64,7 @@ class Clump(TreeContainer):
         self.min_val = self.data[field].min()
         self.max_val = self.data[field].max()
         self.info = {}
+        self.children = []
 
         # is this the parent clump?
         if base is None:
@@ -93,6 +91,18 @@ class Clump(TreeContainer):
         # Return value of validity function.
         self.valid = None
 
+    _leaves = None
+    @property
+    def leaves(self):
+        if self._leaves is not None:
+            return self._leaves
+
+        self._leaves = []
+        for clump in self:
+            if not clump.children:
+                self._leaves.append(clump)
+        return self._leaves
+
     def add_validator(self, validator, *args, **kwargs):
         """
         Add a validating function to determine whether the clump should 
@@ -100,7 +110,6 @@ class Clump(TreeContainer):
         """
         callback = clump_validator_registry.find(validator, *args, **kwargs)
         self.validators.append(callback)
-        if self.children is None: return
         for child in self.children:
             child.add_validator(validator)
 
@@ -109,7 +118,6 @@ class Clump(TreeContainer):
 
         callback = clump_info_registry.find(info_item, *args, **kwargs)
         self.clump_info.append(callback)
-        if self.children is None: return
         for child in self.children:
             child.add_info_item(info_item)
 
@@ -139,20 +147,11 @@ class Clump(TreeContainer):
         """
 
         self.clump_info = []
-        if self.children is None: return
         for child in self.children:
             child.clear_clump_info()
 
-    @deprecate("Clump.save_as_dataset")
-    def write_info(self, level, f_ptr):
-        "Writes information for clump using the list of items in clump_info."
-
-        for item in self.base.clump_info:
-            value = item(self)
-            f_ptr.write("%s%s\n" % ('\t'*level, value))
-
     def find_children(self, min_val, max_val = None):
-        if self.children is not None:
+        if self.children:
             mylog.info("Wiping out existing children clumps: %d.",
                        len(self.children))
         self.children = []
@@ -185,8 +184,6 @@ class Clump(TreeContainer):
 
     def __iter__(self):
         yield self
-        if self.children is None:
-            return
         for child in self.children:
             for a_node in child:
                 yield a_node
@@ -378,7 +375,6 @@ class Clump(TreeContainer):
         else:
             exec(operation)
 
-        if self.children is None: return
         for child in self.children:
             child.pass_down(operation)
 
@@ -411,26 +407,26 @@ def find_clumps(clump, min_val, max_val, d_clump):
     if min_val >= max_val: return
     clump.find_children(min_val)
 
-    if (len(clump.children) == 1):
+    if len(clump.children) == 1:
         find_clumps(clump, min_val*d_clump, max_val, d_clump)
 
-    elif (len(clump.children) > 0):
+    elif len(clump.children) > 0:
         these_children = []
         mylog.info("Investigating %d children." % len(clump.children))
         for child in clump.children:
             find_clumps(child, min_val*d_clump, max_val, d_clump)
-            if ((child.children is not None) and (len(child.children) > 0)):
+            if len(child.children) > 0:
                 these_children.append(child)
             elif (child._validate()):
                 these_children.append(child)
             else:
                 mylog.info(("Eliminating invalid, childless clump with " +
                             "%d cells.") % len(child.data["ones"]))
-        if (len(these_children) > 1):
+        if len(these_children) > 1:
             mylog.info("%d of %d children survived." %
                        (len(these_children),len(clump.children)))
             clump.children = these_children
-        elif (len(these_children) == 1):
+        elif len(these_children) == 1:
             mylog.info(("%d of %d children survived, linking its " +
                         "children to parent.") % 
                         (len(these_children),len(clump.children)))
@@ -446,46 +442,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
 def get_lowest_clumps(clump, clump_list=None):
     "Return a list of all clumps at the bottom of the index."
 
-    if clump_list is None: clump_list = []
-    if clump.children is None or len(clump.children) == 0:
-        clump_list.append(clump)
-    if clump.children is not None and len(clump.children) > 0:
-        for child in clump.children:
-            get_lowest_clumps(child, clump_list=clump_list)
-
-    return clump_list
-
-@deprecate("Clump.save_as_dataset")
-def write_clump_index(clump, level, fh):
-    top = False
-    if isinstance(fh, string_types):
-        fh = open(fh, "w")
-        top = True
-    for q in range(level):
-        fh.write("\t")
-    fh.write("Clump at level %d:\n" % level)
-    clump.write_info(level, fh)
-    fh.write("\n")
-    fh.flush()
-    if ((clump.children is not None) and (len(clump.children) > 0)):
-        for child in clump.children:
-            write_clump_index(child, (level+1), fh)
-    if top:
-        fh.close()
-
-@deprecate("Clump.save_as_dataset")
-def write_clumps(clump, level, fh):
-    top = False
-    if isinstance(fh, string_types):
-        fh = open(fh, "w")
-        top = True
-    if ((clump.children is None) or (len(clump.children) == 0)):
-        fh.write("%sClump:\n" % ("\t"*level))
-        clump.write_info(level, fh)
-        fh.write("\n")
-        fh.flush()
-    if ((clump.children is not None) and (len(clump.children) > 0)):
-        for child in clump.children:
-            write_clumps(child, 0, fh)
-    if top:
-        fh.close()
+    issue_deprecation_warning(
+        "This function has been deprecated in favor of accessing a " +
+        "clump's leaf nodes via 'clump.leaves'.")
+    return clump.leaves
