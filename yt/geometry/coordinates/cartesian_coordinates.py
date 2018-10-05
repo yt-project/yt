@@ -34,6 +34,7 @@ from yt.utilities.lib.pixelization_routines import \
     normalization_2d_utility
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
+from yt.units.yt_array import uconcatenate
 
 def _sample_ray(ray, npoints, field):
     """
@@ -69,6 +70,30 @@ def _sample_ray(ray, npoints, field):
     dr = np.sqrt((sample_dr**2).sum())
     x = np.arange(npoints)/(npoints-1)*(dr*npoints)
     return x, field_values
+
+def all_data(data, ptype, fields, kdtree=False):
+        field_data = {}
+        fields = set(fields)
+        for field in fields:
+            field_data[field] = []
+
+        for chunk in data.all_data().chunks([], "io"):
+            for field in fields:
+                field_data[field].append(chunk[ptype,
+                                               field].in_base("code"))
+
+        for field in fields:
+            field_data[field] = uconcatenate(field_data[field])
+
+        if kdtree is True:
+            kdtree = data.index.kdtree
+            for field in fields:
+                if len(field_data[field].shape) == 1:
+                    field_data[field] = field_data[field][kdtree.idx]
+                else:
+                    field_data[field] = field_data[field][kdtree.idx, :]
+
+        return field_data
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
@@ -386,33 +411,19 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     # then we do the interpolation
                     buff_temp = np.zeros(buff_size, dtype="float64")
 
-                    tree_positions = []
-                    hsml = []
-                    pmass = []
-                    pdens = []
-                    quantity_to_smooth = []
-                    for chunk in self.ds.all_data().chunks([field],"io"):
-                        tree_positions.append(chunk[(ptype,
-                                                     'particle_position')].in_base("code").d)
-                        hsml.append(chunk[(ptype,
-                                           'smoothing_length')].in_base("code").d)
-                        pmass.append(chunk[(ptype,
-                                           'particle_mass')].in_base("code").d)
-                        pdens.append(chunk[(ptype,
-                                           'density')].in_base("code").d)
-                        quantity_to_smooth.append(chunk[field].d)
-
-                    kdtree = self.ds.index.kdtree
-                    tree_positions = np.concatenate(tree_positions)[kdtree.idx, :]
-                    hsml = np.concatenate(hsml)[kdtree.idx]
-                    pmass = np.concatenate(pmass)[kdtree.idx]
-                    pdens = np.concatenate(pdens)[kdtree.idx]
-                    quantity_to_smooth = np.concatenate(quantity_to_smooth)[kdtree.idx]
+                    fields_to_get = ['particle_position', 'density', 'particle_mass',
+                                     'smoothing_length', field[1]]
+                    all_fields = all_data(self.ds, field[0], fields_to_get, kdtree=True)
 
                     num_neighbors = getattr(self.ds, 'num_neighbors', 32)
-                    interpolate_sph_grid_gather(buff_temp, tree_positions,
-                                                buff_bounds, hsml, pmass, pdens,
-                                                quantity_to_smooth, kdtree,
+                    interpolate_sph_grid_gather(buff_temp,
+                                                all_fields['particle_positions'],
+                                                buff_bounds,
+                                                all_fields['smoothing_length'],
+                                                all_fields['particle_mass'],
+                                                all_fields['density'],
+                                                all_fields[field[1]].in_units(ounits),
+                                                self.ds.kdtree,
                                                 num_neigh=num_neighbors,
                                                 use_normalization=normalize)
 

@@ -58,6 +58,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.units.unit_object import Unit
 from yt.units.yt_array import uconcatenate
 import yt.geometry.particle_deposit as particle_deposit
+from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
@@ -783,36 +784,21 @@ class YTCoveringGrid(YTSelectionContainer3D):
             for field in fields:
                 buff = np.zeros(size, dtype="float64")
 
-                tree_positions = []
-                hsml = []
-                pmass = []
-                pdens = []
-                quantity_to_smooth = []
-                for chunk in self.ds.all_data().chunks([field],"io"):
-                    tree_positions.append(chunk[(ptype,
-                                                 'particle_position')].in_base("code").d)
-                    hsml.append(chunk[(ptype,
-                                       'smoothing_length')].in_base("code").d)
-                    pmass.append(chunk[(ptype,
-                                       'particle_mass')].in_base("code").d)
-                    pdens.append(chunk[(ptype,
-                                       'density')].in_base("code").d)
-                    quantity_to_smooth.append(chunk[field].d)
+                fields_to_get = ['particle_position', 'density', 'particle_mass',
+                                 'smoothing_length', field[1]]
+                all_fields = all_data(self.ds, field[0], fields_to_get, kdtree=True)
 
-                kdtree = self.ds.index.kdtree
-                tree_positions = np.concatenate(tree_positions)[kdtree.idx, :]
-                hsml = np.concatenate(hsml)[kdtree.idx]
-                pmass = np.concatenate(pmass)[kdtree.idx]
-                pdens = np.concatenate(pdens)[kdtree.idx]
-                quantity_to_smooth = np.concatenate(quantity_to_smooth)[kdtree.idx]
-
-                interpolate_sph_grid_gather(buff, tree_positions, bounds,
-                                            hsml, pmass, pdens,
-                                            quantity_to_smooth, kdtree,
+                fi = self.ds._get_field_info(field)
+                interpolate_sph_grid_gather(buff, all_fields['particle_position'],
+                                            bounds,
+                                            all_fields['smoothing_length'],
+                                            all_fields['particle_mass'],
+                                            all_fields['density'],
+                                            all_fields[field[1]].in_units(fi.units),
+                                            self.ds.index.kdtree,
                                             use_normalization=normalize,
                                             num_neigh=num_neighbors)
 
-                fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(buff, fi.units)
 
     def _fill_fields(self, fields):
@@ -2334,30 +2320,17 @@ class YTOctree(YTSelectionContainer3D):
         # for the gather approach we load up all of the data, this like other
         # gather approaches is not memory conservative and with spatial chunking
         # this can be fixed
-        pos = []
-        dens = []
-        mass = []
-        quant_to_smooth = []
-        hsml = []
-        for chunk in self.ds.all_data().chunks([fields], 'io'):
-            pos.append(chunk[(fields[0],'particle_position')].in_base("code").d)
-            dens.append(chunk[(fields[0],'density')].in_base("code").d)
-            mass.append(chunk[(fields[0],'particle_mass')].in_base("code").d)
-            hsml.append(chunk[(fields[0], 'smoothing_length')].in_base("code").d)
-            quant_to_smooth.append(chunk[fields].in_base("code").d)
+        fields_to_get = ['particle_position', 'density', 'particle_mass',
+                         'smoothing_length', fields[1]]
+        all_fields = all_data(self.ds, fields[0], fields_to_get, kdtree=True)
 
-        # order the particle properties based on the kdtree index
-        kdtree = self.ds.index.kdtree
-        pos = np.concatenate(pos)
-        dens = np.concatenate(dens)
-        mass = np.concatenate(mass)
-        hsml = np.concatenate(hsml)
-        quant_to_smooth = np.concatenate(quant_to_smooth)
-
-        # Interpolate the field value at the cell positions
-        # NOTE: this can be incredibly memory heavy
-        interpolate_sph_positions_gather(buff, pos, self._octree.cell_positions,
-                                         hsml, mass, dens, quant_to_smooth, kdtree,
+        interpolate_sph_positions_gather(buff, all_fields['particle_position'],
+                                         self._octree.cell_positions,
+                                         all_fields['smoothing_length'],
+                                         all_fields['particle_mass'],
+                                         all_fields['density'],
+                                         all_fields[fields[1]].in_units(units),
+                                         self.ds.index.kdtree,
                                          use_normalization=normalize,
                                          num_neigh=num_neighbors)
 

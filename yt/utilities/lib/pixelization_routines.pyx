@@ -1086,7 +1086,7 @@ def interpolate_sph_positions_gather(np.float64_t[:] buff,
 
     # Only allocate memory if we are using normalization
     if use_normalization:
-        buff_den = np.zeros(buff.shape, dtype="float64")
+        buff_den = np.zeros(buff.shape[0], dtype="float64")
 
     kernel_func = get_kernel_func(kernel_name)
 
