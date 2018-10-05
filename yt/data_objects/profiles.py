@@ -368,6 +368,12 @@ been deprecated, use profile.standard_deviation instead."""
         data.update(self.field_data)
         data["weight"] = self.weight
         data["used"] = self.used.astype("float64")
+        std = "standard_deviation"
+        if self.weight_field is not None:
+            std_data = getattr(self, std)
+            data.update(dict(
+                ((std, field[1]), std_data[field])
+                for field in self.field_data))
 
         dimensionality = 0
         bin_data = []
@@ -389,7 +395,10 @@ been deprecated, use profile.standard_deviation instead."""
             data[getattr(self, "%s_field" % ax)] = bin_fields[i]
 
         extra_attrs["dimensionality"] = dimensionality
-        ftypes = dict([(field, "data") for field in data])
+        ftypes = dict([(field, "data") for field in data if field[0] != std])
+        if self.weight_field is not None:
+            ftypes.update(dict(((std, field[1]), std)
+                               for field in self.field_data))
         save_as_dataset(self.ds, filename, data, field_types=ftypes,
                         extra_attrs=extra_attrs)
 
@@ -416,12 +425,16 @@ class ProfileNDFromDataset(ProfileND):
         self.weight = ds.data["weight"]
         self.used = ds.data["used"].d.astype(bool)
         profile_fields = [f for f in ds.field_list
-                          if f[1] not in exclude_fields]
+                          if f[1] not in exclude_fields and
+                             f[0] != "standard_deviation"]
         for field in profile_fields:
             self.field_map[field[1]] = field
             self.field_data[field] = ds.data[field]
             self.field_info[field] = ds.field_info[field]
             self.field_units[field] = ds.data[field].units
+            if ("standard_deviation", field[1]) in ds.field_list:
+                self.standard_deviation[field] = \
+                  ds.data["standard_deviation", field[1]]
 
 class Profile1D(ProfileND):
     """An object that represents a 1D profile.
