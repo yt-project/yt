@@ -63,7 +63,7 @@ class GadgetBinaryHeader(object):
 
     def __init__(self, filename, header_spec):
         self.filename = filename
-        if isinstance(header_spec, str):
+        if isinstance(header_spec, string_types):
             header_spec = [header_spec]
         self.spec = [GadgetDataset._setup_binary_spec(hs, gadget_header_specs)
                      for hs in header_spec]
@@ -168,6 +168,7 @@ class GadgetBinaryHeader(object):
         for filename in [self.filename, self.filename + '.0']:
             if os.path.exists(filename):
                 return open(filename, 'rb')
+        raise RuntimeError("Snapshot file %s does not exist." % self.filename)
 
     def validate(self):
         """Validate data integrity."""
@@ -175,7 +176,7 @@ class GadgetBinaryHeader(object):
             self.open().close()
             self.gadget_format
             self.float_type
-        except (IOError, struct.error, RuntimeError):
+        except:
             return False
         return True
 
@@ -279,7 +280,7 @@ class GadgetDataset(SPHDataset):
 
     @classmethod
     def _setup_binary_spec(cls, spec, spec_dict):
-        if isinstance(spec, str):
+        if isinstance(spec, string_types):
             _hs = ()
             for hs in spec.split("+"):
                 _hs += spec_dict[hs]
