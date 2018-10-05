@@ -413,7 +413,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                     fields_to_get = ['particle_position', 'density', 'particle_mass',
                                      'smoothing_length', field[1]]
-                    all_fields = all_data(self.ds, field[0], fields_to_get, kdtree=True)
+                    all_fields = all_data(self.ds, ptype, fields_to_get, kdtree=True)
 
                     num_neighbors = getattr(self.ds, 'num_neighbors', 32)
                     interpolate_sph_grid_gather(buff_temp,
