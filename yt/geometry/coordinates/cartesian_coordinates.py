@@ -361,6 +361,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                 if smoothing_style == 'scatter':
                     buff = np.zeros(size, dtype='float64')
+                    print("scatter")
 
                     if normalize:
                         buff_den = np.zeros(size, dtype='float64')
@@ -397,6 +398,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     # in that dimension
                     x, y, z = self.x_axis[dim], self.y_axis[dim], dim
 
+                    print("gather")
                     buff_size = np.zeros(3, dtype="int64")
                     buff_size[x] = size[0]
                     buff_size[y] = size[1]
@@ -417,13 +419,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                     num_neighbors = getattr(self.ds, 'num_neighbors', 32)
                     interpolate_sph_grid_gather(buff_temp,
-                                                all_fields['particle_positions'],
+                                                all_fields['particle_position'],
                                                 buff_bounds,
                                                 all_fields['smoothing_length'],
                                                 all_fields['particle_mass'],
                                                 all_fields['density'],
                                                 all_fields[field[1]].in_units(ounits),
-                                                self.ds.kdtree,
+                                                self.ds.index.kdtree,
                                                 num_neigh=num_neighbors,
                                                 use_normalization=normalize)
 
