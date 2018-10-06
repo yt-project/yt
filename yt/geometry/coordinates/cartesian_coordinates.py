@@ -30,10 +30,11 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_slice, \
     pixelize_sph_kernel_projection, \
     pixelize_element_mesh_line, \
-    pixelize_sph_gather, \
+    interpolate_sph_grid_gather, \
     normalization_2d_utility
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
+from yt.units.yt_array import uconcatenate
 
 def _sample_ray(ray, npoints, field):
     """
@@ -69,6 +70,30 @@ def _sample_ray(ray, npoints, field):
     dr = np.sqrt((sample_dr**2).sum())
     x = np.arange(npoints)/(npoints-1)*(dr*npoints)
     return x, field_values
+
+def all_data(data, ptype, fields, kdtree=False):
+        field_data = {}
+        fields = set(fields)
+        for field in fields:
+            field_data[field] = []
+
+        for chunk in data.all_data().chunks([], "io"):
+            for field in fields:
+                field_data[field].append(chunk[ptype,
+                                               field].in_base("code"))
+
+        for field in fields:
+            field_data[field] = uconcatenate(field_data[field])
+
+        if kdtree is True:
+            kdtree = data.index.kdtree
+            for field in fields:
+                if len(field_data[field].shape) == 1:
+                    field_data[field] = field_data[field][kdtree.idx]
+                else:
+                    field_data[field] = field_data[field][kdtree.idx, :]
+
+        return field_data
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
@@ -385,10 +410,24 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                     # then we do the interpolation
                     buff_temp = np.zeros(buff_size, dtype="float64")
-                    pixelize_sph_gather(buff_temp, buff_bounds, self.ds,
-                                        field, ptype, normalize=normalize)
 
-                    # we swap the axes back so the axis which was sliced over
+                    fields_to_get = ['particle_position', 'density', 'particle_mass',
+                                     'smoothing_length', field[1]]
+                    all_fields = all_data(self.ds, ptype, fields_to_get, kdtree=True)
+
+                    num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+                    interpolate_sph_grid_gather(buff_temp,
+                                                all_fields['particle_position'],
+                                                buff_bounds,
+                                                all_fields['smoothing_length'],
+                                                all_fields['particle_mass'],
+                                                all_fields['density'],
+                                                all_fields[field[1]].in_units(ounits),
+                                                self.ds.index.kdtree,
+                                                num_neigh=num_neighbors,
+                                                use_normalization=normalize)
+
+                    # We swap the axes back so the axis which was sliced over
                     # is the last axis, as this is the "z" axis of the plots.
                     if z != 2:
                         buff_temp = buff_temp.swapaxes(2, z)
