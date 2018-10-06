@@ -1,7 +1,7 @@
 import numpy as np
 
 import yt.utilities.lib.bitarray as ba
-from yt.testing import assert_equal
+from yt.testing import assert_equal, assert_array_equal
 
 def test_inout_bitarray():
     # Check that we can do it for bitarrays that are funny-shaped
@@ -40,3 +40,13 @@ def test_inout_bitarray():
         arr = b.as_bool_array()
         assert_equal(arr[:i+1].all(), True)
         assert_equal(arr[i+1:].any(), False)
+    for i in range(10):
+        b.set_value(i, 0)
+    arr = b.as_bool_array()
+    assert_equal(arr.any(), False)
+    b.set_value(7, 1)
+    arr = b.as_bool_array()
+    assert_array_equal(arr, [0, 0, 0, 0, 0, 0, 0, 1, 0, 0])
+    b.set_value(2, 1)
+    arr = b.as_bool_array()
+    assert_array_equal(arr, [0, 0, 1, 0, 0, 0, 0, 1, 0, 0])
