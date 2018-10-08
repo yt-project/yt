@@ -124,7 +124,15 @@ Then, add it to the list:
 
    master_clump.add_info_item("mass_weighted_jeans_mass")
 
-Beside the quantities calculated by default, the following are available:
+Once you have run the clump finder, you should be able to access the data for
+the info item you have defined via the ``info`` attribute of a ``Clump`` object:
+
+.. code:: python
+
+   clump = leaf_clumps[0]
+   print(clump.info['mass_weighted_jeans_mass'])
+   
+Besides the quantities calculated by default, the following are available:
 ``center_of_mass`` and ``distance_to_main_clump``.
 
 Working with Clumps
