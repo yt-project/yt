@@ -571,7 +571,7 @@ class YTDataContainer(object):
         else:
             data.update(self.field_data)
         # get the extra fields needed to reconstruct the container
-        tds_fields = tuple(self._determine_fields(list(self._tds_fields)))
+        tds_fields = tuple([('index', t) for t in self._tds_fields])
         for f in [f for f in self._container_fields + tds_fields \
                   if f not in data]:
             data[f] = self[f]
