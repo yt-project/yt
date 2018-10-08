@@ -23,8 +23,7 @@ import tempfile
 from yt.data_objects.level_sets.api import \
     add_clump_info, \
     Clump, \
-    find_clumps, \
-    get_lowest_clumps
+    find_clumps
 from yt.data_objects.level_sets.clump_info_items import clump_info_registry
 from yt.convenience import \
     load
@@ -78,7 +77,7 @@ def test_clump_finding():
     # there should be two children
     assert_equal(len(master_clump.children), 2)
 
-    leaf_clumps = get_lowest_clumps(master_clump)
+    leaf_clumps = master_clump.leaves
 
     for l in leaf_clumps:
         keys = l.info.keys()
@@ -123,7 +122,7 @@ def test_clump_tree_save():
     master_clump.add_validator("min_cells", 20)
 
     find_clumps(master_clump, c_min, c_max, step)
-    leaf_clumps = get_lowest_clumps(master_clump)
+    leaf_clumps = master_clump.leaves
 
     fn = master_clump.save_as_dataset(fields=["density", "x", "y", "z",
                                               "particle_mass"])
@@ -191,8 +190,8 @@ def test_clump_field_parameters():
 
     find_clumps(master_clump_1, c_min, c_max, step)
     find_clumps(master_clump_2, c_min, c_max, step)
-    leaf_clumps_1 = get_lowest_clumps(master_clump_1)
-    leaf_clumps_2 = get_lowest_clumps(master_clump_2)
+    leaf_clumps_1 = master_clump_1.leaves
+    leaf_clumps_2 = master_clump_2.leaves
 
     for c1, c2 in zip(leaf_clumps_1, leaf_clumps_2):
         assert_array_equal(c1["gas", "density"],
