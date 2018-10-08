@@ -67,7 +67,9 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
-from yt.units.unit_systems import create_code_unit_system
+from yt.units.unit_systems import \
+    create_code_unit_system, \
+    _make_unit_system_copy
 from yt.data_objects.region_expression import \
     RegionExpression
 from yt.geometry.coordinates.api import \
@@ -971,10 +973,11 @@ class Dataset(object):
         create_code_unit_system(self.unit_registry, 
                                 current_mks_unit=current_mks_unit)
         if unit_system == "code":
-            unit_system = self.unit_registry.unit_system_id
+            unit_system = unit_system_registry[self.unit_registry.unit_system_id]
         else:
-            unit_system = str(unit_system).lower()
-        self.unit_system = unit_system_registry[unit_system]
+            sys_name = str(unit_system).lower()
+            unit_system = _make_unit_system_copy(self.unit_registry, sys_name)
+        self.unit_system = unit_system
 
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()
