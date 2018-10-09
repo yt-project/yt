@@ -78,7 +78,7 @@ class TestGeoProjections(unittest.TestCase):
 
         for transform in transform_list:
             self.slc = yt.SlicePlot(self.ds, "altitude", "Density",
-                                    geo_projection=transform)
+                                    data_projection=transform)
             proj_type = type(get_mpl_transform(transform))
 
             assert isinstance(self.slc._projection, proj_type)
