@@ -58,6 +58,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.units.unit_object import Unit
 from yt.units.yt_array import uconcatenate
 import yt.geometry.particle_deposit as particle_deposit
+from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
@@ -67,8 +68,8 @@ from yt.units.yt_array import YTArray
 import yt.extern.six as six
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
-    pixelize_sph_gather, \
-    interpolate_sph_arbitrary_positions_gather, \
+    interpolate_sph_grid_gather, \
+    interpolate_sph_positions_gather, \
     normalization_3d_utility, \
     normalization_1d_utility
 from yt.extern.tqdm import tqdm
@@ -743,16 +744,15 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         ptype = self.ds._sph_ptype
         smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
 
         bounds, size = self._get_grid_bounds_size()
 
-        normalize = getattr(self.ds, 'use_sph_normalization', True)
         if(smoothing_style == "scatter"):
             for field in fields:
-                dest = np.zeros(size, dtype="float64")
-
+                buff = np.zeros(size, dtype="float64")
                 if normalize:
-                    dest_den = np.zeros(size, dtype="float64")
+                    buff_den = np.zeros(size, dtype="float64")
 
                 pbar = tqdm(desc="Interpolating SPH field {}".format(field))
                 for chunk in self._data_source.chunks([field],"io"):
@@ -764,28 +764,41 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     dens = chunk[(ptype,'density')].in_base("code").d
                     field_quantity = chunk[field].d
 
-                    pixelize_sph_kernel_arbitrary_grid(dest, px, py, pz, hsml,
-                                    mass, dens, field_quantity, bounds, pbar)
+                    pixelize_sph_kernel_arbitrary_grid(buff, px, py, pz, hsml,
+                                    mass, dens, field_quantity, bounds,
+                                    pbar=pbar)
                     if normalize:
-                        pixelize_sph_kernel_arbitrary_grid(dest_den, px, py, pz,
-                                    hsml, mass, dens, np.ones(hsml.shape[0]),
-                                    bounds)
+                        pixelize_sph_kernel_arbitrary_grid(buff_den, px, py, pz,
+                                    hsml, mass, dens, np.ones(dens.shape[0]),
+                                    bounds, pbar=pbar)
 
                 if normalize:
-                    normalization_3d_utility(dest, dest_den)
+                    normalization_3d_utility(buff, buff_den)
 
                 fi = self.ds._get_field_info(field)
-                self[field] = self.ds.arr(dest, fi.units)
+                self[field] = self.ds.arr(buff, fi.units)
                 pbar.close()
 
         if(smoothing_style == "gather"):
+            num_neighbors = getattr(self.ds, 'num_neighbors', 32)
             for field in fields:
-                buff = np.zeros(self.ActiveDimensions, dtype="float64")
+                buff = np.zeros(size, dtype="float64")
 
-                pixelize_sph_gather(buff, bounds, self.ds, field,
-                                    ptype, normalize=normalize)
+                fields_to_get = ['particle_position', 'density', 'particle_mass',
+                                 'smoothing_length', field[1]]
+                all_fields = all_data(self.ds, field[0], fields_to_get, kdtree=True)
 
                 fi = self.ds._get_field_info(field)
+                interpolate_sph_grid_gather(buff, all_fields['particle_position'],
+                                            bounds,
+                                            all_fields['smoothing_length'],
+                                            all_fields['particle_mass'],
+                                            all_fields['density'],
+                                            all_fields[field[1]].in_units(fi.units),
+                                            self.ds.index.kdtree,
+                                            use_normalization=normalize,
+                                            num_neigh=num_neighbors)
+
                 self[field] = self.ds.arr(buff, fi.units)
 
     def _fill_fields(self, fields):
@@ -2307,40 +2320,19 @@ class YTOctree(YTSelectionContainer3D):
         # for the gather approach we load up all of the data, this like other
         # gather approaches is not memory conservative and with spatial chunking
         # this can be fixed
-        pos = []
-        dens = []
-        mass = []
-        quant_to_smooth = []
-        hsml = []
-        for chunk in self.ds.all_data().chunks([fields], 'io'):
-            pos.append(chunk[(fields[0],'particle_position')].in_base("code").d)
-            dens.append(chunk[(fields[0],'density')].in_base("code").d)
-            mass.append(chunk[(fields[0],'particle_mass')].in_base("code").d)
-            hsml.append(chunk[(fields[0], 'smoothing_length')].in_base("code").d)
-            quant_to_smooth.append(chunk[fields].in_base("code").d)
+        fields_to_get = ['particle_position', 'density', 'particle_mass',
+                         'smoothing_length', fields[1]]
+        all_fields = all_data(self.ds, fields[0], fields_to_get, kdtree=True)
 
-        # order the particle properties based on the kdtree index
-        kdtree = self.ds.index.kdtree
-        pos = np.concatenate(pos)
-        dens = np.concatenate(dens)
-        mass = np.concatenate(mass)
-        hsml = np.concatenate(hsml)
-        quant_to_smooth = np.concatenate(quant_to_smooth)
-
-        # interpolate the field value at the cell positions
-        # NOTE: this can be incredibly memory heavy
-        pbar = tqdm(desc="Interpolating (gather) SPH field {}".format(fields[0]),
-                    total=self._octree.cell_positions.shape[0])
-        interpolate_sph_arbitrary_positions_gather(buff, pos,
-                                                   self._octree.cell_positions,
-                                                   hsml,
-                                                   mass,
-                                                   dens,
-                                                   quant_to_smooth,
-                                                   kdtree=kdtree, pbar=pbar,
-                                                   num_neigh=num_neighbors,
-                                                   use_normalization=normalize)
-        pbar.close()
+        interpolate_sph_positions_gather(buff, all_fields['particle_position'],
+                                         self._octree.cell_positions,
+                                         all_fields['smoothing_length'],
+                                         all_fields['particle_mass'],
+                                         all_fields['density'],
+                                         all_fields[fields[1]].in_units(units),
+                                         self.ds.index.kdtree,
+                                         use_normalization=normalize,
+                                         num_neigh=num_neighbors)
 
         self[fields] = self.ds.arr(buff, units)
 

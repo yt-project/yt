@@ -24,7 +24,7 @@ cdef class bitarray:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def __cinit__(self, np.int64_t size = -1, 
-                  np.ndarray[np.uint8_t, ndim=1] arr = None):
+                  np.ndarray[np.uint8_t, ndim=1, cast=True] arr = None):
         r"""This is a bitarray, which flips individual bits to on/off inside a
         uint8 container array.
 
@@ -76,7 +76,7 @@ cdef class bitarray:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def set_from_array(self, np.uint8_t[::1] arr not None):
+    def set_from_array(self, np.ndarray[np.uint8_t, cast=True] arr not None):
         r"""Given an array that is either uint8_t or boolean, set the values of
         this array to match it.
 
