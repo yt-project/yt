@@ -1237,8 +1237,8 @@ cdef class SliceSelector(SelectorObject):
                         (self.coord - gobj.LeftEdge.d[i])/gobj.dds[i])
                     # clip coordinate to avoid seg fault below if we're
                     # exactly at a grid boundary
-                    icoord = min(icoord, gobj.ActiveDimensions[i]-1)
-                    ind[i][0] = max(icoord, 0)
+                    ind[i][0] = iclip(
+                        icoord, 0, gobj.ActiveDimensions[i]-1)
                     ind[i][1] = ind[i][0] + 1
                 else:
                     ind[i][0] = 0
