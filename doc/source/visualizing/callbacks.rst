@@ -156,7 +156,7 @@ Clump Finder Callback
    import yt
    import numpy as np
    from yt.data_objects.level_sets.api import \
-       Clump, find_clumps, get_lowest_clumps
+       Clump, find_clumps
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
@@ -169,7 +169,7 @@ Clump Finder Callback
    master_clump.add_validator("min_cells", 20)
 
    find_clumps(master_clump, c_min, c_max, 2.0)
-   leaf_clumps = get_lowest_clumps(master_clump)
+   leaf_clumps = master_clump.leaves
 
    prj = yt.ProjectionPlot(ds, 2, 'density', center='c', width=(20,'kpc'))
    prj.annotate_clumps(leaf_clumps)
