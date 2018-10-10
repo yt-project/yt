@@ -565,7 +565,13 @@ class PlotWindow(ImagePlotContainer):
         return self
 
     @invalidate_data
-    def set_antialias(self,aa):
+    def set_antialias(self, aa):
+        """Turn antialiasing on or off.
+
+        parameters
+        ----------
+        aa : boolean
+        """
         self.antialias = aa
 
     @invalidate_data
