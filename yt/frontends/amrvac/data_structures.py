@@ -130,27 +130,39 @@ class AMRVACDataset(Dataset):
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME)
         #   self.parameters             <= full of code-specific items of use
-        #   self.domain_left_edge       <= array of float64
-        #   self.domain_right_edge      <= array of float64
-        #   self.dimensionality         <= int
+        #   self.domain_left_edge       <= array of float64                         OK
+        #   self.domain_right_edge      <= array of float64                         OK
+        #   self.dimensionality         <= int                                      OK
         #   self.domain_dimensions      <= array of int64
         #   self.periodicity            <= three-element tuple of booleans
-        #   self.current_time           <= simulation time in code units
+        #   self.current_time           <= simulation time in code units            OK
         #
         # We also set up cosmological information.  Set these to zero if
         # non-cosmological.
         #
-        #   self.cosmological_simulation    <= int, 0 or 1
-        #   self.current_redshift           <= float
-        #   self.omega_lambda               <= float
-        #   self.omega_matter               <= float
-        #   self.hubble_constant            <= float
+        #   self.cosmological_simulation    <= int, 0 or 1                          OK
+        #   self.current_redshift           <= float                                OK
+        #   self.omega_lambda               <= float                                OK
+        #   self.omega_matter               <= float                                OK
+        #   self.hubble_constant            <= float                                OK
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         with open(self.parameter_filename, 'rb') as df:
-            header = AMRVACDatReader.get_header(df)
-        self.current_time = header['time']
+            self.parameters = AMRVACDatReader.get_header(df)
+
+        self.dimensionality    = self.parameters['ndim'] #devnote, warining : ndir != ndim
+        #self.domain_dimensions = self.parameters[''].astype('int64')
+        self.domain_left_edge  = self.parameters['xmin'].astype('int64')
+        self.domain_right_edge = self.parameters['xmax'].astype('int64')
+        self.current_time      = self.parameters['time']
+
+        #devnote: these could be made optional if needed
+        self.cosmological_simulation = 0
+        self.current_redshift        = 0.0
+        self.omega_matter            = 0.0
+        self.omega_lambda            = 0.0
+        self.hubble_constant         = 0.0
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
