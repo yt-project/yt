@@ -28,11 +28,11 @@ class AMRVACFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
-        ("density", (rho_units, ["density"], r"$\rho$")),
+        ("rho", (rho_units, ["density"], r"$\rho$")),
         ("m1", (mom_units, ["momentum_1"], r"$m_1$")),
         ("m2", (mom_units, ["momentum_2"], r"$m_2$")),
         ("m3", (mom_units, ["momentum_3"], r"$m_3$")),
-        ("energy", ("J", ["energy"], r"$e$")),
+        ("e", ("J", ["energy"], r"$e$")),
         #devnote : missing a way to handle an arbitrary number of dust fluids here
     )
 
