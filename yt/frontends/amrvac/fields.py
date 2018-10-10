@@ -16,6 +16,9 @@ AMRVAC-specific fields
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
+rho_units = "code_mass / code_length**3"
+mom_units = "code_mass / (code_length**2*code_time)"
+
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
 # optionally methods on it that get called which can be subclassed.
