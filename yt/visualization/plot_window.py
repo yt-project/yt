@@ -226,6 +226,7 @@ class PlotWindow(ImagePlotContainer):
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
+
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         if self.data_source.center is not None and oblique is False:
@@ -558,7 +559,7 @@ class PlotWindow(ImagePlotContainer):
         """
 
         self._projection = get_mpl_transform(mpl_proj)
-        transform = data_source.ds.coordinates.data_property['transform']
+        transform = self.ds.coordinates.data_property['transform']
         self._transform = get_mpl_transform(transform)
         return self
 
