@@ -96,7 +96,7 @@ class AMRVACDataset(Dataset):
     def __init__(self, filename, dataset_type='amrvac',
                  storage_filename=None,
                  units_override=None):
-        self.fluid_types += ('amrvac',)
+        self.fluid_types += ('amrvac',) #devnote: input 'gas', 'dust' here ?
         super(AMRVACDataset, self).__init__(filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename

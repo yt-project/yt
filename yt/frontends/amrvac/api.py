@@ -1,5 +1,5 @@
 """
-API for yt.frontends._skeleton
+API for yt.frontends.amrvac
 
 
 
@@ -14,12 +14,12 @@ API for yt.frontends._skeleton
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      SkeletonGrid, \
-      SkeletonHierarchy, \
-      SkeletonDataset
+      AMRVACGrid, \
+      AMRVACHierarchy, \
+      AMRVACDataset
 
 from .fields import \
-      SkeletonFieldInfo
+      AMRVACFieldInfo
 
 from .io import \
-      SkeletonIOHandler
+      AMRVACIOHandler

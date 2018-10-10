@@ -1,5 +1,5 @@
 """
-Skeleton-specific fields
+AMRVAC-specific fields
 
 
 
@@ -21,10 +21,16 @@ from yt.fields.field_info_container import \
 # optionally methods on it that get called which can be subclassed.
 
 
-class SkeletonFieldInfo(FieldInfoContainer):
+class AMRVACFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
+        ("density", (rho_units, ["density"], r"$\rho$")),
+        ("m1", (mom_units, ["momentum_1"], r"$m_1$")),
+        ("m2", (mom_units, ["momentum_2"], r"$m_2$")),
+        ("m3", (mom_units, ["momentum_3"], r"$m_3$")),
+        ("energy", ("J", ["energy"], r"$e$")),
+        #devnote : missing a way to handle an arbitrary number of dust fluids here
     )
 
     known_particle_fields = (
@@ -33,7 +39,7 @@ class SkeletonFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list):
-        super(SkeletonFieldInfo, self).__init__(ds, field_list)
+        super(AMRVACFieldInfo, self).__init__(ds, field_list)
         # If you want, you can check self.field_list
 
     def setup_fluid_fields(self):
@@ -43,5 +49,5 @@ class SkeletonFieldInfo(FieldInfoContainer):
         pass
 
     def setup_particle_fields(self, ptype):
-        super(SkeletonFieldInfo, self).setup_particle_fields(ptype)
+        super(AMRVACFieldInfo, self).setup_particle_fields(ptype)
         # This will get called for every particle type.
