@@ -14,6 +14,7 @@ AMRVAC data structures
 #-----------------------------------------------------------------------------
 
 import os
+import stat
 import numpy as np
 import weakref
 
@@ -110,15 +111,15 @@ class AMRVACDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
         #
-        # self.length_unit = self.quan(1.0, "cm")
-        # self.mass_unit = self.quan(1.0, "g")
-        # self.time_unit = self.quan(1.0, "s")
-        # self.time_unit = self.quan(1.0, "s")
+        #devnote: I'm using the default code because there need to be something but
+        # this needs revising
+        self.length_unit = self.quan(1.0, "cm")
+        self.mass_unit = self.quan(1.0, "g")
+        self.time_unit = self.quan(1.0, "s")
         #
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
-        pass
 
     def _parse_parameter_file(self):
         # This needs to set up the following items.  Note that these are all
@@ -144,10 +145,21 @@ class AMRVACDataset(Dataset):
         #   self.omega_lambda               <= float
         #   self.omega_matter               <= float
         #   self.hubble_constant            <= float
-        pass
+        self.unique_identifier = \
+            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
+        with open(self.parameter_filename, 'rb') as df:
+            header = AMRVACDatReader.get_header(df)
+        self.current_time = header['time']
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
-        return False
+        validation = False
+        try:
+            with open(args[0], 'rb') as fi:
+                assert 'rho' in fi.readline().decode('latin-1')
+            validation = True
+        finally:
+            return validation
