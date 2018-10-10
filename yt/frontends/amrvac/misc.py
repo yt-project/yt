@@ -101,7 +101,7 @@ class AMRVACDatReader:
         """
 
         dat.seek(0)
-        h = get_header(dat)
+        h = __class__.get_header(dat)
         nw = h['nw']
         block_nx = np.array(h['block_nx'])
         domain_nx = np.array(h['domain_nx'])
@@ -160,8 +160,8 @@ class AMRVACDatReader:
         grid. Argument 'dat' should be a file opened in binary mode.
         """
 
-        h = get_header(dat)
-        blocks = get_block_data(dat)
+        h = __class__.get_header(dat)
+        blocks = __class__.get_block_data(dat)
 
         # Check if grid is uniformly refined
         refined_nx = 2**(h['levmax']-1) * h['domain_nx']
