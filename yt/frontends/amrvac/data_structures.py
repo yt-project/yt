@@ -24,6 +24,7 @@ from yt.geometry.grid_geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset
 from .fields import AMRVACFieldInfo
+from .misc import AMRVACDatReader
 
 
 class AMRVACGrid(AMRGridPatch):
