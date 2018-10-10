@@ -1404,6 +1404,12 @@ plot that shows the x and y positions of all the particles in ``ds`` and save th
 result to a file on the disk. The type of plot returned depends on the fields you
 pass in; in this case, ``p`` will be an :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`,
 because the fields are aligned to the coordinate system of the simulation.
+The above example is equivalent to the following:
+
+.. code-block:: python
+
+   p = yt.ParticleProjectionPlot(ds, 'z')
+   p.save()
 
 Most of the callbacks the work for slice and projection plots also work for
 :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`.
@@ -1438,21 +1444,40 @@ Here is a full example that shows the simplest way to use
    p.save()
 
 In the above examples, we are simply splatting particle x and y positions onto
-a plot using some color. We can also supply an additional particle field, and map
-that to a colorbar. For instance:
+a plot using some color. Colors can be applied to the plotted particles by
+providing a ``z_field``, which will be summed along the line of sight in a manner
+similar to a projection.
 
-.. code-block:: python
+.. python-script::
 
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
    p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y',
-                           'particle_mass', width=(0.5, 0.5))
+                       'particle_mass')
    p.set_unit('particle_mass', 'Msun')
+   p.zoom(32)
    p.save()
 
-will create a plot with the particle mass used to set the colorbar.
-Specifically, :class:`~yt.visualization.particle_plots.ParticlePlot`
-shows the total ``z_field`` for all the particles in each pixel on the
-colorbar axis; to plot average quantities instead, one can supply a
-``weight_field`` argument.
+Additionally, a ``weight_field`` can be given such that the value in each
+pixel is the weighted average along the line of sight.
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y',
+                       'particle_mass', weight_field='particle_ones')
+   p.set_unit('particle_mass', 'Msun')
+   p.zoom(32)
+   p.save()
+
+Note the difference in the above two plots. The first shows the
+total mass along the line of sight. The density is higher in the
+inner regions, and hence there are more particles and more mass along
+the line of sight. The second plot shows the average mass per particle
+along the line of sight. The inner region is dominated by low mass
+star particles, whereas the outer region is comprised of higher mass
+dark matter particles.
 
 Here is a complete example that uses the ``particle_mass`` field
 to set the colorbar and shows off some of the modification functions for
