@@ -78,13 +78,16 @@ class AMRVACHierarchy(GridIndex):
         #   self.grid_particle_count    (N, 1) <= int
         #   self.grid_levels            (N, 1) <= int
         #   self.grids                  (N, 1) <= grid objects
-        #   self.max_level = self.grid_levels.max()
-        #ebauche : (reste à déterminer ix et nx ???)
-        #nx = 
-        #xspacing = (self.dataset.domain_right_edge - self.dataset.domain_left_edge) / nx 
-        #self.grid_left_edge = self.dataset.domain_left_edge + xspacing * (ix-1)
 
+        with open(self.dataset.parameter_filename, 'rb') as df:
+            #devnote: here I'm loading everything in the RAM, defeating the purpose
+            # this is a tmp workaround
+            leaves_dat = AMRVACDatReader.get_block_data(df)
+        levels = np.array([leaf["lvl"] for leaf in leaves_dat])
+        self.grid_levels = levels.reshape(self.num_grids, 1)
         self.max_level = self.dataset.parameters["levmax"]
+
+        assert self.dataset.parameters["levmax"] == max(levels)
 
     def _populate_grid_objects(self):
         # For each grid, this must call:
