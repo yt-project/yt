@@ -29,6 +29,7 @@ from .misc import AMRVACDatReader
 
 
 class AMRVACGrid(AMRGridPatch):
+    """devnote : a patch represent part of a block. The hierarchy/index is a collection of patches"""
     _id_offset = 0
 
     def __init__(self, id, index, level):
@@ -45,7 +46,7 @@ class AMRVACGrid(AMRGridPatch):
 class AMRVACHierarchy(GridIndex):
     grid = AMRVACGrid
 
-    def __init__(self, ds, dataset_type='amrvac'):
+    def __init__(self, ds, dataset_type="amrvac"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
@@ -53,20 +54,25 @@ class AMRVACHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
+
+        # init everything to make it clear what's in there
+        self.field_list = []
+        self.num_grids = None
+
         super(AMRVACHierarchy, self).__init__(ds, dataset_type)
 
+
     def _detect_output_fields(self):
-        # This needs to set a self.field_list that contains all the available,
-        # on-disk fields. No derived fields should be defined here.
-        # NOTE: Each should be a tuple, where the first element is the on-disk
-        # fluid type or particle type.  Convention suggests that the on-disk
-        # fluid type is usually the dataset_type and the on-disk particle type
-        # (for a single population of particles) is "io".
-        pass
+        # devnote: probably should distinguish gas and dust fields here
+        # through the "field type" tag, which here is using self.dataset_type
+        self.field_list = [(self.dataset_type, f) for f in self.dataset.parameters["w_names"]]
 
     def _count_grids(self):
-        # This needs to set self.num_grids
-        pass
+        # devnote: not sure this is what is intended
+        # I'm considering that a "patch" (or "grid") for yt is a "block" in AMRVAC
+        self.num_grids = np.product(
+            self.dataset.parameters['domain_nx'] / self.dataset.parameters['block_nx']
+        ).astype('int64')
 
     def _parse_index(self):
         # This needs to fill the following arrays, where N is self.num_grids:
@@ -77,6 +83,10 @@ class AMRVACHierarchy(GridIndex):
         #   self.grid_levels            (N, 1) <= int
         #   self.grids                  (N, 1) <= grid objects
         #   self.max_level = self.grid_levels.max()
+        #ebauche : (reste à déterminer ix et nx ???)
+        #nx = 
+        #xspacing = (self.dataset.domain_right_edge - self.dataset.domain_left_edge) / nx 
+        #self.grid_left_edge = self.dataset.domain_left_edge + xspacing * (ix-1)
         pass
 
     def _populate_grid_objects(self):
