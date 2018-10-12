@@ -226,9 +226,9 @@ that is needed:
     class ChomboGrid(AMRGridPatch):
         _id_offset = 0
         __slots__ = ["_level_id"]
-        def __init__(self, id, index, level = -1):
-            AMRGridPatch.__init__(self, id, filename = index.index_filename,
-                                  index = index)
+        def __init__(self, id, index, level=-1):
+            AMRGridPatch.__init__(self, id, filename=index.index_filename,
+                                  index=index)
             self.Parent = []
             self.Children = []
             self.Level = level
