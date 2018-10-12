@@ -78,12 +78,12 @@ class SkeletonHierarchy(GridIndex):
         pass
 
     def _populate_grid_objects(self):
-        # For each grid, this must call:
-        #   grid._prepare_grid()
-        #   grid._setup_dx()
+        # For each grid g, this must call:
+        #   g._prepare_grid()
+        #   g._setup_dx()
         # This must also set:
-        #   grid.Children <= list of child grids
-        #   grid.Parent   <= parent grid
+        #   g.Children <= list of child grids
+        #   g.Parent   <= parent grid
         # This is handled by the frontend because often the children must be
         # identified.
         pass
