@@ -68,11 +68,7 @@ class AMRVACHierarchy(GridIndex):
         self.field_list = [(self.dataset_type, f) for f in self.dataset.parameters["w_names"]]
 
     def _count_grids(self):
-        # devnote: not sure this is what is intended
-        # I'm considering that a "patch" (or "grid") for yt is a "block" in AMRVAC
-        self.num_grids = np.product(
-            self.dataset.parameters['domain_nx'] / self.dataset.parameters['block_nx']
-        ).astype('int64')
+        self.num_grids = self.dataset.parameters["nleafs"]
 
     def _parse_index(self):
         # This needs to fill the following arrays, where N is self.num_grids:
@@ -87,7 +83,8 @@ class AMRVACHierarchy(GridIndex):
         #nx = 
         #xspacing = (self.dataset.domain_right_edge - self.dataset.domain_left_edge) / nx 
         #self.grid_left_edge = self.dataset.domain_left_edge + xspacing * (ix-1)
-        pass
+
+        self.max_level = self.dataset.parameters["levmax"]
 
     def _populate_grid_objects(self):
         # For each grid, this must call:
