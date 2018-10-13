@@ -157,8 +157,8 @@ class AMRVACDataset(Dataset):
         #   self.domain_left_edge       <= array of float64                         OK
         #   self.domain_right_edge      <= array of float64                         OK
         #   self.dimensionality         <= int                                      OK
-        #   self.domain_dimensions      <= array of int64
-        #   self.periodicity            <= three-element tuple of booleans
+        #   self.domain_dimensions      <= array of int64                           TODO
+        #   self.periodicity            <= three-element tuple of booleans          TODO
         #   self.current_time           <= simulation time in code units            OK
         #
         # We also set up cosmological information.  Set these to zero if
@@ -185,6 +185,11 @@ class AMRVACDataset(Dataset):
             self.domain_left_edge[idim]  = self.parameters['xmin'][idim]
             self.domain_right_edge[idim] = self.parameters['xmax'][idim]
 
+            assert self.domain_right_edge[idim] == self.parameters['xmax'][idim]
+
+            print(f"{idim+1}/{self.dimensionality}", self.domain_left_edge, self.domain_right_edge)
+        #print(self.domain_right_edge); print(self.parameters['xmax']);
+        raise SystemExit
 
         #devnote: these could be made optional if needed
         self.cosmological_simulation = 0
