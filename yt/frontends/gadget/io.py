@@ -60,7 +60,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: x.filename):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             si, ei = data_file.start, data_file.end
             f = h5py.File(data_file.filename, "r")
             # This double-reads
@@ -123,7 +123,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: x.filename):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             si, ei = data_file.start, data_file.end
             f = h5py.File(data_file.filename, "r")
             for ptype, field_list in sorted(ptf.items()):
@@ -285,7 +285,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
@@ -304,7 +304,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")

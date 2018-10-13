@@ -28,8 +28,6 @@ from yt.utilities.io_handler import \
 from .definitions import halo_dts
 from yt.utilities.lib.geometry_utils import compute_morton
 
-from operator import attrgetter
-
 class IOHandlerRockstarBinary(BaseIOHandler):
     _dataset_type = "rockstar_binary"
 
@@ -50,7 +48,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files,key=attrgetter("filename")):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             pcount = data_file.header['num_halos']
             with open(data_file.filename, "rb") as f:
                 f.seek(data_file._position_offset, os.SEEK_SET)
@@ -70,7 +68,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files,key=attrgetter("filename")):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             pcount = data_file.header['num_halos']
             with open(data_file.filename, "rb") as f:
                 for ptype, field_list in sorted(ptf.items()):
