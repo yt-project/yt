@@ -71,14 +71,6 @@ class AMRVACHierarchy(GridIndex):
         self.num_grids = self.dataset.parameters["nleafs"]
 
     def _parse_index(self):
-        # This needs to fill the following arrays, where N is self.num_grids:
-        #   self.grid_left_edge         (N, 3) <= float64             OK
-        #   self.grid_right_edge        (N, 3) <= float64             OK
-        #   self.grid_dimensions        (N, 3) <= int                 OK
-        #   self.grid_particle_count    (N, 1) <= int
-        #   self.grid_levels            (N, 1) <= int                 OK
-        #   self.grids                  (N, 1) <= grid objects
-
         with open(self.dataset.parameter_filename, 'rb') as df:
             #devnote: here I'm loading everything in the RAM, defeating the purpose
             # this is a tmp workaround
@@ -93,6 +85,8 @@ class AMRVACHierarchy(GridIndex):
         self.grid_left_edge = np.zeros((self.num_grids, 3), dtype='float64')
         self.grid_right_edge = np.ones((self.num_grids, 3), dtype='float64')
         self.grid_dimensions = np.ones((self.num_grids, 3), dtype='int64')
+        self.grids = np.empty(len(leaves_dat), dtype='object')
+
         for ip, patch in enumerate(leaves_dat):
             patch_width = block_width / 2**(patch['lvl']-1)
             patch_left_edge  = header['xmin'] + (patch['ix']-1) / 2**(patch['lvl']) * domain_width
@@ -103,6 +97,7 @@ class AMRVACHierarchy(GridIndex):
                 self.grid_left_edge[ip,idim]  = patch_left_edge[idim]
                 self.grid_right_edge[ip,idim] = patch_right_edge[idim]
                 self.grid_dimensions[ip,idim] = patch['w'].shape[idim]
+            self.grids[ip] = self.grid(id=ip, index=self, level=patch['lvl'])
 
         levels = np.array([leaf["lvl"] for leaf in leaves_dat])
         self.grid_levels = levels.reshape(self.num_grids, 1)
