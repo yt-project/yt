@@ -105,15 +105,13 @@ class AMRVACHierarchy(GridIndex):
         assert self.dataset.parameters["levmax"] == max(levels)
 
     def _populate_grid_objects(self):
-        # For each grid, this must call:
-        #   grid._prepare_grid()
-        #   grid._setup_dx()
-        # This must also set:
-        #   grid.Children <= list of child grids
-        #   grid.Parent   <= parent grid
-        # This is handled by the frontend because often the children must be
-        # identified.
-        pass
+        for g in self.grids:
+            # set up Children and Parent...
+            pass
+        for g in self.grids:
+            grid._prepare_grid()
+            grid._setup_dx()
+
 
 
 class AMRVACDataset(Dataset):
