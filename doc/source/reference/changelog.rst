@@ -472,6 +472,8 @@ Minor Enhancements and Bugfixes
   system. See `PR 2035 <https://github.com/yt-project/yt/pull/2035>`__.
 - Avoid incorrectly rescaling units of metalicity fields. See `PR 2038
   <https://github.com/yt-project/yt/pull/2038>`__.
+- Fix incorrect units for FLASH ``"divb"`` field. See `PR 2062
+  <https://github.com/yt-project/yt/pull/2062>`__.
 
 Version 3.4
 -----------
