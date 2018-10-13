@@ -82,10 +82,11 @@ class AMRVACHierarchy(GridIndex):
         nblocks = header['domain_nx'] / header['block_nx']
         block_width = domain_width / nblocks
 
-        self.grid_left_edge = np.zeros((self.num_grids, 3), dtype='float64')
-        self.grid_right_edge = np.ones((self.num_grids, 3), dtype='float64')
-        self.grid_dimensions = np.ones((self.num_grids, 3), dtype='int64')
         self.grids = np.empty(len(leaves_dat), dtype='object')
+
+        # those are YTarray instances, already initialized with proper shape
+        self.grid_left_edge[:]  = 0.0
+        self.grid_right_edge[:] = 1.0
 
         for ip, patch in enumerate(leaves_dat):
             patch_width = block_width / 2**(patch['lvl']-1)
@@ -93,7 +94,7 @@ class AMRVACHierarchy(GridIndex):
             patch_right_edge = header['xmin'] + (patch['ix'])   / 2**(patch['lvl']) * domain_width
             for idim, ledge in enumerate(patch_left_edge):
                 # workaround the variable dimensionality of input data
-                # missing values are left to defaults (0 for left edge and 1 for right edge)
+                # missing values are left to init values (0 ?)
                 self.grid_left_edge[ip,idim]  = patch_left_edge[idim]
                 self.grid_right_edge[ip,idim] = patch_right_edge[idim]
                 self.grid_dimensions[ip,idim] = patch['w'].shape[idim]
@@ -109,8 +110,8 @@ class AMRVACHierarchy(GridIndex):
             # set up Children and Parent...
             pass
         for g in self.grids:
-            grid._prepare_grid()
-            grid._setup_dx()
+            g._prepare_grid()
+            g._setup_dx()
 
 
 
@@ -174,11 +175,16 @@ class AMRVACDataset(Dataset):
         with open(self.parameter_filename, 'rb') as df:
             self.parameters = AMRVACDatReader.get_header(df)
 
-        self.dimensionality    = self.parameters['ndim'] #devnote, warining : ndir != ndim
-        #self.domain_dimensions = self.parameters[''].astype('int64')
-        self.domain_left_edge  = self.parameters['xmin'].astype('int64')
-        self.domain_right_edge = self.parameters['xmax'].astype('int64')
-        self.current_time      = self.parameters['time']
+        self.current_time   = self.parameters['time']
+        self.dimensionality = self.parameters['ndim'] #devnote, warining : ndir != ndim
+        #self.domain_dimensions = self.parameters[''].astype('int64') #devnote: number of cells, or grids ??
+
+        self.domain_left_edge  = np.zeros(3)
+        self.domain_right_edge = np.ones(3)
+        for idim in range(self.dimensionality):
+            self.domain_left_edge[idim]  = self.parameters['xmin'][idim]
+            self.domain_right_edge[idim] = self.parameters['xmax'][idim]
+
 
         #devnote: these could be made optional if needed
         self.cosmological_simulation = 0
