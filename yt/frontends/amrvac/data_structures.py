@@ -92,6 +92,7 @@ class AMRVACHierarchy(GridIndex):
 
         self.grid_left_edge = np.zeros((self.num_grids, 3), dtype='float64')
         self.grid_right_edge = np.ones((self.num_grids, 3), dtype='float64')
+        self.grid_dimensions = np.ones((self.num_grids, 3), dtype='int64')
         for ip, patch in enumerate(leaves_dat):
             patch_width = block_width / 2**(patch['lvl']-1)
             patch_left_edge  = header['xmin'] + (patch['ix']-1) / 2**(patch['lvl']) * domain_width
@@ -101,7 +102,7 @@ class AMRVACHierarchy(GridIndex):
                 # missing values are left to defaults (0 for left edge and 1 for right edge)
                 self.grid_left_edge[ip,idim]  = patch_left_edge[idim]
                 self.grid_right_edge[ip,idim] = patch_right_edge[idim]
-                #self.grid_dimensions[ip,idim] = patch_width[idim] # that should be int ???
+                self.grid_dimensions[ip,idim] = patch['w'].shape[idim]
 
         levels = np.array([leaf["lvl"] for leaf in leaves_dat])
         self.grid_levels = levels.reshape(self.num_grids, 1)
