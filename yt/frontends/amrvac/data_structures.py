@@ -72,11 +72,11 @@ class AMRVACHierarchy(GridIndex):
 
     def _parse_index(self):
         # This needs to fill the following arrays, where N is self.num_grids:
-        #   self.grid_left_edge         (N, 3) <= float64
-        #   self.grid_right_edge        (N, 3) <= float64
-        #   self.grid_dimensions        (N, 3) <= int
+        #   self.grid_left_edge         (N, 3) <= float64             OK
+        #   self.grid_right_edge        (N, 3) <= float64             OK
+        #   self.grid_dimensions        (N, 3) <= int                 OK
         #   self.grid_particle_count    (N, 1) <= int
-        #   self.grid_levels            (N, 1) <= int
+        #   self.grid_levels            (N, 1) <= int                 OK
         #   self.grids                  (N, 1) <= grid objects
 
         with open(self.dataset.parameter_filename, 'rb') as df:
@@ -107,7 +107,6 @@ class AMRVACHierarchy(GridIndex):
         levels = np.array([leaf["lvl"] for leaf in leaves_dat])
         self.grid_levels = levels.reshape(self.num_grids, 1)
         self.max_level = self.dataset.parameters["levmax"]
-
         assert self.dataset.parameters["levmax"] == max(levels)
 
     def _populate_grid_objects(self):
