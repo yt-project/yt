@@ -108,9 +108,9 @@ class StreamParticleIOHandler(BaseIOHandler):
         super(StreamParticleIOHandler, self).__init__(ds)
 
     def _read_particle_coords(self, chunks, ptf):
-        for data_file in sorted(self._get_data_files(chunks,
+        for data_file in sorted(self._get_data_files(chunks),
                                                      key=lambda x: (x.filename,
-                                                                    x.start))):
+                                                                    x.start)):
             f = self.fields[data_file.filename]
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
@@ -119,9 +119,9 @@ class StreamParticleIOHandler(BaseIOHandler):
                               f[ptype, "particle_position_z"])
 
     def _read_smoothing_length(self, chunks, ptf, ptype):
-        for data_file in sorted(self._get_data_files(chunks,
+        for data_file in sorted(self._get_data_files(chunks),
                                                      key=lambda x: (x.filename,
-                                                                    x.start))):
+                                                                    x.start)):
             f = self.fields[data_file.filename]
             return f[ptype, 'smoothing_length']
             
@@ -142,9 +142,9 @@ class StreamParticleIOHandler(BaseIOHandler):
         return psize
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        for data_file in sorted(self._get_data_files(chunks,
+        for data_file in sorted(self._get_data_files(chunks),
                                                      key=lambda x: (x.filename,
-                                                                    x.start))):
+                                                                    x.start)):
             f = self.fields[data_file.filename]
             for ptype, field_list in sorted(ptf.items()):
                 if (ptype, "particle_position") in f:
