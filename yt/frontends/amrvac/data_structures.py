@@ -83,6 +83,26 @@ class AMRVACHierarchy(GridIndex):
             #devnote: here I'm loading everything in the RAM, defeating the purpose
             # this is a tmp workaround
             leaves_dat = AMRVACDatReader.get_block_data(df)
+        header = self.dataset.parameters
+
+        #all of these are (ndim) arrays
+        domain_width = header['xmax'] - header['xmin']
+        nblocks = header['domain_nx'] / header['block_nx']
+        block_width = domain_width / nblocks
+
+        self.grid_left_edge = np.zeros((self.num_grids, 3), dtype='float64')
+        self.grid_right_edge = np.ones((self.num_grids, 3), dtype='float64')
+        for ip, patch in enumerate(leaves_dat):
+            patch_width = block_width / 2**(patch['lvl']-1)
+            patch_left_edge  = header['xmin'] + (patch['ix']-1) / 2**(patch['lvl']) * domain_width
+            patch_right_edge = header['xmin'] + (patch['ix'])   / 2**(patch['lvl']) * domain_width
+            for idim, ledge in enumerate(patch_left_edge):
+                # workaround the variable dimensionality of input data
+                # missing values are left to defaults (0 for left edge and 1 for right edge)
+                self.grid_left_edge[ip,idim]  = patch_left_edge[idim]
+                self.grid_right_edge[ip,idim] = patch_right_edge[idim]
+                #self.grid_dimensions[ip,idim] = patch_width[idim] # that should be int ???
+
         levels = np.array([leaf["lvl"] for leaf in leaves_dat])
         self.grid_levels = levels.reshape(self.num_grids, 1)
         self.max_level = self.dataset.parameters["levmax"]
