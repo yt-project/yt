@@ -45,7 +45,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         pn = "particle_position_%s"
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, "r") as f:
                 units = parse_h5_attr(f[pn % "x"], "units")
                 x, y, z = \
@@ -74,7 +74,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         pn = "particle_position_%s"
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[pn % "x"], "units")
