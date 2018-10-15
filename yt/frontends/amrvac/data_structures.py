@@ -179,17 +179,14 @@ class AMRVACDataset(Dataset):
         self.dimensionality = self.parameters['ndim'] #devnote, warining : ndir != ndim
         #self.domain_dimensions = self.parameters[''].astype('int64') #devnote: number of cells, or grids ??
 
-        self.domain_left_edge  = np.zeros(3)
-        self.domain_right_edge = np.ones(3)
+        dle = np.zeros(3)
+        dre = np.ones(3)
         for idim in range(self.dimensionality):
-            self.domain_left_edge[idim]  = self.parameters['xmin'][idim]
-            self.domain_right_edge[idim] = self.parameters['xmax'][idim]
+            dle[idim] = self.parameters['xmin'][idim]
+            dre[idim] = self.parameters['xmax'][idim]
 
-            assert self.domain_right_edge[idim] == self.parameters['xmax'][idim]
-
-            print(f"{idim+1}/{self.dimensionality}", self.domain_left_edge, self.domain_right_edge)
-        #print(self.domain_right_edge); print(self.parameters['xmax']);
-        raise SystemExit
+        self.domain_left_edge = dle
+        self.domain_right_edge = dre
 
         #devnote: these could be made optional if needed
         self.cosmological_simulation = 0
