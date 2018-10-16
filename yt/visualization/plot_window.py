@@ -45,8 +45,6 @@ from yt.frontends.ytdata.data_structures import \
 from yt.funcs import \
     mylog, iterable, ensure_list, \
     fix_axis, fix_unitary, obj_length
-from yt.geometry.coordinates.geographic_coordinates import \
-    GeographicCoordinateHandler
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \

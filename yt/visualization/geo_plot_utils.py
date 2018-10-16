@@ -69,7 +69,8 @@ def get_mpl_transform(mpl_proj):
     elif hasattr (mpl_proj, 'name'):
         # last we'll check if the transform is in the list of registered
         # projections in matplotlib.
-        registered_projections = matplotlib.projections.get_projection_names()
+        from matplotlib.projections import get_projection_names
+        registered_projections = get_projection_names()
         if mpl_proj.name in registered_projections:
             key = mpl_proj
             instantiated_func = mpl_proj
