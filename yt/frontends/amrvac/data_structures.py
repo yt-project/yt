@@ -68,7 +68,29 @@ class AMRVACHierarchy(GridIndex):
         self.field_list = [(self.dataset_type, f) for f in self.dataset.parameters["w_names"]]
 
     def _count_grids(self):
-        self.num_grids = self.dataset.parameters["nleafs"]
+        # AMRVAC data files only contain 'leaves', which
+        # are bottom (highest) level patches/grids.
+        # We need the complete hierarchy from top (level 1 = block) to bottom
+        # so we include "ghost" grids in the counting, i.e. intermediate level grids only
+        # represented by their respective subgrids.
+        header = self.dataset.parameters
+        with open(self.dataset.parameter_filename, 'rb') as df:
+            #devnote: here I'm loading everything in the RAM, defeating the purpose
+            # this is a tmp workaround
+            leaves_dat = AMRVACDatReader.get_block_data(df)
+        leave_levels = [d['lvl'] for d in leaves_dat]
+        lmax = self.dataset.parameters["levmax"]
+        ndim = self.dataset.dimensionality
+        n_leaves = {l: leave_levels.count(l) for l in range(1, lmax+1)}
+        assert sum(n_leaves.values()) == self.dataset.parameters["nleafs"]
+
+        n_grids = {lmax: n_leaves[lmax]}
+        for l in reversed(range(1, lmax)):
+            n_ghost_grids = n_grids[l+1]/2**ndim
+            assert int(n_ghost_grids) == n_ghost_grids
+            n_grids.update({l: n_leaves[l] + int(n_ghost_grids)})
+
+        self.num_grids = sum(n_grids.values())
 
     def _parse_index(self):
         with open(self.dataset.parameter_filename, 'rb') as df:
@@ -106,7 +128,8 @@ class AMRVACHierarchy(GridIndex):
         assert self.dataset.parameters["levmax"] == max(levels)
 
     def _populate_grid_objects(self):
-        for g in self.grids:
+        lvls = set(self.grid_levels)
+        for lvl in lvls:
             # set up Children and Parent...
             pass
         for g in self.grids:
