@@ -57,6 +57,27 @@ def get_mpl_transform(mpl_proj):
         elif len(mpl_proj) == 3:
             key, args, kwargs = mpl_proj
         instantiated_func = valid_transforms[key](*args, **kwargs)
+    elif hasattr (mpl_proj, 'globe'):
+        # cartopy transforms have a globe method associated with them
+        key = mpl_proj
+        instantiated_func = mpl_proj
+    elif hasattr (mpl_proj, 'set_transform'):
+        # mpl axes objects have a set_transform method, so we'll check if that
+        # exists on something passed in.
+        key = mpl_proj
+        instantiated_func = mpl_proj
+    elif hasattr (mpl_proj, 'name'):
+        # last we'll check if the transform is in the list of registered
+        # projections in matplotlib.
+        registered_projections = matplotlib.projections.get_projection_names()
+        if mpl_proj.name in registered_projections:
+            key = mpl_proj
+            instantiated_func = mpl_proj
+        else:
+            key = None
+
+    # build in a check that if none of the above options are satisfied by what
+    # the user passes that None is returned for the instantiated function
     if key is None:
         instantiated_func = None
     return instantiated_func
