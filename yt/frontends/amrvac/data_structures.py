@@ -19,11 +19,20 @@ import numpy as np
 import weakref
 
 from yt.data_objects.grid_patch import \
-    AMRGridPatch
+   AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
-    GridIndex
+   GridIndex
+from yt.data_objects.static_output import \
+   Dataset
+from yt.geometry.oct_geometry_handler import \
+    OctreeIndex
+from yt.geometry.geometry_handler import \
+    YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
+from yt.data_objects.octree_subset import \
+    OctreeSubset
+
 from .fields import AMRVACFieldInfo
 from .misc import AMRVACDatReader
 
@@ -92,12 +101,37 @@ class AMRVACHierarchy(GridIndex):
 
         self.num_grids = sum(n_grids.values())
 
+
+    def create_patch(level, bottom):
+        """
+        level: int, level of the patch to be created
+        bottom: a leaf (bottom level base for the current patch being created)
+        """
+        assert bottom["lvl"] >= level
+        patch = {
+            "left_edge": 0.0, #TODO
+            "right_edge": 0.0, #TODO
+            "width": self._block_width / 2**(level-1)
+        }
+        return patch
+
+
+    def _add_patch(self, patch):
+        for idim, ledge in enumerate(patch['left_edge']):
+            # workaround the variable dimensionality of input data
+            # missing values are left to init values
+            self.grid_left_edge[igrid,idim]  = patch_left_edge[idim]
+            self.grid_right_edge[igrid,idim] = patch_right_edge[idim]
+            #self.grid_dimensions[igrid,idim] = ...
+
+
     def _parse_index(self):
         with open(self.dataset.parameter_filename, 'rb') as df:
             #devnote: here I'm loading everything in the RAM, defeating the purpose
             # this is a tmp workaround
             leaves_dat = AMRVACDatReader.get_block_data(df)
         header = self.dataset.parameters
+        ndim = self.dataset.dimensionality
 
         #all of these are (ndim) arrays
         domain_width = header['xmax'] - header['xmin']
@@ -110,17 +144,36 @@ class AMRVACHierarchy(GridIndex):
         self.grid_left_edge[:]  = 0.0
         self.grid_right_edge[:] = 1.0
 
-        for ip, patch in enumerate(leaves_dat):
-            patch_width = block_width / 2**(patch['lvl']-1)
-            patch_left_edge  = header['xmin'] + (patch['ix']-1) / 2**(patch['lvl']) * domain_width
-            patch_right_edge = header['xmin'] + (patch['ix'])   / 2**(patch['lvl']) * domain_width
-            for idim, ledge in enumerate(patch_left_edge):
-                # workaround the variable dimensionality of input data
-                # missing values are left to init values (0 ?)
-                self.grid_left_edge[ip,idim]  = patch_left_edge[idim]
-                self.grid_right_edge[ip,idim] = patch_right_edge[idim]
-                self.grid_dimensions[ip,idim] = patch['w'].shape[idim]
-            self.grids[ip] = self.grid(id=ip, index=self, level=patch['lvl'])
+
+        # wip
+        # --------------------------------------------
+        expected_levels = [1] * nblocks
+        ileaf = igrid = 0
+        while igrid < self.num_grids:
+            leaf = leaves_dat[ileaf]
+            while leaf['lvl'] > expected_levels[-1]:
+                current_level = expected_levels.pop()
+                expected_levels += [current_level+1] * 2**ndim
+                patch = create_patch(level=current_level, bottom=leaf)
+                self._add_patch(patch)
+                igrid += 1
+            patch = create_patch(level=leaf['lvl'], bottom=leaf)
+            self._add_patch(patch)
+            ileaf += 1
+
+        # deprecated abstraction
+        # ---------------------------------------------
+        # for ip, patch in enumerate(leaves_dat):
+        #     patch_width = block_width / 2**(patch['lvl']-1)
+        #     patch_left_edge  = header['xmin'] + (patch['ix']-1) / 2**(patch['lvl']) * domain_width
+        #     patch_right_edge = header['xmin'] + (patch['ix'])   / 2**(patch['lvl']) * domain_width
+        #     for idim, ledge in enumerate(patch_left_edge):
+        #         # workaround the variable dimensionality of input data
+        #         # missing values are left to init values (0 ?)
+        #         self.grid_left_edge[ip,idim]  = patch_left_edge[idim]
+        #         self.grid_right_edge[ip,idim] = patch_right_edge[idim]
+        #         self.grid_dimensions[ip,idim] = patch['w'].shape[idim]
+        #     self.grids[ip] = self.grid(id=ip, index=self, level=patch['lvl'])
 
         levels = np.array([leaf["lvl"] for leaf in leaves_dat])
         self.grid_levels = levels.reshape(self.num_grids, 1)
