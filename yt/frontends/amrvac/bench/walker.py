@@ -5,8 +5,21 @@ data in terms of grids: amrvac .dat file doesn't mention a level L
 grid if it's been fully refined into (L+1) level grids, so we insert them as we go
 
 
-issues : this routine need an initial guess of the final number of grids (ngrids)
-this is feasible by hand on a small data set but I don't have a solution ready made for that.
+identified issues
+-----------------
+
+* currently, get_englobante() calls are only relevant when the missing
+  grid is right above the current leaf
+
+* "patch" is here used to mean "leaf" : bottom level grid found in the
+  data file
+
+* if levels decrease or stays constant when we actually switch to a
+  new missing englobante, this is not detected
+
+* this routine need an initial guess of the final number of grids
+(ngrids) this is feasible by hand on a small data set but I don't have
+a solution ready made for that.
 
 """
 
