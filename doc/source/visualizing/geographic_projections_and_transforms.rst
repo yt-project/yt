@@ -34,18 +34,48 @@ installation of ``cartopy`` available on your machine.
 
     conda install cartopy
 
+Using Basic Transforms
+^^^^^^^^^^^^^^^^^^^^^^^
+
+As mentioned above, the default data transform is assumed to be of `PlateCarree
+<https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`_,
+which is data on a flattened, rectangular, latitude/longitude grid. To set
+something other than ``PlateCarree``, the user can set the ``data_transform`` kwarg
+in the plot setup to change the default transform type. Because the transform
+describes the underlying data coordinate system, the loaded dataset will carry
+this newly set attribute and all future plots will have the user-defined data
+transform. 
+
+.. code-block:: python
+
+    ds = yt.load_uniform_grid(data, sizes, 1.0, geometry=("geographic", dims),
+    bbox=bbox)
+    p = yt.SlicePlot(ds, "altitude", 'AIRDENS', data_transform="Miller")
+
+In this example, the ``data_transform`` kwarg has been changed from its default
+of ``PlateCarree`` to ``Miller``. You can check that you have successfully changed
+the defaults by inspecting the ``data_properties`` dictionary in the coordinate
+handler. For this dataset, that would be accessed by:
+
+.. code-block:: python
+
+    print(ds.coordinates.data_property['transform'])
+    print(ds.coordinates.data_property['projection'])
+
+
+
 Using Basic Projections
 ^^^^^^^^^^^^^^^^^^^^^^^
 
-All of the transforms available in ``Cartopy`` v0.15 are accessible with this
-functionality.
+All of the transforms available in ``Cartopy`` v0.15 and above are accessible 
+with this functionality.
 
 The next few examples will use a GEOS dataset accessible from the ``yt`` data
 downloads page. For details about loading this data, please 
 see :ref:`cookbook-geographic_projections`.
 
 If a geographic dataset is loaded without any defined projection the default
-option of `PlateCarree` will be displayed.
+option of ``PlateCarree`` will be displayed.
 
 .. code-block:: python
 
@@ -53,17 +83,17 @@ option of `PlateCarree` will be displayed.
     bbox=bbox)
     p = yt.SlicePlot(ds, "altitude", 'AIRDENS')
 
-If an option other than `PlateCarree` is desired, the plot projection type can
-be set manually either in the arguments for `SlicePlot` or 
-with the `set_mpl_projection` function. The next two code blocks show how to 
-sets the projection to a `Robinson` projection from the default `PlateCarree`
+If an option other than ``PlateCarree`` is desired, the plot projection type can
+be set manually either in the arguments for ``SlicePlot`` or 
+with the ``set_mpl_projection`` function. The next two code blocks show how to 
+sets the projection to a ``Robinson`` projection from the default `PlateCarree`
 using either method.
 
 .. code-block:: python
 
     ds = yt.load_uniform_grid(data, sizes, 1.0, geometry=("geographic", dims),
     bbox=bbox)
-    p = yt.SlicePlot(ds, "altitude", 'AIRDENS', geo_projection="Robinson")
+    p = yt.SlicePlot(ds, "altitude", 'AIRDENS', data_projection="Robinson")
     p.show()
 
 .. code-block:: python
@@ -75,9 +105,9 @@ using either method.
     p.show()
 
 The axes attributes of the plot can be accessed to add in annotations, such as
-coastlines. The axes are matplotlib `GeoAxes` so any of the annotations
+coastlines. The axes are matplotlib ``GeoAxes`` so any of the annotations
 available with matplotlib should be available for customization. Here a
-`Robinson` plot is made with coastline annotations.
+``Robinson`` plot is made with coastline annotations.
 
 .. code-block:: python
 
@@ -87,7 +117,7 @@ available with matplotlib should be available for customization. Here a
     p.plots['AIRDENS'].axes.coastlines()
     p.show()
 
-`p._setup_plots()` is required here to access the plot axes. When a new
+``p._setup_plots()`` is required here to access the plot axes. When a new
 projection is called the plot axes are reset and are not available unless set
 up again.
 
@@ -95,7 +125,7 @@ Additional arguments can be passed to the projection function for further
 customization. If additional arguments are desired, then rather than passing a
 string of the projection name, one would pass a 2 or 3-item tuple.
 
-The function `set_mpl_projection()` and the `geo_projection` argument 
+The function ``set_mpl_projection()`` and the ``data_projection`` argument 
 can take one of three input types:
 
 .. code-block:: python
@@ -103,9 +133,9 @@ can take one of three input types:
     set_mpl_projection('ProjectionType')
     set_mpl_projection(('ProjectionType', (args)))
     set_mpl_projection(('ProjectionType', (args), {kwargs}))
-    yt.SlicePlot(... , geo_projection="ProjectionType")
-    yt.SlicePlot(... , geo_projection=("ProjectionType", (args)))
-    yt.SlicePlot(... , geo_projection=("ProjectionType", (args), {kwargs}))
+    yt.SlicePlot(... , data_projection="ProjectionType")
+    yt.SlicePlot(... , data_projection=("ProjectionType", (args)))
+    yt.SlicePlot(... , data_projection=("ProjectionType", (args), {kwargs}))
 
 Further examples of using the geographic transforms with this dataset
 can be found in :ref:`cookbook-geographic_projections`.
