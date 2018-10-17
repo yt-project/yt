@@ -1091,6 +1091,7 @@ class StreamParticlesDataset(StreamDataset):
     _dataset_type = "stream_particles"
     file_count = 1
     filename_template = "stream_file"
+    _proj_type = 'particle_proj'
 
     def __init__(self, stream_handler, storage_filename=None,
                  geometry='cartesian', unit_system='cgs'):

@@ -136,13 +136,8 @@ def validate_mesh_fields(data_source, fields):
         if finfo.sampling_type == "particle":
             if not hasattr(data_source.ds, '_sph_ptype'):
                 pass
-            elif finfo.alias_field:
-                alias_name = finfo._function.alias_name
-                if alias_name[0] == data_source.ds._sph_ptype:
-                    continue
-            else:
-                if finfo.name[0] == data_source.ds._sph_ptype:
-                    continue
+            elif finfo.is_sph_field:
+                continue
             invalid_fields.append(field)
 
     if len(invalid_fields) > 0:
