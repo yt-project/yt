@@ -25,11 +25,11 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
-def compare(ds, field, idir, test_prefix, test_name, transform,
+def compare(ds, field, idir, test_prefix, test_name, projection,
             decimals=12, annotate=False):
     def slice_image(filename_prefix):
         sl = yt.SlicePlot(ds, idir, field)
-        sl.set_mpl_projection(transform)
+        sl.set_mpl_projection(projection)
         if annotate:
             sl._setup_plots()
             sl.annotate_mesh_lines()
@@ -51,7 +51,7 @@ def test_geo_slices_amr():
         for field in ds.field_list:
             prefix = "%s_%s_%s" % (field[0], field[1], transform)
             yield compare(ds, field, 'altitude', test_prefix=prefix,
-                          test_name="geo_slices_amr", transform=transform)
+                          test_name="geo_slices_amr", projection=transform)
 
 @requires_module("cartopy")
 class TestGeoProjections(unittest.TestCase):
@@ -63,17 +63,33 @@ class TestGeoProjections(unittest.TestCase):
         del self.ds
         del self.slc
 
-    def test_projection_setup(self):
+    def test_geo_projection_setup(self):
 
         from yt.utilities.on_demand_imports import _cartopy as cartopy
         self.slc = yt.SlicePlot(self.ds, "altitude", "Density")
+        property_dict = self.ds.coordinates.data_property
 
         assert isinstance(self.slc._projection, cartopy.crs.PlateCarree)
         assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
+        assert property_dict['projection'] == "PlateCarree"
+        assert property_dict['transform'] == "PlateCarree"
         assert isinstance(self.slc._projection,
                           type(self.slc.plots['Density'].axes.projection))
 
-    def test_projection_setup_modified(self):
+    def test_geo_projections(self):
+        from yt.utilities.on_demand_imports import _cartopy as cartopy
+        self.slc = yt.SlicePlot(self.ds, "altitude", "Density")
+
+        for transform in transform_list:
+            self.slc.set_mpl_projection(transform)
+            proj_type = type(get_mpl_transform(transform))
+
+            assert isinstance(self.slc._projection, proj_type)
+            assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
+            assert isinstance(self.slc.plots['Density'].axes.projection,
+                              proj_type)
+
+    def test_geo_projections_modified(self):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
 
         for transform in transform_list:
@@ -86,15 +102,41 @@ class TestGeoProjections(unittest.TestCase):
             assert isinstance(self.slc.plots['Density'].axes.projection,
                               proj_type)
 
-    def test_projection_transform(self):
+    def test_nondefault_transform(self):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
-        self.slc = yt.SlicePlot(self.ds, "altitude", "Density")
+        self.slc = yt.SlicePlot(self.ds, "altitude", "Density",
+                                data_transform="Miller")
 
-        for transform in transform_list:
+        shortlist = ['Orthographic', 'PlateCarree', 'UTM', 'Mollweide']
+
+        for transform in shortlist:
+
+            property_dict = self.ds.coordinates.data_property
+
             self.slc.set_mpl_projection(transform)
             proj_type = type(get_mpl_transform(transform))
 
             assert isinstance(self.slc._projection, proj_type)
-            assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
+            assert isinstance(self.slc._transform, cartopy.crs.Miller)
+            assert property_dict['projection'] == "PlateCarree"
+            assert property_dict['transform'] == "Miller"
             assert isinstance(self.slc.plots['Density'].axes.projection,
                               proj_type)
+
+class TestNonGeoProjections(unittest.TestCase):
+
+    def setUp(self):
+        self.ds = fake_amr_ds()
+
+    def tearDown(self):
+        del self.ds
+        del self.slc
+
+    def test_projection_setup(self):
+        self.slc = yt.SlicePlot(self.ds, "x", "Density")
+
+        assert self.ds.coordinates.data_property['projection'] is None
+        assert self.ds.coordinates.data_property['transform'] is None
+        assert self.slc._projection is None
+        assert self.slc._transform is None
+
