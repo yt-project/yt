@@ -223,16 +223,17 @@ class ImagePlotMPL(PlotMPL):
             cmap = get_brewer_cmap(cmap)
         vmin = float(self.zmin) if self.zmax is not None else None
         vmax = float(self.zmax) if self.zmax is not None else None
-        if self._transform:
-            self.image = self.axes.imshow(
-                data.to_ndarray(), origin='lower', extent=extent, norm=norm,
-                vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
-                interpolation='nearest', transform=self._transform)
+        if self._transform is None:
+            # sets the transform to be an ax.TransData object, where the
+            # coordiante system of the data is controlled by the xlim and ylim
+            # of the data.
+            transform = self.axes.transData
         else:
-            self.image = self.axes.imshow(
-                data.to_ndarray(), origin='lower', extent=extent, norm=norm,
-                vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
-                interpolation='nearest')
+            transform = self._transform
+        self.image = self.axes.imshow(
+            data.to_ndarray(), origin='lower', extent=extent, norm=norm,
+            vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
+            interpolation='nearest', transform=transform)
         if (cbnorm == 'symlog'):
             if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
                 formatter_kwargs = {}
