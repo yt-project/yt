@@ -89,6 +89,21 @@ class TestGeoProjections(unittest.TestCase):
             assert isinstance(self.slc.plots['Density'].axes.projection,
                               proj_type)
 
+    def test_projection_object(self):
+        from yt.utilities.on_demand_imports import _cartopy as cartopy
+        shortlist = ['Orthographic', 'PlateCarree', 'Mollweide']
+
+        for transform in shortlist:
+            projection = get_mpl_transform(transform)
+            proj_type = type(projection)
+            self.slc = yt.SlicePlot(self.ds, "altitude", "Density",
+                                    data_projection=projection)
+
+            assert isinstance(self.slc._projection, proj_type)
+            assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
+            assert isinstance(self.slc.plots['Density'].axes.projection,
+                              proj_type)
+
     def test_geo_projections_modified(self):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
 
@@ -107,7 +122,7 @@ class TestGeoProjections(unittest.TestCase):
         self.slc = yt.SlicePlot(self.ds, "altitude", "Density",
                                 data_transform="Miller")
 
-        shortlist = ['Orthographic', 'PlateCarree', 'UTM', 'Mollweide']
+        shortlist = ['Orthographic', 'PlateCarree', 'Mollweide']
 
         for transform in shortlist:
 
