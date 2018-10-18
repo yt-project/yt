@@ -8,6 +8,8 @@ grid if it's been fully refined into (L+1) level grids, so we insert them as we 
 identified issues
 -----------------
 
+specific tests need to be added to cover those
+
 * currently, get_englobante() calls are only relevant when the missing
   grid is right above the current leaf
 
