@@ -20,6 +20,12 @@ from yt.fields.derived_field import \
     ValidateParameter, \
     ValidateSpatial
 
+from yt.fields.field_detector import \
+    FieldDetector
+
+from yt.funcs import \
+    issue_deprecation_warning
+
 from yt.units.yt_array import \
     uconcatenate, \
     ucross
@@ -368,7 +374,7 @@ def standard_particle_fields(registry, ptype,
                        units=unit_system["length"],
                        validators=[ValidateParameter("center")])
 
-    def _particle_position_relative(field, data):
+    def _relative_particle_position(field, data):
         """The cartesian particle positions in a rotated reference frame
 
         Relative to the coordinate system defined by the *normal* vector and
@@ -382,18 +388,28 @@ def standard_particle_fields(registry, ptype,
         L, pos = modify_reference_frame(center, normal, P=pos)
         return pos
 
-    for name in ["particle_position_relative", "relative_particle_position"]:
-        # TODO mark "particle_position_relative" as deprecated in a way
-        # that's visible to users
+    def _particle_position_relative(field, data):
+        if not isinstance(data, FieldDetector):
+            issue_deprecation_warning(
+                "The 'particle_position_relative' field has been deprecated in " +
+                "favor of 'relative_particle_position'.")
+        if isinstance(field.name, tuple):
+            return data[field.name[0], 'relative_particle_position']
+        else:
+            return data['relative_particle_position']
+
+    for name, func in zip(
+            ["particle_position_relative", "relative_particle_position"],
+            [_particle_position_relative,  _relative_particle_position]):
         registry.add_field(
             (ptype, name),
             sampling_type="particle",
-            function=_particle_position_relative,
+            function=func,
             units=unit_system["length"],
             validators=[ValidateParameter("normal"),
                         ValidateParameter("center")])
 
-    def _particle_velocity_relative(field, data):
+    def _relative_particle_velocity(field, data):
         """The vector particle velocities in an arbitrary coordinate system
 
         Relative to the coordinate system defined by the *normal* vector,
@@ -410,13 +426,23 @@ def standard_particle_fields(registry, ptype,
         L, vel = modify_reference_frame(center, normal, V=vel)
         return vel
 
-    for name in ["particle_velocity_relative", "relative_particle_velocity"]:
-        # TODO mark "particle_velocity_relative" as deprecated in a way
-        # that's visible to users
+    def _particle_velocity_relative(field, data):
+        if not isinstance(data, FieldDetector):
+            issue_deprecation_warning(
+                "The 'particle_velocity_relative' field has been deprecated in " +
+                "favor of 'relative_particle_velocity'.")
+        if isinstance(field.name, tuple):
+            return data[field.name[0], 'relative_particle_velocity']
+        else:
+            return data['relative_particle_velocity']
+
+    for name, func in zip(
+            ["particle_velocity_relative", "relative_particle_velocity"],
+            [_particle_velocity_relative,  _relative_particle_velocity]):
         registry.add_field(
             (ptype, name),
             sampling_type="particle",
-            function=_particle_velocity_relative,
+            function=func,
             units=unit_system["velocity"],
             validators=[ValidateParameter("normal"),
                         ValidateParameter("center")])

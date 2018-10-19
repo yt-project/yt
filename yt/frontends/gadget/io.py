@@ -24,9 +24,6 @@ from yt.frontends.sph.io import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-from .data_structures import \
-    _get_gadget_format
-
 from .definitions import \
     gadget_hdf5_ptypes, \
     SNAP_FORMAT_2_OFFSET
@@ -261,10 +258,10 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         self._fields = ds._field_spec
         self._ptypes = ds._ptype_spec
         self.data_files = set([])
-        gformat = _get_gadget_format(ds.parameter_filename)
+        gformat, endianswap = ds._header.gadget_format
         # gadget format 1 original, 2 with block name
-        self._format = gformat[0]
-        self._endian = gformat[1]
+        self._format = gformat
+        self._endian = endianswap
         super(IOHandlerGadgetBinary, self).__init__(ds, *args, **kwargs)
 
     @property

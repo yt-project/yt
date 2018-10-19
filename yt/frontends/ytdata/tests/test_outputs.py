@@ -184,6 +184,11 @@ def test_profile_data():
     compare_unit_attributes(ds, prof_1d_ds)
     assert isinstance(prof_1d_ds, YTProfileDataset)
 
+    for field in profile_1d.standard_deviation:
+        assert_array_equal(
+            profile_1d.standard_deviation[field],
+            prof_1d_ds.profile.standard_deviation['data', field[1]])
+
     p1 = ProfilePlot(prof_1d_ds.data, "density", "temperature",
                      weight_field="cell_mass")
     p1.save()

@@ -30,7 +30,9 @@ from yt.units.yt_array import \
 from yt.units.unit_object import Unit
 from yt.data_objects.field_data import YTFieldData
 from yt.utilities.exceptions import \
-    YTIllDefinedProfile, YTIllDefinedBounds
+    YTIllDefinedProfile, \
+    YTIllDefinedBounds, \
+    YTProfileDataShape
 from yt.utilities.lib.misc_utilities import \
     new_bin_profile1d, \
     new_bin_profile2d, \
@@ -234,47 +236,66 @@ been deprecated, use profile.standard_deviation instead."""
     def _filter(self, bin_fields):
         # cut_points is set to be everything initially, but
         # we also want to apply a filtering based on min/max
-        filter = np.ones(bin_fields[0].shape, dtype='bool')
+        pfilter = np.ones(bin_fields[0].shape, dtype='bool')
         for (mi, ma), data in zip(self.bounds, bin_fields):
-            filter &= (data > mi)
-            filter &= (data < ma)
-        return filter, [data[filter] for data in bin_fields]
+            pfilter &= (data > mi)
+            pfilter &= (data < ma)
+        return pfilter, [data[pfilter] for data in bin_fields]
 
     def _get_data(self, chunk, fields):
         # We are using chunks now, which will manage the field parameters and
         # the like.
         bin_fields = [chunk[bf] for bf in self.bin_fields]
+        for i in range(1, len(bin_fields)):
+            if bin_fields[0].shape != bin_fields[i].shape:
+                    raise YTProfileDataShape(
+                        self.bin_fields[0], bin_fields[0].shape,
+                        self.bin_fields[i], bin_fields[i].shape)
         # We want to make sure that our fields are within the bounds of the
         # binning
-        filter, bin_fields = self._filter(bin_fields)
-        if not np.any(filter): return None
+        pfilter, bin_fields = self._filter(bin_fields)
+        if not np.any(pfilter): return None
         arr = np.zeros((bin_fields[0].size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
+            if pfilter.shape != chunk[field].shape:
+                raise YTProfileDataShape(
+                    self.bin_fields[0], bin_fields[0].shape,
+                    field, chunk[field].shape)
             units = chunk.ds.field_info[field].output_units
-            arr[:,i] = chunk[field][filter].in_units(units)
+            arr[:,i] = chunk[field][pfilter].in_units(units)
         if self.weight_field is not None:
+            if pfilter.shape != chunk[self.weight_field].shape:
+                raise YTProfileDataShape(
+                    self.bin_fields[0], bin_fields[0].shape,
+                    self.weight_field, chunk[self.weight_field].shape)
             units = chunk.ds.field_info[self.weight_field].output_units
             weight_data = chunk[self.weight_field].in_units(units)
         else:
-            weight_data = np.ones(filter.shape, dtype="float64")
-        weight_data = weight_data[filter]
+            weight_data = np.ones(pfilter.shape, dtype="float64")
+        weight_data = weight_data[pfilter]
         # So that we can pass these into
         return arr, weight_data, bin_fields
 
     def __getitem__(self, field):
-        fname = self.field_map.get(field, None)
-        if fname is None:
+        if field in self.field_data:
+            fname = field
+        else:
+            # deal with string vs tuple field names and attempt to guess which field
+            # we are supposed to be talking about
+            fname = self.field_map.get(field, None)
             if isinstance(field, tuple):
                 fname = self.field_map.get(field[1], None)
+                if fname != field:
+                    raise KeyError("Asked for field '{}' but only have data for "
+                                   "field '{}'".format(field, fname))
             elif isinstance(field, DerivedField):
                 fname = self.field_map.get(field.name[1], None)
-        if fname is None:
-            raise KeyError(field)
+            if fname is None:
+                raise KeyError(field)
+        if getattr(self, 'fractional', False):
+            return self.field_data[fname]
         else:
-            if getattr(self, 'fractional', False):
-                return self.field_data[fname]
-            else:
-                return self.field_data[fname].in_units(self.field_units[fname])
+            return self.field_data[fname].in_units(self.field_units[fname])
 
     def items(self):
         return [(k,self[k]) for k in self.field_data.keys()]
@@ -352,6 +373,12 @@ been deprecated, use profile.standard_deviation instead."""
         data.update(self.field_data)
         data["weight"] = self.weight
         data["used"] = self.used.astype("float64")
+        std = "standard_deviation"
+        if self.weight_field is not None:
+            std_data = getattr(self, std)
+            data.update(dict(
+                ((std, field[1]), std_data[field])
+                for field in self.field_data))
 
         dimensionality = 0
         bin_data = []
@@ -373,7 +400,10 @@ been deprecated, use profile.standard_deviation instead."""
             data[getattr(self, "%s_field" % ax)] = bin_fields[i]
 
         extra_attrs["dimensionality"] = dimensionality
-        ftypes = dict([(field, "data") for field in data])
+        ftypes = dict([(field, "data") for field in data if field[0] != std])
+        if self.weight_field is not None:
+            ftypes.update(dict(((std, field[1]), std)
+                               for field in self.field_data))
         save_as_dataset(self.ds, filename, data, field_types=ftypes,
                         extra_attrs=extra_attrs)
 
@@ -400,12 +430,16 @@ class ProfileNDFromDataset(ProfileND):
         self.weight = ds.data["weight"]
         self.used = ds.data["used"].d.astype(bool)
         profile_fields = [f for f in ds.field_list
-                          if f[1] not in exclude_fields]
+                          if f[1] not in exclude_fields and
+                             f[0] != "standard_deviation"]
         for field in profile_fields:
             self.field_map[field[1]] = field
             self.field_data[field] = ds.data[field]
             self.field_info[field] = ds.field_info[field]
             self.field_units[field] = ds.data[field].units
+            if ("standard_deviation", field[1]) in ds.field_list:
+                self.standard_deviation[field] = \
+                  ds.data["standard_deviation", field[1]]
 
 class Profile1D(ProfileND):
     """An object that represents a 1D profile.
@@ -1099,7 +1133,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 try:
                     field_ex = list(extrema[bin_field])
                 except KeyError:
-                    raise RuntimeError("Could not find field {0} or {1} in override_bins".format(bin_field[-1], bin_field))
+                    raise RuntimeError("Could not find field {0} or {1} in extrema".format(bin_field[-1], bin_field))
 
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]

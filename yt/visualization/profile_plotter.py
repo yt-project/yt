@@ -18,6 +18,7 @@ from yt.extern.six.moves import builtins
 from yt.extern.six.moves import zip as izip
 from yt.extern.six import string_types, iteritems
 from collections import OrderedDict
+from distutils.version import LooseVersion
 import base64
 import os
 from functools import wraps
@@ -1085,6 +1086,13 @@ class PhasePlot(ImagePlotContainer):
 
             self.plots[f].axes.set_xlim(xlim)
             self.plots[f].axes.set_ylim(ylim)
+
+            color = self._background_color[f]
+
+            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+                self.plots[f].axes.set_axis_bgcolor(color)
+            else:
+                self.plots[f].axes.set_facecolor(color)
 
             if f in self._plot_text:
                 self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],

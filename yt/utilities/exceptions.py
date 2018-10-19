@@ -67,6 +67,14 @@ class YTFieldNotFound(YTException):
     def __str__(self):
         return "Could not find field '%s' in %s." % (self.fname, self.ds)
 
+class YTParticleTypeNotFound(YTException):
+    def __init__(self, fname, ds):
+        self.fname = fname
+        self.ds = ds
+
+    def __str__(self):
+        return ("Could not find particle_type '%s' in %s." % (self.fname, self.ds))
+
 class YTSceneFieldNotFound(YTException):
     pass
 
@@ -680,6 +688,18 @@ class YTIllDefinedProfile(YTException):
             weight_msg = ""
 
         return msg + weight_msg
+
+class YTProfileDataShape(YTException):
+    def __init__(self, field1, shape1, field2, shape2):
+        self.field1 = field1
+        self.shape1 = shape1
+        self.field2 = field2
+        self.shape2 = shape2
+
+    def __str__(self):
+        return ("Profile fields must have same shape: %s has " +
+                "shape %s and %s has shape %s.") % \
+                (self.field1, self.shape1, self.field2, self.shape2)
 
 class YTBooleanObjectError(YTException):
     def __init__(self, bad_object):

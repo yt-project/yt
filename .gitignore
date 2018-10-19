@@ -94,3 +94,5 @@ doc/source/reference/api/generated/*
 doc/_temp/*
 doc/source/quickstart/.ipynb_checkpoints/
 dist
+.python-version
+answer_nosetests.xml

@@ -50,7 +50,7 @@ If you want the latest nightly build, you can manually install from our
 repository:
 
 ```
-conda install -c http://use.yt/with_conda yt
+conda install -c yt-project/label/dev yt
 ```
 
 To get set up with a development version, you want to clone this repository:
