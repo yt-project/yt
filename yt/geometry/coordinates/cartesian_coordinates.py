@@ -290,6 +290,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                      period, int(periodic))
         elif isinstance(data_source.ds, particle_datasets) and is_sph_field:
             ptype = field[0]
+            if ptype == 'gas':
+                ptype = data_source.ds._sph_ptype
             ounits = data_source.ds.field_info[field].output_units
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
             py_name = 'particle_position_%s' % self.axis_name[self.y_axis[dim]]
