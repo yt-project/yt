@@ -261,8 +261,6 @@ cdef class FileBitmasks:
     cdef void _set_refined_index_array(self, np.uint32_t ifile, np.int64_t nsub_mi,
                                        np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                        np.ndarray[np.uint64_t, ndim=1] sub_mi2):
-        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
-        cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
         cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi2[:nsub_mi],
                                                               sub_mi1[:nsub_mi]))
         cdef np.int64_t i, p
@@ -356,7 +354,7 @@ cdef class FileBitmasks:
         cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
-        cdef np.uint64_t nrefn, mi1
+        cdef np.uint64_t mi1
         # Keys
         ewah_keys1[0].logicalor(ewah_keys2[0], swap)
         ewah_keys1[0].swap(swap)
@@ -425,7 +423,6 @@ cdef class FileBitmasks:
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
         cdef np.uint64_t mi1
-        cdef ewah_bool_array ewah_coar1, ewah_coar2
         # Keys
         ewah_keys1[0].logicalxor(ewah_keys2[0],ewah_keys_out[0])
         # Refn
@@ -468,7 +465,6 @@ cdef class FileBitmasks:
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
         cdef np.uint64_t mi1
-        cdef ewah_bool_array ewah_coar1, ewah_coar2
         # Keys
         ewah_keys1[0].logicaland(ewah_keys2[0],ewah_keys_out[0])
         # Refn
@@ -495,7 +491,6 @@ cdef class FileBitmasks:
                                    BoolArrayCollection mask2 = None):
         # Fill mask at indices owned by this file that are also contaminated by 
         # other files.
-        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef ewah_bool_array ewah_mask
         cdef ewah_bool_array *ewah_mask1
@@ -589,10 +584,8 @@ cdef class FileBitmasks:
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
-        cdef ewahmap_it it_map
         cdef np.uint64_t nrefn, mi1
-        cdef ewah_bool_array mi1_ewah
-        cdef int i
+        nrefn = mi1 = 0
         # Write string to string stream
         ss.write(s, len(s))
         # Read keys and refinment arrays
@@ -603,7 +596,7 @@ cdef class FileBitmasks:
         if nrefn != ewah_refn[0].numberOfOnes():
             raise Exception("Error in read. File indicates {} refinements, but bool array has {}.".format(nrefn,ewah_refn[0].numberOfOnes()))
         # Loop over refined cells
-        for i in range(nrefn):
+        for _ in range(nrefn):
             ss.read(<char *> (&mi1), sizeof(mi1))
             ewah_coll[0][mi1].read(ss,1)
             # or...
@@ -618,7 +611,6 @@ cdef class FileBitmasks:
         cdef ewah_bool_array tmp1, tmp2
         cdef np.uint64_t nchk
         cdef str msg
-        cdef ewah_bool_array total, cross
         # Check individual files
         for ifile in range(self.nfiles):
             ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
@@ -746,19 +738,6 @@ cdef class BoolArrayCollection:
 
     def set(self, i1, i2 = FLAG):
         self._set(i1, i2)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    @cython.initializedcheck(False)
-    def set_to(self, np.uint64_t s):
-        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
-        cdef np.uint64_t i
-        for i in range(s):
-            self._set(s)
-        print "Set from %s array and ended up with %s bytes" % (
-            s, ewah_keys[0].sizeInBytes())
-
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -936,8 +915,8 @@ cdef class BoolArrayCollection:
         cdef ewah_bool_array *ewah_refn3 = <ewah_bool_array *> out.ewah_refn
         cdef ewahmap *ewah_coll3 = <ewahmap *> out.ewah_coll
         cdef ewahmap_it it_map1, it_map2
-        cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
-        cdef np.uint64_t nrefn, mi1
+        cdef ewah_bool_array mi1_ewah1, mi1_ewah2
+        cdef np.uint64_t mi1
         # Keys
         ewah_keys1[0].logicalor(ewah_keys2[0], ewah_keys3[0])
         # Refined
@@ -968,7 +947,7 @@ cdef class BoolArrayCollection:
         cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
-        cdef np.uint64_t nrefn, mi1
+        cdef np.uint64_t mi1
         # Keys
         ewah_keys1[0].logicalor(ewah_keys2[0], swap)
         ewah_keys1[0].swap(swap)
@@ -1040,7 +1019,6 @@ cdef class BoolArrayCollection:
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
         cdef np.uint64_t mi1
-        cdef ewah_bool_array ewah_coar1, ewah_coar2
         # Keys
         ewah_keys1[0].logicalxor(ewah_keys2[0],ewah_keys_out[0])
         # Refn
@@ -1083,7 +1061,6 @@ cdef class BoolArrayCollection:
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
         cdef np.uint64_t mi1
-        cdef ewah_bool_array ewah_coar1, ewah_coar2
         # Keys
         ewah_keys1[0].logicaland(ewah_keys2[0],ewah_keys_out[0])
         # Refn
@@ -1157,7 +1134,6 @@ cdef class BoolArrayCollection:
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
         cdef ewahmap *ewah_coll = <ewahmap *> self.ewah_coll
-        cdef ewahmap_it it_map
         cdef ewah_bool_iterator *iter_set1 = new ewah_bool_iterator(ewah_keys.begin())
         cdef ewah_bool_iterator *iter_end1 = new ewah_bool_iterator(ewah_keys.end())
         cdef ewah_bool_iterator *iter_set2
@@ -1275,10 +1251,8 @@ cdef class BoolArrayCollection:
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
         cdef ewahmap *ewah_coll = <ewahmap *> self.ewah_coll
-        cdef ewahmap_it it_map
         cdef np.uint64_t nrefn, mi1
-        cdef ewah_bool_array mi1_ewah
-        cdef int i
+        nrefn = mi1 = 0
         # Write string to string stream
         ss.write(s, len(s))
         # Read keys and refinment arrays
@@ -1289,7 +1263,7 @@ cdef class BoolArrayCollection:
         if nrefn != ewah_refn[0].numberOfOnes():
             raise Exception("Error in read. File indicates {} refinements, but bool array has {}.".format(nrefn,ewah_refn[0].numberOfOnes()))
         # Loop over refined cells
-        for i in range(nrefn):
+        for _ in range(nrefn):
             ss.read(<char *> (&mi1), sizeof(mi1))
             ewah_coll[0][mi1].read(ss,1)
             # or...
@@ -1569,7 +1543,7 @@ cdef class BoolArrayCollectionUncompressed:
         cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
-        cdef np.uint64_t nrefn, mi1
+        cdef np.uint64_t mi1
         # TODO: Check if nele1 is equal?
         # Keys
         for mi1 in range(solf.nele1):
@@ -1738,19 +1712,16 @@ cdef class SparseUnorderedBitmaskSet:
         self._set(ind)
 
     cdef void _fill(self, np.uint8_t[:] mask):
-        cdef np.uint64_t ind
         cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
         for it in entries[0]:
             mask[it] = 1
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
-        cdef np.uint64_t ind
         cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
         for it in entries[0]:
             mm._set_coarse(it)
 
     cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
-        cdef np.uint64_t ind
         cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
         for it in entries[0]:
             mm._set_coarse(it)
@@ -1798,21 +1769,18 @@ cdef class SparseUnorderedRefinedBitmaskVector:
         self._set(ind1, ind2)
 
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
-        cdef np.uint64_t i, ind
         cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
         for it in entries[0]:
             mask1[it.first] = mask2[it.second] = 1
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
         self._remove_duplicates()
-        cdef np.uint64_t mi1, mi2
         cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
         for it in entries[0]:
             mm._set_refined(it.first, it.second)
 
     cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
         self._remove_duplicates()
-        cdef np.uint64_t mi1, mi2
         cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
         for it in entries[0]:
             mm._set_refined(it.first, it.second)
@@ -1889,19 +1857,16 @@ cdef class SparseUnorderedRefinedBitmaskSet:
         self._set(ind1, ind2)
 
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
-        cdef np.uint64_t ind
         cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
         for p in entries[0]:
             mask1[p.first] = mask2[p.second] = 1
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
-        cdef np.uint64_t mi1, mi2
         cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
         for it in entries[0]:
             mm._set_refined(it.first, it.second)
 
     cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
-        cdef np.uint64_t mi1, mi2
         cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
         for it in entries[0]:
             mm._set_refined(it.first, it.second)
