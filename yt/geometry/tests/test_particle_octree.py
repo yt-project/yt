@@ -23,7 +23,6 @@ from yt.geometry.particle_oct_container import \
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.selection_routines import RegionSelector
 from yt.testing import \
-    assert_almost_equal, \
     assert_equal, \
     assert_true, \
     assert_array_equal
