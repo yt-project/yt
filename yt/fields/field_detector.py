@@ -161,6 +161,11 @@ class FieldDetector(defaultdict):
         return
 
     def deposit(self, *args, **kwargs):
+        from yt.frontends.stream.data_structures import StreamParticlesDataset
+        from yt.data_objects.static_output import ParticleDataset
+        if kwargs['method'] == 'mesh_id':
+            if isinstance(self.ds, (StreamParticlesDataset, ParticleDataset)):
+                raise ValueError
         return np.random.random((self.nd, self.nd, self.nd))
 
     def smooth(self, *args, **kwargs):

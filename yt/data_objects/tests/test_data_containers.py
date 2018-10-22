@@ -149,8 +149,8 @@ class TestDataContainers(unittest.TestCase):
 
         expected_size = (dd['io', 'particle_mass'].to('code_mass') > 0.5).sum()
 
-        fields_to_test = (f for f in ds.derived_field_list
-                          if f[0] == 'massive')
+        fields_to_test = [f for f in ds.derived_field_list
+                          if f[0] == 'massive']
 
         def test_this(fname):
             data = dd[fname]
