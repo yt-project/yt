@@ -348,7 +348,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         return arr
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
-        self._float_type = data_file.ds._validate_header(data_file.filename)[1]
+        self._float_type = data_file.ds._header.float_type
         self._field_size = np.dtype(self._float_type).itemsize
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
