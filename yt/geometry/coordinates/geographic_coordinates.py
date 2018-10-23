@@ -34,8 +34,6 @@ class GeographicCoordinateHandler(CoordinateHandler):
         self.image_units[self.axis_id['latitude']] = (None, None)
         self.image_units[self.axis_id['longitude']] = (None, None)
         self.image_units[self.axis_id[self.radial_axis]] = ('deg', 'deg')
-        self.data_property['transform'] = "PlateCarree"
-        self.data_property['projection'] = "PlateCarree"
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
