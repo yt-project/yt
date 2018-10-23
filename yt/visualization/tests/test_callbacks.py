@@ -278,9 +278,9 @@ def test_particles_callback():
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
+        ad=ds.all_data()
         p.annotate_particles((10, "Mpc"), p_size=1.0, col="k", marker="o",
-                             stride=1, ptype="all", minimum_mass=None,
-                             alpha=1.0)
+                             stride=1, ptype="all",alpha=1.0,data_source=ad)
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
@@ -472,7 +472,7 @@ def test_contour_callback():
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'linewidths':2.0}, label=True,
-            text_args={'text-size':'x-large'})
+            text_args={'fontsize':'x-large'})
         p.save(prefix)
 
         p = SlicePlot(ds, "x", "density")
@@ -480,7 +480,7 @@ def test_contour_callback():
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'linewidths':2.0}, label=True,
-            text_args={'text-size':'x-large'},
+            text_args={'fontsize':'x-large'},
             data_source=s2)
         p.save(prefix)
 
@@ -504,7 +504,7 @@ def test_contour_callback():
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'linewidths':2.0}, label=True,
-            text_args={'text-size':'x-large'})
+            text_args={'fontsize':'x-large'})
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 

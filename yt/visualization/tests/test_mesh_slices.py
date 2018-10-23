@@ -52,20 +52,36 @@ def test_mesh_slices_amr():
 @attr(ANSWER_TEST_TAG)
 def test_mesh_slices_tetrahedral():
     ds = fake_tetrahedral_ds()
+
+    mesh = ds.index.meshes[0]
+    ad = ds.all_data()
+
     for field in ds.field_list:
         for idir in [0, 1, 2]:
             prefix = "%s_%s_%s" % (field[0], field[1], idir)
             yield compare(ds, field, idir, test_prefix=prefix,
                           test_name="mesh_slices_tetrahedral", annotate=True)
 
+            sl_obj = ds.slice(idir, ds.domain_center[idir])
+            assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
+            assert sl_obj[field].shape[0] < ad[field].shape[0]
+
 @attr(ANSWER_TEST_TAG)
 def test_mesh_slices_hexahedral():
+    # hexahedral ds
     ds = fake_hexahedral_ds()
+    ad = ds.all_data()
+    mesh = ds.index.meshes[0]
+
     for field in ds.field_list:
         for idir in [0, 1, 2]:
             prefix = "%s_%s_%s" % (field[0], field[1], idir)
             yield compare(ds, field, idir, test_prefix=prefix,
                           test_name="mesh_slices_hexahedral", annotate=True)
+
+            sl_obj = ds.slice(idir, ds.domain_center[idir])
+            assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
+            assert sl_obj[field].shape[0] < ad[field].shape[0]
 
 def test_perfect_element_intersection():
     # This test tests mesh line annotation where a z=0 slice

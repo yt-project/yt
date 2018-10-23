@@ -33,9 +33,6 @@ from yt.utilities.physical_constants import \
     mh, \
     kboltz
 
-from yt.utilities.physical_ratios import \
-    metallicity_sun
-
 from yt.utilities.lib.misc_utilities import \
     obtain_relative_velocity_vector
 
@@ -155,10 +152,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                        function=_entropy)
 
     def _metallicity(field, data):
-        tr = data[ftype, "metal_density"] / data[ftype, "density"]
-        tr /= metallicity_sun
-        return data.apply_units(tr, "Zsun")
-    
+        return data[ftype, "metal_density"] / data[ftype, "density"]
     registry.add_field((ftype, "metallicity"),
                        sampling_type="local",
                        function=_metallicity,

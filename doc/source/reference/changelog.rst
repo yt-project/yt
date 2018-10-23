@@ -12,6 +12,469 @@ The `CREDITS file <https://github.com/yt-project/yt/blob/master/CREDITS>`_
 contains the most up-to-date list of everyone who has contributed to the yt 
 source code.
 
+Version 3.5.0
+-------------
+
+Version 3.5.0 is the first major release of yt since August 2017. It includes 
+328 pull requests from 41 contributors, including 22 new contributors.
+
+Major Changes
+^^^^^^^^^^^^^
+
+- ``yt.analysis_modules`` has been deprecated in favor of the new
+  ``yt_astro_analysis`` package. New features and new astronomy-specific
+  analysis modules will go into ``yt_astro_analysis`` and importing from
+  ``yt.analysis_modules`` will raise a noisy warning. We will remove
+  ``yt.analysis_modules`` in a future release. See `PR 1938
+  <https://github.com/yt-project/yt/pull/1938>`__.
+- Vector fields and derived fields depending on vector fields have been
+  systematically updated to account for a bulk correction field parameter. For
+  example, for the velocity field, all derived fields that depend on velocity
+  will now account for the ``"bulk_velocity"`` field parameter. In addition, we
+  have defined ``"relative_velocity"`` and ``"relative_magnetic_field"`` fields
+  that include the bulk correction. Both of these are vector fields, to access
+  the components, use e.g. ``"relative_velocity_x"``. The
+  ``"particle_position_relative"`` and ``"particle_velocity_relative"`` fields
+  have been deprecated. See `PR 1693
+  <https://github.com/yt-project/yt/pull/1693>`__ and `PR 2022
+  <https://github.com/yt-project/yt/pull/2022>`__.
+- Aliases to spatial fields with the ``"gas"`` field type will now be returned
+  in the default unit system for the dataset. As an example the ``"x"`` field
+  might resolve to the field tuples ``("index", "x")`` or ``("gas",
+  "x")``. Accessing the former will return data in code units while the latter
+  will return data in whatever unit system the dataset is configured to use
+  (CGS, by default). This means that to ensure the units of a spatial field will
+  always be consistent, one must access the field as a tuple, explicitly
+  specifying the field type. Accessing a spatial field using a string field name
+  may return data in either code units or the dataset's default unit system
+  depending on the history of field accesses prior to accessing that field. In
+  the future accessing fields using an ambiguous field name will raise an
+  error. See `PR 1799 <https://github.com/yt-project/yt/pull/1799>`__ and `PR
+  1850 <https://github.com/yt-project/yt/pull/1850>`__.
+- The ``max_level`` and ``min_level`` attributes of yt data objects now
+  correctly update the state of the underlying data objects when set. In
+  addition we have added an example to the cookbook that shows how to downsample
+  AMR data using this functionality. See `PR 1737
+  <https://github.com/yt-project/yt/pull/1737>`__.
+- It is now possible to customize the formatting of labels for ion species
+  fields. Rather than using the default spectroscopic notation, one can call
+  ``ds.set_field_label_format("ionization_label", "plus_minus")`` to use the
+  more traditional notation where ionization state is indicated with ``+`` and
+  ``-`` symbols. See `PR 1867 <https://github.com/yt-project/yt/pull/1867>`__.
+
+Improvements to the RAMSES frontend
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We would particularly like to recognize Corentin Cadiou for his tireless work over the past year on improving support for RAMSES and octree AMR data in yt.
+  
+- Added support for reading RAMSES sink particles. See `PR 1548
+  <https://github.com/yt-project/yt/pull/1548>`__.
+- Add support for the new self-describing Ramses particle output format. See `PR
+  1616 <https://github.com/yt-project/yt/pull/1616>`__.
+- It is now possible to restrict the domain of a loaded Ramses dataset by
+  passing a ``bbox`` keyword argument to ``yt.load()``. If passed this
+  corresponds to the coordinates of the top-left and bottom-right hand corner of
+  the subvolume to load. Data outside the bounding box will be ignored. This is
+  useful for loading very large Ramses datasets where yt currently has poor
+  scaling. See `PR 1637 <https://github.com/yt-project/yt/pull/1637>`__.
+- The Ramses ``"particle_birth_time"`` field now contains the time when star
+  particles form in a simulation in CGS units, formerly these times were only
+  accessible via the incorrectly named ``"particle_age"`` field in conformal
+  units. Correspondingly the ``"particle_age"`` field has been deprecated. The
+  conformal birth time is not available via the ``"conformal_birth_time``"
+  field. See `PR 1649 <https://github.com/yt-project/yt/pull/1649>`__.
+- Substantial performance improvement for reading RAMSES AMR data. See `PR 1671
+  <https://github.com/yt-project/yt/pull/1671>`__.
+- The RAMSES frontend will now produce less voluminous logging feedback when
+  loading the dataset or reading data. This is particularly noticeable for very
+  large datasets with many CPU files. See `PR 1738
+  <https://github.com/yt-project/yt/pull/1738>`__.
+- Avoid repeated parsing of RAMSES particle and RT descriptors. See `PR 1739
+  <https://github.com/yt-project/yt/pull/1739>`__.
+- Added support for reading the RAMSES gravitational potential field. See `PR
+  1751 <https://github.com/yt-project/yt/pull/1751>`__.
+- Add support for RAMSES datasets that use the ``groupsize`` feature. See `PR
+  1769 <https://github.com/yt-project/yt/pull/1769>`__.
+- Dramatically improve the overall performance of the RAMSES frontend. See `PR
+  1771 <https://github.com/yt-project/yt/pull/1771>`__.
+
+Additional Improvements
+^^^^^^^^^^^^^^^^^^^^^^^  
+  
+- Added support for particle data in the Enzo-P frontend. See `PR 1490
+  <https://github.com/yt-project/yt/pull/1490>`__.
+- Added an ``equivalence`` keyword argument to ``YTArray.in_units()`` and
+  ``YTArray.to()``. This makes it possible to specify an equivalence when
+  converting data to a new unit. Also added ``YTArray.to_value()`` which allows
+  convering to a new unit, then stripping off the units to return a plain numpy
+  array. See `PR 1563 <https://github.com/yt-project/yt/pull/1563>`__.
+- Rather than crashing, yt will now assume default values for cosmology
+  parameters in Gadget HDF5 data if it cannot find the relevant header
+  information. See `PR 1578
+  <https://github.com/yt-project/yt/pull/1578>`__.
+- Improve detection for OpenMP support at compile-time, including adding support
+  for detecting OpenMP on Windows. See `PR 1591
+  <https://github.com/yt-project/yt/pull/1591>`__, `PR 1695
+  <https://github.com/yt-project/yt/pull/1695>`__ and `PR 1696
+  <https://github.com/yt-project/yt/pull/1696>`__.
+- Add support for 2D cylindrical data for most plot callbacks. See `PR 1598
+  <https://github.com/yt-project/yt/pull/1598>`__.
+- Particles outside the domain are now ignored by ``load_uniform_grid()`` and
+  ``load_amr_grids()``. See `PR 1602
+  <https://github.com/yt-project/yt/pull/1602>`__.
+- Fix incorrect units for the Gadget internal energy field in cosmology
+  simulations. See `PR 1611
+  <https://github.com/yt-project/yt/pull/1611>`__.
+- Add support for calculating covering grids in parallel. See `PR 1612
+  <https://github.com/yt-project/yt/pull/1612>`__.
+- The number of particles in a dataset loaded by the stream frontend (e.g. via
+  ``load_uniform_grid``) no longer needs to be explicitly provided via the
+  ``number_of_particles`` keyword argument, using the ``number_of_particles``
+  keyword will now generate a deprecation warning. See `PR 1620
+  <https://github.com/yt-project/yt/pull/1620>`__.
+- Add support for non-cartesian GAMER data. See `PR 1622
+  <https://github.com/yt-project/yt/pull/1622>`__.
+- If a particle filter depends on another particle filter, both particle filters
+  will be registered for a dataset if the dependent particle filter is
+  registered with a dataset. See `PR 1624
+  <https://github.com/yt-project/yt/pull/1624>`__.
+- The ``save()`` method of the various yt plot objets now optionally can accept
+  a tuple of strings instead of a string. If a tuple is supplied, the elments
+  are joined with ``os.sep`` to form a path. See `PR 1630
+  <https://github.com/yt-project/yt/pull/1630>`__.
+- The quiver callback now accepts a ``plot_args`` keyword argument that allows
+  passing keyword arguments to matplotlib to allow for customization of the
+  quiver plot. See `PR 1636 <https://github.com/yt-project/yt/pull/1636>`__.
+- Updates and improvements for the OpenPMD frontend. See `PR 1645
+  <https://github.com/yt-project/yt/pull/1645>`__.
+- The mapserver now works correctly under Python3 and has new features like a
+  colormap selector and plotting multiple fields via layers. See `PR 1654
+  <https://github.com/yt-project/yt/pull/1654>`__ and `PR 1668
+  <https://github.com/yt-project/yt/pull/1668>`__.
+- Substantial performance improvement for calculating the gravitational
+  potential in the clump finder. See `PR 1684
+  <https://github.com/yt-project/yt/pull/1684>`__.
+- Added new methods to ``ProfilePlot``: ``set_xlabel()``, ``set_ylabel()``,
+  ``annotate_title()``, and ``annotate_text()``. See `PR 1700
+  <https://github.com/yt-project/yt/pull/1700>`__ and `PR 1705
+  <https://github.com/yt-project/yt/pull/1705>`__.
+- Speedup for parallel halo finding operation for the FOF and HOP halo
+  finders. See `PR 1724 <https://github.com/yt-project/yt/pull/1724>`__.
+- Add support for halo finding using the rockstar halo finder on Python3. See
+  `PR 1740 <https://github.com/yt-project/yt/pull/1740>`__.
+- The ``ValidateParameter`` field validator has gained the ability for users to
+  explicitly specify the values of field parameters during field detection. This
+  makes it possible to write fields that access different sets of fields
+  depending on the value of the field parameter. For example, a field might
+  define an ``'axis'`` field parameter that can be either ``'x'``, ``'y'`` or
+  ``'z'``. One can now explicitly tell the field detection system to access the
+  field using all three values of ``'axis'``. This improvement avoids errors one
+  would see now where only one value or an invalid value of the field parameter
+  will be tested by yt. See `PR 1741
+  <https://github.com/yt-project/yt/pull/1741>`__.
+- It is now legal to pass a dataset instance as the first argument to
+  ``ProfilePlot`` and ``PhasePlot``. This is equivalent to passing
+  ``ds.all_data()``.
+- Functions that accept a ``(length, unit)`` tuple (e.g. ``(3, 'km')`` for 3
+  kilometers) will not raise an error if ``length`` is a ``YTQuantity`` instance
+  with units attached. See `PR 1749
+  <https://github.com/yt-project/yt/pull/1749>`__.
+- The ``annotate_timestamp`` plot annotation now optionally accepts a
+  ``time_offset`` keyword argument that sets the zero point of the time
+  scale. Additionally, the ``annotate_scale`` plot annotation now accepts a
+  ``format`` keyword argument, allowing custom formatting of the scale
+  annotation. See `PR 1755 <https://github.com/yt-project/yt/pull/1755>`__.
+- Add support for magnetic field variables and creation time fields in the GIZMO
+  frontend. See `PR 1756 <https://github.com/yt-project/yt/pull/1756>`__ and `PR
+  1914 <https://github.com/yt-project/yt/pull/1914>`__.
+- ``ParticleProjectionPlot`` now supports the ``annotate_particles`` plot
+  callback. See `PR 1765 <https://github.com/yt-project/yt/pull/1765>`__.
+- Optmized the performance of off-axis projections for octree AMR data. See `PR
+  1766 <https://github.com/yt-project/yt/pull/1766>`__.
+- Added support for several radiative transfer fields in the ARTIO frontend. See
+  `PR 1804 <https://github.com/yt-project/yt/pull/1804>`__.
+- Performance improvement for Boxlib datasets that don't use AMR. See `PR 1834
+  <https://github.com/yt-project/yt/pull/1834>`__.
+- It is now possible to set custom profile bin edges. See `PR 1837
+  <https://github.com/yt-project/yt/pull/1837>`__.
+- Dropped support for Python3.4. See `PR 1840
+  <https://github.com/yt-project/yt/pull/1840>`__.
+- Add support for reading RAMSES cooling fields. See `PR 1853
+  <https://github.com/yt-project/yt/pull/1853>`__.
+- Add support for NumPy 1.15. See `PR 1854
+  <https://github.com/yt-project/yt/pull/1854>`__.
+- Ensure that functions defined in the plugins file are available in the yt
+  namespace. See `PR 1855 <https://github.com/yt-project/yt/pull/1855>`__.
+- Creating a profiles with log-scaled bins but where the bin edges are negative
+  or zero now raises an error instead of silently generating a corrupt,
+  incorrect answer. See `PR 1856
+  <https://github.com/yt-project/yt/pull/1856>`__.
+- Systematically added validation for inputs to data object initializers. See
+  `PR 1871 <https://github.com/yt-project/yt/pull>`__.
+- It is now possible to select only a specific particle type in the particle
+  trajectories analysis module. See `PR 1887
+  <https://github.com/yt-project/yt/pull/1887>`__.
+- Substantially improve the performance of selecting particle fields with a
+  ``cut_region`` data object. See `PR 1892
+  <https://github.com/yt-project/yt/pull/1892>`__.
+- The ``iyt`` command-line entry-point into IPython now installs yt-specific
+  tab-completions. See `PR 1900 <https://github.com/yt-project/yt/pull/1900>`__.
+- Derived quantities have been systematically updated to accept a
+  ``particle_type`` keyword argument, allowing easier analysis of only a single
+  particle type. See `PR 1902 <https://github.com/yt-project/yt/pull/1902>`__
+  and `PR 1922 <https://github.com/yt-project/yt/pull/1922>`__.
+- The ``annotate_streamlines()`` function now accepts a ``display_threshold``
+  keyword argument. This suppresses drawing streamlines over any region of a
+  dataset where the field being displayed is less than the threshold. See `PR
+  1922 <https://github.com/yt-project/yt/pull/1922>`__.
+- Add support for 2D nodal data. See `PR 1923
+  <https://github.com/yt-project/yt/pull/1923>`__.
+- Add support for GAMER outputs that use patch groups. This substantially
+  reduces the memory requirements for loading large GAMER datasets. See `PR 1935
+  <https://github.com/yt-project/yt/pull/1935>`__.
+- Add a ``data_source`` keyword argument to the ``annotate_particles`` plot
+  callback. See `PR 1937 <https://github.com/yt-project/yt/pull/1937>`__.
+- Define species fields in the NMSU Art frontend. See `PR 1981
+  <https://github.com/yt-project/yt/pull/1981>`__.
+- Added a ``__format__`` implementation for ``YTArray``. See `PR 1985
+  <https://github.com/yt-project/yt/pull/1985>`__.
+- Derived fields that use a particle filter now only need to be derived for the
+  particle filter type, not for the particle types used to define the particle
+  filter. See `PR 1993 <https://github.com/yt-project/yt/pull/1993>`__.
+- Added support for periodic visualizations using
+  ``ParticleProjectionPlot``. See `PR 1996
+  <https://github.com/yt-project/yt/pull/1996>`__.
+- Added ``YTArray.argsort()``. See `PR 2002
+  <https://github.com/yt-project/yt/pull/2002>`__.
+- Calculate the header size from the header specification in the Gadget frontend
+  to allow reading from Gadget binary datasets with nonstandard headers. See `PR
+  2005 <https://github.com/yt-project/yt/pull/2005>`__ and `PR 2036
+  <https://github.com/yt-project/yt/pull/2036>`__.
+- Save the standard deviation in ``profile.save_as_dataset()``. See `PR 2008
+  <https://github.com/yt-project/yt/pull/2008>`__.
+- Allow the ``color`` keyword argument to be passed to matplotlib in the
+  ``annotate_clumps`` callback to control the color of the clump annotation. See
+  `PR 2019 <https://github.com/yt-project/yt/pull/2019>`__.
+- Raise an exception when profiling fields of unequal shape. See `PR 2025
+  <https://github.com/yt-project/yt/pull/2025>`__.
+- The clump info dictionary is now populated as clumps get created instead of
+  during ``clump.save_as_dataset()``. See `PR 2053
+  <https://github.com/yt-project/yt/pull/2053>`__.
+- Avoid segmentation fault in slice selector by clipping slice integer
+  coordinates. See `PR 2055 <https://github.com/yt-project/yt/pull/2055>`__.
+
+  
+Minor Enhancements and Bugfixes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  
+- Fix incorrect use of floating point division in the parallel analysis framework.
+  See `PR 1538 <https://github.com/yt-project/yt/pull/1538>`__.
+- Fix integration with that matplotlib QT backend for interactive plotting.
+  See `PR 1540 <https://github.com/yt-project/yt/pull/1540>`__.
+- Add support for the particle creation time field in the GAMER frontend.
+  See `PR 1546 <https://github.com/yt-project/yt/pull/1546>`__.
+- Various minor improvements to the docs. See `PR 1542
+  <https://github.com/yt-project/yt/pull/1542>`__. and `PR 1547
+  <https://github.com/yt-project/yt/pull/1547>`__.
+- Add better error handling for invalid tipsy aux files. See `PR 1549
+  <https://github.com/yt-project/yt/pull/1549>`__.
+- Fix typo in default Gadget header specification. See `PR 1550
+  <https://github.com/yt-project/yt/pull/1550>`__.
+- Use the git version in the get_yt_version function. See `PR 1551
+  <https://github.com/yt-project/yt/pull/1551>`__.
+- Assume dimensionless units for fields from FITS datasets when we can't infer
+  the units. See `PR 1553 <https://github.com/yt-project/yt/pull/1553>`__.
+- Autodetect ramses extra particle fields. See `PR 1555
+  <https://github.com/yt-project/yt/pull/1555>`__.
+- Fix issue with handling unitless halo quantities in HaloCatalog. See `PR 1558
+  <https://github.com/yt-project/yt/pull/1558>`__.
+- Track the halo catalog creation process using a parallel-safe progress bar. 
+  See `PR 1559 <https://github.com/yt-project/yt/pull/1559>`__.
+- The PPV Cube functionality no longer crashes if there is no temperature field
+  in the dataset. See `PR 1562
+  <https://github.com/yt-project/yt/pull/1562>`__.
+- Fix crash caused by saving the ``'x'``, ``'y'``, or ``'z'`` fields in
+  clump.save_as_dataset().  See `PR 1567
+  <https://github.com/yt-project/yt/pull/1567>`__.
+- Accept both string and tuple field names in ``ProfilePlot.set_unit()`` and
+  ``PhasePlot.set_unit()``. See `PR 1568
+  <https://github.com/yt-project/yt/pull/1568>`__.
+- Fix issues with some arbitrary grid attributes not being reloaded properly
+  after being saved with ``save_as_dataset()``. See `PR 1569
+  <https://github.com/yt-project/yt/pull/1569>`__.
+- Fix units issue in the light cone projection operation. See `PR 1574
+  <https://github.com/yt-project/yt/pull/1574>`__.
+- Use ``astropy.wcsaxes`` instead of the independent ``wcsaxes`` project.  See
+  `PR 1577 <https://github.com/yt-project/yt/pull/1577>`__.
+- Correct typo in WarpX field definitions. See `PR 1583
+  <https://github.com/yt-project/yt/pull/1583>`__.
+- Avoid crashing when loading an Enzo dataset with a parameter file that has
+  commented out parameters. See `PR 1584
+  <https://github.com/yt-project/yt/pull/1584>`__.
+- Fix a corner case in the clump finding machinery where the reference to the
+  parent clump is invalid after pruning a child clump that has no siblings. See
+  `PR 1587 <https://github.com/yt-project/yt/pull/1587>`__.
+- Fix issues with setting up yt fields for the magnetic and velocity field
+  components and associated derived fields in curvilinear coordinate
+  systems. See `PR 1588 <https://github.com/yt-project/yt/pull/1588>`__ and `PR
+  1687 <https://github.com/yt-project/yt/pull/1687>`__.
+- Fix incorrect profile values when the profile weight field has values equal to
+  zero. See `PR 1590 <https://github.com/yt-project/yt/pull/1590>`__.
+- Fix issues with making matplotlib animations of a
+  ``ParticleProjectionPlot``. See `PR 1594
+  <https://github.com/yt-project/yt/pull/1594>`__.
+- The ``Scene.annotate_axes()`` function will now use the correct colors for
+  drawing the axes annotation. See `PR 1596
+  <https://github.com/yt-project/yt/pull/1596>`__.
+- Fix incorrect default plot bounds for a zoomed-in slice plot of a 2D
+  cylindrical dataset. See `PR 1597
+  <https://github.com/yt-project/yt/pull/1597>`__.
+- Fix issue where field accesses on 2D grids would return data with incorrect
+  shapes. See `PR 1603 <https://github.com/yt-project/yt/pull/1603>`__.
+- Added a cookbook example for a multipanel phase plot. See `PR 1605
+  <https://github.com/yt-project/yt/pull/1605>`__.
+- Boolean simulation parameters in the Boxlib frontend will now be interpreted
+  correctly. See `PR 1618 <https://github.com/yt-project/yt/pull/1618>`__.
+- The ``ds.particle_type_counts`` attribute will now be populated correctly for
+  AMReX data.
+- The ``"rad"`` unit (added for compatibility with astropy) now has the correct
+  dimensions of angle instead of solid angle. See `PR 1628
+  <https://github.com/yt-project/yt/pull/1628>`__.
+- Fix units issues in several plot callbacks. See `PR 1633
+  <https://github.com/yt-project/yt/pull/1633>`__ and `PR 1674
+  <https://github.com/yt-project/yt/pull/1674>`__.
+- Various fixes for how WarpX fields are interpreted. See `PR 1634
+  <https://github.com/yt-project/yt/pull/1634>`__.
+- Fix incorrect units in the automatically deposited particle fields. See `PR
+  1638 <https://github.com/yt-project/yt/pull/1638>`__.
+- It is now possible to set the axes background color after calling
+  ``plot.hide_axes()``. See `PR 1662
+  <https://github.com/yt-project/yt/pull/1662>`__.
+- Fix a typo in the name of the ``colors`` keyword argument passed to matplotlib
+  for the contour callback. See `PR 1664
+  <https://github.com/yt-project/yt/pull/1664>`__.
+- Add support for Enzo Active Particle fields that arrays. See `PR 1665
+  <https://github.com/yt-project/yt/pull/1665>`__.
+- Avoid crash when generating halo catalogs from the rockstar halo finder for
+  small simulation domains. See `PR 1679
+  <https://github.com/yt-project/yt/pull/1679>`__.
+- The clump callback now functions correctly for a reloaded clump dataset. See
+  `PR 1683 <https://github.com/yt-project/yt/pull/1683>`__.
+- Fix incorrect calculation for tangential components of vector fields. See `PR
+  1688 <https://github.com/yt-project/yt/pull/1688>`__.
+- Allow halo finders to run in parallel on Python3. See `PR 1690
+  <https://github.com/yt-project/yt/pull/1690>`__.
+- Fix issues with Gadget particle IDs for simulations with large numbers of
+  particles being incorrectly rounded. See `PR 1692
+  <https://github.com/yt-project/yt/pull/1692>`__.
+- ``ParticlePlot`` no longer needs to be passed spatial fields in a particular
+  order to ensure that a ``ParticleProjectionPlot`` is returned. See `PR 1697
+  <https://github.com/yt-project/yt/pull/1697>`__.
+- Accessing data from a FLASH grid directly now returns float64 data. See `PR
+  1708 <https://github.com/yt-project/yt/pull/1708>`__.
+- Fix periodicity check in ``YTPoint`` data object. See `PR 1712
+  <https://github.com/yt-project/yt/pull/1712>`__.
+- Avoid crash on matplotlib 2.2.0 when generating yt plots with symlog
+  colorbars. See `PR 1720 <https://github.com/yt-project/yt/pull/1720>`__.
+- Avoid crash when FLASH ``"unitsystem"`` parameter is quoted in the HDF5
+  file. See `PR 1722 <https://github.com/yt-project/yt/pull/1722>`__.
+- Avoid issues with creating custom particle filters for OWLS/EAGLE
+  datasets. See `PR 1723 <https://github.com/yt-project/yt/pull/1723>`__.
+- Adapt to behavior change in matplotlib that caused plot inset boxes for
+  annotated text to be drawn when none was requested. See `PR 1731
+  <https://github.com/yt-project/yt/pull/1731>`__ and `PR 1827
+  <https://github.com/yt-project/yt/pull/1827>`__.
+- Fix clump finder ignoring field parameters. See `PR 1732
+  <https://github.com/yt-project/yt/pull/1732>`__.
+- Avoid generating NaNs in x-ray emission fields. See `PR 1742
+  <https://github.com/yt-project/yt/pull/1742>`__.
+- Fix compatibility with Sphinx 1.7 when building the docs. See `PR 1743
+  <https://github.com/yt-project/yt/pull/1743>`__.
+- Eliminate usage of deprecated ``"clobber"`` keyword argument for various
+  usages of astropy in yt. See `PR 1744
+  <https://github.com/yt-project/yt/pull/1744>`__.
+- Fix incorrect definition of the ``"d"`` unit (an alias of ``"day"``). See `PR
+  1746 <https://github.com/yt-project/yt/pull/1746>`__.
+- ``PhasePlot.set_log()`` now correctly handles tuple field names as well as
+  string field names. See `PR 1787
+  <https://github.com/yt-project/yt/pull/1787>`__.
+- Fix incorrect axis order in aitoff pixelizer. See `PR 1791
+  <https://github.com/yt-project/yt/pull/1791>`__.
+- Fix crash in when exporting a surface as a ply model. See `PR 1792
+  <https://github.com/yt-project/yt/pull/1792>`__ and `PR 1817
+  <https://github.com/yt-project/yt/pull/1817>`__.
+- Fix crash in scene.save_annotated() in newer numpy versions. See `PR 1793
+  <https://github.com/yt-project/yt/pull/1793>`__.
+- Many tests no longer depend on real datasets. See `PR 1801
+  <https://github.com/yt-project/yt/pull/1801>`__, `PR 1805
+  <https://github.com/yt-project/yt/pull/1805>`__, `PR 1809
+  <https://github.com/yt-project/yt/pull/1809>`__, `PR 1883
+  <https://github.com/yt-project/yt/pull/1883>`__, and `PR 1941
+  <https://github.com/yt-project/yt/pull/1941>`__
+- New tests were added to improve test coverage or the performance of the
+  tests. See `PR 1820 <https://github.com/yt-project/yt/pull/1820>`__, `PR 1831
+  <https://github.com/yt-project/yt/pull/1831>`__, `PR 1833
+  <https://github.com/yt-project/yt/pull/1833>`__, `PR 1841
+  <https://github.com/yt-project/yt/pull/1841>`__, `PR 1842
+  <https://github.com/yt-project/yt/pull/1842>`__, `PR 1885
+  <https://github.com/yt-project/yt/pull/1885>`__, `PR 1886
+  <https://github.com/yt-project/yt/pull/1886>`__, `PR 1952
+  <https://github.com/yt-project/yt/pull/1952>`__, `PR 1953
+  <https://github.com/yt-project/yt/pull/1953>`__, `PR 1955
+  <https://github.com/yt-project/yt/pull/1955>`__, and `PR 1957
+  <https://github.com/yt-project/yt/pull/1957>`__.
+- The particle trajectories machinery will raise an error if it is asked to
+  analyze a set of particles with duplicated particle IDs. See `PR 1818
+  <https://github.com/yt-project/yt/pull/1818>`__.
+- Fix incorrect velocity unit int he ``gadget_fof`` frontend. See `PR 1829
+  <https://github.com/yt-project/yt/pull/1829>`__.
+- Making an off-axis projection of a cut_region data object with an octree AMR
+  dataset now works correctly. See `PR 1858
+  <https://github.com/yt-project/yt/pull/1858>`__.
+- Replace hard-coded constants in Enzo frontend with calculations to improve
+  agreement with Enzo's internal constants and improve clarity. See `PR 1873
+  <https://github.com/yt-project/yt/pull/1873>`__.
+- Correct issues with Enzo magnetic units in cosmology simulations. See `PR 1876
+  <https://github.com/yt-project/yt/pull/1876>`__.
+- Use the species names from the dataset rather than hardcoding species names in
+  the WarpX frontend. See `PR 1884
+  <https://github.com/yt-project/yt/pull/1884>`__.
+- Fix issue with masked I/O for unstructured mesh data. See `PR 1918
+  <https://github.com/yt-project/yt/pull/1918>`__.
+- Fix crash when reading DM-only Enzo datasets where some grids have no particles. See `PR 1919 <https://github.com/yt-project/yt/pull/1919>`__.
+- Fix crash when loading pure-hydro Nyx dataset. See `PR 1950
+  <https://github.com/yt-project/yt/pull/1950>`__.
+- Avoid crashes when plotting fields that contain NaN. See `PR 1951
+  <https://github.com/yt-project/yt/pull/1951>`__.
+- Avoid crashes when loading NMSU ART data. See `PR 1960
+  <https://github.com/yt-project/yt/pull/1960>`__.
+- Avoid crash when loading WarpX dataset with no particles. See `PR 1979
+  <https://github.com/yt-project/yt/pull/1979>`__.
+- Adapt to API change in glue to fix the ``to_glue()`` method on yt data
+  objects. See `PR 1991 <https://github.com/yt-project/yt/pull/1991>`__.
+- Fix incorrect width calculation in the ``annotate_halos()`` plot callback. See
+  `PR 1995 <https://github.com/yt-project/yt/pull/1995>`__.
+- Don't try to read from files containing zero halos in the ``gadget_fof``
+  frontend. See `PR 2001 <https://github.com/yt-project/yt/pull/2001>`__.
+- Fix incorrect calculation in ``get_ortho_base()``. See `PR 2013
+  <https://github.com/yt-project/yt/pull/2013>`__.
+- Avoid issues with the axes background color being inconsistently set. See `PR
+  2018 <https://github.com/yt-project/yt/pull/2018>`__.
+- Fix issue with reading multiple fields at once for octree AMR data sometimes
+  returning data for another field for one of the requested fields. See `PR 2020
+  <https://github.com/yt-project/yt/pull/2020>`__.
+- Fix incorrect domain annotation for ``Scene.annotate_domain()`` when using the
+  plane-parallel camera. See `PR 2024
+  <https://github.com/yt-project/yt/pull/2024>`__.
+- Avoid crash when particles are on the domain edges for ``gadget_fof``
+  data. See `PR 2034 <https://github.com/yt-project/yt/pull/2034>`__.
+- Avoid stripping code units when processing units through a dataset's unit
+  system. See `PR 2035 <https://github.com/yt-project/yt/pull/2035>`__.
+- Avoid incorrectly rescaling units of metalicity fields. See `PR 2038
+  <https://github.com/yt-project/yt/pull/2038>`__.
+- Fix incorrect units for FLASH ``"divb"`` field. See `PR 2062
+  <https://github.com/yt-project/yt/pull/2062>`__.
+
 Version 3.4
 -----------
 
