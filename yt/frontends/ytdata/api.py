@@ -39,3 +39,5 @@ from .fields import \
 
 from .utilities import \
     save_as_dataset
+
+from . import tests
