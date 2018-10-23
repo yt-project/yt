@@ -290,6 +290,34 @@ class GeographicCoordinateHandler(CoordinateHandler):
                 ('longitude', 'altitude'),
                 ('altitude', 'latitude'))
 
+    _data_projection = None
+    @property
+    def data_projection(self):
+        if self._data_projection is not None:
+            return self._data_projection
+        dpj = {}
+        for ax in self.axis_order:
+            if ax == self.radial_axis:
+                dpj[ax] = "PlateCarree"
+            else:
+                dpj[ax] = None
+        self._data_projection = dpj
+        return dpj
+
+    _data_transform = None
+    @property
+    def data_transform(self):
+        if self._data_transform is not None:
+            return self._data_transform
+        dtx = {}
+        for ax in self.axis_order:
+            if ax == self.radial_axis:
+                dtx[ax] = "PlateCarree"
+            else:
+                dtx[ax] = None
+        self._data_transform = dtx
+        return dtx
+
     @property
     def period(self):
         return self.ds.domain_width
