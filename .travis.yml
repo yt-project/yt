@@ -127,7 +127,7 @@ jobs:
           - $HOME/Library/Caches/pip
           # `cache` does not support `env`-like `global` so copy-paste from top
           - $HOME/.ccache  # https://github.com/travis-ci/travis-ci/issues/5853
-      script: coverage run $(which nosetests) -c nose_unit.cfg
+      script: nosetests -c nose_unit.cfg
 
 after_success:
   - |
