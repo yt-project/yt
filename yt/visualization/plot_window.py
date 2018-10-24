@@ -189,13 +189,8 @@ class PlotWindow(ImagePlotContainer):
         self.buff_size = buff_size
         self.antialias = antialias
         self._axes_unit_names = None
-
-        axname = data_source.ds.coordinates.axis_name[data_source.axis]
-
-        transform = data_source.ds.coordinates.data_transform[axname]
-        projection = data_source.ds.coordinates.data_projection[axname]
-        self._projection = get_mpl_transform(projection)
-        self._transform = get_mpl_transform(transform)
+        self._transform = None
+        self._projection = None
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
@@ -217,6 +212,13 @@ class PlotWindow(ImagePlotContainer):
                 self.data_source.center, ax)
             center = [display_center[xax], display_center[yax]]
             self.set_center(center)
+
+            axname = self.ds.coordinates.axis_name[ax]
+            transform = self.ds.coordinates.data_transform[axname]
+            projection = self.ds.coordinates.data_projection[axname]
+            self._projection = get_mpl_transform(projection)
+            self._transform = get_mpl_transform(transform)
+
         for field in self.data_source._determine_fields(self.fields):
             finfo = self.data_source.ds._get_field_info(*field)
             if finfo.take_log:
