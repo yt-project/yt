@@ -1863,3 +1863,8 @@ def display_ytarray(arr):
              for _ in arr_iter]
     dropdown.observe(arr_updater(arr, texts), names="value")
     return ipywidgets.HBox(texts + [dropdown])
+
+def _wrap_display_ytarray(arr):
+    from IPython.core.display import display
+    display(display_ytarray(arr))
+
