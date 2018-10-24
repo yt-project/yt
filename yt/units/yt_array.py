@@ -532,6 +532,10 @@ class YTArray(np.ndarray):
         """
         return str(self.view(np.ndarray)) + ' ' + str(self.units)
 
+    def __format__(self, format_spec):
+        ret = super(YTArray, self).__format__(format_spec)
+        return ret + ' {}'.format(self.units)
+
     #
     # Start unit conversion methods
     #
@@ -789,6 +793,24 @@ class YTArray(np.ndarray):
 
         """
         return np.array(self)
+
+    def argsort(self, axis=-1, kind='quicksort', order=None):
+        """
+        Returns the indices that would sort the array.
+
+        See the documentation of ndarray.argsort for details about the keyword
+        arguments.
+
+        Example
+        -------
+        >>> from yt.units import km
+        >>> data = [3, 8, 7]*km
+        >>> np.argsort(data)
+        array([0, 2, 1])
+        >>> data.argsort()
+        array([0, 2, 1])
+        """
+        return self.view(np.ndarray).argsort(axis, kind, order)
 
     @classmethod
     def from_astropy(cls, arr, unit_registry=None):

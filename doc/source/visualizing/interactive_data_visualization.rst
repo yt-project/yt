@@ -38,13 +38,6 @@ dependencies, e.g. `glfw3 <http://www.glfw.org/>`_ is required to be installed
 before you can ``pip install cyglfw3``. Please carefully read installation
 instructions provided on pypi pages of both packages. 
 
-If you are using conda, ``cyglfw3`` is provided in our conda channel
-(``pyopengl`` is shipped by Continuum already) and can be installed via:
-
-.. code-block:: bash
-
-    conda install -c http://use.yt/with_conda/ cyglfw3 pyopengl
-
 Using the interactive renderer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

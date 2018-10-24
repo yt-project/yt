@@ -10,7 +10,12 @@
 Creating Absorption Spectra
 ===========================
 
-.. sectionauthor:: Britton Smith <brittonsmith@gmail.com>
+.. note::
+
+    Development of the AbsorptionSpectrum module has been moved to the
+    Trident package. This version is deprecated and will be removed from yt
+    in a future release. See https://github.com/trident-project/trident
+    for further information.
 
 Absorption line spectra are spectra generated using bright background sources
 to illuminate tenuous foreground material and are primarily used in studies

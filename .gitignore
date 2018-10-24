@@ -85,5 +85,7 @@ tests/results/*
 doc/build/*
 doc/source/reference/api/generated/*
 doc/_temp/*
-doc/source/bootcamp/.ipynb_checkpoints/
+doc/source/quickstart/.ipynb_checkpoints/
 dist
+.python-version
+answer_nosetests.xml

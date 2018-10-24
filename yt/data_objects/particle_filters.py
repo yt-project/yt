@@ -70,6 +70,8 @@ class ParticleFilter(object):
         new_fi.name = (self.name, field_name[1])
         if old_fi._function == NullFunc:
             new_fi._function = TranslationFunc(old_fi.name)
+        # Marking the field as inherited
+        new_fi._inherited_particle_filter = True
         return new_fi
 
 

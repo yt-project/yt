@@ -14,6 +14,7 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import hashlib
+import matplotlib
 from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it
@@ -21,6 +22,8 @@ import numpy as np
 import functools
 import importlib
 import os
+import shutil
+import tempfile
 import unittest
 from yt.funcs import iterable
 from yt.config import ytcfg
@@ -38,6 +41,7 @@ from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
 
+ANSWER_TEST_TAG = "answer_test"
 # Expose assert_true and assert_less_equal from unittest.TestCase
 # this is adopted from nose. Doing this here allows us to avoid importing
 # nose at the top level.
@@ -285,7 +289,7 @@ def fake_particle_ds(
             offsets.append(0.5)
         else:
             offsets.append(0.0)
-    data = {}
+    data = data if data else {}
     for field, offset, u in zip(fields, offsets, units):
         if field in data:
             v = data[field]
@@ -448,9 +452,16 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     return ds
 
 
-def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=[True]):
+def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=None):
     # Implementation taken from url:
     # http://docs.hyperion-rt.org/en/stable/advanced/indepth_oct.html
+
+
+    if refined in (None, True):
+        refined = [True]
+    if refined is False:
+        refined = [False]
+        return refined
 
     # Loop over subcells
     for subcell in range(8):
@@ -466,7 +477,7 @@ def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=[True]):
             construct_octree_mask(prng, refined)
     return refined
 
-def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=[True], quantities=None,
+def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=None, quantities=None,
                    bbox=None, sim_time=0.0, length_unit=None, mass_unit=None,
                    time_unit=None, velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True), over_refine_factor=1,
@@ -1101,5 +1112,51 @@ def assert_fname(fname):
     elif data.startswith(b'%PDF'):
         image_type = '.pdf'
 
-    return image_type == os.path.splitext(fname)[1]
+    extension = os.path.splitext(fname)[1]
 
+    assert image_type == extension, \
+        ("Expected an image of type '%s' but '%s' is an image of type '%s'" %
+         (extension, fname, image_type))
+
+def requires_backend(backend):
+    """ Decorator to check for a specified matplotlib backend.
+
+    This decorator returns the decorated function if the specified `backend`
+    is same as of `matplotlib.get_backend()`, otherwise returns null function.
+    It could be used to execute function only when a particular `backend` of
+    matplotlib is being used.
+
+    Parameters
+    ----------
+    backend : String
+        The value which is compared with the current matplotlib backend in use.
+
+    Returns
+    -------
+    Decorated function or null function
+
+    """
+    def ffalse(func):
+        return lambda: None
+
+    def ftrue(func):
+        return func
+
+    if backend.lower() == matplotlib.get_backend().lower():
+        return ftrue
+    return ffalse
+
+class TempDirTest(unittest.TestCase):
+    """
+    A test class that runs in a temporary directory and
+    removes it afterward.
+    """
+
+    def setUp(self):
+        self.curdir = os.getcwd()
+        self.tmpdir = tempfile.mkdtemp()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.curdir)
+        shutil.rmtree(self.tmpdir)

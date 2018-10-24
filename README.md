@@ -33,14 +33,14 @@ guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-co
 
 ## Installation
 
-If you're using conda with [conda-forge](http://conda-forge.github.io/), you
-can install the most recent stable version by running:
+You can install the most recent stable version of yt either with conda from
+[conda-forge](http://conda-forge.github.io/):
 
 ```
 conda install -c conda-forge yt
 ```
 
-or by doing:
+or with pip:
 
 ```
 pip install yt
@@ -50,33 +50,50 @@ If you want the latest nightly build, you can manually install from our
 repository:
 
 ```
-conda install -c http://use.yt/with_conda yt
+conda install -c yt-project/label/dev yt
 ```
 
-To get set up with a development version, you can clone this repository and
-install like this:
+To get set up with a development version, you want to clone this repository:
 
 ```
 git clone https://github.com/yt-project/yt yt-git
 cd yt-git
-pip install -e .
 ```
 
-To set up yt in a virtualenv (and there are [many good
-reasons](https://packaging.python.org/installing/#creating-virtual-environments)
-to do so!) you can follow this prescription:
+and work within a conda environment:
 
 ```
-# Assuming you have cd'd into yt-git
+# Create a conda environment named yt-git
+$ conda create -n yt-git python=3.6
+# Activate it
+$ source activate yt-git
+# Make sure you run the latest version of conda
+$ conda update conda
+# Install yt's runtime dependencies
+$ conda install -c conda-forge yt --only-deps
+# Install yt's build dependencies
+$ conda install -c conda-forge cython
+# Make sure you run the latest version of pip
+$ pip install --upgrade pip
+$ pip install -v -e .
+# Output installed packages
+$ conda env export
+```
+
+Alternatively, you can install yt in a
+[virtualenv](https://packaging.python.org/installing/#creating-virtual-environments):
+
+```
 # It is conventional to create virtualenvs at ~/.virtualenv/
 $ mkdir -p ~/.virtualenv
 # Assuming your version of Python 3 is 3.4 or higher,
-# create a virtualenv named yt
-$ python3 -m venv ~/.virtualenv/yt
+# create a virtualenv named yt-git
+$ python3 -m venv ~/.virtualenv/yt-git
 # Activate it
-$ source ~/.virtualenv/yt/bin/activate
+$ source ~/.virtualenv/yt-git/bin/activate
 # Make sure you run the latest version of pip
 $ pip install --upgrade pip
+# Assuming you have cd'd into yt-git
 $ pip install -e .
 # Output installed packages
 $ pip freeze

@@ -10,7 +10,7 @@ Surface Objects and Extracting Isocontour Information
 -----------------------------------------------------
 
 yt contains an implementation of the `Marching Cubes
-<https://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm, which can operate on
+<https://en.wikipedia.org/wiki/Marching_cubes>`__ algorithm, which can operate on
 3D data objects.  This provides two things.  The first is to identify
 isocontours and return either the geometry of those isocontours or to return
 another field value sampled along that isocontour.  The second piece of
@@ -35,10 +35,10 @@ at the center of each face of the surface, and flux of a given field could be
 calculated over the surface.  This means you can, for instance, extract an
 isocontour in density and calculate the mass flux over that isocontour.  It
 also means you can export a surface from yt and view it in something like
-`Blender <https://www.blender.org/>`_, `MeshLab
-<http://www.meshlab.net>`_, or even on your Android or iOS device in
-`MeshPad <http://www.meshpad.org/>`_ or `MeshLab Android
-<https://play.google.com/store/apps/details?id=it.isticnr.meshlab&hl=en>`_.
+`Blender <https://www.blender.org/>`__, `MeshLab
+<http://www.meshlab.net>`__, or even on your Android or iOS device in
+`MeshPad <http://www.meshpad.org/>`__ or `MeshLab Android
+<https://play.google.com/store/apps/details?id=it.isticnr.meshlab&hl=en>`__.
 
 To extract geometry or sample a field, call
 :meth:`~yt.data_objects.data_containers.YTSelectionContainer3D.extract_isocontours`.  To
@@ -80,13 +80,13 @@ If you want to export this to a `PLY file
 ``export_ply``, which will write to a file and optionally sample a field at
 every face or vertex, outputting a color value to the file as well.  This file
 can then be viewed in MeshLab, Blender or on the website `Sketchfab.com
-<https://sketchfab.com>`_.  But if you want to view it on Sketchfab, there's an
+<https://sketchfab.com>`__.  But if you want to view it on Sketchfab, there's an
 even easier way!
 
 Exporting to Sketchfab
 ----------------------
 
-`Sketchfab <https://sketchfab.com>`_ is a website that uses WebGL, a relatively
+`Sketchfab <https://sketchfab.com>`__ is a website that uses WebGL, a relatively
 new technology for displaying 3D graphics in any browser.  It's very fast and
 typically requires no plugins.  Plus, it means that you can share data with
 anyone and they can view it immersively without having to download the data or
@@ -152,9 +152,9 @@ OBJ and MTL Files
 -----------------
 
 If the ability to maneuver around an isosurface of your 3D simulation in
-`Sketchfab <https://sketchfab.com>`_ cost you half a day of work (let's be
+`Sketchfab <https://sketchfab.com>`__ cost you half a day of work (let's be
 honest, 2 days), prepare to be even less productive.  With a new  `OBJ file
-<https://en.wikipedia.org/wiki/Wavefront_.obj_file>`_ exporter, you can now
+<https://en.wikipedia.org/wiki/Wavefront_.obj_file>`__ exporter, you can now
 upload multiple surfaces of different transparencies in the same file.
 The following code snippet produces two files which contain the vertex info
 (surfaces.obj) and color/transparency info (surfaces.mtl) for a 3D
@@ -175,7 +175,7 @@ galaxy simulation:
        surf.export_obj(filename, transparency = trans[i], color_field='temperature', plot_index = i)
 
 The calling sequence is fairly similar to the ``export_ply`` function
-`previously used <http://blog.yt-project.org/post/3DSurfacesAndSketchFab.html>`_
+`previously used <http://blog.yt-project.org/post/3DSurfacesAndSketchFab.html>`__
 to export 3D surfaces.  However, one can now specify a transparency for each
 surface of interest, and each surface is enumerated in the OBJ files with ``plot_index``.
 This means one could potentially add surfaces to a previously
@@ -201,7 +201,7 @@ surface to their own min and max values.
 Uploading to SketchFab
 ----------------------
 
-To upload to `Sketchfab <https://sketchfab.com>`_ one only needs to zip the
+To upload to `Sketchfab <https://sketchfab.com>`__ one only needs to zip the
 OBJ and MTL files together, and then upload via your dashboard prompts in
 the usual way.  For example, the above script produces:
 
@@ -216,9 +216,9 @@ Importing to MeshLab and Blender
 --------------------------------
 
 The new OBJ formatting will produce multi-colored surfaces in both
-`MeshLab <http://meshlab.sourceforge.net/>`_ and `Blender <http://www.blender.org/>`_,
+`MeshLab <http://meshlab.sourceforge.net/>`__ and `Blender <http://www.blender.org/>`__,
 a feature not possible with the
-`previous PLY exporter <http://blog.yt-project.org/post/3DSurfacesAndSketchFab.html>`_.
+`previous PLY exporter <http://blog.yt-project.org/post/3DSurfacesAndSketchFab.html>`__.
 To see colors in MeshLab go to the "Render" tab and
 select "Color -> Per Face".  Note in both MeshLab and Blender, unlike Sketchfab, you can't see
 transparencies until you render.
@@ -281,7 +281,7 @@ in the function "create_materials" with:
    # ...
 
 To use this in Blender, you might create a
-`Blender script <http://cgcookie.com/blender/2011/08/26/introduction-to-scripting-with-python-in-blender/>`_
+`Blender script <http://cgcookie.com/blender/2011/08/26/introduction-to-scripting-with-python-in-blender/>`__
 like the following:
 
 .. code-block:: python

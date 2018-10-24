@@ -320,6 +320,26 @@ The field plugins currently available include:
  * Species fields, such as for chemistry species (yt can recognize the entire
    periodic table in field names and construct ionization fields as need be)
 
+
+Field Labeling
+--------------
+
+By default yt formats field labels nicely for plots. To adjust the chosen
+format you can use the ``ds.set_field_label_format`` method like so:
+
+
+.. code-block:: python
+
+   ds = yt.load("my_data")
+   ds.set_field_label_format("ionization_label", "plus_minus")
+
+
+The first argument accepts a ``format_property``, or specific aspect of the labeling, and the
+second sets the corresponding ``value``. Currently available format properties are
+
+    * ``ionization_label``: sets how the ionization state of ions are labeled. Available
+            options are ``"plus_minus"`` and ``"roman_numeral"``
+
 .. _bfields:
 
 Magnetic Fields
