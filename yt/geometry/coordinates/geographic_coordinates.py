@@ -296,7 +296,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         dpj = {}
         for ax in self.axis_order:
             if ax == self.radial_axis:
-                dpj[ax] = "PlateCarree"
+                dpj[ax] = "Mollweide"
             else:
                 dpj[ax] = None
         self._data_projection = dpj

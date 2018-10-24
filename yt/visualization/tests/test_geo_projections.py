@@ -69,9 +69,9 @@ class TestGeoProjections(unittest.TestCase):
         axis = "altitude"
         self.slc = yt.SlicePlot(self.ds, axis, "Density")
 
-        assert isinstance(self.slc._projection, cartopy.crs.PlateCarree)
+        assert isinstance(self.slc._projection, cartopy.crs.Mollweide)
         assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
-        assert self.ds.coordinates.data_projection[axis] == "PlateCarree"
+        assert self.ds.coordinates.data_projection[axis] == "Mollweide"
         assert self.ds.coordinates.data_transform[axis] == "PlateCarree"
         assert isinstance(self.slc._projection,
                           type(self.slc.plots['Density'].axes.projection))
@@ -119,7 +119,7 @@ class TestGeoProjections(unittest.TestCase):
 
             assert isinstance(self.slc._projection, proj_type)
             assert isinstance(self.slc._transform, cartopy.crs.Miller)
-            assert self.ds.coordinates.data_projection[axis] == "PlateCarree"
+            assert self.ds.coordinates.data_projection[axis] == "Mollweide"
             assert self.ds.coordinates.data_transform[axis] == "Miller"
             assert isinstance(self.slc.plots['Density'].axes.projection,
                               proj_type)

@@ -192,10 +192,10 @@ class PlotWindow(ImagePlotContainer):
 
         axname = data_source.ds.coordinates.axis_name[data_source.axis]
 
-        xform = data_source.ds.coordinates.data_transform[axname]
-        proj = data_source.ds.coordinates.data_projection[axname]
-        self._projection = get_mpl_transform(proj)
-        self._transform = get_mpl_transform(xform)
+        transform = data_source.ds.coordinates.data_transform[axname]
+        projection = data_source.ds.coordinates.data_projection[axname]
+        self._projection = get_mpl_transform(projection)
+        self._transform = get_mpl_transform(transform)
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields

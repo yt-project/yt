@@ -12,7 +12,10 @@ With support from `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_,
 types for geographically loaded data.
 Underlying data is assumed to have a transform of `PlateCarree
 <https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`_,
-which is data on a flattened, rectangular, latitude/longitude grid. The data
+which is data on a flattened, rectangular, latitude/longitude grid. This is a
+a typical format for geographic data. 
+
+The distinction between the data transform and projection is worth noting. The data
 transform is what system your data is defined with and the data projection is
 what the resulting plot will display. For more information on this difference,
 refer to `the cartopy documentation on these differences
@@ -80,7 +83,7 @@ downloads page. For details about loading this data, please
 see :ref:`cookbook-geographic_projections`.
 
 If a geographic dataset is loaded without any defined projection the default
-option of ``PlateCarree`` will be displayed.
+option of ``Mollweide`` will be displayed.
 
 .. code-block:: python
 
@@ -88,7 +91,7 @@ option of ``PlateCarree`` will be displayed.
     bbox=bbox)
     p = yt.SlicePlot(ds, "altitude", 'AIRDENS')
 
-If an option other than ``PlateCarree`` is desired, the plot projection type can
+If an option other than ``Mollweide`` is desired, the plot projection type can
 be set with the ``set_mpl_projection`` function. The next code block illustrates how to 
 set the projection to a ``Robinson`` projection from the default `PlateCarree`.
 
