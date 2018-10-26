@@ -973,7 +973,7 @@ cdef class CutRegionSelector(SelectorObject):
     cdef tuple _conditionals
 
     def __init__(self, dobj):
-        positions = np.array([dobj['x'], dobj['y'], dobj['z']]).T
+        positions = np.array([dobj['index', 'x'], dobj['index', 'y'], dobj['index', 'z']]).T
         self._conditionals = tuple(dobj.conditionals)
         self._positions = set(tuple(position) for position in positions)
 
@@ -1219,6 +1219,7 @@ cdef class SliceSelector(SelectorObject):
         cdef int total = 0
         cdef int this_level = 0
         cdef int ind[3][2]
+        cdef np.uint8_t icoord
         cdef np.int32_t level = gobj.Level
         _ensure_code(gobj.LeftEdge)
         _ensure_code(gobj.dds)
@@ -1232,9 +1233,12 @@ cdef class SliceSelector(SelectorObject):
                 this_level = 1
             for i in range(3):
                 if i == self.axis:
-                    ind[i][0] = \
-                        <int> ((self.coord - (gobj.LeftEdge[i]).to_ndarray()) /
-                               gobj.dds[i])
+                    icoord = <np.uint8_t>(
+                        (self.coord - gobj.LeftEdge.d[i])/gobj.dds[i])
+                    # clip coordinate to avoid seg fault below if we're
+                    # exactly at a grid boundary
+                    ind[i][0] = iclip(
+                        icoord, 0, gobj.ActiveDimensions[i]-1)
                     ind[i][1] = ind[i][0] + 1
                 else:
                     ind[i][0] = 0

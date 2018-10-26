@@ -25,6 +25,7 @@ from yt.geometry.particle_oct_container import \
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.selection_routines import RegionSelector, AlwaysSelector
 from yt.testing import \
+    assert_almost_equal, \
     assert_equal, \
     requires_file
 from yt.units.unit_registry import UnitRegistry
@@ -152,11 +153,12 @@ def test_particle_index_ptype():
     dd = ds.all_data()
     dd_all = ds_all.all_data()
     dd_pt0 = ds_pt0.all_data()
-    cv = dd["cell_volume"]
-    cv_all = dd_all["cell_volume"]
-    cv_pt0 = dd_pt0["cell_volume"]
+    cv = dd['index', "cell_volume"]
+    cv_all = dd_all['index', "cell_volume"]
+    cv_pt0 = dd_pt0['index', "cell_volume"]
     assert_equal(cv.shape, cv_all.shape)
-    assert_equal(cv.sum(dtype="float64"), cv_pt0.sum(dtype="float64"))
+    assert_almost_equal(
+        cv.sum(dtype="float64"), cv_pt0.sum(dtype="float64"))
 
 class FakeDS:
     domain_left_edge = None

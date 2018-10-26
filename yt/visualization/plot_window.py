@@ -674,7 +674,13 @@ class PlotWindow(ImagePlotContainer):
         return self
 
     @invalidate_data
-    def set_antialias(self,aa):
+    def set_antialias(self, aa):
+        """Turn antialiasing on or off.
+
+        parameters
+        ----------
+        aa : boolean
+        """
         self.antialias = aa
 
     @invalidate_data
@@ -998,6 +1004,13 @@ class PWViewerMPL(PlotWindow):
 
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
+
+            color = self._background_color[f]
+
+            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+                self.plots[f].axes.set_axis_bgcolor(color)
+            else:
+                self.plots[f].axes.set_facecolor(color)
 
             # Determine the units of the data
             units = Unit(self.frb[f].units, registry=self.ds.unit_registry)

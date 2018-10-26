@@ -67,7 +67,9 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
-from yt.units.unit_systems import create_code_unit_system
+from yt.units.unit_systems import \
+    create_code_unit_system, \
+    _make_unit_system_copy
 from yt.data_objects.region_expression import \
     RegionExpression
 from yt.geometry.coordinates.api import \
@@ -241,6 +243,7 @@ class Dataset(object):
     fields = requires_index("fields")
     _instantiated = False
     _particle_type_counts = None
+    _ionization_label_format = 'roman_numeral'
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, string_types):
@@ -572,6 +575,28 @@ class Dataset(object):
         self.index.field_list = sorted(self.field_list)
         self._last_freq = (None, None)
 
+    def set_field_label_format(self, format_property, value):
+        """
+        Set format properties for how fields will be written
+        out. Accepts 
+
+        format_property : string indicating what property to set
+        value: the value to set for that format_property
+        """
+        available_formats = {"ionization_label":("plus_minus", "roman_numeral")}
+        if format_property in available_formats:
+            if value in available_formats[format_property]:
+                setattr(self, "_%s_format" % format_property, value)
+            else:
+                raise ValueError("{0} not an acceptable value for format_property "
+                        "{1}. Choices are {2}.".format(value, format_property,
+                            available_formats[format_property]))
+        else:
+            raise ValueError("{0} not a recognized format_property. Available"
+                             "properties are: {1}".format(format_property,
+                                                         list(available_formats.keys())))
+
+
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
         added = []
@@ -801,7 +826,8 @@ class Dataset(object):
             source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
-        return max_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+        center = self.arr([mx, my, mz], dtype="float64").to('code_length')
+        return max_val, center
 
     def find_min(self, field):
         """
@@ -813,7 +839,8 @@ class Dataset(object):
             source.quantities.min_location(field)
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
               min_val, mx, my, mz)
-        return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+        center = self.arr([mx, my, mz], dtype="float64").to('code_length')
+        return min_val, center
 
     def find_field_values_at_point(self, fields, coords):
         """
@@ -948,10 +975,11 @@ class Dataset(object):
         create_code_unit_system(self.unit_registry, 
                                 current_mks_unit=current_mks_unit)
         if unit_system == "code":
-            unit_system = self.unit_registry.unit_system_id
+            unit_system = unit_system_registry[self.unit_registry.unit_system_id]
         else:
-            unit_system = str(unit_system).lower()
-        self.unit_system = unit_system_registry[unit_system]
+            sys_name = str(unit_system).lower()
+            unit_system = _make_unit_system_copy(self.unit_registry, sys_name)
+        self.unit_system = unit_system
 
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()

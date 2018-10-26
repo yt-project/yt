@@ -460,6 +460,7 @@ def test_set_background_color():
     plot = SlicePlot(ds, 2, 'density')
     for field in ['density', ('gas', 'density')]:
         plot.set_background_color(field, 'red')
+        plot._setup_plots()
         ax = plot.plots[field].axes
         if LooseVersion(matplotlib.__version__) < LooseVersion('2.0.0'):
             assert_equal(ax.get_axis_bgcolor(), 'red')
