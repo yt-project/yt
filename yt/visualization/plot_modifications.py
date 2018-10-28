@@ -1564,7 +1564,6 @@ class HaloCatalogCallback(PlotCallback):
                  text_args=None, font_kwargs=None, factor=1.0):
 
         try:
-            import yt_astro_analysis
             from yt_astro_analysis.halo_analysis.api import \
                 HaloCatalog
         except ImportError:
@@ -2456,7 +2455,6 @@ class RayCallback(PlotCallback):
 
     def __call__(self, plot):
         try:
-            import trident
             from trident.light_ray import periodic_ray
         except ImportError:
             periodic_ray = NotAModule('trident')
