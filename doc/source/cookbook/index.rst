@@ -44,7 +44,6 @@ Example Notebooks
    gadget_notebook
    owls_notebook
    ../visualizing/transfer_function_helper
-   ../analyzing/analysis_modules/sunyaev_zeldovich
    fits_radio_cubes
    fits_xray_images
    tipsy_notebook
