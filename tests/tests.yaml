@@ -36,9 +36,6 @@ answer_tests:
     - yt/frontends/gizmo/tests/test_outputs.py
 
   local_halos_008:
-    - yt/analysis_modules/halo_analysis/tests/test_halo_finders.py
-    - yt/analysis_modules/halo_analysis/tests/test_halo_catalog.py
-    - yt/analysis_modules/halo_finding/tests/test_rockstar.py
     - yt/frontends/ahf/tests/test_outputs.py
     - yt/frontends/owls_subfind/tests/test_outputs.py
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
@@ -59,13 +56,8 @@ answer_tests:
     - yt/frontends/tipsy/tests/test_outputs.py
 
   local_varia_010:
-    - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/fields/tests/test_xray_fields.py
-
-  local_photon_002:
-    - yt/analysis_modules/photon_simulator/tests/test_spectra.py
-    - yt/analysis_modules/photon_simulator/tests/test_sloshing.py
 
   local_unstructured_010:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render
@@ -112,22 +104,11 @@ answer_tests:
   local_ytdata_004:
     - yt/frontends/ytdata
 
-  local_absorption_spectrum_007:
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_novpec
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_sph
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo_sph
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_with_continuum
-
   local_axialpix_005:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
   local_particle_trajectory_001:
     - yt/data_objects/tests/test_particle_trajectories.py
-
-  local_light_cone_002:
-    - yt/analysis_modules/cosmological_observation/light_cone/tests/test_light_cone.py
 
 other_tests:
   unittests:

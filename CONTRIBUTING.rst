@@ -381,12 +381,6 @@ the following subdirectories:
    classes for data regions, covering grids, time series, and so on.  This
    also includes derived fields and derived quantities.
 
-``analysis_modules``
-   This is where all mechanisms for processing data live.  This includes
-   things like clump finding, halo profiling, halo finding, and so on.  This
-   is something of a catchall, but it serves as a level of greater
-   abstraction that simply data selection and modification.
-
 ``gui``
    This is where all GUI components go.  Typically this will be some small
    tool used for one or two things, which contains a launching mechanism on
