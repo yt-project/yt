@@ -53,12 +53,6 @@ else:
     std_libs = ["m"]
 
 cython_extensions = [
-    Extension("yt.analysis_modules.photon_simulator.utils",
-              ["yt/analysis_modules/photon_simulator/utils.pyx"],
-              include_dirs=["yt/utilities/lib"]),
-    Extension("yt.analysis_modules.ppv_cube.ppv_utils",
-              ["yt/analysis_modules/ppv_cube/ppv_utils.pyx"],
-              libraries=std_libs),
     Extension("yt.geometry.grid_visitors",
               ["yt/geometry/grid_visitors.pyx"],
               include_dirs=["yt/utilities/lib"],
@@ -228,12 +222,6 @@ for ext_name in lib_exts:
                   ["yt/utilities/lib/{}.pyx".format(ext_name)]))
 
 extensions = [
-    Extension("yt.analysis_modules.halo_finding.fof.EnzoFOF",
-              ["yt/analysis_modules/halo_finding/fof/EnzoFOF.c",
-               "yt/analysis_modules/halo_finding/fof/kd.c"],
-              libraries=std_libs),
-    Extension("yt.analysis_modules.halo_finding.hop.EnzoHop",
-              glob.glob("yt/analysis_modules/halo_finding/hop/*.c")),
     Extension("yt.frontends.artio._artio_caller",
               ["yt/frontends/artio/_artio_caller.pyx"] +
               glob.glob("yt/frontends/artio/artio_headers/*.c"),
@@ -278,32 +266,6 @@ if check_for_pyembree() is not None:
         ext.libraries += [embree_lib_name]
 
     cython_extensions += embree_extensions
-
-# ROCKSTAR
-if os.path.exists("rockstar.cfg"):
-    try:
-        rd = open("rockstar.cfg").read().strip()
-    except IOError:
-        print("Reading Rockstar location from rockstar.cfg failed.")
-        print("Please place the base directory of your")
-        print("Rockstar install in rockstar.cfg and restart.")
-        print("(ex: \"echo '/path/to/Rockstar-0.99' > rockstar.cfg\" )")
-        sys.exit(1)
-
-    rockstar_extdir = "yt/analysis_modules/halo_finding/rockstar"
-    rockstar_extensions = [
-        Extension("yt.analysis_modules.halo_finding.rockstar.rockstar_interface",
-                  sources=[os.path.join(rockstar_extdir, "rockstar_interface.pyx")]),
-        Extension("yt.analysis_modules.halo_finding.rockstar.rockstar_groupies",
-                  sources=[os.path.join(rockstar_extdir, "rockstar_groupies.pyx")])
-    ]
-    for ext in rockstar_extensions:
-        ext.library_dirs.append(rd)
-        ext.libraries.append("rockstar")
-        ext.define_macros.append(("THREADSAFE", ""))
-        ext.include_dirs += [rd,
-                             os.path.join(rd, "io"), os.path.join(rd, "util")]
-    extensions += rockstar_extensions
 
 if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
     gpd = os.environ["GPERFTOOLS"]
