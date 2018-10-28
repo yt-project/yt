@@ -480,62 +480,16 @@ of topologically disconnected structures, i.e., clump finding.
    ~yt.data_objects.level_sets.clump_info_items.add_clump_info
    ~yt.data_objects.level_sets.clump_validators.add_validator
 
-.. _halo_analysis_ref:
+X-ray Emission Fields
+^^^^^^^^^^^^^^^^^^^^^
 
-Halo Analysis
-^^^^^^^^^^^^^
-
-The ``HaloCatalog`` object is the primary means for performing custom analysis
-on cosmological halos.  It is also the primary interface for halo finding.
+This can be used to create derived fields of X-ray emission in
+different energy bands.
 
 .. autosummary::
 
-   ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
-   ~yt.analysis_modules.halo_analysis.halo_finding_methods.HaloFindingMethod
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.HaloCallback
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.delete_attribute
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.halo_sphere
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.iterative_center_of_mass
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.load_profiles
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.phase_plot
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.profile
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.save_profiles
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_bulk_velocity
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.sphere_field_max_recenter
-   ~yt.analysis_modules.halo_analysis.halo_callbacks.virial_quantities
-   ~yt.analysis_modules.halo_analysis.halo_filters.HaloFilter
-   ~yt.analysis_modules.halo_analysis.halo_filters.not_subhalo
-   ~yt.analysis_modules.halo_analysis.halo_filters.quantity_value
-   ~yt.analysis_modules.halo_analysis.halo_quantities.HaloQuantity
-   ~yt.analysis_modules.halo_analysis.halo_quantities.bulk_velocity
-   ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
-   ~yt.analysis_modules.halo_analysis.halo_recipes.HaloRecipe
-   ~yt.analysis_modules.halo_analysis.halo_recipes.calculate_virial_quantities
-
-Halo Finding
-^^^^^^^^^^^^
-
-These provide direct access to the halo finders.  However, it is strongly recommended
-to use the ``HaloCatalog``.
-
-.. autosummary::
-
-   ~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder
-   ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder
-   ~yt.analysis_modules.halo_finding.rockstar.rockstar.RockstarHaloFinder
-
-Two Point Functions
-^^^^^^^^^^^^^^^^^^^
-
-These functions are designed to create correlations or other results of
-operations acting on two spatially-distinct points in a data source.  See also
-:ref:`two_point_functions`.
-
-
-.. autosummary::
-
-   ~yt.analysis_modules.two_point_functions.two_point_functions.TwoPointFunctions
-   ~yt.analysis_modules.two_point_functions.two_point_functions.FcnSet
+   ~yt.fields.xray_emission_fields.XrayEmissivityIntegrator
+   ~yt.fields.xray_emission_fields.add_xray_emissivity_field
 
 Field Types
 -----------
@@ -577,57 +531,6 @@ writing to bitmaps.
 .. autosummary::
 
    ~yt.data_objects.image_array.ImageArray
-
-Extension Types
----------------
-
-Cosmology, Star Particle Analysis, and Simulated Observations
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-For the generation of stellar SEDs.  (See also :ref:`star_analysis`.)
-
-
-.. autosummary::
-
-   ~yt.analysis_modules.star_analysis.sfr_spectrum.StarFormationRate
-   ~yt.analysis_modules.star_analysis.sfr_spectrum.SpectrumBuilder
-
-Light cone generation and simulation analysis.  (See also
-:ref:`light-cone-generator`.)
-
-
-.. autosummary::
-
-   ~yt.analysis_modules.cosmological_observation.light_cone.light_cone.LightCone
-   ~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
-
-Absorption and X-ray spectra and spectral lines:
-
-.. autosummary::
-
-   ~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum
-   ~yt.fields.xray_emission_fields.XrayEmissivityIntegrator
-   ~yt.fields.xray_emission_fields.add_xray_emissivity_field
-
-Absorption spectra fitting:
-
-.. autosummary::
-
-   ~yt.analysis_modules.absorption_spectrum.absorption_spectrum_fit.generate_total_fit
-
-Sunrise exporting:
-
-.. autosummary::
-
-   ~yt.analysis_modules.sunrise_export.sunrise_exporter.export_to_sunrise
-   ~yt.analysis_modules.sunrise_export.sunrise_exporter.export_to_sunrise_from_halolist
-
-RADMC-3D exporting:
-
-.. autosummary::
-
-   ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DLayer
-   ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DWriter
 
 Volume Rendering
 ^^^^^^^^^^^^^^^^
