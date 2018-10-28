@@ -1,7 +1,7 @@
-.. _analysis-modules:
+.. _domain-analysis:
 
-Topic-Specific Analysis Modules
-===============================
+Domain-Specific Analysis
+========================
 
 These semi-autonomous analysis modules are unique to specific subject matter
 like tracking halos, generating synthetic observations, exporting output to

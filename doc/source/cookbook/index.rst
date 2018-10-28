@@ -29,7 +29,6 @@ Example Scripts
    simple_plots
    calculating_information
    complex_plots
-   cosmological_analysis
    constructing_data_objects
 
 .. _example-notebooks:
