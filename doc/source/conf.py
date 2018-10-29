@@ -254,6 +254,7 @@ intersphinx_mapping = {
     'http://docs.astropy.org/en/stable': None,
     'trident': ('http://trident.readthedocs.io/en/latest/', None),
     'yt_astro_analysis': ('https://yt-astro-analysis.readthedocs.io/en/latest/', None),
+    'yt_attic': ('https://yt-attic.readthedocs.io/en/latest/', None),
 }
 
 if not on_rtd:
