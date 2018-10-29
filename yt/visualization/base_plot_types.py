@@ -227,13 +227,15 @@ class ImagePlotMPL(PlotMPL):
             # sets the transform to be an ax.TransData object, where the
             # coordiante system of the data is controlled by the xlim and ylim
             # of the data.
-            transform = self.axes.transData
+            self.image = self.axes.imshow(
+                data.to_ndarray(), origin='lower', extent=extent, norm=norm,
+                vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
+                interpolation='nearest')
         else:
-            transform = self._transform
-        self.image = self.axes.imshow(
-            data.to_ndarray(), origin='lower', extent=extent, norm=norm,
-            vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
-            interpolation='nearest', transform=transform)
+            self.image = self.axes.imshow(
+                data.to_ndarray(), origin='lower', extent=extent, norm=norm,
+                vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
+                interpolation='nearest', transform=self._transform)
         if (cbnorm == 'symlog'):
             if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
                 formatter_kwargs = {}
