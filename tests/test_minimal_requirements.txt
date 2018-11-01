@@ -1,0 +1,11 @@
+cycler==0.10.0
+cython==0.24
+ipython==1.0.0
+matplotlib==1.5.3
+mpmath==1.0.0
+numpy==1.10.4
+pyparsing==2.3.0
+python-dateutil==2.7.5
+pytz==2018.7
+six==1.11.0
+sympy==1.0
