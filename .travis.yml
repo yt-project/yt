@@ -39,13 +39,13 @@ install:
     # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       if [[ $MINIMAL == 1 ]]; then
-        pip install tests/test_minimal_requirements.txt
+        pip install -r tests/test_minimal_requirements.txt
       else
-        pip install tests/test_requirements.txt
+        pip install -r tests/test_requirements.txt
       fi
       pip install -e .
     else
-      pip install tests/lint_requirements.txt
+      pip install -r tests/lint_requirements.txt
     fi
 
 jobs:
