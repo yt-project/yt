@@ -11,7 +11,6 @@ decorator==4.3.0
 dill==0.2.8.2
 fast-histogram==0.5
 fastcache==1.0.2
-flake8==3.6.0
 glue-core==0.13.4
 glue-vispy-viewers==0.10
 glueviz==0.13.3
@@ -25,7 +24,6 @@ jupyter-client==5.2.3
 jupyter-core==4.4.0
 kiwisolver==1.0.1
 matplotlib==3.0.1
-mccabe==0.6.1
 mock==2.0.0
 mpl-scatter-density==0.4
 mpmath==1.0.0
@@ -39,8 +37,6 @@ pexpect==4.6.0 ; sys_platform != 'win32'
 pickleshare==0.7.5
 prompt-toolkit==2.0.7
 ptyprocess==0.6.0
-pycodestyle==2.4.0
-pyflakes==2.0.0
 pygments==2.2.0
 pyopengl==3.1.0
 pyparsing==2.3.0
