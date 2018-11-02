@@ -318,7 +318,7 @@ class DatasetSeries(object):
                 # We catch and store YT-originating exceptions
                 # This fixes the standard problem of having a sphere that's too
                 # small.
-                except YTException as rv:
+                except YTException:
                     pass
                 store.result.append(rv)
         return [v for k, v in sorted(return_values.items())]
