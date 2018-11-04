@@ -186,6 +186,17 @@ class DerivedField(object):
         return self.sampling_type in ("discrete", "particle")
 
     @property
+    def is_sph_field(self):
+        is_sph_field = False
+        if self.alias_field:
+            name = self.alias_name
+        else:
+            name = self.name
+        if hasattr(self.ds, '_sph_ptype'):
+            is_sph_field |= name[0] in (self.ds._sph_ptype, 'gas')
+        return is_sph_field
+
+    @property
     def local_sampling(self):
         return self.sampling_type in ('discrete', 'particle', 'local')
 
