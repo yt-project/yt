@@ -70,6 +70,24 @@ run:
 
    $ nosetests yt/visualization/tests/test_plotwindow.py
 
+Handling yt dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+We attempt to make yt compatible with a wide variety of downstream software versions. However, sometimes a specific version of a project that yt depends on causes some breakage and must be blacklisted in the tests or a more experimental project that yt depends on optionally might change sufficiently that the yt community decides not to support an old version of that project.
+
+To handle cases like this, the versions of downstream software projects installed on the machines running the yt test suite are pinned to specific version numbers that must be updated manually. This prevents breaking the yt tests when a new version of a downstream dependency is released and allows us to manage updates in downstream projects at our pace.
+
+If you would like to add a new dependency for yt (even an optional dependency)
+or would like to update a version of a yt depdendency, you must edit the
+``tests/test_requirements.txt`` file, this path is relative to the root of the
+repository. This file contains an enumerated list of direct depdnencies and
+pinned version numbers. For new dependencies, simply append the name of the new
+depdendency to the end of the file, along with a pin to the latest version
+number of the package. To update a package's version, simply update the version
+number in the entry for that package.
+
+Finally, we also run a set of tests with "minimal" dependencies installed. Please make sure any new tests you add that depend on an optional dependency are properly set up so that the test is not run if the dependency is not installed. If for some reason you need to update the listing of packages that are installed for the "minimal" dependency tests, you will need to edit ``tests/test_minimal_requirements.txt``.
+
 How to Write Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^
 
