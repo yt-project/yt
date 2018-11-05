@@ -201,121 +201,23 @@ How to Run the Answer Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The very first step is to make a directory and copy over the data against which
-you want to test.  Currently, we test:
-
-NMSU ART
-~~~~~~~~
-
-* ``D9p_500/10MpcBox_HartGal_csf_a0.500.d``
-
-ARTIO
-~~~~~
-
-* ``sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011.art``
-
-Athena
-~~~~~~
-
-* ``ShockCloud/id0/Cloud.0050.vtk``
-* ``MHDBlast/id0/Blast.0100.vtk``
-* ``RamPressureStripping/id0/rps.0062.vtk``
-* ``MHDSloshing/virgo_low_res.0054.vtk``
-
-Boxlib
-~~~~~~
-
-* ``RadAdvect/plt00000``
-* ``RadTube/plt00500``
-* ``StarParticles/plrd01000``
-
-Chombo
-~~~~~~
-
-* ``TurbBoxLowRes/data.0005.3d.hdf5``
-* ``GaussianCloud/data.0077.3d.hdf5``
-* ``IsothermalSphere/data.0000.3d.hdf5``
-* ``ZeldovichPancake/plt32.2d.hdf5``
-* ``KelvinHelmholtz/data.0004.hdf5``
-
-Enzo
-~~~~
-
-* ``DD0010/moving7_0010`` (available in ``tests/`` in the yt distribution)
-* ``IsolatedGalaxy/galaxy0030/galaxy0030``
-* ``enzo_tiny_cosmology/DD0046/DD0046``
-* ``enzo_cosmology_pluts/DD0046/DD0046``
-
-FITS
-~~~~
-
-* ``radio_fits/grs-50-cube.fits``
-* ``UnigridData/velocity_field_20.fits``
-
-FLASH
-~~~~~
-
-* ``WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030``
-* ``GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300``
-
-Gadget
-~~~~~~
-
-* ``IsothermalCollapse/snap_505``
-* ``IsothermalCollapse/snap_505.hdf5``
-* ``GadgetDiskGalaxy/snapshot_200.hdf5``
-
-GAMER
-~~~~~~
-
-* ``InteractingJets/jet_000002``
-* ``WaveDarkMatter/psiDM_000020``
-* ``Plummer/plummer_000000``
-
-Halo Catalog
-~~~~~~~~~~~~
-
-* ``owls_fof_halos/groups_001/group_001.0.hdf5``
-* ``owls_fof_halos/groups_008/group_008.0.hdf5``
-* ``gadget_fof_halos/groups_005/fof_subhalo_tab_005.0.hdf5``
-* ``gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5``
-* ``rockstar_halos/halos_0.0.bin``
-
-MOAB
-~~~~
-
-* ``c5/c5.h5m``
-
-
-RAMSES
-~~~~~~
-
-* ``output_00080/info_00080.txt``
-
-Tipsy
-~~~~~
-
-* ``halo1e11_run1.00400/halo1e11_run1.00400``
-* ``agora_1e11.00400/agora_1e11.00400``
-* ``TipsyGalaxy/galaxy.00300``
-
-OWLS
-~~~~
-
-* ``snapshot_033/snap_033.0.hdf5``
-
-These datasets are available at http://yt-project.org/data/.
-
-Next, add the config parameter ``test_data_dir`` pointing to 
+you want to test. Next, add the config parameter ``test_data_dir`` pointing to
 directory with the test data you want to test with, e.g.:
 
-.. code-block:: none
+.. code-block:: bash
 
    $ yt config set yt test_data_dir /Users/tomservo/src/yt-data
 
-More data will be added over time.  To run the answer tests, you must first
-generate a set of test answers locally on a "known good" revision, then update
-to the revision you want to test, and run the tests again using the locally
-stored answers.
+We use a number of real-world datasets for the tests that must be downloaded and
+unzipped in the ``test_data_dir`` path you have set. The test datasets, can be
+downloaded from http://yt-project.org/data/. We do not explicitly list the
+datasets we use in the tests here because the list of necessary datasets changes
+regularly, instead you should take a look at the tests you would like to run and
+make sure that the necessary data files are downloaded before running the tests.
+
+To run the answer tests, you must first generate a set of test answers locally
+on a "known good" revision, then update to the revision you want to test, and
+run the tests again using the locally stored answers.
 
 Let's focus on running the answer tests for a single frontend. It's possible to
 run the answer tests for **all** the frontends, but due to the large number of
