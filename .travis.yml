@@ -49,6 +49,12 @@ before_install:
     echo "suppressStreamLogging = True" >> $HOME/.config/yt/ytrc
     cat $HOME/.config/yt/ytrc
     cp tests/matplotlibrc .
+    # configure trident
+    mkdir -p $HOME/.trident
+    echo "[Trident]" > $HOME/.trident/config.tri
+    echo "ion_table_dir = $HOME/.trident" >> $HOME/.trident/config.tri
+    echo "ion_table_file = fake.h5" >> $HOME/.trident/config.tri
+    touch $HOME/.trident/fake.h5
 
 install:
   - |
