@@ -30,7 +30,6 @@ env:
     REQUESTS=requests
     GLUE=glueviz
     PYQT=pyqt5
-    TRIDENT=trident
 
 before_install:
   - |
@@ -49,12 +48,6 @@ before_install:
     echo "suppressStreamLogging = True" >> $HOME/.config/yt/ytrc
     cat $HOME/.config/yt/ytrc
     cp tests/matplotlibrc .
-    # configure trident
-    mkdir -p $HOME/.trident
-    echo "[Trident]" > $HOME/.trident/config.tri
-    echo "ion_table_dir = $HOME/.trident" >> $HOME/.trident/config.tri
-    echo "ion_table_file = fake.h5" >> $HOME/.trident/config.tri
-    touch $HOME/.trident/fake.h5
 
 install:
   - |
@@ -65,7 +58,7 @@ install:
     pip install --upgrade wheel
     pip install --upgrade setuptools
     # Install dependencies
-    pip install $MOCK $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS $NOSE $NOSETIMER $REQUESTS $GLUE $PYQT $TRIDENT
+    pip install $MOCK $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS $NOSE $NOSETIMER $REQUESTS $GLUE $PYQT
     # HACK, FIXME BEFORE MERGING
     pip install https://github.com/cykdtree/cykdtree/archive/master.zip
     # install yt
@@ -77,12 +70,12 @@ jobs:
   include:
     - stage: lint
       python: 3.6
-      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS= REQUESTS= GLUE= PYQT= TRIDENT=
+      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS= REQUESTS= GLUE= PYQT=
       script: flake8 yt/
 
     - stage: lint
       python: 2.7
-      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS= REQUESTS= GLUE= PYQT= TRIDENT=
+      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS= REQUESTS= GLUE= PYQT=
       script: flake8 yt/
 
     - stage: tests
