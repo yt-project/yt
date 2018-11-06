@@ -51,6 +51,8 @@ from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 from yt.utilities.exceptions import \
     YTDataTypeUnsupported
+from yt.utilities.math_utils import \
+    periodic_ray
 from yt.utilities.on_demand_imports import \
     NotAModule
 
@@ -2361,9 +2363,6 @@ class RayCallback(PlotCallback):
     uses the MPL.pyplot.plot function to plot a normal line.  Adjust
     plot_args accordingly.
 
-    Note, this functionality requires the trident package.
-    See https://trident.readthedocs.io/ for more information.
-
     Parameters
     ----------
 
@@ -2454,11 +2453,6 @@ class RayCallback(PlotCallback):
         return ((False, False), (False, False))
 
     def __call__(self, plot):
-        try:
-            from trident.light_ray import periodic_ray
-        except ImportError:
-            periodic_ray = NotAModule('trident')
-
         type_name = getattr(self.ray, "_type_name", None)
 
         if type_name == "ray":
