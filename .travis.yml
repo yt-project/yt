@@ -10,27 +10,6 @@ addons:
     packages:
       - libhdf5-serial-dev
 
-env:
-  global:
-    NUMPY=numpy
-    CYTHON=cython
-    MATPLOTLIB=matplotlib
-    SYMPY=sympy
-    H5PY=h5py
-    SCIPY=scipy
-    IPYTHON=ipython
-    FASTCACHE=fastcache
-    FLAKE8=flake8
-    CODECOV=codecov
-    COVERAGE=coverage
-    PANDAS=pandas
-    CARTOPY=cartopy
-    MOCK=mock
-    NOSETIMER=nose-timer
-    REQUESTS=requests
-    GLUE=glueviz
-    PYQT=pyqt5
-
 before_install:
   - |
     if [[ $TRAVIS_OS_NAME != 'osx' ]]; then
@@ -57,64 +36,65 @@ install:
     pip install --upgrade pip
     pip install --upgrade wheel
     pip install --upgrade setuptools
-    # Install dependencies
-    pip install $MOCK $NUMPY $SCIPY $CYTHON $H5PY $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS $NOSE $NOSETIMER $REQUESTS $GLUE $PYQT
-    # Install cartopy after everything else. 
-    if [[ -n ${CARTOPY} ]]; then
-      pip install $CARTOPY
-    fi
-    # install yt
+    # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
+      if [[ $MINIMAL == 1 ]]; then
+        pip install -r tests/test_minimal_requirements.txt
+      else
+        # Getting cartopy installed requires getting cython and numpy installed
+        # first; this is potentially going to be fixed with the inclusion of
+        # pyproject.toml in cartopy.
+        # These versions are pinned, so we will need to update/remove them when
+        # the hack is no longer necessary.
+        pip install numpy==1.15.3 cython==0.29
+        pip install -r tests/test_requirements.txt
+      fi
       pip install -e .
+    else
+      pip install -r tests/lint_requirements.txt
     fi
 
 jobs:
   include:
     - stage: lint
       python: 3.6
-      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS= CARTOPY= REQUESTS= GLUE= PYQT=
       script: flake8 yt/
 
     - stage: lint
       python: 2.7
-      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS= CARTOPY= REQUESTS= GLUE= PYQT=
       script: flake8 yt/
 
     - stage: tests
       name: "Python: 2.7 Unit Tests"
       python: 2.7
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0 CARTOPY= REQUESTS= GLUE= PYQT=
+      env: MINIMAL=1
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
       name: "Python: 2.7 Unit Tests"
       python: 2.7
-      env: FLAKE8= REQUESTS= GLUE= PYQT=
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
       name: "Python: 3.5 Unit Tests"
       python: 3.5
-      env: FLAKE8= REQUESTS=
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
       name: "Python: 3.6 Unit Tests"
       python: 3.6
-      env: FLAKE8= REQUESTS=
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
       name: "Python: 2.7 Answer Tests"
       python: 2.7
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0 CARTOPY= GLUE= PYQT=
+      env: MINIMAL=1
       script: coverage run $(which nosetests) -c nose_answer.cfg
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 
     - stage: tests
       name: "Python: 3.6 Answer Tests"
       python: 3.6
-      env: FLAKE8=
       script: coverage run $(which nosetests) -c nose_answer.cfg
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 
@@ -123,14 +103,13 @@ jobs:
       os: osx
       osx_image: xcode7.3
       language: generic  # https://github.com/travis-ci/travis-ci/issues/2312
-      env: FLAKE8= REQUESTS= GLUE= PYQT=
       cache:
         pip: false
         directories:
           - $HOME/Library/Caches/pip
           # `cache` does not support `env`-like `global` so copy-paste from top
           - $HOME/.ccache  # https://github.com/travis-ci/travis-ci/issues/5853
-      script: nosetests -c xcode_unit.cfg 
+      script: nosetests -c nose_unit.cfg
 
 after_success:
   - |
