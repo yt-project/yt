@@ -361,6 +361,12 @@ class FITSImageData(object):
                     kk += suffix
                 img.header[kk] = v
 
+    def change_image_name(self, old_name, new_name):
+        idx = self.fields.index(old_name)
+        self.hdulist[idx].name = new_name
+        self.field_units[new_name] = self.field_units.pop(old_name)
+        self.fields[idx] = new_name
+
     def convolve(self, field, kernel):
         """
         Convolve an image with a kernel, either a simple
