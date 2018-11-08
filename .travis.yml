@@ -9,6 +9,10 @@ addons:
   apt:
     packages:
       - libhdf5-serial-dev
+      - libproj-dev
+      - proj-data
+      - proj-bin
+      - libgeos-dev
 
 before_install:
   - |
@@ -19,7 +23,7 @@ before_install:
       export PATH=/usr/lib/ccache:$PATH
     else
       brew update
-      brew install ccache hdf5
+      brew install ccache hdf5 proj geos
       export PATH=/usr/local/opt/ccache/libexec:$PATH
     fi
     mkdir -p $HOME/.config/yt
