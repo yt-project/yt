@@ -1293,6 +1293,26 @@ argument of this form:
 
 yt will utilize length, mass and time to set up all other units.
 
+.. _loading-swift-data:
+
+SWIFT Data
+-----------
+
+yt has support for reading in SWIFT data from the HDF5 file format. It is able
+to access all particles and fields which are stored on-disk and it is also able
+to generate derived fields, i.e, linear momentum from on-disk fields.
+
+It is also possible to smooth the data onto a grid or an octree. This
+interpolation can be done using an SPH kernel using either the scatter or gather
+approach. The SWIFT frontend is supported and cared for by Ashley Kelly.
+
+SWIFT data in HDF5 format can be loaded with the ``load`` command:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("EAGLE_6/eagle_0005.hdf5")
+
 .. _loading-gamer-data:
 
 GAMER Data
