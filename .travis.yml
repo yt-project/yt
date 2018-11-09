@@ -15,6 +15,10 @@ addons:
       - proj-bin
       - libgeos-dev
 
+env:
+  global:
+    PIP=pip
+
 before_install:
   - |
     if [[ $TRAVIS_OS_NAME != 'osx' ]]; then
@@ -38,25 +42,25 @@ install:
     # setup environment
     ccache -s
     # Upgrade pip and setuptools and wheel to get clean install
-    pip install --upgrade pip
-    pip install --upgrade wheel
-    pip install --upgrade setuptools
+    $PIP install --upgrade pip
+    $PIP install --upgrade wheel
+    $PIP install --upgrade setuptools
     # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       if [[ $MINIMAL == 1 ]]; then
-        pip install -r tests/test_minimal_requirements.txt
+        $PIP install -r tests/test_minimal_requirements.txt
       else
         # Getting cartopy installed requires getting cython and numpy installed
         # first; this is potentially going to be fixed with the inclusion of
         # pyproject.toml in cartopy.
         # These versions are pinned, so we will need to update/remove them when
         # the hack is no longer necessary.
-        pip install numpy==1.15.3 cython==0.29
-        pip install -r tests/test_requirements.txt
+        $PIP install numpy==1.15.3 cython==0.29
+        $PIP install -r tests/test_requirements.txt
       fi
-      pip install -e .
+      $PIP install -e .
     else
-      pip install -r tests/lint_requirements.txt
+      $PIP install -r tests/lint_requirements.txt
     fi
 
 jobs:
@@ -91,7 +95,7 @@ jobs:
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
-      name: "Python: 2.7 Answer Tests"
+      name: "Python: 2.7 Minimal Dependency Answer Tests"
       python: 2.7
       env: MINIMAL=1
       script: coverage run $(which nosetests) -c nose_answer.cfg
@@ -108,6 +112,7 @@ jobs:
       os: osx
       osx_image: xcode10.1
       language: generic  # https://github.com/travis-ci/travis-ci/issues/2312
+      env: PIP=pip3
       cache:
         pip: false
         directories:
