@@ -15,8 +15,9 @@ from nose.plugins.attrib import attr
 import yt
 import unittest
 from yt.testing import \
-    ANSWER_TEST_TAG, XCODE_UNSUPPORTED_TAG, \
-    fake_amr_ds, requires_module
+    ANSWER_TEST_TAG, \
+    fake_amr_ds, \
+    requires_module
 from yt.utilities.answer_testing.framework import GenericImageTest
 from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
 
@@ -56,7 +57,6 @@ def test_geo_slices_amr():
                           test_name="geo_slices_amr", projection=transform)
 
 @requires_module("cartopy")
-@attr(XCODE_UNSUPPORTED_TAG)
 class TestGeoProjections(unittest.TestCase):
 
     def setUp(self):
