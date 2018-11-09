@@ -14,6 +14,7 @@ Subsets of octrees
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from contextlib import contextmanager
 import numpy as np
 
 from yt.data_objects.data_containers import \
@@ -457,15 +458,17 @@ class OctreeSubsetBlockSlicePosition(object):
 
     @property
     def LeftEdge(self):
-        LE = (self.block_slice._fcoords[0,0,0,self.ind,:]
-            - self.block_slice._fwidth[0,0,0,self.ind,:]*0.5)
-        return LE
+        LE = (self.block_slice._fcoords[0,0,0,self.ind,:].d
+            - self.block_slice._fwidth[0,0,0,self.ind,:].d*0.5)
+        return self.block_slice.octree_subset.ds.arr(
+            LE, self.block_slice._fcoords.units)
 
     @property
     def RightEdge(self):
-        RE = (self.block_slice._fcoords[-1,-1,-1,self.ind,:]
-            + self.block_slice._fwidth[-1,-1,-1,self.ind,:]*0.5)
-        return RE
+        RE = (self.block_slice._fcoords[-1,-1,-1,self.ind,:].d
+            + self.block_slice._fwidth[-1,-1,-1,self.ind,:].d*0.5)
+        return self.block_slice.octree_subset.ds.arr(
+            RE, self.block_slice._fcoords.units)
 
     @property
     def dds(self):
@@ -477,6 +480,10 @@ class OctreeSubsetBlockSlicePosition(object):
     def get_vertex_centered_data(self, *args, **kwargs):
         raise NotImplementedError
 
+    @contextmanager
+    def _field_parameter_state(self, field_parameters):
+        yield self.block_slice.octree_subset._field_parameter_state(
+                field_parameters)
 
 class OctreeSubsetBlockSlice(object):
     def __init__(self, octree_subset):

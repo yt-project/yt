@@ -10,18 +10,13 @@ Tests for making unstructured mesh slices
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import os
-import os.path
-import tempfile
-import shutil
 import numpy as np
+from nose.plugins.attrib import attr
+
 import yt
-from yt.testing import fake_tetrahedral_ds
-from yt.testing import fake_hexahedral_ds, small_fake_hexahedral_ds
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    GenericImageTest
+from yt.testing import ANSWER_TEST_TAG, fake_amr_ds, fake_tetrahedral_ds, \
+    fake_hexahedral_ds, small_fake_hexahedral_ds
+from yt.utilities.answer_testing.framework import GenericImageTest
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 
@@ -31,9 +26,11 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
-def compare(ds, field, test_prefix, decimals=12):
+def compare(ds, field, idir, test_prefix, test_name, decimals=12, annotate=False):
     def slice_image(filename_prefix):
-        sl = yt.SlicePlot(ds, 'z', field)
+        sl = yt.SlicePlot(ds, idir, field)
+        if annotate:
+            sl.annotate_mesh_lines()
         sl.set_log('all', False)
         image_file = sl.save(filename_prefix)
         return image_file
@@ -41,62 +38,50 @@ def compare(ds, field, test_prefix, decimals=12):
     slice_image.__name__ = "slice_{}".format(test_prefix)
     test = GenericImageTest(ds, slice_image, decimals)
     test.prefix = test_prefix
+    test.answer_name = test_name
     return test
 
-tri2 = "SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e"
-
-@requires_ds(tri2)
-def test_tri2():
-    ds = data_dir_load(tri2, kwargs={'step':-1})
+@attr(ANSWER_TEST_TAG)
+def test_mesh_slices_amr():
+    ds = fake_amr_ds()
     for field in ds.field_list:
-        yield compare(ds, field, "answers_tri2_%s_%s" % (field[0], field[1]))
+        prefix = "%s_%s_%s" % (field[0], field[1], 0)
+        yield compare(ds, field, 0, test_prefix=prefix,
+                      test_name="mesh_slices_amr")
 
-quad2 = "SecondOrderQuads/lid_driven_out.e"
-
-@requires_ds(quad2)
-def test_quad2():
-    ds = data_dir_load(quad2, kwargs={'step':-1})
-    field_list = [('all', 'T'), ('all', 'vel_x'), ('all', 'vel_y')]
-    for field in field_list:
-        yield compare(ds, field, "answers_quad2_%s_%s" % (field[0], field[1]))
-
-multi_region = "MultiRegion/two_region_example_out.e"
-
-@requires_ds(multi_region)
-def test_multi_region():
-    ds = data_dir_load(multi_region, kwargs={'step':-1})
-    for field in ds.field_list:
-        yield compare(ds, field, "answers_multi_region_%s_%s" % (field[0], field[1]))
-
-def test_mesh_slices():
-    # Perform I/O in safe place instead of yt main dir
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
-
-    np.random.seed(0x4d3d3d3)
-
-    # tetrahedral ds
+@attr(ANSWER_TEST_TAG)
+def test_mesh_slices_tetrahedral():
     ds = fake_tetrahedral_ds()
 
+    mesh = ds.index.meshes[0]
+    ad = ds.all_data()
+
     for field in ds.field_list:
         for idir in [0, 1, 2]:
-            sl = yt.SlicePlot(ds, idir, field)
-            sl.annotate_mesh_lines()
-            sl.save()
+            prefix = "%s_%s_%s" % (field[0], field[1], idir)
+            yield compare(ds, field, idir, test_prefix=prefix,
+                          test_name="mesh_slices_tetrahedral", annotate=True)
 
+            sl_obj = ds.slice(idir, ds.domain_center[idir])
+            assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
+            assert sl_obj[field].shape[0] < ad[field].shape[0]
+
+@attr(ANSWER_TEST_TAG)
+def test_mesh_slices_hexahedral():
     # hexahedral ds
     ds = fake_hexahedral_ds()
+    ad = ds.all_data()
+    mesh = ds.index.meshes[0]
 
     for field in ds.field_list:
         for idir in [0, 1, 2]:
-            sl = yt.SlicePlot(ds, idir, field)
-            sl.annotate_mesh_lines()
-            sl.save()
+            prefix = "%s_%s_%s" % (field[0], field[1], idir)
+            yield compare(ds, field, idir, test_prefix=prefix,
+                          test_name="mesh_slices_hexahedral", annotate=True)
 
-    os.chdir(curdir)
-    # clean up
-    shutil.rmtree(tmpdir)
+            sl_obj = ds.slice(idir, ds.domain_center[idir])
+            assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
+            assert sl_obj[field].shape[0] < ad[field].shape[0]
 
 def test_perfect_element_intersection():
     # This test tests mesh line annotation where a z=0 slice

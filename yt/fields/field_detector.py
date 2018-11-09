@@ -126,9 +126,11 @@ class FieldDetector(defaultdict):
         elif finfo is not None and finfo.particle_type:
             if "particle_position" in (item, item[1]) or \
                "particle_velocity" in (item, item[1]) or \
+               "particle_magnetic_field" in (item, item[1]) or \
                "Velocity" in (item, item[1]) or \
                "Velocities" in (item, item[1]) or \
-               "Coordinates" in (item, item[1]):
+               "Coordinates" in (item, item[1]) or \
+               "MagneticField" in (item, item[1]):
                 # A vector
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 3)),
@@ -137,12 +139,16 @@ class FieldDetector(defaultdict):
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 4)),
                           finfo.units, registry=self.ds.unit_registry)
-
             else:
                 # Not a vector
                 self[item] = \
                   YTArray(np.ones(self.NumberOfParticles),
                           finfo.units, registry=self.ds.unit_registry)
+            if item == ('STAR', 'BIRTH_TIME'):
+                # hack for the artio frontend so we pass valid times to
+                # the artio functions for calculating physical times
+                # from internal times
+                self[item] *= -0.1
             self.requested.append(item)
             return self[item]
         self.requested.append(item)

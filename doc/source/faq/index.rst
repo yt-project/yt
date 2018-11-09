@@ -176,7 +176,7 @@ units, you can convert it to a YTQuantity with units of ``kpc`` by running:
 
     x = x*ds.length_unit.in_units('kpc')
 
-For more information about unit conversion, see :ref:`data_selection_and_fields`.
+For more information about unit conversion, see :ref:`units`.
 
 How do I make a YTQuantity tied to a specific dataset's units?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -200,7 +200,7 @@ You can then naturally exploit the units system:
     print("One Mpc in AU:", one_Mpc.in_units('AU'))
     print("One Mpc in comoving kpc:", one_Mpc.in_units('kpccm'))
 
-For more information about unit conversion, see :ref:`data_selection_and_fields`.
+For more information about unit conversion, see :ref:`units`.
 
 .. _accessing-unitless-data:
 
@@ -240,7 +240,7 @@ attribute, which returns the data itself:
 
     2.0
 
-For more information about this functionality with units, see :ref:`data_selection_and_fields`.
+For more information about this functionality with units, see :ref:`units`.
 
 Fields
 ------

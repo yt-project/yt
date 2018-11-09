@@ -294,5 +294,6 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
                     f = ('connect%d' % (g.mesh_id + 1), fname)
                     ds = self.fields[g.mesh_id][f]
                 ind += g.select(selector, ds, rv[field], ind) # caches
+            rv[field] = rv[field][:ind]
         return rv
 

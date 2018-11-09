@@ -155,8 +155,8 @@ Clump Finder Callback
 
    import yt
    import numpy as np
-   from yt.analysis_modules.level_sets.api import \
-       Clump, find_clumps, get_lowest_clumps
+   from yt.data_objects.level_sets.api import \
+       Clump, find_clumps
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
@@ -169,7 +169,7 @@ Clump Finder Callback
    master_clump.add_validator("min_cells", 20)
 
    find_clumps(master_clump, c_min, c_max, 2.0)
-   leaf_clumps = get_lowest_clumps(master_clump)
+   leaf_clumps = master_clump.leaves
 
    prj = yt.ProjectionPlot(ds, 2, 'density', center='c', width=(20,'kpc'))
    prj.annotate_clumps(leaf_clumps)
@@ -230,7 +230,7 @@ Axis-Aligned Data Sources
    p = yt.ProjectionPlot(ds, 'z', 'density', center=[0.5, 0.5, 0.5],
                          weight_field='density', width=(20, 'kpc'))
    p.annotate_quiver('velocity_x', 'velocity_y', factor=16, 
-                     plot_args={"color":"purple})
+                     plot_args={"color": "purple"})
    p.save()
 
 Off-Axis Data Sources
@@ -267,7 +267,8 @@ Overplot Grids
 ~~~~~~~~~~~~~~
 
 .. function:: annotate_grids(self, alpha=0.7, min_pix=1, min_pix_ids=20, \
-                             draw_ids=False, periodic=True, min_level=None, \
+                             draw_ids=False, id_loc="lower left", \
+                             periodic=True, min_level=None, \
                              max_level=None, cmap='B-W Linear_r', \
                              edgecolors=None, linewidth=1.0)
 
@@ -276,7 +277,8 @@ Overplot Grids
 
    Adds grid boundaries to a plot, optionally with alpha-blending via the
    ``alpha`` keyword. Cuttoff for display is at ``min_pix`` wide. ``draw_ids``
-   puts the grid id in the corner of the grid.  (Not so great in projections...)
+   puts the grid id in the ``id_loc`` corner of the grid. (``id_loc`` can be
+   upper/lower left/right. ``draw_ids`` is not so great in projections...)
 
 .. python-script::
 
@@ -327,7 +329,9 @@ Overplot Halo Annotations
 
    Accepts a :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
    and plots a circle at the location of each halo with the radius of the
-   circle corresponding to the virial radius of the halo.  If ``width`` is set
+   circle corresponding to the virial radius of the halo. Also accepts a
+   :ref:`loaded halo catalog dataset <halo-catalog-data>` or a data
+   container from a halo catalog dataset. If ``width`` is set
    to None (default) all halos are plotted, otherwise it accepts a tuple in
    the form (1.0, ‘Mpc’) to only display halos that fall within a slab with
    width ``width`` centered on the center of the plot data.  The appearance of
@@ -356,16 +360,12 @@ Overplot Halo Annotations
 .. python-script::
 
    import yt
-   from yt.analysis_modules.halo_analysis.halo_catalog import HaloCatalog
 
    data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
    halos_ds = yt.load('rockstar_halos/halos_0.0.bin')
 
-   hc = HaloCatalog(halos_ds=halos_ds)
-   hc.create()
-
    prj = yt.ProjectionPlot(data_ds, 'z', 'density')
-   prj.annotate_halos(hc, annotate_field='particle_identifier')
+   prj.annotate_halos(halos_ds, annotate_field='particle_identifier')
    prj.save()
 
 .. _annotate-image-line:
@@ -448,8 +448,7 @@ Overplotting Particle Positions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_particles(self, width, p_size=1.0, col='k', marker='o',\
-                                 stride=1, ptype='all', minimum_mass=None, \
-                                 alpha=1.0)
+                                 stride=1, ptype='all', alpha=1.0, data_source=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ParticleCallback`.)
@@ -457,8 +456,11 @@ Overplotting Particle Positions
    Adds particle positions, based on a thick slab along ``axis`` with a
    ``width`` along the line of sight.  ``p_size`` controls the number of pixels
    per particle, and ``col`` governs the color.  ``ptype`` will restrict plotted
-   particles to only those that are of a given type.  ``minimum_mass`` will
-   require that the particles be of a given mass minimum mass in solar units.
+   particles to only those that are of a given type.  ``data_source`` will only
+   plot particles contained within the data_source object.
+
+   WARNING: if ``data_source`` is a :class:`yt.data_objects.selection_data_containers.YTCutRegion`
+   then the ``width`` parameter is ignored.
 
 .. python-script::
 
@@ -466,6 +468,16 @@ Overplotting Particle Positions
    ds = yt.load("Enzo_64/DD0043/data0043")
    p = yt.ProjectionPlot(ds, "x", "density", center='m', width=(10, 'Mpc'))
    p.annotate_particles((10, 'Mpc'))
+   p.save()
+
+To plot only the central particles
+
+.. python-script::
+   import yt
+   ds = yt.load("Enzo_64/DD0043/data0043")
+   p = yt.ProjectionPlot(ds, "x", "density", center='m', width=(10, 'Mpc'))
+   sp = ds.sphere([0.5,0.5,0.5],ds.quan(1,'Mpc'))
+   p.annotate_particles((10, 'Mpc'),data_source=sp)
    p.save()
 
 .. _annotate-sphere:
@@ -496,7 +508,8 @@ Overplot Streamlines
 ~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_streamlines(self, field_x, field_y, factor=16, \
-                                   density = 1, plot_args=None)
+                                   density=1, display_threshold=None, \
+                                   plot_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.StreamlineCallback`.)
@@ -622,8 +635,8 @@ Add the Current Time and/or Redshift
 
 .. function:: annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left',\
                                  time=True, redshift=False, \
-                                 time_format='t = {time:.0f} {units}', \
-                                 time_unit=None, \
+                                 time_format='t = {time:.1f} {units}', \
+                                 time_unit=None, time_offset=None, \
                                  redshift_format='z = {redshift:.2f}', \
                                  draw_inset_box=False, coord_system='axis', \
                                  text_args=None, inset_box_args=None)
@@ -635,8 +648,9 @@ Add the Current Time and/or Redshift
     location in the image (either in a present corner, or by specifying (x,y)
     image coordinates with the x_pos, y_pos arguments.  If no time_units are
     specified, it will automatically choose appropriate units.  It allows for
-    custom formatting of the time and redshift information, as well as the
-    specification of an inset box around the text.
+    custom formatting of the time and redshift information, the specification
+    of an inset box around the text, and changing the value of the timestamp
+    via a constant offset.
 
 .. python-script::
 
@@ -650,11 +664,14 @@ Add the Current Time and/or Redshift
 
 Add a Physical Scale Bar
 ~~~~~~~~~~~~~~~~~~~~~~~~
+
 .. function:: annotate_scale(corner='lower_right', coeff=None, \
-                             unit=None, pos=None, max_frac=0.16, \
-                             min_frac=0.015, coord_system='axis', \
-                             text_args=None, size_bar_args=None, \
-                             draw_inset_box=False, inset_box_args=None)
+                             unit=None, pos=None, 
+                             scale_text_format="{scale} {units}", \
+                             max_frac=0.16, min_frac=0.015, \
+                             coord_system='axis', text_args=None, \
+                             size_bar_args=None, draw_inset_box=False, \
+                             inset_box_args=None)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.ScaleCallback`.)
@@ -670,7 +687,8 @@ Add a Physical Scale Bar
     dictionary accepts matplotlib's font_properties arguments to override
     the default font_properties for the current plot.  The size_bar_args
     dictionary accepts keyword arguments for the AnchoredSizeBar class in
-    matplotlib's axes_grid toolkit.
+    matplotlib's axes_grid toolkit. Finally, the format of the scale bar text
+    can be adjusted using the scale_text_format keyword argument.
 
 .. python-script::
 

@@ -1,12 +1,17 @@
 import os
-import yt.utilities.fortran_utils as fpu
+from yt.utilities.cython_fortran_utils import FortranFile
 import glob
-from yt.extern.six import add_metaclass
+from yt.extern.six import add_metaclass, PY2
 from yt.funcs import mylog
 from yt.config import ytcfg
 
-import numpy as np
 from .io import _read_fluid_file_descriptor
+from .io_utils import read_offset
+
+
+if PY2:
+    FileNotFoundError = IOError
+
 
 FIELD_HANDLERS = set()
 
@@ -16,6 +21,7 @@ def get_field_handlers():
 def register_field_handler(ph):
     FIELD_HANDLERS.add(ph)
 
+PRESENT_FIELD_FILES = {}
 DETECTED_FIELDS = {}
 
 class RAMSESFieldFileHandlerRegistry(type):
@@ -66,15 +72,29 @@ class FieldFileHandler(object):
         self.domain_id = domain.domain_id
         ds = domain.ds
         basename = os.path.abspath(
-              os.path.dirname(ds.parameter_filename))
+              ds.root_folder)
         iout = int(
             os.path.basename(ds.parameter_filename)
             .split(".")[0].
             split("_")[1])
 
-        self.fname = os.path.join(
-            basename,
-            self.fname.format(iout=iout, icpu=domain.domain_id))
+        if ds.num_groups > 0:
+            igroup = ((domain.domain_id-1) // ds.group_size) + 1
+            full_path = os.path.join(
+                basename,
+                'group_{:05d}'.format(igroup),
+                self.fname.format(iout=iout, icpu=domain.domain_id))
+        else:
+            full_path = os.path.join(
+                basename,
+                self.fname.format(iout=iout, icpu=domain.domain_id))
+
+        if os.path.exists(full_path):
+            self.fname = full_path
+        else:
+            raise FileNotFoundError(
+                'Could not find fluid file (type: %s). Tried %s' %
+                (self.ftype, full_path))
 
         if self.file_descriptor is not None:
             self.file_descriptor = os.path.join(
@@ -122,8 +142,21 @@ class FieldFileHandler(object):
         the RAMSES Dataset structure to determine if the particle type
         (e.g. regular particles) exists.
         '''
-        # this function must be implemented by subclasses
-        raise NotImplementedError
+        if (ds.unique_identifier, cls.ftype) in PRESENT_FIELD_FILES:
+            return PRESENT_FIELD_FILES[(ds.unique_identifier, cls.ftype)]
+
+        iout = int(
+            os.path.basename(ds.parameter_filename)
+            .split(".")[0]
+            .split("_")[1])
+
+        fname = os.path.join(
+            os.path.split(ds.parameter_filename)[0],
+            cls.fname.format(iout=iout, icpu=1))
+        exists = os.path.exists(fname)
+        PRESENT_FIELD_FILES[(ds.unique_identifier, cls.ftype)] = exists
+
+        return exists
 
     @classmethod
     def detect_fields(cls, ds):
@@ -202,42 +235,17 @@ class FieldFileHandler(object):
         if getattr(self, '_offset', None) is not None:
             return self._offset
 
-        nvar = self.parameters['nvar']
-        ndim = self.domain.ds.dimensionality
-        twotondim = 2**ndim
+        with FortranFile(self.fname) as fd:
 
-        with open(self.fname, 'rb') as f:
             # Skip headers
             nskip = len(self.attrs)
-            fpu.skip(f, nskip)
-
-            # It goes: level, CPU, 8-variable (1 cube)
+            fd.skip(nskip)
             min_level = self.domain.ds.min_level
-            n_levels = self.domain.amr_header['nlevelmax'] - min_level
-            offset = np.zeros(n_levels, dtype='int64')
-            offset -= 1
-            level_count = np.zeros(n_levels, dtype='int64')
-            skipped = []
-            amr_header = self.domain.amr_header
-            for level in range(amr_header['nlevelmax']):
-                for cpu in range(amr_header['nboundary'] +
-                                 amr_header['ncpu']):
-                    header = ( ('file_ilevel', 1, 'I'),
-                               ('file_ncache', 1, 'I') )
-                    try:
-                        hvals = fpu.read_attrs(f, header, "=")
-                    except AssertionError:
-                        mylog.error(
-                            "You are running with the wrong number of fields. "
-                            "If you specified these in the load command, check the array length. "
-                            "In this file there are %s hydro fields." % skipped)
-                        raise
-                    if hvals['file_ncache'] == 0: continue
-                    assert(hvals['file_ilevel'] == level+1)
-                    if cpu + 1 == self.domain_id and level >= min_level:
-                        offset[level - min_level] = f.tell()
-                        level_count[level - min_level] = hvals['file_ncache']
-                    skipped = fpu.skip(f, twotondim * nvar)
+
+            offset, level_count = read_offset(
+                fd, min_level, self.domain.domain_id, self.parameters['nvar'],
+                self.domain.amr_header)
+
         self._offset = offset
         self._level_count = level_count
         return self._offset
@@ -257,14 +265,6 @@ class HydroFieldFileHandler(FieldFileHandler):
               ('gamma', 1, 'd'))
 
     @classmethod
-    def any_exist(cls, ds):
-        files = os.path.join(
-            os.path.split(ds.parameter_filename)[0],
-            'hydro_?????.out?????')
-        ret = len(glob.glob(files)) > 0
-        return ret
-
-    @classmethod
     def detect_fields(cls, ds):
         # Try to get the detected fields
         detected_fields = cls.get_detected_fields(ds)
@@ -281,9 +281,9 @@ class HydroFieldFileHandler(FieldFileHandler):
         fname = basename % 'hydro'
         fname_desc = os.path.join(basepath, cls.file_descriptor)
 
-        f = open(fname, 'rb')
         attrs = cls.attrs
-        hvals = fpu.read_attrs(f, attrs)
+        with FortranFile(fname) as fd:
+            hvals = fd.read_attrs(attrs)
         cls.parameters = hvals
 
         # Store some metadata
@@ -383,22 +383,13 @@ class GravFieldFileHandler(FieldFileHandler):
     )
 
     @classmethod
-    def any_exist(cls, ds):
-        files = os.path.join(
-            os.path.split(ds.parameter_filename)[0],
-            'grav_?????.out00001')
-        ret = len(glob.glob(files)) == 1
-
-        return ret
-
-    @classmethod
     def detect_fields(cls, ds):
         ndim = ds.dimensionality
         iout = int(str(ds).split('_')[1])
         basedir = os.path.split(ds.parameter_filename)[0]
         fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
-        with open(fname, 'rb') as f:
-            cls.parameters = fpu.read_attrs(f, cls.attrs)
+        with FortranFile(fname) as fd:
+            cls.parameters = fd.read_attrs(cls.attrs)
 
         nvar = cls.parameters['nvar']
         ndim = ds.dimensionality
@@ -437,15 +428,6 @@ class RTFieldFileHandler(FieldFileHandler):
     )
 
     @classmethod
-    def any_exist(cls, ds):
-        files = os.path.join(
-            os.path.split(ds.parameter_filename)[0],
-            'info_rt_?????.txt')
-        ret = len(glob.glob(files)) == 1
-
-        return ret
-
-    @classmethod
     def detect_fields(cls, ds):
         # Try to get the detected fields
         detected_fields = cls.get_detected_fields(ds)
@@ -480,8 +462,8 @@ class RTFieldFileHandler(FieldFileHandler):
         iout = int(str(ds).split('_')[1])
         basedir = os.path.split(ds.parameter_filename)[0]
         fname = os.path.join(basedir, cls.fname.format(iout=iout, icpu=1))
-        with open(fname, 'rb') as f:
-            cls.parameters = fpu.read_attrs(f, cls.attrs)
+        with FortranFile(fname) as fd:
+            cls.parameters = fd.read_attrs(cls.attrs)
 
         fields = []
         for ng in range(ngroups):

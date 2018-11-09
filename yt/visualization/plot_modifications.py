@@ -23,12 +23,23 @@ import re
 
 from functools import wraps
 
-from yt.analysis_modules.level_sets.clump_handling import \
+from numbers import Number
+
+from yt.data_objects.level_sets.clump_handling import \
     Clump
+from yt.analysis_modules.halo_analysis.halo_catalog import \
+    HaloCatalog
 from yt.frontends.ytdata.data_structures import \
     YTClumpContainer
+from yt.data_objects.selection_data_containers import YTCutRegion
+from yt.data_objects.data_containers import \
+    YTDataContainer
+from yt.data_objects.static_output import \
+    Dataset
 from yt.funcs import \
-    mylog, iterable
+    iterable, \
+    mylog, \
+    validate_width_tuple
 from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity, YTArray, uhstack
 from yt.visualization.image_writer import apply_colormap
@@ -145,17 +156,20 @@ class PlotCallback(object):
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
 
-        x0 = np.array(np.tile(plot.xlim[0],ncoord))
-        x1 = np.array(np.tile(plot.xlim[1],ncoord))
+        x0 = np.array(np.tile(plot.xlim[0].to('code_length'),ncoord))
+        x1 = np.array(np.tile(plot.xlim[1].to('code_length'),ncoord))
         xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
         xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
 
-        y0 = np.array(np.tile(plot.ylim[0],ncoord))
-        y1 = np.array(np.tile(plot.ylim[1],ncoord))
+        y0 = np.array(np.tile(plot.ylim[0].to('code_length'),ncoord))
+        y1 = np.array(np.tile(plot.ylim[1].to('code_length'),ncoord))
         yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
         yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
 
-        ccoord = np.array(coord)
+        try:
+            ccoord = np.array(coord.to('code_length'))
+        except AttributeError:
+            ccoord = np.array(coord)
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
@@ -286,16 +300,16 @@ class VelocityCallback(PlotCallback):
     """
     Adds a 'quiver' plot of velocity to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* and *plot_args* allows you to 
-    pass in matplotlib arguments (see matplotlib.axes.Axes.quiver 
-    for more info). if *normalize* is True, the velocity fields 
-    will be scaled by their local (in-plane) length, allowing 
-    morphological features to be more clearly seen for fields 
+    length unit using *scale_units* and *plot_args* allows you to
+    pass in matplotlib arguments (see matplotlib.axes.Axes.quiver
+    for more info). if *normalize* is True, the velocity fields
+    will be scaled by their local (in-plane) length, allowing
+    morphological features to be more clearly seen for fields
     with substantial variation in field strength.
     """
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, factor=16, scale=None, scale_units=None, 
+    def __init__(self, factor=16, scale=None, scale_units=None,
                  normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.factor = factor
@@ -331,7 +345,7 @@ class VelocityCallback(PlotCallback):
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
-                                 normalize=self.normalize, bv_x=bv_x, 
+                                 normalize=self.normalize, bv_x=bv_x,
                                  bv_y=bv_y, plot_args=self.plot_args)
         return qcb(plot)
 
@@ -339,15 +353,15 @@ class MagFieldCallback(PlotCallback):
     """
     Adds a 'quiver' plot of magnetic field to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
-    length unit using *scale_units* and *plot_args* allows you to pass 
+    length unit using *scale_units* and *plot_args* allows you to pass
     in matplotlib arguments (see matplotlib.axes.Axes.quiver for more info).
-    if *normalize* is True, the magnetic fields will be scaled by their 
+    if *normalize* is True, the magnetic fields will be scaled by their
     local (in-plane) length, allowing morphological features to be more
     clearly seen for fields with substantial variation in field strength.
     """
     _type_name = "magnetic_field"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
-    def __init__(self, factor=16, scale=None, scale_units=None, 
+    def __init__(self, factor=16, scale=None, scale_units=None,
                  normalize=False, plot_args=None):
         PlotCallback.__init__(self)
         self.factor = factor
@@ -363,8 +377,8 @@ class MagFieldCallback(PlotCallback):
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
                                         "cutting_plane_magnetic_field_y",
-                                        self.factor, scale=self.scale, 
-                                        scale_units=self.scale_units, 
+                                        self.factor, scale=self.scale,
+                                        scale_units=self.scale_units,
                                         normalize=self.normalize,
                                         plot_args=self.plot_args)
         else:
@@ -373,9 +387,9 @@ class MagFieldCallback(PlotCallback):
             axis_names = plot.data.ds.coordinates.axis_name
             xv = "magnetic_field_%s" % (axis_names[xax])
             yv = "magnetic_field_%s" % (axis_names[yax])
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale, 
+            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
-                                 normalize=self.normalize, 
+                                 normalize=self.normalize,
                                  plot_args=self.plot_args)
         return qcb(plot)
 
@@ -384,10 +398,10 @@ class QuiverCallback(PlotCallback):
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints.
     *scale* is the data units per arrow length unit using *scale_units*
-    and *plot_args* allows you to pass in matplotlib arguments (see 
-    matplotlib.axes.Axes.quiver for more info). if *normalize* is True, 
-    the fields will be scaled by their local (in-plane) length, allowing 
-    morphological features to be more clearly seen for fields with 
+    and *plot_args* allows you to pass in matplotlib arguments (see
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is True,
+    the fields will be scaled by their local (in-plane) length, allowing
+    morphological features to be more clearly seen for fields with
     substantial variation in field strength.
     """
     _type_name = "quiver"
@@ -451,7 +465,7 @@ class QuiverCallback(PlotCallback):
             nn = np.sqrt(pixX**2 + pixY**2)
             pixX /= nn
             pixY /= nn
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale,
                           scale_units=self.scale_units, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -472,7 +486,7 @@ class ContourCallback(PlotCallback):
                  label_args=None, text_args=None, data_source=None):
         PlotCallback.__init__(self)
         def_plot_args = {'colors':'k'}
-        def_text_args = {'color':'w'}
+        def_text_args = {'colors':'w'}
         self.ncont = ncont
         self.field = field
         self.factor = factor
@@ -586,14 +600,16 @@ class GridBoundaryCallback(PlotCallback):
     edgecolors='#00FFFF', or edgecolor='0.3', where the last is a float in 0-1
     scale indicating gray).  Note that setting edgecolors overrides cmap if you
     have both set to non-None values.  Cutoff for display is at min_pix
-    wide. draw_ids puts the grid id in the corner of the grid.  (Not so great in
-    projections...).  One can set min and maximum level of grids to display, and
+    wide. draw_ids puts the grid id a the corner of the grid (but its not so
+    great in projections...).  id_loc determines which corner holds the grid id.
+    One can set min and maximum level of grids to display, and
     can change the linewidth of the displayed grids.
     """
     _type_name = "grids"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
 
-    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False,
+    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20,
+                 draw_ids=False, id_loc="lower left",
                  periodic=True, min_level=None, max_level=None,
                  cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
         PlotCallback.__init__(self)
@@ -601,6 +617,7 @@ class GridBoundaryCallback(PlotCallback):
         self.min_pix = min_pix
         self.min_pix_ids = min_pix_ids
         self.draw_ids = draw_ids  # put grid numbers in the corner.
+        self.id_loc = id_loc
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
@@ -683,16 +700,42 @@ class GridBoundaryCallback(PlotCallback):
                 linewidth=self.linewidth)
             plot._axes.add_collection(grid_collection)
 
-            if self.draw_ids:
-                visible_ids = np.logical_and(
+            visible_ids = np.logical_and(
                     np.logical_and(xwidth > self.min_pix_ids,
                                    ywidth > self.min_pix_ids),
                     np.logical_and(levels >= min_level, levels <= max_level))
-                for i in np.where(visible_ids)[0]:
-                    plot._axes.text(
-                        left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
-                        left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
-                        "%d" % block_ids[i], clip_on=True)
+
+            if self.id_loc and not self.draw_ids:
+                mylog.warn("Supplied id_loc but draw_ids is False. Not drawing grid ids")
+
+            if self.draw_ids:
+                id_loc = self.id_loc.lower() # Make case-insensitive
+                plot_ids = np.where(visible_ids)[0]
+                x = np.empty(plot_ids.size)
+                y = np.empty(plot_ids.size)
+                for i,n in enumerate(plot_ids):
+                    if id_loc == "lower left":
+                        x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
+                        y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
+                    elif id_loc == "lower right":
+                        x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
+                                                   * (xx1 - xx0) / xpix)
+                        y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
+                    elif id_loc == "upper left":
+                        x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
+                        y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
+                    elif id_loc == "upper right":
+                        x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
+                                                   * (xx1 - xx0) / xpix)
+                        y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
+                    else:
+                        raise RuntimeError(
+                               "Unrecognized id_loc value ('%s'). "
+                               "Allowed values are 'lower left', lower right', "
+                               "'upper left', and 'upper right'." % self.id_loc
+                               )
+                    plot._axes.text(x[i], y[i],
+                                    "%d" % block_ids[n], clip_on=True)
 
 class StreamlineCallback(PlotCallback):
     """
@@ -700,11 +743,16 @@ class StreamlineCallback(PlotCallback):
     from the associated data, skipping every *factor* datapoints like
     'quiver'. *density* is the index of the amount of the streamlines.
     *field_color* is a field to be used to colormap the streamlines.
+    If *display_threshold* is supplied, any streamline segments where
+    *field_color* is less than the threshold will be removed by having
+    their line width set to 0.
     """
     _type_name = "streamlines"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, field_x, field_y, factor=16,
-                 density=1, field_color=None, plot_args=None):
+                 density=1, field_color=None,
+                 display_threshold=None,
+                 plot_args=None):
         PlotCallback.__init__(self)
         def_plot_args = {}
         self.field_x = field_x
@@ -712,6 +760,7 @@ class StreamlineCallback(PlotCallback):
         self.field_color = field_color
         self.factor = factor
         self.dens = density
+        self.display_threshold = display_threshold
         if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
 
@@ -741,8 +790,29 @@ class StreamlineCallback(PlotCallback):
                         plot.data['pdx'], plot.data['pdy'],
                         plot.data[self.field_color],
                         (x0, x1, y0, y1))
+
+            if self.display_threshold:
+
+                mask = (field_colors > self.display_threshold)
+                lwdefault = matplotlib.rcParams['lines.linewidth']
+
+                if 'linewidth' in self.plot_args:
+                    linewidth = self.plot_args['linewidth']
+                else:
+                    linewidth = lwdefault
+
+                try:
+                    linewidth *= mask
+                    self.plot_args['linewidth'] = linewidth
+                except ValueError:
+                    err_msg = "Error applying display threshold: linewidth" + \
+                              "must have shape ({}, {}) or be scalar"
+                    err_msg = err_msg.format(ny, nx)
+                    raise ValueError(err_msg)
+
         else:
             field_colors = None
+
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
@@ -857,10 +927,10 @@ class CuttingQuiverCallback(PlotCallback):
     Get a quiver plot on top of a cutting plane, using *field_x* and
     *field_y*, skipping every *factor* datapoint in the discretization.
     *scale* is the data units per arrow length unit using *scale_units*
-    and *plot_args* allows you to pass in matplotlib arguments (see 
-    matplotlib.axes.Axes.quiver for more info). if *normalize* is True, 
-    the fields will be scaled by their local (in-plane) length, allowing 
-    morphological features to be more clearly seen for fields with 
+    and *plot_args* allows you to pass in matplotlib arguments (see
+    matplotlib.axes.Axes.quiver for more info). if *normalize* is True,
+    the fields will be scaled by their local (in-plane) length, allowing
+    morphological features to be more clearly seen for fields with
     substantial variation in field strength.
     """
     _type_name = "cquiver"
@@ -912,7 +982,7 @@ class CuttingQuiverCallback(PlotCallback):
             pixX /= nn
             pixY /= nn
 
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, 
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale,
                           scale_units=self.scale_units, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -926,6 +996,8 @@ class ClumpContourCallback(PlotCallback):
     def __init__(self, clumps, plot_args=None):
         self.clumps = clumps
         if plot_args is None: plot_args = {}
+        if 'color' in plot_args:
+            plot_args['colors'] = plot_args.pop('color')
         self.plot_args = plot_args
 
     def __call__(self, plot):
@@ -1370,8 +1442,10 @@ class TextLabelCallback(PlotCallback):
         # consistent with other text labels in this figure
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
+        if self.inset_box_args is not None:
+            kwargs['bbox'] = self.inset_box_args
         label = plot._axes.text(x, y, self.text, transform=self.transform,
-                                bbox=self.inset_box_args, **kwargs)
+                                **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -1403,30 +1477,78 @@ class HaloCatalogCallback(PlotCallback):
     in a halo catalog with radii corresponding to the
     virial radius of each halo.
 
-    circle_args: Contains the arguments controlling the
+    Parameters
+    ----------
+    halo_catalog : Dataset, DataContainer, or HaloCatalog
+        The object containing halos to be overplotted. This can
+        be a HaloCatalog object, a loaded halo catalog dataset,
+        or a data container from a halo catalog dataset.
+    circle_args : list
+        Contains the arguments controlling the
         appearance of the circles, supplied to the
         Matplotlib patch Circle.
-    width: the width over which to select halos to plot,
+    width : tuple
+        The width over which to select halos to plot,
         useful when overplotting to a slice plot. Accepts
         a tuple in the form (1.0, 'Mpc').
-    annotate_field: Accepts a field contained in the
+    annotate_field : str
+        A field contained in the
         halo catalog to add text to the plot near the halo.
         Example: annotate_field = 'particle_mass' will
         write the halo mass next to each halo.
-    radius_field: Accepts a field contained in the halo
+    radius_field : str
+        A field contained in the halo
         catalog to set the radius of the circle which will
-        surround each halo.
-    center_field_prefix: Accepts a field prefix which will
+        surround each halo. Default: 'virial_radius'.
+    center_field_prefix : str
+        Accepts a field prefix which will
         be used to find the fields containing the coordinates
         of the center of each halo. Ex: 'particle_position'
         will result in the fields 'particle_position_x' for x
         'particle_position_y' for y, and 'particle_position_z' 
-        for z.
-    text_args: Contains the arguments controlling the text
+        for z. Default: 'particle_position'.
+    text_args : dict
+        Contains the arguments controlling the text
         appearance of the annotated field.
-    factor: A number the virial radius is multiplied by for
+    factor : float
+        A number the virial radius is multiplied by for
         plotting the circles. Ex: factor = 2.0 will plot
         circles with twice the radius of each halo virial radius.
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> dds = yt.load("Enzo_64/DD0043/data0043")
+    >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
+    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density")
+    >>> p.annotate_halos(hds)
+    >>> p.save()
+
+    >>> # plot a subset of all halos
+    >>> import yt
+    >>> dds = yt.load("Enzo_64/DD0043/data0043")
+    >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
+    >>> # make a region half the width of the box
+    >>> dregion = dds.box(dds.domain_center - 0.25*dds.domain_width,
+    ...                   dds.domain_center + 0.25*dds.domain_width)
+    >>> hregion = hds.box(hds.domain_center - 0.25*hds.domain_width,
+    ...                   hds.domain_center + 0.25*hds.domain_width)
+    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density",
+    ...                       data_source=dregion, width=0.5)
+    >>> p.annotate_halos(hregion)
+    >>> p.save()
+
+    >>> # plot halos from a HaloCatalog
+    >>> import yt
+    >>> from yt.analysis_modules.halo_analysis.api import HaloCatalog
+    >>> dds = yt.load("Enzo_64/DD0043/data0043")
+    >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
+    >>> hc = HaloCatalog(data_ds=dds, halos_ds=hds)
+    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density")
+    >>> p.annotate_halos(hc)
+    >>> p.save()
+
     """
 
     _type_name = 'halos'
@@ -1442,7 +1564,21 @@ class HaloCatalogCallback(PlotCallback):
         PlotCallback.__init__(self)
         def_circle_args = {'edgecolor':'white', 'facecolor':'None'}
         def_text_args = {'color':'white'}
-        self.halo_catalog = halo_catalog
+
+        if isinstance(halo_catalog, YTDataContainer):
+            self.halo_data = halo_catalog
+        elif isinstance(halo_catalog, Dataset):
+            self.halo_data = halo_catalog.all_data()
+        elif isinstance(halo_catalog, HaloCatalog):
+            if halo_catalog.data_source.ds == halo_catalog.halos_ds:
+                self.halo_data = halo_catalog.data_source
+            else:
+                self.halo_data = halo_catalog.halos_ds.all_data()
+        else:
+            raise RuntimeError(
+                "halo_catalog argument must be a HaloCatalog object, " +
+                "a dataset, or a data container.")
+
         self.width = width
         self.radius_field = radius_field
         self.center_field_prefix = center_field_prefix
@@ -1469,7 +1605,7 @@ class HaloCatalogCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
 
-        halo_data= self.halo_catalog.halos_ds.all_data()
+        halo_data = self.halo_data
         axis_names = plot.data.ds.coordinates.axis_name
         xax = plot.data.ds.coordinates.x_axis[data.axis]
         yax = plot.data.ds.coordinates.y_axis[data.axis]
@@ -1518,7 +1654,7 @@ class HaloCatalogCallback(PlotCallback):
             # but I dont really want to reimplement get_sanitized_width...
             width = data.ds.arr(self.width[0], self.width[1]).in_units('code_length')
 
-            indices = np.where((pz > c-width) & (pz < c+width))
+            indices = np.where((pz > c-0.5*width) & (pz < c+0.5*width))
 
             px = px[indices]
             py = py[indices]
@@ -1548,16 +1684,16 @@ class ParticleCallback(PlotCallback):
     *width* along the line of sight.  *p_size* controls the number of
     pixels per particle, and *col* governs the color.  *ptype* will
     restrict plotted particles to only those that are of a given type.
-    Particles with masses below *minimum_mass* will not be plotted.
-    *alpha* determines the opacity of the marker symbol used in the scatter
-    plot.
+    *alpha* determines the opacity of the marker symbol used in the scatter.
+    An alternate data source can be specified with *data_source*, but by
+    default the plot's data source will be queried.
     """
     _type_name = "particles"
     region = None
     _descriptor = None
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1,
-                 ptype='all', minimum_mass=None, alpha=1.0):
+                 ptype='all', minimum_mass=None, alpha=1.0, data_source=None):
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
@@ -1567,20 +1703,35 @@ class ParticleCallback(PlotCallback):
         self.ptype = ptype
         self.minimum_mass = minimum_mass
         self.alpha = alpha
+        self.data_source=data_source
+        if self.minimum_mass is not None:
+            warnings.warn("The minimum_mass keyword is deprecated.  Please use "
+                          "an appropriate particle filter and the ptype keyword instead.")
+
 
     def __call__(self, plot):
         data = plot.data
         if iterable(self.width):
-            w = plot.data.ds.quan(self.width[0], self.width[1]).in_units("code_length")
-            self.width = np.float64(w)
+            validate_width_tuple(self.width)
+            self.width = plot.data.ds.quan(self.width[0], self.width[1])
         elif isinstance(self.width, YTQuantity):
-            self.width = np.float64(plot.data.ds.quan(self.width).in_units("code_length"))
+            self.width = plot.data.ds.quan(self.width.value, self.width.units)
+        else:
+            self.width = plot.data.ds.quan(self.width, "code_length")
         # we construct a rectangular prism
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
+        x0 = plot.xlim[0].to("code_length")
+        x1 = plot.xlim[1].to("code_length")
+        y0 = plot.ylim[0].to("code_length")
+        y1 = plot.ylim[1].to("code_length")
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        reg = self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
+        if type(self.data_source)==YTCutRegion:
+            mylog.warn("Parameter 'width' is ignored in annotate_particles if the "
+                       "data_source is a cut_region. "
+                       "See https://github.com/yt-project/yt/issues/1933 for further details.")
+            self.region=self.data_source
+        else:
+            self.region=self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
         ax = data.axis
         xax = plot.data.ds.coordinates.x_axis[ax]
         yax = plot.data.ds.coordinates.y_axis[ax]
@@ -1596,18 +1747,17 @@ class ParticleCallback(PlotCallback):
                   plot.data.ds.domain_right_edge[yax]
         period_x = plot.data.ds.domain_width[xax]
         period_y = plot.data.ds.domain_width[yax]
-        particle_x, particle_y = self._enforce_periodic(reg[pt, field_x],
-                                                        reg[pt, field_y],
+        particle_x, particle_y = self._enforce_periodic(self.region[pt, field_x],
+                                                        self.region[pt, field_y],
                                                         x0, x1, period_x,
                                                         y0, y1, period_y)
         gg = ( ( particle_x >= x0 ) & ( particle_x <= x1 )
            &   ( particle_y >= y0 ) & ( particle_y <= y1 ) )
         if self.minimum_mass is not None:
-            gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
+            gg &= (self.region[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
-        px, py = self.convert_to_plot(plot,
-                    [np.array(particle_x[gg][::self.stride]),
-                     np.array(particle_y[gg][::self.stride])])
+        px, py = [particle_x[gg][::self.stride], particle_y[gg][::self.stride]]
+        px, py = self.convert_to_plot(plot, [px, py])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
@@ -1620,16 +1770,16 @@ class ParticleCallback(PlotCallback):
                           y0, y1, period_y):
         #  duplicate particles if periodic in that direction AND if the plot
         #  extends outside the domain boundaries.
-        if self.periodic_x and x0 > self.LE[0]:
+        if self.periodic_x and x0 > self.RE[0]:
             particle_x = uhstack((particle_x, particle_x + period_x))
             particle_y = uhstack((particle_y, particle_y))
-        if self.periodic_x and x1 < self.RE[0]:
+        if self.periodic_x and x1 < self.LE[0]:
             particle_x = uhstack((particle_x, particle_x - period_x))
             particle_y = uhstack((particle_y, particle_y))
-        if self.periodic_y and y0 > self.LE[1]:
+        if self.periodic_y and y0 > self.RE[1]:
             particle_y = uhstack((particle_y, particle_y + period_y))
             particle_x = uhstack((particle_x, particle_x))
-        if self.periodic_y and y1 < self.RE[1]:
+        if self.periodic_y and y1 < self.LE[1]:
             particle_y = uhstack((particle_y, particle_y - period_y))
             particle_x = uhstack((particle_x, particle_x))
         return particle_x, particle_y
@@ -1642,13 +1792,14 @@ class ParticleCallback(PlotCallback):
         zax = axis
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
-        LE[zax] = data.center[zax].ndarray_view() - self.width*0.5
-        RE[zax] = data.center[zax].ndarray_view() + self.width*0.5
+        LE[zax] = data.center[zax] - self.width*0.5
+        LE[zax].convert_to_units("code_length")
+        RE[zax] = LE[zax] + self.width
         if self.region is not None \
             and np.all(self.region.left_edge <= LE) \
             and np.all(self.region.right_edge >= RE):
             return self.region
-        self.region = data.ds.region(data.center, LE, RE)
+        self.region = data.ds.region(data.center, LE, RE, data_source=self.data_source)
         return self.region
 
 class TitleCallback(PlotCallback):
@@ -1670,7 +1821,7 @@ class TitleCallback(PlotCallback):
 
 class MeshLinesCallback(PlotCallback):
     """
-    Adds mesh lines to the plot. Only works for unstructured or 
+    Adds mesh lines to the plot. Only works for unstructured or
     semi-structured mesh data. For structured grid data, see
     GridBoundaryCallback or CellEdgesCallback.
 
@@ -1698,17 +1849,17 @@ class MeshLinesCallback(PlotCallback):
 
     def promote_2d_to_3d(self, coords, indices, plot):
         new_coords = np.zeros((2*coords.shape[0], 3))
-        new_connects = np.zeros((indices.shape[0], 2*indices.shape[1]), 
+        new_connects = np.zeros((indices.shape[0], 2*indices.shape[1]),
                                 dtype=np.int64)
-    
+
         new_coords[0:coords.shape[0],0:2] = coords
         new_coords[0:coords.shape[0],2] = plot.ds.domain_left_edge[2]
         new_coords[coords.shape[0]:,0:2] = coords
         new_coords[coords.shape[0]:,2] = plot.ds.domain_right_edge[2]
-        
+
         new_connects[:,0:indices.shape[1]] = indices
         new_connects[:,indices.shape[1]:] = indices + coords.shape[0]
-    
+
         return new_coords, new_connects
 
     def __call__(self, plot):
@@ -1726,7 +1877,7 @@ class MeshLinesCallback(PlotCallback):
                 pass
             coords = m.connectivity_coords
             indices = m.connectivity_indices - m._index_offset
-            
+
             num_verts = indices.shape[1]
             num_dims = coords.shape[1]
 
@@ -1737,7 +1888,7 @@ class MeshLinesCallback(PlotCallback):
 
             tri_indices = triangulate_indices(indices.astype(np.int_))
             points = coords[tri_indices]
-        
+
             tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
             tfc(plot)
 
@@ -1848,6 +1999,12 @@ class TimestampCallback(PlotCallback):
 
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
+    time_offset : float, (value, unit) tuple, or YTQuantity, optional
+        Apply an offset to the time shown in the annotation from the
+        value of the current time. If a scalar value with no units is
+        passed in, the value of the *time_unit* kwarg is used for the
+        units. Default: None, meaning no offset.
+
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         text object.  Defaults: ``{'color':'white',
@@ -1871,13 +2028,16 @@ class TimestampCallback(PlotCallback):
     def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True,
                  redshift=False, time_format="t = {time:.1f} {units}",
                  time_unit=None, redshift_format="z = {redshift:.2f}",
-                 draw_inset_box=False, coord_system='axis',
+                 draw_inset_box=False, coord_system='axis', time_offset=None,
                  text_args=None, inset_box_args=None):
 
-        def_text_args = {'color':'white', 'horizontalalignment':'center',
-                         'verticalalignment':'top'}
-        def_inset_box_args = {'boxstyle':'square,pad=0.3', 'facecolor':'black',
-                              'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
+        def_text_args = {'color': 'white',
+                         'horizontalalignment': 'center',
+                         'verticalalignment': 'top'}
+        def_inset_box_args = {'boxstyle': 'square,pad=0.3',
+                              'facecolor': 'black',
+                              'linewidth': 3,
+                              'edgecolor': 'white', 'alpha': 0.5}
 
         # Set position based on corner argument.
         self.pos = (x_pos, y_pos)
@@ -1888,6 +2048,7 @@ class TimestampCallback(PlotCallback):
         self.redshift_format = redshift_format
         self.time_unit = time_unit
         self.coord_system = coord_system
+        self.time_offset = time_offset
         if text_args is None: text_args = def_text_args
         self.text_args = text_args
         if inset_box_args is None: inset_box_args = def_inset_box_args
@@ -1935,6 +2096,15 @@ class TimestampCallback(PlotCallback):
                                             plot.ds.current_time,
                                             quantity='time')
             t = plot.ds.current_time.in_units(self.time_unit)
+            if self.time_offset is not None:
+                if isinstance(self.time_offset, tuple):
+                    toffset = plot.ds.quan(self.time_offset[0], self.time_offset[1])
+                elif isinstance(self.time_offset, Number):
+                    toffset = plot.ds.quan(self.time_offset, self.time_unit)
+                elif not isinstance(self.time_offset, YTQuantity):
+                    raise RuntimeError("'time_offset' must be a float, tuple, or"
+                                       "YTQuantity!")
+                t -= toffset.in_units(self.time_unit)
             self.text += self.time_format.format(time=float(t),
                                                  units=self.time_unit)
 
@@ -2038,6 +2208,12 @@ class ScaleCallback(PlotCallback):
         object that represents the inset box.
         Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
 
+    scale_text_format : string, optional
+        This specifies the format of the scalebar value assuming "scale" is the
+        numerical value and "unit" is units of the scale (e.g. 'cm', 'kpc', etc.)
+        The scale can be specified to arbitrary precision according to printf
+        formatting codes. The format string must only specify "scale" and "units".
+        Example: "Length = {scale:.2f} {units}". Default: "{scale} {units}"
 
     Example
     -------
@@ -2052,7 +2228,7 @@ class ScaleCallback(PlotCallback):
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
                  max_frac=0.16, min_frac=0.015, coord_system='axis',
                  text_args=None, size_bar_args=None, draw_inset_box=False,
-                 inset_box_args=None):
+                 inset_box_args=None, scale_text_format="{scale} {units}"):
 
         def_size_bar_args = {
             'pad': 0.05,
@@ -2077,6 +2253,7 @@ class ScaleCallback(PlotCallback):
         self.max_frac = max_frac
         self.min_frac = min_frac
         self.coord_system = coord_system
+        self.scale_text_format = scale_text_format
         if size_bar_args is None:
             self.size_bar_args = def_size_bar_args
         else:
@@ -2131,7 +2308,8 @@ class ScaleCallback(PlotCallback):
             self.coeff = max_scale.v
             self.unit = max_scale.units
         self.scale = YTQuantity(self.coeff, self.unit)
-        text = "{scale} {units}".format(scale=int(self.coeff), units=self.unit)
+        text = self.scale_text_format.format(scale=int(self.coeff),
+                                             units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
         size_vertical = self.size_bar_args.pop(

@@ -1,13 +1,16 @@
 import os
-import yt.utilities.fortran_utils as fpu
-import glob
-from yt.extern.six import add_metaclass
+from yt.utilities.cython_fortran_utils import FortranFile
+from yt.extern.six import add_metaclass, PY2
 from yt.funcs import mylog
 from yt.config import ytcfg
 
 from .io import _read_part_file_descriptor
 
+if PY2:
+    FileNotFoundError = IOError
+
 PARTICLE_HANDLERS = set()
+PRESENT_PART_FILES = {}
 
 def get_particle_handlers():
     return PARTICLE_HANDLERS
@@ -53,8 +56,7 @@ class ParticleFileHandler(object):
     field_types = None       # Mapping from field to the type of the data (float, integer, ...)
     local_particle_count = None  # The number of particle in the domain
 
-
-    def __init__(self, ds, domain_id):
+    def __init__(self, ds, domain):
         '''
         Initalize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
@@ -64,18 +66,32 @@ class ParticleFileHandler(object):
         need in the inherited class.
         '''
         self.ds = ds
-        self.domain_id = domain_id
+        self.domain = domain
+        self.domain_id = domain.domain_id
         basename = os.path.abspath(
-              os.path.dirname(ds.parameter_filename))
+              ds.root_folder)
         iout = int(
             os.path.basename(ds.parameter_filename)
             .split(".")[0].
             split("_")[1])
-        icpu = domain_id
 
-        self.fname = os.path.join(
-            basename,
-            self.fname.format(iout=iout, icpu=icpu))
+        if ds.num_groups > 0:
+            igroup = ((domain.domain_id-1) // ds.group_size) + 1
+            full_path = os.path.join(
+                basename,
+                'group_{:05d}'.format(igroup),
+                self.fname.format(iout=iout, icpu=domain.domain_id))
+        else:
+            full_path = os.path.join(
+                basename,
+                self.fname.format(iout=iout, icpu=domain.domain_id))
+
+        if os.path.exists(full_path):
+            self.fname = full_path
+        else:
+            raise FileNotFoundError(
+                'Could not find particle file (type: %s). Tried %s' %
+                (self.ptype, full_path))
 
         if self.file_descriptor is not None:
             self.file_descriptor = os.path.join(
@@ -131,9 +147,21 @@ class ParticleFileHandler(object):
         the RAMSES Dataset structure to determine if the particle type
         (e.g. regular particles) exists.
         '''
-        # this function must be implemented by subclasses
-        raise NotImplementedError
+        if (ds.unique_identifier, cls.ptype) in PRESENT_PART_FILES:
+            return PRESENT_PART_FILES[(ds.unique_identifier, cls.ptype)]
 
+        iout = int(
+            os.path.basename(ds.parameter_filename)
+            .split(".")[0]
+            .split("_")[1])
+
+        fname = os.path.join(
+            os.path.split(ds.parameter_filename)[0],
+            cls.fname.format(iout=iout, icpu=1))
+        exists = os.path.exists(fname)
+        PRESENT_PART_FILES[(ds.unique_identifier, cls.ptype)] = exists
+
+        return exists
 
     def read_header(self):
         '''
@@ -160,14 +188,14 @@ class DefaultParticleFileHandler(ParticleFileHandler):
     file_descriptor = 'part_file_descriptor.txt'
     config_field = 'ramses-particles'
 
-    attrs = ( ('ncpu', 1, 'I'),
-              ('ndim', 1, 'I'),
-              ('npart', 1, 'I'),
-              ('localseed', 4, 'I'),
-              ('nstar_tot', 1, 'I'),
+    attrs = ( ('ncpu', 1, 'i'),
+              ('ndim', 1, 'i'),
+              ('npart', 1, 'i'),
+              ('localseed', 4, 'i'),
+              ('nstar_tot', 1, 'i'),
               ('mstar_tot', 1, 'd'),
               ('mstar_lost', 1, 'd'),
-              ('nsink', 1, 'I') )
+              ('nsink', 1, 'i') )
 
     known_fields = [
         ("particle_position_x", "d"),
@@ -178,15 +206,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         ("particle_velocity_z", "d"),
         ("particle_mass", "d"),
         ("particle_identity", "i"),
-        ("particle_refinement_level", "I")]
-
-    @classmethod
-    def any_exist(cls, ds):
-        files = os.path.join(
-            os.path.split(ds.parameter_filename)[0],
-            'part_?????.out?????')
-        ret = len(glob.glob(files)) > 0
-        return ret
+        ("particle_refinement_level", "i")]
 
     def read_header(self):
         if not self.exists:
@@ -194,13 +214,14 @@ class DefaultParticleFileHandler(ParticleFileHandler):
             self.field_types = {}
             self.local_particle_count = 0
             return
-        f = open(self.fname, "rb")
-        f.seek(0, os.SEEK_END)
-        flen = f.tell()
-        f.seek(0)
+
+        fd = FortranFile(self.fname)
+        fd.seek(0, os.SEEK_END)
+        flen = fd.tell()
+        fd.seek(0)
         hvals = {}
         attrs = self.attrs
-        hvals.update(fpu.read_attrs(f, attrs))
+        hvals.update(fd.read_attrs(attrs))
         self.header = hvals
         self.local_particle_count = hvals['npart']
         extra_particle_fields = self.ds._extra_particle_fields
@@ -226,20 +247,22 @@ class DefaultParticleFileHandler(ParticleFileHandler):
 
         # Read offsets
         for field, vtype in particle_fields:
-            if f.tell() >= flen: break
-            field_offsets[ptype, field] = f.tell()
+            if fd.tell() >= flen: break
+            field_offsets[ptype, field] = fd.tell()
             _pfields[ptype, field] = vtype
-            fpu.skip(f, 1)
+            fd.skip(1)
 
         iextra = 0
-        while f.tell() < flen:
+        while fd.tell() < flen:
             iextra += 1
             field, vtype = ('particle_extra_field_%i' % iextra, 'd')
             particle_fields.append((field, vtype))
 
-            field_offsets[ptype, field] = f.tell()
+            field_offsets[ptype, field] = fd.tell()
             _pfields[ptype, field] = vtype
-            fpu.skip(f, 1)
+            fd.skip(1)
+
+        fd.close()
 
         if iextra > 0 and not self.ds._warned_extra_fields['io']:
             w = ("Detected %s extra particle fields assuming kind "
@@ -259,8 +282,8 @@ class SinkParticleFileHandler(ParticleFileHandler):
     file_descriptor = 'sink_file_descriptor.txt'
     config_field = 'ramses-sink-particles'
 
-    attrs = (('nsink', 1, 'I'),
-             ('nindsink', 1, 'I'))
+    attrs = (('nsink', 1, 'i'),
+             ('nindsink', 1, 'i'))
 
     known_fields = [
         ("particle_identifier", "i"),
@@ -285,29 +308,21 @@ class SinkParticleFileHandler(ParticleFileHandler):
         ("BH_spin", "d"),
         ("BH_efficiency", "d")]
 
-    @classmethod
-    def any_exist(cls, ds):
-        files = os.path.join(
-            os.path.split(ds.parameter_filename)[0],
-            'sink_?????.out?????')
-        ret = len(glob.glob(files)) > 0
-        return ret
-
     def read_header(self):
         if not self.exists:
             self.field_offsets = {}
             self.field_types = {}
             self.local_particle_count = 0
             return
-        f = open(self.fname, "rb")
-        f.seek(0, os.SEEK_END)
-        flen = f.tell()
-        f.seek(0)
+        fd = FortranFile(self.fname)
+        fd.seek(0, os.SEEK_END)
+        flen = fd.tell()
+        fd.seek(0)
         hvals = {}
         # Read the header of the file
         attrs = self.attrs
 
-        hvals.update(fpu.read_attrs(f, attrs))
+        hvals.update(fd.read_attrs(attrs))
         self._header = hvals
 
         # This is somehow a trick here: we only want one domain to
@@ -341,9 +356,10 @@ class SinkParticleFileHandler(ParticleFileHandler):
         self.fields = []
         for field, vtype in fields:
             self.fields.append(field)
-            if f.tell() >= flen: break
-            field_offsets[self.ptype, field] = f.tell()
+            if fd.tell() >= flen: break
+            field_offsets[self.ptype, field] = fd.tell()
             _pfields[self.ptype, field] = vtype
-            fpu.skip(f, 1)
+            fd.skip(1)
         self.field_offsets = field_offsets
         self.field_types = _pfields
+        fd.close()

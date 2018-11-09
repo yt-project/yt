@@ -304,6 +304,21 @@ def test_array_like_field():
     u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
     assert u1 == u2
 
+ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
+
+@requires_file(ISOGAL)
+def test_array_like_field_output_units():
+    ds = load(ISOGAL)
+    ad = ds.all_data()
+    u1 = ad["particle_mass"].units
+    u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
+    assert u1 == u2
+    assert str(u1) == ds.fields.all.particle_mass.output_units
+    u1 = ad['gas', 'x'].units
+    u2 = array_like_field(ad, 1., ("gas", "x")).units
+    assert u1 == u2
+    assert str(u1) == ds.fields.gas.x.units
+
 def test_add_field_string():
     ds = fake_random_ds(16)
     ad = ds.all_data()
@@ -359,8 +374,6 @@ def test_field_inference():
     # on the order we did field detection, which is random in Python3
     assert_equal(ds._last_freq, (None, None))
 
-ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
-
 @requires_file(ISOGAL)
 def test_deposit_amr():
     ds = load(ISOGAL)
@@ -368,3 +381,40 @@ def test_deposit_amr():
         gpm = g['particle_mass'].sum()
         dpm = g['deposit', 'all_mass'].sum()
         assert_allclose_units(gpm, dpm)
+
+
+def test_ion_field_labels():
+    fields = ["O_p1_number_density", "O2_p1_number_density",
+          "CO2_p1_number_density", "Co_p1_number_density",
+          "O2_p2_number_density", "H2O_p1_number_density"]
+    units = ["cm**-3" for f in fields]
+    ds = fake_random_ds(16, fields=fields, units=units)
+
+    # by default labels should use roman numerals
+    default_labels = {"O_p1_number_density":u"$\\rm{O\ II\ Number\ Density}$",
+                      "O2_p1_number_density":u"$\\rm{O_{2}\ II\ Number\ Density}$",
+                      "CO2_p1_number_density":u"$\\rm{CO_{2}\ II\ Number\ Density}$",
+                      "Co_p1_number_density":u"$\\rm{Co\ II\ Number\ Density}$",
+                      "O2_p2_number_density":u"$\\rm{O_{2}\ III\ Number\ Density}$",
+                      "H2O_p1_number_density":u"$\\rm{H_{2}O\ II\ Number\ Density}$"}
+
+    pm_labels = {"O_p1_number_density":u"$\\rm{{O}^{+}\ Number\ Density}$",
+                 "O2_p1_number_density":u"$\\rm{{O_{2}}^{+}\ Number\ Density}$",
+                 "CO2_p1_number_density":u"$\\rm{{CO_{2}}^{+}\ Number\ Density}$",
+                 "Co_p1_number_density":u"$\\rm{{Co}^{+}\ Number\ Density}$",
+                 "O2_p2_number_density":u"$\\rm{{O_{2}}^{++}\ Number\ Density}$",
+                 "H2O_p1_number_density":u"$\\rm{{H_{2}O}^{+}\ Number\ Density}$"}
+
+    fobj = ds.fields.stream
+
+    for f in fields:
+        label = getattr(fobj, f).get_latex_display_name()
+        assert_equal(label, default_labels[f])
+
+    ds.set_field_label_format("ionization_label", "plus_minus")
+    fobj = ds.fields.stream
+
+    for f in fields:
+        label = getattr(fobj, f).get_latex_display_name()
+        assert_equal(label, pm_labels[f])
+

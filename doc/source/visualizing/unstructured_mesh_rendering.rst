@@ -15,17 +15,10 @@ below, or you can skip to the examples.
 Optional Embree Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The easiest way to install yt with Embree support is to use conda to install the
-most recent development version of yt from our channel:
-
-.. code-block:: bash
-
-    conda install -c http://use.yt/with_conda/ yt
-
-Alternatively, you can install yt from source using the ``install_script.sh``
-script. Be sure to set the ``INST_YT_SOURCE``, ``INST_EMBREE``, and
-``INST_NETCDF4`` flags to 1 at the top of the script. The ``install_script.sh``
-script can be downloaded by doing:
+To install yt with Embree support, you can install yt from source using the
+``install_script.sh`` script. Be sure to set the ``INST_YT_SOURCE``,
+``INST_EMBREE``, and ``INST_NETCDF4`` flags to 1 at the top of the script. The
+``install_script.sh`` script can be downloaded by doing:
 
 .. code-block:: bash
 
@@ -37,7 +30,7 @@ and then run like so:
 
   bash install_script.sh
 
-Finally, you can install the additional dependencies by hand.
+Alternatively, you can install the additional dependencies by hand.
 First, you will need to install Embree, either by compiling from source 
 or by using one of the pre-built binaries available at Embree's 
 `downloads <https://embree.github.io/downloads.html>`_ page.

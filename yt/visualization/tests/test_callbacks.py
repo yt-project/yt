@@ -46,7 +46,7 @@ import contextlib
 #  X quiver
 #  X contour
 #  X grids
-#    streamlines
+#  X streamlines
 #    units
 #  X line
 #    cquiver
@@ -278,9 +278,9 @@ def test_particles_callback():
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
+        ad=ds.all_data()
         p.annotate_particles((10, "Mpc"), p_size=1.0, col="k", marker="o",
-                             stride=1, ptype="all", minimum_mass=None,
-                             alpha=1.0)
+                             stride=1, ptype="all",alpha=1.0,data_source=ad)
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
@@ -472,7 +472,7 @@ def test_contour_callback():
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'linewidths':2.0}, label=True,
-            text_args={'text-size':'x-large'})
+            text_args={'fontsize':'x-large'})
         p.save(prefix)
 
         p = SlicePlot(ds, "x", "density")
@@ -480,7 +480,7 @@ def test_contour_callback():
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'linewidths':2.0}, label=True,
-            text_args={'text-size':'x-large'},
+            text_args={'fontsize':'x-large'},
             data_source=s2)
         p.save(prefix)
 
@@ -504,7 +504,7 @@ def test_contour_callback():
         p.annotate_contour("temperature", ncont=10, factor=8,
             take_log=False, clim=(0.4, 0.6),
             plot_args={'linewidths':2.0}, label=True,
-            text_args={'text-size':'x-large'})
+            text_args={'fontsize':'x-large'})
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 
@@ -525,7 +525,7 @@ def test_grids_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_grids(alpha=0.7, min_pix=10, min_pix_ids=30,
-            draw_ids=True, periodic=False, min_level=2,
+            draw_ids=True, id_loc="upper right", periodic=False, min_level=2,
             max_level=3, cmap="gist_stern")
         p.save(prefix)
 
@@ -539,7 +539,7 @@ def test_grids_callback():
         ds = fake_amr_ds(fields = ("density",), geometry="spherical")
         p = SlicePlot(ds, "r", "density")
         p.annotate_grids(alpha=0.7, min_pix=10, min_pix_ids=30,
-            draw_ids=True, periodic=False, min_level=2,
+            draw_ids=True, id_loc="upper right", periodic=False, min_level=2,
             max_level=3, cmap="gist_stern")
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
@@ -591,6 +591,62 @@ def test_mesh_lines_callback():
             sl.annotate_mesh_lines(plot_args={'color':'black'})
             assert_fname(sl.save(prefix)[0])
                 
+@requires_file(cyl_2d)
+def test_streamline_callback():
+
+    with _cleanup_fname() as prefix:
+
+        ds = fake_amr_ds(fields=("density", "velocity_x", "velocity_y", "magvel"))
+
+        for ax in 'xyz':
+
+            # Projection plot tests
+            p = ProjectionPlot(ds, ax, "density")
+            p.annotate_streamlines("velocity_x", "velocity_y")
+            assert_fname(p.save(prefix)[0])
+
+            p = ProjectionPlot(ds, ax, "density", weight_field="density")
+            p.annotate_streamlines("velocity_x", "velocity_y")
+            assert_fname(p.save(prefix)[0])
+
+            # Slice plot test
+            p = SlicePlot(ds, ax, "density")
+            p.annotate_streamlines("velocity_x", "velocity_y")
+            assert_fname(p.save(prefix)[0])
+
+            # Additional features
+            p = SlicePlot(ds, ax, "density")
+            p.annotate_streamlines("velocity_x", "velocity_y", factor=32, density=4)
+            assert_fname(p.save(prefix)[0])
+
+            p = SlicePlot(ds, ax, "density")
+            p.annotate_streamlines("velocity_x", "velocity_y", field_color="magvel")
+            assert_fname(p.save(prefix)[0])
+
+            p = SlicePlot(ds, ax, "density")
+            p.annotate_streamlines("velocity_x", "velocity_y", field_color="magvel",
+                                   display_threshold=0.5,
+                                   plot_args={'cmap': ytcfg.get("yt", "default_colormap"),
+                                              'arrowstyle': '->'})
+            assert_fname(p.save(prefix)[0])
+
+    # Axisymmetric dataset
+    with _cleanup_fname() as prefix:
+
+        ds = load(cyl_2d)
+        slc = SlicePlot(ds, "theta", "density")
+        slc.annotate_streamlines("magnetic_field_r", "magnetic_field_z")
+        assert_fname(slc.save(prefix)[0])
+
+    # Spherical dataset
+    with _cleanup_fname() as prefix:
+
+        ds = fake_amr_ds(fields=("density", "velocity_r",
+                                 "velocity_theta", "velocity_phi"),
+                                 geometry="spherical")
+        p = SlicePlot(ds, "r", "density")
+        p.annotate_streamlines("velocity_theta", "velocity_phi")
+        assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 @requires_file(cyl_2d)
 def test_line_integral_convolution_callback():
