@@ -22,13 +22,13 @@ env:
 before_install:
   - |
     if [[ $TRAVIS_OS_NAME != 'osx' ]]; then
-      pip install --upgrade virtualenv
+      $PIP install --upgrade virtualenv
       python -m virtualenv venv
       source venv/bin/activate
       export PATH=/usr/lib/ccache:$PATH
     else
       brew update
-      brew install python ccache hdf5 proj geos openmpi
+      brew install python ccache hdf5 proj geos openmpi netcdf
       export PATH=/usr/local/opt/ccache/libexec:$PATH
     fi
     mkdir -p $HOME/.config/yt
