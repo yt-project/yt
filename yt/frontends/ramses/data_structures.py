@@ -401,11 +401,8 @@ class RAMSESDataset(Dataset):
             # note: we exclude the unlikely event that one of the group is actually a file
             # instad of a folder
             self.num_groups = len(
-                list(
-                    filter(lambda e: os.path.isdir(e),
-                           glob(os.path.join(root_folder, 'group_?????')))
-                    )
-                )
+                [_ for _ in glob(os.path.join(root_folder, 'group_?????'))
+                 if os.path.isdir(_)])
             self.root_folder = root_folder
         else:
             self.root_folder = os.path.split(filename)[0]
