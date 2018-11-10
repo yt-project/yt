@@ -459,6 +459,8 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(float)
 
             # Read rt_c_frac
+            # Note: when using variable speed of light, this line will contain multiple values
+            # corresponding the the velocity at each level
             read_rhs(lambda line: [float(e) for e in line.split()])
             f.readline()
 
