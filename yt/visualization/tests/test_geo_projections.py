@@ -21,8 +21,6 @@ from yt.testing import \
 from yt.utilities.answer_testing.framework import GenericImageTest
 from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
 
-transform_list.remove('UTM')
-
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
@@ -84,6 +82,12 @@ class TestGeoProjections(unittest.TestCase):
         self.slc = yt.SlicePlot(self.ds, "altitude", "Density")
 
         for transform in transform_list:
+            if transform == 'UTM':
+                # this requires special arguments so let's skip it
+                continue
+            if transform == 'OSNI':
+                # avoid crashes, see https://github.com/SciTools/cartopy/issues/1177
+                continue
             self.slc.set_mpl_projection(transform)
             proj_type = type(get_mpl_transform(transform))
 
