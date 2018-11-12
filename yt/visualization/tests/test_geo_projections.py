@@ -49,6 +49,9 @@ def compare(ds, field, idir, test_prefix, test_name, projection,
 def test_geo_slices_amr():
     ds = fake_amr_ds(geometry="geographic")
     for transform in transform_list:
+        if transform == 'UTM':
+            # requires additional argument so we skip
+            continue
         for field in ds.field_list:
             prefix = "%s_%s_%s" % (field[0], field[1], transform)
             yield compare(ds, field, 'altitude', test_prefix=prefix,
