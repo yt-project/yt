@@ -230,6 +230,17 @@ class ImagePlotMPL(PlotMPL):
             transform = self.axes.transData
         else:
             transform = self._transform
+        # CartoPy hangs if we do not set_extent before imshow if we are
+        # displaying a small subset of the globe.  What I believe happens is
+        # that the transform for the points on the outside results in
+        # infinities, and then the scipy.spatial cKDTree hangs trying to
+        # identify nearest points.
+        # 
+        # A potential downside is that other images may change, but I believe
+        # the result of imshow is to set_extent *regardless*.  This just
+        # changes the order in which it happens.
+        self.axes.set_extent(extent)
+        # We still need to supply extent here.
         self.image = self.axes.imshow(
             data.to_ndarray(), origin='lower', extent=extent, norm=norm,
             vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
