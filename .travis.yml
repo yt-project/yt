@@ -106,6 +106,7 @@ jobs:
       os: osx
       osx_image: xcode10.1
       language: generic  # https://github.com/travis-ci/travis-ci/issues/2312
+      env: PIP=pip3
       cache:
         pip: false
         directories:
