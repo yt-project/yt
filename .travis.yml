@@ -23,8 +23,12 @@ before_install:
       source venv/bin/activate
       export PATH=/usr/lib/ccache:$PATH
     else
+      sudo mkdir -p /usr/local/man
+      sudo chown -R "${USER}:admin" /usr/local/man
       brew update
+      brew uninstall numpy
       brew install python ccache hdf5 openmpi netcdf
+      brew uninstall gdal postgis numpy
       export PATH=/usr/local/opt/ccache/libexec:$PATH
     fi
     mkdir -p $HOME/.config/yt
