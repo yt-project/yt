@@ -49,8 +49,12 @@ install:
     # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       if [[ $MINIMAL == 1 ]]; then
+        # HACK: install numpy and cython so cykdtree builds
+        $PIP install numpy==1.10.4 cython==0.24
         $PIP install -r tests/test_minimal_requirements.txt
       else
+        # HACK: install numpy and cython so cykdtree builds
+        $PIP install numpy==1.15.3 cython==0.29
         $PIP install -r tests/test_requirements.txt
       fi
       $PIP install -e .
