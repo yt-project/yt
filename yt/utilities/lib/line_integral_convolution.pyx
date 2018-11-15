@@ -104,5 +104,8 @@ def line_integral_convolution_2d(
                         &x, &y, &fx, &fy, w, h)
                 l-=1
                 result[i,j] += kernel[l]*texture[x,y]
-                    
+
+            if vectors[i,j,0]==0 and vectors[i,j,1]==0:
+                result[i,j] = 0.
+
     return result
