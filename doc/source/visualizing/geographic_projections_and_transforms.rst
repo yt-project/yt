@@ -27,15 +27,35 @@ It should be noted that
 these projections are not the same as yt's ProjectionPlot. For more information
 on yt's projection plots, see :ref:`projection-types`.
 
-Installation
-^^^^^^^^^^^^
+.. _install-cartopy:
+
+Installing Cartopy
+^^^^^^^^^^^^^^^^^^
 
 In order to access the geographic projection functionality, you will need to have an
-installation of ``cartopy`` available on your machine.
+installation of ``cartopy`` available on your machine. If you're using conda as
+your package manager, this should be sufficient:
 
 .. code-block:: bash
 
     conda install cartopy
+
+If you're on a mac and are using pip, there can be conflicts with the GEOS
+library and cartopy / cartopy dependencies. To avoid these issues use your
+package manager of choice to install proj4 and geos (``proj`` and ``geos``).
+Following that, build cartopy and shapely from source.
+For example, a user using homebrew and pip
+would execute the following commands:
+
+.. code-block:: bash
+
+    brew install proj geos
+    brew upgrade proj geos
+    pip install --no-binary :all: shapely cartopy
+
+
+On ubuntu you'll need to install the following packages: ``libproj-dev``,
+``proj-data``, ``proj-bin``, and ``libgeos-dev``.
 
 Using Basic Transforms
 ^^^^^^^^^^^^^^^^^^^^^^^
