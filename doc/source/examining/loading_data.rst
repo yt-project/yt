@@ -2065,7 +2065,7 @@ based on the presence of a ``info_rt_*.txt`` file in the output directory.
 .. note::
    for backward compatibility, particles from the
    ``part_XXXXX.outYYYYY`` files have the particle type ``io`` by
-   default (including dark matter, stars, tracer particles, …). Sink
+   default (including dark matter, stars, tracer particles, ...). Sink
    particles have the particle type ``sink``.
 
 .. _loading-ramses-data-args:
@@ -2106,7 +2106,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
           # ('all', 'family') and ('all', 'info') now in ds.field_list
 
       The format of the ``extra_particle_fields`` argument is as follows:
-      ``[('field_name_1', 'type_1'), …, ('field_name_n', 'type_n')]`` where
+      ``[('field_name_1', 'type_1'), ..., ('field_name_n', 'type_n')]`` where
       the second element of the tuple follows the `python struct format
       convention
       <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
@@ -2152,7 +2152,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
          that domains have a complicated shape when using Hilbert
          ordering. Internally, yt will hence assume the loaded dataset
          covers the entire simulation. If you only want the data from
-         the selected region, you may want to use ``ds.box(…)``.
+         the selected region, you may want to use ``ds.box(...)``.
 
       .. note::
          The ``bbox`` feature is only available for datasets using

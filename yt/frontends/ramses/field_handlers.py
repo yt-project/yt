@@ -444,13 +444,29 @@ class RTFieldFileHandler(FieldFileHandler):
             rheader[p.strip()] = cast(v)
 
         with open(fname, 'r') as f:
-            for i in range(4): read_rhs(int)
+            # Read nRTvar, nions, ngroups, iions
+            for i in range(4):
+                read_rhs(int)
             f.readline()
-            for i in range(2): read_rhs(float)
+
+            # Read X and Y fractions
+            for i in range(2):
+                read_rhs(float)
             f.readline()
-            for i in range(3): read_rhs(float)
+
+            # Reat unit_np, unit_pfd
+            for i in range(2):
+                read_rhs(float)
+
+            # Read rt_c_frac
+            # Note: when using variable speed of light, this line will contain multiple values
+            # corresponding the the velocity at each level
+            read_rhs(lambda line: [float(e) for e in line.split()])
             f.readline()
-            for i in range(3): read_rhs(float)
+
+            # Read n star, t2star, g_star
+            for i in range(3):
+                read_rhs(float)
 
             # Touchy part, we have to read the photon group properties
             mylog.debug('Not reading photon group properties')
