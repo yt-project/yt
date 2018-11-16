@@ -1,4 +1,5 @@
 language: python
+dist: xenial
 sudo: required
 dist: xenial
 cache:
@@ -10,37 +11,27 @@ addons:
   apt:
     packages:
       - libhdf5-serial-dev
+      - libopenmpi-dev
+      - libnetcdf-dev
 
 env:
   global:
-    NUMPY=numpy
-    CYTHON=cython
-    MATPLOTLIB=matplotlib
-    SYMPY=sympy
-    H5PY=h5py
-    SCIPY=scipy
-    IPYTHON=ipython
-    FASTCACHE=fastcache
-    FLAKE8=flake8
-    CODECOV=codecov
-    COVERAGE=coverage
-    PANDAS=pandas
-    MOCK=mock
-    NOSETIMER=nose-timer
-    REQUESTS=requests
-    GLUE=glueviz
-    PYQT=pyqt5
+    PIP=pip
 
 before_install:
   - |
     if [[ $TRAVIS_OS_NAME != 'osx' ]]; then
-      pip install --upgrade virtualenv
+      $PIP install --upgrade virtualenv
       python -m virtualenv venv
       source venv/bin/activate
       export PATH=/usr/lib/ccache:$PATH
     else
+      sudo mkdir -p /usr/local/man
+      sudo chown -R "${USER}:admin" /usr/local/man
       brew update
-      brew install ccache hdf5
+      brew uninstall numpy
+      brew install python ccache hdf5 openmpi netcdf
+      brew uninstall gdal postgis numpy
       export PATH=/usr/local/opt/ccache/libexec:$PATH
     fi
     mkdir -p $HOME/.config/yt
@@ -54,73 +45,74 @@ install:
     # setup environment
     ccache -s
     # Upgrade pip and setuptools and wheel to get clean install
-    pip install --upgrade pip
-    pip install --upgrade wheel
-    pip install --upgrade setuptools
-    # Install dependencies
-    pip install $MOCK $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON $FLAKE8 $CODECOV $COVERAGE $PANDAS $NOSE $NOSETIMER $REQUESTS $GLUE $PYQT
-    # HACK, FIXME BEFORE MERGING
-    pip install https://github.com/cykdtree/cykdtree/archive/master.zip
-    # install yt
+    $PIP install --upgrade pip
+    $PIP install --upgrade wheel
+    $PIP install --upgrade setuptools
+    # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
-      pip install -e .
+      if [[ $MINIMAL == 1 ]]; then
+        # HACK: install numpy and cython so cykdtree builds
+        $PIP install numpy==1.10.4 cython==0.24
+        $PIP install -r tests/test_minimal_requirements.txt
+      else
+        # HACK: install numpy and cython so cykdtree builds
+        $PIP install numpy==1.15.3 cython==0.29
+        $PIP install -r tests/test_requirements.txt
+      fi
+      $PIP install -e .
+    else
+      $PIP install -r tests/lint_requirements.txt
     fi
 
 jobs:
   include:
     - stage: lint
-      python: 3.6
-      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS= REQUESTS= GLUE= PYQT=
+      python: 3.7
       script: flake8 yt/
 
     - stage: lint
       python: 2.7
-      env: MOCK= NOSETIMER= NOSE= CODECOV= COVERAGE= NUMPY= CYTHON= MATPLOTLIB= SYMPY= H5PY= SCIPY= FASTCACHE= IPYTHON= PANDAS= REQUESTS= GLUE= PYQT=
       script: flake8 yt/
 
     - stage: tests
       name: "Minimal Dependency Version Unit Tests"
       python: 3.5
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0 REQUESTS= GLUE= PYQT=
+      env: MINIMAL=1
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
       name: "Python: 3.5 Unit Tests"
       python: 3.5
-      env: FLAKE8= REQUESTS=
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
       name: "Python: 3.6 Unit Tests"
       python: 3.6
-      env: FLAKE8= REQUESTS=
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
       name: "Python: 3.7 Unit Tests"
       python: 3.7
-      env: FLAKE8= REQUESTS=
       script: coverage run $(which nosetests) -c nose_unit.cfg
-
-      name: "Minimal Dependency Version Answer Tests"
+      
+    - name: "Minimal Dependency Version Answer Tests"
       python: 3.5
-      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= FLAKE8= IPYTHON=ipython==1.0
+      env: MINIMAL=1
       script: coverage run $(which nosetests) -c nose_answer.cfg
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 
     - stage: tests
       name: "Python: 3.7 Answer Tests"
       python: 3.7
-      env: FLAKE8=
       script: coverage run $(which nosetests) -c nose_answer.cfg
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 
     - stage: tests
-      name: "MacOS: xcode7.3 Unit Tests"
+      name: "MacOS: Unit Tests"
       os: osx
-      osx_image: xcode7.3
+      osx_image: xcode10.1
       language: generic  # https://github.com/travis-ci/travis-ci/issues/2312
-      env: FLAKE8= REQUESTS= GLUE= PYQT=
+      env: PIP=pip3
       cache:
         pip: false
         directories:

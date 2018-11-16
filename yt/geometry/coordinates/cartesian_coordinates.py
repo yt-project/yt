@@ -268,6 +268,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             YTParticleProj
         # We should be using fcoords
         field = data_source._determine_fields(field)[0]
+        finfo = data_source.ds.field_info[field]
         period = self.period[:2].copy() # dummy here
         period[0] = self.period[self.x_axis[dim]]
         period[1] = self.period[self.y_axis[dim]]
@@ -276,9 +277,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
         buff = np.zeros((size[1], size[0]), dtype="f8")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
-        is_sph_field = field[0] in 'gas'
-        if hasattr(data_source.ds, '_sph_ptype'):
-            is_sph_field |= field[0] in data_source.ds._sph_ptype
+        is_sph_field = finfo.is_sph_field
 
         finfo = self.ds._get_field_info(field)
         if np.any(finfo.nodal_flag):
@@ -290,7 +289,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                      nodal_data, coord, bounds, int(antialias),
                                      period, int(periodic))
         elif isinstance(data_source.ds, particle_datasets) and is_sph_field:
-            ptype = data_source.ds._sph_ptype
+            ptype = field[0]
+            if ptype == 'gas':
+                ptype = data_source.ds._sph_ptype
             ounits = data_source.ds.field_info[field].output_units
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
             py_name = 'particle_position_%s' % self.axis_name[self.y_axis[dim]]

@@ -45,6 +45,7 @@ _frontends = [
     'rockstar',
     'sdf',
     'stream',
+    'swift',
     'tipsy',
     'ytdata',
 ]

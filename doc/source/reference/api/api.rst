@@ -438,6 +438,7 @@ Loading Data
    ~yt.frontends.stream.data_structures.load_uniform_grid
    ~yt.frontends.stream.data_structures.load_amr_grids
    ~yt.frontends.stream.data_structures.load_particles
+   ~yt.frontends.stream.data_structures.load_octree
    ~yt.frontends.stream.data_structures.load_hexahedral_mesh
    ~yt.frontends.stream.data_structures.load_unstructured_mesh
 
