@@ -358,7 +358,7 @@ class Clump(TreeContainer):
                         cfilters[cfield] = field_data[cfield] == self.contour_id
                     field_data[field] = field_data[field][cfilters[cfield]]
 
-        clump_info.update(field_data)
+            clump_info.update(field_data)
         extra_attrs = {"data_type": "yt_clump_tree",
                        "container_type": "yt_clump_tree"}
         save_as_dataset(ds, filename, clump_info,

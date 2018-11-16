@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import argparse
 import base64
+import collections
 import datetime
 import logging
 import os
@@ -96,18 +97,20 @@ def generate_failed_answers_html(failed_answers):
 
     rows = []
 
-    for test_name, images in failed_answers.items():
-        encoded_images = {}
-        for key in images:
-            with open(images[key], "rb") as img:
-                img_data = base64.b64encode(img.read()).decode()
-                encoded_images[key] = img_data
+    for failed_test_file in failed_answers.values():
+        for test_name, images in failed_test_file.items():
+            encoded_images = {}
+            for key in images:
+                with open(images[key], "rb") as img:
+                    img_data = base64.b64encode(img.read()).decode()
+                    encoded_images[key] = img_data
 
-        formatted_row = row_template.format(encoded_images["Actual"],
-                                            encoded_images["Expected"],
-                                            encoded_images["Difference"],
-                                            test_name)
-        rows.append(formatted_row)
+            formatted_row = row_template.format(
+                encoded_images["Actual"],
+                encoded_images["Expected"],
+                encoded_images["Difference"],
+                test_name)
+            rows.append(formatted_row)
 
     html = html_template.format(rows='\n'.join(rows))
     return html
@@ -318,7 +321,7 @@ def parse_nose_xml(nose_xml):
 
     """
     missing_answers = set()
-    failed_answers = dict()
+    failed_answers = collections.defaultdict(lambda: dict())
     missing_errors = ["No such file or directory",
                       "There is no old answer available"]
     tree = ET.parse(nose_xml)
@@ -336,14 +339,16 @@ def parse_nose_xml(nose_xml):
 
 def handle_error(error, testcase, missing_errors, missing_answers,
                  failed_answers):
-    test_name = testcase.attrib["classname"] + ":" + testcase.attrib["name"]
+    attribs = ['classname', 'name']
+    test_name = ":".join([testcase.attrib[a] for a in attribs])
+    message = error.attrib['message']
     if ((missing_errors[0] in error.attrib["message"] or
          missing_errors[1] in error.attrib["message"])):
         missing_answers.add(test_name)
     elif "Items are not equal" in error.attrib["message"]:
         img_path = extract_image_locations(error.attrib["message"])
         if img_path:
-            failed_answers[test_name] = img_path
+            failed_answers[test_name][message] = img_path
 
 
 if __name__ == "__main__":
@@ -392,8 +397,8 @@ if __name__ == "__main__":
         response = upload_answers(failed_answers)
         if response.ok:
             msg += (FLAG_EMOJI + COLOR_CYAN +
-                    "Successfully uploaded answer(s) for failed test at URL: " +
-                    response.text.split("\n")[1] + ". Please commit these "
+                    "Successfully uploaded answer(s) for failed test at URL: "
+                    + response.text.split("\n")[1] + ". Please commit these "
                     "answers in the repository's answer-store." +
                     COLOR_RESET + FLAG_EMOJI)
             log.info(msg)
