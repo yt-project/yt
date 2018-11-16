@@ -95,7 +95,7 @@ jobs:
       python: 3.7
       script: coverage run $(which nosetests) -c nose_unit.cfg
       
-      name: "Minimal Dependency Version Answer Tests"
+    - name: "Minimal Dependency Version Answer Tests"
       python: 3.5
       env: MINIMAL=1
       script: coverage run $(which nosetests) -c nose_answer.cfg
