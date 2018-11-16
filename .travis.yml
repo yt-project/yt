@@ -19,6 +19,10 @@ env:
   global:
     PIP=pip
 
+env:
+  global:
+    PIP=pip
+
 before_install:
   - |
     if [[ $TRAVIS_OS_NAME != 'osx' ]]; then
