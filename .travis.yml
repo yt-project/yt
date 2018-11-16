@@ -11,7 +11,7 @@ addons:
   apt:
     packages:
       - libhdf5-serial-dev
-      - openmpi-dev
+      - libopenmpi-dev
       - libnetcdf-dev
 
 env:
