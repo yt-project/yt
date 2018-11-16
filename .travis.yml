@@ -67,7 +67,7 @@ install:
 jobs:
   include:
     - stage: lint
-      python: 3.6
+      python: 3.7
       script: flake8 yt/
 
     - stage: lint
