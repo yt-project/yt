@@ -11,6 +11,7 @@ A set of convenient on-demand imports
 #-----------------------------------------------------------------------------
 
 from pkg_resources import parse_version
+import sys
 
 class NotAModule(object):
     """
@@ -29,6 +30,31 @@ class NotAModule(object):
 
     def __call__(self, *args, **kwargs):
         raise self.error
+
+class NotCartopy(NotAModule):
+    """
+    A custom class to return error messages dependent on system installation
+    for cartopy imports.
+    """
+    def __init__(self, pkg_name):
+        self.pkg_name = pkg_name
+        if any(s in sys.version for s in ("Anaconda", "Continuum")):
+            # the conda-based installs of cartopy don't have issues with the
+            # GEOS library, so the error message for users with conda can be
+            # relatively short. Discussion related to this is in
+            # yt-project/yt#1966
+            self.error = ImportError(
+                "This functionality requires the %s "
+                "package to be installed." % self.pkg_name)
+        else:
+            self.error = ImportError(
+                "This functionality requires the %s "
+                "package to be installed. Try installing proj4 and "
+                "geos with your package manager and building shapely "
+                "and cartopy from source with: \n \n "
+                "pip install --no-binary :all: shapely cartopy \n \n"
+                "For further instruction please refer to the "
+                "yt documentation." % self.pkg_name)
 
 class netCDF4_imports(object):
     _name = "netCDF4"
@@ -158,7 +184,7 @@ class cartopy_imports(object):
             try:
                 import cartopy.crs as crs
             except ImportError:
-                crs = NotAModule(self._name)
+                crs = NotCartopy(self._name)
             self._crs = crs
         return self._crs
 
@@ -170,7 +196,7 @@ class cartopy_imports(object):
                 import cartopy
                 version = cartopy.__version__
             except ImportError:
-                version = NotAModule(self._name)
+                version = NotCartopy(self._name)
             self._version = version
         return self._version
 
