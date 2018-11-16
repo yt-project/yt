@@ -243,7 +243,12 @@ class ImagePlotMPL(PlotMPL):
             # A potential downside is that other images may change, but I believe
             # the result of imshow is to set_extent *regardless*.  This just
             # changes the order in which it happens.
-            self.axes.set_extent(extent)
+            # 
+            # NOTE: This is currently commented out because it breaks in some
+            # instances.  It is left as a historical note because we will
+            # eventually need some form of it.
+            # self.axes.set_extent(extent)
+            pass
         self.image = self.axes.imshow(
             data.to_ndarray(), origin='lower', extent=extent, norm=norm,
             vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
