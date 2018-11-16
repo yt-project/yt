@@ -21,4 +21,3 @@ libconf==1.0.1
 pyaml==17.10.0
 mpi4py==3.0.0
 git+git://github.com/cykdtree/cykdtree@master#egg=cykdtree
-thingking==1.1.1
