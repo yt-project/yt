@@ -996,7 +996,7 @@ int artio_grid_read_oct(artio_fileset *handle,
 
 	if ( refined != NULL ) {
 		for ( i = 0; i < 8; i++ ) {
-		  refined[i] = (local_refined[i] > 0);
+			refined[i] = (local_refined[i] > 0);
 		}
 	}
 
