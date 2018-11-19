@@ -20,8 +20,9 @@ import stat
 import numpy as np
 
 from yt.data_objects.static_output import \
-    Dataset, \
-    ParticleFile
+    Dataset
+from yt.frontends.halo_catalog.data_structures import \
+    HaloCatalogFile
 from yt.funcs import \
     setdefaultattr
 from yt.geometry.particle_geometry_handler import \
@@ -32,7 +33,7 @@ from yt.utilities.cosmology import \
 from .fields import AHFHalosFieldInfo
 
 
-class AHFHalosFile(ParticleFile):
+class AHFHalosFile(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id, range=None):
         root, _ = os.path.splitext(filename)
         candidates = glob.glob(root + '*.AHF_halos')
@@ -57,6 +58,17 @@ class AHFHalosFile(ParticleFile):
             names = [name.split('(')[0] for name in names]
             return names
 
+    def _read_particle_positions(self, ptype, f=None):
+        """
+        Read all particle positions in this file.
+        """
+
+        halos = self.read_data(usecols=['Xc', 'Yc', 'Zc'])
+        pos = np.empty((halos.size, 3), dtype="float64")
+        for i, ax in enumerate('XYZ'):
+            pos[:, i] = halos['%sc' % ax].astype('float64')
+
+        return pos
 
 class AHFHalosDataset(Dataset):
     _index_class = ParticleIndex

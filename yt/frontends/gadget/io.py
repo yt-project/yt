@@ -24,9 +24,6 @@ from yt.frontends.sph.io import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-from .data_structures import \
-    _get_gadget_format
-
 from .definitions import \
     gadget_hdf5_ptypes, \
     SNAP_FORMAT_2_OFFSET
@@ -60,7 +57,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: x.filename):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             si, ei = data_file.start, data_file.end
             f = h5py.File(data_file.filename, "r")
             # This double-reads
@@ -123,7 +120,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: x.filename):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             si, ei = data_file.start, data_file.end
             f = h5py.File(data_file.filename, "r")
             for ptype, field_list in sorted(ptf.items()):
@@ -261,10 +258,10 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         self._fields = ds._field_spec
         self._ptypes = ds._ptype_spec
         self.data_files = set([])
-        gformat = _get_gadget_format(ds.parameter_filename)
+        gformat, endianswap = ds._header.gadget_format
         # gadget format 1 original, 2 with block name
-        self._format = gformat[0]
-        self._endian = gformat[1]
+        self._format = gformat
+        self._endian = endianswap
         super(IOHandlerGadgetBinary, self).__init__(ds, *args, **kwargs)
 
     @property
@@ -285,7 +282,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
@@ -304,7 +301,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
@@ -351,7 +348,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         return arr
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
-        self._float_type = data_file.ds._validate_header(data_file.filename)[1]
+        self._float_type = data_file.ds._header.float_type
         self._field_size = np.dtype(self._float_type).itemsize
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.

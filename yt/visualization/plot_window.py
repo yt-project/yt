@@ -136,13 +136,8 @@ def validate_mesh_fields(data_source, fields):
         if finfo.sampling_type == "particle":
             if not hasattr(data_source.ds, '_sph_ptype'):
                 pass
-            elif finfo.alias_field:
-                alias_name = finfo._function.alias_name
-                if alias_name[0] == data_source.ds._sph_ptype:
-                    continue
-            else:
-                if finfo.name[0] == data_source.ds._sph_ptype:
-                    continue
+            elif finfo.is_sph_field:
+                continue
             invalid_fields.append(field)
 
     if len(invalid_fields) > 0:
@@ -175,9 +170,6 @@ class PlotWindow(ImagePlotContainer):
     antialias : boolean
         This can be true or false.  It determines whether or not sub-pixel
         rendering is used during data deposition.
-    window_size : float
-        The size of the window on the longest axis (in units of inches),
-        including the margins but not the colorbar.
     window_size : float
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
@@ -578,7 +570,13 @@ class PlotWindow(ImagePlotContainer):
         return self
 
     @invalidate_data
-    def set_antialias(self,aa):
+    def set_antialias(self, aa):
+        """Turn antialiasing on or off.
+
+        parameters
+        ----------
+        aa : boolean
+        """
         self.antialias = aa
 
     @invalidate_data
@@ -901,6 +899,13 @@ class PWViewerMPL(PlotWindow):
 
             self.plots[f].axes.set_xlabel(labels[0])
             self.plots[f].axes.set_ylabel(labels[1])
+
+            color = self._background_color[f]
+
+            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+                self.plots[f].axes.set_axis_bgcolor(color)
+            else:
+                self.plots[f].axes.set_facecolor(color)
 
             # Determine the units of the data
             units = Unit(self.frb[f].units, registry=self.ds.unit_registry)

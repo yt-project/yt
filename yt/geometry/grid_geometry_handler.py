@@ -403,7 +403,8 @@ class GridIndex(Index):
         for g in gobjs:
             if g.filename not in file_order:
                 file_order.append(g.filename)
-            gfiles[g.filename].append(g)
+            # Force to be a string because sometimes g.filename is None.
+            gfiles[str(g.filename)].append(g)
         # We can apply a heuristic here to make sure we aren't loading too
         # many grids all at once.
         if chunk_sizing == "auto":
@@ -442,3 +443,12 @@ class GridIndex(Index):
                 with self.io.preload(dc, preload_fields, 
                             4.0 * size):
                     yield dc
+
+
+def _grid_sort_id(g):
+    return g.id
+
+def _grid_sort_mixed(g):
+    if g.filename is None:
+        return str(g.id)
+    return g.filename

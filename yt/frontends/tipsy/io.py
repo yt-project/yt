@@ -111,7 +111,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
@@ -176,7 +176,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             poff = data_file.field_offsets
             aux_fields_offsets = self._calculate_particle_offsets_aux(data_file)
             tp = data_file.total_particles

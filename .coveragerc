@@ -3,7 +3,8 @@ plugins = Cython.Coverage
 branch = True
 
 [report]
-omit=*/api.py
+omit=*.yml
+     */api.py
 	 */__init__.py
 	 */__config__.py
 	 */tests/*

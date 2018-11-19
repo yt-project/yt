@@ -1,7 +1,8 @@
 import numpy as np
 
 from yt.testing import \
-    assert_equal
+    assert_equal, \
+    fake_sph_orientation_ds
 from yt.frontends.stream.api import load_uniform_grid, \
     refine_amr, \
     load_amr_grids, \
@@ -323,3 +324,12 @@ def test_particles_outside_domain():
     assert wh.size == 1000 - ds.particle_type_counts['io']
     ad = ds.all_data()
     assert ds.particle_type_counts['io'] == ad['particle_position_x'].size
+
+def test_stream_sph_projection():
+    ds = fake_sph_orientation_ds()
+    proj = ds.proj(('gas', 'density'), 2)
+    frb = proj.to_frb(ds.domain_width[0], (256, 256))
+    image = frb['gas', 'density']
+    assert image.max() > 0
+    assert image.shape == (256, 256)
+    

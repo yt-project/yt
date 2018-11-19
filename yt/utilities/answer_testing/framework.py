@@ -913,7 +913,7 @@ class GenericImageTest(AnswerTestingTest):
         tmpdir = tempfile.mkdtemp()
         image_prefix = os.path.join(tmpdir,"test_img")
         self.image_func(image_prefix, *args, **kwargs)
-        imgs = glob.glob(image_prefix+"*")
+        imgs = sorted(glob.glob(image_prefix+"*"))
         assert(len(imgs) > 0)
         for img in imgs:
             img_data = mpimg.imread(img)
