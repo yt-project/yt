@@ -34,6 +34,9 @@ class Index(ParallelAnalysisInterface):
     """The base index class"""
     _unsupported_objects = ()
     _index_properties = ()
+    directory = None
+    field_list = None
+    dataset_type = None
 
     def __init__(self, ds, dataset_type):
         ParallelAnalysisInterface.__init__(self)
@@ -55,6 +58,12 @@ class Index(ParallelAnalysisInterface):
         # potentially quite expensive, and should be done with the indexing.
         mylog.debug("Detecting fields.")
         self._detect_output_fields()
+
+    def _setup_geometry(self):
+        raise NotImplementedError
+    
+    def _detect_output_fields(self):
+        raise NotImplementedError
 
     def _initialize_state_variables(self):
         self._parallel_locking = False
@@ -265,6 +274,15 @@ class Index(ParallelAnalysisInterface):
             return self._chunk_io(dobj, **kwargs)
         else:
             raise NotImplementedError
+
+    def _chunk_all(self, dobj, **kwargs):
+        raise NotImplementedError
+
+    def _chunk_spatial(self, dobj, ngz, **kwargs):
+        raise NotImplementedError
+
+    def _chunk_io(self, dobj, **kwargs):
+        raise NotImplementedError
 
 def cached_property(func):
     n = '_%s' % func.__name__
