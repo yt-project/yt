@@ -12,7 +12,9 @@ def thermal_energy_dens(field, data):
     return (3/2)*data['gas', 'number_density'] * data['gas', 'kT']
 
 # Then add it to your dataset and define the units
-ds.add_field(("gas", "thermal_energy_density"), units="erg/cm**3", function=thermal_energy_dens)
+ds.add_field(("gas", "thermal_energy_density"),
+             units="erg/cm**3", function=thermal_energy_dens,
+             sampling_type="cell")
 
 # It will now show up in your derived_field_list
 for i in sorted(ds.derived_field_list):

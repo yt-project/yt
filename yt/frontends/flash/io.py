@@ -186,7 +186,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
         assert(len(data_files) == 1)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             pcount = self._count_particles(data_file)["io"]
             for ptype, field_list in sorted(ptf.items()):
                 total = 0
@@ -208,7 +208,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
         assert(len(data_files) == 1)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             pcount = self._count_particles(data_file)["io"]
             for ptype, field_list in sorted(ptf.items()):
                 total = 0

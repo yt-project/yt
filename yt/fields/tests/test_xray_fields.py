@@ -12,11 +12,11 @@ def check_xray_fields(ds_fn, fields):
     if not can_run_ds(ds_fn): return
     dso = [ None, ("sphere", ("m", (0.1, 'unitary')))]
     for field in fields:
-        for axis in [0, 1, 2]:
-            for dobj_name in dso:
+        for dobj_name in dso:
+            for axis in [0, 1, 2]:
                 yield ProjectionValuesTest(ds_fn, axis, field, 
                                            None, dobj_name)
-                yield FieldValuesTest(ds_fn, field, dobj_name)
+            yield FieldValuesTest(ds_fn, field, dobj_name)
 
 sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 @requires_ds(sloshing, big_data=True)

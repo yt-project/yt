@@ -144,6 +144,8 @@ def off_axis_projection(data_source, center, normal_vector,
         if fi.alias_field:
             if fi.alias_name[0] != ptype:
                 raise_error = True
+            elif item[0] != 'gas':
+                ptype = item[0]
         else:
             if fi.name[0] != ptype and fi.name[0] != 'gas':
                 raise_error = True

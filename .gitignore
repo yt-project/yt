@@ -88,9 +88,12 @@ yt/utilities/lib/image_samplers.c
 .*.swp
 *.so
 .idea/*
+.vscode/*
 tests/results/*
 doc/build/*
 doc/source/reference/api/generated/*
 doc/_temp/*
 doc/source/quickstart/.ipynb_checkpoints/
 dist
+.python-version
+answer_nosetests.xml

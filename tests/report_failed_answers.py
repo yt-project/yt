@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import argparse
 import base64
+import collections
 import datetime
 import logging
 import os
@@ -43,10 +44,10 @@ def generate_failed_answers_html(failed_answers):
 
     Parameters
     ----------
-    failed_answers : list of tuples (string, dict)
-        Collection of tuples where the first part is a string denoting the
-        test name, the second part is a dictionary that stores the actual,
-        expected and difference plot file locations of the test.
+    failed_answers : dict mapping string to dict
+        the key is a string denoting the test name, the value is a
+        dictionary that stores the actual, expected and difference plot
+        file locations of the test.
 
     Returns
     -------
@@ -65,13 +66,13 @@ def generate_failed_answers_html(failed_answers):
     </style>
     <h1 style="text-align: center;">Failed Answer Tests</h1>
     <p>
-      This report shows images of answer tests that failed when running 
+      This report shows images of answer tests that failed when running
       the answer tests.
     </p>
     <p>
-      <strong>Acutal Image:</strong> plot generated while running the test<br/> 
-      <strong>Expected Image:</strong> golden answer image<br/> 
-      <strong>Difference Image:</strong> difference in the "actual" 
+      <strong>Acutal Image:</strong> plot generated while running the test<br/>
+      <strong>Expected Image:</strong> golden answer image<br/>
+      <strong>Difference Image:</strong> difference in the "actual"
       and "expected" image
     </p>
     <hr/>
@@ -96,18 +97,20 @@ def generate_failed_answers_html(failed_answers):
 
     rows = []
 
-    for test_name, images in failed_answers:
-        encoded_images = {}
-        for key in images:
-            with open(images[key], "rb") as img:
-                img_data = base64.b64encode(img.read()).decode()
-                encoded_images[key] = img_data
+    for failed_test_file in failed_answers.values():
+        for test_name, images in failed_test_file.items():
+            encoded_images = {}
+            for key in images:
+                with open(images[key], "rb") as img:
+                    img_data = base64.b64encode(img.read()).decode()
+                    encoded_images[key] = img_data
 
-        formatted_row = row_template.format(encoded_images["Actual"],
-                                            encoded_images["Expected"],
-                                            encoded_images["Difference"],
-                                            test_name)
-        rows.append(formatted_row)
+            formatted_row = row_template.format(
+                encoded_images["Actual"],
+                encoded_images["Expected"],
+                encoded_images["Difference"],
+                test_name)
+            rows.append(formatted_row)
 
     html = html_template.format(rows='\n'.join(rows))
     return html
@@ -150,10 +153,10 @@ def upload_failed_answers(failed_answers):
 
     Parameters
     ----------
-    failed_answers : list of tuples (string, dict)
-        Collection of tuples where the first part is a string denoting the
-        test name, the second part is a dictionary that stores the actual,
-        expected and difference plot file locations of the test.
+    failed_answers : dict mapping string to dict
+        the key is a string denoting the test name, the value is a
+        dictionary that stores the actual, expected and difference plot
+        file locations of the test.
 
     Returns
     -------
@@ -165,20 +168,21 @@ def upload_failed_answers(failed_answers):
     # convert html str to bytes
     html = html.encode()
     response = upload_to_curldrop(data=html, filename="failed_answers_{}.html")
+
     return response
 
-def generate_missing_answers(answer_dir, missing_answers):
+def generate_answers(answer_dir, answers):
     """Generate golden answers
 
-    Generates golden answers for the list of answers in `missing_answers` and
-    saves them at `answer_dir`.
+    Generates golden answers for the list of answers in ``answers`` and
+    saves them at ``answer_dir``.
 
     Parameters
     ----------
     answer_dir : string
         directory location to save the generated answers
 
-    missing_answers : list of string
+    answers : list of string
         Collection of missing answer tests specifying full name of the test.
         eg. ['yt.visualization.tests.test_line_plots:test_multi_line_plot']
 
@@ -194,13 +198,13 @@ def generate_missing_answers(answer_dir, missing_answers):
                  '--nologcapture', '-s', '-d', '-v', '--local',
                  '--local-dir=%s' % answer_dir, '--answer-store']
 
-    for job in missing_answers:
-        log.info(" Generating answers for " + job)
+    for job in answers:
+        log.info("\n Generating answers for " + job)
         status &= nose.run(argv=test_argv+[job], addplugins=[AnswerTesting()],
                            exit=False)
     return status
 
-def upload_missing_answers(missing_answers):
+def upload_answers(answers):
     """Uploads answers not present in answer-store
 
     This function generates the answers for tests that are not present in
@@ -208,7 +212,7 @@ def upload_missing_answers(missing_answers):
 
     Parameters
     ----------
-    missing_answers : list of string
+    answers : list of string
         Collection of missing answer tests specifying full name of the test.
         eg. ['yt.visualization.tests.test_line_plots:test_multi_line_plot']
 
@@ -226,9 +230,11 @@ def upload_missing_answers(missing_answers):
     # Create temporary location to save new answers
     tmpdir = tempfile.mkdtemp()
     answer_dir = os.path.join(tmpdir, "answer-store")
+    if not os.path.exists(answer_dir):
+        os.mkdir(answer_dir)
     zip_file = os.path.join(tmpdir, "new-answers")
 
-    status = generate_missing_answers(answer_dir, missing_answers)
+    status = generate_answers(answer_dir, answers)
     if status:
         zip_file = shutil.make_archive(zip_file, 'zip', answer_dir)
         data = iter(FileStreamer(open(zip_file, 'rb')))
@@ -315,7 +321,7 @@ def parse_nose_xml(nose_xml):
 
     """
     missing_answers = set()
-    failed_answers = set()
+    failed_answers = collections.defaultdict(lambda: dict())
     missing_errors = ["No such file or directory",
                       "There is no old answer available"]
     tree = ET.parse(nose_xml)
@@ -323,28 +329,38 @@ def parse_nose_xml(nose_xml):
 
     for testcase in testsuite:
         for error in testcase.iter('error'):
-            test_name = testcase.attrib["classname"] + ":" \
-                        + testcase.attrib["name"]
-            if missing_errors[0] in error.attrib["message"] or \
-                    missing_errors[1] in error.attrib["message"]:
-                    missing_answers.add(test_name)
-
-            elif "Items are not equal" in error.attrib["message"]:
-                img_path = extract_image_locations(error.attrib["message"])
-                if img_path:
-                    failed_answers.add((test_name, img_path))
+            handle_error(error, testcase, missing_errors, missing_answers,
+                         failed_answers)
+        for error in testcase.iter('failure'):
+            handle_error(error, testcase, missing_errors, missing_answers,
+                         failed_answers)
     return failed_answers, missing_answers
+
+
+def handle_error(error, testcase, missing_errors, missing_answers,
+                 failed_answers):
+    attribs = ['classname', 'name']
+    test_name = ":".join([testcase.attrib[a] for a in attribs])
+    message = error.attrib['message']
+    if ((missing_errors[0] in error.attrib["message"] or
+         missing_errors[1] in error.attrib["message"])):
+        missing_answers.add(test_name)
+    elif "Items are not equal" in error.attrib["message"]:
+        img_path = extract_image_locations(error.attrib["message"])
+        if img_path:
+            failed_answers[test_name][message] = img_path
+
 
 if __name__ == "__main__":
     """Report failed answer tests of cloud platforms like Travis, Appveyor
 
-    This script parses the nosetests xml file generated after answer tests are 
-    executed. If the test fail due to difference in actual and expected images, 
-    this function uploads a html page having all the plots which got failed 
+    This script parses the nosetests xml file generated after answer tests are
+    executed. If the test fail due to difference in actual and expected images,
+    this function uploads a html page having all the plots which got failed
     (if executed with `-f` command line argument).
-    In case, answer store does not has a golden answer and if executed with 
+    In case, answer store does not has a golden answer and if executed with
     `-m` argument, it uploads missing answers zip file to yt's curldrop server.
-    
+
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--upload-failed-tests", action="store_true",
@@ -371,16 +387,24 @@ if __name__ == "__main__":
 
     if args.upload_failed_tests and failed_answers:
         response = upload_failed_answers(failed_answers)
+        msg = ''
         if response.ok:
-            msg = (FLAG_EMOJI + COLOR_PURPLE +
-                   "Successfully uploaded failed answer test(s) result."
-                   " More details about the test failure can be found at the"
-                   " URL: " + response.text.split("\n")[1] +
-                   COLOR_RESET + FLAG_EMOJI)
+            msg += ('\n' + FLAG_EMOJI + COLOR_PURPLE +
+                    "Successfully uploaded failed answer test(s) result."
+                    " More details about the test failure can be found at the"
+                    " URL: " + response.text.split("\n")[1] +
+                    COLOR_RESET + FLAG_EMOJI + '\n')
+        response = upload_answers(failed_answers)
+        if response.ok:
+            msg += (FLAG_EMOJI + COLOR_CYAN +
+                    "Successfully uploaded answer(s) for failed test at URL: "
+                    + response.text.split("\n")[1] + ". Please commit these "
+                    "answers in the repository's answer-store." +
+                    COLOR_RESET + FLAG_EMOJI)
             log.info(msg)
 
     if args.upload_missing_answers and missing_answers:
-        response = upload_missing_answers(missing_answers)
+        response = upload_answers(missing_answers)
         if response.ok:
             msg = (FLAG_EMOJI + COLOR_CYAN +
                    "Successfully uploaded missing answer(s) at URL: " +

@@ -64,4 +64,4 @@ def sph_fields_validate(ds_fn):
 
     for f in ds.fields.gas:
         gas_field = dd[f]
-
+        assert f.is_sph_field

@@ -81,10 +81,6 @@ class FieldInfoContainer(dict):
             for f in index_fields:
                 if (ftype, f) in self: continue
                 self.alias((ftype, f), ("index", f))
-                # Different field types have different default units.
-                # We want to make sure the aliased field will have
-                # the same units as the "index" field.
-                self[(ftype, f)].units = self["index", f].units
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
         skip_output_units = ("code_length")
