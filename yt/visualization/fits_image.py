@@ -362,6 +362,16 @@ class FITSImageData(object):
                 img.header[kk] = v
 
     def change_image_name(self, old_name, new_name):
+        """
+        Change the name of a FITS image.
+
+        Parameters
+        ----------
+        old_name : string
+            The old name of the image.
+        new_name : string
+            The new name of the image. 
+        """
         idx = self.fields.index(old_name)
         self.hdulist[idx].name = new_name
         self.field_units[new_name] = self.field_units.pop(old_name)
@@ -819,35 +829,34 @@ class FITSSlice(FITSImageData):
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set 
-         to 'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature")
-         or ("max","dark_matter_density"). Units can be specified by passing in
-         *center* as a tuple containing a coordinate and string unit name or by
-         passing in a YTArray. If a list or unitless array is supplied, code 
-         units are assumed.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set 
+        to 'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature")
+        or ("max","dark_matter_density"). Units can be specified by passing in
+        *center* as a tuple containing a coordinate and string unit name or by
+        passing in a YTArray. If a list or unitless array is supplied, code 
+        units are assumed.
     width : tuple or a float.
-         Width can have four different formats to support windows with variable
-         x and y widths.  They are:
+        Width can have four different formats to support variable
+        x and y widths.  They are:
 
-         ==================================     =======================
-         format                                 example
-         ==================================     =======================
-         (float, string)                        (10,'kpc')
-         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
-         float                                  0.2
-         (float, float)                         (0.2, 0.3)
-         ==================================     =======================
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
 
-         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
-         units are assumed, for example (0.2, 0.3) requests a plot that has an
-         x width of 0.2 and a y width of 0.3 in code units.  If units are
-         provided the resulting plot axis labels will use the supplied units.
+        For example, (10, 'kpc') specifies a width that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a
+        width that is 10 kiloparsecs wide along the x axis and 15
+        kiloparsecs wide along the y axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) specifies a width that has an
+        x width of 0.2 and a y width of 0.3 in code units.
     length_unit : string, optional
         the length units that the coordinates are written in. The default
         is to use the default length unit of the dataset.
@@ -881,35 +890,34 @@ class FITSProjection(FITSImageData):
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set 
-         to 'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") 
-         or ("max","dark_matter_density"). Units can be specified by passing in
-         *center* as a tuple containing a coordinate and string unit name or by
-         passing in a YTArray. If a list or unitless array is supplied, code 
-         units are assumed.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set 
+        to 'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature")
+        or ("max","dark_matter_density"). Units can be specified by passing in
+        *center* as a tuple containing a coordinate and string unit name or by
+        passing in a YTArray. If a list or unitless array is supplied, code 
+        units are assumed.
     width : tuple or a float.
-         Width can have four different formats to support windows with variable
-         x and y widths.  They are:
+        Width can have four different formats to support variable
+        x and y widths.  They are:
 
-         ==================================     =======================
-         format                                 example
-         ==================================     =======================
-         (float, string)                        (10,'kpc')
-         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
-         float                                  0.2
-         (float, float)                         (0.2, 0.3)
-         ==================================     =======================
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
 
-         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
-         units are assumed, for example (0.2, 0.3) requests a plot that has an
-         x width of 0.2 and a y width of 0.3 in code units.  If units are
-         provided the resulting plot axis labels will use the supplied units.
+        For example, (10, 'kpc') specifies a width that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a
+        width that is 10 kiloparsecs wide along the x axis and 15
+        kiloparsecs wide along the y axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) specifies a width that has an
+        x width of 0.2 and a y width of 0.3 in code units.
     weight_field : string
         The field used to weight the projection.
     length_unit : string, optional
@@ -947,16 +955,16 @@ class FITSOffAxisSlice(FITSImageData):
         individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
         The coordinate of the center of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set to
-        'max' or 'm', the center will be located at the maximum of the
+        left blank, the plot is centered on the middle of the domain. If set 
+        to 'max' or 'm', the center will be located at the maximum of the
         ('gas', 'density') field. Centering on the max or min of a specific
-        field is supported by providing a tuple such as ("min","temperature") 
-        or ("max","dark_matter_density"). Units can be specified by passing in 
-        *center* as a tuple containing a coordinate and string unit name or by 
+        field is supported by providing a tuple such as ("min","temperature")
+        or ("max","dark_matter_density"). Units can be specified by passing in
+        *center* as a tuple containing a coordinate and string unit name or by
         passing in a YTArray. If a list or unitless array is supplied, code 
         units are assumed.
     width : tuple or a float.
-        Width can have four different formats to support windows with variable
+        Width can have four different formats to support variable
         x and y widths.  They are:
 
         ==================================     =======================
@@ -968,13 +976,12 @@ class FITSOffAxisSlice(FITSImageData):
         (float, float)                         (0.2, 0.3)
         ==================================     =======================
 
-        For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-        window that is 10 kiloparsecs wide along the x axis and 15
+        For example, (10, 'kpc') specifies a width that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a
+        width that is 10 kiloparsecs wide along the x axis and 15
         kiloparsecs wide along the y axis.  In the other two examples, code
-        units are assumed, for example (0.2, 0.3) requests a plot that has an
-        x width of 0.2 and a y width of 0.3 in code units.  If units are
-        provided the resulting plot axis labels will use the supplied units.
+        units are assumed, for example (0.2, 0.3) specifies a width that has an
+        x width of 0.2 and a y width of 0.3 in code units.
     north_vector : a sequence of floats
         A vector defining the 'up' direction in the plot.  This
         option sets the orientation of the slicing plane.  If not
@@ -1014,39 +1021,38 @@ class FITSOffAxisProjection(FITSImageData):
         used for both axes, whereas a tuple of values will be used for the
         individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
-         The coordinate of the center of the image. If set to 'c', 'center' or
-         left blank, the plot is centered on the middle of the domain. If set 
-         to 'max' or 'm', the center will be located at the maximum of the
-         ('gas', 'density') field. Centering on the max or min of a specific
-         field is supported by providing a tuple such as ("min","temperature") 
-         or ("max","dark_matter_density"). Units can be specified by passing in
-         *center* as a tuple containing a coordinate and string unit name or by
-         passing in a YTArray. If a list or unitless array is supplied, code 
-         units are assumed.
+        The coordinate of the center of the image. If set to 'c', 'center' or
+        left blank, the plot is centered on the middle of the domain. If set 
+        to 'max' or 'm', the center will be located at the maximum of the
+        ('gas', 'density') field. Centering on the max or min of a specific
+        field is supported by providing a tuple such as ("min","temperature")
+        or ("max","dark_matter_density"). Units can be specified by passing in
+        *center* as a tuple containing a coordinate and string unit name or by
+        passing in a YTArray. If a list or unitless array is supplied, code 
+        units are assumed.
     width : tuple or a float.
-         Width can have four different formats to support windows with variable
-         x and y widths.  They are:
+        Width can have four different formats to support variable
+        x and y widths.  They are:
 
-         ==================================     =======================
-         format                                 example
-         ==================================     =======================
-         (float, string)                        (10,'kpc')
-         ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
-         float                                  0.2
-         (float, float)                         (0.2, 0.3)
-         ==================================     =======================
+        ==================================     =======================
+        format                                 example
+        ==================================     =======================
+        (float, string)                        (10,'kpc')
+        ((float, string), (float, string))     ((10,'kpc'),(15,'kpc'))
+        float                                  0.2
+        (float, float)                         (0.2, 0.3)
+        ==================================     =======================
 
-         For example, (10, 'kpc') requests a plot window that is 10 kiloparsecs
-         wide in the x and y directions, ((10,'kpc'),(15,'kpc')) requests a
-         window that is 10 kiloparsecs wide along the x axis and 15
-         kiloparsecs wide along the y axis.  In the other two examples, code
-         units are assumed, for example (0.2, 0.3) requests a plot that has an
-         x width of 0.2 and a y width of 0.3 in code units.  If units are
-         provided the resulting plot axis labels will use the supplied units.
+        For example, (10, 'kpc') specifies a width that is 10 kiloparsecs
+        wide in the x and y directions, ((10,'kpc'),(15,'kpc')) specifies a
+        width that is 10 kiloparsecs wide along the x axis and 15
+        kiloparsecs wide along the y axis.  In the other two examples, code
+        units are assumed, for example (0.2, 0.3) specifies a width that has an
+        x width of 0.2 and a y width of 0.3 in code units.
     depth : A tuple or a float
-         A tuple containing the depth to project through and the string
-         key of the unit: (width, 'unit').  If set to a float, code units
-         are assumed
+        A tuple containing the depth to project through and the string
+        key of the unit: (width, 'unit').  If set to a float, code units
+        are assumed
     weight_field : string
          The name of the weighting field.  Set to None for no weight.
     north_vector : a sequence of floats

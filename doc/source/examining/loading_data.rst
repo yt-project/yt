@@ -950,7 +950,7 @@ version of AstroPy >= 1.3 must be installed.
 .. code-block:: python
 
   wcs_slc = PlotWindowWCS(slc)
-  wcs_slc.show() # for the IPython notebook
+  wcs_slc.show() # for Jupyter notebooks
   wcs_slc.save()
 
 ``WCSAxes`` is still in an experimental state, but as its functionality
