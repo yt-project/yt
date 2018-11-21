@@ -360,7 +360,7 @@ class MagFieldCallback(PlotCallback):
     clearly seen for fields with substantial variation in field strength.
     """
     _type_name = "magnetic_field"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
     def __init__(self, factor=16, scale=None, scale_units=None,
                  normalize=False, plot_args=None):
         PlotCallback.__init__(self)
@@ -405,15 +405,13 @@ class QuiverCallback(PlotCallback):
     substantial variation in field strength.
     """
     _type_name = "quiver"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=False, bv_x=0, bv_y=0,
+                 scale_units=None, normalize=False,
                  plot_args=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
-        self.bv_x = bv_x
-        self.bv_y = bv_y
         self.factor = factor
         self.scale = scale
         self.scale_units = scale_units
@@ -427,38 +425,30 @@ class QuiverCallback(PlotCallback):
         y0, y1 = [p.to('code_length') for p in plot.ylim]
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        # See the note about rows/columns in the pixelizer for more information
-        # on why we choose the bounds we do
+        bounds = [x0,x1,y0,y1]
+        extent = [xx0,xx1,yy0,yy1]
+        periodic = int(any(plot.data.ds.periodicity))
+
+        # We are feeding this size into the pixelizer, where it will properly
+        # set it in reverse order
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
-        # periodicity
-        ax = plot.data.axis
-        ds = plot.data.ds
-        (xi, yi) = (ds.coordinates.x_axis[ax],
-                    ds.coordinates.y_axis[ax])
-        period_x = ds.domain_width[xi]
-        period_y = ds.domain_width[yi]
-        periodic = int(any(ds.periodicity))
-        fv_x = plot.data[self.field_x]
-        if self.bv_x != 0.0:
-            # Workaround for 0.0 without units
-            fv_x -= self.bv_x
-        fv_y = plot.data[self.field_y]
-        if self.bv_y != 0.0:
-            # Workaround for 0.0 without units
-            fv_y -= self.bv_y
-        pixX = np.zeros((ny, nx), dtype="f8")
-        pixY = np.zeros((ny, nx), dtype="f8")
-        pixelize_cartesian(pixX, plot.data['px'], plot.data['py'],
-                                  plot.data['pdx'], plot.data['pdy'],
-                                  fv_x,
-                                  (x0, x1, y0, y1), 0, # bounds, antialias
-                                  (period_x, period_y), periodic)
-        pixelize_cartesian(pixY, plot.data['px'], plot.data['py'],
-                                  plot.data['pdx'], plot.data['pdy'],
-                                  fv_y,
-                                  (x0, x1, y0, y1), 0, # bounds, antialias
-                                  (period_x, period_y), periodic)
+        pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                 plot.data,
+                                                 self.field_x,
+                                                 bounds,
+                                                 (ny,nx),
+                                                 False, # antialias
+                                                 periodic
+                                                 )
+        pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                 plot.data,
+                                                 self.field_y,
+                                                 bounds,
+                                                 (ny,nx),
+                                                 False, # antialias
+                                                 periodic
+                                                 )
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
@@ -480,7 +470,7 @@ class ContourCallback(PlotCallback):
     queried.
     """
     _type_name = "contour"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
     def __init__(self, field, ncont=5, factor=4, clim=None,
                  plot_args=None, label=False, take_log=None,
                  label_args=None, text_args=None, data_source=None):
@@ -748,7 +738,7 @@ class StreamlineCallback(PlotCallback):
     their line width set to 0.
     """
     _type_name = "streamlines"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
     def __init__(self, field_x, field_y, factor=16,
                  density=1, field_color=None,
                  display_threshold=None,
@@ -769,27 +759,29 @@ class StreamlineCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        # See the note about rows/columns in the pixelizer for more information
-        # on why we choose the bounds we do
+        bounds = [x0,x1,y0,y1]
+        extent = [xx0,xx1,yy0,yy1]
+
+        # We are feeding this size into the pixelizer, where it will properly
+        # set it in reverse order
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
-        pixX = np.zeros((ny, nx), dtype="f8")
-        pixY = np.zeros((ny, nx), dtype="f8")
-        pixelize_cartesian(pixX, plot.data['px'], plot.data['py'],
-                                  plot.data['pdx'], plot.data['pdy'],
-                                  plot.data[self.field_x],
-                                  (x0, x1, y0, y1))
-        pixelize_cartesian(pixY, plot.data['px'], plot.data['py'],
-                                  plot.data['pdx'], plot.data['pdy'],
-                                  plot.data[self.field_y],
-                                  (x0, x1, y0, y1))
+        pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                 plot.data,
+                                                 self.field_x,
+                                                 bounds,
+                                                 (ny,nx))
+        pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                 plot.data,
+                                                 self.field_y,
+                                                 bounds,
+                                                 (ny,nx))
         if self.field_color:
-            field_colors = np.zeros((ny, nx), dtype="f8")
-            pixelize_cartesian(field_colors,
-                        plot.data['px'], plot.data['py'],
-                        plot.data['pdx'], plot.data['pdy'],
-                        plot.data[self.field_color],
-                        (x0, x1, y0, y1))
+            field_colors = plot.data.ds.coordinates.pixelize(plot.data.axis,
+                                                             plot.data,
+                                                             self.field_color,
+                                                             bounds,
+                                                             (ny,nx))
 
             if self.display_threshold:
 
@@ -2542,7 +2534,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
                                              lim=(0.5,0.65))
     """
     _type_name = "line_integral_convolution"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical-2d")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
     def __init__(self, field_x, field_y, texture=None, kernellen=50.,
                  lim=(0.5,0.6), cmap='binary', alpha=0.8, const_alpha=False):
         PlotCallback.__init__(self)
