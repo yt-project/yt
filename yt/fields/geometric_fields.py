@@ -278,3 +278,86 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
                                    ValidateParameter("normal")],
                        units=unit_system["length"],
                        display_field=False)
+
+    if registry.ds.geometry == "polar": # dimensionality = 2 by default
+
+      def _magnetic_field_cartesian_x(field,data):
+        return data["magnetic_field_r"] * np.cos(data["theta"])
+
+      registry.add_field(("gas", "magnetic_field_cartesian_x"), sampling_type="cell", 
+                         function=_magnetic_field_cartesian_x,
+                         units=unit_system["magnetic_field"],
+                         display_field=True)
+
+      def _magnetic_field_cartesian_y(field,data):
+        return data["magnetic_field_r"] * np.sin(data["theta"])
+
+      registry.add_field(("gas", "magnetic_field_cartesian_y"), sampling_type="cell", 
+                         function=_magnetic_field_cartesian_y,
+                         units=unit_system["magnetic_field"],
+                         display_field=True)
+
+    elif registry.ds.geometry == "cylindrical":
+
+      def _magnetic_field_cartesian_x(field,data):
+        if data.ds.dimensionality==2:
+          return data["magnetic_field_r"]
+        elif data.ds.dimensionality==3:
+          return data["magnetic_field_r"] * np.cos(data["theta"]) \
+                 - data["magnetic_field_theta"] * np.sin(data["theta"])
+
+      registry.add_field(("gas", "magnetic_field_cartesian_x"), sampling_type="cell", 
+                         function=_magnetic_field_cartesian_x,
+                         units=unit_system["magnetic_field"],
+                         display_field=True)
+
+      def _magnetic_field_cartesian_y(field,data):
+        if data.ds.dimensionality==2:
+          return data["magnetic_field_z"]
+        elif data.ds.dimensionality==3:
+          return data["magnetic_field_r"] * np.sin(data["theta"]) \
+                 + data["magnetic_field_theta"] * np.cos(data["theta"])
+
+      registry.add_field(("gas", "magnetic_field_cartesian_y"), sampling_type="cell", 
+                         function=_magnetic_field_cartesian_y,
+                         units=unit_system["magnetic_field"],
+                         display_field=True)
+
+      def _magnetic_field_cartesian_z(field,data):
+        return data["magnetic_field_z"]
+
+      registry.add_field(("gas", "magnetic_field_cartesian_z"), sampling_type="cell", 
+                         function=_magnetic_field_cartesian_z,
+                         units=unit_system["magnetic_field"],
+                         display_field=True)
+
+    elif registry.ds.geometry == "spherical" and registry.ds.dimensionality == 3:
+
+      def _magnetic_field_cartesian_x(field,data):
+        return data["magnetic_field_r"] * np.sin(data["theta"]) * np.cos(data["phi"]) \
+               + data["magnetic_field_theta"] * np.cos(data["theta"]) * np.cos(["phi"]) \
+               - data["magnetic_field_phi"] * np.sin(data["phi"])
+
+      registry.add_field(("gas", "magnetic_field_cartesian_x"), sampling_type="cell", 
+                         function=_magnetic_field_cartesian_x,
+                         units=unit_system["magnetic_field"],
+                         display_field=True)
+
+      def _magnetic_field_cartesian_y(field,data):
+        return data["magnetic_field_r"] * np.sin(data["theta"]) * np.sin(data["phi"]) \
+               + data["magnetic_field_theta"] * np.cos(data["theta"]) * np.sin(["phi"]) \
+               + data["magnetic_field_phi"] * np.cos(data["phi"])
+
+      registry.add_field(("gas", "magnetic_field_cartesian_y"), sampling_type="cell", 
+                         function=_magnetic_field_cartesian_y,
+                         units=unit_system["magnetic_field"],
+                         display_field=True)
+
+      def _magnetic_field_cartesian_z(field,data):
+        return data["magnetic_field_r"] * np.cos(data["theta"]) \
+               - data["magnetic_field_theta"] * np.sin(data["theta"])
+
+      registry.add_field(("gas", "magnetic_field_cartesian_z"), sampling_type="cell", 
+                         function=_magnetic_field_cartesian_z,
+                         units=unit_system["magnetic_field"],
+                         display_field=True)
