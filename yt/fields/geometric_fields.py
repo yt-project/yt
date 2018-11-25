@@ -279,6 +279,8 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
                        units=unit_system["length"],
                        display_field=False)
 
+    # Now add Cartesian B field components for curvilinear geometries
+
     if registry.ds.geometry == "polar": # dimensionality = 2 by default
 
       def _magnetic_field_cartesian_x(field,data):
@@ -372,4 +374,104 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         registry.add_field(("gas", "magnetic_field_cartesian_z"), sampling_type="cell", 
                            function=_magnetic_field_cartesian_z,
                            units=unit_system["magnetic_field"],
+                           display_field=True)
+
+    # Now add Cartesian velocity components for curvilinear geometries
+    # This is essentially the copy of the code above for B field, but I
+    # will not struggle with a conciser approach for now.
+
+    if registry.ds.geometry == "polar": # dimensionality = 2 by default
+
+      def _velocity_cartesian_x(field,data):
+        return data["velocity_r"] * np.cos(data["theta"])
+
+      registry.add_field(("gas", "velocity_cartesian_x"), sampling_type="cell", 
+                         function=_velocity_cartesian_x,
+                         units=unit_system["velocity"],
+                         display_field=True)
+
+      def _velocity_cartesian_y(field,data):
+        return data["velocity_r"] * np.sin(data["theta"])
+
+      registry.add_field(("gas", "velocity_cartesian_y"), sampling_type="cell", 
+                         function=_velocity_cartesian_y,
+                         units=unit_system["velocity"],
+                         display_field=True)
+
+    elif registry.ds.geometry == "cylindrical": # dimensionality = 2 or 3
+
+      def _velocity_cartesian_x(field,data):
+        if data.ds.dimensionality==2:
+          return data["velocity_r"]
+        elif data.ds.dimensionality==3:
+          return data["velocity_r"] * np.cos(data["theta"]) \
+                 - data["velocity_theta"] * np.sin(data["theta"])
+
+      registry.add_field(("gas", "velocity_cartesian_x"), sampling_type="cell", 
+                         function=_velocity_cartesian_x,
+                         units=unit_system["velocity"],
+                         display_field=True)
+
+      def _velocity_cartesian_y(field,data):
+        print("11111")
+        if data.ds.dimensionality==2:
+          return data["velocity_z"]
+        elif data.ds.dimensionality==3:
+          return data["velocity_r"] * np.sin(data["theta"]) \
+                 + data["velocity_theta"] * np.cos(data["theta"])
+
+      registry.add_field(("gas", "velocity_cartesian_y"), sampling_type="cell", 
+                         function=_velocity_cartesian_y,
+                         units=unit_system["velocity"],
+                         display_field=True)
+
+      if registry.ds.dimensionality == 3:
+
+        def _velocity_cartesian_z(field,data):
+          return data["velocity_z"]
+
+        registry.add_field(("gas", "velocity_cartesian_z"), sampling_type="cell", 
+                           function=_velocity_cartesian_z,
+                           units=unit_system["velocity"],
+                           display_field=True)
+
+    elif registry.ds.geometry == "spherical": # dimensionality = 2 or 3
+
+      def _velocity_cartesian_x(field,data):
+        if data.ds.dimensionality==2:
+          return data["velocity_r"] * np.sin(data["theta"]) \
+                 + data["velocity_theta"] * np.cos(data["theta"])
+        elif data.ds.dimensionality==3:
+          return data["velocity_r"] * np.sin(data["theta"]) * np.cos(data["phi"]) \
+                 + data["velocity_theta"] * np.cos(data["theta"]) * np.cos(["phi"]) \
+                 - data["velocity_phi"] * np.sin(data["phi"])
+
+      registry.add_field(("gas", "velocity_cartesian_x"), sampling_type="cell", 
+                         function=_velocity_cartesian_x,
+                         units=unit_system["velocity"],
+                         display_field=True)
+
+      def _velocity_cartesian_y(field,data):
+        if data.ds.dimensionality==2:
+          return data["velocity_r"] * np.cos(data["theta"]) \
+                 - data["velocity_theta"] * np.sin(data["theta"])
+        elif data.ds.dimensionality==3:
+          return data["velocity_r"] * np.sin(data["theta"]) * np.sin(data["phi"]) \
+                 + data["velocity_theta"] * np.cos(data["theta"]) * np.sin(["phi"]) \
+                 + data["velocity_phi"] * np.cos(data["phi"])
+
+      registry.add_field(("gas", "velocity_cartesian_y"), sampling_type="cell", 
+                         function=_velocity_cartesian_y,
+                         units=unit_system["velocity"],
+                         display_field=True)
+
+      if registry.ds.dimensionality == 3:
+
+        def _velocity_cartesian_z(field,data):
+          return data["velocity_r"] * np.cos(data["theta"]) \
+                 - data["velocity_theta"] * np.sin(data["theta"])
+
+        registry.add_field(("gas", "velocity_cartesian_z"), sampling_type="cell", 
+                           function=_velocity_cartesian_z,
+                           units=unit_system["velocity"],
                            display_field=True)
