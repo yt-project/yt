@@ -413,7 +413,6 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
                          display_field=True)
 
       def _velocity_cartesian_y(field,data):
-        print("11111")
         if data.ds.dimensionality==2:
           return data["velocity_z"]
         elif data.ds.dimensionality==3:
