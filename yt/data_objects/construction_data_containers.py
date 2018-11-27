@@ -58,6 +58,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.units.unit_object import Unit
 from yt.units.yt_array import uconcatenate
 import yt.geometry.particle_deposit as particle_deposit
+from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
@@ -65,6 +66,14 @@ from yt.frontends.stream.api import load_uniform_grid
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
 import yt.extern.six as six
+from yt.utilities.lib.pixelization_routines import \
+    pixelize_sph_kernel_arbitrary_grid, \
+    interpolate_sph_grid_gather, \
+    interpolate_sph_positions_gather, \
+    normalization_3d_utility, \
+    normalization_1d_utility
+from yt.extern.tqdm import tqdm
+from yt.utilities.lib.cyoctree import CyOctree
 
 class YTStreamline(YTSelectionContainer1D):
     """
@@ -352,23 +361,17 @@ class YTProj(YTSelectionContainer2D):
             else:
                 self._projected_units[field] = field_unit
 
-class YTKDTreeProj(YTProj):
+class YTParticleProj(YTProj):
     """
-    TODO add docstring
+    A projection operation optimized for SPH particle data.
     """
     _type_name = "particle_proj"
     def __init__(self, field, axis, weight_field=None, center=None, ds=None,
                  data_source=None, style=None, method="integrate",
                  field_parameters=None, max_level=None):
-        super(YTKDTreeProj, self).__init__(
+        super(YTParticleProj, self).__init__(
             field, axis, weight_field, center, ds, data_source, style, method,
             field_parameters, max_level)
-
-        # ensure the dataset has a kdtree built
-        ds.index.kdtree
-
-    def _get_tree(self, nvals):
-        return self.ds.index.kdtree
 
     def _handle_chunk(self, chunk, fields, tree):
         raise NotImplementedError("Particle projections have not yet been "
@@ -673,14 +676,30 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     "with nonzero num_ghost_zones." % self._num_ghost_zones)
             else:
                 raise
-        if len(part) > 0: self._fill_particles(part)
+
+        # checking if we have a sph particles
+        if len(part) == 0:
+            is_sph_field = False
+        else:
+            is_sph_field = self.ds.field_info[part[0]].is_sph_field
+
+        if len(part) > 0 and len(alias) == 0:
+            if(is_sph_field):
+                self._fill_sph_particles(fields)
+                for field in fields:
+                    if field in gen:
+                        gen.remove(field)
+            else:
+                self._fill_particles(part)
+
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
-            if f.sampling_type == 'particle':
+            if f.sampling_type == 'particle' and not is_sph_field:
                 self[a] = self._data_source[f]
             else:
                 self[a] = f(self)
             self.field_data[a].convert_to_units(f.output_units)
+
         if len(gen) > 0:
             part_gen = []
             cell_gen = []
@@ -718,6 +737,70 @@ class YTCoveringGrid(YTSelectionContainer3D):
     def _fill_particles(self, part):
         for p in part:
             self[p] = self._data_source[p]
+
+    def _fill_sph_particles(self, fields):
+        # checks that we have the field and gets information
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
+
+        ptype = self.ds._sph_ptype
+        smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
+
+        bounds, size = self._get_grid_bounds_size()
+
+        if(smoothing_style == "scatter"):
+            for field in fields:
+                buff = np.zeros(size, dtype="float64")
+                if normalize:
+                    buff_den = np.zeros(size, dtype="float64")
+
+                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+                for chunk in self._data_source.chunks([field],"io"):
+                    px = chunk[(ptype,'particle_position_x')].in_base("code").d
+                    py = chunk[(ptype,'particle_position_y')].in_base("code").d
+                    pz = chunk[(ptype,'particle_position_z')].in_base("code").d
+                    hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
+                    mass = chunk[(ptype,'particle_mass')].in_base("code").d
+                    dens = chunk[(ptype,'density')].in_base("code").d
+                    field_quantity = chunk[field].d
+
+                    pixelize_sph_kernel_arbitrary_grid(buff, px, py, pz, hsml,
+                                    mass, dens, field_quantity, bounds,
+                                    pbar=pbar)
+                    if normalize:
+                        pixelize_sph_kernel_arbitrary_grid(buff_den, px, py, pz,
+                                    hsml, mass, dens, np.ones(dens.shape[0]),
+                                    bounds, pbar=pbar)
+
+                if normalize:
+                    normalization_3d_utility(buff, buff_den)
+
+                fi = self.ds._get_field_info(field)
+                self[field] = self.ds.arr(buff, fi.units)
+                pbar.close()
+
+        if(smoothing_style == "gather"):
+            num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+            for field in fields:
+                buff = np.zeros(size, dtype="float64")
+
+                fields_to_get = ['particle_position', 'density', 'particle_mass',
+                                 'smoothing_length', field[1]]
+                all_fields = all_data(self.ds, field[0], fields_to_get, kdtree=True)
+
+                fi = self.ds._get_field_info(field)
+                interpolate_sph_grid_gather(buff, all_fields['particle_position'],
+                                            bounds,
+                                            all_fields['smoothing_length'],
+                                            all_fields['particle_mass'],
+                                            all_fields['density'],
+                                            all_fields[field[1]].in_units(fi.units),
+                                            self.ds.index.kdtree,
+                                            use_normalization=normalize,
+                                            num_neigh=num_neighbors)
+
+                self[field] = self.ds.arr(buff, fi.units)
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
@@ -837,6 +920,20 @@ class YTCoveringGrid(YTSelectionContainer3D):
                                sim_time=self.ds.current_time.v)
         write_to_gdf(ds, gdf_path, **kwargs)
 
+    def _get_grid_bounds_size(self):
+        dd = self.ds.domain_width / 2**self.level
+        bounds = np.zeros(6, dtype=float)
+
+        bounds[0] = self.left_edge[0].in_base("code")
+        bounds[1] = bounds[0] + dd[0].d * self.ActiveDimensions[0]
+        bounds[2] = self.left_edge[1].in_base("code")
+        bounds[3] = bounds[2] + dd[1].d * self.ActiveDimensions[1]
+        bounds[4] = self.left_edge[2].in_base("code")
+        bounds[5] = bounds[4] + dd[2].d * self.ActiveDimensions[2]
+        size = np.ones(3, dtype=int) * 2**self.level
+
+        return bounds, size
+
 class YTArbitraryGrid(YTCoveringGrid):
     """A 3D region with arbitrary bounds and dimensions.
 
@@ -899,6 +996,17 @@ class YTArbitraryGrid(YTCoveringGrid):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(dest, fi.units)
 
+    def _get_grid_bounds_size(self):
+        bounds = np.empty(6, dtype=float)
+        bounds[0] = self.left_edge[0].in_base("code")
+        bounds[2] = self.left_edge[1].in_base("code")
+        bounds[4] = self.left_edge[2].in_base("code")
+        bounds[1] = self.right_edge[0].in_base("code")
+        bounds[3] = self.right_edge[1].in_base("code")
+        bounds[5] = self.right_edge[2].in_base("code")
+        size = self.ActiveDimensions
+
+        return bounds, size
 
 class LevelState(object):
     current_dx = None
@@ -958,7 +1066,9 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         self._final_start_index = self.global_startindex
 
     def _setup_data_source(self, level_state = None):
-        if level_state is None: return
+        if level_state is None:
+            super(YTSmoothedCoveringGrid, self)._setup_data_source()
+            return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
         level_state.data_source = self.ds.region(
@@ -2010,3 +2120,249 @@ class YTSurface(YTSelectionContainer3D):
             mylog.error("Problem uploading.")
 
         return model_uid
+
+class YTOctree(YTSelectionContainer3D):
+    """A 3D region with all the data filled into an octree. This container
+    will mean deposit particle fields onto octs using a kernel and SPH
+    smoothing.
+
+    Parameters
+    ----------
+    right_edge : array_like
+        The right edge of the region to be extracted.  Specify units by supplying
+        a YTArray, otherwise code length units are assumed.
+    left_edge : array_like
+        The left edge of the region to be extracted.  Specify units by supplying
+        a YTArray, otherwise code length units are assumed.
+    n_ref: int
+        This is the maximum number of particles per leaf in the resulting
+        octree.
+    over_refine_factor: int
+        Each leaf has a number of cells, the number of cells is equal to
+        2**(3*over_refine_factor)
+    density_factor: int
+        This tells the tree that each node must divide into
+        2**(3*density_factor) children if it contains more particles than n_ref
+    ptypes: list
+        This is the type of particles to include when building the tree. This
+        will default to all particles
+
+    Examples
+    --------
+
+    octree = ds.octree(n_ref=64, over_refine_factor=2)
+    x_positions_of_cells = octree[('index', 'x')]
+    y_positions_of_cells = octree[('index', 'y')]
+    z_positions_of_cells = octree[('index', 'z')]
+    density_of_gas_in_cells = octree[('gas', 'density')]
+
+    """
+    _spatial = True
+    _type_name = "octree"
+    _con_args = ('left_edge', 'right_edge', 'n_ref')
+    _container_fields = (("index", "dx"),
+                         ("index", "dy"),
+                         ("index", "dz"),
+                         ("index", "x"),
+                         ("index", "y"),
+                         ("index", "z"))
+    def __init__(self, left_edge=None, right_edge=None, n_ref=32, over_refine_factor=1,
+                 density_factor=1, ptypes = None, force_build=False, ds = None,
+                 field_parameters = None):
+        if field_parameters is None:
+            center = None
+        else:
+            center = field_parameters.get("center", None)
+        YTSelectionContainer3D.__init__(self,
+            center, ds, field_parameters)
+
+        self.left_edge = self._sanitize_edge(left_edge)
+        self.right_edge = self._sanitize_edge(right_edge)
+        self.n_ref = n_ref
+        self.density_factor = density_factor
+        self.over_refine_factor = over_refine_factor
+        self.ptypes = self._sanitize_ptypes(ptypes)
+
+        self._setup_data_source()
+        self.tree
+
+    def __eq__(self, other):
+        return self.tree == other.tree
+
+    def _generate_tree(self, fname = None):
+        positions = []
+        for ptype in self.ptypes:
+            positions.append(self._data_source[(ptype,
+                             'particle_position')].in_units("code_length").d)
+        positions = np.concatenate(positions)
+
+        if positions == []:
+            self._octree = None
+            return
+
+        mylog.info('Allocating Octree for %s particles' % positions.shape[0])
+        self.loaded = False
+        self._octree = CyOctree(
+            positions.astype('float64', copy=False),
+            left_edge=self.ds.domain_left_edge.in_units("code_length"),
+            right_edge=self.ds.domain_right_edge.in_units("code_length"),
+            n_ref=self.n_ref,
+            over_refine_factor=self.over_refine_factor,
+            density_factor=self.density_factor,
+            data_version=self.ds._file_hash
+        )
+
+        if fname is not None:
+            mylog.info('Saving octree to file %s' % os.path.basename(fname))
+            self._octree.save(fname)
+
+    @property
+    def tree(self):
+        self.ds.index
+
+        # Chose _octree as _tree seems to be used
+        if hasattr(self, '_octree'):
+            return self._octree
+
+        ds = self.ds
+        if getattr(ds, 'tree_filename', None) is None:
+            if os.path.exists(ds.parameter_filename):
+                fname = ds.parameter_filename + ".octree"
+            else:
+                # we don't want to write to disk for in-memory data
+                fname = None
+        else:
+            fname = ds.tree_filename
+
+        if fname is None:
+            self._generate_tree(fname)
+        elif not os.path.exists(fname):
+            self._generate_tree(fname)
+        else:
+            self.loaded = True
+            mylog.info('Loading octree from %s' % os.path.basename(fname))
+            self._octree = CyOctree()
+            self._octree.load(fname)
+            if self._octree.data_version != self.ds._file_hash:
+                mylog.info('Detected hash mismatch, regenerating Octree')
+                self._generate_tree(fname)
+
+        pos = ds.arr(self._octree.cell_positions, "code_length")
+        self[('index', 'coordinates')] = pos
+        self[('index', 'x')] = pos[:, 0]
+        self[('index', 'y')] = pos[:, 1]
+        self[('index', 'z')] = pos[:, 2]
+
+        return self._octree
+
+    def _sanitize_ptypes(self, ptypes):
+        if ptypes is None:
+            return ['all']
+
+        if not isinstance(ptypes, list):
+            ptypes = [ptypes]
+
+        self.ds.index
+        for ptype in ptypes:
+            if ptype not in self.ds.particle_types:
+                mess = "{} not found. Particle type must ".format(ptype)
+                mess += "be in the dataset!"
+                raise TypeError(mess)
+
+        return ptypes
+
+    def _setup_data_source(self):
+        self._data_source = self.ds.region(
+            self.center, self.left_edge, self.right_edge)
+
+    def _sanitize_edge(self, edge):
+        if not iterable(edge):
+            edge = [edge]*len(self.ds.domain_left_edge)
+        if len(edge) != len(self.ds.domain_left_edge):
+            raise RuntimeError(
+                "Length of edges must match the dimensionality of the "
+                "dataset")
+        if hasattr(edge, 'units'):
+            edge_units = edge.units
+        else:
+            edge_units = 'code_length'
+        return self.ds.arr(edge, edge_units)
+
+    def get_data(self, fields = None):
+        if fields is None: return
+
+        # not sure on the best way to do this
+        if isinstance(fields, list) and len(fields) > 1:
+            for field in fields: self.get_data(field)
+            return
+        elif isinstance(fields, list):
+            fields = fields[0]
+
+        sph_ptype = getattr(self.ds, '_sph_ptype', 'None')
+        if fields[0] == sph_ptype:
+            smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+            normalize = getattr(self.ds, 'use_sph_normalization', True)
+
+            units = self.ds._get_field_info(fields).units
+            if smoothing_style == "scatter":
+                self.scatter_smooth(fields, units, normalize)
+            else:
+                self.gather_smooth(fields, units, normalize)
+        elif fields[0] == 'index':
+            return self[fields]
+        else:
+            raise NotImplementedError
+
+    def gather_smooth(self, fields, units, normalize):
+        buff = np.zeros(self[('index', 'x')].shape[0], dtype="float64")
+
+        num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+
+        # for the gather approach we load up all of the data, this like other
+        # gather approaches is not memory conservative and with spatial chunking
+        # this can be fixed
+        fields_to_get = ['particle_position', 'density', 'particle_mass',
+                         'smoothing_length', fields[1]]
+        all_fields = all_data(self.ds, fields[0], fields_to_get, kdtree=True)
+
+        interpolate_sph_positions_gather(buff, all_fields['particle_position'],
+                                         self._octree.cell_positions,
+                                         all_fields['smoothing_length'],
+                                         all_fields['particle_mass'],
+                                         all_fields['density'],
+                                         all_fields[fields[1]].in_units(units),
+                                         self.ds.index.kdtree,
+                                         use_normalization=normalize,
+                                         num_neigh=num_neighbors)
+
+        self[fields] = self.ds.arr(buff, units)
+
+    def scatter_smooth(self, fields, units, normalize):
+        buff = np.zeros(self[('index', 'x')].shape[0], dtype="float64")
+
+        if normalize:
+            buff_den = np.zeros(buff.shape[0], dtype="float64")
+        else:
+            buff_den = np.empty(0)
+
+        ptype = fields[0]
+        pbar = tqdm(desc="Interpolating (scatter) SPH field {}".format(fields[0]))
+        for chunk in self._data_source.chunks([fields], "io"):
+            px = chunk[(ptype,'particle_position_x')].in_base("code").d
+            py = chunk[(ptype,'particle_position_y')].in_base("code").d
+            pz = chunk[(ptype,'particle_position_z')].in_base("code").d
+            hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
+            pmass = chunk[(ptype,'particle_mass')].in_base("code").d
+            pdens = chunk[(ptype,'density')].in_base("code").d
+            field_quantity = chunk[fields].in_base("code").d
+
+            self.tree.interpolate_sph_cells(buff, buff_den, px, py, pz, pmass,
+                                            pdens, hsml, field_quantity,
+                                            use_normalization=normalize)
+            pbar.update(1)
+        pbar.close()
+
+        if normalize:
+            normalization_1d_utility(buff, buff_den)
+
+        self[fields] = self.ds.arr(buff, units)

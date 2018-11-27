@@ -43,8 +43,7 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 
-TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
-              'test.ps', 'test.pdf']
+TEST_FLNMS = ['test.png']
 M7 = "DD0010/moving7_0010"
 WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
@@ -297,7 +296,7 @@ class TestPlotWindowSave(unittest.TestCase):
         for dim in range(3):
             slc = SlicePlot(test_ds, dim, 'density')
             for fname in TEST_FLNMS:
-                assert assert_fname(slc.save(fname)[0])
+                assert_fname(slc.save(fname)[0])
 
     def test_repr_html(self):
         test_ds = fake_random_ds(16)
@@ -309,7 +308,7 @@ class TestPlotWindowSave(unittest.TestCase):
         for dim in range(3):
             proj = ProjectionPlot(test_ds, dim, 'density')
             for fname in TEST_FLNMS:
-                assert assert_fname(proj.save(fname)[0])
+                assert_fname(proj.save(fname)[0])
 
     def test_projection_plot_ds(self):
         test_ds = fake_random_ds(16)
@@ -340,13 +339,13 @@ class TestPlotWindowSave(unittest.TestCase):
         test_ds = fake_random_ds(16)
         slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
         for fname in TEST_FLNMS:
-            assert assert_fname(slc.save(fname)[0])
+            assert_fname(slc.save(fname)[0])
 
     def test_offaxis_projection_plot(self):
         test_ds = fake_random_ds(16)
         prj = OffAxisProjectionPlot(test_ds, [1, 1, 1], "density")
         for fname in TEST_FLNMS:
-            assert assert_fname(prj.save(fname)[0])
+            assert_fname(prj.save(fname)[0])
 
     def test_creation_with_width(self):
         test_ds = fake_random_ds(16)
@@ -461,6 +460,7 @@ def test_set_background_color():
     plot = SlicePlot(ds, 2, 'density')
     for field in ['density', ('gas', 'density')]:
         plot.set_background_color(field, 'red')
+        plot._setup_plots()
         ax = plot.plots[field].axes
         if LooseVersion(matplotlib.__version__) < LooseVersion('2.0.0'):
             assert_equal(ax.get_axis_bgcolor(), 'red')
@@ -551,3 +551,16 @@ def test_symlog_colorbar():
         plot.set_log(field, True, linthresh=0.1)
         with tempfile.NamedTemporaryFile(suffix='png') as f:
             plot.save(f.name)
+
+def test_nan_data():
+    data = np.random.random((16, 16, 16)) - 0.5
+    data[:9, :9, :9] = np.nan
+
+    data = {'density': data}
+
+    ds = load_uniform_grid(data, [16, 16, 16])
+
+    plot = SlicePlot(ds, 'z', 'density')
+
+    with tempfile.NamedTemporaryFile(suffix='png') as f:
+        plot.save(f.name)

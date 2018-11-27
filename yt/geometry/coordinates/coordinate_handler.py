@@ -199,12 +199,12 @@ class CoordinateHandler(object):
             if not iterable(axis):
                 xax = self.x_axis[axis]
                 yax = self.y_axis[axis]
-                w = self.ds.domain_width[[xax, yax]]
+                w = self.ds.domain_width[np.array([xax, yax])]
             else:
                 # axis is actually the normal vector
                 # for an off-axis data object.
                 mi = np.argmin(self.ds.domain_width)
-                w = self.ds.domain_width[[mi,mi]]
+                w = self.ds.domain_width[np.array((mi, mi))]
             width = (w[0], w[1])
         elif iterable(width):
             width = validate_iterable_width(width, self.ds)

@@ -358,12 +358,15 @@ class FITSImageData(object):
         """
         from glue.core import DataCollection, Data
         from glue.core.coordinates import coordinates_from_header
-        from glue.qt.glue_application import GlueApplication
+        try:
+            from glue.app.qt.application import GlueApplication
+        except ImportError:
+            from glue.qt.glue_application import GlueApplication
 
         image = Data(label=label)
         image.coords = coordinates_from_header(self.wcs.to_header())
-        for k,f in self.hdulist.items():
-            image.add_component(f.data, k)
+        for k in self.fields:
+            image.add_component(self[k].data, k)
         if data_collection is None:
             dc = DataCollection([image])
             app = GlueApplication(dc)

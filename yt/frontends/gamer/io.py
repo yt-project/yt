@@ -1,3 +1,4 @@
+from __future__ import division
 """
 GAMER-specific IO functions
 
@@ -50,6 +51,8 @@ class IOHandlerGAMER(BaseIOHandler):
         self._group_particle  = ds._group_particle
         self._field_dtype     = "float64" # fixed even when FLOAT8 is off
         self._particle_handle = ds._particle_handle
+        self.patch_size       = ds.parameters['PatchSize']*ds.refine_by
+        self.pgroup           = ds.refine_by**3 # number of patches in a patch group
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)   # generator --> list
@@ -115,14 +118,34 @@ class IOHandlerGAMER(BaseIOHandler):
         mylog.debug( "Reading %s cells of %s fields in %s grids",
                      size, [f2 for f1, f2 in fields], ng )
 
+        # shortcuts
+        ps2 = self.patch_size
+        ps1 = ps2//2
+
         for field in fields:
             ds     = self._group_grid[ field[1] ]
             offset = 0
             for chunk in chunks:
                 for gs in grid_sequences(chunk.objs):
-                    start = gs[ 0].id
-                    end   = gs[-1].id + 1
-                    data  = ds[start:end,:,:,:].transpose()
+                    start = (gs[ 0].id  )*self.pgroup
+                    end   = (gs[-1].id+1)*self.pgroup
+                    buf   = ds[start:end,:,:,:]
+                    ngrid = len( gs )
+                    data  = np.empty( (ngrid,ps2,ps2,ps2), dtype=self._field_dtype )
+
+                    for g in range(ngrid):
+                        pid0 = g*self.pgroup
+                        data[g,   0:ps1,   0:ps1,   0:ps1] = buf[pid0+0,:,:,:]
+                        data[g,   0:ps1,   0:ps1, ps1:ps2] = buf[pid0+1,:,:,:]
+                        data[g,   0:ps1, ps1:ps2,   0:ps1] = buf[pid0+2,:,:,:]
+                        data[g, ps1:ps2,   0:ps1,   0:ps1] = buf[pid0+3,:,:,:]
+                        data[g,   0:ps1, ps1:ps2, ps1:ps2] = buf[pid0+4,:,:,:]
+                        data[g, ps1:ps2, ps1:ps2,   0:ps1] = buf[pid0+5,:,:,:]
+                        data[g, ps1:ps2,   0:ps1, ps1:ps2] = buf[pid0+6,:,:,:]
+                        data[g, ps1:ps2, ps1:ps2, ps1:ps2] = buf[pid0+7,:,:,:]
+
+                    data = data.transpose()
+
                     for i, g in enumerate(gs):
                         offset += g.select( selector, data[...,i], rv[field], offset )
         return rv
@@ -150,13 +173,32 @@ class IOHandlerGAMER(BaseIOHandler):
         # fluid
         if len(fluid_fields) == 0: return rv
 
+        ps2 = self.patch_size
+        ps1 = ps2//2
+
         for field in fluid_fields:
             ds = self._group_grid[ field[1] ]
 
             for gs in grid_sequences(chunk.objs):
-                start = gs[ 0].id
-                end   = gs[-1].id + 1
-                data  = ds[start:end,:,:,:].transpose()
+                start = (gs[ 0].id  )*self.pgroup
+                end   = (gs[-1].id+1)*self.pgroup
+                buf   = ds[start:end,:,:,:]
+                ngrid = len( gs )
+                data  = np.empty( (ngrid,ps2,ps2,ps2), dtype=self._field_dtype )
+
+                for g in range(ngrid):
+                    pid0 = g*self.pgroup
+                    data[g,   0:ps1,   0:ps1,   0:ps1] = buf[pid0+0,:,:,:]
+                    data[g,   0:ps1,   0:ps1, ps1:ps2] = buf[pid0+1,:,:,:]
+                    data[g,   0:ps1, ps1:ps2,   0:ps1] = buf[pid0+2,:,:,:]
+                    data[g, ps1:ps2,   0:ps1,   0:ps1] = buf[pid0+3,:,:,:]
+                    data[g,   0:ps1, ps1:ps2, ps1:ps2] = buf[pid0+4,:,:,:]
+                    data[g, ps1:ps2, ps1:ps2,   0:ps1] = buf[pid0+5,:,:,:]
+                    data[g, ps1:ps2,   0:ps1, ps1:ps2] = buf[pid0+6,:,:,:]
+                    data[g, ps1:ps2, ps1:ps2, ps1:ps2] = buf[pid0+7,:,:,:]
+
+                data = data.transpose()
+
                 for i, g in enumerate(gs):
-                    rv[g.id][field] = np.asarray( data[...,i], dtype=self._field_dtype )
+                    rv[g.id][field] = data[...,i]
         return rv

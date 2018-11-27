@@ -112,7 +112,7 @@ def save_as_dataset(ds, filename, data, field_types=None,
 
     if hasattr(ds, "unit_system"):
         _yt_array_hdf5_attr(fh, "unit_system_name",
-                            ds.unit_system.name)
+                            ds.unit_system.name.split("_")[0])
 
     for attr in base_attrs:
         if isinstance(ds, dict):

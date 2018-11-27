@@ -39,6 +39,8 @@ Antoine Strugarek <antoine.strugarek@cea.fr> Antoine Strugarek <antoine.strugare
 Anna Rosen <rosen@ucolick.org> Anna Rosen <alrosen@ucsc.edu>
 John ZuHone <jzuhone@gmail.com> jzuhone <none@none>
 John ZuHone <jzuhone@gmail.com> jzuhone <jzuhone@gmail.com>
+John ZuHone <jzuhone@gmail.com> John Zuhone <jzuhone@mfe1.nas.nasa.gov>
+John ZuHone <jzuhone@gmail.com> John Zuhone <jzuhone@ldan6.nas.nasa.gov>
 Kenza Arraki <karraki@nmsu.edu> Kenza Arraki <karraki@gmail.com>
 Allyson Julian <astrohckr@gmail.com> Allyson Julian <hckr@eml.cc>
 Allyson Julian <astrohckr@gmail.com> Allyson Julian <julian3@illinois.edu>
@@ -56,7 +58,6 @@ Chris Malone <chris.m.malone@gmail.com> ChrisMalone <chris.m.malone@lanl.gov>
 Jill Naiman <jnaiman@cfa.harvard.edu> Jill Naiman <jnaiman@ucolick.org>
 Jill Naiman <jnaiman@cfa.harvard.edu> jnaiman <none@none>
 Jill Naiman <jnaiman@cfa.harvard.edu> jnaiman <jnaiman@ucolick.org>
-Ricarda Beckmann <ricarda.beckmann@astro.ox.ac.uk> RicardaBeckmann <ricarda.beckmann@astro.ox.ac.uk>
 Miguel de Val-Borro <miguel.deval@gmail.com> Miguel de Val-Borro <miguel@archlinux.net>
 Stuary Levy <salevy@illinois.edu> Stuart Levy <slevy@ncsa.illinois.edu>
 Ben Keller <malzraa@gmail.com> Ben Keller <kellerbw@mcmaster.ca>
@@ -66,14 +67,15 @@ Joseph Tomlinson <jmtomlinson95@gmail.com> jmt354 <none@none>
 Desika Narayanan <dnarayan@haverford.edu> desika <none@none>
 Nathan Goldbaum <ngoldbau@illinois.edu> Nathan Goldbaum <goldbaum@ucolick.org>
 Nathan Goldbaum <ngoldbau@illinois.edu> Nathan Goldbaum <ngoldbau@ucsc.edu>
-Fabian Koller <anokfireball@poseto.de> NTAuthority@honeypot.fritz.box <NTAuthority@honeypot.fritz.box>
+Fabian Koller <anokfireball@posteo.de> NTAuthority@honeypot.fritz.box <NTAuthority@honeypot.fritz.box>
 Fabian Koller <anokfireball@posteo.de> NTAuthority@guest053.fz-rossendorf.de <NTAuthority@guest053.fz-rossendorf.de>
 Fabian Koller <anokfireball@posteo.de> NTAuthority@guest692.fz-rossendorf.de <NTAuthority@guest692.fz-rossendorf.de>
 Fabian Koller <anokfireball@posteo.de> NTAuthority@guest692.fz-rossendorf.de <NTAuthority@guest692.fz-rossendorf.de>
 Fabian Koller <anokfireball@posteo.de> Fabian Koller <none@none>
+Fabian Koller <anokfireball@posteo.de> Fabian Koller <anokfireball@poseto.de>
+Fabian Koller <anokfireball@posteo.de> C0nsultant <anokfireball@posteo.de>
 Rafael Ruggiero <rafael.ruggiero@usp.br> Rafael Ruggiero <none@none>
 John Regan <john.regan@helsinki.fi> John Regan <john.a.regan@durham.ac.uk>
-Axel Huebl <a.huebl@hzdr.de> Axel Huebl <code@andre-bubel.de>
 Gabriel Altay <gabriel.altay@gmail.com> galtay <gabriel.altay@gmail.com>
 Mark Richardson <Mark.Richardson.Work@gmail.com> Mark Richardson <Mark.L.Richardson@asu.edu>
 Jared Coughlin <jcoughl2@nd.edu> Jared <none@none>
@@ -87,3 +89,41 @@ Michael Zingale <michael.zingale@stonybrook.edu> Michael  Zingale <michael.zinga
 Sam Leitner <sam.leitner@gmail.com> Sam  Leitner <sam.leitner@gmail.com>
 Geoffrey So <gsiisg@gmail.com> gsiisg <gsiisg@gmail.com>
 Matthew Turk <matthewturk@gmail.com> Matt Turk <matthewturk@gmail.com>
+Stephanie Ho <stephaniehkho@gmail.com> Stephanie Ho <stephaniehho@tsubasa.physics.ucsb.edu>
+Stephanie Ho <stephaniehkho@gmail.com> stephaniehho <20467246+stephaniehho@users.noreply.github.com>
+Stephanie Ho <stephaniehkho@gmail.com> Stephanie Ho <stephaniehho@169-231-104-205.wireless.ucsb.edu>
+Salvatore Cielo <cielo@iap.fr> sacielo <sacielo@gmail.com>
+Nicholas Earl <nchlsearl@gmail.com> nmearl <nchlsearl@gmail.com>
+Marianne Corvellec <marianne.corvellec@ens-lyon.org> Marianne Corvellec <marianne.corvellec@crim.ca>
+Hugo Pfister <pfister@loginhz02.iap.fr> Hugo Pfister <pfister@loginhz01.iap.fr>
+André-Patrick Bubel <code@andre-bubel.de> Moredread <code@andre-bubel.de>
+Abhishek Singh <abhisheksing@umass.edu> git-abhishek <36498066+git-abhishek@users.noreply.github.com>
+Abhishek Singh <abhisheksing@umass.edu> Abhishek Singh <36498066+git-abhishek@users.noreply.github.com>
+Ashley Kelly <a.j.kelly@durham.ac.uk> ash <Ashley Kelly>
+Max Katz <maximilian.katz@stonybrook.edu> Max Katz <maxpkatz@gmail.com>
+Suoqing Ji <jisuoqing@gmail.com> Suoqing JI <jisuoqing@gmail.com>
+Bili Dong <qobilidop@gmail.com> qobilidop <qobilidop@gmail.com>
+Donald E Willcox <eugene.willcox@gmail.com> dwillcox <eugene.willcox@gmail.com>
+Yingchao Lu <yingchao.lu@gmail.com> yingchaolu <yingchao.lu@gmail.com>
+Andrew Myers <atmyers2@gmail.com> atmyers <atmyers2@gmail.com>
+Ricarda Beckmann <ricarda.beckmann@astro.ox.ac.uk> Ricarda Beckmann <Ricarda.Beckmann@astro.ox.ac.uk>
+Ricarda Beckmann <beckmann@iap.fr> Ricarda Beckmann <ricarda.beckmann@astro.ox.ac.uk>
+Ricarda Beckmann <beckmann@iap.fr> RicardaBeckmann <beckmann@iap.fr>
+Ricarda Beckmann <beckmann@iap.fr> Ricarda Beckmann <ricarda.beckmann@astro.ox.ac.uk>
+Ricarda Beckmann <beckmann@iap.fr> RicardaBeckmann <ricarda.beckmann@astro.ox.ac.uk>
+Corentin Cadiou <corentin.cadiou@iap.fr> Corentin Cadiou <corentin.cadiou@cphyc.me>
+Christopher Moody <cemoody@ucsc.edu> Christopher Moody <juxtaposicion@gmail.com>
+Casey W. Stark <caseywstark@gmail.com> Casey W. Stark <casey@thestarkeffect.com>
+BW Keller <kellerbw@mcmaster.ca> Ben Keller <malzraa@gmail.com>
+Benjamin Thompson <bthompson2090@gmail.com> Ben Thompson <bthompson2090@gmail.com>
+Alex Lindsay <al007@illinois.edu> Alex Lindsay <alexlindsay239@gmail.com>
+Yi-Hao Chen (ychen@astro.wisc.edu) Yi-Hao Chen (yihaochentw@gmail.com)
+Kacper Kowalik <xarthisius.kk@gmail.com> Kacper Kowalik (Xarthisius) <xarthisius.kk@gmail.com>
+John ZuHone <jzuhone@gmail.com> John Zuhone <jzuhone@lfe4.nas.nasa.gov>
+Clayton Strawn <cjstrawn@ucsc.edu> Clayton Strawn <33767568+claytonstrawn@users.noreply.github.com>
+Hilary Egan <hilary.egan@colorado.edu> Hilary Egan <hilaryye@gmail.com>
+Yi-Hao Chen <ychen@astro.wisc.edu> Yi-Hao Chen <yihaochentw@gmail.com>
+Prateek Gupta <prateek91gidolia@gmail.com> Prateekgidolia <prateek91gidolia@gmail.com>
+Max Gronke <maxbg@astro.uio.no> maxbeegee <maxbg@astro.uio.no>
+Ashley Kelly <a.j.kelly@durham.ac.uk> ashkelly <a.j.kelly@durham.ac.uk>
+Sean Larkin <sflarkin@ucsc.edu> sflarkin <41403179+sflarkin@users.noreply.github.com>

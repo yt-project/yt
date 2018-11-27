@@ -41,16 +41,17 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         # Only support halo reading for now.
         assert(len(ptf) == 1)
         assert(list(ptf.keys())[0] == "halos")
+        ptype = 'halos'
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         pn = "particle_position_%s"
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, "r") as f:
                 units = parse_h5_attr(f[pn % "x"], "units")
-                x, y, z = \
-                  (self.ds.arr(f[pn % ax].value.astype("float64"), units)
-                   for ax in "xyz")
+                pos = data_file._get_particle_positions(ptype, f=f)
+                x, y, z = (self.ds.arr(pos[:, i], units)
+                           for i in range(3))
                 yield "halos", (x, y, z)
 
     def _yield_coordinates(self, data_file):
@@ -74,13 +75,13 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         pn = "particle_position_%s"
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[pn % "x"], "units")
-                    x, y, z = \
-                      (self.ds.arr(f[pn % ax].value.astype("float64"), units)
-                       for ax in "xyz")
+                    pos = data_file._get_particle_positions(ptype, f=f)
+                    x, y, z = (self.ds.arr(pos[:, i], units)
+                               for i in range(3))
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None: continue
@@ -95,22 +96,14 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
                     data_file.file_id, pcount)
         ind = 0
         if pcount == 0: return None
+        ptype = 'halos'
         with h5py.File(data_file.filename, "r") as f:
             if not f.keys(): return None
-            pos = np.empty((pcount, 3), dtype="float64")
             units = parse_h5_attr(f["particle_position_x"], "units")
-            dx = np.finfo(f['particle_position_x'].dtype).eps
-            dx = 2.0 * self.ds.quan(dx, units).to("code_length")
-            pos[:,0] = f["particle_position_x"].value
-            pos[:,1] = f["particle_position_y"].value
-            pos[:,2] = f["particle_position_z"].value
+            pos = data_file._get_particle_positions(ptype, f=f)
             pos = data_file.ds.arr(pos, units). to("code_length")
             dle = self.ds.domain_left_edge.to("code_length")
             dre = self.ds.domain_right_edge.to("code_length")
-            # These are 32 bit numbers, so we give a little lee-way.
-            # Otherwise, for big sets of particles, we often will bump into the
-            # domain edges.  This helps alleviate that.
-            np.clip(pos, dle + dx, dre - dx, pos)
             if np.any(pos.min(axis=0) < dle) or \
                np.any(pos.max(axis=0) > dre):
                 raise YTDomainOverflow(pos.min(axis=0),

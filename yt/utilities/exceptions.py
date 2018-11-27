@@ -67,6 +67,14 @@ class YTFieldNotFound(YTException):
     def __str__(self):
         return "Could not find field '%s' in %s." % (self.fname, self.ds)
 
+class YTParticleTypeNotFound(YTException):
+    def __init__(self, fname, ds):
+        self.fname = fname
+        self.ds = ds
+
+    def __str__(self):
+        return ("Could not find particle_type '%s' in %s." % (self.fname, self.ds))
+
 class YTSceneFieldNotFound(YTException):
     pass
 
@@ -213,6 +221,19 @@ class YTNoOldAnswer(YTException):
     def __str__(self):
         return "There is no old answer available.\n" + \
                str(self.path)
+
+class YTNoAnswerNameSpecified(YTException):
+    def __init__(self, message=None):
+        if message is None or message == "":
+            message = ("Answer name not provided for the answer testing test."
+                       "\n  Please specify --answer-name=<answer_name> in"
+                       " command line mode or in AnswerTestingTest.answer_name"
+                       " variable."
+                       )
+        self.message = message
+
+    def __str__(self):
+        return str(self.message)
 
 class YTCloudError(YTException):
     def __init__(self, path):
@@ -594,6 +615,18 @@ class YTIllDefinedProfile(YTException):
 
         return msg + weight_msg
 
+class YTProfileDataShape(YTException):
+    def __init__(self, field1, shape1, field2, shape2):
+        self.field1 = field1
+        self.shape1 = shape1
+        self.field2 = field2
+        self.shape2 = shape2
+
+    def __str__(self):
+        return ("Profile fields must have same shape: %s has " +
+                "shape %s and %s has shape %s.") % \
+                (self.field1, self.shape1, self.field2, self.shape2)
+
 class YTBooleanObjectError(YTException):
     def __init__(self, bad_object):
         self.bad_object = bad_object
@@ -621,6 +654,9 @@ class YTIllDefinedAMR(YTException):
             "on the parent level ({} axis)"
         ).format(self.level, self.axis)
         return msg
+
+class YTIllDefinedParticleData(YTException):
+    pass
 
 class YTIllDefinedAMRData(YTException):
     pass

@@ -38,6 +38,7 @@ yt/utilities/lib/bitarray.c
 yt/utilities/lib/bounded_priority_queue.c
 yt/utilities/lib/bounding_volume_hierarchy.c
 yt/utilities/lib/contour_finding.c
+yt/utilities/lib/cyoctree.cpp
 yt/utilities/lib/depth_first_octree.c
 yt/utilities/lib/distance_queue.c
 yt/utilities/lib/element_mappings.c
@@ -58,6 +59,7 @@ yt/utilities/lib/mesh_samplers.cpp
 yt/utilities/lib/mesh_traversal.cpp
 yt/utilities/lib/mesh_triangulation.c
 yt/utilities/lib/mesh_utilities.c
+yt/utilities/lib/pixelization_routines.cpp
 yt/utilities/lib/misc_utilities.c
 yt/utilities/lib/particle_kdtree_tools.cpp
 yt/utilities/lib/particle_mesh_operations.c
@@ -66,6 +68,7 @@ yt/utilities/lib/primitives.c
 yt/utilities/lib/origami.c
 yt/utilities/lib/particle_mesh_operations.c
 yt/utilities/lib/pixelization_routines.c
+yt/utilities/lib/pixelization_routines.cpp
 yt/utilities/lib/png_writer.c
 yt/utilities/lib/points_in_volume.c
 yt/utilities/lib/quad_tree.c
@@ -89,5 +92,7 @@ tests/results/*
 doc/build/*
 doc/source/reference/api/generated/*
 doc/_temp/*
-doc/source/bootcamp/.ipynb_checkpoints/
+doc/source/quickstart/.ipynb_checkpoints/
 dist
+.python-version
+answer_nosetests.xml

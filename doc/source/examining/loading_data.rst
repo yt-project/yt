@@ -174,7 +174,10 @@ subdivided into "virtual grids". For this purpose, one can pass in the
 
    ds = yt.load("sloshing.0000.vtk", nprocs=8)
 
-which will subdivide each original grid into ``nprocs`` grids.
+which will subdivide each original grid into ``nprocs`` grids. Note that this
+parameter is independent of the number of MPI tasks assigned to analyze the data
+set in parallel (see :ref:`parallel-computation`), and ideally should be (much)
+larger than this.
 
 .. note::
 
@@ -503,14 +506,24 @@ To load Enzo-P data into yt, provide the block list file:
    import yt
    ds = yt.load("hello-0200/hello-0200.block_list")
 
-Mesh fields are fully supported for 1, 2, and 3D datasets.
+Mesh and particle fields are fully supported for 1, 2, and 3D datasets.  Enzo-P
+supports arbitrary particle types defined by the user.  The available particle
+types will be known as soon as the dataset index is created.
+
+.. code-block:: python
+
+   ds = yt.load("ENZOP_DD0140/ENZOP_DD0140.block_list")
+   ds.index
+   print(ds.particle_types)
+   print(ds.particle_type_counts)
+   print(ds.r["dark", "particle_position"])
 
 .. rubric:: Caveats
 
 * The Enzo-P output format is still evolving somewhat as the code is being
-  actively developed. This frontend will be updated as development continues.
-* Units are currently assumed to be in CGS.
-* Particles are not yet supported.
+  actively developed. This frontend will be updated as development continues
+  and backward compatibility may occasionally be broken until the file format
+  has converged.
 
 .. _loading-exodusii-data:
 
@@ -1041,6 +1054,12 @@ and visualization. See :ref:`loading-sph-data` for more details and
 visualizing a Gadget dataset.  An example which makes use of a Gadget snapshot
 from the OWLS project can be found at :ref:`owls-notebook`.
 
+.. note:: 
+
+   If you are loading a multi-file dataset with Gadget, supply the *zeroth*
+   file to the ``load`` command.  For instance,
+   ``yt.load("snapshot_061.0.hdf5")`` .
+
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
 .. code-block:: python
@@ -1233,16 +1252,25 @@ padding at the end, you can specify this with:
 
 .. code-block:: python
 
-   header_spec = ["default", "pad256"]
+   header_spec = "default+pad256"
 
-This can then be supplied to the constructor.  Note that you can also do this
-manually, for instance with:
-
+Note that a single string like this means a single header block.  To specify
+multiple header blocks, use a list of strings instead:
 
 .. code-block:: python
 
-   header_spec = ["default", (('some_value', 8, 'd'),
-                              ('another_value', 1, 'i'))]
+  header_spec = ["default", "pad256"]
+
+This can then be supplied to the constructor.  Note that you can also define
+header items manually, for instance with:
+
+.. code-block:: python
+
+   from yt.frontends.gadget.definitions import gadget_header_specs
+
+   gadget_header_specs["custom"] = (('some_value', 8, 'd'),
+                                    ('another_value', 1, 'i'))
+   header_spec = "default+custom"
 
 The letters correspond to data types from the Python struct module.  Please
 feel free to submit alternate header types to the main yt repository.
@@ -1264,6 +1292,26 @@ argument of this form:
    unit_base = {'length': (1.0, 'cm'), 'mass': (1.0, 'g'), 'time': (1.0, 's')}
 
 yt will utilize length, mass and time to set up all other units.
+
+.. _loading-swift-data:
+
+SWIFT Data
+-----------
+
+yt has support for reading in SWIFT data from the HDF5 file format. It is able
+to access all particles and fields which are stored on-disk and it is also able
+to generate derived fields, i.e, linear momentum from on-disk fields.
+
+It is also possible to smooth the data onto a grid or an octree. This
+interpolation can be done using an SPH kernel using either the scatter or gather
+approach. The SWIFT frontend is supported and cared for by Ashley Kelly.
+
+SWIFT data in HDF5 format can be loaded with the ``load`` command:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("EAGLE_6/eagle_0005.hdf5")
 
 .. _loading-gamer-data:
 
@@ -1635,6 +1683,16 @@ loaded and aliased to ``("PartType0", "particle_magnetic_field")``. The
 corresponding component field like ``("PartType0", "particle_magnetic_field_x")``
 would be added automatically.
 
+Note that ``("PartType4", "StellarFormationTime")`` field has different
+meanings depending on whether it is a cosmological simulation. For cosmological
+runs this is the scale factor at the redshift when the star particle formed.
+For non-cosmological runs it is the time when the star particle formed. (See the
+`GIZMO User Guide <http://www.tapir.caltech.edu/~phopkins/Site/GIZMO_files/gizmo_documentation.html>`_)
+For this reason, ``("PartType4", "StellarFormationTime")`` is loaded as a
+dimensionless field. We defined two related fields
+``("PartType4", "creation_time")``, and ``("PartType4", "age")`` with physical
+units for your convenience.
+
 For Gizmo outputs written as raw binary outputs, you may have to specify
 a bounding box, field specification, and units as are done for standard
 Gadget outputs.  See :ref:`loading-gadget-data` for more information.
@@ -1807,11 +1865,11 @@ attributes.
 
    halo = ds.halo("Group", 0)
    # member particles for this halo
-   print halo["member_ids"]
+   print(halo["member_ids"])
    # halo virial radius
-   print halo["Group_R_Crit200"]
+   print(halo["Group_R_Crit200"])
    # halo mass
-   print halo.mass
+   print(halo.mass)
 
 Subhalos containers can be created using either their absolute ids or their
 subhalo ids.
@@ -1821,9 +1879,9 @@ subhalo ids.
    # first subhalo of the first halo
    subhalo = ds.halo("Subhalo", (0, 0))
    # this subhalo's absolute id
-   print subhalo.group_identifier
+   print(subhalo.group_identifier)
    # member particles
-   print subhalo["member_ids"]
+   print(subhalo["member_ids"])
 
 OWLS FOF/SUBFIND
 ^^^^^^^^^^^^^^^^
@@ -2007,7 +2065,7 @@ based on the presence of a ``info_rt_*.txt`` file in the output directory.
 .. note::
    for backward compatibility, particles from the
    ``part_XXXXX.outYYYYY`` files have the particle type ``io`` by
-   default (including dark matter, stars, tracer particles, …). Sink
+   default (including dark matter, stars, tracer particles, ...). Sink
    particles have the particle type ``sink``.
 
 .. _loading-ramses-data-args:
@@ -2048,7 +2106,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
           # ('all', 'family') and ('all', 'info') now in ds.field_list
 
       The format of the ``extra_particle_fields`` argument is as follows:
-      ``[('field_name_1', 'type_1'), …, ('field_name_n', 'type_n')]`` where
+      ``[('field_name_1', 'type_1'), ..., ('field_name_n', 'type_n')]`` where
       the second element of the tuple follows the `python struct format
       convention
       <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
@@ -2094,7 +2152,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
          that domains have a complicated shape when using Hilbert
          ordering. Internally, yt will hence assume the loaded dataset
          covers the entire simulation. If you only want the data from
-         the selected region, you may want to use ``ds.box(…)``.
+         the selected region, you may want to use ``ds.box(...)``.
 
       .. note::
          The ``bbox`` feature is only available for datasets using
@@ -2166,7 +2224,7 @@ In verions of RAMSES more recent than December 2017, particles carry
 along a ``family`` array. The value of this array gives the kind of
 the particle, e.g. 1 for dark matter. It is possible to customize the
 association between particle type and family by customizing the yt
-config (see :ref:`configuration`), adding
+config (see :ref:`configuration-file`), adding
 
 .. code-block:: none
 
@@ -2208,35 +2266,35 @@ at the big bang, and all particles should have positive values for the
 To help clarify the above discussion, the following table describes the meaning
 of the various particle formation time and age fields:
 
-+------------------+-------------------------+-------------------------------+
-| Simulation type  | Field name              | Description                   |
-|==================|=========================+===============================+
-| cosmological     | `conformal_birth_time`  | Formation time in conformal   |
-|                  |                         | units (dimensionless)         |
-+------------------+-------------------------+--------------------------------+
-| any              | `particle_birth_time`   | The time relative to the       |
-|                  |                         | beginning of the simulation    |
-|                  |                         | when the particle was formed.  |
-|                  |                         | For non-cosmological           |
-|                  |                         | simulations, this field will   |
-|                  |                         | have positive values for       |
-|                  |                         | particles formed during the    |
-|                  |                         | simulation and negative for    |
-|                  |                         | particles of finite age in the |
-|                  |                         | initial conditions. For        |
-|                  |                         | cosmological simulations this  |
-|                  |                         | is the time the particle       |
-|                  |                         | formed relative to the big     |
-|                  |                         | bang, therefore the value of   |
-|                  |                         | this field should be between   |
-|                  |                         | 0 and 13.7 Gyr.                |
-+------------------+-------------------------+--------------------------------+
-| any              | `star_age`              | Age of the particle.           |
-|                  |                         | Only physically meaningful for |
-|                  |                         | stars and particles that       |
-|                  |                         | formed dynamically during the  |
-|                  |                         | simulation.                    |
-+------------------+-------------------------+--------------------------------+
++------------------+--------------------------+--------------------------------+
+| Simulation type  | Field name               | Description                    |
+|==================+==========================+================================+
+| cosmological     | ``conformal_birth_time`` | Formation time in conformal    |
+|                  |                          | units (dimensionless)          |
++------------------+--------------------------+--------------------------------+
+| any              | ``particle_birth_time``  | The time relative to the       |
+|                  |                          | beginning of the simulation    |
+|                  |                          | when the particle was formed.  |
+|                  |                          | For non-cosmological           |
+|                  |                          | simulations, this field will   |
+|                  |                          | have positive values for       |
+|                  |                          | particles formed during the    |
+|                  |                          | simulation and negative for    |
+|                  |                          | particles of finite age in the |
+|                  |                          | initial conditions. For        |
+|                  |                          | cosmological simulations this  |
+|                  |                          | is the time the particle       |
+|                  |                          | formed relative to the big     |
+|                  |                          | bang, therefore the value of   |
+|                  |                          | this field should be between   |
+|                  |                          | 0 and 13.7 Gyr.                |
++------------------+--------------------------+--------------------------------+
+| any              | ``star_age``             | Age of the particle.           |
+|                  |                          | Only physically meaningful for |
+|                  |                          | stars and particles that       |
+|                  |                          | formed dynamically during the  |
+|                  |                          | simulation.                    |
++------------------+--------------------------+--------------------------------+
 
 RAMSES datasets produced by a version of the code newer than November 2017
 contain the metadata necessary for yt to automatically distinguish between star

@@ -411,7 +411,7 @@ def create_averaged_field(registry, basename, field_units, ftype="gas",
         i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
 
         for i, j, k in zip(i_i.ravel(), j_i.ravel(), k_i.ravel()):
-            sl = [slice(i, nx-(2-i)), slice(j, ny-(2-j)), slice(k, nz-(2-k))]
+            sl = (slice(i, nx-(2-i)), slice(j, ny-(2-j)), slice(k, nz-(2-k)))
             new_field += data[(ftype, basename)][sl] * data[(ftype, weight)][sl]
             weight_field += data[(ftype, weight)][sl]
 

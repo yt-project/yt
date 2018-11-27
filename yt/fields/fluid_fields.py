@@ -33,9 +33,6 @@ from yt.utilities.physical_constants import \
     mh, \
     kboltz
 
-from yt.utilities.physical_ratios import \
-    metallicity_sun
-
 from yt.utilities.lib.misc_utilities import \
     obtain_relative_velocity_vector
 
@@ -162,10 +159,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                        function=_entropy)
 
     def _metallicity(field, data):
-        tr = data[ftype, "metal_density"] / data[ftype, "density"]
-        tr /= metallicity_sun
-        return data.apply_units(tr, "Zsun")
-    
+        return data[ftype, "metal_density"] / data[ftype, "density"]
     registry.add_field((ftype, "metallicity"),
                        sampling_type="local",
                        function=_metallicity,
@@ -218,19 +212,17 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         div_fac = 2.0
     else:
         sl_left, sl_right, div_fac = slice_info
-    slice_3d = [slice(1, -1), slice(1, -1), slice(1, -1)]
+    slice_3d = (slice(1, -1), slice(1, -1), slice(1, -1))
 
     def grad_func(axi, ax):
-        slice_3dl = slice_3d[:]
-        slice_3dr = slice_3d[:]
-        slice_3dl[axi] = sl_left
-        slice_3dr[axi] = sl_right
+        slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi+1:]
+        slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
         def func(field, data):
             ds = div_fac * data[ftype, "d%s" % ax]
             f  = data[grad_field][slice_3dr]/ds[slice_3d]
             f -= data[grad_field][slice_3dl]/ds[slice_3d]
-            new_field = data.ds.arr(np.zeros_like(data[grad_field], dtype=np.float64),
-                                    f.units)
+            new_field = np.zeros_like(data[grad_field], dtype=np.float64)
+            new_field = data.ds.arr(new_field, f.units)
             new_field[slice_3d] = f
             return new_field
         return func

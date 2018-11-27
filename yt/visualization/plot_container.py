@@ -22,11 +22,8 @@ import numpy as np
 import matplotlib
 import os
 
-from distutils.version import LooseVersion
 from collections import defaultdict
 from functools import wraps
-
-from .tick_locators import LogLocator, LinearLocator
 
 from yt.config import \
     ytcfg
@@ -157,25 +154,17 @@ field_transforms = {}
 
 
 class FieldTransform(object):
-    def __init__(self, name, func, locator):
+    def __init__(self, name, func):
         self.name = name
         self.func = func
-        self.locator = locator
         field_transforms[name] = self
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
-    def ticks(self, mi, ma):
-        try:
-            ticks = self.locator(mi, ma)
-        except:
-            ticks = []
-        return ticks
-
-log_transform = FieldTransform('log10', np.log10, LogLocator())
-linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
-symlog_transform = FieldTransform('symlog', None, LogLocator())
+log_transform = FieldTransform('log10', np.log10)
+linear_transform = FieldTransform('linear', lambda x: x)
+symlog_transform = FieldTransform('symlog', None)
 
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):
@@ -344,6 +333,7 @@ class PlotContainer(object):
                 lim = tuple(new_ds.quan(l.value, str(l.units)) for l in lim)
                 setattr(self, lim_name, lim)
         self.plots.data_source = new_object
+        self._background_color.data_source = new_object
         self._colorbar_label.data_source = new_object
         self._setup_plots()
 
@@ -676,6 +666,8 @@ class ImagePlotContainer(PlotContainer):
         self._colormaps = defaultdict(
             lambda: ytcfg.get("yt", "default_colormap"))
         self._cbar_minorticks = {}
+        self._background_color = PlotDictionary(
+            self.data_source, lambda: 'w')
         self._colorbar_label = PlotDictionary(
             self.data_source, lambda: None)
 
@@ -729,10 +721,7 @@ class ImagePlotContainer(PlotContainer):
                 except KeyError:
                     cmap = getattr(matplotlib.cm, cmap)
             color = cmap(0)
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            self.plots[actual_field].axes.set_axis_bgcolor(color)
-        else:
-            self.plots[actual_field].axes.set_facecolor(color)
+        self._background_color[actual_field] = color
         return self
 
     @invalidate_plot

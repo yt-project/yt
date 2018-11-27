@@ -15,8 +15,8 @@ from distutils.version import LooseVersion
 import pkg_resources
 
 
-if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 4):
-    print("yt currently supports Python 2.7 or versions newer than Python 3.4")
+if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 5):
+    print("yt currently supports Python 2.7 or versions newer than Python 3.5")
     print("certain features may fail unexpectedly and silently with older "
           "versions.")
     sys.exit(1)
@@ -145,8 +145,15 @@ cython_extensions = [
               include_dirs=["yt/utilities/lib/"],
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
+              language='c++',
               libraries=std_libs,
               depends=["yt/utilities/lib/pixelization_constants.h"]),
+    Extension("yt.utilities.lib.cyoctree",
+              ["yt/utilities/lib/cyoctree.pyx"],
+              extra_compile_args=omp_args,
+              extra_link_args=omp_args,
+              libraries=std_libs,
+              language='c++'),
     Extension("yt.utilities.lib.primitives",
               ["yt/utilities/lib/primitives.pyx"],
               libraries=std_libs),
@@ -408,10 +415,16 @@ setup(
     cmdclass={'sdist': sdist, 'build_ext': build_ext},
     author="The yt project",
     author_email="yt-dev@python.org",
-    url="http://yt-project.org/",
+    url="https://github.com/yt-project/yt",
+    project_urls={
+        'Homepage': 'https://yt-project.org/',
+        'Documentation': 'https://yt-project.org/doc/',
+        'Source': 'https://github.com/yt-project/yt/',
+        'Tracker': 'https://github.com/yt-project/yt/issues'
+    },
     license="BSD 3-Clause",
     zip_safe=False,
     scripts=["scripts/iyt"],
     ext_modules=cython_extensions + extensions,
-    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*'
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*'
 )

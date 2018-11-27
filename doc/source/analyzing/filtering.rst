@@ -186,7 +186,6 @@ to the dataset, it will also add ``stars`` filter to the dataset.
     ds.add_particle_filter('young_stars')
 
 
-
 .. notebook:: particle_filter.ipynb
 
 .. _particle-unions:

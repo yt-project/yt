@@ -227,6 +227,17 @@ class scipy_imports(object):
             self._spatial = spatial
         return self._spatial
 
+    _ndimage = None
+    @property
+    def ndimage(self):
+        if self._ndimage is None:
+            try:
+                import scipy.ndimage as ndimage
+            except ImportError:
+                ndimage = NotAModule(self._name)
+            self._ndimage = ndimage
+        return self._ndimage
+
 _scipy = scipy_imports()
 
 class h5py_imports(object):
@@ -391,3 +402,18 @@ class nose_imports(object):
         return self._run
 
 _nose = nose_imports()
+
+class libconf_imports(object):
+    _name = "libconf"
+    _load = None
+    @property
+    def load(self):
+        if self._load is None:
+            try:
+                from libconf import load
+            except ImportError:
+                load = NotAModule(self._name)
+            self._load = load
+        return self._load
+
+_libconf = libconf_imports()
