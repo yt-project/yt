@@ -322,7 +322,6 @@ cdef inline np.uint64_t bounded_morton_relative_dds(np.float64_t x, np.float64_t
 @cython.cdivision(True)
 cdef inline np.uint64_t bounded_morton_split_dds(np.float64_t x, np.float64_t y, np.float64_t z,
                                np.float64_t *DLE, np.float64_t *dds, np.uint64_t *p):
-    cdef np.uint64_t x_ind, y_ind, z_ind
     cdef np.uint64_t mi
     p[0] = <np.uint64_t> ((x - DLE[0])/dds[0])
     p[1] = <np.uint64_t> ((y - DLE[1])/dds[1])
