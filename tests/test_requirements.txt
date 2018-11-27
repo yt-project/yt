@@ -23,6 +23,6 @@ thingking==1.0.2; python_version < '3.0'
 pint==0.8.1
 netCDF4==1.4.2
 libconf==1.0.1
-cartopy==0.16.0
+cartopy==0.17.0
 pyaml==17.10.0
 mpi4py==3.0.0
