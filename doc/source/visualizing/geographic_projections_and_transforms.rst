@@ -11,7 +11,7 @@ With support from `cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_,
 ``yt`` now supports these projection 
 types for geographically loaded data.
 Underlying data is assumed to have a transform of `PlateCarree
-<https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`_,
+<https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`__,
 which is data on a flattened, rectangular, latitude/longitude grid. This is a
 a typical format for geographic data. 
 
@@ -61,7 +61,7 @@ Using Basic Transforms
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 As mentioned above, the default data transform is assumed to be of `PlateCarree
-<https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`_,
+<https://scitools.org.uk/cartopy/docs/latest/crs/projections.html#platecarree>`__,
 which is data on a flattened, rectangular, latitude/longitude grid. To set
 something other than ``PlateCarree``, the user can access the dictionary in the coordinate
 handler that defines the coordinate transform to change the default transform
