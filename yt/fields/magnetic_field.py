@@ -16,7 +16,6 @@ Magnetic field ... er, fields.
 import numpy as np
 
 from yt.units import dimensions
-from yt.units.unit_object import Unit
 from yt.units.yt_array import ustack
 from yt.utilities.physical_constants import mu_0
 
