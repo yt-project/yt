@@ -8,3 +8,4 @@ nose-timer==0.7.3
 coverage==4.5.1
 codecov==2.0.15
 git+git://github.com/cykdtree/cykdtree@master#egg=cykdtree
+unyt==1.0.7
