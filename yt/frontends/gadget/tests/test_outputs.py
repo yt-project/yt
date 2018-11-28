@@ -33,6 +33,12 @@ BE_Gadget = "BigEndianGadgetBinary/BigEndianGadgetBinary"
 LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
 
+# py2/py3 compat
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
+
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
     [
@@ -60,7 +66,11 @@ def test_gadget_binary():
         ds = yt.load(fake_snap, header_spec=header_spec)
         assert isinstance(ds, GadgetDataset)
         ds.field_list
-        os.remove(fake_snap)
+        try:
+            os.remove(fake_snap)
+        except FileNotFoundError:
+            # sometimes this happens for mysterious reasons
+            pass
 
 
 @requires_file(isothermal_h5)
