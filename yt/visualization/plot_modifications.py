@@ -2662,6 +2662,10 @@ class CellEdgesCallback(PlotCallback):
         self.color = (np.array(conv.to_rgb(color)) * 255).astype("uint8")
 
     def __call__(self, plot):
+        if plot.data.ds.geometry == "cylindrical" and \
+            plot.data.ds.dimensionality == 3:
+            raise NotImplementedError("Cell edge annotation is only supported for \
+                for 2D cylindrical geometry, not 3D")
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
