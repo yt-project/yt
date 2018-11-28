@@ -593,7 +593,7 @@ class GridBoundaryCallback(PlotCallback):
     can change the linewidth of the displayed grids.
     """
     _type_name = "grids"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20,
                  draw_ids=False, id_loc="lower left",
@@ -2627,7 +2627,7 @@ class CellEdgesCallback(PlotCallback):
     >>> s.save()
     """
     _type_name = "cell_edges"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
     def __init__(self, line_width=0.002, alpha = 1.0, color='black'):
         from matplotlib.colors import ColorConverter
         conv = ColorConverter()

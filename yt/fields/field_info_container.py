@@ -180,7 +180,7 @@ class FieldInfoContainer(dict):
         # For non-Cartesian geometry, convert alias of vector fields to 
         # curvilinear coordinates
         if self.curvilinear:
-            # First, we collect the names for all fields and vector fields
+            # First, we collect the names for all aliases
             aliases_gallery = []
             for field in sorted(self.field_list):
                 if field[0] in self.ds.particle_types:
