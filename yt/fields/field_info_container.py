@@ -67,10 +67,10 @@ class FieldInfoContainer(dict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
-        if ds is not None and ds.geometry != "cartesian":
-            self.noncartesian = True
+        if ds is not None and ds.geometry in ["polar","cylindrical","spherical"]:
+            self.curvilinear = True
         else:
-            self.noncartesian = False
+            self.curvilinear = False
         self.setup_fluid_aliases()
 
     def setup_fluid_fields(self):
@@ -86,7 +86,7 @@ class FieldInfoContainer(dict):
                 if (ftype, f) in self: continue
                 self.alias((ftype, f), ("index", f))
 
-    def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
+    def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64):
         skip_output_units = ("code_length")
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
@@ -123,8 +123,8 @@ class FieldInfoContainer(dict):
                 self.pop((ptype, "particle_position"))
             axis_names = self.ds.coordinates.axis_order
             particle_vector_functions(ptype,
-                    ["particle_position_%s" % ax for ax in axis_names],
-                    ["particle_velocity_%s" % ax for ax in axis_names],
+                    ["particle_position_%s" % ax for ax in 'xyz'],
+                    ["particle_velocity_%s" % ax for ax in 'xyz'],
                     self)
         particle_deposition_functions(ptype, "particle_position",
             "particle_mass", self)
@@ -179,16 +179,16 @@ class FieldInfoContainer(dict):
 
         # For non-Cartesian geometry, convert alias of vector fields to 
         # curvilinear coordinates
-        if self.noncartesian:
-            # First, we collect the names for all fluid and vector fields
-            aliases_fluid, aliases_vector = [], []
+        if self.curvilinear:
+            # First, we collect the names for all fields and vector fields
+            aliases_gallery, aliases_vector = [], []
             for field in sorted(self.field_list):
                 if field[0] in self.ds.particle_types:
                     continue
                 args = known_other_fields.get(field[1], ("", [], None))
                 units, aliases, display_name = args
                 for alias in aliases:
-                    aliases_fluid.append(alias)
+                    aliases_gallery.append(alias)
                     if alias[-2:]=="_x": aliases_vector.append(alias[:-2])
 
             # Only vectors with suffixes of a COMPELETE set of (x,y,z) will
@@ -199,10 +199,10 @@ class FieldInfoContainer(dict):
             # by mistake.
             for alias in aliases_vector:
                 to_be_converted = True
-                if "%s_y" % alias not in aliases_fluid \
+                if "%s_y" % alias not in aliases_gallery \
                     and self.ds.dimensionality >= 2:
                     to_be_converted = False
-                if "%s_z" % alias not in aliases_fluid \
+                if "%s_z" % alias not in aliases_gallery \
                     and self.ds.dimensionality == 3:
                     to_be_converted = False
                 if not to_be_converted: aliases_vector.remove(alias)
@@ -215,17 +215,6 @@ class FieldInfoContainer(dict):
             args = known_other_fields.get(
                 field[1], ("", [], None))
             units, aliases, display_name = args
-            # For non-Cartesian geometry, convert vector aliases
-            if self.noncartesian:
-                axis_names = self.ds.coordinates.axis_order
-                for n,alias in enumerate(aliases):
-                    if alias[:-2] in aliases_vector:
-                        if alias[-2:]=="_x":
-                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[0])
-                        elif alias[-2:]=="_y":
-                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[1])
-                        elif alias[-2:]=="_z":
-                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[2])
             # We allow field_units to override this.  First we check if the
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
@@ -241,6 +230,17 @@ class FieldInfoContainer(dict):
                 units = ""
             self.add_output_field(field, sampling_type="cell", units = units,
                                   display_name = display_name)
+            # For non-Cartesian geometry, convert vector aliases
+            if self.curvilinear:
+                axis_names = self.ds.coordinates.axis_order
+                for n, alias in enumerate(aliases):
+                    if alias[:-2] in aliases_vector:
+                        if alias[-2:]=="_x":
+                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[0])
+                        elif alias[-2:]=="_y":
+                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[1])
+                        elif alias[-2:]=="_z":
+                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[2])
             for alias in aliases:
                 self.alias((ftype, alias), field)
 

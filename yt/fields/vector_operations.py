@@ -126,283 +126,286 @@ def create_squared_field(registry, basename, field_units,
 def create_vector_fields(registry, basename, field_units,
                          ftype="gas", slice_info=None):
     from yt.units.unit_object import Unit
-    # slice_info would be the left, the right, and the factor.
-    # For example, with the old Enzo-ZEUS fields, this would be:
-    # slice(None, -2, None)
-    # slice(1, -1, None)
-    # 1.0
-    # Otherwise, we default to a centered difference.
-    if slice_info is None:
-        sl_left = slice(None, -2, None)
-        sl_right = slice(2, None, None)
-        div_fac = 2.0
-    else:
-        sl_left, sl_right, div_fac = slice_info
 
-    xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
+    if registry.ds.geometry not in ["polar", "cylindrical", "spherical"]:
+      # The following fields are invalid for curvilinear geometries
 
-    # Is this safe?
-    if registry.ds.dimensionality < 3:
-        zn = ("index", "zeros")
-    if registry.ds.dimensionality < 2:
-        yn = ("index", "zeros")
+      # slice_info would be the left, the right, and the factor.
+      # For example, with the old Enzo-ZEUS fields, this would be:
+      # slice(None, -2, None)
+      # slice(1, -1, None)
+      # 1.0
+      # Otherwise, we default to a centered difference.
+      if slice_info is None:
+          sl_left = slice(None, -2, None)
+          sl_right = slice(2, None, None)
+          div_fac = 2.0
+      else:
+          sl_left, sl_right, div_fac = slice_info
 
-    create_relative_field(
-        registry, basename, field_units, ftype=ftype, slice_info=slice_info,
-        validators=[ValidateParameter('bulk_%s' % basename)])
+      xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
 
-    create_magnitude_field(
-        registry, basename, field_units, ftype=ftype, slice_info=slice_info,
-        validators=[ValidateParameter('bulk_%s' % basename)])
+      # Is this safe?
+      if registry.ds.dimensionality < 3:
+          zn = ("index", "zeros")
+      if registry.ds.dimensionality < 2:
+          yn = ("index", "zeros")
 
-    def _spherical_radius_component(field, data):
-        """The spherical radius component of the vector field
+      create_relative_field(
+          registry, basename, field_units, ftype=ftype, slice_info=slice_info,
+          validators=[ValidateParameter('bulk_%s' % basename)])
 
-        Relative to the coordinate system defined by the *normal* vector,
-        *center*, and *bulk_* field parameters.
-        """
-        normal = data.get_field_parameter("normal")
-        vectors = obtain_relative_velocity_vector(
-            data, (xn, yn, zn), "bulk_%s" % basename)
-        theta = data['index', 'spherical_theta']
-        phi = data['index', 'spherical_phi']
-        rv = get_sph_r_component(vectors, theta, phi, normal)
-        # Now, anywhere that radius is in fact zero, we want to zero out our
-        # return values.
-        rv[np.isnan(theta)] = 0.0
-        return rv
+      create_magnitude_field(
+          registry, basename, field_units, ftype=ftype, slice_info=slice_info,
+          validators=[ValidateParameter('bulk_%s' % basename)])
 
-    registry.add_field((ftype, "%s_spherical_radius" % basename),
-                       sampling_type="cell",
-                       function=_spherical_radius_component,
-                       units=field_units,
-                       validators=[ValidateParameter("normal"),
-                                   ValidateParameter("center"),
-                                   ValidateParameter("bulk_%s" % basename)])
+      def _spherical_radius_component(field, data):
+          """The spherical radius component of the vector field
 
-    def _radial(field, data):
-        return data[ftype, "%s_spherical_radius" % basename]
+          Relative to the coordinate system defined by the *normal* vector,
+          *center*, and *bulk_* field parameters.
+          """
+          normal = data.get_field_parameter("normal")
+          vectors = obtain_relative_velocity_vector(
+              data, (xn, yn, zn), "bulk_%s" % basename)
+          theta = data['index', 'spherical_theta']
+          phi = data['index', 'spherical_phi']
+          rv = get_sph_r_component(vectors, theta, phi, normal)
+          # Now, anywhere that radius is in fact zero, we want to zero out our
+          # return values.
+          rv[np.isnan(theta)] = 0.0
+          return rv
 
-    def _radial_absolute(field, data):
-        return np.abs(data[ftype, "%s_spherical_radius" % basename])
+      registry.add_field((ftype, "%s_spherical_radius" % basename),
+                         sampling_type="cell",
+                         function=_spherical_radius_component,
+                         units=field_units,
+                         validators=[ValidateParameter("normal"),
+                                     ValidateParameter("center"),
+                                     ValidateParameter("bulk_%s" % basename)])
 
-    def _tangential(field, data):
-        return np.sqrt(data[ftype, "%s_spherical_theta" % basename]**2.0 +
-                       data[ftype, "%s_spherical_phi" % basename]**2.0)
+      def _radial(field, data):
+          return data[ftype, "%s_spherical_radius" % basename]
 
-    registry.add_field((ftype, "radial_%s" % basename),
-                       sampling_type="cell",
-                       function=_radial,
-                       units=field_units,
-                       validators=[ValidateParameter("normal"),
-                                   ValidateParameter("center")])
+      def _radial_absolute(field, data):
+          return np.abs(data[ftype, "%s_spherical_radius" % basename])
 
-    registry.add_field((ftype, "radial_%s_absolute" % basename),
-                       sampling_type="cell",
-                       function=_radial_absolute,
-                       units=field_units)
+      def _tangential(field, data):
+          return np.sqrt(data[ftype, "%s_spherical_theta" % basename]**2.0 +
+                         data[ftype, "%s_spherical_phi" % basename]**2.0)
 
-    registry.add_field((ftype, "tangential_%s" % basename),
-                       sampling_type="cell",
-                       function=_tangential,
-                       units=field_units)
+      registry.add_field((ftype, "radial_%s" % basename),
+                         sampling_type="cell",
+                         function=_radial,
+                         units=field_units,
+                         validators=[ValidateParameter("normal"),
+                                     ValidateParameter("center")])
 
-    def _spherical_theta_component(field, data):
-        """The spherical theta component of the vector field
+      registry.add_field((ftype, "radial_%s_absolute" % basename),
+                         sampling_type="cell",
+                         function=_radial_absolute,
+                         units=field_units)
 
-        Relative to the coordinate system defined by the *normal* vector,
-        *center*, and *bulk_* field parameters.
-        """
-        normal = data.get_field_parameter("normal")
-        vectors = obtain_relative_velocity_vector(
-            data, (xn, yn, zn), "bulk_%s" % basename)
-        theta = data["index", "spherical_theta"]
-        phi = data["index", "spherical_phi"]
-        return get_sph_theta_component(vectors, theta, phi, normal)
+      registry.add_field((ftype, "tangential_%s" % basename),
+                         sampling_type="cell",
+                         function=_tangential,
+                         units=field_units)
 
-    registry.add_field((ftype, "%s_spherical_theta" % basename),
-                       sampling_type="cell",
-                       function=_spherical_theta_component,
-                       units=field_units,
-                       validators=[ValidateParameter("normal"),
-                                   ValidateParameter("center"),
-                                   ValidateParameter("bulk_%s" % basename)])
+      def _spherical_theta_component(field, data):
+          """The spherical theta component of the vector field
 
-    def _spherical_phi_component(field, data):
-        """The spherical phi component of the vector field
+          Relative to the coordinate system defined by the *normal* vector,
+          *center*, and *bulk_* field parameters.
+          """
+          normal = data.get_field_parameter("normal")
+          vectors = obtain_relative_velocity_vector(
+              data, (xn, yn, zn), "bulk_%s" % basename)
+          theta = data["index", "spherical_theta"]
+          phi = data["index", "spherical_phi"]
+          return get_sph_theta_component(vectors, theta, phi, normal)
 
-        Relative to the coordinate system defined by the *normal* vector,
-        *center*, and *bulk_* field parameters.
-        """
-        normal = data.get_field_parameter("normal")
-        vectors = obtain_relative_velocity_vector(
-            data, (xn, yn, zn), "bulk_%s" % basename)
-        phi = data["index", "spherical_phi"]
-        return get_sph_phi_component(vectors, phi, normal)
+      registry.add_field((ftype, "%s_spherical_theta" % basename),
+                         sampling_type="cell",
+                         function=_spherical_theta_component,
+                         units=field_units,
+                         validators=[ValidateParameter("normal"),
+                                     ValidateParameter("center"),
+                                     ValidateParameter("bulk_%s" % basename)])
 
-    registry.add_field((ftype, "%s_spherical_phi" % basename),
-                       sampling_type="cell",
-                       function=_spherical_phi_component,
-                       units=field_units,
-                       validators=[ValidateParameter("normal"),
-                                   ValidateParameter("center"),
-                                   ValidateParameter("bulk_%s" % basename)])
+      def _spherical_phi_component(field, data):
+          """The spherical phi component of the vector field
 
-    def _cp_vectors(ax):
-        def _cp_val(field, data):
-            vec = data.get_field_parameter("cp_%s_vec" % (ax))
-            tr  = data[xn[0], 'relative_%s' % xn[1]] * vec.d[0]
-            tr += data[yn[0], 'relative_%s' % yn[1]] * vec.d[1]
-            tr += data[zn[0], 'relative_%s' % zn[1]] * vec.d[2]
-            return tr
-        return _cp_val
+          Relative to the coordinate system defined by the *normal* vector,
+          *center*, and *bulk_* field parameters.
+          """
+          normal = data.get_field_parameter("normal")
+          vectors = obtain_relative_velocity_vector(
+              data, (xn, yn, zn), "bulk_%s" % basename)
+          phi = data["index", "spherical_phi"]
+          return get_sph_phi_component(vectors, phi, normal)
 
-    for ax in 'xyz':
-        registry.add_field((ftype, "cutting_plane_%s_%s" % (basename, ax)),
-                           sampling_type="cell",
-                           function=_cp_vectors(ax),
-                           units=field_units)
+      registry.add_field((ftype, "%s_spherical_phi" % basename),
+                         sampling_type="cell",
+                         function=_spherical_phi_component,
+                         units=field_units,
+                         validators=[ValidateParameter("normal"),
+                                     ValidateParameter("center"),
+                                     ValidateParameter("bulk_%s" % basename)])
 
-    def _divergence(field, data):
-        ds = div_fac * just_one(data["index", "dx"])
-        f  = data[xn[0], 'relative_%s' % xn[1]][sl_right,1:-1,1:-1]/ds
-        f -= data[xn[0], 'relative_%s' % xn[1]][sl_left ,1:-1,1:-1]/ds
-        ds = div_fac * just_one(data["index", "dy"])
-        f += data[yn[0], 'relative_%s' % yn[1]][1:-1,sl_right,1:-1]/ds
-        f -= data[yn[0], 'relative_%s' % yn[1]][1:-1,sl_left ,1:-1]/ds
-        ds = div_fac * just_one(data["index", "dz"])
-        f += data[zn[0], 'relative_%s' % zn[1]][1:-1,1:-1,sl_right]/ds
-        f -= data[zn[0], 'relative_%s' % zn[1]][1:-1,1:-1,sl_left ]/ds
-        new_field = data.ds.arr(
-            np.zeros(data[xn].shape, dtype=np.float64), f.units)
-        new_field[1:-1,1:-1,1:-1] = f
-        return new_field
+      def _cp_vectors(ax):
+          def _cp_val(field, data):
+              vec = data.get_field_parameter("cp_%s_vec" % (ax))
+              tr  = data[xn[0], 'relative_%s' % xn[1]] * vec.d[0]
+              tr += data[yn[0], 'relative_%s' % yn[1]] * vec.d[1]
+              tr += data[zn[0], 'relative_%s' % zn[1]] * vec.d[2]
+              return tr
+          return _cp_val
 
-    def _divergence_abs(field, data):
-        return np.abs(data[ftype, "%s_divergence" % basename])
+      for ax in 'xyz':
+          registry.add_field((ftype, "cutting_plane_%s_%s" % (basename, ax)),
+                             sampling_type="cell",
+                             function=_cp_vectors(ax),
+                             units=field_units)
 
-    field_units = Unit(field_units, registry=registry.ds.unit_registry)
-    div_units = field_units / registry.ds.unit_system["length"]
+      def _divergence(field, data):
+          ds = div_fac * just_one(data["index", "dx"])
+          f  = data[xn[0], 'relative_%s' % xn[1]][sl_right,1:-1,1:-1]/ds
+          f -= data[xn[0], 'relative_%s' % xn[1]][sl_left ,1:-1,1:-1]/ds
+          ds = div_fac * just_one(data["index", "dy"])
+          f += data[yn[0], 'relative_%s' % yn[1]][1:-1,sl_right,1:-1]/ds
+          f -= data[yn[0], 'relative_%s' % yn[1]][1:-1,sl_left ,1:-1]/ds
+          ds = div_fac * just_one(data["index", "dz"])
+          f += data[zn[0], 'relative_%s' % zn[1]][1:-1,1:-1,sl_right]/ds
+          f -= data[zn[0], 'relative_%s' % zn[1]][1:-1,1:-1,sl_left ]/ds
+          new_field = data.ds.arr(
+              np.zeros(data[xn].shape, dtype=np.float64), f.units)
+          new_field[1:-1,1:-1,1:-1] = f
+          return new_field
 
-    registry.add_field((ftype, "%s_divergence" % basename),
-                       sampling_type="cell",
-                       function=_divergence,
-                       units=div_units,
-                       validators=[ValidateSpatial(1),
-                                   ValidateParameter('bulk_%s' % basename)])
-    
-    registry.add_field((ftype, "%s_divergence_absolute" % basename),
-                       sampling_type="cell",
-                       function=_divergence_abs,
-                       units=div_units)
+      def _divergence_abs(field, data):
+          return np.abs(data[ftype, "%s_divergence" % basename])
 
-    def _tangential_over_magnitude(field, data):
-        tr = (data[ftype, "tangential_%s" % basename] /
-              data[ftype, '%s_magnitude' % basename])
-        return np.abs(tr)
-    registry.add_field((ftype, "tangential_over_%s_magnitude" % basename),
-                       sampling_type="cell",
-                       function=_tangential_over_magnitude,
-                       take_log=False)
+      field_units = Unit(field_units, registry=registry.ds.unit_registry)
+      div_units = field_units / registry.ds.unit_system["length"]
 
-    def _cylindrical_radius_component(field, data):
-        """The cylindrical radius component of the vector field
+      registry.add_field((ftype, "%s_divergence" % basename),
+                         sampling_type="cell",
+                         function=_divergence,
+                         units=div_units,
+                         validators=[ValidateSpatial(1),
+                                     ValidateParameter('bulk_%s' % basename)])
 
-        Relative to the coordinate system defined by the *normal* vector,
-        *center*, and *bulk_* field parameters.
-        """
-        normal = data.get_field_parameter("normal")
-        vectors = obtain_relative_velocity_vector(
-            data, (xn, yn, zn), "bulk_%s" % basename)
-        theta = data["index", 'cylindrical_theta']
-        return get_cyl_r_component(vectors, theta, normal)
+      registry.add_field((ftype, "%s_divergence_absolute" % basename),
+                         sampling_type="cell",
+                         function=_divergence_abs,
+                         units=div_units)
 
-    registry.add_field((ftype, "%s_cylindrical_radius" % basename),
-                       sampling_type="cell",
-                       function=_cylindrical_radius_component,
-                       units=field_units,
-                       validators=[ValidateParameter("normal")])
+      def _tangential_over_magnitude(field, data):
+          tr = (data[ftype, "tangential_%s" % basename] /
+                data[ftype, '%s_magnitude' % basename])
+          return np.abs(tr)
+      registry.add_field((ftype, "tangential_over_%s_magnitude" % basename),
+                         sampling_type="cell",
+                         function=_tangential_over_magnitude,
+                         take_log=False)
 
-    def _cylindrical_radial(field, data):
-        """This field is deprecated and will be removed in a future version"""
-        return data[ftype, '%s_cylindrical_radius' % basename]
+      def _cylindrical_radius_component(field, data):
+          """The cylindrical radius component of the vector field
 
-    registry.add_field((ftype, "cylindrical_radial_%s" % basename),
-                       sampling_type="cell",
-                       function=_cylindrical_radial,
-                       units=field_units)
+          Relative to the coordinate system defined by the *normal* vector,
+          *center*, and *bulk_* field parameters.
+          """
+          normal = data.get_field_parameter("normal")
+          vectors = obtain_relative_velocity_vector(
+              data, (xn, yn, zn), "bulk_%s" % basename)
+          theta = data["index", 'cylindrical_theta']
+          return get_cyl_r_component(vectors, theta, normal)
 
-    def _cylindrical_radial_absolute(field, data):
-        """This field is deprecated and will be removed in a future version"""
-        return np.abs(data[ftype, '%s_cylindrical_radius' % basename])
+      registry.add_field((ftype, "%s_cylindrical_radius" % basename),
+                         sampling_type="cell",
+                         function=_cylindrical_radius_component,
+                         units=field_units,
+                         validators=[ValidateParameter("normal")])
 
-    registry.add_field((ftype, "cylindrical_radial_%s_absolute" % basename),
-                       sampling_type="cell",
-                       function=_cylindrical_radial_absolute,
-                       units=field_units,
-                       validators=[ValidateParameter("normal")])
+      def _cylindrical_radial(field, data):
+          """This field is deprecated and will be removed in a future version"""
+          return data[ftype, '%s_cylindrical_radius' % basename]
 
-    def _cylindrical_theta_component(field, data):
-        """The cylindrical theta component of the vector field
+      registry.add_field((ftype, "cylindrical_radial_%s" % basename),
+                         sampling_type="cell",
+                         function=_cylindrical_radial,
+                         units=field_units)
 
-        Relative to the coordinate system defined by the *normal* vector,
-        *center*, and *bulk_* field parameters.
-        """
-        normal = data.get_field_parameter("normal")
-        vectors = obtain_relative_velocity_vector(
-            data, (xn, yn, zn), "bulk_%s" % basename)
-        theta = data["index", 'cylindrical_theta'].copy()
-        theta = np.tile(theta, (3,) + (1,)*len(theta.shape))
-        return get_cyl_theta_component(vectors, theta, normal)
+      def _cylindrical_radial_absolute(field, data):
+          """This field is deprecated and will be removed in a future version"""
+          return np.abs(data[ftype, '%s_cylindrical_radius' % basename])
 
-    registry.add_field((ftype, "%s_cylindrical_theta" % basename),
-                       sampling_type="cell",
-                       function=_cylindrical_theta_component,
-                       units=field_units,
-                       validators=[ValidateParameter("normal"),
-                                   ValidateParameter("center"),
-                                   ValidateParameter("bulk_%s" % basename)])
+      registry.add_field((ftype, "cylindrical_radial_%s_absolute" % basename),
+                         sampling_type="cell",
+                         function=_cylindrical_radial_absolute,
+                         units=field_units,
+                         validators=[ValidateParameter("normal")])
 
-    def _cylindrical_tangential(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data["%s_cylindrical_theta" % basename]
+      def _cylindrical_theta_component(field, data):
+          """The cylindrical theta component of the vector field
 
-    def _cylindrical_tangential_absolute(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return np.abs(data['cylindrical_tangential_%s' % basename])
+          Relative to the coordinate system defined by the *normal* vector,
+          *center*, and *bulk_* field parameters.
+          """
+          normal = data.get_field_parameter("normal")
+          vectors = obtain_relative_velocity_vector(
+              data, (xn, yn, zn), "bulk_%s" % basename)
+          theta = data["index", 'cylindrical_theta'].copy()
+          theta = np.tile(theta, (3,) + (1,)*len(theta.shape))
+          return get_cyl_theta_component(vectors, theta, normal)
 
-    registry.add_field((ftype, "cylindrical_tangential_%s" % basename),
-                       sampling_type="cell",
-                       function=_cylindrical_tangential,
-                       units=field_units)
+      registry.add_field((ftype, "%s_cylindrical_theta" % basename),
+                         sampling_type="cell",
+                         function=_cylindrical_theta_component,
+                         units=field_units,
+                         validators=[ValidateParameter("normal"),
+                                     ValidateParameter("center"),
+                                     ValidateParameter("bulk_%s" % basename)])
 
-    registry.add_field(
-        (ftype, "cylindrical_tangential_%s_absolute" % basename),
-        sampling_type="cell",
-        function=_cylindrical_tangential_absolute,
-        units=field_units)
+      def _cylindrical_tangential(field, data):
+          """This field is deprecated and will be removed in a future release"""
+          return data["%s_cylindrical_theta" % basename]
 
-    def _cylindrical_z_component(field, data):
-        """The cylindrical z component of the vector field
+      def _cylindrical_tangential_absolute(field, data):
+          """This field is deprecated and will be removed in a future release"""
+          return np.abs(data['cylindrical_tangential_%s' % basename])
 
-        Relative to the coordinate system defined by the *normal* vector,
-        *center*, and *bulk_* field parameters.
-        """
-        normal = data.get_field_parameter("normal")
-        vectors = obtain_relative_velocity_vector(
-            data, (xn, yn, zn), "bulk_%s" % basename)
-        return get_cyl_z_component(vectors, normal)
+      registry.add_field((ftype, "cylindrical_tangential_%s" % basename),
+                         sampling_type="cell",
+                         function=_cylindrical_tangential,
+                         units=field_units)
 
-    registry.add_field((ftype, "%s_cylindrical_z" % basename),
-                       sampling_type="cell",
-                       function=_cylindrical_z_component,
-                       units=field_units,
-                       validators=[ValidateParameter("normal"),
-                                   ValidateParameter("center"),
-                                   ValidateParameter("bulk_%s" % basename)])
+      registry.add_field(
+          (ftype, "cylindrical_tangential_%s_absolute" % basename),
+          sampling_type="cell",
+          function=_cylindrical_tangential_absolute,
+          units=field_units)
 
-    # Create Cartesian fields for curvilinear coordinates
-    if registry.ds.geometry in ["polar", "cylindrical", "spherical"]:
+      def _cylindrical_z_component(field, data):
+          """The cylindrical z component of the vector field
+
+          Relative to the coordinate system defined by the *normal* vector,
+          *center*, and *bulk_* field parameters.
+          """
+          normal = data.get_field_parameter("normal")
+          vectors = obtain_relative_velocity_vector(
+              data, (xn, yn, zn), "bulk_%s" % basename)
+          return get_cyl_z_component(vectors, normal)
+
+      registry.add_field((ftype, "%s_cylindrical_z" % basename),
+                         sampling_type="cell",
+                         function=_cylindrical_z_component,
+                         units=field_units,
+                         validators=[ValidateParameter("normal"),
+                                     ValidateParameter("center"),
+                                     ValidateParameter("bulk_%s" % basename)])
+
+    else: # Create Cartesian fields for curvilinear coordinates
 
       def _cartesian_x(field,data):
 

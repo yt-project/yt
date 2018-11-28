@@ -188,6 +188,8 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                           weight="cell_mass")
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
+    # Current implementation for gradient is not valid for curvilinear geometries
+    if registry.ds.geometry in ["polar", "cylindrical", "spherical"]: return
     assert(isinstance(grad_field, tuple))
     ftype, fname = grad_field
     if slice_info is None:

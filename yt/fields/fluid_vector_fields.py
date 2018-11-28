@@ -31,6 +31,8 @@ from .vector_operations import \
 
 @register_field_plugin
 def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
+    # Current implementation for gradient is not valid for curvilinear geometries
+    if registry.ds.geometry in ["polar", "cylindrical", "spherical"]: return
     unit_system = registry.ds.unit_system
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
