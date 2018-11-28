@@ -357,7 +357,7 @@ class MagFieldCallback(PlotCallback):
     clearly seen for fields with substantial variation in field strength.
     """
     _type_name = "magnetic_field"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, factor=16, scale=None, scale_units=None,
                  normalize=False, plot_args=None):
         PlotCallback.__init__(self)
@@ -402,7 +402,7 @@ class QuiverCallback(PlotCallback):
     substantial variation in field strength.
     """
     _type_name = "quiver"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, field_x, field_y, factor=16, scale=None,
                  scale_units=None, normalize=False,
                  plot_args=None):
@@ -467,7 +467,7 @@ class ContourCallback(PlotCallback):
     queried.
     """
     _type_name = "contour"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, field, ncont=5, factor=4, clim=None,
                  plot_args=None, label=False, take_log=None,
                  label_args=None, text_args=None, data_source=None):
@@ -593,7 +593,7 @@ class GridBoundaryCallback(PlotCallback):
     can change the linewidth of the displayed grids.
     """
     _type_name = "grids"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
 
     def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20,
                  draw_ids=False, id_loc="lower left",
@@ -735,7 +735,7 @@ class StreamlineCallback(PlotCallback):
     their line width set to 0.
     """
     _type_name = "streamlines"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, field_x, field_y, factor=16,
                  density=1, field_color=None,
                  display_threshold=None,
@@ -862,7 +862,7 @@ class LinePlotCallback(PlotCallback):
 
     """
     _type_name = "line"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, p1, p2, data_coords=False, coord_system="data",
                  plot_args=None):
         PlotCallback.__init__(self)
@@ -899,7 +899,7 @@ class ImageLineCallback(LinePlotCallback):
 
     """
     _type_name = "image_line"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, p1, p2, data_coords=False, coord_system='axis',
                  plot_args=None):
         super(ImageLineCallback, self).__init__(p1, p2, data_coords,
@@ -981,7 +981,7 @@ class ClumpContourCallback(PlotCallback):
     Take a list of *clumps* and plot them as a set of contours.
     """
     _type_name = "clumps"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, clumps, plot_args=None):
         self.clumps = clumps
         if plot_args is None: plot_args = {}
@@ -1114,7 +1114,7 @@ class ArrowCallback(PlotCallback):
 
     """
     _type_name = "arrow"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, pos, code_size=None, length=0.03, width=0.0001,
                  head_width=0.01, head_length=0.01,
                  starting_pos=None, coord_system='data', plot_args=None):
@@ -1226,7 +1226,7 @@ class MarkerAnnotateCallback(PlotCallback):
 
     """
     _type_name = "marker"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
         def_plot_args = {'color':'w', 's':50}
         self.pos = pos
@@ -1295,7 +1295,7 @@ class SphereCallback(PlotCallback):
 
     """
     _type_name = "sphere"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, center, radius, circle_args=None,
                  text=None, coord_system='data', text_args=None):
         def_text_args = {'color':'white'}
@@ -1406,7 +1406,7 @@ class TextLabelCallback(PlotCallback):
     >>> s.save()
     """
     _type_name = "text"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, pos, text, data_coords=False, coord_system='data',
                  text_args=None, inset_box_args=None):
         def_text_args = {'color':'white'}
@@ -1447,7 +1447,7 @@ class PointAnnotateCallback(TextLabelCallback):
 
     """
     _type_name = "point"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, pos, text, data_coords=False, coord_system='data',
                  text_args=None, inset_box_args=None):
         super(PointAnnotateCallback, self).__init__(pos, text, data_coords,
@@ -1680,7 +1680,7 @@ class ParticleCallback(PlotCallback):
     _type_name = "particles"
     region = None
     _descriptor = None
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1,
                  ptype='all', minimum_mass=None, alpha=1.0, data_source=None):
         PlotCallback.__init__(self)
@@ -2013,7 +2013,7 @@ class TimestampCallback(PlotCallback):
     >>> s.annotate_timestamp()
     """
     _type_name = "timestamp"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True,
                  redshift=False, time_format="t = {time:.1f} {units}",
                  time_unit=None, redshift_format="z = {redshift:.2f}",
@@ -2531,7 +2531,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
                                              lim=(0.5,0.65))
     """
     _type_name = "line_integral_convolution"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, field_x, field_y, texture=None, kernellen=50.,
                  lim=(0.5,0.6), cmap='binary', alpha=0.8, const_alpha=False):
         PlotCallback.__init__(self)
@@ -2627,7 +2627,7 @@ class CellEdgesCallback(PlotCallback):
     >>> s.save()
     """
     _type_name = "cell_edges"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical", "spherical")
     def __init__(self, line_width=0.002, alpha = 1.0, color='black'):
         from matplotlib.colors import ColorConverter
         conv = ColorConverter()
