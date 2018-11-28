@@ -67,6 +67,10 @@ class FieldInfoContainer(dict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
+        if ds is not None and ds.geometry != "cartesian":
+            self.noncartesian = True
+        else:
+            self.noncartesian = False
         self.setup_fluid_aliases()
 
     def setup_fluid_fields(self):
@@ -117,9 +121,10 @@ class FieldInfoContainer(dict):
             if (ptype, "particle_position") in self and \
                  self[ptype, "particle_position"]._function == NullFunc:
                 self.pop((ptype, "particle_position"))
+            axis_names = self.ds.coordinates.axis_order
             particle_vector_functions(ptype,
-                    ["particle_position_%s" % ax for ax in 'xyz'],
-                    ["particle_velocity_%s" % ax for ax in 'xyz'],
+                    ["particle_position_%s" % ax for ax in axis_names],
+                    ["particle_velocity_%s" % ax for ax in axis_names],
                     self)
         particle_deposition_functions(ptype, "particle_position",
             "particle_mass", self)
@@ -171,6 +176,37 @@ class FieldInfoContainer(dict):
 
     def setup_fluid_aliases(self, ftype='gas'):
         known_other_fields = dict(self.known_other_fields)
+
+        # For non-Cartesian geometry, convert alias of vector fields to 
+        # curvilinear coordinates
+        if self.noncartesian:
+            # First, we collect the names for all fluid and vector fields
+            aliases_fluid, aliases_vector = [], []
+            for field in sorted(self.field_list):
+                if field[0] in self.ds.particle_types:
+                    continue
+                args = known_other_fields.get(field[1], ("", [], None))
+                units, aliases, display_name = args
+                for alias in aliases:
+                    aliases_fluid.append(alias)
+                    if alias[-2:]=="_x": aliases_vector.append(alias[:-2])
+
+            # Only vectors with suffixes of a COMPELETE set of (x,y,z) will
+            # be considered as not under proper geometry and converted.
+            # If the suffixes are not complete, simple conversion might cause
+            # unforeseeable error. Say, if vectors are already under cylindrical 
+            # coordinate (r,z,theta), they might be converted to (r,y,theta)
+            # by mistake.
+            for alias in aliases_vector:
+                to_be_converted = True
+                if "%s_y" % alias not in aliases_fluid \
+                    and self.ds.dimensionality >= 2:
+                    to_be_converted = False
+                if "%s_z" % alias not in aliases_fluid \
+                    and self.ds.dimensionality == 3:
+                    to_be_converted = False
+                if not to_be_converted: aliases_vector.remove(alias)
+            
         for field in sorted(self.field_list):
             if not isinstance(field, tuple):
                 raise RuntimeError
@@ -179,6 +215,17 @@ class FieldInfoContainer(dict):
             args = known_other_fields.get(
                 field[1], ("", [], None))
             units, aliases, display_name = args
+            # For non-Cartesian geometry, convert vector aliases
+            if self.noncartesian:
+                axis_names = self.ds.coordinates.axis_order
+                for n,alias in enumerate(aliases):
+                    if alias[:-2] in aliases_vector:
+                        if alias[-2:]=="_x":
+                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[0])
+                        elif alias[-2:]=="_y":
+                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[1])
+                        elif alias[-2:]=="_z":
+                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[2])
             # We allow field_units to override this.  First we check if the
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
