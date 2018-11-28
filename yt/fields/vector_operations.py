@@ -127,37 +127,37 @@ def create_vector_fields(registry, basename, field_units,
                          ftype="gas", slice_info=None):
     from yt.units.unit_object import Unit
 
+    # slice_info would be the left, the right, and the factor.
+    # For example, with the old Enzo-ZEUS fields, this would be:
+    # slice(None, -2, None)
+    # slice(1, -1, None)
+    # 1.0
+    # Otherwise, we default to a centered difference.
+    if slice_info is None:
+        sl_left = slice(None, -2, None)
+        sl_right = slice(2, None, None)
+        div_fac = 2.0
+    else:
+        sl_left, sl_right, div_fac = slice_info
+
+    xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
+
+    # Is this safe?
+    if registry.ds.dimensionality < 3:
+        zn = ("index", "zeros")
+    if registry.ds.dimensionality < 2:
+        yn = ("index", "zeros")
+
+    create_relative_field(
+        registry, basename, field_units, ftype=ftype, slice_info=slice_info,
+        validators=[ValidateParameter('bulk_%s' % basename)])
+
+    create_magnitude_field(
+        registry, basename, field_units, ftype=ftype, slice_info=slice_info,
+        validators=[ValidateParameter('bulk_%s' % basename)])
+
     if registry.ds.geometry not in ["polar", "cylindrical", "spherical"]:
       # The following fields are invalid for curvilinear geometries
-
-      # slice_info would be the left, the right, and the factor.
-      # For example, with the old Enzo-ZEUS fields, this would be:
-      # slice(None, -2, None)
-      # slice(1, -1, None)
-      # 1.0
-      # Otherwise, we default to a centered difference.
-      if slice_info is None:
-          sl_left = slice(None, -2, None)
-          sl_right = slice(2, None, None)
-          div_fac = 2.0
-      else:
-          sl_left, sl_right, div_fac = slice_info
-
-      xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in 'xyz']
-
-      # Is this safe?
-      if registry.ds.dimensionality < 3:
-          zn = ("index", "zeros")
-      if registry.ds.dimensionality < 2:
-          yn = ("index", "zeros")
-
-      create_relative_field(
-          registry, basename, field_units, ftype=ftype, slice_info=slice_info,
-          validators=[ValidateParameter('bulk_%s' % basename)])
-
-      create_magnitude_field(
-          registry, basename, field_units, ftype=ftype, slice_info=slice_info,
-          validators=[ValidateParameter('bulk_%s' % basename)])
 
       def _spherical_radius_component(field, data):
           """The spherical radius component of the vector field
