@@ -181,7 +181,7 @@ class FieldInfoContainer(dict):
         # curvilinear coordinates
         if self.curvilinear:
             # First, we collect the names for all fields and vector fields
-            aliases_gallery, aliases_vector = [], []
+            aliases_gallery = []
             for field in sorted(self.field_list):
                 if field[0] in self.ds.particle_types:
                     continue
@@ -189,23 +189,6 @@ class FieldInfoContainer(dict):
                 units, aliases, display_name = args
                 for alias in aliases:
                     aliases_gallery.append(alias)
-                    if alias[-2:]=="_x": aliases_vector.append(alias[:-2])
-
-            # Only vectors with suffixes of a COMPELETE set of (x,y,z) will
-            # be considered as not under proper geometry and converted.
-            # If the suffixes are not complete, simple conversion might cause
-            # unforeseeable error. Say, if vectors are already under cylindrical 
-            # coordinate (r,z,theta), they might be converted to (r,y,theta)
-            # by mistake.
-            for alias in aliases_vector:
-                to_be_converted = True
-                if "%s_y" % alias not in aliases_gallery \
-                    and self.ds.dimensionality >= 2:
-                    to_be_converted = False
-                if "%s_z" % alias not in aliases_gallery \
-                    and self.ds.dimensionality == 3:
-                    to_be_converted = False
-                if not to_be_converted: aliases_vector.remove(alias)
             
         for field in sorted(self.field_list):
             if not isinstance(field, tuple):
@@ -230,18 +213,25 @@ class FieldInfoContainer(dict):
                 units = ""
             self.add_output_field(field, sampling_type="cell", units = units,
                                   display_name = display_name)
-            # For non-Cartesian geometry, convert vector aliases
-            if self.curvilinear:
-                axis_names = self.ds.coordinates.axis_order
-                for n, alias in enumerate(aliases):
-                    if alias[:-2] in aliases_vector:
-                        if alias[-2:]=="_x":
-                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[0])
-                        elif alias[-2:]=="_y":
-                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[1])
-                        elif alias[-2:]=="_z":
-                            aliases[n] = "%s_%s" % (alias[:-2], axis_names[2])
             for alias in aliases:
+                if self.curvilinear: # For non-Cartesian geometry, convert vector aliases
+                    axis_names = self.ds.coordinates.axis_order
+                    if alias[-2:] in ["_x", "_y", "_z"] and \
+                        "%s_%s" % (alias[:-2], 'x') in aliases_gallery and \
+                        "%s_%s" % (alias[:-2], 'y') in aliases_gallery and \
+                        "%s_%s" % (alias[:-2], 'z') in aliases_gallery:
+                        # Only vectors with suffixes of a COMPELETE set of (x,y,z) will
+                        # be considered as not under proper geometry and converted.
+                        # If the suffixes are not complete, simple conversion might cause
+                        # unforeseeable error. Say, if vectors are already under cylindrical 
+                        # coordinate (r,z,theta), they might be converted to (r,y,theta)
+                        # by mistake.
+                        if alias[-2:]=="_x":
+                            alias = "%s_%s" % (alias[:-2], axis_names[0])
+                        elif alias[-2:]=="_y":
+                            alias = "%s_%s" % (alias[:-2], axis_names[1])
+                        elif alias[-2:]=="_z":
+                            alias = "%s_%s" % (alias[:-2], axis_names[2])
                 self.alias((ftype, alias), field)
 
     def add_field(self, name, sampling_type, function=None, **kwargs):
