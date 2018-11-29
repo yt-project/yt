@@ -382,19 +382,21 @@ class EnzoHierarchy(GridIndex):
                 self.dataset.particle_types = new_ptypes
                 self.dataset.particle_types_raw = new_ptypes
                 continue
-            gs = self.grids[select_grids > 0]
-            g = gs[0]
-            handle = h5py.File(g.filename, "r")
-            node = handle["/Grid%08i/Particles/" % g.id]
-            for ptype in (str(p) for p in node):
-                if ptype not in _fields: continue
-                for field in (str(f) for f in node[ptype]):
-                    _fields[ptype].append(field)
-                    sh = node[ptype][field].shape
-                    if len(sh) > 1:
-                        self.io._array_fields[field] = (sh[1], )
-                fields += [(ptype, field) for field in _fields.pop(ptype)]
-            handle.close()
+            
+            if(ptype != "DarkMatter"):
+                gs = self.grids[select_grids > 0]
+                g = gs[0]
+                handle = h5py.File(g.filename, "r")
+                node = handle["/Grid%08i/Active Particles/" % g.id]
+                for ptype in (str(p) for p in node):
+                    if ptype not in _fields: continue
+                    for field in (str(f) for f in node[ptype]):
+                        _fields[ptype].append(field)
+                        sh = node[ptype][field].shape
+                        if len(sh) > 1:
+                            self.io._array_fields[field] = (sh[1], )
+                    fields += [(ptype, field) for field in _fields.pop(ptype)]
+                handle.close()
         return set(fields)
 
     def _setup_derived_fields(self):

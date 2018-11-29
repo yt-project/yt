@@ -42,6 +42,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         fields = []
         dtypes = set([])
         add_io = "io" in grid.ds.particle_types
+        add_dm = "DarkMatter" in grid.ds.particle_types
         for name, v in iteritems(group):
             # NOTE: This won't work with 1D datasets or references.
             # For all versions of Enzo I know about, we can assume all floats
@@ -53,6 +54,8 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     fields.append( ("enzo", str(name)) )
                 elif add_io:
                     fields.append( ("io", str(name)) )
+                elif add_dm:
+                    fields.append( ("DarkMatter", str(name)) )
             else:
                 fields.append( ("enzo", str(name)) )
                 dtypes.add(v.dtype)
@@ -90,11 +93,15 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     continue
                 ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
-                    if ptype != "io":
-                        if g.NumberOfActiveParticles[ptype] == 0: continue
-                        pds = ds.get("Particles/%s" % ptype)
-                    else:
+                    if ptype == "io":
+                        if g.NumberOfParticles == 0: continue
                         pds = ds
+                    elif ptype == "DarkMatter":
+                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        pds = ds
+                    else:
+                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        pds = ds.get("Active Particles/%s" % ptype)
                     pn = _particle_position_names.get(ptype,
                             r"particle_position_%s")
                     x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
