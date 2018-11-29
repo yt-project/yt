@@ -26,9 +26,7 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
     big_patch_amr, \
-    data_dir_load, \
-    AnalyticHaloMassFunctionTest, \
-    SimulatedHaloMassFunctionTest
+    data_dir_load
 from yt.visualization.plot_window import \
     SlicePlot
 from yt.frontends.enzo.api import EnzoDataset
@@ -107,18 +105,6 @@ def test_kh2d():
     for test in small_patch_amr(ds, ds.field_list):
         test_toro1d.__name__ = test.description
         yield test
-
-@requires_ds(enzotiny)
-def test_simulated_halo_mass_function():
-    ds = data_dir_load(enzotiny)
-    for finder in ["fof", "hop"]:
-        yield SimulatedHaloMassFunctionTest(ds, finder)
-
-@requires_ds(enzotiny)
-def test_analytic_halo_mass_function():
-    ds = data_dir_load(enzotiny)
-    for fit in range(1, 6):
-        yield AnalyticHaloMassFunctionTest(ds, fit)
 
 @requires_ds(ecp, big_data=True)
 def test_ecp():

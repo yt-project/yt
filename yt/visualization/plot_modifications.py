@@ -27,8 +27,6 @@ from numbers import Number
 
 from yt.data_objects.level_sets.clump_handling import \
     Clump
-from yt.analysis_modules.halo_analysis.halo_catalog import \
-    HaloCatalog
 from yt.frontends.ytdata.data_structures import \
     YTClumpContainer
 from yt.data_objects.selection_data_containers import YTCutRegion
@@ -47,14 +45,16 @@ from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import \
     pixelize_off_axis_cartesian, \
     pixelize_cartesian
-from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
-    periodic_ray
 from yt.utilities.lib.line_integral_convolution import \
     line_integral_convolution_2d
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 from yt.utilities.exceptions import \
     YTDataTypeUnsupported
+from yt.utilities.math_utils import \
+    periodic_ray
+from yt.utilities.on_demand_imports import \
+    NotAModule
 
 callback_registry = {}
 
@@ -1477,6 +1477,10 @@ class HaloCatalogCallback(PlotCallback):
     in a halo catalog with radii corresponding to the
     virial radius of each halo.
 
+    Note, this functionality requires the yt_astro_analysis
+    package. See https://yt-astro-analysis.readthedocs.io/
+    for more information.
+
     Parameters
     ----------
     halo_catalog : Dataset, DataContainer, or HaloCatalog
@@ -1541,7 +1545,7 @@ class HaloCatalogCallback(PlotCallback):
 
     >>> # plot halos from a HaloCatalog
     >>> import yt
-    >>> from yt.analysis_modules.halo_analysis.api import HaloCatalog
+    >>> from yt.extensions.astro_analysis.halo_analysis.api import HaloCatalog
     >>> dds = yt.load("Enzo_64/DD0043/data0043")
     >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
     >>> hc = HaloCatalog(data_ds=dds, halos_ds=hds)
@@ -1560,6 +1564,12 @@ class HaloCatalogCallback(PlotCallback):
                  width=None, annotate_field=None, radius_field='virial_radius',
                  center_field_prefix="particle_position",
                  text_args=None, font_kwargs=None, factor=1.0):
+
+        try:
+            from yt_astro_analysis.halo_analysis.api import \
+                HaloCatalog
+        except ImportError:
+            HaloCatalog = NotAModule('yt_astro_analysis')
 
         PlotCallback.__init__(self)
         def_circle_args = {'edgecolor':'white', 'facecolor':'None'}
@@ -2358,8 +2368,7 @@ class RayCallback(PlotCallback):
 
     ray : YTOrthoRay, YTRay, or LightRay
         Ray is the object that we want to include.  We overplot the projected
-        trajectory of the ray.  If the object is a
-        analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
+        trajectory of the ray.  If the object is a trident.LightRay
         object, it will only plot the segment of the LightRay that intersects
         the dataset currently displayed.
 
@@ -2387,7 +2396,7 @@ class RayCallback(PlotCallback):
 
     >>> # Overplot a LightRay object on a projection
     >>> import yt
-    >>> from yt.analysis_modules.cosmological_observation.api import LightRay
+    >>> from trident import LightRay
     >>> ds = yt.load('enzo_cosmology_plus/RD0004/RD0004')
     >>> lr = LightRay("enzo_cosmology_plus/AMRCosmology.enzo",
     ...               'Enzo', 0.0, 0.1, time_data=False)

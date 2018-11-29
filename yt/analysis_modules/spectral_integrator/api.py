@@ -1,8 +1,19 @@
-from yt.funcs import issue_deprecation_warning
+"""
+API for spectral_integrator
 
-issue_deprecation_warning("The spectral_integrator module is deprecated. "
-                          "'add_xray_emissivity_field' can now be imported "
-                          "from the yt module.")
 
-from yt.fields.xray_emission_fields import \
-    add_xray_emissivity_field
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) yt Development Team. All rights reserved.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
+raise RuntimeError(
+    "The spectral_integrator module as been moved to yt.fields."
+    "'add_xray_emissivity_field' can now be imported "
+    "from the yt module.")

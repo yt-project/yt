@@ -297,59 +297,6 @@ to see the tip of the development branch.
 This will make sure you are running a version of yt corresponding to the
 most up-to-date source code.
 
-Installing Support for the Rockstar Halo Finder
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The easiest way to set rockstar up in a conda-based python environment is to run
-the install script with ``INST_ROCKSTAR=1``.
-
-If you want to do this manually, you will need to follow these
-instructions. First, clone Matt Turk's fork of rockstar and compile it:
-
-.. code-block:: bash
-
-  $ git clone https://github.com/yt-project/rockstar
-  $ cd rockstar
-  $ make lib
-
-Next, copy `librockstar.so` into the `lib` folder of your anaconda installation:
-
-.. code-block:: bash
-
-  $ cp librockstar.so /path/to/anaconda/lib
-
-Finally, you will need to recompile yt to enable the rockstar interface. Clone a
-copy of the yt git repository (see :ref:`conda-source-build`), or navigate
-to a clone that you have already made, and do the following:
-
-.. code-block:: bash
-
-  $ cd /path/to/yt-git
-  $ ./clean.sh
-  $ echo /path/to/rockstar > rockstar.cfg
-  $ pip install -e .
-
-Here ``/path/to/yt-git`` is the path to your clone of the yt git repository
-and ``/path/to/rockstar`` is the path to your clone of Matt Turk's fork of
-rockstar.
-
-Finally, to actually use rockstar, you will need to ensure the folder containing
-`librockstar.so` is in your LD_LIBRARY_PATH:
-
-.. code-block:: bash
-
-  $ export LD_LIBRARY_PATH=/path/to/anaconda/lib
-
-You should now be able to enter a python session and import the rockstar
-interface:
-
-.. code-block:: python
-
-  >>> from yt.analysis_modules.halo_finding.rockstar import rockstar_interface
-
-If this python import fails, then you have not installed rockstar and yt's
-rockstar interface correctly.
-
 .. _windows-installation:
 
 Installing yt on Windows

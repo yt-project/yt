@@ -785,3 +785,12 @@ class YTCommandRequiresModule(YTException):
         msg += "or:\n"
         msg += "  pip install %s\n" % self.module
         return msg
+
+class YTModuleRemoved(Exception):
+    def __init__(self, name, new_home=None, info=None):
+        message = "The %s module has been removed from yt." % name
+        if new_home is not None:
+            message += "\nIt has been moved to %s." % new_home
+        if info is not None:
+            message += "\nFor more information, see %s." % info
+        Exception.__init__(self, message)
