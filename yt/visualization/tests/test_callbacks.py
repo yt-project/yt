@@ -436,7 +436,7 @@ def test_quiver_callback():
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", "density")
-        slc.annotate_quiver("velocity_x", "velocity_y")
+        slc.annotate_quiver("velocity_r", "velocity_z")
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
