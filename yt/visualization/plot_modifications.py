@@ -444,7 +444,6 @@ class QuiverCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         bounds = [x0,x1,y0,y1]
-        extent = [xx0,xx1,yy0,yy1]
         periodic = int(any(plot.data.ds.periodicity))
 
         # We are feeding this size into the pixelizer, where it will properly
@@ -782,7 +781,6 @@ class StreamlineCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         bounds = [x0,x1,y0,y1]
-        extent = [xx0,xx1,yy0,yy1]
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order

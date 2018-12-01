@@ -121,7 +121,6 @@ class FieldInfoContainer(dict):
             if (ptype, "particle_position") in self and \
                  self[ptype, "particle_position"]._function == NullFunc:
                 self.pop((ptype, "particle_position"))
-            axis_names = self.ds.coordinates.axis_order
             particle_vector_functions(ptype,
                     ["particle_position_%s" % ax for ax in 'xyz'],
                     ["particle_velocity_%s" % ax for ax in 'xyz'],
