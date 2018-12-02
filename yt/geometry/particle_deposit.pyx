@@ -343,7 +343,7 @@ cdef class CICDeposit(ParticleDepositOperation):
         if not all(_ > 1 for _ in self.nvals):
             from yt.utilities.exceptions import YTBoundsDefinitionError
             raise YTBoundsDefinitionError(
-                "CIC requires minimum of 2 zones in all spatial dimensions",
+                "CIC requires minimum of 2 zones in all spatial dimensions.",
                 self.nvals)
         self.field = append_axes(
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
