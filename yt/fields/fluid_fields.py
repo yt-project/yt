@@ -65,6 +65,14 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                        units=unit_system["mass"])
     registry.alias((ftype, "mass"), (ftype, "cell_mass"))
 
+    if (ftype, "volume") not in registry:
+        def _volume(field, data):
+            return data[ftype, "mass"]/data[ftype, "density"]
+        registry.add_field((ftype, "volume"),
+                           sampling_type="local",
+                           function=_volume,
+                           units=unit_system["volume"])
+
     def _sound_speed(field, data):
         tr = data.ds.gamma * data[ftype, "pressure"] / data[ftype, "density"]
         return np.sqrt(tr)
