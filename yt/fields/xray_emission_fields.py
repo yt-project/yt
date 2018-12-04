@@ -23,7 +23,6 @@ from yt.fields.derived_field import DerivedField
 from yt.funcs import \
     mylog, \
     only_on_root, \
-    issue_deprecation_warning, \
     parse_h5_attr
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.exceptions import YTException
@@ -36,6 +35,7 @@ data_version = {"cloudy": 2,
                 "apec": 2}
 
 data_url = "http://yt-project.org/data"
+
 
 def _get_data_file(table_type, data_dir=None):
     data_file = "%s_emissivity_v%d.h5" % (table_type, data_version[table_type])
@@ -50,6 +50,7 @@ def _get_data_file(table_type, data_dir=None):
         raise IOError(msg)
     return data_path
 
+
 class EnergyBoundsException(YTException):
     def __init__(self, lower, upper):
         self.lower = lower
@@ -59,6 +60,7 @@ class EnergyBoundsException(YTException):
         return "Energy bounds are %e to %e keV." % \
           (self.lower, self.upper)
 
+
 class ObsoleteDataException(YTException):
     def __init__(self, table_type):
         data_file = "%s_emissivity_v%d.h5" % (table_type, data_version[table_type])
@@ -67,6 +69,7 @@ class ObsoleteDataException(YTException):
 
     def __str__(self):
         return self.msg
+
 
 class XrayEmissivityIntegrator(object):
     r"""Class for making X-ray emissivity fields. Uses hdf5 data tables
@@ -149,10 +152,10 @@ class XrayEmissivityIntegrator(object):
 
         return emiss
 
+
 def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
-                              metallicity=("gas", "metallicity"), 
+                              metallicity=("gas", "metallicity"),
                               table_type="cloudy", data_dir=None,
-                              cosmology=None, ftype="gas", **kwargs):
                               cosmology=None, dist=None, ftype="gas"):
     r"""Create X-ray emissivity fields for a given energy range.
 
