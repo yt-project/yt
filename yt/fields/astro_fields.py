@@ -118,7 +118,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     def _optical_depth(field, data):
         return data[ftype, "El_nuclei_density"]*pc.sigma_thompson
 
-    registry.add_field((ftype, "optical_depth"), sampling_type="cell",
+    registry.add_field((ftype, "optical_depth"), sampling_type="local",
                        function=_optical_depth, units=unit_system["length"]**-1)
 
     def _velocity_los(field, data):
@@ -133,7 +133,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
             ret = data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
         return ret
 
-    registry.add_field((ftype, "velocity_los"), sampling_type="cell",
+    registry.add_field((ftype, "velocity_los"), sampling_type="local",
                        function=_velocity_los,
                        units=unit_system["velocity"],
                        validators=[
