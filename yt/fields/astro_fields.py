@@ -53,30 +53,6 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        function=_jeans_mass,
                        units=unit_system["mass"])
 
-    def _chandra_emissivity(field, data):
-        logT0 = np.log10(data[ftype, "temperature"].to_ndarray().astype(np.float64)) - 7
-        # we get rid of the units here since this is a fit and not an
-        # analytical expression
-        return data.ds.arr(data[ftype, "number_density"].to_ndarray().astype(np.float64)**2
-                           * (10**(- 0.0103 * logT0**8 + 0.0417 * logT0**7
-                                   - 0.0636 * logT0**6 + 0.1149 * logT0**5
-                                   - 0.3151 * logT0**4 + 0.6655 * logT0**3
-                                   - 1.1256 * logT0**2 + 1.0026 * logT0**1
-                                   - 0.6984 * logT0)
-                             + data[ftype, "metallicity"].to_ndarray() *
-                             10**(  0.0305 * logT0**11 - 0.0045 * logT0**10
-                                    - 0.3620 * logT0**9  + 0.0513 * logT0**8
-                                    + 1.6669 * logT0**7  - 0.3854 * logT0**6
-                                    - 3.3604 * logT0**5  + 0.4728 * logT0**4
-                                    + 4.5774 * logT0**3  - 2.3661 * logT0**2
-                                    - 1.6667 * logT0**1  - 0.2193 * logT0)),
-                           "") # add correct units here
-
-    registry.add_field((ftype, "chandra_emissivity"),
-                       sampling_type="local",
-                       function=_chandra_emissivity,
-                       units="") # add correct units here
-
     def _emission_measure(field, data):
         if data.has_field_parameter("X_H"):
             X_H = data.get_field_parameter("X_H")
@@ -91,17 +67,6 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        sampling_type="local",
                        function=_emission_measure,
                        units=unit_system["number_density"])
-
-    def _xray_emissivity(field, data):
-        # old scaling coefficient was 2.168e60
-        return data.ds.arr(data[ftype, "density"].to_ndarray().astype(np.float64)**2
-                           * data[ftype, "temperature"].to_ndarray()**0.5,
-                           "") # add correct units here
-
-    registry.add_field((ftype, "xray_emissivity"),
-                       sampling_type="local",
-                       function=_xray_emissivity,
-                       units="") # add correct units here
 
     def _mazzotta_weighting(field, data):
         # Spectroscopic-like weighting field for galaxy clusters
