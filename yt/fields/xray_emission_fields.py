@@ -153,6 +153,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                               metallicity=("gas", "metallicity"), 
                               table_type="cloudy", data_dir=None,
                               cosmology=None, ftype="gas", **kwargs):
+                              cosmology=None, dist=None, ftype="gas"):
     r"""Create X-ray emissivity fields for a given energy range.
 
     Parameters
@@ -179,14 +180,24 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         If set and redshift > 0.0, this cosmology will be used when computing the
         cosmological dependence of the emission fields. If not set, yt's default
         LCDM cosmology will be used.
+    dist : (value, unit) tuple or :class:`~yt.units.yt_array.YTQuantity`, optional
+        The distance to the source, used for making intensity fields. You should
+        only use this if your source is nearby (not cosmological). Default: None
     ftype : string, optional
         The field type to use when creating the fields, default "gas"
 
-    This will create three fields:
+    This will create at least three fields:
 
     "xray_emissivity_{e_min}_{e_max}_keV" (erg s^-1 cm^-3)
     "xray_luminosity_{e_min}_{e_max}_keV" (erg s^-1)
     "xray_photon_emissivity_{e_min}_{e_max}_keV" (photons s^-1 cm^-3)
+
+    and if a redshift or distance is specified it will create two others:
+
+    "xray_intensity_{e_min}_{e_max}_keV" (erg s^-1 cm^-3 arcsec^-2)
+    "xray_photon_intensity_{e_min}_{e_max}_keV" (photons s^-1 cm^-3 arcsec^-2)
+
+    These latter two are really only useful when making projections.
 
     Examples
     --------
@@ -194,7 +205,8 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
     >>> import yt
     >>> ds = yt.load("sloshing_nomag2_hdf5_plt_cnt_0100")
     >>> yt.add_xray_emissivity_field(ds, 0.5, 2)
-    >>> p = yt.ProjectionPlot(ds, 'x', "xray_emissivity_0.5_2_keV")
+    >>> p = yt.ProjectionPlot(ds, 'x', ("gas","xray_emissivity_0.5_2_keV"),
+    ...                       table_type='apec')
     >>> p.save()
     """
     if not isinstance(metallicity, float) and metallicity is not None:
@@ -204,7 +216,8 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
             raise RuntimeError("Your dataset does not have a {} field! ".format(metallicity) +
                                "Perhaps you should specify a constant metallicity instead?")
 
-    my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, redshift=redshift)
+    my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, 
+                                     redshift=redshift)
 
     em_0 = my_si.get_interpolator("primordial", e_min, e_max)
     emp_0 = my_si.get_interpolator("primordial", e_min, e_max, energy=False)
