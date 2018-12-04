@@ -265,17 +265,29 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
     fields = [emiss_name, lum_name, phot_name]
 
-    if redshift > 0.0:
+    if redshift > 0.0 or dist is not None:
 
-        if cosmology is None:
-            if hasattr(ds, "cosmology"):
-                cosmology = ds.cosmology
+        if dist is None:
+            if cosmology is None:
+                if hasattr(ds, "cosmology"):
+                    cosmology = ds.cosmology
+                else:
+                    cosmology = Cosmology()
+            D_L = cosmology.luminosity_distance(0.0, redshift)
+            angular_scale = 1.0/cosmology.angular_scale(0.0, redshift)
+            dist_fac = 1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale)
+        else:
+            redshift = 0.0  # Only for local sources!
+            if not isinstance(dist, YTQuantity):
+                try:
+                    dist = ds.quan(dist[0], dist[1])
+                except TypeError:
+                    raise RuntimeError("Please specifiy 'dist' as a YTQuantity "
+                                       "or a (value, unit) tuple!")
             else:
-                cosmology = Cosmology()
-
-        D_L = cosmology.luminosity_distance(0.0, redshift)
-        angular_scale = 1.0/cosmology.angular_scale(0.0, redshift)
-        dist_fac = 1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale)
+                dist = ds.quan(dist.value, dist.units)
+            angular_scale = dist/ds.quan(1.0, "radian")
+            dist_fac = 1.0/(4.0*np.pi*dist*dist*angular_scale*angular_scale)
 
         ei_name = (ftype, "xray_intensity_%s_%s_keV" % (e_min, e_max))
         def _intensity_field(field, data):
