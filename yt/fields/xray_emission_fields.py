@@ -152,7 +152,7 @@ class XrayEmissivityIntegrator(object):
 def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                               metallicity=("gas", "metallicity"), 
                               table_type="cloudy", data_dir=None,
-                              cosmology=None, **kwargs):
+                              cosmology=None, ftype="gas", **kwargs):
     r"""Create X-ray emissivity fields for a given energy range.
 
     Parameters
@@ -179,6 +179,8 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         If set and redshift > 0.0, this cosmology will be used when computing the
         cosmological dependence of the emission fields. If not set, yt's default
         LCDM cosmology will be used.
+    ftype : string, optional
+        The field type to use when creating the fields, default "gas"
 
     This will create three fields:
 
@@ -225,8 +227,8 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
     def _emissivity_field(field, data):
         with np.errstate(all='ignore'):
-            dd = {"log_nH": np.log10(data["gas", "H_nuclei_density"]),
-                  "log_T": np.log10(data["gas", "temperature"])}
+            dd = {"log_nH": np.log10(data[ftype, "H_nuclei_density"]),
+                  "log_T": np.log10(data[ftype, "temperature"])}
 
         my_emissivity = np.power(10, em_0(dd))
         if metallicity is not None:
@@ -238,25 +240,25 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
         my_emissivity[np.isnan(my_emissivity)] = 0
 
-        return data["gas","H_nuclei_density"]**2 * \
+        return data[ftype, "H_nuclei_density"]**2 * \
             YTArray(my_emissivity, "erg*cm**3/s")
 
-    emiss_name = "xray_emissivity_%s_%s_keV" % (e_min, e_max)
-    ds.add_field(("gas", emiss_name), function=_emissivity_field,
+    emiss_name = (ftype, "xray_emissivity_%s_%s_keV" % (e_min, e_max))
+    ds.add_field(emiss_name, function=_emissivity_field,
                  display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
                  sampling_type="cell", units="erg/cm**3/s")
 
     def _luminosity_field(field, data):
         return data[emiss_name] * data["cell_volume"]
 
-    lum_name = "xray_luminosity_%s_%s_keV" % (e_min, e_max)
-    ds.add_field(("gas", lum_name), function=_luminosity_field,
+    lum_name = (ftype, "xray_luminosity_%s_%s_keV" % (e_min, e_max))
+    ds.add_field(lum_name, function=_luminosity_field,
                  display_name=r"\rm{L}_{X} (%s-%s keV)" % (e_min, e_max),
                  sampling_type="cell", units="erg/s")
 
     def _photon_emissivity_field(field, data):
-        dd = {"log_nH": np.log10(data["gas", "H_nuclei_density"]),
-              "log_T": np.log10(data["gas", "temperature"])}
+        dd = {"log_nH": np.log10(data[ftype, "H_nuclei_density"]),
+              "log_T": np.log10(data[ftype, "temperature"])}
 
         my_emissivity = np.power(10, emp_0(dd))
         if metallicity is not None:
@@ -266,11 +268,11 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
 
-        return data["gas", "H_nuclei_density"]**2 * \
+        return data[ftype, "H_nuclei_density"]**2 * \
             YTArray(my_emissivity, "photons*cm**3/s")
 
-    phot_name = "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max)
-    ds.add_field(("gas", phot_name), function=_photon_emissivity_field,
+    phot_name = (ftype, "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max))
+    ds.add_field(phot_name, function=_photon_emissivity_field,
                  display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
                  sampling_type="cell", units="photons/cm**3/s")
 
@@ -288,19 +290,19 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         angular_scale = 1.0/cosmology.angular_scale(0.0, redshift)
         dist_fac = 1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale)
 
-        ei_name = "xray_intensity_%s_%s_keV" % (e_min, e_max)
+        ei_name = (ftype, "xray_intensity_%s_%s_keV" % (e_min, e_max))
         def _intensity_field(field, data):
             I = dist_fac*data[emiss_name]
             return I.in_units("erg/cm**3/s/arcsec**2")
-        ds.add_field(("gas", ei_name), function=_intensity_field,
+        ds.add_field(ei_name, function=_intensity_field,
                      display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
                      sampling_type="cell", units="erg/cm**3/s/arcsec**2")
 
-        i_name = "xray_photon_intensity_%s_%s_keV" % (e_min, e_max)
+        i_name = (ftype, "xray_photon_intensity_%s_%s_keV" % (e_min, e_max))
         def _photon_intensity_field(field, data):
             I = (1.0+redshift)*dist_fac*data[phot_name]
             return I.in_units("photons/cm**3/s/arcsec**2")
-        ds.add_field(("gas", i_name), function=_photon_intensity_field,
+        ds.add_field(i_name, function=_photon_intensity_field,
                      display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
                      sampling_type="cell", units="photons/cm**3/s/arcsec**2")
 
