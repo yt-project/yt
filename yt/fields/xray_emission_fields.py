@@ -197,19 +197,6 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
     >>> p = yt.ProjectionPlot(ds, 'x', "xray_emissivity_0.5_2_keV")
     >>> p.save()
     """
-    # The next several if constructs are for backwards-compatibility
-    if "constant_metallicity" in kwargs:
-        issue_deprecation_warning("The \"constant_metallicity\" parameter is deprecated. Set "
-                                  "the \"metallicity\" parameter to a constant float value instead.")
-        metallicity = kwargs["constant_metallicity"]
-    if "with_metals" in kwargs:
-        issue_deprecation_warning("The \"with_metals\" parameter is deprecated. Use the "
-                                  "\"metallicity\" parameter to choose a constant or "
-                                  "spatially varying metallicity.")
-        if kwargs["with_metals"] and isinstance(metallicity, float):
-            raise RuntimeError("\"with_metals=True\", but you specified a constant metallicity!")
-        if not kwargs["with_metals"] and not isinstance(metallicity, float):
-            raise RuntimeError("\"with_metals=False\", but you didn't specify a constant metallicity!")
     if not isinstance(metallicity, float) and metallicity is not None:
         try:
             metallicity = ds._get_field_info(*metallicity)
