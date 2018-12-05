@@ -128,20 +128,6 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                        units="keV",
                        display_name="Temperature")
 
-    def _entropy(field, data):
-        mw = data.get_field_parameter("mu")
-        if mw is None:
-            mw = 1.0
-        mw *= pc.mh
-        gammam1 = 2./3.
-        tr = data[ftype,"kT"] / ((data[ftype, "density"]/mw)**gammam1)
-        return data.apply_units(tr, field.units)
-
-    registry.add_field((ftype, "entropy"),
-                       sampling_type="local",
-                       units="keV*cm**2",
-                       function=_entropy)
-
     def _metallicity(field, data):
         return data[ftype, "metal_density"] / data[ftype, "density"]
     registry.add_field((ftype, "metallicity"),

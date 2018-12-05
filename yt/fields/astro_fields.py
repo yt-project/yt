@@ -120,3 +120,13 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        sampling_type="local",
                        function=_szy,
                        units=unit_system["length"]**-1)
+
+    def _entropy(field, data):
+        mgammam1 = -2./3.
+        tr = data[ftype, "kT"] * data[ftype, "El_nuclei_density"]**mgammam1
+        return data.apply_units(tr, field.units)
+
+    registry.add_field((ftype, "entropy"),
+                       sampling_type="local",
+                       units="keV*cm**2",
+                       function=_entropy)
