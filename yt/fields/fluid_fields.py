@@ -184,7 +184,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     create_averaged_field(registry, "density", unit_system["density"],
                           ftype=ftype, slice_info=slice_info,
-                          weight="cell_mass")
+                          weight="mass")
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
     assert(isinstance(grad_field, tuple))

@@ -381,7 +381,7 @@ def create_vector_fields(registry, basename, field_units,
 
 def create_averaged_field(registry, basename, field_units, ftype="gas",
                           slice_info=None, validators=None,
-                          weight="cell_mass"):
+                          weight="mass"):
 
     if validators is None:
         validators = []
