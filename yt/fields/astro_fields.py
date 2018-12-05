@@ -40,11 +40,11 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        units=unit_system["time"])
 
     def _jeans_mass(field, data):
-        MJ_constant = (((5.0 * pc.kboltz) / (pc.G * pc.mh)) ** (1.5)) * \
-          (3.0 / (4.0 * np.pi)) ** (0.5)
+        MJ_constant = (((5.0 * pc.kboltz) / (pc.G * pc.mh)) ** 1.5) * \
+          (3.0 / (4.0 * np.pi)) ** 0.5
         u = (MJ_constant * \
              ((data[ftype, "temperature"] /
-               data[ftype, "mean_molecular_weight"])**(1.5)) * \
+               data[ftype, "mean_molecular_weight"])**1.5) * \
              (data[ftype, "density"]**(-0.5)))
         return u
 

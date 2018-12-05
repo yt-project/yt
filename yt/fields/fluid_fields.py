@@ -119,7 +119,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     def _kT(field, data):
         return (pc.kboltz*data[ftype, "temperature"]).in_units("keV")
-    
+
     registry.add_field((ftype, "kT"),
                        sampling_type="local",
                        function=_kT,
@@ -134,7 +134,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         gammam1 = 2./3.
         tr = data[ftype,"kT"] / ((data[ftype, "density"]/mw)**gammam1)
         return data.apply_units(tr, field.units)
-    
+
     registry.add_field((ftype, "entropy"),
                        sampling_type="local",
                        units="keV*cm**2",
@@ -161,16 +161,16 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                                         data.ds.field_info.species_names[0]])
         for species in data.ds.field_info.species_names:
             field_data += data["gas", "%s_number_density" % species]
-        return field_data
-    
+        return field_data   
+
     registry.add_field((ftype, "number_density"),
                        sampling_type="local",
                        function = _number_density,
                        units=unit_system["number_density"])
-    
+
     def _mean_molecular_weight(field, data):
-        return (data[ftype, "density"] / (pc.mh * data[ftype, "number_density"]))
-    
+        return data[ftype, "density"] / (pc.mh * data[ftype, "number_density"])
+
     registry.add_field((ftype, "mean_molecular_weight"),
                        sampling_type="local",
                        function=_mean_molecular_weight,
