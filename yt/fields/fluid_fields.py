@@ -148,8 +148,9 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                        units="Zsun")
 
     def _metal_mass(field, data):
-        return data[ftype, "metal_density"] * data[ftype, "cell_volume"]
-    
+        Z = data[ftype, "metallicity"].to("dimensionless")
+        return Z*data[ftype, "mass"]
+
     registry.add_field((ftype, "metal_mass"),
                        sampling_type="local",
                        function=_metal_mass,
