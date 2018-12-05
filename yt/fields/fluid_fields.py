@@ -1,7 +1,5 @@
 import numpy as np
 
-from yt.units.unit_object import Unit
-
 from .derived_field import \
     ValidateSpatial, \
     ValidateParameter
@@ -13,6 +11,10 @@ from .vector_operations import \
     create_averaged_field, \
     create_magnitude_field, \
     create_vector_fields
+
+
+from yt.utilities.physical_ratios import \
+    primordial_H_mass_fraction
 
 from yt.utilities.lib.misc_utilities import \
     obtain_relative_velocity_vector
@@ -156,20 +158,38 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                        function=_metal_mass,
                        units=unit_system["mass"])
 
-    def _number_density(field, data):
-        field_data = np.zeros_like(data["gas", "%s_number_density" % \
-                                        data.ds.field_info.species_names[0]])
-        for species in data.ds.field_info.species_names:
-            field_data += data["gas", "%s_number_density" % species]
-        return field_data   
+    if len(registry.ds.field_info.species_names) > 0:
+        def _number_density(field, data):
+            field_data = np.zeros_like(data["gas", "%s_number_density" % \
+                                            data.ds.field_info.species_names[0]])
+            for species in data.ds.field_info.species_names:
+                field_data += data["gas", "%s_number_density" % species]
+            return field_data
+    else:
+        def _number_density(field, data):
+            if data.has_field_parameter("mean_molecular_weight"):
+                mu = data.get_field_parameter("mean_molecular_weight")
+            else:
+                # Assume zero ionization
+                mu = 4.0 / (3.0 * primordial_H_mass_fraction + 1.0)
+            return data[ftype, "density"]/(mu*pc.mh)
 
     registry.add_field((ftype, "number_density"),
                        sampling_type="local",
-                       function = _number_density,
+                       function=_number_density,
                        units=unit_system["number_density"])
 
-    def _mean_molecular_weight(field, data):
-        return data[ftype, "density"] / (pc.mh * data[ftype, "number_density"])
+    if len(registry.ds.field_info.species_names) > 0:
+        def _mean_molecular_weight(field, data):
+            return data[ftype, "density"] / (pc.mh * data[ftype, "number_density"])
+    else:
+        def _mean_molecular_weight(field, data):
+            if data.has_field_parameter("mean_molecular_weight"):
+                mu = data.get_field_parameter("mean_molecular_weight")
+            else:
+                # Assume zero ionization
+                mu = 4.0 / (3.0 * primordial_H_mass_fraction + 1.0)
+            return mu*np.ones_like(data[ftype, "density"].d)
 
     registry.add_field((ftype, "mean_molecular_weight"),
                        sampling_type="local",
@@ -217,9 +237,9 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
                            sampling_type="local",
-                           function = f,
-                           validators = [ValidateSpatial(1, [grad_field])],
-                           units = grad_units)
+                           function=f,
+                           validators=[ValidateSpatial(1, [grad_field])],
+                           units=grad_units)
 
     create_magnitude_field(registry, "%s_gradient" % fname,
                            grad_units, ftype=ftype,
