@@ -520,6 +520,8 @@ class YTGridDataset(YTDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
+            if 'arbor_type' in f.attrs:
+                return False
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_frb":
@@ -725,6 +727,8 @@ class YTNonspatialDataset(YTGridDataset):
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
+            if 'arbor_type' in f.attrs:
+                return False
             data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_array_data":
                 return True
