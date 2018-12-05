@@ -29,10 +29,10 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     axis_names = registry.ds.coordinates.axis_order
 
-    if (ftype,"magnetic_field_%s" % axis_names[0]) not in registry:
+    if (ftype, "magnetic_field_%s" % axis_names[0]) not in registry:
         return
 
-    u = registry[ftype,"magnetic_field_%s" % axis_names[0]].units
+    u = registry[ftype, "magnetic_field_%s" % axis_names[0]].units
 
     def mag_factors(dims):
         if dims == dimensions.magnetic_field_cgs:
@@ -185,7 +185,8 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
                        function=_mach_alfven,
                        units="dimensionless")
 
-    if dimensions.current_mks in u.dimensions.free_symbols:
+    b_units = registry.ds.quan(1.0, u).units
+    if dimensions.current_mks in b_units.dimensions.free_symbols:
         rm_scale = qp.to("C", "SI")**3/(4.0*np.pi*eps_0)
     else:
         rm_scale = qp**3/clight
