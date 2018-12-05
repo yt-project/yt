@@ -876,7 +876,6 @@ class YTCutRegion(YTSelectionContainer3D):
         self.conditionals = ensure_list(conditionals)
         self.base_object = data_source
         self._selector = None
-        self._particle_mask = {}
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
 
@@ -992,18 +991,14 @@ class YTCutRegion(YTSelectionContainer3D):
         return mask
 
     def _part_ind(self, ptype):
-        if self._particle_mask.get(ptype) is None:
-            # If scipy is installed, use the fast KD tree
-            # implementation. Else, fall back onto the direct
-            # brute-force algorithm.
-            try:
-                _scipy.spatial.KDTree
-                mask = self._part_ind_KDTree(ptype)
-            except ImportError:
-                mask = self._part_ind_brute_force(ptype)
-
-            self._particle_mask[ptype] = mask
-        return self._particle_mask[ptype]
+        # If scipy is installed, use the fast KD tree
+        # implementation. Else, fall back onto the direct
+        # brute-force algorithm.
+        try:
+            _scipy.spatial.KDTree
+            return self._part_ind_KDTree(ptype)
+        except ImportError:
+            return self._part_ind_brute_force(ptype)
 
     @property
     def icoords(self):
