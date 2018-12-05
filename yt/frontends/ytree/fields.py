@@ -33,3 +33,12 @@ class YTreeFieldInfo(FieldInfoContainer):
         ("velocity_z", (v_units, ('halos', 'particle_velocity_z'), None)),
         ("mass", ('Msun', ('halos', 'particle_mass'), None)),
     )
+
+    def setup_particle_fields(self, ptype):
+
+        def _redshift(field, data):
+            return 1. / data[ptype, 'scale_factor'] - 1
+        self.add_field((ptype, 'redshift'), function=_redshift,
+                       sampling_type='particle', units='')
+
+        super(YTreeFieldInfo, self).setup_particle_fields(ptype)
