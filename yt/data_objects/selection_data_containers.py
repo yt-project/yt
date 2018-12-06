@@ -736,7 +736,7 @@ class YTSphere(YTSelectionContainer3D):
         if radius < self.index.get_smallest_dx():
             raise YTSphereTooSmall(ds, radius.in_units("code_length"),
                                    self.index.get_smallest_dx().in_units("code_length"))
-        self.set_field_parameter('radius',radius)
+        self.set_field_parameter('radius', radius)
         self.set_field_parameter("center", self.center)
         self.radius = radius
 
