@@ -8,13 +8,14 @@
 
 import numpy as np
 
+import yt
 from yt.testing import \
     assert_allclose_units, \
-    fake_random_ds, \
     requires_file
 
+@requires_file('output_00080/info_00080.txt')
 def test_AM_value():
-    ds = fake_random_ds(16)
+    ds = yt.load('output_00080/info_00080.txt')
 
     sp = ds.sphere([.5]*3, (0.1, 'code_length'))
 
@@ -30,5 +31,3 @@ def test_AM_value():
     sAM = ds.arr([sp['specific_angular_momentum_'+k] for k in 'xyz']).T
 
     assert_allclose_units(sAM_manual, sAM)
-
-
