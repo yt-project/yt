@@ -8,14 +8,12 @@
 
 import numpy as np
 
-import yt
 from yt.testing import \
     assert_allclose_units, \
-    requires_file
+    fake_amr_ds
 
-@requires_file('output_00080/info_00080.txt')
 def test_AM_value():
-    ds = yt.load('output_00080/info_00080.txt')
+    ds = fake_amr_ds(fields=("Density", "velocity_x", "velocity_y", "velocity_z"), length_unit=0.5)
 
     sp = ds.sphere([.5]*3, (0.1, 'code_length'))
 
