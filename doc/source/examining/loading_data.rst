@@ -1926,6 +1926,63 @@ available here are similar to other catalogs.  Any addition
    # The halo mass
    print(ad["halos", "particle_mass"])
 
+.. _ytree_data:
+
+ytree Merger Trees
+------------------
+
+`ytree <https://ytree.readthedocs.io/>`_ is an extension of yt for working
+with merger tree data from multiple sources. Merger trees loaded with ytree
+can be re-written to a format that can be loadable by both ytree and yt.
+Loading merger tree data in yt allows one to access halos using yt's geometric
+data containers instead of from within the tree structures used by ytree. For
+example, this can be useful if one wants to quickly access all halos in the
+merger tree at once.
+
+The ytree data format consists of a directory containing a series of HDF5 files.
+To load the dataset, provide the path to the HDF5 file with the same name as
+the directory.
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("arbor/arbor.h5")
+   # all halo masses
+   print (ds.r['particle_mass'])
+   # all halo redshifts
+   print (ds.r['redshift'])
+
+The fields available will depend on those present in the original data format.
+See the `field_list` (`ds.field_list`) for a list of all available fields. The
+following fields will always be available:
+
++-------------------+---------------------------+
+| HaloCatalog field | yt field name             |
++===================+===========================+
+| universal id      | uid                       |
++-------------------+---------------------------+
+| uid of descendent | desc_uid                  |
++-------------------+---------------------------+
+| catalog halo id   | halo_id                   |
++-------------------+---------------------------+
+| mass              | particle_mass             |
++-------------------+---------------------------+
+| redshift of halo  | redshift                  |
++-------------------+---------------------------+
+| halo position     | particle_position_(x,y,z) |
++-------------------+---------------------------+
+| halo velocity     | particle_velocity_(x,y,z) |
++-------------------+---------------------------+
+
+.. note::
+
+   Because merger trees contain data for objects at multiple redshifts,
+   conversion between proper and comoving coordinates is not possible
+   using symbolic unit conversion. Comoving units (e.g., 'Mpccm') and
+   proper units (e.g., 'Mpc') have been set equal to each other. In general,
+   lengths in merger tree data are in the comoving frame, but users should
+   take care to understand what frame they are using.
+
 .. _loading-openpmd-data:
 
 openPMD Data
