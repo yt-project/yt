@@ -169,47 +169,32 @@ def test_arbitrary_grid_edge():
     # a YTArray with a unit registry that matches that of the dataset.
     dims = [32,32,32]
     ds = fake_random_ds(dims)
-    # Test when edge is a list
-    left_edge = [0., 0., 0.]
-    right_edge = [1., 1., 1.]
-    ag = ds.arbitrary_grid(left_edge = left_edge, right_edge = right_edge, dims = dims)
-    assert np.array_equal(ag.left_edge, 
-            left_edge * ds.length_unit.to('code_length'))
-    assert np.array_equal(ag.right_edge,
-            right_edge * ds.length_unit.to('code_length'))
-    assert ag.left_edge.units.registry == ds.unit_registry
-    assert ag.right_edge.units.registry == ds.unit_registry
-    ag['density']
-    # Test when edge is a numpy array
-    left_edge = np.array([0., 0., 0.])
-    right_edge = np.array([1., 1., 1.])
-    ag = ds.arbitrary_grid(left_edge = left_edge, right_edge = right_edge, dims = dims)
-    assert np.array_equal(ag.left_edge, 
-            left_edge * ds.length_unit.to('code_length'))
-    assert np.array_equal(ag.right_edge,
-            right_edge * ds.length_unit.to('code_length'))
-    assert ag.left_edge.units.registry == ds.unit_registry
-    assert ag.right_edge.units.registry == ds.unit_registry
-    ag['density']
-    # Test when edge is a YTArray with dataset units
-    left_edge = [0., 0., 0.] * ds.length_unit
-    right_edge = [1., 1., 1.] * ds.length_unit
-    ag = ds.arbitrary_grid(left_edge = left_edge, right_edge = right_edge, dims = dims)
-    assert np.array_equal(ag.left_edge, 
-            left_edge * ds.length_unit)
-    assert np.array_equal(ag.right_edge,
-            right_edge * ds.length_unit)
-    assert ag.left_edge.units.registry == ds.unit_registry
-    assert ag.right_edge.units.registry == ds.unit_registry
-    ag['density']
-    # Test when edge is a YTArray using non-dataset units
-    left_edge = [0., 0., 0.] * kpc
-    right_edge = [1., 1., 1.] * kpc
-    ag = ds.arbitrary_grid(left_edge = left_edge, right_edge = right_edge, dims = dims)
-    assert np.array_equal(ag.left_edge, 
-            left_edge * kpc)
-    assert np.array_equal(ag.right_edge,
-            right_edge * kpc)
-    assert ag.left_edge.units.registry == ds.unit_registry
-    assert ag.right_edge.units.registry == ds.unit_registry
-    ag['density']
+    # Test when edge is a list, numpy array, YTArray with dataset units, and
+    # YTArray with non-dataset units
+    ledge = [ [0., 0., 0.],
+            np.array([0., 0., 0.]),
+            [0., 0., 0.] * ds.length_unit,
+            [0., 0., 0.] * kpc]
+
+    redge = [ [1., 1., 1.],
+            np.array([1., 1., 1.]),
+            [1., 1., 1.] * ds.length_unit,
+            [1., 1., 1.] * kpc]
+
+    ledge_ans = [ [0., 0., 0.] * ds.length_unit.to('code_length'),
+                np.array([0., 0., 0.]) * ds.length_unit.to('code_length'),
+                [0., 0., 0.] * ds.length_unit,
+                [0., 0., 0.] * kpc]
+
+    redge_ans = [ [1., 1., 1.] * ds.length_unit.to('code_length'),
+                np.array([1., 1., 1.]) * ds.length_unit.to('code_length'),
+                [1., 1., 1.] * ds.length_unit,
+                [1., 1., 1.] * kpc]
+
+    for le, re, le_ans, re_ans in zip(ledge, redge, ledge_ans, redge_ans):
+        ag = ds.arbitrary_grid(left_edge = le, right_edge = re, dims = dims)
+        assert np.array_equal(ag.left_edge, le_ans)
+        assert np.array_equal(ag.right_edge, re_ans)
+        assert ag.left_edge.units.registry == ds.unit_registry
+        assert ag.right_edge.units.registry == ds.unit_registry
+        ag['density']
