@@ -4,6 +4,8 @@ from yt.frontends.stream.data_structures import load_particles
 from yt.testing import fake_random_ds, assert_equal, assert_almost_equal, \
     fake_octree_ds
 
+from yt.units import kpc
+
 def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
