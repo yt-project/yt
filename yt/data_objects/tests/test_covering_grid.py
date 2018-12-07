@@ -160,3 +160,54 @@ def test_arbitrary_grid_derived_field():
     galgas = ds.arbitrary_grid([0.4, 0.4, 0.4], [0.99, 0.99, 0.99],
                                dims=[32, 32, 32])
     galgas['tracerf']
+
+def test_arbitrary_grid_edge():
+    # Tests bug fix for issue #2087
+    # Regardless of how left_edge and right_edge are passed, the result should be
+    # a YTArray with a unit registry that matches that of the dataset.
+    dims = [32,32,32]
+    ds = fake_random_ds(dims)
+    # Test when edge is a list
+    left_edge = [0., 0., 0.]
+    right_edge = [1., 1., 1.]
+    ag = ds.arbitrary_grid(left_edge = left_edge, right_edge = right_edge, dims = dims)
+    assert np.array_equal(ag.left_edge, 
+            left_edge * ds.length_unit.to('code_length'))
+    assert np.array_equal(ag.right_edge,
+            right_edge * ds.length_unit.to('code_length'))
+    assert ag.left_edge.units.registry == ds.unit_registry
+    assert ag.right_edge.units.registry == ds.unit_registry
+    ag['density']
+    # Test when edge is a numpy array
+    left_edge = np.array([0., 0., 0.])
+    right_edge = np.array([1., 1., 1.])
+    ag = ds.arbitrary_grid(left_edge = left_edge, right_edge = right_edge, dims = dims)
+    assert np.array_equal(ag.left_edge, 
+            left_edge * ds.length_unit.to('code_length'))
+    assert np.array_equal(ag.right_edge,
+            right_edge * ds.length_unit.to('code_length'))
+    assert ag.left_edge.units.registry == ds.unit_registry
+    assert ag.right_edge.units.registry == ds.unit_registry
+    ag['density']
+    # Test when edge is a YTArray with dataset units
+    left_edge = [0., 0., 0.] * ds.length_unit
+    right_edge = [1., 1., 1.] * ds.length_unit
+    ag = ds.arbitrary_grid(left_edge = left_edge, right_edge = right_edge, dims = dims)
+    assert np.array_equal(ag.left_edge, 
+            left_edge * ds.length_unit)
+    assert np.array_equal(ag.right_edge,
+            right_edge * ds.length_unit)
+    assert ag.left_edge.units.registry == ds.unit_registry
+    assert ag.right_edge.units.registry == ds.unit_registry
+    ag['density']
+    # Test when edge is a YTArray using non-dataset units
+    left_edge = [0., 0., 0.] * kpc
+    right_edge = [1., 1., 1.] * kpc
+    ag = ds.arbitrary_grid(left_edge = left_edge, right_edge = right_edge, dims = dims)
+    assert np.array_equal(ag.left_edge, 
+            left_edge * kpc)
+    assert np.array_equal(ag.right_edge,
+            right_edge * kpc)
+    assert ag.left_edge.units.registry == ds.unit_registry
+    assert ag.right_edge.units.registry == ds.unit_registry
+    ag['density']
