@@ -335,6 +335,12 @@ class VelocityCallback(PlotCallback):
             yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
             axis_names = plot.data.ds.coordinates.axis_name
 
+            bv = plot.data.get_field_parameter("bulk_velocity")
+            if bv is not None:
+                bv_x = bv[xi]
+                bv_y = bv[yi]
+            else: bv_x = bv_y = 0
+
             if plot.data.ds.geometry in ["polar", "cylindrical"] and \
                 axis_names[plot.data.axis] == "z":
                 # polar_z and cyl_z is aligned with carteian_z
@@ -349,8 +355,8 @@ class VelocityCallback(PlotCallback):
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
-                                 normalize=self.normalize,
-                                 plot_args=self.plot_args)
+                                 normalize=self.normalize, bv_x=bv_x,
+                                 bv_y=bv_y, plot_args=self.plot_args)
         return qcb(plot)
 
 class MagFieldCallback(PlotCallback):
