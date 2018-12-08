@@ -487,8 +487,8 @@ class QuiverCallback(PlotCallback):
                                                  False, # antialias
                                                  periodic
                                                  )
-        X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
-                          np.linspace(yy0,yy1,ny,endpoint=True))
+        X,Y = np.meshgrid(np.linspace(xx0,xx1,ny,endpoint=True),
+                          np.linspace(yy0,yy1,nx,endpoint=True))
         if self.normalize:
             nn = np.sqrt(pixX**2 + pixY**2)
             pixX /= nn
@@ -846,8 +846,8 @@ class StreamlineCallback(PlotCallback):
         else:
             field_colors = None
 
-        X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
-               np.linspace(yy0,yy1,ny,endpoint=True))
+        X,Y = (np.linspace(xx0,xx1,ny,endpoint=True),
+               np.linspace(yy0,yy1,nx,endpoint=True))
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
                            'density': self.dens, 'color':field_colors}
         streamplot_args.update(self.plot_args)
