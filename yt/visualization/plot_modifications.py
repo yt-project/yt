@@ -425,7 +425,7 @@ class QuiverCallback(PlotCallback):
     _type_name = "quiver"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=False,  bv_x=0, bv_y=0,
+                 scale_units=None, normalize=False, bv_x=0, bv_y=0,
                  plot_args=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
