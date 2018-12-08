@@ -26,6 +26,7 @@ from yt.testing import \
     fake_hexahedral_ds, \
     assert_fname, \
     requires_file
+import yt.units as u
 from yt.utilities.exceptions import \
     YTPlotCallbackError, \
     YTDataTypeUnsupported
