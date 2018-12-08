@@ -430,7 +430,9 @@ def test_quiver_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_quiver("velocity_x", "velocity_y", factor=8, scale=0.5,
-            scale_units="inches", normalize = True)
+            scale_units="inches", normalize = True,
+            bv_x = 0.5 * u.cm / u.s,
+            bv_y = 0.5 * u.cm / u.s)
         assert_fname(p.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
@@ -445,7 +447,9 @@ def test_quiver_callback():
             geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_quiver("velocity_theta", "velocity_phi", factor=8, scale=0.5,
-            scale_units="inches", normalize = True)
+            scale_units="inches", normalize = True,
+            bv_x = 0.5 * u.cm / u.s,
+            bv_y = 0.5 * u.cm / u.s)
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 @requires_file(cyl_2d)

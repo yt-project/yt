@@ -425,11 +425,13 @@ class QuiverCallback(PlotCallback):
     _type_name = "quiver"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
     def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=False,
+                 scale_units=None, normalize=False,  bv_x=0, bv_y=0,
                  plot_args=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
+        self.bv_x = bv_x
+        self.bv_y = bv_y
         self.factor = factor
         self.scale = scale
         self.scale_units = scale_units
@@ -446,13 +448,32 @@ class QuiverCallback(PlotCallback):
         bounds = [x0,x1,y0,y1]
         periodic = int(any(plot.data.ds.periodicity))
 
+        def transform(field_name, vector_value):
+            field_units = plot.data[field_name].units
+            def _transformed_field(field,data):
+                return data[field_name] - data.ds.arr(vector_value, field_units)
+            plot.data.ds.add_field(("gas", "transformed_%s" % field_name),
+                                   sampling_type="cell",
+                                   function=_transformed_field,
+                                   units=field_units,
+                                   display_field=False)
+
+        if self.bv_x != 0. or self.bv_x != 0.:
+            # We create a relative vector field
+            transform(self.field_x, self.bv_x)
+            transform(self.field_y, self.bv_y)
+            field_x = "transformed_%s" % self.field_x
+            field_y = "transformed_%s" % self.field_y
+        else:
+            field_x, field_y = self.field_x, self.field_y
+
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
         pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
                                                  plot.data,
-                                                 self.field_x,
+                                                 field_x,
                                                  bounds,
                                                  (ny,nx),
                                                  False, # antialias
@@ -460,7 +481,7 @@ class QuiverCallback(PlotCallback):
                                                  )
         pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
                                                  plot.data,
-                                                 self.field_y,
+                                                 field_y,
                                                  bounds,
                                                  (ny,nx),
                                                  False, # antialias
