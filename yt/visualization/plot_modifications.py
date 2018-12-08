@@ -337,8 +337,8 @@ class VelocityCallback(PlotCallback):
 
             bv = plot.data.get_field_parameter("bulk_velocity")
             if bv is not None:
-                bv_x = bv[xi]
-                bv_y = bv[yi]
+                bv_x = bv[xax]
+                bv_y = bv[yax]
             else: bv_x = bv_y = 0
 
             if plot.data.ds.geometry in ["polar", "cylindrical"] and \
