@@ -475,7 +475,7 @@ class QuiverCallback(PlotCallback):
                                                  plot.data,
                                                  field_x,
                                                  bounds,
-                                                 (ny,nx),
+                                                 (nx,ny),
                                                  False, # antialias
                                                  periodic
                                                  )
@@ -483,12 +483,12 @@ class QuiverCallback(PlotCallback):
                                                  plot.data,
                                                  field_y,
                                                  bounds,
-                                                 (ny,nx),
+                                                 (nx,ny),
                                                  False, # antialias
                                                  periodic
                                                  )
-        X,Y = np.meshgrid(np.linspace(xx0,xx1,ny,endpoint=True),
-                          np.linspace(yy0,yy1,nx,endpoint=True))
+        X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
+                          np.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
             nn = np.sqrt(pixX**2 + pixY**2)
             pixX /= nn
@@ -811,18 +811,18 @@ class StreamlineCallback(PlotCallback):
                                                  plot.data,
                                                  self.field_x,
                                                  bounds,
-                                                 (ny,nx))
+                                                 (nx,ny))
         pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
                                                  plot.data,
                                                  self.field_y,
                                                  bounds,
-                                                 (ny,nx))
+                                                 (nx,ny))
         if self.field_color:
             field_colors = plot.data.ds.coordinates.pixelize(plot.data.axis,
                                                              plot.data,
                                                              self.field_color,
                                                              bounds,
-                                                             (ny,nx))
+                                                             (nx,ny))
 
             if self.display_threshold:
 
@@ -840,14 +840,14 @@ class StreamlineCallback(PlotCallback):
                 except ValueError:
                     err_msg = "Error applying display threshold: linewidth" + \
                               "must have shape ({}, {}) or be scalar"
-                    err_msg = err_msg.format(ny, nx)
+                    err_msg = err_msg.format(nx, ny)
                     raise ValueError(err_msg)
 
         else:
             field_colors = None
 
-        X,Y = (np.linspace(xx0,xx1,ny,endpoint=True),
-               np.linspace(yy0,yy1,nx,endpoint=True))
+        X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
+               np.linspace(yy0,yy1,ny,endpoint=True))
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
                            'density': self.dens, 'color':field_colors}
         streamplot_args.update(self.plot_args)
@@ -2605,12 +2605,12 @@ class LineIntegralConvolutionCallback(PlotCallback):
                                                  plot.data,
                                                  self.field_x,
                                                  bounds,
-                                                 (ny,nx))
+                                                 (nx,ny))
         pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
                                                  plot.data,
                                                  self.field_y,
                                                  bounds,
-                                                 (ny,nx))
+                                                 (nx,ny))
 
         vectors = np.concatenate((pixX[...,np.newaxis],
                                   pixY[...,np.newaxis]),axis=2)
