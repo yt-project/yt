@@ -102,7 +102,6 @@ cdef class ParticleDepositOperation:
             # Note that this has to be our local index, not our in-file index.
             offset = dom_ind[oct.domain_ind - moff]
             if offset < 0: continue
-            # print(oct.file_ind, oct.domain, offset)
             # Check that we found the oct ...
             self.process(dims, i, oi.left_edge, oi.dds,
                          offset, pos, field_vals, oct.domain_ind)
@@ -318,7 +317,6 @@ cdef class StdParticleField(ParticleDepositOperation):
         k = self.i[ii[2], ii[1], ii[0], offset]
         mk = self.mk[ii[2], ii[1], ii[0], offset]
         qk = self.qk[ii[2], ii[1], ii[0], offset]
-        #print k, mk, qk, cell_index
         if k == 0.0:
             # Initialize cell values
             self.mk[ii[2], ii[1], ii[0], offset] = fields[0]
@@ -474,7 +472,6 @@ cdef class CellIdentifier(ParticleDepositOperation):
                       np.int64_t domain_ind
                       ) except -1:
         cdef int i, icell
-        # print(domain_ind, fields.shape)
         self.indexes[ipart] = offset
 
         icell = 0
