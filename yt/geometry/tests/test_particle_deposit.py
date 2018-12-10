@@ -4,10 +4,8 @@ from yt.utilities.exceptions import \
 from yt.testing import \
     fake_random_ds, requires_file
 from numpy.testing import \
-    assert_raises
+    assert_raises, assert_array_less
 import yt
-from numpy.testing import assert_array_less
-import numpy as np
 
 
 def test_cic_deposit():
@@ -26,18 +24,13 @@ def test_mesh_deposition():
     ds.add_deposited_mesh_field(('index', 'dx'), ptype='all')
 
     dx = ds.r['all', 'cell_index_dx']
-    x = ds.r['all', 'cell_index_x']
-    xpart = ds.r['all', 'particle_position_x']
+    xc = ds.r['all', 'cell_index_x']
+    xp = ds.r['all', 'particle_position_x']
 
-    dist = (x - xpart) / dx
+    dist = xp - xc
 
-    upper = np.ones_like(dx) / 2
-
-    # Some particles are out of their domain, skip them
-    mask = np.isfinite(dist)
-
-    assert_array_less(dist[mask], upper[mask])
-    assert_array_less(-dist[mask], upper[mask])
+    assert_array_less(dist, dx)
+    assert_array_less(-dist, dx)
 
 @requires_file(output_00080)
 def test_mesh_deposition_for_filtered_particles():
