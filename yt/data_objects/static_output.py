@@ -29,6 +29,7 @@ from six.moves import cPickle
 from yt.config import ytcfg
 from yt.fields.derived_field import \
     DerivedField
+from yt.fields.field_detector import FieldDetector
 from yt.funcs import \
     mylog, \
     set_intersection, \
@@ -1305,24 +1306,40 @@ class Dataset(object):
             """
             Create a grid field for particle quantities using given method.
             """
+
+            # Get the position of the particles
             pos = data[ptype, "particle_position"]
-            # Get the mesh data. Note: we need to transpose here
-            # because of the ordering
-            mesh_data = data[ftype, deposit_field].T.reshape(-1)
+            Npart = pos.shape[0]
+            ret = np.zeros(Npart)
+            tmp = np.zeros(Npart)
 
-            # Perform deposition and add units
-            ret = data.ds.arr(data.mesh_deposit(pos, mesh_data),
-                              input_units=units)
+            if isinstance(data, FieldDetector):
+                return ret
 
-            return ret
+            remaining = np.ones(Npart, dtype=bool)
+            Nremaining = Npart
+
+            for subset in data._current_chunk.objs:
+                if Nremaining == 0:
+                    continue
+                mesh_data = subset[ftype, deposit_field].T.reshape(-1)
+
+                # Access the mesh data and attach them to their particles
+                tmp[:Nremaining] = subset.mesh_deposit(pos[remaining], mesh_data)
+
+                ret[remaining] = tmp[:Nremaining]
+
+                remaining[remaining] = np.isnan(tmp[:Nremaining])
+                Nremaining = remaining.sum()
+
+            return data.ds.arr(ret, input_units=units)
 
         self.add_field(
             (ptype, field_name),
             function=_deposit_field,
             sampling_type="particle",
             units=units,
-            take_log=take_log,
-            validators=[ValidateSpatial()])
+            take_log=take_log)
         return (ptype, field_name)
 
     def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
