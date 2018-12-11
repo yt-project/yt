@@ -348,6 +348,8 @@ def test_text_callback():
                         text_args={'color':'red'})
         assert_fname(p.save(prefix)[0])
 
+@requires_file(cyl_2d)
+@requires_file(cyl_3d)
 def test_velocity_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =
