@@ -373,17 +373,17 @@ def test_velocity_callback():
 
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
-        slc = SlicePlot(ds, "theta", "density")
+        slc = SlicePlot(ds, "theta", "velocity_magnitude")
         slc.annotate_velocity()
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
         ds = load(cyl_3d)
         for ax in ["r", "z", "theta"]:
-            slc = SlicePlot(ds, ax, "magnetic_field_strength")
+            slc = SlicePlot(ds, ax, "velocity_magnitude")
             slc.annotate_velocity()
             assert_fname(slc.save(prefix)[0])
-            slc = ProjectionPlot(ds, ax, "magnetic_field_strength")
+            slc = ProjectionPlot(ds, ax, "velocity_magnitude")
             slc.annotate_velocity()
             assert_fname(slc.save(prefix)[0])
 
@@ -420,7 +420,7 @@ def test_magnetic_callback():
 
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
-        slc = SlicePlot(ds, "theta", "density")
+        slc = SlicePlot(ds, "theta", "magnetic_field_strength")
         slc.annotate_magnetic_field()
         assert_fname(slc.save(prefix)[0])
 
@@ -678,8 +678,8 @@ def test_streamline_callback():
     with _cleanup_fname() as prefix:
 
         ds = load(cyl_2d)
-        slc = SlicePlot(ds, "theta", "density")
-        slc.annotate_streamlines("magnetic_field_r", "magnetic_field_z")
+        slc = SlicePlot(ds, "theta", "velocity_magnitude")
+        slc.annotate_streamlines("velocity_r", "velocity_z")
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
