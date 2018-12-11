@@ -374,7 +374,7 @@ def test_velocity_callback():
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", "density")
-        slc.annotate_magnetic_field()
+        slc.annotate_velocity()
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
