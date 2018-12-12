@@ -220,7 +220,7 @@ class PlotCallback(object):
             coord = self.convert_to_plot(plot, coord)
             # Convert coordinates from a tuple of ndarray to a tuple of floats
             # since not all callbacks are OK with ndarrays as coords (eg arrow)
-            coord = (coord[0][0], coord[1][0])
+            coord = (coord[0], coord[1])
         # if in plot coords, define the transform correctly
         if coord_system == "data" or coord_system == "plot":
             self.transform = plot._axes.transData
