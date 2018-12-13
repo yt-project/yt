@@ -124,7 +124,15 @@ Then, add it to the list:
 
    master_clump.add_info_item("mass_weighted_jeans_mass")
 
-Beside the quantities calculated by default, the following are available:
+Once you have run the clump finder, you should be able to access the data for
+the info item you have defined via the ``info`` attribute of a ``Clump`` object:
+
+.. code:: python
+
+   clump = leaf_clumps[0]
+   print(clump.info['mass_weighted_jeans_mass'])
+   
+Besides the quantities calculated by default, the following are available:
 ``center_of_mass`` and ``distance_to_main_clump``.
 
 Working with Clumps
@@ -150,14 +158,13 @@ The entire clump tree can traversed with a loop syntax:
    for clump in master_clump:
        print(clump.clump_id)
 
-The :func:`~yt.data_objects.level_sets.clump_handling.get_lowest_clumps`
-function will return a list of the individual clumps that have no children
-of their own (the leaf clumps).
+The ``leaves`` attribute of a ``Clump`` object will return a list of the
+individual clumps that have no children of their own (the leaf clumps).
 
 .. code:: python
 
    # Get a list of just the leaf nodes.
-   leaf_clumps = get_lowest_clumps(master_clump)
+   leaf_clumps = master_clump.leaves
 
    print(leaf_clumps[0]["gas", "density"])
    print(leaf_clumps[0]["all", "particle_mass"])

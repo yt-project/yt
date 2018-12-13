@@ -46,11 +46,9 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
         for data_file in sorted(data_files):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
-                    pcount = data_file.total_particles[ptype]
-                    if pcount == 0:
+                    coords = data_file._get_particle_positions(ptype, f=f)
+                    if coords is None:
                         continue
-                    coords = f[ptype]["%sPos" % ptype].value.astype("float64")
-                    coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
                     y = coords[:, 1]
                     z = coords[:, 2]
@@ -84,15 +82,16 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
-                    if pcount == 0: continue
-                    coords = f[ptype]["%sPos" % ptype].value.astype("float64")
-                    coords = np.resize(coords, (pcount, 3))
+                    if pcount == 0:
+                        continue
+                    coords = data_file._get_particle_positions(ptype, f=f)
                     x = coords[:, 0]
                     y = coords[:, 1]
                     z = coords[:, 2]
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
-                    if mask is None: continue
+                    if mask is None:
+                        continue
                     for field in field_list:
                         if field in self.offset_fields:
                             field_data = \
@@ -132,16 +131,11 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
             dx = 2.0*self.ds.quan(dx, "code_length")
 
             for ptype in ptypes:
-                if data_file.total_particles[ptype] == 0: continue
-                pos = f[ptype]["%sPos" % ptype].value.astype("float64")
-                pos = np.resize(pos, (data_file.total_particles[ptype], 3))
-                pos = data_file.ds.arr(pos, "code_length")
+                if data_file.total_particles[ptype] == 0:
+                    continue
+                pos = data_file._get_particle_positions(ptype, f=f)
+                pos = self.ds.arr(pos, "code_length")
 
-                # These are 32 bit numbers, so we give a little lee-way.
-                # Otherwise, for big sets of particles, we often will bump into the
-                # domain edges.  This helps alleviate that.
-                np.clip(pos, self.ds.domain_left_edge + dx,
-                             self.ds.domain_right_edge - dx, pos)
                 if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
                    np.any(pos.max(axis=0) > self.ds.domain_right_edge):
                     raise YTDomainOverflow(pos.min(axis=0),
@@ -151,8 +145,8 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                 regions.add_data_file(pos, data_file.file_id)
                 morton[ind:ind+pos.shape[0]] = compute_morton(
                     pos[:,0], pos[:,1], pos[:,2],
-                    data_file.ds.domain_left_edge,
-                    data_file.ds.domain_right_edge)
+                    self.ds.domain_left_edge,
+                    self.ds.domain_right_edge)
                 ind += pos.shape[0]
         return morton
 

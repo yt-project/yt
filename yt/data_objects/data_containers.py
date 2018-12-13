@@ -571,7 +571,7 @@ class YTDataContainer(object):
         else:
             data.update(self.field_data)
         # get the extra fields needed to reconstruct the container
-        tds_fields = tuple(self._determine_fields(list(self._tds_fields)))
+        tds_fields = tuple([('index', t) for t in self._tds_fields])
         for f in [f for f in self._container_fields + tds_fields \
                   if f not in data]:
             data[f] = self[f]
@@ -1513,6 +1513,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     def _chunked_read(self, chunk):
         # There are several items that need to be swapped out
         # field_data, size, shape
+        obj_field_data = []
+        if hasattr(chunk, 'objs'):
+            for obj in chunk.objs:
+                obj_field_data.append(obj.field_data)
+                obj.field_data = YTFieldData()
         old_field_data, self.field_data = self.field_data, YTFieldData()
         old_chunk, self._current_chunk = self._current_chunk, chunk
         old_locked, self._locked = self._locked, False
@@ -1520,6 +1525,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self.field_data = old_field_data
         self._current_chunk = old_chunk
         self._locked = old_locked
+        if hasattr(chunk, 'objs'):
+            for obj in chunk.objs:
+                obj.field_data = obj_field_data.pop(0)
 
     @contextmanager
     def _activate_cache(self):

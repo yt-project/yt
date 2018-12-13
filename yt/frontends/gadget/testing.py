@@ -2,10 +2,12 @@ import numpy as np
 
 from .definitions import (
     gadget_field_specs,
-    gadget_header_specs,
     gadget_ptype_specs,
 )
-from .data_structures import GadgetDataset
+from .data_structures import (
+    GadgetBinaryHeader,
+    GadgetDataset,
+)
 from .io import IOHandlerGadgetBinary
 
 
@@ -53,9 +55,7 @@ def fake_gadget_binary(
         endian='', fmt=2
     ):
     """Generate a fake Gadget binary snapshot."""
-    header_spec = GadgetDataset._setup_binary_spec(
-        header_spec, gadget_header_specs
-    )
+    header = GadgetBinaryHeader(filename, header_spec)
     field_spec = GadgetDataset._setup_binary_spec(
         field_spec, gadget_field_specs
     )
@@ -63,17 +63,19 @@ def fake_gadget_binary(
         ptype_spec, gadget_ptype_specs
     )
     with open(filename, 'wb') as fp:
-        # Generate and write header block
-        header_dtype = np.dtype(
-            [(name, endian + dtype, dim) for name, dim, dtype in header_spec]
-        )
-        header = np.zeros(1, dtype=header_dtype)
-        header['Npart'] = npart
-        header['Nall'] = npart
-        header['NumFiles'] = 1
-        header['BoxSize'] = 1
-        header['HubbleParam'] = 1
-        write_block(fp, header, endian, fmt, 'HEAD')
+        # Generate and write header blocks
+        for i_header, header_spec in enumerate(header.spec):
+            header_dtype = np.dtype(
+                [(name, endian + dtype, dim) for name, dim, dtype in header_spec]
+            )
+            header = np.zeros(1, dtype=header_dtype)
+            if i_header == 0:
+                header['Npart'] = npart
+                header['Nall'] = npart
+                header['NumFiles'] = 1
+                header['BoxSize'] = 1
+                header['HubbleParam'] = 1
+            write_block(fp, header, endian, fmt, 'HEAD')
 
         npart = dict(zip(ptype_spec, npart))
         for fs in field_spec:

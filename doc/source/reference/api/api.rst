@@ -438,6 +438,7 @@ Loading Data
    ~yt.frontends.stream.data_structures.load_uniform_grid
    ~yt.frontends.stream.data_structures.load_amr_grids
    ~yt.frontends.stream.data_structures.load_particles
+   ~yt.frontends.stream.data_structures.load_octree
    ~yt.frontends.stream.data_structures.load_hexahedral_mesh
    ~yt.frontends.stream.data_structures.load_unstructured_mesh
 
@@ -477,7 +478,6 @@ of topologically disconnected structures, i.e., clump finding.
    ~yt.data_objects.level_sets.clump_handling.Clump.add_validator
    ~yt.data_objects.level_sets.clump_handling.Clump.save_as_dataset
    ~yt.data_objects.level_sets.clump_handling.find_clumps
-   ~yt.data_objects.level_sets.clump_handling.get_lowest_clumps
    ~yt.data_objects.level_sets.clump_info_items.add_clump_info
    ~yt.data_objects.level_sets.clump_validators.add_validator
 
@@ -848,7 +848,6 @@ Math Utilities
    ~yt.utilities.math_utils.ortho_find
    ~yt.utilities.math_utils.quartiles
    ~yt.utilities.math_utils.get_rotation_matrix
-   ~yt.utilities.math_utils.get_ortho_basis
    ~yt.utilities.math_utils.get_sph_r
    ~yt.utilities.math_utils.resize_vector
    ~yt.utilities.math_utils.get_sph_theta

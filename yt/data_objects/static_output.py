@@ -67,7 +67,9 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
-from yt.units.unit_systems import create_code_unit_system
+from yt.units.unit_systems import \
+    create_code_unit_system, \
+    _make_unit_system_copy
 from yt.data_objects.region_expression import \
     RegionExpression
 from yt.geometry.coordinates.api import \
@@ -824,7 +826,8 @@ class Dataset(object):
             source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
-        return max_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+        center = self.arr([mx, my, mz], dtype="float64").to('code_length')
+        return max_val, center
 
     def find_min(self, field):
         """
@@ -836,7 +839,8 @@ class Dataset(object):
             source.quantities.min_location(field)
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
               min_val, mx, my, mz)
-        return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+        center = self.arr([mx, my, mz], dtype="float64").to('code_length')
+        return min_val, center
 
     def find_field_values_at_point(self, fields, coords):
         """
@@ -971,10 +975,11 @@ class Dataset(object):
         create_code_unit_system(self.unit_registry, 
                                 current_mks_unit=current_mks_unit)
         if unit_system == "code":
-            unit_system = self.unit_registry.unit_system_id
+            unit_system = unit_system_registry[self.unit_registry.unit_system_id]
         else:
-            unit_system = str(unit_system).lower()
-        self.unit_system = unit_system_registry[unit_system]
+            sys_name = str(unit_system).lower()
+            unit_system = _make_unit_system_copy(self.unit_registry, sys_name)
+        self.unit_system = unit_system
 
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()

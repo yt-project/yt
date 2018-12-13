@@ -63,7 +63,7 @@ class FLASHFieldInfo(FieldInfoContainer):
         ("depo", ("code_length**2/code_time**2", [], None)),
         ("ye", ("", [], "Y_e")),
         ("magp", (pres_units, [], None)),
-        ("divb", ("code_magnetic*code_length", [], None)),
+        ("divb", ("code_magnetic/code_length", [], None)),
         ("game", ("", [], r"\gamma_e\ \rm{(ratio\ of\ specific\ heats)}")),
         ("gamc", ("", [], r"\gamma_c\ \rm{(ratio\ of\ specific\ heats)}")),
         ("flam", ("", [], None)),

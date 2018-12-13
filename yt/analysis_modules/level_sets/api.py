@@ -28,9 +28,7 @@ from yt.data_objects.level_sets.contour_finder import \
 from yt.data_objects.level_sets.clump_handling import \
     Clump, \
     find_clumps, \
-    get_lowest_clumps, \
-    write_clump_index, \
-    write_clumps
+    get_lowest_clumps
 
 from yt.data_objects.level_sets.clump_info_items import \
     add_clump_info

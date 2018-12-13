@@ -57,29 +57,32 @@ def _light_cone_projection(my_slice, field, pixels, weight_field=None,
           my_slice["projection_center"][my_slice["projection_axis"]] \
             + 0.5 * my_slice["box_depth_fraction"]
         if (depthLeft < 0):
-            cut_mask = ("((obj[\"%s\"] + 0.5*obj[\"d%s\"] >= 0) & " + \
-              "(obj[\"%s\"] - 0.5*obj[\"d%s\"] <= %f)) | " + \
-              "((obj[\"%s\"] + 0.5*obj[\"d%s\"] >= %f) & " + \
-              "(obj[\"%s\"] - 0.5*obj[\"d%s\"] <= 1))") % \
+            cut_mask = (
+                "((obj['index', '%s'] + 0.5*obj['index', 'd%s'] >= 0) & "
+                " (obj['index', '%s'] - 0.5*obj['index', 'd%s'] <= %f)) | "
+                "((obj['index', '%s'] + 0.5*obj['index', 'd%s'] >= %f) & "
+                " (obj['index', '%s'] - 0.5*obj['index', 'd%s'] <= 1))") % \
                 (axis, axis, axis, axis, depthRight, 
                  axis, axis, (depthLeft+1), axis, axis)
         elif (depthRight > 1):
-            cut_mask = ("((obj[\"%s\"] + 0.5*obj[\"d%s\"] >= 0) & " + \
-              "(obj[\"%s\"] - 0.5*obj[\"d%s\"] <= %f)) | " + \
-              "((obj[\"%s\"] + 0.5*obj[\"d%s\"] >= %f) & " + \
-              "(obj[\"%s\"] - 0.5*obj[\"d%s\"] <= 1))") % \
+            cut_mask = (
+                "((obj['index', '%s'] + 0.5*obj['index', 'd%s'] >= 0) & "
+                "(obj['index', '%s'] - 0.5*obj['index', 'd%s'] <= %f)) | "
+                "((obj['index', '%s'] + 0.5*obj['index', 'd%s'] >= %f) & "
+                "(obj['index', '%s'] - 0.5*obj['index', 'd%s'] <= 1))") % \
                 (axis, axis, axis, axis, (depthRight-1),
                  axis, axis, depthLeft, axis, axis)
         else:
-            cut_mask = ("(obj[\"%s\"] + 0.5*obj[\"d%s\"] >= %f) & " + \
-              "(obj[\"%s\"] - 0.5*obj[\"%s\"] <= %f)") % \
-              (axis, axis, depthLeft, axis, axis, depthRight)
+            cut_mask = (
+                "(obj['index', '%s'] + 0.5*obj['index', 'd%s'] >= %f) & "
+                "(obj['index', '%s'] - 0.5*obj['index', '%s'] <= %f)") % \
+                (axis, axis, depthLeft, axis, axis, depthRight)
 
         these_field_cuts.append(cut_mask)
 
     data_source = my_slice["object"].all_data()
     cut_region = data_source.cut_region(these_field_cuts)
-        
+
     # Make projection.
     proj = my_slice["object"].proj(field, my_slice["projection_axis"], 
         weight_field, center=region_center,

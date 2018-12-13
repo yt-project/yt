@@ -1,10 +1,12 @@
 import numpy as np
 
+from yt.convenience import load
 from yt.testing import \
     fake_random_ds, \
     fake_amr_ds, \
     assert_equal, \
-    assert_almost_equal
+    assert_almost_equal, \
+    requires_file
 
 def setup():
     from yt.config import ytcfg
@@ -59,3 +61,15 @@ def test_region_and_particles():
 
     assert_equal(expected.shape, result.shape)
     assert_equal(expected, result)
+
+ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
+    
+@requires_file(ISOGAL)
+def test_region_chunked_read():
+    # see #2104
+    ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
+
+    sp = ds.sphere((0.5, 0.5, 0.5), (2, "kpc"))
+    dense_sp = sp.cut_region(['obj["H_p0_number_density"]>= 1e-2'])
+    dense_sp.quantities.angular_momentum_vector()
+    

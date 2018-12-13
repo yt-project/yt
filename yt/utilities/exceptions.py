@@ -636,7 +636,7 @@ class YTBoundsDefinitionError(YTException):
     def __str__(self):
         v  = "This operation has encountered a bounds error: "
         v += self.message
-        v += " Specified bounds are %s" % self.bounds
+        v += " Specified bounds are '%s'." % (self.bounds,)
         return v
 
 def screen_one_element_list(lis):
@@ -678,6 +678,18 @@ class YTIllDefinedProfile(YTException):
             weight_msg = ""
 
         return msg + weight_msg
+
+class YTProfileDataShape(YTException):
+    def __init__(self, field1, shape1, field2, shape2):
+        self.field1 = field1
+        self.shape1 = shape1
+        self.field2 = field2
+        self.shape2 = shape2
+
+    def __str__(self):
+        return ("Profile fields must have same shape: %s has " +
+                "shape %s and %s has shape %s.") % \
+                (self.field1, self.shape1, self.field2, self.shape2)
 
 class YTBooleanObjectError(YTException):
     def __init__(self, bad_object):

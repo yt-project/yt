@@ -25,13 +25,14 @@ import weakref
 from yt.data_objects.data_containers import \
     YTSelectionContainer
 from yt.data_objects.static_output import \
-    Dataset, \
-    ParticleFile
+    Dataset
 from yt.frontends.gadget.data_structures import \
     _fix_unit_ordering
 from yt.frontends.gadget_fof.fields import \
     GadgetFOFFieldInfo, \
     GadgetFOFHaloFieldInfo
+from yt.frontends.halo_catalog.data_structures import \
+    HaloCatalogFile
 from yt.funcs import \
     only_on_root, \
     setdefaultattr
@@ -115,7 +116,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
 
-class GadgetFOFHDF5File(ParticleFile):
+class GadgetFOFHDF5File(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
             self.header = \
@@ -129,8 +130,26 @@ class GadgetFOFHDF5File(ParticleFile):
         self.total_particles = \
           {"Group": self.header["Ngroups_ThisFile"],
            "Subhalo": self.header["Nsubgroups_ThisFile"]}
-        self.total_offset = 0 # I think this is no longer needed
+        self.total_offset = 0
         super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
+
+    def _read_particle_positions(self, ptype, f=None):
+        """
+        Read all particle positions in this file.
+        """
+
+        if f is None:
+            close = True
+            f = h5py.File(self.filename, "r")
+        else:
+            close = False
+
+        pos = f[ptype]["%sPos" % ptype].value.astype("float64")
+
+        if close:
+            f.close()
+
+        return pos
 
 class GadgetFOFDataset(Dataset):
     _index_class = GadgetFOFParticleIndex

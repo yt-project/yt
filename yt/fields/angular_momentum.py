@@ -38,22 +38,25 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
     def _specific_angular_momentum_x(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
+        units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units = data["index", "x"].units)
+        rv = data.ds.arr(rv, input_units=units)
         return rv[...,1] * zv - rv[...,2] * yv
 
     def _specific_angular_momentum_y(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
+        units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units = data["index", "x"].units)
+        rv = data.ds.arr(rv, input_units=units)
         return rv[...,2] * xv - rv[...,0] * zv
 
     def _specific_angular_momentum_z(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
+        units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units = data["index", "x"].units)
+        rv = data.ds.arr(rv, input_units=units)
         return rv[...,0] * yv - rv[...,1] * xv
 
     registry.add_field((ftype, "specific_angular_momentum_x"),
@@ -73,7 +76,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
                        function=_specific_angular_momentum_z,
                        units=unit_system["specific_angular_momentum"],
                        validators=[ValidateParameter("center"),
-                                    ValidateParameter("bulk_velocity")])
+                                   ValidateParameter("bulk_velocity")])
 
     create_magnitude_field(registry, "specific_angular_momentum",
                            unit_system["specific_angular_momentum"], ftype=ftype)

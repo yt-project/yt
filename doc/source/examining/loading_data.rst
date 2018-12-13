@@ -1267,16 +1267,25 @@ padding at the end, you can specify this with:
 
 .. code-block:: python
 
-   header_spec = ["default", "pad256"]
+   header_spec = "default+pad256"
 
-This can then be supplied to the constructor.  Note that you can also do this
-manually, for instance with:
-
+Note that a single string like this means a single header block.  To specify
+multiple header blocks, use a list of strings instead:
 
 .. code-block:: python
 
-   header_spec = ["default", (('some_value', 8, 'd'),
-                              ('another_value', 1, 'i'))]
+  header_spec = ["default", "pad256"]
+
+This can then be supplied to the constructor.  Note that you can also define
+header items manually, for instance with:
+
+.. code-block:: python
+
+   from yt.frontends.gadget.definitions import gadget_header_specs
+
+   gadget_header_specs["custom"] = (('some_value', 8, 'd'),
+                                    ('another_value', 1, 'i'))
+   header_spec = "default+custom"
 
 The letters correspond to data types from the Python struct module.  Please
 feel free to submit alternate header types to the main yt repository.
@@ -1669,6 +1678,16 @@ loaded and aliased to ``("PartType0", "particle_magnetic_field")``. The
 corresponding component field like ``("PartType0", "particle_magnetic_field_x")``
 would be added automatically.
 
+Note that ``("PartType4", "StellarFormationTime")`` field has different
+meanings depending on whether it is a cosmological simulation. For cosmological
+runs this is the scale factor at the redshift when the star particle formed.
+For non-cosmological runs it is the time when the star particle formed. (See the
+`GIZMO User Guide <http://www.tapir.caltech.edu/~phopkins/Site/GIZMO_files/gizmo_documentation.html>`_)
+For this reason, ``("PartType4", "StellarFormationTime")`` is loaded as a
+dimensionless field. We defined two related fields
+``("PartType4", "creation_time")``, and ``("PartType4", "age")`` with physical
+units for your convenience.
+
 For Gizmo outputs written as raw binary outputs, you may have to specify
 a bounding box, field specification, and units as are done for standard
 Gadget outputs.  See :ref:`loading-gadget-data` for more information.
@@ -2041,7 +2060,7 @@ based on the presence of a ``info_rt_*.txt`` file in the output directory.
 .. note::
    for backward compatibility, particles from the
    ``part_XXXXX.outYYYYY`` files have the particle type ``io`` by
-   default (including dark matter, stars, tracer particles, …). Sink
+   default (including dark matter, stars, tracer particles, ...). Sink
    particles have the particle type ``sink``.
 
 .. _loading-ramses-data-args:
@@ -2082,7 +2101,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
           # ('all', 'family') and ('all', 'info') now in ds.field_list
 
       The format of the ``extra_particle_fields`` argument is as follows:
-      ``[('field_name_1', 'type_1'), …, ('field_name_n', 'type_n')]`` where
+      ``[('field_name_1', 'type_1'), ..., ('field_name_n', 'type_n')]`` where
       the second element of the tuple follows the `python struct format
       convention
       <https://docs.python.org/3.5/library/struct.html#format-characters>`_.
@@ -2128,7 +2147,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
          that domains have a complicated shape when using Hilbert
          ordering. Internally, yt will hence assume the loaded dataset
          covers the entire simulation. If you only want the data from
-         the selected region, you may want to use ``ds.box(…)``.
+         the selected region, you may want to use ``ds.box(...)``.
 
       .. note::
          The ``bbox`` feature is only available for datasets using
