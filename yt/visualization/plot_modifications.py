@@ -175,8 +175,8 @@ class PlotCallback(object):
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
-            return np.array([(ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                             (ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0])
+            return np.array([((ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0)[0],
+                             ((ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)[0]])
         else:
             return np.array([(ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
                              (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0])
@@ -227,7 +227,6 @@ class PlotCallback(object):
         # if in plot coords, define the transform correctly
         if coord_system == "data" or coord_system == "plot":
             self.transform = plot._axes.transData
-            print(coord)
             return coord
         # if in axis coords, define the transform correctly
         if coord_system == "axis":
@@ -235,12 +234,10 @@ class PlotCallback(object):
             if len(coord) > 2:
                 raise SyntaxError("Coordinates in 'axis' coordinate system "
                                   "need to be in 2D")
-            print(coord)
             return coord
         # if in figure coords, define the transform correctly
         elif coord_system == "figure":
             self.transform = plot._figure.transFigure
-            print(coord)
             return coord
         else:
             raise SyntaxError("Argument coord_system must have a value of "
@@ -1183,7 +1180,6 @@ class ArrowCallback(PlotCallback):
         if dx == dy == 0:
             warnings.warn("The arrow has zero length.  Not annotating.")
             return
-        #import pdb; pdb.set_trace()
         try:
             plot._axes.arrow(x-dx, y-dy, dx, dy, width=self.width,
                              head_width=self.head_width,
