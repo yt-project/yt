@@ -227,6 +227,11 @@ def test_arrow_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_arrow([0.5,0.5], coord_system='axis', length=0.05)
+        p.annotate_arrow([[0.5,0.6],[0.5,0.6],[0.5,0.6]], coord_system='data', length=0.05)
+        p.annotate_arrow([[0.5,0.6,0.8],[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='data', length=0.05)
+        p.annotate_arrow([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='axis', length=0.05)
+        p.annotate_arrow([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='figure', length=0.05)
+        p.annotate_arrow([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='plot', length=0.05)
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
@@ -255,6 +260,11 @@ def test_marker_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_marker([0.5,0.5], coord_system='axis', marker='*')
+        p.annotate_marker([[0.5,0.6],[0.5,0.6],[0.5,0.6]], coord_system='data')
+        p.annotate_marker([[0.5,0.6,0.8],[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='data')
+        p.annotate_marker([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='axis')
+        p.annotate_marker([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='figure')
+        p.annotate_marker([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='plot')
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
