@@ -1049,8 +1049,8 @@ class ClumpContourCallback(PlotCallback):
 
 class ArrowCallback(PlotCallback):
     """
-    Overplot an arrow pointing at a position for highlighting a specific
-    feature.  By default, arrow points from lower left to the designated
+    Overplot arrow(s) pointing at position(s) for highlighting specific
+    features.  By default, arrow points from lower left to the designated
     position "pos" with arrow length "length".  Alternatively, if
     "starting_pos" is set, arrow will stretch from "starting_pos" to "pos"
     and "length" will be disregarded.
@@ -1065,8 +1065,9 @@ class ArrowCallback(PlotCallback):
 
     Parameters
     ----------
-    pos : 2- or 3-element tuple, list, or array
-        These are the coordinates to which the arrow is pointing
+    pos : array-like
+        These are the coordinates where the marker(s) will be overplotted
+        Either as [x,y,z] or as [[x1,x2,...],[y1,y2,...],[z1,z2,...]]
 
     length : float, optional
         The length, in axis units, of the arrow.
@@ -1198,12 +1199,13 @@ class ArrowCallback(PlotCallback):
 
 class MarkerAnnotateCallback(PlotCallback):
     """
-    Overplot a marker on a position for highlighting specific features.
+    Overplot marker(s) at a position(s) for highlighting specific features.
 
     Parameters
     ----------
-    pos : 2- or 3-element tuple, list, or array
-        These are the coordinates where the marker will be overplotted
+    pos : array-like
+        These are the coordinates where the marker(s) will be overplotted
+        Either as [x,y,z] or as [[x1,x2,...],[y1,y2,...],[z1,z2,...]]
 
     marker : string, optional
         The shape of the marker to be passed to the MPL scatter function.
