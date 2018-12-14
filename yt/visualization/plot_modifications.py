@@ -105,7 +105,7 @@ class PlotCallback(object):
         code_length units.  Projected data units are 2D versions of the
         simulation data units relative to the axes of the final plot.
         """
-        if len(coord) == 3:
+        if coord.shape[0] == 3:
             if not isinstance(coord, YTArray):
                 coord = plot.data.ds.arr(coord, 'code_length')
             coord.convert_to_units('code_length')
@@ -121,7 +121,9 @@ class PlotCallback(object):
             # we have to calculate where the data coords fall in the projected
             # plane
             elif ax == 4:
-                coord_vectors = coord - plot.data.center
+                # transpose is just to get [[x1,x2,...],[y1,y2,...],[z1,z2,...]]
+                # in the same order as plot.data.center for array arithmetic
+                coord_vectors = coord.transpose() - plot.data.center
                 x = np.dot(coord_vectors, plot.data.orienter.unit_vectors[1])
                 y = np.dot(coord_vectors, plot.data.orienter.unit_vectors[0])
                 # Transpose into image coords. Due to VR being not a
@@ -181,8 +183,9 @@ class PlotCallback(object):
 
     def sanitize_coord_system(self, plot, coord, coord_system):
         """
-        Given a set of x,y (and z) coordinates and a coordinate system,
-        convert the coordinates (and transformation) ready for final plotting.
+        Given a set of one or more x,y (and z) coordinates and a coordinate 
+        system, convert the coordinates (and transformation) ready for final 
+        plotting.
 
         Parameters
         ----------
@@ -191,7 +194,9 @@ class PlotCallback(object):
            The plot that we are converting coordinates for
 
         coord: array-like
-           Coordinates in some coordinate system.
+           Coordinates in some coordinate system: [x,y,z].
+           Alternatively, can specify multiple coordinates as:
+           [[x1,x2,...,xn], [y1, y2,...,yn], [z1,z2,...,zn]]
 
         coord_system: string
 
@@ -212,15 +217,16 @@ class PlotCallback(object):
                 to (1,1) in upper right.  Same as matplotlib figure coords.
         """
         # if in data coords, project them to plot coords
+        coord = np.array(coord)
         if coord_system == "data":
-            if len(coord) < 3:
+            if coord.shape[0] < 3:
                 raise SyntaxError("Coordinates in 'data' coordinate system "
                                   "need to be in 3D")
             coord = self.project_coords(plot, coord)
             coord = self.convert_to_plot(plot, coord)
             # Convert coordinates from a tuple of ndarray to a tuple of floats
             # since not all callbacks are OK with ndarrays as coords (eg arrow)
-            coord = (coord[0], coord[1])
+            #coord = (coord[0], coord[1])
         # if in plot coords, define the transform correctly
         if coord_system == "data" or coord_system == "plot":
             self.transform = plot._axes.transData
@@ -1177,7 +1183,7 @@ class ArrowCallback(PlotCallback):
         if dx == dy == 0:
             warnings.warn("The arrow has zero length.  Not annotating.")
             return
-        plot._axes.arrow(x-dx, y-dy, dx, dy, width=self.width,
+        plot._axes.arrow(x[0]-dx, y[0]-dy, dx, dy, width=self.width,
                          head_width=self.head_width,
                          head_length=self.head_length,
                          transform=self.transform,
