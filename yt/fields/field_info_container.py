@@ -20,6 +20,8 @@ from numbers import Number as numeric_type
 
 from yt.extern.six import string_types
 from yt.funcs import mylog, only_on_root
+from yt.geometry.geometry_handler import \
+    is_curvilinear
 from yt.units.unit_object import Unit
 from yt.units.dimensions import dimensionless
 from .derived_field import \
@@ -67,7 +69,7 @@ class FieldInfoContainer(dict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
-        if ds is not None and ds.geometry in ["polar","cylindrical","spherical"]:
+        if ds is not None and is_curvilinear(ds.geometry):
             self.curvilinear = True
         else:
             self.curvilinear = False

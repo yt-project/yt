@@ -40,6 +40,8 @@ from yt.funcs import \
     iterable, \
     mylog, \
     validate_width_tuple
+from yt.geometry.geometry_handler import \
+    is_curvilinear
 from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity, YTArray, uhstack
 from yt.visualization.image_writer import apply_colormap
@@ -320,7 +322,7 @@ class VelocityCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            if plot.data.ds.geometry in ["polar", "cylindrical", "spherical"]:
+            if is_curvilinear(plot.data.ds.geometry):
                 raise NotImplementedError("Velocity annotation for cutting \
                     plane is not supported for %s geometry" % plot.data.ds.geometry)
         if plot._type_name == "CuttingPlane":
@@ -385,7 +387,7 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            if plot.data.ds.geometry in ["polar", "cylindrical", "spherical"]:
+            if is_curvilinear(plot.data.ds.geometry):
                 raise NotImplementedError("Magnetic field annotation for cutting \
                     plane is not supported for %s geometry" % plot.data.ds.geometry)
             qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
