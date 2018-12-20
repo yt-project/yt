@@ -3,6 +3,7 @@ import numpy as np
 from yt.frontends.stream.data_structures import load_particles
 from yt.testing import fake_random_ds, assert_equal, assert_almost_equal, \
     fake_octree_ds, requires_file
+from yt.convenience import load
 
 # cylindrical data for covering_grid test
 cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
