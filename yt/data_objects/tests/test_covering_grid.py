@@ -2,12 +2,18 @@ import numpy as np
 
 from yt.frontends.stream.data_structures import load_particles
 from yt.testing import fake_random_ds, assert_equal, assert_almost_equal, \
-    fake_octree_ds
+    fake_octree_ds, requires_file
+
+# cylindrical data for covering_grid test
+cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
+cyl_3d = "MHD_Cyl3d_hdf5_plt_cnt_0100/MHD_Cyl3d_hdf5_plt_cnt_0100.hdf5"
 
 def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
 
+@requires_file(cyl_2d)
+@requires_file(cyl_3d)
 def test_covering_grid():
     # We decompose in different ways
     for level in [0, 1, 2]:
@@ -61,6 +67,15 @@ def test_covering_grid():
                                       dn*di[1]+i:dn*(di[1]+dd[1])+i:dn,
                                       dn*di[2]+i:dn*(di[2]+dd[2])+i:dn]
                     assert_equal(f, g["density"])
+
+    # More tests for cylindrical geometry
+    for fn in [cyl_2d, cyl_3d]:
+        ds = load(fn)
+        ad = ds.all_data()
+        upper_ad = ad.cut_region(["obj['z'] > 0"])
+        sp = ds.sphere((0, 0, 0), 0.5 * ds.domain_width[0],
+                       data_source=upper_ad)
+        sp.quantities.total_mass()
 
 def test_smoothed_covering_grid():
     # We decompose in different ways
