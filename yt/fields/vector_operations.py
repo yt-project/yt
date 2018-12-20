@@ -440,7 +440,7 @@ def create_vector_fields(registry, basename, field_units,
 
         def _cartesian_y(field,data):
 
-          if registry.ds.geometry is "polar":
+          if registry.ds.geometry=="polar":
 
             return data["%s_r" % basename] * np.sin(data["theta"])
 
