@@ -420,23 +420,25 @@ def create_vector_fields(registry, basename, field_units,
             if data.ds.dimensionality==2:
               return data["%s_r" % basename]
             elif data.ds.dimensionality==3:
-              return data["%s_r" % basename] * np.cos(data["theta"]) \
-                     - data["%s_theta" % basename] * np.sin(data["theta"])
+              return (data["%s_r" % basename] * np.cos(data["theta"]) -
+                      data["%s_theta" % basename] * np.sin(data["theta"]))
 
           elif registry.ds.geometry == "spherical":
 
             if data.ds.dimensionality==2:
-              return data["%s_r" % basename] * np.sin(data["theta"]) \
-                     + data["%s_theta" % basename] * np.cos(data["theta"])
+              return (data["%s_r" % basename] * np.sin(data["theta"]) +
+                      data["%s_theta" % basename] * np.cos(data["theta"]))
             elif data.ds.dimensionality==3:
-              return data["%s_r" % basename] * np.sin(data["theta"]) * np.cos(data["phi"]) \
-                     + data["%s_theta" % basename] * np.cos(data["theta"]) * np.cos(["phi"]) \
-                     - data["%s_phi" % basename] * np.sin(data["phi"])
+              return (data["%s_r" % basename] * np.sin(data["theta"]) * np.cos(data["phi"]) +
+                      data["%s_theta" % basename] * np.cos(data["theta"]) * np.cos(["phi"]) -
+                      data["%s_phi" % basename] * np.sin(data["phi"]))
 
-        registry.add_field((ftype, "%s_cartesian_x" % basename), sampling_type="cell", 
-                           function=_cartesian_x,
-                           units=field_units,
-                           display_field=True)
+        # it's redundant to define a cartesian x field for 1D data
+        if registry.ds.dimensionality > 1:
+          registry.add_field((ftype, "%s_cartesian_x" % basename), sampling_type="cell", 
+                             function=_cartesian_x,
+                             units=field_units,
+                             display_field=True)
 
         def _cartesian_y(field,data):
 
@@ -449,35 +451,34 @@ def create_vector_fields(registry, basename, field_units,
             if data.ds.dimensionality==2:
               return data["%s_z" % basename]
             elif data.ds.dimensionality==3:
-              return data["%s_r" % basename] * np.sin(data["theta"]) \
-                     + data["%s_theta" % basename] * np.cos(data["theta"])
+              return (data["%s_r" % basename] * np.sin(data["theta"]) +
+                      data["%s_theta" % basename] * np.cos(data["theta"]))
 
           elif registry.ds.geometry == "spherical":
 
             if data.ds.dimensionality==2:
-              return data["%s_r" % basename] * np.cos(data["theta"]) \
-                     - data["%s_theta" % basename] * np.sin(data["theta"])
+              return (data["%s_r" % basename] * np.cos(data["theta"]) -
+                     data["%s_theta" % basename] * np.sin(data["theta"]))
             elif data.ds.dimensionality==3:
-              return data["%s_r" % basename] * np.sin(data["theta"]) * np.sin(data["phi"]) \
-                     + data["%s_theta" % basename] * np.cos(data["theta"]) * np.sin(["phi"]) \
-                     + data["%s_phi" % basename] * np.cos(data["phi"])
+              return (data["%s_r" % basename] * np.sin(data["theta"]) * np.sin(data["phi"]) +
+                      data["%s_theta" % basename] * np.cos(data["theta"]) * np.sin(["phi"]) +
+                      data["%s_phi" % basename] * np.cos(data["phi"]))
 
-        registry.add_field((ftype, "%s_cartesian_y" % basename), sampling_type="cell", 
-                           function=_cartesian_y,
-                           units=field_units,
-                           display_field=True)
+        if registry.ds.dimensionality >= 2:
+          registry.add_field((ftype, "%s_cartesian_y" % basename), sampling_type="cell", 
+                             function=_cartesian_y,
+                             units=field_units,
+                             display_field=True)
 
+        def _cartesian_z(field,data):
+
+          if registry.ds.geometry == "cylindrical":
+            return data["%s_z" % basename]
+          elif registry.ds.geometry == "spherical":
+            return (data["%s_r" % basename] * np.cos(data["theta"]) -
+                    data["%s_theta" % basename] * np.sin(data["theta"]))
 
         if registry.ds.dimensionality == 3:
-
-          def _cartesian_z(field,data):
-
-            if registry.ds.geometry == "cylindrical":
-              return data["%s_z" % basename]
-            elif registry.ds.geometry == "spherical":
-              return data["%s_r" % basename] * np.cos(data["theta"]) \
-                   - data["%s_theta" % basename] * np.sin(data["theta"])
-
           registry.add_field((ftype, "%s_cartesian_z" % basename), sampling_type="cell", 
                              function=_cartesian_z,
                              units=field_units,
