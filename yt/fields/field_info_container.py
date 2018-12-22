@@ -175,14 +175,11 @@ class FieldInfoContainer(dict):
             #print "Aliasing %s => %s" % (alias, source)
             self.alias(alias, source)
 
-    def setup_fluid_aliases(self, ftype='gas'):
+    # Collect the names for all aliases if geometry is curvilinear
+    def get_aliases_gallery(self):
+        aliases_gallery = []
         known_other_fields = dict(self.known_other_fields)
-
-        # For non-Cartesian geometry, convert alias of vector fields to 
-        # curvilinear coordinates
         if self.curvilinear:
-            # First, we collect the names for all aliases
-            aliases_gallery = []
             for field in sorted(self.field_list):
                 if field[0] in self.ds.particle_types:
                     continue
@@ -190,6 +187,14 @@ class FieldInfoContainer(dict):
                 units, aliases, display_name = args
                 for alias in aliases:
                     aliases_gallery.append(alias)
+        return aliases_gallery
+
+    def setup_fluid_aliases(self, ftype='gas'):
+        known_other_fields = dict(self.known_other_fields)
+
+        # For non-Cartesian geometry, convert alias of vector fields to 
+        # curvilinear coordinates
+        aliases_gallery = self.get_aliases_gallery()
             
         for field in sorted(self.field_list):
             if not isinstance(field, tuple):
@@ -214,19 +219,19 @@ class FieldInfoContainer(dict):
                 units = ""
             self.add_output_field(field, sampling_type="cell", units = units,
                                   display_name = display_name)
+            axis_names = self.ds.coordinates.axis_order
             for alias in aliases:
                 if self.curvilinear: # For non-Cartesian geometry, convert vector aliases
-                    axis_names = self.ds.coordinates.axis_order
-                    if alias[-2:] in ["_x", "_y", "_z"] and \
-                        "%s_%s" % (alias[:-2], 'x') in aliases_gallery and \
-                        "%s_%s" % (alias[:-2], 'y') in aliases_gallery and \
-                        "%s_%s" % (alias[:-2], 'z') in aliases_gallery:
-                        # Only vectors with suffixes of a COMPELETE set of (x,y,z) will
-                        # be considered as not under proper geometry and converted.
-                        # If the suffixes are not complete, simple conversion might cause
-                        # unforeseeable error. Say, if vectors are already under cylindrical 
-                        # coordinate (r,z,theta), they might be converted to (r,y,theta)
-                        # by mistake.
+                    
+                    if alias[-2:] not in ["_x", "_y", "_z"]:
+                        to_convert = False
+                    else:
+                        for suffix in ["x", "y", "z"]:
+                            if "%s_%s" % (alias[:-2], suffix) not in aliases_gallery:
+                                to_convert = False
+                                break
+                        to_convert = True
+                    if to_convert:
                         if alias[-2:]=="_x":
                             alias = "%s_%s" % (alias[:-2], axis_names[0])
                         elif alias[-2:]=="_y":
