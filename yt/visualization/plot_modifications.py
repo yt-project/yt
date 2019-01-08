@@ -97,7 +97,7 @@ class PlotCallback(object):
     def __call__(self, plot):
         raise NotImplementedError
 
-    def project_coords(self, plot, coord):
+    def _project_coords(self, plot, coord):
         """
         Convert coordinates from simulation data coordinates to projected
         data coordinates.  Simulation data coordinates are three dimensional,
@@ -139,7 +139,7 @@ class PlotCallback(object):
             raise SyntaxError("'data' coordinates must be 3 dimensions")
         return coord
 
-    def convert_to_plot(self, plot, coord, offset=True):
+    def _convert_to_plot(self, plot, coord, offset=True):
         """
         Convert coordinates from projected data coordinates to PlotWindow
         plot coordinates.  Projected data coordinates are two dimensional
@@ -181,7 +181,7 @@ class PlotCallback(object):
             return np.array([(ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
                              (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0])
 
-    def sanitize_coord_system(self, plot, coord, coord_system):
+    def _sanitize_coord_system(self, plot, coord, coord_system):
         """
         Given a set of one or more x,y (and z) coordinates and a coordinate 
         system, convert the coordinates (and transformation) ready for final 
@@ -222,8 +222,8 @@ class PlotCallback(object):
             if coord.shape[0] < 3:
                 raise SyntaxError("Coordinates in 'data' coordinate system "
                                   "need to be in 3D")
-            coord = self.project_coords(plot, coord)
-            coord = self.convert_to_plot(plot, coord)
+            coord = self._project_coords(plot, coord)
+            coord = self._convert_to_plot(plot, coord)
         # if in plot coords, define the transform correctly
         if coord_system == "data" or coord_system == "plot":
             self.transform = plot._axes.transData
@@ -243,7 +243,7 @@ class PlotCallback(object):
             raise SyntaxError("Argument coord_system must have a value of "
                               "'data', 'plot', 'axis', or 'figure'.")
 
-    def pixel_scale(self, plot):
+    def _pixel_scale(self, plot):
         x0, x1 = np.array(plot.xlim)
         xx0, xx1 = plot._axes.get_xlim()
         dx = (xx1 - xx0)/(x1 - x0)
@@ -635,7 +635,7 @@ class GridBoundaryCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        (dx, dy) = self.pixel_scale(plot)
+        (dx, dy) = self._pixel_scale(plot)
         (ypix, xpix) = plot.image._A.shape
         ax = plot.data.axis
         px_index = plot.data.ds.coordinates.x_axis[ax]
@@ -893,9 +893,9 @@ class LinePlotCallback(PlotCallback):
         self.transform = None
 
     def __call__(self, plot):
-        p1 = self.sanitize_coord_system(plot, self.p1,
+        p1 = self._sanitize_coord_system(plot, self.p1,
                             coord_system=self.coord_system)
-        p2 = self.sanitize_coord_system(plot, self.p2,
+        p2 = self._sanitize_coord_system(plot, self.p2,
                             coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
@@ -1147,7 +1147,7 @@ class ArrowCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        x,y = self.sanitize_coord_system(plot, self.pos,
+        x,y = self._sanitize_coord_system(plot, self.pos,
                                coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
@@ -1165,11 +1165,11 @@ class ArrowCallback(PlotCallback):
             if iterable(self.code_size):
                 self.code_size = plot.data.ds.quan(self.code_size[0], self.code_size[1])
                 self.code_size = np.float64(self.code_size.in_units(plot.xlim[0].units))
-            self.code_size = self.code_size * self.pixel_scale(plot)[0]
+            self.code_size = self.code_size * self._pixel_scale(plot)[0]
             dx = dy = self.code_size
         else:
             if self.starting_pos is not None:
-                start_x,start_y = self.sanitize_coord_system(plot,
+                start_x,start_y = self._sanitize_coord_system(plot,
                                        self.starting_pos,
                                        coord_system=self.coord_system)
                 dx = x - start_x
@@ -1261,7 +1261,7 @@ class MarkerAnnotateCallback(PlotCallback):
         self.transform = None
 
     def __call__(self, plot):
-        x,y = self.sanitize_coord_system(plot, self.pos,
+        x,y = self._sanitize_coord_system(plot, self.pos,
                                coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
@@ -1347,11 +1347,11 @@ class SphereCallback(PlotCallback):
         # apply a different transform for a length in the same way
         # you can for a coordinate.
         if self.coord_system == 'data' or self.coord_system == 'plot':
-            self.radius = self.radius * self.pixel_scale(plot)[0]
+            self.radius = self.radius * self._pixel_scale(plot)[0]
         else:
             self.radius /= (plot.xlim[1]-plot.xlim[0]).v
 
-        x,y = self.sanitize_coord_system(plot, self.center,
+        x,y = self._sanitize_coord_system(plot, self.center,
                                coord_system=self.coord_system)
 
         cir = Circle((x, y), self.radius, transform=self.transform,
@@ -1448,7 +1448,7 @@ class TextLabelCallback(PlotCallback):
 
     def __call__(self, plot):
         kwargs = self.text_args.copy()
-        x,y = self.sanitize_coord_system(plot, self.pos,
+        x,y = self._sanitize_coord_system(plot, self.pos,
                                coord_system=self.coord_system)
 
         # Set the font properties of text from this callback to be
@@ -1627,7 +1627,7 @@ class HaloCatalogCallback(PlotCallback):
         field_z = "%s_%s" % (self.center_field_prefix, axis_names[data.axis])
 
         # Set up scales for pixel size and original data
-        pixel_scale = self.pixel_scale(plot)[0]
+        pixel_scale = self._pixel_scale(plot)[0]
         units = plot.xlim[0].units
 
         # Convert halo positions to code units of the plotted data
@@ -1653,7 +1653,7 @@ class HaloCatalogCallback(PlotCallback):
         px[modpx != px] = modpx[modpx != px]
         py[modpy != py] = modpy[modpy != py]
 
-        px, py = self.convert_to_plot(plot, [px, py])
+        px, py = self._convert_to_plot(plot, [px, py])
 
         # Convert halo radii to a radius in pixels
         radius = halo_data[self.radius_field][:].in_units(units)
@@ -1770,7 +1770,7 @@ class ParticleCallback(PlotCallback):
             gg &= (self.region[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
         px, py = [particle_x[gg][::self.stride], particle_y[gg][::self.stride]]
-        px, py = self.convert_to_plot(plot, [px, py])
+        px, py = self._convert_to_plot(plot, [px, py])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
@@ -1938,9 +1938,9 @@ class TriangleFacetsCallback(PlotCallback):
         # reformat for conversion to plot coordinates
         l_cy = np.rollaxis(l_cy,0,3)
         # convert all line starting points
-        l_cy[0] = self.convert_to_plot(plot,l_cy[0])
+        l_cy[0] = self._convert_to_plot(plot,l_cy[0])
         # convert all line ending points
-        l_cy[1] = self.convert_to_plot(plot,l_cy[1])
+        l_cy[1] = self._convert_to_plot(plot,l_cy[1])
         # convert back to shape (nlines, 2, 2)
         l_cy = np.rollaxis(l_cy,2,0)
         # create line collection and add it to the plot
