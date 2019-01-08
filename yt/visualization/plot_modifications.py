@@ -105,7 +105,7 @@ class PlotCallback(object):
         code_length units.  Projected data units are 2D versions of the
         simulation data units relative to the axes of the final plot.
         """
-        if coord.shape[0] == 3:
+        if len(coord) == 3:
             if not isinstance(coord, YTArray):
                 coord = plot.data.ds.arr(coord, 'code_length')
             coord.convert_to_units('code_length')
@@ -216,10 +216,12 @@ class PlotCallback(object):
                 2D coordinates within figure object from (0,0) in lower left
                 to (1,1) in upper right.  Same as matplotlib figure coords.
         """
+        # Assure coords are either a YTArray or numpy array
+        if not isinstance(coord, YTArray) or not isinstance(coord, np.ndarray):
+            coord = np.array(coord)
         # if in data coords, project them to plot coords
-        coord = np.array(coord)
         if coord_system == "data":
-            if coord.shape[0] < 3:
+            if len(coord) < 3:
                 raise SyntaxError("Coordinates in 'data' coordinate system "
                                   "need to be in 3D")
             coord = self._project_coords(plot, coord)
