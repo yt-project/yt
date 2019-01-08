@@ -259,6 +259,9 @@ def test_marker_callback():
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
+        coord = ds.arr([0.75, 0.75, 0.75], 'unitary')
+        coord.convert_to_units('kpc')
+        p.annotate_marker(coord, coord_system='data')
         p.annotate_marker([0.5,0.5], coord_system='axis', marker='*')
         p.annotate_marker([[0.5,0.6],[0.5,0.6],[0.5,0.6]], coord_system='data')
         p.annotate_marker([[0.5,0.6,0.8],[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='data')
