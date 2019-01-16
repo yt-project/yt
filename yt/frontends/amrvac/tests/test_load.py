@@ -28,3 +28,7 @@ def test_load_amrvac():
     """Check that yt.load() doesn't crash AND correctly guesses that data is amrvac-formated"""
     ds = yt.load(example_data_2D)
     assert ds.__class__ == yt.frontends.amrvac.AMRVACDataset
+    for f in ("rho", "m1", "m2"):
+        assert f in ds.field_list
+    #print(dir(ds))
+    #print(ds.all_data())
