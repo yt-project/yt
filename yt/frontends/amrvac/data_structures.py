@@ -34,7 +34,7 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 
 from .fields import AMRVACFieldInfo
-from .misc import AMRVACDatReader
+from .datreader import get_header, get_block_data, get_uniform_data
 
 
 class AMRVACGrid(AMRGridPatch):
@@ -86,7 +86,7 @@ class AMRVACHierarchy(GridIndex):
         with open(self.dataset.parameter_filename, 'rb') as df:
             #devnote: here I'm loading everything in the RAM, defeating the purpose
             # this is a tmp workaround
-            leaves_dat = AMRVACDatReader.get_block_data(df)
+            leaves_dat = get_block_data(df)
         leave_levels = [d['lvl'] for d in leaves_dat]
         lmax = self.dataset.parameters["levmax"]
         ndim = self.dataset.dimensionality
@@ -129,7 +129,7 @@ class AMRVACHierarchy(GridIndex):
         with open(self.dataset.parameter_filename, 'rb') as df:
             #devnote: here I'm loading everything in the RAM, defeating the purpose
             # this is a tmp workaround
-            leaves_dat = AMRVACDatReader.get_block_data(df)
+            leaves_dat = get_block_data(df)
         header = self.dataset.parameters
         ndim = self.dataset.dimensionality
 
@@ -249,7 +249,7 @@ class AMRVACDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         with open(self.parameter_filename, 'rb') as df:
-            self.parameters = AMRVACDatReader.get_header(df)
+            self.parameters = get_header(df)
 
         self.current_time   = self.parameters['time']
         self.dimensionality = self.parameters['ndim'] #devnote, warining : ndir != ndim
