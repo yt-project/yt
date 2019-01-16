@@ -1,10 +1,14 @@
-import pathlib
-
+import sys
+if sys.version.major < 3:
+    import pathlib2 as pathlib
+else:
+    import pathlib
 import yt
+
 from yt.utilities.parameter_file_storage import output_type_registry
 
 test_dir = pathlib.Path(__file__).parent.resolve()
-example_data_2D = test_dir / "data/blast_wave_Cartesian_2D/bw_2d0005.dat"
+example_data_2D = test_dir / "data/blast_wave_Cartesian_2D/bw_2d0004.dat"
 
 def test_frontends_contents():
     """Check that our frontend is correctly being registered."""
