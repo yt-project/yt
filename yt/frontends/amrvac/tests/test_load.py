@@ -26,5 +26,5 @@ def test_is_amrvac_valid():
 
 def test_load_amrvac():
     """Check that yt.load() doesn't crash AND correctly guesses that data is amrvac-formated"""
-    ds = yt.load(example_data_2D)
+    ds = yt.load(str(example_data_2D))
     #assert ds.<something> == "amrvac"
