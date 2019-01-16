@@ -1,5 +1,5 @@
 import sys
-if sys.version.major < 3:
+if sys.version.startswith("2"):
     import pathlib2 as pathlib
 else:
     import pathlib
