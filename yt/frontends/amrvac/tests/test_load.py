@@ -21,7 +21,7 @@ def test_output_type_registry():
 
 def test_is_amrvac_valid():
     """Check that our format validation fonction works at least on example file"""
-    assert example_data_2D.is_file()
+    assert pathlib.Path(example_data_2D).is_file()
     assert output_type_registry["AMRVACDataset"]._is_valid(example_data_2D)
 
 def test_load_amrvac():
