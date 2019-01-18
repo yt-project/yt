@@ -159,8 +159,8 @@ def get_uniform_data(dat):
     grid. Argument 'dat' should be a file opened in binary mode.
     """
 
-    h = __class__.get_header(dat)
-    blocks = __class__.get_block_data(dat)
+    h = get_header(dat)
+    blocks = get_block_data(dat)
 
     # Check if grid is uniformly refined
     refined_nx = 2**(h['levmax']-1) * h['domain_nx']
