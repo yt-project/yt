@@ -10,6 +10,15 @@ addons:
   apt:
     packages:
       - libhdf5-serial-dev
+      - libproj-dev
+      - proj-data
+      - proj-bin
+      - libgeos-dev
+      - libopenmpi-dev
+
+env:
+  global:
+    PIP=pip
 
 env:
   global:
@@ -26,8 +35,7 @@ before_install:
       sudo mkdir -p /usr/local/man
       sudo chown -R "${USER}:admin" /usr/local/man
       brew update
-      brew uninstall numpy
-      brew install python ccache hdf5 openmpi netcdf
+      brew install python ccache hdf5 proj geos openmpi netcdf
       brew uninstall gdal postgis numpy
       export PATH=/usr/local/opt/ccache/libexec:$PATH
     fi
@@ -50,6 +58,12 @@ install:
       if [[ $MINIMAL == 1 ]]; then
         $PIP install -r tests/test_minimal_requirements.txt
       else
+        # Getting cartopy installed requires getting cython and numpy installed
+        # first; this is potentially going to be fixed with the inclusion of
+        # pyproject.toml in cartopy.
+        # These versions are pinned, so we will need to update/remove them when
+        # the hack is no longer necessary.
+        $PIP install numpy==1.15.3 cython==0.29
         $PIP install -r tests/test_requirements.txt
       fi
       $PIP install -e .

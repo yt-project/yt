@@ -9,6 +9,8 @@ from yt.convenience import load
 cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
 cyl_3d = "MHD_Cyl3d_hdf5_plt_cnt_0100/MHD_Cyl3d_hdf5_plt_cnt_0100.hdf5"
 
+from yt.units import kpc
+
 def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
@@ -177,3 +179,39 @@ def test_arbitrary_grid_derived_field():
     galgas = ds.arbitrary_grid([0.4, 0.4, 0.4], [0.99, 0.99, 0.99],
                                dims=[32, 32, 32])
     galgas['tracerf']
+
+def test_arbitrary_grid_edge():
+    # Tests bug fix for issue #2087
+    # Regardless of how left_edge and right_edge are passed, the result should be
+    # a YTArray with a unit registry that matches that of the dataset.
+    dims = [32,32,32]
+    ds = fake_random_ds(dims)
+    # Test when edge is a list, numpy array, YTArray with dataset units, and
+    # YTArray with non-dataset units
+    ledge = [ [0., 0., 0.],
+            np.array([0., 0., 0.]),
+            [0., 0., 0.] * ds.length_unit,
+            [0., 0., 0.] * kpc]
+
+    redge = [ [1., 1., 1.],
+            np.array([1., 1., 1.]),
+            [1., 1., 1.] * ds.length_unit,
+            [1., 1., 1.] * kpc]
+
+    ledge_ans = [ [0., 0., 0.] * ds.length_unit.to('code_length'),
+                np.array([0., 0., 0.]) * ds.length_unit.to('code_length'),
+                [0., 0., 0.] * ds.length_unit,
+                [0., 0., 0.] * kpc]
+
+    redge_ans = [ [1., 1., 1.] * ds.length_unit.to('code_length'),
+                np.array([1., 1., 1.]) * ds.length_unit.to('code_length'),
+                [1., 1., 1.] * ds.length_unit,
+                [1., 1., 1.] * kpc]
+
+    for le, re, le_ans, re_ans in zip(ledge, redge, ledge_ans, redge_ans):
+        ag = ds.arbitrary_grid(left_edge = le, right_edge = re, dims = dims)
+        assert np.array_equal(ag.left_edge, le_ans)
+        assert np.array_equal(ag.right_edge, re_ans)
+        assert ag.left_edge.units.registry == ds.unit_registry
+        assert ag.right_edge.units.registry == ds.unit_registry
+        ag['density']

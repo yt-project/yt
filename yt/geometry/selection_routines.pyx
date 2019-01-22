@@ -1222,7 +1222,7 @@ cdef class SliceSelector(SelectorObject):
         cdef int total = 0
         cdef int this_level = 0
         cdef int ind[3][2]
-        cdef np.uint8_t icoord
+        cdef np.uint64_t icoord
         cdef np.int32_t level = gobj.Level
         _ensure_code(gobj.LeftEdge)
         _ensure_code(gobj.dds)
@@ -1236,7 +1236,7 @@ cdef class SliceSelector(SelectorObject):
                 this_level = 1
             for i in range(3):
                 if i == self.axis:
-                    icoord = <np.uint8_t>(
+                    icoord = <np.uint64_t>(
                         (self.coord - gobj.LeftEdge.d[i])/gobj.dds[i])
                     # clip coordinate to avoid seg fault below if we're
                     # exactly at a grid boundary
