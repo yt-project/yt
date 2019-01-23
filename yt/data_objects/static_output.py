@@ -1307,11 +1307,7 @@ class Dataset(object):
         take_log = self.field_info[ftype, deposit_field].take_log
         field_name = "cell_%s_%s" % (ftype, deposit_field)
 
-        def _deposit_field(field, data):
-            """
-            Create a grid field for particle quantities using given method.
-            """
-
+        def _deposit_cell_index(field, data):
             # Get the position of the particles
             pos = data[ptype, "particle_position"]
             Npart = pos.shape[0]
@@ -1324,11 +1320,14 @@ class Dataset(object):
             remaining = np.ones(Npart, dtype=bool)
             Nremaining = Npart
 
-            for subset in data._current_chunk.objs:
+            Nobjs = len(data._current_chunk.objs)
+            Nbits = int(np.ceil(np.log2(Nobjs)))
+
+            for i, subset in enumerate(data._current_chunk.objs):
                 if Nremaining == 0:
                     continue
-                mesh_data = subset[ftype, deposit_field].T.reshape(-1)
-
+                icell = subset['index', 'ones'].T.reshape(-1).astype(np.int64).cumsum().value - 1
+                mesh_data = ((icell << Nbits) + i).astype(np.float64)
                 # Access the mesh data and attach them to their particles
                 tmp[:Nremaining] = subset.mesh_deposit(pos[remaining], mesh_data)
 
@@ -1337,7 +1336,43 @@ class Dataset(object):
                 remaining[remaining] = np.isnan(tmp[:Nremaining])
                 Nremaining = remaining.sum()
 
-            return data.ds.arr(ret, input_units=units)
+            return data.ds.arr(ret.astype(np.float64), input_units='1')
+
+        def _deposit_field(field, data):
+            """
+            Create a grid field for particle quantities using given method.
+            """
+            ones = data[ptype, 'particle_ones']
+
+            # Access "cell_index" field
+            cell_data = data[ftype, deposit_field].reshape(-1)
+            Npart = ones.shape[0]
+            ret = np.zeros(Npart)
+            cell_index = np.array(data[ptype, 'cell_index'], np.int64)
+
+            if isinstance(data, FieldDetector):
+                return ret
+
+            # The index of the obj is stored on the first bits
+            Nobjs = len(data._current_chunk.objs)
+            Nbits = int(np.ceil(np.log2(Nobjs)))
+            icell = cell_index >> Nbits
+            iobj = cell_index - (icell << Nbits)
+            for i, subset in enumerate(data._current_chunk.objs):
+                mask = (iobj == i)
+
+                cell_data = subset[ftype, deposit_field].T.reshape(-1)
+
+                ret[mask] = cell_data[icell[mask]]
+
+            return data.ds.arr(ret, input_units=cell_data.units)
+
+        if (ptype, 'cell_index') not in self.derived_field_list:
+            self.add_field(
+                (ptype, 'cell_index'),
+                function=_deposit_cell_index,
+                sampling_type="particle",
+                units='1')
 
         self.add_field(
             (ptype, field_name),
