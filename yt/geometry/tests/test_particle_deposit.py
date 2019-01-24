@@ -46,9 +46,9 @@ def test_mesh_deposition():
     assert_array_less(dist, dx)
     assert_array_less(-dist, dx)
 
-@requires_file(output_00080)
+@requires_file(RAMSES)
 def test_mesh_deposition_for_filtered_particles():
-    ds = yt.load(output_00080)
+    ds = yt.load(RAMSES)
 
     @yt.particle_filter(requires=['particle_position_x'], filtered_type='io')
     def left(pfilter, data):
