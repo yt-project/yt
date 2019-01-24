@@ -122,9 +122,9 @@ class GadgetFOFHDF5File(HaloCatalogFile):
             self.header = \
               dict((str(field), val)
                    for field, val in f["Header"].attrs.items())
-            self.group_length_sum = f["Group/GroupLen"].value.sum() \
+            self.group_length_sum = f["Group/GroupLen"][()].sum() \
               if "Group/GroupLen" in f else 0
-            self.group_subs_sum = f["Group/GroupNsubs"].value.sum() \
+            self.group_subs_sum = f["Group/GroupNsubs"][()].sum() \
               if "Group/GroupNsubs" in f else 0
         self.total_ids = self.header["Nids_ThisFile"]
         self.total_particles = \
@@ -144,7 +144,7 @@ class GadgetFOFHDF5File(HaloCatalogFile):
         else:
             close = False
 
-        pos = f[ptype]["%sPos" % ptype].value.astype("float64")
+        pos = f[ptype]["%sPos" % ptype][()].astype("float64")
 
         if close:
             f.close()
@@ -431,7 +431,7 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
 
             for field in fields:
                 data[field][target] = \
-                  my_f[os.path.join(ptype, field)].value[scalar_indices[target]]
+                  my_f[os.path.join(ptype, field)][()][scalar_indices[target]]
 
             if self.data_files[i_scalar].filename != filename: my_f.close()
 
