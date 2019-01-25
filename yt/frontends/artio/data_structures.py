@@ -44,6 +44,8 @@ from yt.data_objects.field_data import \
     YTFieldData
 from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented
+from yt.data_objects.particle_unions import \
+    ParticleUnion
 
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
@@ -388,6 +390,16 @@ class ARTIODataset(Dataset):
             self.num_species = self.artio_parameters["num_particle_species"][0]
             self.particle_variables = [["PID", "SPECIES"]
                                    for i in range(self.num_species)]
+
+            # If multiple N-BODY species exist, they all have the same name, 
+            # which can lead to conflict if not renamed
+            # A particle union will be created later to hold all N-BODY 
+            # particles and will take the name "N-BODY"
+            labels = self.artio_parameters["particle_species_labels"]
+            for species, label in enumerate(labels):
+                if label == "N-BODY":
+                    labels[species] = "N-BODY_{}".format(species)
+
             self.particle_types_raw = \
                 self.artio_parameters["particle_species_labels"]
             self.particle_types = tuple(self.particle_types_raw)
@@ -395,8 +407,8 @@ class ARTIODataset(Dataset):
             for species in range(self.num_species):
                 # Mass would be best as a derived field,
                 # but wouldn't detect under 'all'
-                if self.artio_parameters["particle_species_labels"][species]\
-                        == "N-BODY":
+                label = self.artio_parameters["particle_species_labels"][species]
+                if "N-BODY" in label:
                     self.particle_variables[species].append("MASS")
 
                 if self.artio_parameters["num_primary_variables"][species] > 0:
@@ -451,6 +463,16 @@ class ARTIODataset(Dataset):
 
         # hard coded assumption of 3D periodicity
         self.periodicity = (True, True, True)
+
+    def create_field_info(self):
+        super(ARTIODataset, self).create_field_info()
+        dm_labels = [label for label in self.particle_types_raw 
+                     if "N-BODY" in label]
+        # Use the N-BODY label for the union to be consistent with the 
+        # previous single mass N-BODY case, where this label was used for all
+        # N-BODY particles by default
+        pu = ParticleUnion("N-BODY", dm_labels)
+        self.add_particle_union(pu)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
