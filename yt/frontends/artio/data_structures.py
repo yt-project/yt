@@ -396,9 +396,10 @@ class ARTIODataset(Dataset):
             # A particle union will be created later to hold all N-BODY 
             # particles and will take the name "N-BODY"
             labels = self.artio_parameters["particle_species_labels"]
-            for species, label in enumerate(labels):
-                if label == "N-BODY":
-                    labels[species] = "N-BODY_{}".format(species)
+            if labels.count("N-BODY") > 1:
+                for species, label in enumerate(labels):
+                    if label == "N-BODY":
+                        labels[species] = "N-BODY_{}".format(species)
 
             self.particle_types_raw = \
                 self.artio_parameters["particle_species_labels"]
@@ -466,13 +467,17 @@ class ARTIODataset(Dataset):
 
     def create_field_info(self):
         super(ARTIODataset, self).create_field_info()
-        dm_labels = [label for label in self.particle_types_raw 
-                     if "N-BODY" in label]
-        # Use the N-BODY label for the union to be consistent with the 
-        # previous single mass N-BODY case, where this label was used for all
-        # N-BODY particles by default
-        pu = ParticleUnion("N-BODY", dm_labels)
-        self.add_particle_union(pu)
+        # only make the particle union if there are multiple DM species.
+        # If there are multiple, "N-BODY_0" will be the first species. If there
+        # are not multiple, they will be all under "N-BODY"
+        if "N-BODY_0" in self.particle_types_raw:
+            dm_labels = [label for label in self.particle_types_raw 
+                        if "N-BODY" in label]
+            # Use the N-BODY label for the union to be consistent with the 
+            # previous single mass N-BODY case, where this label was used for 
+            # all N-BODY particles by default
+            pu = ParticleUnion("N-BODY", dm_labels)
+            self.add_particle_union(pu)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
