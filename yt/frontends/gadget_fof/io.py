@@ -102,10 +102,10 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                                   np.arange(data_file.total_particles[ptype]) + \
                                   data_file.index_start[ptype]
                             elif field in f[ptype]:
-                                field_data = f[ptype][field].value.astype("float64")
+                                field_data = f[ptype][field][()].astype("float64")
                             else:
                                 fname = field[:field.rfind("_")]
-                                field_data = f[ptype][fname].value.astype("float64")
+                                field_data = f[ptype][fname][()].astype("float64")
                                 my_div = field_data.size / pcount
                                 if my_div > 1:
                                     findex = int(field[field.rfind("_") + 1:])
@@ -238,10 +238,10 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
                           np.arange(dobj.scalar_data_file.total_particles[ptype]) + \
                           dobj.scalar_data_file.index_start[ptype]
                     elif field in f[ptype]:
-                        field_data = f[ptype][field].value.astype("float64")
+                        field_data = f[ptype][field][()].astype("float64")
                     else:
                         fname = field[:field.rfind("_")]
-                        field_data = f[ptype][fname].value.astype("float64")
+                        field_data = f[ptype][fname][()].astype("float64")
                         my_div = field_data.size / pcount
                         if my_div > 1:
                             findex = int(field[field.rfind("_") + 1:])
