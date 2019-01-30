@@ -49,6 +49,8 @@ from yt.funcs import \
     matplotlib_style_context, \
     iterable
 
+MPL_VERSION = LooseVersion(matplotlib.__version__)
+
 def get_canvas(name):
     from . import _mpl_imports as mpl
     suffix = get_image_suffix(name)
@@ -1089,7 +1091,7 @@ class PhasePlot(ImagePlotContainer):
 
             color = self._background_color[f]
 
-            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+            if MPL_VERSION < LooseVersion("2.0.0"):
                 self.plots[f].axes.set_axis_bgcolor(color)
             else:
                 self.plots[f].axes.set_facecolor(color)
@@ -1117,10 +1119,16 @@ class PhasePlot(ImagePlotContainer):
             if self._cbar_minorticks[f] is True:
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
-                else:
-                    vmin = np.float64( self.plots[f].cb.norm.vmin )
-                    vmax = np.float64( self.plots[f].cb.norm.vmax )
-                    mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
+                elif MPL_VERSION < LooseVersion("3.0.0"):
+                    # before matplotlib 3 log-scaled colorbars internally used
+                    # a linear scale going from zero to one and did not draw
+                    # minor ticks. Since we want minor ticks, calculate
+                    # where the minor ticks should go in this linear scale
+                    # and add them manually.
+                    vmin = np.float64(self.plots[f].cb.norm.vmin)
+                    vmax = np.float64(self.plots[f].cb.norm.vmax)
+                    mticks = self.plots[f].image.norm(
+                        get_log_minorticks(vmin, vmax))
                     self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
             else:
                 self.plots[f].cax.minorticks_off()
