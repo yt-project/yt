@@ -183,7 +183,7 @@ class GadgetBinaryHeader(object):
 class GadgetBinaryFile(ParticleFile):
 
     def __init__(self, ds, io, filename, file_id, range=None):
-        header = ds._header
+        header = GadgetBinaryHeader(filename, ds._header.spec)
         self.header = header.value
         self._position_offset = header.position_offset
         with header.open() as f:
@@ -192,9 +192,11 @@ class GadgetBinaryFile(ParticleFile):
         super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id, range)
 
     def _calculate_offsets(self, field_list, pcounts):
+        # Note that we ignore pcounts here because it's the global count.  We
+        # just want the local count, which we store here.
         self.field_offsets = self.io._calculate_field_offsets(
-            field_list, pcounts, self._position_offset, self.start,
-            self._file_size)
+            field_list, self.header['Npart'].copy(), self._position_offset,
+            self.start, self._file_size)
 
 class GadgetBinaryIndex(SPHParticleIndex):
 
