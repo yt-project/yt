@@ -214,7 +214,6 @@ class GadgetBinaryIndex(SPHParticleIndex):
 
     def _initialize_frontend_specific(self):
         super(GadgetBinaryIndex, self)._initialize_frontend_specific()
-        fname = self.data_files[0].filename
         self.io._float_type = self.ds._header.float_type
 
 class GadgetDataset(SPHDataset):
