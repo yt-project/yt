@@ -290,9 +290,12 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                 pos = self._read_field_from_file(
                     f, tp[ptype], "Coordinates")
-                f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
-                hsml = self._read_field_from_file(
-                    f, tp[ptype], "SmoothingLength")
+                if ptype == self.ds._sph_ptype:
+                    f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
+                    hsml = self._read_field_from_file(
+                        f, tp[ptype], "SmoothingLength")
+                else:
+                    hsml = 0.0
                 yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2]), hsml
             f.close()
 
@@ -309,9 +312,12 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                 pos = self._read_field_from_file(
                     f, tp[ptype], "Coordinates")
-                f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
-                hsml = self._read_field_from_file(
-                    f, tp[ptype], "SmoothingLength")
+                if ptype == self.ds._sph_ptype:
+                    f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
+                    hsml = self._read_field_from_file(
+                        f, tp[ptype], "SmoothingLength")
+                else:
+                    hsml = 0.0
                 mask = selector.select_points(
                     pos[:, 0], pos[:, 1], pos[:, 2], hsml)
                 del pos
@@ -403,6 +409,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             pos = offset
         fs = self._field_size
         offsets = {}
+        pcount = dict(zip(self._ptypes, pcount))
 
         for field in self._fields:
             if field == "ParticleIDs" and self.ds.long_ids:
