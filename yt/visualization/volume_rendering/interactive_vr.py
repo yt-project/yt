@@ -916,7 +916,8 @@ class SceneGraph(traitlets.HasTraits):
         return arr
 
     @staticmethod
-    def from_ds(ds, field, render_context = None, no_ghost = True):
+    def from_ds(ds, field, render_context = None, no_ghost = True,
+                interactive = True):
         # Here we make a bunch of guesses.  Nothing too complex -- only two
         # arguments: dataset and field.  If you supply a rendering context,
         # great.  If not, we'll make one.
@@ -935,6 +936,8 @@ class SceneGraph(traitlets.HasTraits):
 
         scene = SceneGraph(camera = c)
         scene.add_volume(data_source, field, no_ghost = no_ghost)
+        if not interactive:
+            return scene, c
 
         local_ns = {'scene': scene, 'camera': c}
         shell = render_context.start_shell(scene, c, kwargs = dict())
