@@ -824,9 +824,9 @@ class Dataset(object):
         source = self.all_data()
         max_val, mx, my, mz = \
             source.quantities.max_location(field)
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
-              max_val, mx, my, mz)
         center = self.arr([mx, my, mz], dtype="float64").to('code_length')
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
+              max_val, center[0], center[1], center[2])
         return max_val, center
 
     def find_min(self, field):
@@ -837,9 +837,9 @@ class Dataset(object):
         source = self.all_data()
         min_val, mx, my, mz = \
             source.quantities.min_location(field)
-        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
-              min_val, mx, my, mz)
         center = self.arr([mx, my, mz], dtype="float64").to('code_length')
+        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
+              min_val, center[0], center[1], center[2])
         return min_val, center
 
     def find_field_values_at_point(self, fields, coords):
