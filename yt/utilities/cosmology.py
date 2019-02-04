@@ -459,7 +459,6 @@ class Cosmology(object):
 
         return (t / self.hubble_constant).in_base(self.unit_system)
 
-
     def t_from_z(self, z):
         """
         Compute the age of the Universe for a given redshift.
@@ -504,18 +503,42 @@ class Cosmology(object):
         lt = np.log10((t * self.hubble_constant).to(""))
 
         # Interpolate from a table of log(a) vs. log(t)
+        # Make initial guess for bounds and widen if necessary.
         la_i = -6
         la_f = 6
         bins_per_dex = 1000
-        n_bins = (la_f - la_i) * bins_per_dex + 1
-        la_bins = np.linspace(la_i, la_f, n_bins)
-        z_bins = 1 / np.power(10, la_bins) - 1
+        iter = 0
 
-        # Integrate in redshift.
-        lt_bins = trapezoid_cumulative_integral(self.age_integrand, z_bins)
+        while True:
+            good = True
+            n_bins = (la_f - la_i) * bins_per_dex + 1
+            la_bins = np.linspace(la_i, la_f, n_bins)
+            z_bins = 1 / np.power(10, la_bins) - 1
 
-        # Add a minus sign because we've switched the integration limits.
-        table = InterpTable(np.log10(-lt_bins), la_bins[1:])
+            # Integrate in redshift.
+            lt_bins = trapezoid_cumulative_integral(
+                self.age_integrand, z_bins)
+
+            # Add a minus sign because we've switched the integration limits.
+            table = InterpTable(np.log10(-lt_bins), la_bins[1:])
+            la = table(lt)
+            # We want to have the la_bins lower bound be decently
+            # below the minimum calculated la values.
+
+            laa = np.asarray(la)
+            if laa.min() < la_i + 2:
+                la_i -= 3
+                good = False
+            if laa.max() > la_f:
+                la_f = laa.max() + 1
+                good = False
+            if good:
+                break
+            iter += 1
+            if iter > 10:
+                raise RuntimeError(
+                    "a_from_t calculation did not converge!")
+
         a = np.power(10, table(lt))
         return a
 
