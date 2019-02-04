@@ -343,8 +343,7 @@ class Cosmology(object):
         >>> print(co.hubble_time(0.).in_units("Gyr"))
 
         """
-        return (trapzint(self.age_integrand, z, z_inf) /
-                self.hubble_constant).in_base(self.unit_system)
+        return (1 / self.hubble_parameter(z)).in_base(self.unit_system)
 
     def critical_density(self, z):
         r"""
