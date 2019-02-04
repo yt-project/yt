@@ -423,25 +423,42 @@ class Cosmology(object):
     def path_length(self, z_i, z_f):
         return trapzint(self.path_length_function, z_i, z_f)
 
-    _tz = None
-    @property
-    def _tz_table(self):
-        if self._tz is not None:
-            return self._tz
+    def t_from_a(self, a):
+        """
+        Compute the age of the Universe for a given scale factor.
 
-        # Create a table of log(a) vs. log(t).
-        la_i = -6
-        la_f = 6
-        bins_per_dex = 100
+        Parameters
+        ----------
+        a : float
+            Scale factor.
+
+        Examples
+        --------
+
+        >>> from yt.utilities.cosmology import Cosmology
+        >>> co = Cosmology()
+        >>> print(co.t_from_a(1.).in_units("Gyr"))
+
+        """
+
+        # Interpolate from a table of log(a) vs. log(t)
+        la = np.log10(a)
+        la_i = min(-6, np.asarray(la).min() - 3)
+        la_f = np.asarray(la).max()
+        bins_per_dex = 1000
         n_bins = (la_f - la_i) * bins_per_dex + 1
-        la = np.linspace(la_i, la_f, n_bins)
-        # Integrate in redshift-space.
-        z = 1 / np.power(10, la) - 1
-        integ = IntegralTable(self.age_integrand, z)
-        # Store table of log(a)/log(t).
+        la_bins = np.linspace(la_i, la_f, n_bins)
+        z_bins = 1 / np.power(10, la_bins) - 1
+
+        # Integrate in redshift.
+        lt = trapezoid_cumulative_integral(self.age_integrand, z_bins)
+
         # Add a minus sign because we've switched the integration limits.
-        self._tz = InterpTable(la[1:], np.log10(-integ.y))
-        return self._tz
+        table = InterpTable(la_bins[1:], np.log10(-lt))
+        t = np.power(10, table(la))
+
+        return (t / self.hubble_constant).in_base(self.unit_system)
+
 
     def t_from_z(self, z):
         """
@@ -461,17 +478,46 @@ class Cosmology(object):
 
         """
 
-        la = np.log10(1 / (1 + z))
-        t = np.power(10, self._tz_table(la))
+        return self.t_from_a(1 / (1 + z))
 
-        return (t / self.hubble_constant).in_base(self.unit_system)
+    def a_from_t(self, t):
+        """
+        Compute the scale factor for a given age of the Universe.
 
-    _zt = None
-    @property
-    def _zt_table(self):
-        if self._zt is None:
-            self._zt = InterpTable(self._tz_table.y, self._tz_table.x)
-        return self._zt
+        Parameters
+        ----------
+        t : YTQuantity or float
+            Time since the Big Bang.  If a float is given, units are
+            assumed to be seconds.
+
+        Examples
+        --------
+
+        >>> from yt.utilities.cosmology import Cosmology
+        >>> co = Cosmology()
+        >>> print(co.a_from_t(4.e17))
+
+        """
+
+        if not isinstance(t, YTArray):
+            t = self.arr(t, 's')
+        lt = np.log10((t * self.hubble_constant).to(""))
+
+        # Interpolate from a table of log(a) vs. log(t)
+        la_i = -6
+        la_f = 6
+        bins_per_dex = 1000
+        n_bins = (la_f - la_i) * bins_per_dex + 1
+        la_bins = np.linspace(la_i, la_f, n_bins)
+        z_bins = 1 / np.power(10, la_bins) - 1
+
+        # Integrate in redshift.
+        lt_bins = trapezoid_cumulative_integral(self.age_integrand, z_bins)
+
+        # Add a minus sign because we've switched the integration limits.
+        table = InterpTable(np.log10(-lt_bins), la_bins[1:])
+        a = np.power(10, table(lt))
+        return a
 
     def z_from_t(self, t):
         """
@@ -492,11 +538,8 @@ class Cosmology(object):
 
         """
 
-        if not isinstance(t, YTArray):
-            t = self.arr(t, 's')
-        lt = np.log10((t * self.hubble_constant).to(""))
-        la = self._zt_table(lt)
-        return 1 / np.power(10, la) - 1
+        a = self.a_from_t(t)
+        return 1 / a - 1
 
     def get_dark_factor(self, z):
         """
@@ -544,30 +587,17 @@ def trapzint(f, a, b, bins=1000):
     zbins = np.logspace(np.log10(a + 1), np.log10(b + 1), bins) - 1
     return np.trapz(f(zbins[:-1]), x=zbins[:-1], dx=np.diff(zbins))
 
-class IntegralTable(object):
+def trapezoid_cumulative_integral(f, x):
     """
-    Generate a table of the integral of the provided function over the
-    specified range of values.
+    Perform cumulative integration using the trapezoid rule.
     """
-    def __init__(self, f, x):
-        self.f = f
-        self.x = x
 
-    _y = None
-    @property
-    def y(self):
-        """
-        Use the trapezoid rule to integrate.
-        """
-        if self._y is None:
-            fy = self.f(self.x)
-            self._y = (0.5 * (fy[:-1] + fy[1:]) * \
-                np.diff(self.x)).cumsum()
-        return self._y
+    fy = f(x)
+    return (0.5 * (fy[:-1] + fy[1:]) * np.diff(x)).cumsum()
 
 class InterpTable(object):
     """
-    Generate a function to linearly interpolate from provided tables.
+    Generate a function to linearly interpolate from provided arrays.
     """
     def __init__(self, x, y):
         self.x = x
