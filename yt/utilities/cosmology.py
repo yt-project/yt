@@ -16,6 +16,8 @@ and featuring time and redshift conversion functions from Enzo.
 import functools
 import numpy as np
 
+from yt.funcs import \
+     issue_deprecation_warning
 from yt.units import dimensions
 from yt.units.unit_registry import \
      UnitRegistry
@@ -77,7 +79,7 @@ class Cosmology(object):
 
     >>> from yt.utilities.cosmology import Cosmology
     >>> co = Cosmology()
-    >>> print(co.hubble_time(0.0).in_units("Gyr"))
+    >>> print(co.t_from_z(0.0).in_units("Gyr"))
 
     """
     def __init__(self, hubble_constant = 0.71,
@@ -327,6 +329,14 @@ class Cosmology(object):
         r"""
         The inverse of the Hubble parameter.
 
+        WARNING: this function is incorrect and has been deprecated!
+
+        This function currently returns the age of the Universe at a
+        given redshift instead of the inverse of the Hubble parameter.
+        To get the correct behavior, do the following:
+
+        >>> (1 / co.hubble_parameter(z)).in_units('Gyr')
+
         Parameters
         ----------
         z : float
@@ -343,7 +353,13 @@ class Cosmology(object):
         >>> print(co.hubble_time(0.).in_units("Gyr"))
 
         """
-        return (1 / self.hubble_parameter(z)).in_base(self.unit_system)
+        issue_deprecation_warning(
+            'This function is incorrect and has been deprecated! ' +
+            'Instead, do the following:\n' +
+            '>>> print (1 / co.hubble_parameter(z)).to(\'Gyr\')\n' +
+            'If you want the age of the Universe, use the t_from_z function.')
+        return (trapzint(self.age_integrand, z, z_inf) /
+                self.hubble_constant).in_base(self.unit_system)
 
     def critical_density(self, z):
         r"""
@@ -384,8 +400,8 @@ class Cosmology(object):
         >>> print(co.hubble_parameter(1.0).in_units("km/s/Mpc"))
 
         """
-        return self.hubble_constant.in_base(self.unit_system) * \
-          self.expansion_factor(z)
+        return (self.hubble_constant.in_base(self.unit_system) *
+                self.expansion_factor(z))
 
     def age_integrand(self, z):
         return 1 / (z + 1) / self.expansion_factor(z)
