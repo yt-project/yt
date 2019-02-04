@@ -68,10 +68,10 @@ fragment:
     - ray_tracing.fragmentshader
     - transfer_function.fragmentshader
     blend_func_separate:
+    - one minus dst alpha
     - one
-    - one minus src alpha
+    - one minus dst alpha
     - one
-    - zero
     blend_equation_separate:
     - func add
     - func add
