@@ -17,6 +17,7 @@ Test cosmology calculator.
 import numpy as np
 
 from yt.testing import \
+     assert_almost_equal, \
      assert_rel_equal
 from yt.units.yt_array import \
      YTArray, \
@@ -161,11 +162,11 @@ def test_z_t_analytic():
     Test z/t conversions against analytic solutions.
     """
 
-    cosmos = [
+    cosmos = (
         {'hubble_constant': 0.7, 'omega_matter': 0.3, 'omega_lambda': 0.7},
         {'hubble_constant': 0.7, 'omega_matter': 1.0, 'omega_lambda': 0.0},
         {'hubble_constant': 0.7, 'omega_matter': 0.3, 'omega_lambda': 0.0},
-    ]
+    )
 
     for cosmo in cosmos:
         omega_curvature = 1 - cosmo['omega_matter'] - cosmo['omega_lambda']
@@ -193,3 +194,52 @@ def test_z_t_analytic():
         assert_rel_equal(
             1 / (1 + z_an), 1 / (1 + z_co), 5,
             err_msg='z_from_t does not match analytic version for cosmology %s.' % cosmo)
+
+def test_cosmology_calculator_answers():
+    """
+    Test cosmology calculator functions against previously calculated values.
+    """
+
+    cosmos = (
+        {'omega_matter': 0.3, 'omega_lambda': 0.7, 'omega_radiation': 0.0},
+        {'omega_matter': 1.0, 'omega_lambda': 0.0, 'omega_radiation': 0.0},
+        {'omega_matter': 0.3, 'omega_lambda': 0.0, 'omega_radiation': 0.0},
+        {'omega_matter': 0.2999, 'omega_lambda': 0.7, 'omega_radiation': 1e-4},
+    )
+
+    all_answers = (
+        [4282.7494, 1174.71744826, 1174.71744826, 6.79029852, -137.44380354,
+         -137.44380354, 9876.12942342, 1113.19802768, 421.60592442, 123.24771803],
+        [4282.7494, 661.92695892, 661.92695892, 1.21483926, -135.88421154,
+         -135.88421154, 6266.65604101, 627.61305115, 1088.01528882, 197.98989873],
+        [4282.7494, 933.24209295, 938.4206189, 48.25005669, -55.51112604,
+         -55.51112604, 10177.58171302, 883.64108565, 707.20993773, 159.62455951],
+        [4282.7494, 1174.26084215, 1174.26084215, 6.78238355, -137.51190671,
+         -137.51190671, 9873.75444152, 1112.76996783, 421.71472595, 123.26361994]
+    )
+
+    z   = 1
+    z_i = 2
+    z_f = 3
+
+    for cosmo, answers in zip(cosmos, all_answers):
+        omega_curvature = 1 - cosmo['omega_matter'] - \
+          cosmo['omega_lambda'] - cosmo['omega_radiation']
+        co = Cosmology(hubble_constant=0.7,
+                       omega_curvature=omega_curvature, **cosmo)
+
+        values = [
+            co.hubble_distance().to('Mpc'),
+            co.comoving_radial_distance(z_i, z_f).to('Mpc'),
+            co.comoving_transverse_distance(z_i, z_f).to('Mpc'),
+            co.comoving_volume(z_i, z_f).to('Gpc**3'),
+            co.angular_diameter_distance(z_i, z_f).to('Mpc'),
+            co.angular_scale(z_i, z_f).to('Mpc/radian'),
+            co.luminosity_distance(z_i, z_f).to('Mpc'),
+            co.lookback_time(z_i, z_f).to('Myr'),
+            co.critical_density(z).to('Msun/kpc**3'),
+            co.hubble_parameter(z).to('km/s/Mpc')
+        ]
+
+        for value, answer in zip(values, answers):
+            assert_almost_equal(value.d, answer, 8)
