@@ -201,8 +201,8 @@ class Cosmology(object):
         >>> print(co.comoving_volume(0., 1.).in_units("Gpccm**3"))
 
         """
-        if (self.omega_curvature > 0):
-             return (2 * np.pi * np.power(self.hubble_distance(), 3) /
+        if (self.omega_curvature > 1e-10):
+            return (2 * np.pi * np.power(self.hubble_distance(), 3) /
                      self.omega_curvature * 
                      (self.comoving_transverse_distance(z_i, z_f) /
                       self.hubble_distance() * 
@@ -213,8 +213,8 @@ class Cosmology(object):
                             self.comoving_transverse_distance(z_i, z_f) /
                             self.hubble_distance()) /
                             np.sqrt(self.omega_curvature))).in_base(self.unit_system)
-        elif (self.omega_curvature < 0):
-             return (2 * np.pi * np.power(self.hubble_distance(), 3) /
+        elif (self.omega_curvature < -1e-10):
+            return (2 * np.pi * np.power(self.hubble_distance(), 3) /
                      np.fabs(self.omega_curvature) * 
                      (self.comoving_transverse_distance(z_i, z_f) /
                       self.hubble_distance() * 
@@ -226,7 +226,7 @@ class Cosmology(object):
                            self.hubble_distance()) /
                       np.sqrt(np.fabs(self.omega_curvature)))).in_base(self.unit_system)
         else:
-             return (4 * np.pi *
+            return (4 * np.pi *
                      np.power(self.comoving_transverse_distance(z_i, z_f), 3) /\
                      3).in_base(self.unit_system)
 
