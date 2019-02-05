@@ -18,7 +18,8 @@ import numpy as np
 
 from yt.testing import \
      assert_almost_equal, \
-     assert_rel_equal
+     assert_rel_equal, \
+     assert_equal
 from yt.units.yt_array import \
      YTArray, \
      YTQuantity
@@ -243,3 +244,16 @@ def test_cosmology_calculator_answers():
 
         for value, answer in zip(values, answers):
             assert_almost_equal(value.d, answer, 8)
+
+def test_dark_factor():
+    """
+    Test that dark factor returns same value for when not
+    being used and when w_0 = -1 and w_z = 0.
+    """
+
+    co = Cosmology(w_0=-1, w_a=0,
+                   use_dark_factor=False)
+
+    assert_equal(co.get_dark_factor(0), 1.0)
+    co.use_dark_factor = True
+    assert_equal(co.get_dark_factor(0), 1.0)
