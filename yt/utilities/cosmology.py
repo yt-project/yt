@@ -463,7 +463,7 @@ class Cosmology(object):
         la_i = min(-6, np.asarray(la).min() - 3)
         la_f = np.asarray(la).max()
         bins_per_dex = 1000
-        n_bins = (la_f - la_i) * bins_per_dex + 1
+        n_bins = int((la_f - la_i) * bins_per_dex + 1)
         la_bins = np.linspace(la_i, la_f, n_bins)
         z_bins = 1 / np.power(10, la_bins) - 1
 
@@ -528,7 +528,7 @@ class Cosmology(object):
 
         while True:
             good = True
-            n_bins = (la_f - la_i) * bins_per_dex + 1
+            n_bins = int((la_f - la_i) * bins_per_dex + 1)
             la_bins = np.linspace(la_i, la_f, n_bins)
             z_bins = 1 / np.power(10, la_bins) - 1
 
