@@ -89,6 +89,7 @@ class EnzoSimulation(SimulationTimeSeries):
               EnzoCosmology(self.parameters['CosmologyHubbleConstantNow'],
                             self.parameters['CosmologyOmegaMatterNow'],
                             self.parameters['CosmologyOmegaLambdaNow'],
+                            self.parameters.get('CosmologyOmegaRadiationNow', 0.0),
                             0.0, self.parameters['CosmologyInitialRedshift'],
                             unit_registry=self.unit_registry)
 
@@ -379,6 +380,7 @@ class EnzoSimulation(SimulationTimeSeries):
             cosmo_attr = {'box_size': 'CosmologyComovingBoxSize',
                           'omega_lambda': 'CosmologyOmegaLambdaNow',
                           'omega_matter': 'CosmologyOmegaMatterNow',
+                          'omega_radiation': 'CosmologyOmegaRadiationNow',
                           'hubble_constant': 'CosmologyHubbleConstantNow',
                           'initial_redshift': 'CosmologyInitialRedshift',
                           'final_redshift': 'CosmologyFinalRedshift'}
@@ -635,11 +637,13 @@ class EnzoSimulation(SimulationTimeSeries):
 
 class EnzoCosmology(Cosmology):
     def __init__(self, hubble_constant, omega_matter, omega_lambda,
-                 omega_curvature, initial_redshift, unit_registry = None):
+                 omega_radiation, omega_curvature, initial_redshift,
+                 unit_registry = None):
         Cosmology.__init__(self,
                            hubble_constant=hubble_constant,
                            omega_matter=omega_matter,
                            omega_lambda=omega_lambda,
+                           omega_radiation=omega_radiation,
                            omega_curvature=omega_curvature,
                            unit_registry=unit_registry)
         self.initial_redshift = initial_redshift
