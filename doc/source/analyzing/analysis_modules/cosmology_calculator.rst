@@ -51,9 +51,6 @@ redshift and time are available:
    # time between two redshifts
    print("lookback time", co.lookback_time(0, 0.5).in_units("Gyr"))
 
-   # inverse of the Hubble parameter at a given redshift
-   print("hubble time", co.hubble_time(0).in_units("Gyr"))
-
    # critical density
    print("critical density", co.critical_density(0))
 
