@@ -36,6 +36,7 @@ def load(*args ,**kwargs):
     match, at which point it returns an instance of the appropriate
     :class:`yt.data_objects.static_output.Dataset` subclass.
     """
+    import pdb; pdb.set_trace()
     candidates = []
     args = [os.path.expanduser(arg) if isinstance(arg, string_types)
             else arg for arg in args]
@@ -50,6 +51,11 @@ def load(*args ,**kwargs):
                 if os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"), arg)):
                     valid_file.append(True)
                     args[argno] = os.path.join(ytcfg.get("yt", "test_data_dir"), arg)
+                # Check for multi-file gadget snapshot that's been passed without the
+                # '.0' extension
+                elif os.path.exists(arg + '.0'):
+                    args[argno] = arg + '.0'
+                    valid_file.append(True)
                 else:
                     valid_file.append(False)
         else:
