@@ -326,7 +326,7 @@ class Cosmology(object):
         return (trapzint(self.age_integrand, z_i, z_f) / \
                 self.hubble_constant).in_base(self.unit_system)
     
-    def hubble_time(self, z, z_inf=1e7):
+    def hubble_time(self, z, z_inf=1e6):
         r"""
         The inverse of the Hubble parameter.
 
@@ -355,7 +355,7 @@ class Cosmology(object):
 
         """
         issue_deprecation_warning(
-            'This function is incorrect and has been deprecated! ' +
+            'The hubble_time function is incorrect and has been deprecated! ' +
             'Instead, do the following:\n' +
             '>>> print (1 / co.hubble_parameter(z)).to(\'Gyr\')\n' +
             'If you want the age of the Universe, use the t_from_z function.')
