@@ -36,7 +36,6 @@ def load(*args ,**kwargs):
     match, at which point it returns an instance of the appropriate
     :class:`yt.data_objects.static_output.Dataset` subclass.
     """
-    import pdb; pdb.set_trace()
     candidates = []
     args = [os.path.expanduser(arg) if isinstance(arg, string_types)
             else arg for arg in args]
