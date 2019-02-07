@@ -51,11 +51,11 @@ class Cosmology(object):
     omega_matter : the fraction of the energy density of the Universe in 
         matter at redshift zero.
         Default: 0.27.
-    omega_radiation : the fraction of the energy density of the Universe in
-        relativistic matter at redshift zero.
     omega_lambda : the fraction of the energy density of the Universe in 
         a cosmological constant.
         Default: 0.73.
+    omega_radiation : the fraction of the energy density of the Universe in
+        relativistic matter at redshift zero.
     omega_curvature : the fraction of the energy density of the Universe in 
         curvature.
         Default: 0.0.
@@ -84,8 +84,8 @@ class Cosmology(object):
     """
     def __init__(self, hubble_constant = 0.71,
                  omega_matter = 0.27,
-                 omega_radiation = 0.0,
                  omega_lambda = 0.73,
+                 omega_radiation = 0.0,
                  omega_curvature = 0.0,
                  unit_registry = None,
                  unit_system = "cgs",
