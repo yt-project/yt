@@ -944,6 +944,7 @@ cdef class RegionSelector(SelectorObject):
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t right_edge_shift[3]
+    cdef public bint is_all_data
     cdef bint loose_selection
     cdef bint check_period[3]
 
@@ -958,6 +959,12 @@ cdef class RegionSelector(SelectorObject):
         cdef np.float64_t[:] DW = _ensure_code(dobj.ds.domain_width)
         cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
         cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
+        le_all = (np.array(LE) == dobj.ds.domain_left_edge).all()
+        re_all = (np.array(RE) == dobj.ds.domain_right_edge).all()
+        if le_all and re_all:
+            self.is_all_data = True
+        else:
+            self.is_all_data = False
         cdef np.float64_t region_width[3]
         cdef bint p[3]
         # This is for if we want to include zones that overlap and whose

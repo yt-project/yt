@@ -17,6 +17,17 @@ class IOHandlerSPH(BaseIOHandler):
     """
 
     def _count_particles_chunks(self, psize, chunks, ptf, selector):
-        for ptype, (x, y, z), hsml in self._read_particle_coords(chunks, ptf):
-            psize[ptype] += selector.count_points(x, y, z, hsml)
+        if getattr(selector, 'is_all_data', False):
+            chunks = list(chunks)
+            data_files = set([])
+            for chunk in chunks:
+                for obj in chunk.objs:
+                    data_files.update(obj.data_files)
+            data_files = sorted(data_files, key=lambda x: (x.filename, x.start))
+            for data_file in data_files:
+                for ptype in ptf.keys():
+                    psize[ptype] += data_file.total_particles[ptype]
+        else:
+            for ptype, (x, y, z), hsml in self._read_particle_coords(chunks, ptf):
+                psize[ptype] += selector.count_points(x, y, z, hsml)
         return dict(psize)
