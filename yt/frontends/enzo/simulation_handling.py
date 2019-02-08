@@ -547,6 +547,7 @@ class EnzoSimulation(SimulationTimeSeries):
         self.parameters['CycleSkipDataDump'] = 0.
         self.parameters['LengthUnits'] = 1.
         self.parameters['TimeUnits'] = 1.
+        self.parameters['CosmologyOmegaRadiationNow'] = 0.
 
     def _find_outputs(self):
         """
