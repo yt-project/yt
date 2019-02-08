@@ -465,7 +465,7 @@ class Cosmology(object):
         bins_per_dex = 1000
         n_bins = int((la_f - la_i) * bins_per_dex + 1)
         la_bins = np.linspace(la_i, la_f, n_bins)
-        z_bins = 1 / np.power(10, la_bins) - 1
+        z_bins = 1. / np.power(10, la_bins) - 1
 
         # Integrate in redshift.
         lt = trapezoid_cumulative_integral(self.age_integrand, z_bins)
@@ -494,7 +494,7 @@ class Cosmology(object):
 
         """
 
-        return self.t_from_a(1 / (1 + z))
+        return self.t_from_a(1. / (1. + z))
 
     def a_from_t(self, t):
         """
@@ -530,7 +530,7 @@ class Cosmology(object):
             good = True
             n_bins = int((la_f - la_i) * bins_per_dex + 1)
             la_bins = np.linspace(la_i, la_f, n_bins)
-            z_bins = 1 / np.power(10, la_bins) - 1
+            z_bins = 1. / np.power(10, la_bins) - 1
 
             # Integrate in redshift.
             lt_bins = trapezoid_cumulative_integral(
@@ -579,7 +579,7 @@ class Cosmology(object):
         """
 
         a = self.a_from_t(t)
-        return 1 / a - 1
+        return 1. / a - 1.
 
     def get_dark_factor(self, z):
         """
