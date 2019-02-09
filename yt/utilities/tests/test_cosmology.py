@@ -15,6 +15,8 @@ Test cosmology calculator.
 #-----------------------------------------------------------------------------
 
 import numpy as np
+import os
+import yaml
 
 from yt.testing import \
      assert_almost_equal, \
@@ -25,6 +27,8 @@ from yt.units.yt_array import \
      YTQuantity
 from yt.utilities.cosmology import \
      Cosmology
+
+local_dir = os.path.dirname(os.path.abspath(__file__))
 
 def z_from_t_analytic(my_time, hubble_constant=0.7,
                       omega_matter=0.3, omega_lambda=0.7):
@@ -196,55 +200,6 @@ def test_z_t_analytic():
             1 / (1 + z_an), 1 / (1 + z_co), 5,
             err_msg='z_from_t does not match analytic version for cosmology %s.' % cosmo)
 
-def test_cosmology_calculator_answers():
-    """
-    Test cosmology calculator functions against previously calculated values.
-    """
-
-    cosmos = (
-        {'omega_matter': 0.3, 'omega_lambda': 0.7, 'omega_radiation': 0.0},
-        {'omega_matter': 1.0, 'omega_lambda': 0.0, 'omega_radiation': 0.0},
-        {'omega_matter': 0.3, 'omega_lambda': 0.0, 'omega_radiation': 0.0},
-        {'omega_matter': 0.2999, 'omega_lambda': 0.7, 'omega_radiation': 1e-4},
-    )
-
-    all_answers = (
-        [4282.7494, 1174.71744826, 1174.71744826, 6.79029852, -137.44380354,
-         -137.44380354, 9876.12942342, 1113.19802768, 421.60592442, 123.24771803],
-        [4282.7494, 661.92695892, 661.92695892, 1.21483926, -135.88421154,
-         -135.88421154, 6266.65604101, 627.61305115, 1088.01528882, 197.98989873],
-        [4282.7494, 933.24209295, 938.4206189, 48.25005669, -55.51112604,
-         -55.51112604, 10177.58171302, 883.64108565, 707.20993773, 159.62455951],
-        [4282.7494, 1174.26084215, 1174.26084215, 6.78238355, -137.51190671,
-         -137.51190671, 9873.75444152, 1112.76996783, 421.71472595, 123.26361994]
-    )
-
-    z   = 1
-    z_i = 2
-    z_f = 3
-
-    for cosmo, answers in zip(cosmos, all_answers):
-        omega_curvature = 1 - cosmo['omega_matter'] - \
-          cosmo['omega_lambda'] - cosmo['omega_radiation']
-        co = Cosmology(hubble_constant=0.7,
-                       omega_curvature=omega_curvature, **cosmo)
-
-        values = [
-            co.hubble_distance().to('Mpc'),
-            co.comoving_radial_distance(z_i, z_f).to('Mpc'),
-            co.comoving_transverse_distance(z_i, z_f).to('Mpc'),
-            co.comoving_volume(z_i, z_f).to('Gpc**3'),
-            co.angular_diameter_distance(z_i, z_f).to('Mpc'),
-            co.angular_scale(z_i, z_f).to('Mpc/radian'),
-            co.luminosity_distance(z_i, z_f).to('Mpc'),
-            co.lookback_time(z_i, z_f).to('Myr'),
-            co.critical_density(z).to('Msun/kpc**3'),
-            co.hubble_parameter(z).to('km/s/Mpc')
-        ]
-
-        for value, answer in zip(values, answers):
-            assert_almost_equal(value.d, answer, 8)
-
 def test_dark_factor():
     """
     Test that dark factor returns same value for when not
@@ -257,3 +212,35 @@ def test_dark_factor():
     assert_equal(co.get_dark_factor(0), 1.0)
     co.use_dark_factor = True
     assert_equal(co.get_dark_factor(0), 1.0)
+
+def test_cosmology_calculator_answers():
+    """
+    Test cosmology calculator functions against previously calculated values.
+    """
+
+    fn = os.path.join(local_dir, 'cosmology_answers.yml')
+    data = yaml.load(open(fn, 'r'))
+
+    cosmologies = data['cosmologies']
+    functions = data['functions']
+
+    for cname, copars in cosmologies.items():
+        omega_curvature = 1 - copars['omega_matter'] - \
+          copars['omega_lambda'] - copars['omega_radiation']
+
+        cosmology = Cosmology(omega_curvature=omega_curvature, **copars)
+
+        for fname, finfo in functions.items():
+            func = getattr(cosmology, fname)
+            args = finfo.get('args', [])
+            val = func(*args)
+            units = finfo.get('units')
+            if units is not None:
+                val.convert_to_units(units)
+            val = float(val)
+
+            err_msg = '%s answer has changed for %s cosmology, old: %f, new: %f.' % \
+              (fname, cname, finfo['answers'][cname], val)
+            assert_almost_equal(
+                val, finfo['answers'][cname], 10,
+                err_msg=err_msg)
