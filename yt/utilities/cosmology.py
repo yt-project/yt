@@ -623,7 +623,7 @@ class Cosmology(object):
                 registry = self.unit_registry)
         return self._quan
 
-def trapzint(f, a, b, bins=1000):
+def trapzint(f, a, b, bins=10000):
     zbins = np.logspace(np.log10(a + 1), np.log10(b + 1), bins) - 1
     return np.trapz(f(zbins[:-1]), x=zbins[:-1], dx=np.diff(zbins))
 
