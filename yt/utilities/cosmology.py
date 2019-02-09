@@ -405,7 +405,7 @@ class Cosmology(object):
                 self.expansion_factor(z))
 
     def age_integrand(self, z):
-        return 1 / (z + 1) / self.expansion_factor(z)
+        return 1. / (z + 1) / self.expansion_factor(z)
 
     def expansion_factor(self, z):
         r"""
@@ -432,7 +432,7 @@ class Cosmology(object):
                        self.omega_lambda    * dark_factor)
 
     def inverse_expansion_factor(self, z):
-        return 1 / self.expansion_factor(z)
+        return 1. / self.expansion_factor(z)
 
     def path_length_function(self, z):
         return ((1 + z)**2) * self.inverse_expansion_factor(z)

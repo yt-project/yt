@@ -16,12 +16,12 @@ Test cosmology calculator.
 
 import numpy as np
 import os
-import yaml
 
 from yt.testing import \
      assert_almost_equal, \
      assert_rel_equal, \
-     assert_equal
+     assert_equal, \
+     requires_module
 from yt.units.yt_array import \
      YTArray, \
      YTQuantity
@@ -213,6 +213,7 @@ def test_dark_factor():
     co.use_dark_factor = True
     assert_equal(co.get_dark_factor(0), 1.0)
 
+@requires_module('yaml')
 def test_cosmology_calculator_answers():
     """
     Test cosmology calculator functions against previously calculated values.
