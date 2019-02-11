@@ -861,6 +861,8 @@ class EnzoDataset(Dataset):
             self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
             self.omega_lambda = self.parameters["CosmologyOmegaLambdaNow"]
             self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
+            self.omega_radiation = \
+              self.parameters.get("CosmologyOmegaRadiationNow", 0.0)
             self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \

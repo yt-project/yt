@@ -460,3 +460,18 @@ class libconf_imports(object):
         return self._load
 
 _libconf = libconf_imports()
+
+class yaml_imports(object):
+    _name = "yaml"
+    _load = None
+    @property
+    def load(self):
+        if self._load is None:
+            try:
+                from yaml import load
+            except ImportError:
+                load = NotAModule(self._name)
+            self._load = load
+        return self._load
+
+_yaml = yaml_imports()
