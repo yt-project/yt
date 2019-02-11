@@ -246,6 +246,8 @@ class GadgetDataset(SPHDataset):
                  w_a = 0.0):
         if self._instantiated:
             return
+        # Check to see if passed filename is a directory and set filename accordingly
+        filename = self._set_filename(filename)
         self._header = GadgetBinaryHeader(filename, header_spec)
         header_size = self._header.size
         if header_size != [256]:
@@ -498,8 +500,23 @@ class GadgetDataset(SPHDataset):
             header_spec = kwargs['header_spec']
         else:
             header_spec = 'default'
+        # Check to see if passed filename is a directory. If so, use it to get
+        # appropriate snapshot file
+        args[0] = cls._set_filename(args[0])
         header = GadgetBinaryHeader(args[0], header_spec)
         return header.validate()
+
+    @classmethod
+    def _set_filename(cls, fname):
+        # Check to see if passed filename is a directory. If so, look for valid
+        # snapshot files in that directory. Assumes directory name is base name of
+        # snapshot
+        if os.path.isdir(fname):
+            pass
+        else:
+            filename = fname
+        return filename
+            
 
 
 class GadgetHDF5Dataset(GadgetDataset):

@@ -50,11 +50,6 @@ def load(*args ,**kwargs):
                 if os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"), arg)):
                     valid_file.append(True)
                     args[argno] = os.path.join(ytcfg.get("yt", "test_data_dir"), arg)
-                # Check for multi-file gadget snapshot that's been passed without the
-                # '.0' extension
-                elif os.path.exists(arg + '.0'):
-                    args[argno] = arg + '.0'
-                    valid_file.append(True)
                 else:
                     valid_file.append(False)
         else:
@@ -79,6 +74,7 @@ def load(*args ,**kwargs):
             mylog.error("None of the arguments provided to load() is a valid file")
             mylog.error("Please check that you have used a correct path")
             raise YTOutputNotIdentified(args, kwargs)
+    import pdb; pdb.set_trace()
     for n, c in types_to_check.items():
         if n is None: continue
         if c._is_valid(*args, **kwargs): candidates.append(n)
