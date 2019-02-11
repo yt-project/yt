@@ -516,9 +516,9 @@ class GadgetDataset(SPHDataset):
                 if ('.0' in f) and ('.ewah' not in f) and os.path.isfile(fname):
                     valid_files.append(f)
             if len(valid_files) == 0:
-                raise('No valid snapshot file found in given directory!')
+                return False
             elif len(valid_files) > 1:
-                raise('Multiple valid snapshots found. Please specify.')
+                return False
             else:
                 validated_file = os.path.join(args[0], valid_files[0])
         else:
