@@ -57,6 +57,7 @@ def get_block_info(block, min_dim=3):
     left = np.zeros(dim)
     right = np.ones(dim)
     for i, myb in enumerate(mybs):
+        if myb == '': continue
         level, left[i], right[i] = bdecode(myb)
     return level, left, right
 
@@ -65,6 +66,7 @@ def get_root_blocks(block, min_dim=3):
         block, min_dim=min_dim)
     nb = np.ones(dim, dtype=int)
     for i, myb in enumerate(mybs):
+        if myb == '': continue
         s = get_block_level(myb)
         nb[i] = 2**s
     return nb
@@ -74,6 +76,7 @@ def get_root_block_id(block, min_dim=3):
         block, min_dim=min_dim)
     rbid = np.zeros(dim, dtype=int)
     for i, myb in enumerate(mybs):
+        if myb == '': continue
         s = get_block_level(myb)
         rbid[i] = int(myb[:s], 2)
     return rbid
