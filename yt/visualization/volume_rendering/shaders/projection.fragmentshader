@@ -9,7 +9,7 @@ void sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
     }
 }
 
-vec4 cleanup_phase(in vec4 curr_color) 
+vec4 cleanup_phase(in vec4 curr_color, in vec3 dir, in float t0, in float t1) 
 {
   return vec4(curr_color);
 }

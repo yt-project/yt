@@ -254,7 +254,7 @@ class RenderingContext(object):
                 callbacks.draw = False
                 if self.image_widget is not None:
                     self.image_widget.value = write_bitmap(
-                            scene.image, None)
+                            scene.image[:,:,:3], None)
             glfw.PollEvents()
             yield self
         glfw.Terminate()
