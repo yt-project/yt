@@ -142,6 +142,95 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
         return np.sqrt(r2[0,0])
     return np.sqrt(r2)
 
+def periodic_ray(start, end, left=None, right=None):
+    """
+    periodic_ray(start, end, left=None, right=None)
+
+    Break up periodic ray into non-periodic segments.
+    Accepts start and end points of periodic ray as YTArrays.
+    Accepts optional left and right edges of periodic volume as YTArrays.
+    Returns a list of lists of coordinates, where each element of the
+    top-most list is a 2-list of start coords and end coords of the
+    non-periodic ray:
+
+    [[[x0start,y0start,z0start], [x0end, y0end, z0end]],
+     [[x1start,y1start,z1start], [x1end, y1end, z1end]],
+     ...,]
+
+    Parameters
+    ----------
+    start : array
+        The starting coordinate of the ray.
+    end : array
+        The ending coordinate of the ray.
+    left : optional, array
+        The left corner of the periodic domain. If not given, an array
+        of zeros with same size as the starting coordinate us used.
+    right : optional, array
+        The right corner of the periodic domain. If not given, an array
+        of ones with same size as the starting coordinate us used.
+
+    Examples
+    --------
+    >>> import yt
+    >>> start = yt.YTArray([0.5, 0.5, 0.5])
+    >>> end = yt.YTArray([1.25, 1.25, 1.25])
+    >>> periodic_ray(start, end)
+    [[YTArray([0.5, 0.5, 0.5]) (dimensionless), YTArray([1., 1., 1.]) (dimensionless)],
+     [YTArray([0., 0., 0.]) (dimensionless), YTArray([0.25, 0.25, 0.25]) (dimensionless)]]
+
+    """
+
+    if left is None:
+        left = np.zeros(start.shape)
+    if right is None:
+        right = np.ones(start.shape)
+    dim = right - left
+
+    vector = end - start
+    wall = np.zeros_like(start)
+    close = np.zeros(start.shape, dtype=object)
+
+    left_bound = vector < 0
+    right_bound = vector > 0
+    no_bound = vector == 0.0
+    bound = vector != 0.0
+
+    wall[left_bound] = left[left_bound]
+    close[left_bound] = np.max
+    wall[right_bound] = right[right_bound]
+    close[right_bound] = np.min
+    wall[no_bound] = np.inf
+    close[no_bound] = np.min
+
+    segments = []
+    this_start = start.copy()
+    this_end = end.copy()
+    t = 0.0
+    tolerance = 1e-6
+    while t < 1.0 - tolerance:
+        hit_left = (this_start <= left) & (vector < 0)
+        if (hit_left).any():
+            this_start[hit_left] += dim[hit_left]
+            this_end[hit_left] += dim[hit_left]
+        hit_right = (this_start >= right) & (vector > 0)
+        if (hit_right).any():
+            this_start[hit_right] -= dim[hit_right]
+            this_end[hit_right] -= dim[hit_right]
+
+        nearest = vector.unit_array * \
+          np.array([close[q]([this_end[q], wall[q]]) \
+                    for q in range(start.size)])
+        dt = ((nearest - this_start) / vector)[bound].min()
+        now = this_start + vector * dt
+        close_enough = np.abs(now - nearest) / np.abs(vector.max()) < 1e-10
+        now[close_enough] = nearest[close_enough]
+        segments.append([this_start.copy(), now.copy()])
+        this_start = now.copy()
+        t += dt
+
+    return segments
+
 def euclidean_dist(a, b):
     r"""Find the Euclidean distance between two points.
 
@@ -1188,13 +1277,6 @@ def rotation_matrix_to_quaternion(rot_matrix):
 
     return np.array([w, x, y, z])
 
-def get_ortho_basis(normal):
-    xprime = np.cross([0.0,1.0,0.0],normal)
-    if np.sum(xprime) == 0: xprime = np.array([0.0, 0.0, 1.0])
-    yprime = np.cross(normal,xprime)
-    zprime = normal
-    return (xprime, yprime, zprime)
-
 def get_sph_r(coords):
     # The spherical coordinates radius is simply the magnitude of the
     # coordinate vector.
@@ -1253,7 +1335,7 @@ def get_sph_phi(coords, normal):
     # vector.
 
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, coords)
     res_yprime = resize_vector(yprime, coords)
@@ -1302,7 +1384,7 @@ def get_cyl_r_component(vectors, theta, normal):
     # The r of a vector is the vector dotted with rhat
 
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
@@ -1318,7 +1400,7 @@ def get_cyl_r_component(vectors, theta, normal):
 def get_cyl_theta_component(vectors, theta, normal):
     # The theta component of a vector is the vector dotted with thetahat
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
@@ -1334,7 +1416,7 @@ def get_cyl_theta_component(vectors, theta, normal):
 def get_cyl_z_component(vectors, normal):
     # The z component of a vector is the vector dotted with zhat
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_zprime = resize_vector(zprime, vectors)
 
@@ -1346,7 +1428,7 @@ def get_cyl_z_component(vectors, normal):
 def get_sph_r_component(vectors, theta, phi, normal):
     # The r component of a vector is the vector dotted with rhat
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
@@ -1367,7 +1449,7 @@ def get_sph_r_component(vectors, theta, phi, normal):
 def get_sph_phi_component(vectors, phi, normal):
     # The phi component of a vector is the vector dotted with phihat
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
@@ -1383,7 +1465,7 @@ def get_sph_phi_component(vectors, phi, normal):
 def get_sph_theta_component(vectors, theta, phi, normal):
     # The theta component of a vector is the vector dotted with thetahat
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)

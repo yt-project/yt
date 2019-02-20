@@ -59,7 +59,7 @@ try:
     mylog.debug("SIGUSR1 registered for traceback printing")
     signal.signal(signal.SIGUSR2, signal_ipython)
     mylog.debug("SIGUSR2 registered for IPython Insertion")
-except (ValueError, RuntimeError, AttributeError) as e:  # Not in main thread
+except (ValueError, RuntimeError, AttributeError):  # Not in main thread
     pass
 
 class SetExceptionHandling(argparse.Action):

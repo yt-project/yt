@@ -144,6 +144,8 @@ def off_axis_projection(data_source, center, normal_vector,
         if fi.alias_field:
             if fi.alias_name[0] != ptype:
                 raise_error = True
+            elif item[0] != 'gas':
+                ptype = item[0]
         else:
             if fi.name[0] != ptype and fi.name[0] != 'gas':
                 raise_error = True
@@ -204,7 +206,7 @@ def off_axis_projection(data_source, center, normal_vector,
 
             # Assure that the path length unit is in the default length units
             # for the dataset by scaling the units of the smoothing length
-            path_length_unit = data_source.ds._get_field_info('smoothing_length').units
+            path_length_unit = data_source.ds._get_field_info((ptype, 'smoothing_length')).units
             path_length_unit = Unit(path_length_unit, registry=data_source.ds.unit_registry)
             default_path_length_unit = data_source.ds.unit_system['length']
             buf *= data_source.ds.quan(1, path_length_unit).in_units(default_path_length_unit)

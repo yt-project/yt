@@ -52,7 +52,7 @@ functionality and pare it down to its minimum.  Add some comment lines to
 describe what it is that you're doing along the way.  Place this ``.py`` file
 in the ``source/cookbook/`` directory, and then link to it explicitly in one
 of the relevant ``.rst`` files in that directory (e.g. ``complex_plots.rst``,
-``cosmological_analysis.rst``, etc.), and add some description of what the script
+etc.), and add some description of what the script
 actually does.  We recommend that you use one of the
 `sample data sets <http://yt-project.org/data>`_ in your recipe.  When the full
 docs are built, each of the cookbook recipes is executed dynamically on

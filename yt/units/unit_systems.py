@@ -16,6 +16,7 @@ from yt.units import dimensions
 from yt.units.unit_object import Unit, unit_system_registry, _get_system_unit_string
 from yt.utilities import physical_constants as pc
 
+
 class UnitSystemConstants(object):
     """
     A class to facilitate conversions of physical constants into a given unit
@@ -32,6 +33,7 @@ class UnitSystemConstants(object):
 
     def __getattr__(self, item):
         return getattr(pc, item).in_base(self.name)
+
 
 class UnitSystem(object):
     """
@@ -109,6 +111,41 @@ class UnitSystem(object):
                 repr += "  %s: %s\n" % (key, self.units_map[dim])
         return repr
 
+
+def _make_unit_system_copy(unit_registry, unit_system):
+    """
+    Make a copy of a unit system with a different unit registry.
+
+    Parameters
+    ----------
+    unit_registry : UnitRegistry instance
+        The unit registry we want to use with this unit system,
+        most likely from a dataset.
+    unit_system : string
+        The name of the unit system we want to make a copy of 
+        with the new registry.
+    """
+    unit_system = unit_system_registry[unit_system]
+    base_units = ["length", "mass", "time", "temperature", "angle"]
+    if "current_mks" in unit_system._dims:
+        current_mks_unit = str(unit_system["current_mks"])
+        base_units.append("current_mks")
+    else:
+        current_mks_unit = None
+    sys_name = "{}_{}".format(unit_system.name, unit_registry.unit_system_id)
+    ds_unit_system = UnitSystem(sys_name, str(unit_system["length"]), 
+                                str(unit_system["mass"]), 
+                                str(unit_system["time"]), 
+                                temperature_unit=str(unit_system["temperature"]),
+                                angle_unit=str(unit_system["angle"]),
+                                current_mks_unit=current_mks_unit,
+                                registry=unit_registry)
+    for dim in unit_system._dims:
+        if dim not in base_units:
+            ds_unit_system[dim] = str(unit_system[dim])
+    return ds_unit_system
+
+
 def create_code_unit_system(unit_registry, current_mks_unit=None):
     code_unit_system = UnitSystem(unit_registry.unit_system_id, "code_length", 
                                   "code_mass", "code_time", "code_temperature",
@@ -120,6 +157,7 @@ def create_code_unit_system(unit_registry, current_mks_unit=None):
     else:
         code_unit_system["magnetic_field_cgs"] = "code_magnetic"
     code_unit_system["pressure"] = "code_pressure"
+
 
 cgs_unit_system = UnitSystem("cgs", "cm", "g", "s")
 cgs_unit_system["energy"] = "erg"

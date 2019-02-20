@@ -23,8 +23,9 @@ from .fields import \
     RockstarFieldInfo
 
 from yt.data_objects.static_output import \
-    ParticleDataset, \
-    ParticleFile
+    ParticleDataset
+from yt.frontends.halo_catalog.data_structures import \
+    HaloCatalogFile
 from yt.funcs import \
     setdefaultattr
 from yt.geometry.particle_geometry_handler import \
@@ -35,8 +36,8 @@ import yt.utilities.fortran_utils as fpu
 from .definitions import \
     header_dt
 
-class RockstarBinaryFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id, range):
+class RockstarBinaryFile(HaloCatalogFile):
+    def __init__(self, ds, io, filename, file_id):
         with open(filename, "rb") as f:
             self.header = fpu.read_cattrs(f, header_dt, "=")
             self._position_offset = f.tell()
@@ -45,6 +46,30 @@ class RockstarBinaryFile(ParticleFile):
 
         super(RockstarBinaryFile, self).__init__(
             ds, io, filename, file_id, range)
+
+    def _read_particle_positions(self, ptype, f=None):
+        """
+        Read all particle positions in this file.
+        """
+
+        if f is None:
+            close = True
+            f = open(self.filename, "rb")
+        else:
+            close = False
+
+        pcount = self.header["num_halos"]
+        pos = np.empty((pcount, 3), dtype="float64")
+        f.seek(self._position_offset, os.SEEK_SET)
+        halos = np.fromfile(f, dtype=self.io._halo_dt, count=pcount)
+        for i, ax in enumerate('xyz'):
+            pos[:, i] = halos["particle_position_%s" % ax].astype("float64")
+
+        if close:
+            f.close()
+
+        return pos
+
 
 class RockstarDataset(ParticleDataset):
     _index_class = ParticleIndex

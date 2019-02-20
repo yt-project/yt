@@ -1,7 +1,7 @@
 """
 API for ppv_cube
 """
-from __future__ import absolute_import
+
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
@@ -10,4 +10,10 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .ppv_cube import PPVCube
+from yt.utilities.exceptions import \
+    YTModuleRemoved
+
+raise YTModuleRemoved(
+    "PPVCube",
+    "https://github.com/yt-project/yt_astro_analysis",
+    "https://yt-astro-analysis.readthedocs.io/")

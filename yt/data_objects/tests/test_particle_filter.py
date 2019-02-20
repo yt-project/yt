@@ -1,9 +1,15 @@
 from __future__ import print_function
 
+import numpy as np
+import os
+import shutil
+import tempfile
+
 from nose.tools import assert_raises
 
 from yt.data_objects.particle_filters import add_particle_filter, particle_filter
-from yt.testing import assert_equal, fake_random_ds
+from yt.testing import assert_equal, fake_random_ds, fake_sph_grid_ds
+from yt.visualization.plot_window import ProjectionPlot
 from yt.utilities.exceptions import YTIllDefinedFilter, \
     YTIllDefinedParticleFilter
 
@@ -170,3 +176,24 @@ def test_covering_grid_particle_filter():
                      grid['heavy_stars', 'particle_mass'].shape[0])
         assert_equal(cg['heavy_stars', 'particle_mass'].shape[0],
                      grid['heavy_stars', 'particle_mass'].shape[0])
+
+def test_sph_particle_filter_plotting():
+    ds = fake_sph_grid_ds()
+
+    @particle_filter("central_gas", requires=["particle_position"], filtered_type="io")
+    def _filter(pfilter, data):
+        coords = np.abs(data[pfilter.filtered_type, "particle_position"])
+        return (
+            (coords[:, 0] < 1.6) & (coords[:, 1] < 1.6) & (coords[:, 2] < 1.6))
+
+    ds.add_particle_filter("central_gas")
+
+    plot = ProjectionPlot(ds, 'z', ('central_gas', 'density'))
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    plot.save()
+
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)

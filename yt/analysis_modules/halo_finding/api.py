@@ -13,19 +13,10 @@ API for halo_finding
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .halo_objects import \
-    Halo, \
-    HOPHalo, \
-    LoadedHalo, \
-    FOFHalo, \
-    HaloList, \
-    HOPHaloList, \
-    FOFHaloList, \
-    LoadedHaloList, \
-    GenericHaloFinder, \
-    HOPHaloFinder, \
-    FOFHaloFinder, \
-    HaloFinder, \
-    LoadHaloes, \
-    LoadTextHalos, \
-    LoadTextHaloes
+from yt.utilities.exceptions import \
+    YTModuleRemoved
+
+raise YTModuleRemoved(
+    "halo_finding",
+    "https://github.com/yt-project/yt_astro_analysis",
+    "https://yt-astro-analysis.readthedocs.io/")

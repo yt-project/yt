@@ -30,10 +30,11 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_slice, \
     pixelize_sph_kernel_projection, \
     pixelize_element_mesh_line, \
-    pixelize_sph_gather, \
+    interpolate_sph_grid_gather, \
     normalization_2d_utility
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
+from yt.units.yt_array import uconcatenate
 
 def _sample_ray(ray, npoints, field):
     """
@@ -69,6 +70,30 @@ def _sample_ray(ray, npoints, field):
     dr = np.sqrt((sample_dr**2).sum())
     x = np.arange(npoints)/(npoints-1)*(dr*npoints)
     return x, field_values
+
+def all_data(data, ptype, fields, kdtree=False):
+        field_data = {}
+        fields = set(fields)
+        for field in fields:
+            field_data[field] = []
+
+        for chunk in data.all_data().chunks([], "io"):
+            for field in fields:
+                field_data[field].append(chunk[ptype,
+                                               field].in_base("code"))
+
+        for field in fields:
+            field_data[field] = uconcatenate(field_data[field])
+
+        if kdtree is True:
+            kdtree = data.index.kdtree
+            for field in fields:
+                if len(field_data[field].shape) == 1:
+                    field_data[field] = field_data[field][kdtree.idx]
+                else:
+                    field_data[field] = field_data[field][kdtree.idx, :]
+
+        return field_data
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
@@ -240,9 +265,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
         from yt.data_objects.selection_data_containers import \
             YTSlice
         from yt.data_objects.construction_data_containers import \
-            YTKDTreeProj
+            YTParticleProj
         # We should be using fcoords
         field = data_source._determine_fields(field)[0]
+        finfo = data_source.ds.field_info[field]
         period = self.period[:2].copy() # dummy here
         period[0] = self.period[self.x_axis[dim]]
         period[1] = self.period[self.y_axis[dim]]
@@ -251,9 +277,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
         buff = np.zeros((size[1], size[0]), dtype="f8")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
-        is_sph_field = field[0] in 'gas'
-        if hasattr(data_source.ds, '_sph_ptype'):
-            is_sph_field |= field[0] in data_source.ds._sph_ptype
+        is_sph_field = finfo.is_sph_field
 
         finfo = self.ds._get_field_info(field)
         if np.any(finfo.nodal_flag):
@@ -265,11 +289,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                      nodal_data, coord, bounds, int(antialias),
                                      period, int(periodic))
         elif isinstance(data_source.ds, particle_datasets) and is_sph_field:
-            ptype = data_source.ds._sph_ptype
+            ptype = field[0]
+            if ptype == 'gas':
+                ptype = data_source.ds._sph_ptype
             ounits = data_source.ds.field_info[field].output_units
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
             py_name = 'particle_position_%s' % self.axis_name[self.y_axis[dim]]
-            if isinstance(data_source, YTKDTreeProj):
+            if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
                 le = data_source.data_source.left_edge.in_units('code_length')
                 re = data_source.data_source.right_edge.in_units('code_length')
@@ -385,10 +411,24 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                     # then we do the interpolation
                     buff_temp = np.zeros(buff_size, dtype="float64")
-                    pixelize_sph_gather(buff_temp, buff_bounds, self.ds,
-                                        field, ptype, normalize=normalize)
 
-                    # we swap the axes back so the axis which was sliced over
+                    fields_to_get = ['particle_position', 'density', 'particle_mass',
+                                     'smoothing_length', field[1]]
+                    all_fields = all_data(self.ds, ptype, fields_to_get, kdtree=True)
+
+                    num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+                    interpolate_sph_grid_gather(buff_temp,
+                                                all_fields['particle_position'],
+                                                buff_bounds,
+                                                all_fields['smoothing_length'],
+                                                all_fields['particle_mass'],
+                                                all_fields['density'],
+                                                all_fields[field[1]].in_units(ounits),
+                                                self.ds.index.kdtree,
+                                                num_neigh=num_neighbors,
+                                                use_normalization=normalize)
+
+                    # We swap the axes back so the axis which was sliced over
                     # is the last axis, as this is the "z" axis of the plots.
                     if z != 2:
                         buff_temp = buff_temp.swapaxes(2, z)
@@ -418,11 +458,15 @@ class CartesianCoordinateHandler(CoordinateHandler):
         return buff
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
+        from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
         indices = np.argsort(data_source['pdx'])[::-1].astype(np.int_)
         buff = np.zeros((size[1], size[0]), dtype="f8")
+        ftype = 'index'
+        if isinstance(data_source.ds, YTSpatialPlotDataset):
+            ftype = 'gas'
         pixelize_off_axis_cartesian(buff,
-                              data_source['x'], data_source['y'],
-                              data_source['z'], data_source['px'],
+                              data_source[ftype, 'x'], data_source[ftype, 'y'],
+                              data_source[ftype, 'z'], data_source['px'],
                               data_source['py'], data_source['pdx'],
                               data_source['pdy'], data_source['pdz'],
                               data_source.center, data_source._inv_mat, indices,

@@ -22,6 +22,8 @@ import numpy as np
 import functools
 import importlib
 import os
+import shutil
+import tempfile
 import unittest
 from yt.funcs import iterable
 from yt.config import ytcfg
@@ -483,7 +485,7 @@ def fake_sph_orientation_ds():
 
     return load_particles(data=data, length_unit=1.0, bbox=bbox)
 
-def fake_sph_grid_ds():
+def fake_sph_grid_ds(hsml_factor=1.0):
     """Returns an in-memory SPH dataset useful for testing
 
     This dataset should have 27 particles with the particles arranged uniformly
@@ -520,7 +522,7 @@ def fake_sph_grid_ds():
         'particle_velocity_x': (np.zeros(npart), 'cm/s'),
         'particle_velocity_y': (np.zeros(npart), 'cm/s'),
         'particle_velocity_z': (np.zeros(npart), 'cm/s'),
-        'smoothing_length': (0.05*np.ones(npart), 'cm'),
+        'smoothing_length': (0.05*np.ones(npart)*hsml_factor, 'cm'),
         'density': (np.ones(npart), 'g/cm**3'),
         'temperature': (np.ones(npart), 'K'),
     }
@@ -1222,3 +1224,18 @@ def requires_backend(backend):
     if backend.lower() == matplotlib.get_backend().lower():
         return ftrue
     return ffalse
+
+class TempDirTest(unittest.TestCase):
+    """
+    A test class that runs in a temporary directory and
+    removes it afterward.
+    """
+
+    def setUp(self):
+        self.curdir = os.getcwd()
+        self.tmpdir = tempfile.mkdtemp()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.curdir)
+        shutil.rmtree(self.tmpdir)

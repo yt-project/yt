@@ -594,7 +594,7 @@ class YTDataContainer(object):
         else:
             data.update(self.field_data)
         # get the extra fields needed to reconstruct the container
-        tds_fields = tuple(self._determine_fields(list(self._tds_fields)))
+        tds_fields = tuple([('index', t) for t in self._tds_fields])
         for f in [f for f in self._container_fields + tds_fields \
                   if f not in data]:
             data[f] = self[f]
@@ -660,9 +660,16 @@ class YTDataContainer(object):
         the Glue environment, you can pass a *data_collection* object,
         otherwise Glue will be started.
         """
+        from yt.config import ytcfg
         from glue.core import DataCollection, Data
-        from glue.qt.glue_application import GlueApplication
-
+        if ytcfg.getboolean("yt", "__withintesting"):
+            from glue.core.application_base import \
+                Application as GlueApplication
+        else:
+            try:
+                from glue.app.qt.application import GlueApplication
+            except ImportError:
+                from glue.qt.glue_application import GlueApplication
         gdata = Data(label=label)
         for component_name in fields:
             gdata.add_component(self[component_name], component_name)
@@ -670,7 +677,12 @@ class YTDataContainer(object):
         if data_collection is None:
             dc = DataCollection([gdata])
             app = GlueApplication(dc)
-            app.start()
+            try:
+                app.start()
+            except AttributeError:
+                # In testing we're using a dummy glue application object
+                # that doesn't have a start method
+                pass
         else:
             data_collection.append(gdata)
 
@@ -1331,7 +1343,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         nfields = []
         apply_fields = defaultdict(list)
         for field in self._determine_fields(fields):
-            if field[0] in self.ds.filtered_particle_types:
+            # We need to create the field on the raw particle types
+            # for particles types (when the field is not directly
+            # defined for the derived particle type only)
+            finfo = self.ds.field_info[field]
+
+            if field[0] in self.ds.filtered_particle_types and finfo._inherited_particle_filter:
                 f = self.ds.known_filters[field[0]]
                 apply_fields[field[0]].append(
                     (f.filtered_type, field[1]))
@@ -1531,6 +1548,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     def _chunked_read(self, chunk):
         # There are several items that need to be swapped out
         # field_data, size, shape
+        obj_field_data = []
+        if hasattr(chunk, 'objs'):
+            for obj in chunk.objs:
+                obj_field_data.append(obj.field_data)
+                obj.field_data = YTFieldData()
         old_field_data, self.field_data = self.field_data, YTFieldData()
         old_chunk, self._current_chunk = self._current_chunk, chunk
         old_locked, self._locked = self._locked, False
@@ -1538,6 +1560,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self.field_data = old_field_data
         self._current_chunk = old_chunk
         self._locked = old_locked
+        if hasattr(chunk, 'objs'):
+            for obj in chunk.objs:
+                obj.field_data = obj_field_data.pop(0)
 
     @contextmanager
     def _activate_cache(self):
@@ -2033,8 +2058,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
                 mv = max_val
             else:
                 mv = cons[level+1]
-            from yt.analysis_modules.level_sets.api import identify_contours
-            from yt.analysis_modules.level_sets.clump_handling import \
+            from yt.data_objects.level_sets.api import identify_contours
+            from yt.data_objects.level_sets.clump_handling import \
                 add_contour_field
             nj, cids = identify_contours(self, field, cons[level], mv)
             unique_contours = set([])

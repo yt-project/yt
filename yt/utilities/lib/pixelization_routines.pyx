@@ -44,8 +44,10 @@ from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
 from yt.funcs import get_pbar
 from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
-from yt.utilities.lib.particle_kdtree_tools import knn_list_grid
-from yt.extern.tqdm import tqdm
+from yt.utilities.lib.particle_kdtree_tools cimport find_neighbors, \
+    axes_range, \
+    set_axes_range
+from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
 
 cdef int TABLE_NVALS=512
 
@@ -1054,6 +1056,170 @@ def pixelize_sph_kernel_projection(
                     # now we just use the kernel projection
                     buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def interpolate_sph_positions_gather(np.float64_t[:] buff,
+        np.float64_t[:, ::1] tree_positions, np.float64_t[:, ::1] field_positions,
+        np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth, PyKDTree kdtree,
+        int use_normalization=1, kernel_name="cubic", pbar=None,
+        int num_neigh=32):
+
+    """
+    This function takes in arbitrary positions, field_positions, at which to
+    perform a nearest neighbor search and perform SPH interpolation.
+
+    The results are stored in the buffer, buff, which is in the same order as
+    the field_positions are put in.
+    """
+
+    cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
+    cdef np.float64_t * pos_ptr
+    cdef int i, particle, index
+    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
+    cdef np.float64_t[:] buff_den
+    cdef KDTree * ctree = kdtree._tree
+
+    # Which dimensions shall we use for spatial distances?
+    cdef axes_range axes
+    set_axes_range(&axes, -1)
+
+    # Only allocate memory if we are using normalization
+    if use_normalization:
+        buff_den = np.zeros(buff.shape[0], dtype="float64")
+
+    kernel_func = get_kernel_func(kernel_name)
+
+    # Loop through all the positions we want to interpolate the SPH field onto
+    with nogil:
+        for i in range(0, buff.shape[0]):
+            queue.size = 0
+
+            # Update the current position
+            pos_ptr = &field_positions[i, 0]
+
+            # Use the KDTree to find the nearest neighbors
+            find_neighbors(pos_ptr, tree_positions, queue, ctree, -1, &axes)
+
+            # Set the smoothing length squared to the square of the distance
+            # of the furthest nearest neighbor
+            h_j2 = queue.heap[0]
+            ih_j2 = 1.0/h_j2
+
+            # Loop through each nearest neighbor and add contribution to the
+            # buffer
+            for index in range(queue.max_elements):
+                particle = queue.pids[index]
+
+                # Calculate contribution of this particle
+                prefactor_j = (pmass[particle] / pdens[particle] /
+                               hsml[particle]**3)
+                q_ij = math.sqrt(queue.heap[index]*ih_j2)
+                smoothed_quantity_j = (prefactor_j *
+                                       quantity_to_smooth[particle] *
+                                       kernel_func(q_ij))
+
+                # See equations 6, 9, and 11 of the SPLASH paper
+                buff[i] += smoothed_quantity_j
+
+                if use_normalization:
+                    buff_den[i] += prefactor_j * kernel_func(q_ij)
+
+    if use_normalization:
+        normalization_1d_utility(buff, buff_den)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
+        np.float64_t[:, ::1] tree_positions, np.float64_t[:] bounds,
+        np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth, PyKDTree kdtree,
+        int use_normalization=1, kernel_name="cubic", pbar=None,
+        int num_neigh=32):
+    """
+    This function takes in the bounds and number of cells in a grid (well,
+    actually we implicity calculate this from the size of buff). Then we can
+    perform nearest neighbor search and SPH interpolation at the centre of each
+    cell in the grid.
+    """
+
+    cdef np.float64_t q_ij, h_j2, ih_j2, prefactor_j, smoothed_quantity_j
+    cdef np.float64_t dx, dy, dz
+    cdef np.float64_t[::1] pos = np.zeros(3, dtype="float64")
+    cdef np.float64_t * pos_ptr = &pos[0]
+    cdef int i, j, k, particle, index
+    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(num_neigh, True)
+    cdef np.float64_t[:, :, :] buff_den
+    cdef KDTree * ctree = kdtree._tree
+    cdef int prog
+
+    # Which dimensions shall we use for spatial distances?
+    cdef axes_range axes
+    set_axes_range(&axes, -1)
+
+    # Only allocate memory if we are using normalization
+    if use_normalization:
+        buff_den = np.zeros([buff.shape[0], buff.shape[1],
+                             buff.shape[2]], dtype="float64")
+
+    kernel_func = get_kernel_func(kernel_name)
+    dx = (bounds[1] - bounds[0]) / buff.shape[0]
+    dy = (bounds[3] - bounds[2]) / buff.shape[1]
+    dz = (bounds[5] - bounds[4]) / buff.shape[2]
+
+    # Loop through all the positions we want to interpolate the SPH field onto
+    pbar = get_pbar(title="Interpolating (gather) SPH field",
+                    maxval=(buff.shape[0]*buff.shape[1]*buff.shape[2] //
+                            10000)*10000)
+
+    prog = 0
+    with nogil:
+        for i in range(0, buff.shape[0]):
+            for j in range(0, buff.shape[1]):
+                for k in range(0, buff.shape[2]):
+                    prog += 1
+                    if prog % 10000 == 0:
+                        with gil:
+                            PyErr_CheckSignals()
+                            pbar.update(prog)
+
+                    queue.size = 0
+
+                    # Update the current position
+                    pos[0] = bounds[0] + (i + 0.5) * dx
+                    pos[1] = bounds[2] + (j + 0.5) * dy
+                    pos[2] = bounds[4] + (k + 0.5) * dz
+
+                    # Use the KDTree to find the nearest neighbors
+                    find_neighbors(pos_ptr, tree_positions, queue, ctree, -1, &axes)
+
+                    # Set the smoothing length squared to the square of the distance
+                    # of the furthest nearest neighbor
+                    h_j2 = queue.heap[0]
+                    ih_j2 = 1.0/h_j2
+
+                    # Loop through each nearest neighbor and add contribution to the
+                    # buffer
+                    for index in range(queue.max_elements):
+                        particle = queue.pids[index]
+
+                        # Calculate contribution of this particle
+                        prefactor_j = (pmass[particle] / pdens[particle] /
+                                       hsml[particle]**3)
+                        q_ij = math.sqrt(queue.heap[index]*ih_j2)
+                        smoothed_quantity_j = (prefactor_j *
+                                               quantity_to_smooth[particle] *
+                                               kernel_func(q_ij))
+
+                        # See equations 6, 9, and 11 of the SPLASH paper
+                        buff[i, j, k] += smoothed_quantity_j
+
+                        if use_normalization:
+                            buff_den[i, j, k] += prefactor_j * kernel_func(q_ij)
+
+    if use_normalization:
+        normalization_3d_utility(buff, buff_den)
+
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1141,67 +1307,6 @@ def pixelize_sph_kernel_slice(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def pixelize_sph_gather(np.float64_t[:, :, :] buff, np.float64_t[:] bounds,
-                        data_source, field, ptype,
-                        np.int64_t skipaxis=-1,
-                        normalize=True):
-        cdef int i, j, k
-        cdef np.float64_t[:, :, :] buff_den
-
-        tree = data_source.index.kdtree
-
-        if normalize:
-            buff_den = np.zeros((buff.shape[0], buff.shape[1], buff.shape[2]),
-                                dtype="float64")
-
-        size = np.array([buff.shape[0], buff.shape[1], buff.shape[2]],
-                        dtype="int64")
-        pids = np.zeros((size[0], size[1], size[2], data_source.num_neighbors),
-                        dtype="int64") - 1
-        dists = np.zeros((size[0], size[1], size[2], data_source.num_neighbors),
-                         dtype="float64") - 1
-
-        pos = []
-        for chunk in data_source.all_data().chunks([field], 'io'):
-                    pos.append(chunk[(ptype,'particle_position')].in_base("code").d)
-        pos = np.concatenate(pos)
-        pos = pos[tree.idx, :]
-
-        knn_list_grid(pos, dists, pids, tree, bounds, size, data_source.num_neighbors,
-                 skipaxis=skipaxis)
-        del pos
-
-        # perform the deposition onto the pixels -> do it twice to
-        # allow normalization
-        pbar = tqdm(desc="Interpolating SPH field {}".format(field))
-        ounits = data_source.field_info[field].output_units
-        offset = 0
-        for i, chunk in enumerate(
-                 data_source.all_data().chunks([field], 'io')):
-            pixelize_sph_kernel_gather_arbitrary_grid(buff, pids, dists,
-                chunk[(ptype,'smoothing_length')].in_base("code").d,
-                chunk[(ptype,'particle_mass')].in_base("code").d,
-                chunk[(ptype,'density')].in_base("code").d,
-                chunk[field].in_units(ounits).d, tree=tree, offset=offset)
-            if normalize:
-                pixelize_sph_kernel_gather_arbitrary_grid(buff_den, pids, dists,
-                    chunk[(ptype,'smoothing_length')].in_base("code").d,
-                    chunk[(ptype,'particle_mass')].in_base("code").d,
-                    chunk[(ptype,'density')].in_base("code").d,
-                    np.ones(chunk[(ptype,'density')].shape[0]),
-                    tree=tree, offset=offset)
-
-            offset += chunk[(ptype,'density')].shape[0]
-            pbar.update(1)
-        pbar.close()
-
-        if normalize:
-            normalization_3d_utility(buff, buff_den)
-
-@cython.initializedcheck(False)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] posx, np.float64_t[:] posy, np.float64_t[:] posz,
         np.float64_t[:] hsml, np.float64_t[:] pmass,
@@ -1217,7 +1322,6 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef int index, i, j, k
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
-
     x_min = bounds[0]
     x_max = bounds[1]
     y_min = bounds[2]
@@ -1297,56 +1401,6 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                             continue
 
                         buff[xi, yi, zi] += prefactor_j * kernel_func(q_ij)
-
-@cython.initializedcheck(False)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-def pixelize_sph_kernel_gather_arbitrary_grid(np.float64_t[:, :, :] buff,
-        np.int64_t[:, :, :, :] pids, np.float64_t[:, :, :, :] dists,
-        np.float64_t[:] hsml, np.float64_t[:] pmass, np.float64_t[:] pdens,
-        np.float64_t[:] quantity_to_smooth, PyKDTree tree=None, np.int64_t
-        offset=0, kernel_name="cubic"):
-
-    cdef np.intp_t xsize, ysize, zsize
-    cdef np.float64_t prefactor_ij, smoothed_quantity_j
-    cdef np.int64_t xi, yi, zi, pi
-    cdef np.float64_t q_ij, h_j2, ih_j2
-    cdef int count, i, j, k, particle
-    cdef np.int64_t[:] tree_id
-
-    if tree is not None:
-        tree_id = tree.idx.astype("int64")
-
-    xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
-
-    kernel_func = get_kernel_func(kernel_name)
-
-    with nogil:
-        for xi in range(xsize):
-            for yi in range(ysize):
-                for zi in range(zsize):
-                    # we set the smoothing length squared of the voxel to the
-                    # distance to its furthest nearest neighbor squared.
-                    h_j2 = dists[xi, yi, zi, 0]
-                    ih_j2 = 1/h_j2
-
-                    for pi in range(pids.shape[3]):
-                        if tree is not None:
-                            particle = tree_id[pids[xi, yi, zi, pi]] - offset
-                            if(particle < 0 or particle > pmass.shape[0]):
-                                continue
-                        else:
-                            particle = pids[xi, yi, zi, pi]
-
-                        prefactor_ij = (pmass[particle] / pdens[particle] /
-                                        hsml[particle]**3)
-                        q_ij = math.sqrt(dists[xi, yi, zi, pi]*ih_j2)
-                        smoothed_quantity_j = (prefactor_ij *
-                                               quantity_to_smooth[particle] *
-                                               kernel_func(q_ij))
-
-                        buff[xi, yi, zi] += smoothed_quantity_j
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,
@@ -1566,23 +1620,8 @@ cpdef np.float64_t[:, :] get_rotation_matrix(np.float64_t[:] normal_vector,
                          + np.matmul(cross_product_matrix, cross_product_matrix)
                          * 1/(1+c))
 
-
-@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
-def normalization_2d_utility(np.float64_t[:, :] num,
-                             np.float64_t[:, :] den):
-    cdef int i, j
-    for i in range(num.shape[0]):
-        for j in range(num.shape[1]):
-            if den[i, j] != 0.0:
-                num[i, j] = num[i, j] / den[i, j]
-
-@cython.initializedcheck(False)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def normalization_3d_utility(np.float64_t[:, :, :] num,
                              np.float64_t[:, :, :] den):
     cdef int i, j, k
@@ -1592,3 +1631,21 @@ def normalization_3d_utility(np.float64_t[:, :, :] num,
                 if den[i, j, k] != 0.0:
                     num[i, j, k] = num[i, j, k] / den[i, j, k]
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def normalization_2d_utility(np.float64_t[:, :] num,
+                          np.float64_t[:, :] den):
+    cdef int i, j
+    for i in range(num.shape[0]):
+        for j in range(num.shape[1]):
+            if den[i, j] != 0.0:
+                num[i, j] = num[i, j] / den[i, j]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def normalization_1d_utility(np.float64_t[:] num,
+                             np.float64_t[:] den):
+    cdef int i
+    for i in range(num.shape[0]):
+        if den[i] != 0.0:
+            num[i] = num[i] / den[i]

@@ -29,7 +29,6 @@ Example Scripts
    simple_plots
    calculating_information
    complex_plots
-   cosmological_analysis
    constructing_data_objects
 
 .. _example-notebooks:
@@ -44,7 +43,6 @@ Example Notebooks
    gadget_notebook
    owls_notebook
    ../visualizing/transfer_function_helper
-   ../analyzing/analysis_modules/sunyaev_zeldovich
    fits_radio_cubes
    fits_xray_images
    tipsy_notebook
