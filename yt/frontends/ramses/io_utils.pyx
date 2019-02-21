@@ -24,6 +24,8 @@ def read_amr(FortranFile f, dict headers,
     cdef np.ndarray[np.int32_t, ndim=2] numbl
     cdef np.ndarray[np.float64_t, ndim=2] pos
 
+    cdef INT32_t ii = 0
+
     ndim = headers['ndim']
     numbl = headers['numbl']
     nboundary = headers['nboundary']

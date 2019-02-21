@@ -560,7 +560,7 @@ cdef class OctreeContainer:
             return dest
         return visitor.index - offset
 
-    def domain_ind(self, selector, int domain_id = -1):
+    def domain_ind(self, SelectorObject selector, int domain_id = -1):
         cdef np.ndarray[np.int64_t, ndim=1] ind
         # Here's where we grab the masked items.
         ind = np.zeros(self.nocts, 'int64') - 1

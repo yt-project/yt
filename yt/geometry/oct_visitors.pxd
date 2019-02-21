@@ -16,7 +16,6 @@ Oct visitor definitions file
 
 cimport numpy as np
 
-cdef struct Oct
 cdef struct Oct:
     np.int64_t file_ind     # index with respect to the order in which it was
                             # added
