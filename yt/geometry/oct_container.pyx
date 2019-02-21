@@ -570,83 +570,108 @@ cdef class OctreeContainer:
         self.visit_all_octs(selector, visitor)
         return ind
 
-    def gradients(self, SelectorObject selector, int domain_id = -1):
+    def get_hypercube(self, object octree_subset,
+                      object input_data):
         cdef oct_visitors.MarkAndPosOcts visitor
+        cdef selection_routines.AlwaysSelector selector
         cdef int ioct
-        cdef OctInfo oi
+        cdef OctInfo oi, oi0
         cdef Oct *o = NULL
+        cdef Oct *o0 = NULL
         cdef int ndim = 3
         cdef np.float64_t pos[3]
+        cdef np.float64_t pos0[3]
+        cdef int domain_id = octree_subset.domain_id
+
+        # Initialize selector & visitor
+        selector = selection_routines.AlwaysSelector(octree_subset)
 
         visitor = oct_visitors.MarkAndPosOcts(self, domain_id)
         visitor.mark = np.zeros((self.nocts, 2, 2, 2), np.int64)-1
         visitor.fcoords = np.zeros((self.nocts*8, 3), np.float64)
         visitor.fwidth = np.zeros((self.nocts*8), np.float64)
-        visitor.file_inds = np.zeros((self.nocts*8), np.int64)
-        visitor.cell_inds = np.zeros((self.nocts*8), np.uint8)
-        visitor.ires = np.zeros((self.nocts*8), np.int64)
 
         # Mark and get the position of the cells in the selected region
         self.visit_all_octs(selector, visitor)
 
-        # Loop over all octs and find their neighboring _cell_
-        cdef np.ndarray[np.int64_t, ndim=4] icoords = np.empty((self.nocts, 4, 4, 4), dtype=np.int64)
-        cdef int i, j, k, i1, j1, k1, i2, j2, k2, ic, ic_neigh
-        cdef int *map1 = [0, 0, 1, 1]    # map to nearest cell in central oct
-        cdef int *map2 = [1, 0, 0, 0]    # map to cell index in neighboring oct
-        cdef int *dirmap = [-1, 0, 0, 1]  # direction indicator w.r.t. cell given by map1
+        # Loop over all octs and find their neighboring cell
+        cdef np.ndarray[np.int64_t, ndim=4] icell_inds = np.zeros((self.nocts, 4, 4, 4), dtype=np.int64)-1
+        cdef int i, j, k, i1, j1, k1, ic, ic_neigh
+        cdef int *map1 = [0, 0, 1, 1]     # map to nearest cell in central oct
         cdef int a[3]
+        cdef int ind[3]
+        cdef np.float64_t opos[3]
+        cdef np.float64_t dx
+
+        cdef int countA = 0, countB = 0
+
         for ioct in range(self.nocts):
+            # Get central oct
+            ic = visitor.mark[ioct, 0, 0, 0]
+            dx = visitor.fwidth[ic]
+            for idim in range(3):
+                pos0[idim] = (visitor.fcoords[ic, idim] + dx) / self.nn[idim]
+            o0 = self.get(pos0, &oi0)
+            for idim in range(3):
+                opos[idim] = oi0.left_edge[idim] + oi0.dds[idim]
+                dx = oi0.dds[idim]
+
             for i in range(4):
                 i1 = map1[i]
-                i2 = map2[i]
-                a[0] = dirmap[i]
+                a[0] = i
                 for j in range(4):
                     j1 = map1[j]
-                    j2 = map2[j]
-                    a[1] = dirmap[j]
+                    a[1] = j
                     for k in range(4):
                         k1 = map1[k]
-                        k2 = map2[k]
-                        a[2] = dirmap[k]
+                        a[2] = k
 
                         # Get (local) cell index
-                        ic = visitor.mark[ioct, i1, j1, k1]
-                        if ic == 0:  # not selected
-                            continue
+                        ic = visitor.mark[ioct, k1, j1, i1]
 
                         # In the "central" cube, simply copy file_inds
                         if (0 < i < 3) and (0 < j < 3) and (0 < k < 3):
-                            icoords[ioct, i, j, k] = ic
+                            icell_inds[ioct, k, j, i] = ic
                             continue
 
+                        # Skip corners
+                        if (i==0 or i==3) and (j==0 or j==3) and (k==0 or k==3):
+                            icell_inds[ioct, k, j, i] = -99
+                            continue
+
+                        # Compute position of neighboring cell.
                         for idim in range(3):
-                            pos[idim] = (visitor.fcoords[ic, idim]
-                                         + a[idim] * visitor.fwidth[ic]) / self.nn[idim]
+                            pos[idim] = opos[idim] + (a[idim]-1.5) * dx
 
                         # Get oct, maximum level=current level
                         o = self.get(pos, &oi, max_level=visitor.ires[ic])
-                        # This may happen near domain boundaries
+
+                        # This may happen near domain boundaries. In the future we should load them
                         if o == NULL:
                             continue
 
-                        # print('Yay!', oi.level, visitor.ires[ic])
-                        if oi.level < visitor.ires[ic]:
-                            # Find cell in neighbor oct -- coarser level
-                            pass
-                        else:
-                            # Find cell in neighbor oct -- same level
-                            ic_neigh = visitor.mark[o.domain_ind, i2, j2, k2]
-                            if ic_neigh == 0:
-                                continue
-                            icoords[ioct, i, j, k] = visitor.file_inds[ic_neigh]
+                        for idim in range(3):
+                            if pos[idim] < oi.left_edge[idim] + oi.dds[idim]:
+                                ind[idim] = 0
+                            else:
+                                ind[idim] = 1
 
-        # We now have
-        # * icoords (nocts, 4, 4, 4) -> index of each cell
-        # * file_inds (nocts*8)      -> location of cell's oct in file
-        # * cell_inds (nocts*8)      -> index of cell within oct
-        # Let's now fill the data in
-        return np.array(visitor.mark), icoords
+                        if oi.level < oi0.level:
+                            countA += 1
+                            # Find cell in neighbor oct -- coarser level
+                            icell_inds[ioct, k, j, i] = visitor.mark[ioct, ind[2], ind[1], ind[0]]
+                        else:
+                            countB += 1
+                            # Find cell in neighbor oct -- same level
+                            ic_neigh = visitor.mark[o.domain_ind, ind[2], ind[1], ind[0]]
+                            if ic_neigh == -1:
+                                # TODO: treat this path
+                                continue
+                            icell_inds[ioct, k, j, i] = ic_neigh
+
+        print('CountA:', countA)
+        print('CountB:', countB)
+        return icell_inds
 
 
     @cython.boundscheck(False)

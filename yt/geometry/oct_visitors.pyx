@@ -119,22 +119,15 @@ cdef class MarkAndPosOcts(OctVisitor):
         cdef int i
         cdef np.float64_t c, dx
 
-        # Mark cell
-        if selected == 0:
-            self.mark[self.global_index, self.ind[2], self.ind[1], self.ind[0]] = 0
-        else:
-            self.mark[self.global_index, self.ind[2], self.ind[1], self.ind[0]] = self.index
-
-        self.file_inds[self.index] = o.file_ind
-        self.cell_inds[self.index] = self.oind()
-        self.ires[self.index] = self.level
+        # Mark cell with their index
+        self.mark[self.global_index, self.ind[2], self.ind[1], self.ind[0]] = self.index
 
         # Compute fcoords, fwidth
         dx = 1.0 / ((1 << self.oref) << self.level)
+        self.fwidth[self.index] = dx
         for i in range(3):
             c = <np.float64_t> ((self.pos[i] << self.oref ) + self.ind[i])
             self.fcoords[self.index, i] = (c + 0.5) * dx
-            self.fwidth[self.index] = dx
 
         self.index += 1
 
@@ -179,7 +172,6 @@ cdef class FCoordsOcts(OctVisitor):
         # Note that this does not actually give the correct floating point
         # coordinates.  It gives them in some unit system where the domain is 1.0
         # in all directions, and assumes that they will be scaled later.
-        # TODO: fix doc -> width is 0-2**levelmin
         if selected == 0: return
         cdef int i
         cdef np.float64_t c, dx
