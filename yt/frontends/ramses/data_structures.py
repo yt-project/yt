@@ -531,7 +531,7 @@ class RAMSESDataset(Dataset):
                     dom, mi, ma = f.readline().split()
                     self.hilbert_indices[int(dom)] = (float(mi), float(ma))
 
-        if rheader['ordering type'] != 'hilbert' and self._bbox is not None:
+        if rheader['ordering type'] != 'hilbert' and self._bbox:
             raise NotImplementedError(
                 'The ordering %s is not compatible with the `bbox` argument.'
                 % rheader['ordering type'])
