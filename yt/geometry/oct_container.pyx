@@ -570,6 +570,85 @@ cdef class OctreeContainer:
         self.visit_all_octs(selector, visitor)
         return ind
 
+    def gradients(self, SelectorObject selector, int domain_id = -1):
+        cdef oct_visitors.MarkAndPosOcts visitor
+        cdef int ioct
+        cdef OctInfo oi
+        cdef Oct *o = NULL
+        cdef int ndim = 3
+        cdef np.float64_t pos[3]
+
+        visitor = oct_visitors.MarkAndPosOcts(self, domain_id)
+        visitor.mark = np.zeros((self.nocts, 2, 2, 2), np.int64)-1
+        visitor.fcoords = np.zeros((self.nocts*8, 3), np.float64)
+        visitor.fwidth = np.zeros((self.nocts*8), np.float64)
+        visitor.file_inds = np.zeros((self.nocts*8), np.int64)
+        visitor.cell_inds = np.zeros((self.nocts*8), np.uint8)
+        visitor.ires = np.zeros((self.nocts*8), np.int64)
+
+        # Mark and get the position of the cells in the selected region
+        self.visit_all_octs(selector, visitor)
+
+        # Loop over all octs and find their neighboring _cell_
+        cdef np.ndarray[np.int64_t, ndim=4] icoords = np.empty((self.nocts, 4, 4, 4), dtype=np.int64)
+        cdef int i, j, k, i1, j1, k1, i2, j2, k2, ic, ic_neigh
+        cdef int *map1 = [0, 0, 1, 1]    # map to nearest cell in central oct
+        cdef int *map2 = [1, 0, 0, 0]    # map to cell index in neighboring oct
+        cdef int *dirmap = [-1, 0, 0, 1]  # direction indicator w.r.t. cell given by map1
+        cdef int a[3]
+        for ioct in range(self.nocts):
+            for i in range(4):
+                i1 = map1[i]
+                i2 = map2[i]
+                a[0] = dirmap[i]
+                for j in range(4):
+                    j1 = map1[j]
+                    j2 = map2[j]
+                    a[1] = dirmap[j]
+                    for k in range(4):
+                        k1 = map1[k]
+                        k2 = map2[k]
+                        a[2] = dirmap[k]
+
+                        # Get (local) cell index
+                        ic = visitor.mark[ioct, i1, j1, k1]
+                        if ic == 0:  # not selected
+                            continue
+
+                        # In the "central" cube, simply copy file_inds
+                        if (0 < i < 3) and (0 < j < 3) and (0 < k < 3):
+                            icoords[ioct, i, j, k] = ic
+                            continue
+
+                        for idim in range(3):
+                            pos[idim] = (visitor.fcoords[ic, idim]
+                                         + a[idim] * visitor.fwidth[ic]) / self.nn[idim]
+
+                        # Get oct, maximum level=current level
+                        o = self.get(pos, &oi, max_level=visitor.ires[ic])
+                        # This may happen near domain boundaries
+                        if o == NULL:
+                            continue
+
+                        # print('Yay!', oi.level, visitor.ires[ic])
+                        if oi.level < visitor.ires[ic]:
+                            # Find cell in neighbor oct -- coarser level
+                            pass
+                        else:
+                            # Find cell in neighbor oct -- same level
+                            ic_neigh = visitor.mark[o.domain_ind, i2, j2, k2]
+                            if ic_neigh == 0:
+                                continue
+                            icoords[ioct, i, j, k] = visitor.file_inds[ic_neigh]
+
+        # We now have
+        # * icoords (nocts, 4, 4, 4) -> index of each cell
+        # * file_inds (nocts*8)      -> location of cell's oct in file
+        # * cell_inds (nocts*8)      -> index of cell within oct
+        # Let's now fill the data in
+        return np.array(visitor.mark), icoords
+
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -915,25 +994,25 @@ cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
     cdef np.int64_t n[3]
     cdef np.int64_t ind[3]
     cdef np.int64_t off[3][2]
-    cdef np.int64_t ii, ij, ik, ci
+    cdef np.int64_t i2, ij, ik, ci
     ind[0] = 1 - i
     ind[1] = 1 - j
     ind[2] = 1 - k
-    for ii in range(3):
-        if ind[ii] == 0:
-            n[ii] = 2
-            off[ii][0] = 0
-            off[ii][1] = 1
-        elif ind[ii] == -1:
-            n[ii] = 1
-            off[ii][0] = 1
-        elif ind[ii] == 1:
-            n[ii] = 1
-            off[ii][0] = 0
-    for ii in range(n[0]):
+    for i2 in range(3):
+        if ind[i2] == 0:
+            n[i2] = 2
+            off[i2][0] = 0
+            off[i2][1] = 1
+        elif ind[i2] == -1:
+            n[i2] = 1
+            off[i2][0] = 1
+        elif ind[i2] == 1:
+            n[i2] = 1
+            off[i2][0] = 0
+    for i2 in range(n[0]):
         for ij in range(n[1]):
             for ik in range(n[2]):
-                ci = cind(off[0][ii], off[1][ij], off[2][ik])
+                ci = cind(off[0][i2], off[1][ij], off[2][ik])
                 cand = top.children[ci]
                 if cand.children != NULL:
                     olist = OctList_subneighbor_find(olist,
