@@ -662,7 +662,6 @@ cdef class OctreeContainer:
                         # Find cell in neighbor oct
                         ic_neigh = visitor.mark[o.domain_ind, ind[2], ind[1], ind[0]]
                         icell_inds[ioct, k, j, i] = ic_neigh
-        print(A, B)
         output_data = {}
         for key, val in input_data.items():
             val = val.T.reshape(-1)
