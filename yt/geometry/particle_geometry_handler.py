@@ -228,9 +228,13 @@ class ParticleIndex(Index):
                 dobj._chunk_info = [dobj]
             else:
                 # TODO: only return files
-                dfi, file_masks, addfi = self.regions.identify_file_masks(
-                    dobj.selector)
-                nfiles = len(file_masks)
+                if getattr(dobj.selector, 'is_all_data', False):
+                    dfi, file_masks, addfi = self.regions.identify_file_masks(
+                        dobj.selector)
+                    nfiles = len(file_masks)
+                else:
+                    nfiles = self.regions.nfiles
+                    dfi = np.arange(nfiles)
                 dobj._chunk_info = [None for _ in range(nfiles)]
                 for i in range(nfiles):
                     domain_id = i+1
