@@ -1328,6 +1328,12 @@ class SphereCallback(PlotCallback):
         if iterable(self.radius):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
             self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
+        if isinstance(self.radius, YTQuantity):
+            if isinstance(self.center, YTArray):
+                units = self.center.units
+            else:
+                units = 'code_length'
+            self.radius = self.radius.to(units)
 
         # This assures the radius has the appropriate size in
         # the different coordinate systems, since one cannot simply
