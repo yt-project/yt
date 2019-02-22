@@ -98,3 +98,9 @@ def test_pid_uniqueness():
     ad = ds.all_data()
     pid = ad['ParticleIDs']
     assert len(pid) == len(set(pid.v))
+
+@requires_ds(BE_Gadget)
+def test_bigendian_field_access():
+    ds = data_dir_load(BE_Gadget)
+    data = ds.all_data()
+    data['Halo', 'Velocities']
