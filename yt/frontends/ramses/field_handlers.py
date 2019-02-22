@@ -57,8 +57,7 @@ class FieldFileHandler(object):
     file_descriptor = None # The name of the file descriptor (if any)
 
     # These properties are computed dynamically
-    field_offsets = None     # Mapping from field to offset in file
-    field_types = None       # Mapping from field to the type of the data (float, integer, ...)
+    _offset = None     # Mapping from field to offset in file
     def __init__(self, domain):
         '''
         Initalize an instance of the class. This automatically sets
