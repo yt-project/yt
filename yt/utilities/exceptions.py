@@ -636,7 +636,7 @@ class YTBoundsDefinitionError(YTException):
     def __str__(self):
         v  = "This operation has encountered a bounds error: "
         v += self.message
-        v += " Specified bounds are %s" % self.bounds
+        v += " Specified bounds are '%s'." % (self.bounds,)
         return v
 
 def screen_one_element_list(lis):
