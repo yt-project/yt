@@ -658,17 +658,11 @@ cdef class OctreeContainer:
                             else:
                                 ind[idim] = 1
 
-                        if oi.level < oi0.level:
-                            # Find cell in neighbor oct -- coarser level
-                            icell_inds[ioct, k, j, i] = visitor.mark[ioct, ind[2], ind[1], ind[0]]
-                        else:
-                            # Find cell in neighbor oct -- same level
-                            ic_neigh = visitor.mark[o.domain_ind, ind[2], ind[1], ind[0]]
-                            if ic_neigh == -1:
-                                # TODO: treat this path
-                                continue
-                            icell_inds[ioct, k, j, i] = ic_neigh
 
+                        # Find cell in neighbor oct
+                        ic_neigh = visitor.mark[o.domain_ind, ind[2], ind[1], ind[0]]
+                        icell_inds[ioct, k, j, i] = ic_neigh
+        print(A, B)
         output_data = {}
         for key, val in input_data.items():
             val = val.T.reshape(-1)
