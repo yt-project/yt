@@ -669,9 +669,13 @@ cdef class OctreeContainer:
                                 continue
                             icell_inds[ioct, k, j, i] = ic_neigh
 
-        print('CountA:', countA)
-        print('CountB:', countB)
-        return icell_inds
+        output_data = {}
+        for key, val in input_data.items():
+            val = val.T.reshape(-1)
+            output_data[key] = subset.apply_units(
+                np.where(icell_inds>=0, val[icell_inds], np.nan),
+                val.units)
+        return output_data
 
 
     @cython.boundscheck(False)
