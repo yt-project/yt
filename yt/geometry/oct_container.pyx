@@ -665,9 +665,12 @@ cdef class OctreeContainer:
         output_data = {}
         for key, val in input_data.items():
             val = val.T.reshape(-1)
-            output_data[key] = subset.apply_units(
-                np.where(icell_inds>=0, val[icell_inds], np.nan),
-                val.units)
+
+            output_data[key] = np.moveaxis(
+                subset.apply_units(
+                    np.where(icell_inds>=0, val[icell_inds], np.nan),
+                    val.units), 0, -1)
+
         return output_data
 
 
