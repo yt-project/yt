@@ -9,6 +9,7 @@ addons:
   apt:
     packages:
       - libhdf5-serial-dev
+      - libopenmpi-dev
 
 before_install:
   - |
