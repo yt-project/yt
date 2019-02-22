@@ -217,8 +217,8 @@ class RAMSESDomainSubset(OctreeSubset):
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
 
-        fill_hydro(fd, file_handler.offset,
-                   file_handler.level_count, levels, cell_inds,
+        fill_hydro(fd, file_handler.offset[self.domain_id-1],
+                   file_handler.level_count[self.domain_id-1], levels, cell_inds,
                    file_inds, ndim, all_fields, fields, tr,
                    oct_handler)
         return tr

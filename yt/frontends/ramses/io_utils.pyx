@@ -85,7 +85,7 @@ def read_amr(FortranFile f, dict headers,
 @cython.nonecheck(False)
 cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t nvar, dict headers):
 
-    cdef np.ndarray[np.int64_t, ndim=1] offset, level_count
+    cdef np.ndarray[np.int64_t, ndim=2] offset, level_count
     cdef INT64_t ndim, twotondim, nlevelmax, n_levels, nboundary, ncpu, ncpu_and_bound
     cdef INT64_t ilevel, icpu, skip_len
     cdef INT32_t file_ilevel, file_ncache
@@ -103,12 +103,9 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
     skip_len = twotondim * nvar
 
     # It goes: level, CPU, 8-variable (1 oct)
-    offset = np.zeros(n_levels, dtype=np.int64)
+    offset = np.zeros((ncpu_and_bound, n_levels), dtype=np.int64)
     offset -= 1
-    level_count = np.zeros(n_levels, dtype=np.int64)
-
-    cdef np.int64_t[:] level_count_view = level_count
-    cdef np.int64_t[:] offset_view = offset
+    level_count = np.zeros((ncpu_and_bound, n_levels), dtype=np.int64)
 
     for ilevel in range(nlevelmax):
         for icpu in range(ncpu_and_bound):
@@ -123,9 +120,9 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
                     'from data (%s) is not coherent with the expected (%s)',
                     f.name, file_ilevel, ilevel)
 
-            if icpu + 1 == domain_id and ilevel >= min_level:
-                offset[ilevel - min_level] = f.tell()
-                level_count[ilevel - min_level] = <INT64_t> file_ncache
+            if ilevel >= min_level:
+                offset[icpu, ilevel - min_level] = f.tell()
+                level_count[icpu, ilevel - min_level] = <INT64_t> file_ncache
             f.skip(skip_len)
 
     return offset, level_count
