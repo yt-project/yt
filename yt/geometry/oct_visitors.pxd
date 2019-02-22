@@ -72,6 +72,7 @@ cdef class MarkAndPosOcts(OctVisitor):
     cdef np.int64_t[:,:,:,:] mark
     cdef np.float64_t[:,:] fcoords
     cdef np.float64_t[:] fwidth
+    cdef np.int64_t[:] ires
 
 cdef class IndexOcts(OctVisitor):
     cdef np.int64_t[:] oct_index

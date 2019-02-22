@@ -570,10 +570,10 @@ cdef class OctreeContainer:
         self.visit_all_octs(selector, visitor)
         return ind
 
-    def get_hypercube(self, object octree_subset,
+    def get_hypercube(self, object subset,
                       object input_data):
         cdef oct_visitors.MarkAndPosOcts visitor
-        cdef selection_routines.AlwaysSelector selector
+        cdef selection_routines.SelectorObject selector
         cdef int ioct
         cdef OctInfo oi, oi0
         cdef Oct *o = NULL
@@ -581,15 +581,17 @@ cdef class OctreeContainer:
         cdef int ndim = 3
         cdef np.float64_t pos[3]
         cdef np.float64_t pos0[3]
-        cdef int domain_id = octree_subset.domain_id
+        cdef int domain_id = subset.domain_id
 
         # Initialize selector & visitor
-        selector = selection_routines.AlwaysSelector(octree_subset)
+        selector = selection_routines.AlwaysSelector(subset)
+        # selector = subset.selector
 
         visitor = oct_visitors.MarkAndPosOcts(self, domain_id)
         visitor.mark = np.zeros((self.nocts, 2, 2, 2), np.int64)-1
         visitor.fcoords = np.zeros((self.nocts*8, 3), np.float64)
         visitor.fwidth = np.zeros((self.nocts*8), np.float64)
+        visitor.ires = np.zeros((self.nocts*8), np.int64)
 
         # Mark and get the position of the cells in the selected region
         self.visit_all_octs(selector, visitor)
@@ -603,15 +605,13 @@ cdef class OctreeContainer:
         cdef np.float64_t opos[3]
         cdef np.float64_t dx
 
-        cdef int countA = 0, countB = 0
-
         for ioct in range(self.nocts):
             # Get central oct
             ic = visitor.mark[ioct, 0, 0, 0]
             dx = visitor.fwidth[ic]
             for idim in range(3):
                 pos0[idim] = (visitor.fcoords[ic, idim] + dx) / self.nn[idim]
-            o0 = self.get(pos0, &oi0)
+            o0 = self.get(pos0, &oi0, visitor.ires[ic])
             for idim in range(3):
                 opos[idim] = oi0.left_edge[idim] + oi0.dds[idim]
                 dx = oi0.dds[idim]
@@ -634,8 +634,10 @@ cdef class OctreeContainer:
                             icell_inds[ioct, k, j, i] = ic
                             continue
 
-                        # Skip corners
-                        if (i==0 or i==3) and (j==0 or j==3) and (k==0 or k==3):
+                        # Skip edges
+                        if (((i==0 or i==3) and (j==0 or j==3)) or
+                            ((i==0 or i==3) and (k==0 or k==3)) or
+                            ((j==0 or j==3) and (k==0 or k==3))):
                             icell_inds[ioct, k, j, i] = -99
                             continue
 
@@ -657,11 +659,9 @@ cdef class OctreeContainer:
                                 ind[idim] = 1
 
                         if oi.level < oi0.level:
-                            countA += 1
                             # Find cell in neighbor oct -- coarser level
                             icell_inds[ioct, k, j, i] = visitor.mark[ioct, ind[2], ind[1], ind[0]]
                         else:
-                            countB += 1
                             # Find cell in neighbor oct -- same level
                             ic_neigh = visitor.mark[o.domain_ind, ind[2], ind[1], ind[0]]
                             if ic_neigh == -1:

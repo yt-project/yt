@@ -128,7 +128,7 @@ cdef class MarkAndPosOcts(OctVisitor):
         for i in range(3):
             c = <np.float64_t> ((self.pos[i] << self.oref ) + self.ind[i])
             self.fcoords[self.index, i] = (c + 0.5) * dx
-
+        self.ires[self.index] = self.level
         self.index += 1
 
 
