@@ -162,7 +162,7 @@ class EnzoPIOHandler(BaseIOHandler):
         ftype, fname = field
         node = "/%s/field%s%s" % (obj.block_name, self._sep, fname)
         dg = h5py.h5d.open(fid, b(node))
-        rdata = np.empty(self.ds.grid_dimensions[:self.ds.dimensionality],
+        rdata = np.empty(self.ds.grid_dimensions[:self.ds.dimensionality][::-1],
                          dtype=self._field_dtype)
         dg.read(h5py.h5s.ALL, h5py.h5s.ALL, rdata)
         if close:
