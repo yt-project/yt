@@ -1023,25 +1023,25 @@ cdef OctList *OctList_subneighbor_find(OctList *olist, Oct *top,
     cdef np.int64_t n[3]
     cdef np.int64_t ind[3]
     cdef np.int64_t off[3][2]
-    cdef np.int64_t i2, ij, ik, ci
+    cdef np.int64_t ii, ij, ik, ci
     ind[0] = 1 - i
     ind[1] = 1 - j
     ind[2] = 1 - k
-    for i2 in range(3):
-        if ind[i2] == 0:
-            n[i2] = 2
-            off[i2][0] = 0
-            off[i2][1] = 1
-        elif ind[i2] == -1:
-            n[i2] = 1
-            off[i2][0] = 1
-        elif ind[i2] == 1:
-            n[i2] = 1
-            off[i2][0] = 0
-    for i2 in range(n[0]):
+    for ii in range(3):
+        if ind[ii] == 0:
+            n[ii] = 2
+            off[ii][0] = 0
+            off[ii][1] = 1
+        elif ind[ii] == -1:
+            n[ii] = 1
+            off[ii][0] = 1
+        elif ind[ii] == 1:
+            n[ii] = 1
+            off[ii][0] = 0
+    for ii in range(n[0]):
         for ij in range(n[1]):
             for ik in range(n[2]):
-                ci = cind(off[0][i2], off[1][ij], off[2][ik])
+                ci = cind(off[0][ii], off[1][ij], off[2][ik])
                 cand = top.children[ci]
                 if cand.children != NULL:
                     olist = OctList_subneighbor_find(olist,
