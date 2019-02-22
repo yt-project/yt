@@ -61,6 +61,7 @@ def test_gadget_binary():
     header_specs = ['default', 'default+pad32', ['default', 'pad32']]
     curdir = os.getcwd()
     tmpdir = tempfile.mkdtemp()
+    os.chdir(tmpdir)
     for header_spec, endian, fmt in product(header_specs, '<>', [1, 2]):
         try:
             fake_snap = fake_gadget_binary(
@@ -75,8 +76,8 @@ def test_gadget_binary():
         assert isinstance(ds, GadgetDataset)
         ds.field_list
         os.remove(fake_snap)
-        os.chdir(curdir)
-        shutil.rmtree(tmpdir)
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
 
 
 @requires_file(isothermal_h5)
