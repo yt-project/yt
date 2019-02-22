@@ -200,7 +200,30 @@ class RAMSESDomainSubset(OctreeSubset):
     _domain_offset = 1
     _block_reorder = "F"
 
-    def fill(self, fd, fields, selector, file_handler):
+    def fill(self, fd, fields, selector, file_handler, domain_id=None):
+        '''Read data from a file and return it the selected part.
+        
+        Params
+        ------
+        fd : FortranFile
+            The file descriptor of the file.
+        fields : list
+            The list of fields to read
+        selector : SelectorObject
+            The object to select/reject cells
+        file_handler : FieldFileHandler
+            Descriptor of the file.
+        domain_id : int, optional (default: None)
+            If provided read data that belong to this domain in the current file.
+            If left to None, read data from domain corresponding to the current file.
+
+        Returns
+        -------
+        tr : dict
+            A dictionary {field: data} containing the data, where `data` has shape `ncell`.
+        '''
+        if domain_id is None:
+            domain_id = self.domain_id
         ndim = self.ds.dimensionality
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
@@ -217,8 +240,8 @@ class RAMSESDomainSubset(OctreeSubset):
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
 
-        fill_hydro(fd, file_handler.offset[self.domain_id-1],
-                   file_handler.level_count[self.domain_id-1], levels, cell_inds,
+        fill_hydro(fd, file_handler.offset[domain_id-1],
+                   file_handler.level_count[domain_id-1], levels, cell_inds,
                    file_inds, ndim, all_fields, fields, tr,
                    oct_handler)
         return tr
