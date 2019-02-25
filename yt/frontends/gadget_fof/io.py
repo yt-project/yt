@@ -89,6 +89,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+            si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
@@ -120,7 +121,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                                 if my_div > 1:
                                     findex = int(field[field.rfind("_") + 1:])
                                     field_data = field_data[:, findex]
-                        data = field_data[mask]
+                        data = field_data[si:ei][mask]
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
