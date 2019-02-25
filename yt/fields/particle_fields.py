@@ -440,9 +440,9 @@ def standard_particle_fields(registry, ptype,
 
     def _get_coord_funcs_relative(axi, _ptype):
         def _particle_pos_rel(field, data):
-            return data[_ptype, "particle_position_relative"][:, axi]
+            return data[_ptype, "relative_particle_position"][:, axi]
         def _particle_vel_rel(field, data):
-            return data[_ptype, "particle_velocity_relative"][:, axi]
+            return data[_ptype, "relative_particle_velocity"][:, axi]
         return _particle_vel_rel, _particle_pos_rel
     for axi, ax in enumerate("xyz"):
         v, p = _get_coord_funcs_relative(axi, ptype)

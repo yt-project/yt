@@ -270,8 +270,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             for ptype in ptf:
                 # This is where we could implement sub-chunking
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(f,
-                                                 tp[ptype], "Coordinates")
+                pos = self._read_field_from_file(
+                    f, tp[ptype], "Coordinates")
                 yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2])
             f.close()
 
@@ -286,8 +286,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items()):
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(f,
-                                                 tp[ptype], "Coordinates")
+                pos = self._read_field_from_file(
+                    f, tp[ptype], "Coordinates")
                 mask = selector.select_points(
                     pos[:, 0], pos[:, 1], pos[:, 2], 0.0)
                 del pos
@@ -314,9 +314,14 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             dt = self._endian + "u4"
         else:
             dt = self._endian + self._float_type
+        dt = np.dtype(dt)
         if name in self._vector_fields:
             count *= self._vector_fields[name]
         arr = np.fromfile(f, dtype=dt, count=count)
+        # ensure data are in native endianness to avoid errors
+        # when field data are passed to cython
+        dt = dt.newbyteorder('N')
+        arr = arr.astype(dt)
         if name in self._vector_fields:
             factor = self._vector_fields[name]
             arr = arr.reshape((count // factor, factor), order="C")

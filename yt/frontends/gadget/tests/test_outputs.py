@@ -17,6 +17,8 @@ Gadget frontend tests
 from collections import OrderedDict
 from itertools import product
 import os
+import shutil
+import tempfile
 
 import yt
 from yt.testing import requires_file
@@ -32,6 +34,12 @@ isothermal_bin = "IsothermalCollapse/snap_505"
 BE_Gadget = "BigEndianGadgetBinary/BigEndianGadgetBinary"
 LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
+
+# py2/py3 compat
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
 
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
@@ -51,16 +59,25 @@ iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
 def test_gadget_binary():
     header_specs = ['default', 'default+pad32', ['default', 'pad32']]
+    curdir = os.getcwd()
+    tmpdir = tempfile.mkdtemp()
+    os.chdir(tmpdir)
     for header_spec, endian, fmt in product(header_specs, '<>', [1, 2]):
-        fake_snap = fake_gadget_binary(
-            header_spec=header_spec,
-            endian=endian,
-            fmt=fmt
-        )
+        try:
+            fake_snap = fake_gadget_binary(
+                header_spec=header_spec,
+                endian=endian,
+                fmt=fmt
+            )
+        except FileNotFoundError:
+            # sometimes this happens for mysterious reasons
+            pass
         ds = yt.load(fake_snap, header_spec=header_spec)
         assert isinstance(ds, GadgetDataset)
         ds.field_list
         os.remove(fake_snap)
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
 
 
 @requires_file(isothermal_h5)
@@ -98,3 +115,9 @@ def test_pid_uniqueness():
     ad = ds.all_data()
     pid = ad['ParticleIDs']
     assert len(pid) == len(set(pid.v))
+
+@requires_ds(BE_Gadget)
+def test_bigendian_field_access():
+    ds = data_dir_load(BE_Gadget)
+    data = ds.all_data()
+    data['Halo', 'Velocities']

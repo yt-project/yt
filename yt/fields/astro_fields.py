@@ -120,12 +120,12 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         # Spectroscopic-like weighting field for galaxy clusters
         # Only useful as a weight_field for temperature, metallicity, velocity
         ret = data["density"]/mh
-        ret *= ret*data["kT"]**-0.25
+        ret *= ret*data["kT"]**-0.75
         return ret
 
     registry.add_field((ftype,"mazzotta_weighting"), sampling_type="cell", 
                        function=_mazzotta_weighting,
-                       units="keV**-0.25*cm**-6")
+                       units="keV**-0.75*cm**-6")
 
     def _sz_kinetic(field, data):
         scale = 0.88 * sigma_thompson / mh / clight

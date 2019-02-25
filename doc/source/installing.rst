@@ -285,9 +285,9 @@ Clone the yt repository with:
 
   $ git clone https://github.com/yt-project/yt
 
-Once inside the yt directory, update to the appropriate branch and
-run ``pip install -e .``. For example, the following commands will allow you
-to see the tip of the development branch.
+Once inside the yt directory, update to the appropriate branch and run
+``pip install -e .``. For example, the following commands will allow
+you to see the tip of the development branch.
 
 .. code-block:: bash
 
@@ -296,6 +296,11 @@ to see the tip of the development branch.
 
 This will make sure you are running a version of yt corresponding to the
 most up-to-date source code.
+
+.. note::
+
+  Alternatively, you can replace ``pip install -e .`` with ``conda develop -b .``.
+
 
 Installing Support for the Rockstar Halo Finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

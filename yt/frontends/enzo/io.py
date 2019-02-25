@@ -97,7 +97,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         pds = ds
                     pn = _particle_position_names.get(ptype,
                             r"particle_position_%s")
-                    x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
+                    x, y, z = (np.asarray(pds.get(pn % ax)[()], dtype="=f8")
                                for ax in 'xyz')
                     if selector is None:
                         # This only ever happens if the call is made from
@@ -107,7 +107,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
-                        data = np.asarray(pds.get(field).value, "=f8")
+                        data = np.asarray(pds.get(field)[()], "=f8")
                         if field in _convert_mass:
                             data *= g.dds.prod(dtype="f8")
                         yield (ptype, field), data[mask]
@@ -305,7 +305,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             gds = f.get("/Grid%08i" % g.id)
             for ftype, fname in fields:
                 rv[(ftype, fname)] = np.atleast_3d(
-                    gds.get(fname).value.transpose())
+                    gds.get(fname)[()].transpose())
             f.close()
             return rv
         if size is None:
@@ -330,7 +330,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
                     gds = f
                 for field in fields:
                     ftype, fname = field
-                    ds = np.atleast_3d(gds.get(fname).value.transpose())
+                    ds = np.atleast_3d(gds.get(fname)[()].transpose())
                     nd = g.select(selector, ds, rv[field], ind) # caches
                 ind += nd
             f.close()
