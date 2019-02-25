@@ -70,7 +70,8 @@ Doing a Minor or Major Release
 
 This is much simpler than a bugfix release.  All that needs to happen is the
 ``master`` branch must get merged into the ``stable`` branch, and any conflicts
-that happen must be resolved.
+that happen must be resolved, almost always in favor of the state of the code on
+the ``master`` branch.
 
 
 Incrementing Version Numbers and Tagging a Release
@@ -116,6 +117,55 @@ yt git repository. If you are doing a minor or major version number release, you
 will also need to update back to the development branch and update the
 development version numbers in the same files.
 
+Uploadting to yt-project.org
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Before uploading the release to the Python Package Index (pypi.org) we will
+first upload the package to yt-project.org. This facilitates building binary
+wheels for pypi and binary conda packages on conda-forge before doing the
+"official" release. This also ensures that there isn't a period of time when
+users do ``pip install yt`` and end up downloading the source distribution
+instead of one of the binary wheels.
+
+Access to yt-project.org mediated via SSH login. Please contact one of the
+current yt developers for access to the webserver running yt-project.org if you
+do not already have it. You will need a copy of your SSH public key so that your
+key can be added to the list of authorized keys. Once you login, use
+e.g. ``scp`` to upload a copy of the souce distribution tarball to
+http://yt-project.org/sdist.
+
+Updating conda-forge and building wheels
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Binary wheels for yt are managed via the ``multibuild`` project. For yt the main
+point of access is at https://github.com/yt-project/yt-wheels. Take a look at
+the pull requests from the previous few releases to get an idea of what to do,
+but briefly you will need to update the multibuild and yt submodules to their
+latest state and then commit the changes to the submodules::
+
+  $ cd multibuild
+  $ git pull origin devel
+  $ cd ../yt
+  $ git pull origin stable
+  $ cd ..
+  $ git commit -am "updating multibuild and yt submodules"
+
+Next you will need to update the ``.travis.yml`` and ``appveyor.yaml`` files to
+build the latest tag of yt. You may also need to update elsewhere in the file if
+yt's dependencies changed or if yt dropped or added support for a Python
+version. To generate new wheels you need to push the changes to GitHub and wait
+for the wheel files to be uploaded to http://wheels.scipy.org. Once that
+happens, download the wheel files and copy them to the ``dist`` folder in the yt
+repository so that they are sitting next to the source distribution we created
+earlier.
+
+Conda-forge pakcages for yt are managed via the yt feedstock, located at
+https://github.com/conda-forge/yt-feedstock. To update the feedstock, you will
+need to update the ``meta.yaml`` file located in the ``recipe`` folder in the
+root of the feedstock repository. Most likely you will only need to update the
+version number and the SHA256 hash of the tarball. Once you have updated the
+recipe, propose a pull request on github and merge it once all builds pass.
+
 
 Uploading to PyPI
 ~~~~~~~~~~~~~~~~~
@@ -127,6 +177,9 @@ issue the following commands:
 
    python setup.py sdist
    twine upload dist/*
+
+Please ensure that both the source distribution and binary wheels are present in
+the ``dist`` folder before doing this.
 
 You will be prompted for your PyPI credentials and then the package should
 upload. Note that for this to complete successfully, you will need an account on
