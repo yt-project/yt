@@ -161,7 +161,14 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        return data_file.total_particles
+        si, ei = data_file.start, data_file.end
+        pcount = \
+          {"Group": data_file.header["Ngroups_ThisFile"],
+           "Subhalo": data_file.header["Nsubgroups_ThisFile"]}
+        if None not in (si, ei):
+            for ptype in pcount:
+                pcount[ptype] = np.clip(pcount[ptype]-si, 0, ei-si)
+        return pcount
 
     def _identify_fields(self, data_file):
         fields = []

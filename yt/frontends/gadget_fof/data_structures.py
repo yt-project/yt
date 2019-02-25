@@ -45,7 +45,13 @@ from yt.utilities.logger import ytLogger as \
 
 class GadgetFOFParticleIndex(ParticleIndex):
     def __init__(self, ds, dataset_type):
-        super(GadgetFOFParticleIndex, self).__init__(ds, dataset_type)
+        self.dataset_type = dataset_type
+        self.dataset = weakref.proxy(ds)
+        self.float_type = np.float64
+        self._setup_data_io()
+        self._setup_filenames()
+        super(ParticleIndex, self).__init__(ds, dataset_type)
+        self._initialize_index()
 
     def _calculate_particle_count(self):
         """
@@ -117,7 +123,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
         self._calculate_file_offset_map()
 
 class GadgetFOFHDF5File(HaloCatalogFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, frange):
         with h5py.File(filename, "r") as f:
             self.header = \
               dict((str(field), val)
@@ -127,11 +133,9 @@ class GadgetFOFHDF5File(HaloCatalogFile):
             self.group_subs_sum = f["Group/GroupNsubs"][()].sum() \
               if "Group/GroupNsubs" in f else 0
         self.total_ids = self.header["Nids_ThisFile"]
-        self.total_particles = \
-          {"Group": self.header["Ngroups_ThisFile"],
-           "Subhalo": self.header["Nsubgroups_ThisFile"]}
         self.total_offset = 0
-        super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
+        super(GadgetFOFHDF5File, self).__init__(
+            ds, io, filename, file_id, frange)
 
     def _read_particle_positions(self, ptype, f=None):
         """
