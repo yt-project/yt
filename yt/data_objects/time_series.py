@@ -237,6 +237,13 @@ class DatasetSeries(object):
             course of the iteration.  The keys will be the dataset
             indices and the values will be whatever is assigned to the *result*
             attribute on the storage during iteration.
+        dynamic : boolean
+            This governs whether or not dynamic load balancing will be
+            enabled.  This requires one dedicated processor; if this
+            is enabled with a set of 128 processors available, only
+            127 will be available to iterate over objects as one will
+            be load balancing the rest.
+
 
         Examples
         --------
