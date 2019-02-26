@@ -137,6 +137,9 @@ http://yt-project.org/sdist.
 Updating conda-forge and building wheels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+Wheels and ``multibuild``
++++++++++++++++++++++++++
+
 Binary wheels for yt are managed via the ``multibuild`` project. For yt the main
 point of access is at https://github.com/yt-project/yt-wheels. Take a look at
 the pull requests from the previous few releases to get an idea of what to do,
@@ -153,18 +156,24 @@ latest state and then commit the changes to the submodules::
 Next you will need to update the ``.travis.yml`` and ``appveyor.yaml`` files to
 build the latest tag of yt. You may also need to update elsewhere in the file if
 yt's dependencies changed or if yt dropped or added support for a Python
-version. To generate new wheels you need to push the changes to GitHub and wait
-for the wheel files to be uploaded to http://wheels.scipy.org. Once that
-happens, download the wheel files and copy them to the ``dist`` folder in the yt
-repository so that they are sitting next to the source distribution we created
-earlier.
+version. To generate new wheels you need to push the changes to GitHub (you
+likely want to use a pull request to test the changes) and wait for the wheel
+files to be uploaded to http://wheels.scipy.org. Once that happens, download the
+wheel files and copy them to the ``dist`` folder in the yt repository so that
+they are sitting next to the source distribution we created earlier. Here's a one-liner to download all of the wheels for the yt 3.5.1 release::
 
-Conda-forge pakcages for yt are managed via the yt feedstock, located at
+  $ wget -r --no-parent -A 'yt-3.5.1-*.whl' http://wheels.scipy.org/
+
+``conda-forge``
++++++++++++++++
+
+Conda-forge packages for yt are managed via the yt feedstock, located at
 https://github.com/conda-forge/yt-feedstock. To update the feedstock, you will
 need to update the ``meta.yaml`` file located in the ``recipe`` folder in the
 root of the feedstock repository. Most likely you will only need to update the
-version number and the SHA256 hash of the tarball. Once you have updated the
-recipe, propose a pull request on github and merge it once all builds pass.
+version number and the SHA256 hash of the tarball. If yt's dependencies change
+you may also need to update the recipe. Once you have updated the recipe,
+propose a pull request on github and merge it once all builds pass.
 
 
 Uploading to PyPI
@@ -187,9 +196,7 @@ PyPI and that account will need to be registered as an "owner" of the yt
 package. Right now there are five owners: Matt Turk, Britton Smith, Nathan
 Goldbaum, John ZuHone, and Kacper Kowalik. In addition, you should attempt to
 upload the yt package along with compiled binary wheel packages for various
-platforms that we support.  You should contact John ZuHone about uploading
-binary wheels to PyPI for Windows and OS X users, Kacper Kowalik for Linux
-wheels, and contact Nathan Goldbaum about getting the Anaconda packages updated.
+platforms that we support.
 
 
 After the release is uploaded to PyPI, you should send out an announcement
