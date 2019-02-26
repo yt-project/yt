@@ -100,7 +100,8 @@ to be edited are:
 Once these files have been updated, commit these updates. This is the commit we
 will tag for the release.
 
-To actually create the tag, issue the following command:
+To actually create the tag, issue the following command from the ``stable``
+branch:
 
 .. code-block:: bash
 
@@ -142,13 +143,27 @@ key can be added to the list of authorized keys. Once you login, use
 e.g. ``scp`` to upload a copy of the souce distribution tarball to
 http://yt-project.org/sdist, like so::
 
-  $ scp dist/yt-3.5.1.tar.gz ytdh:yt-project.org/sdist
+  $ scp dist/yt-3.5.1.tar.gz yt_analysis@dickenson.dreamhost.com:yt-project.org/sdist
+
+You may find it helpful to set up an ssh config for dickenson to make this
+command a bit easier to execute.  
 
 Updating conda-forge and building wheels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before we finish the release, we need to generate new binary builds by updating
 yt's conda-forge feedstock and the yt-wheels repository.
+
+``conda-forge``
++++++++++++++++
+
+Conda-forge packages for yt are managed via the yt feedstock, located at
+https://github.com/conda-forge/yt-feedstock. To update the feedstock, you will
+need to update the ``meta.yaml`` file located in the ``recipe`` folder in the
+root of the feedstock repository. Most likely you will only need to update the
+version number and the SHA256 hash of the tarball. If yt's dependencies change
+you may also need to update the recipe. Once you have updated the recipe,
+propose a pull request on github and merge it once all builds pass.
 
 Wheels and ``multibuild``
 +++++++++++++++++++++++++
@@ -169,25 +184,18 @@ latest state and then commit the changes to the submodules::
 Next you will need to update the ``.travis.yml`` and ``appveyor.yaml`` files to
 build the latest tag of yt. You may also need to update elsewhere in the file if
 yt's dependencies changed or if yt dropped or added support for a Python
-version. To generate new wheels you need to push the changes to GitHub (you
-likely want to use a pull request to test the changes) and wait for the wheel
-files to be uploaded to http://wheels.scipy.org. Once that happens, download the
-wheel files and copy them to the ``dist`` folder in the yt repository so that
-they are sitting next to the source distribution we created earlier. Here's a
+version. To generate new wheels you need to push the changes to GitHub. A good
+process to follow is to first submit a pull request to test the changes and make sure 
+the wheels can be built. Once they pass, you can merge the changes into master 
+and wait for the wheel files to be uploaded to http://wheels.scipy.org 
+(note that the wheels will not be uploaded until the changes have been 
+merged into master). Once the wheels are uploaded, download the
+wheel files for the release and copy them to the ``dist`` folder in the yt 
+repository so that they are sitting next to the source distribution 
+we created earlier. Here's a
 one-liner to download all of the wheels for the yt 3.5.1 release::
 
   $ wget -r --no-parent -A 'yt-3.5.1-*.whl' http://wheels.scipy.org/
-
-``conda-forge``
-+++++++++++++++
-
-Conda-forge packages for yt are managed via the yt feedstock, located at
-https://github.com/conda-forge/yt-feedstock. To update the feedstock, you will
-need to update the ``meta.yaml`` file located in the ``recipe`` folder in the
-root of the feedstock repository. Most likely you will only need to update the
-version number and the SHA256 hash of the tarball. If yt's dependencies change
-you may also need to update the recipe. Once you have updated the recipe,
-propose a pull request on github and merge it once all builds pass.
 
 
 Uploading to PyPI
@@ -201,12 +209,14 @@ issue the following command:
    twine upload dist/*
 
 Please ensure that both the source distribution and binary wheels are present in
-the ``dist`` folder before doing this.
+the ``dist`` folder before doing this. Directions on generating binary wheels 
+are described in the section immediately preceding this one. 
 
 You will be prompted for your PyPI credentials and then the package should
 upload. Note that for this to complete successfully, you will need an account on
-PyPI and that account will need to be registered as an "owner" of the yt
-package. Right now there are five owners: Matt Turk, Britton Smith, Nathan
+PyPI and that account will need to be registered as an "owner" or "maintainer" 
+of the yt package. 
+Right now there are five owners: Matt Turk, Britton Smith, Nathan
 Goldbaum, John ZuHone, and Kacper Kowalik. In addition, you should attempt to
 upload the yt package along with compiled binary wheel packages for various
 platforms that we support.
