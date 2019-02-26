@@ -1,4 +1,5 @@
 include README* CREDITS COPYING.txt CITATION  setupext.py CONTRIBUTING.rst
+include yt/visualization/mapserver/html/map.js
 include yt/visualization/mapserver/html/map_index.html
 include yt/utilities/mesh_types.yaml
 exclude scripts/pr_backport.py
