@@ -27,6 +27,11 @@ from numbers import Number
 
 from yt.data_objects.level_sets.clump_handling import \
     Clump
+try:
+    from yt.extensions.astro_analysis.halo_analysis.halo_catalog import \
+        HaloCatalog as AAHaloCatalog
+except ImportError:
+    AAHaloCatalog = None
 from yt.analysis_modules.halo_analysis.halo_catalog import \
     HaloCatalog
 from yt.frontends.ytdata.data_structures import \
@@ -1561,7 +1566,7 @@ class HaloCatalogCallback(PlotCallback):
 
     >>> # plot halos from a HaloCatalog
     >>> import yt
-    >>> from yt.analysis_modules.halo_analysis.api import HaloCatalog
+    >>> from yt.extensions.astro_analysis.halo_analysis.halo_catalog import HaloCatalog
     >>> dds = yt.load("Enzo_64/DD0043/data0043")
     >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
     >>> hc = HaloCatalog(data_ds=dds, halos_ds=hds)
@@ -1585,11 +1590,14 @@ class HaloCatalogCallback(PlotCallback):
         def_circle_args = {'edgecolor':'white', 'facecolor':'None'}
         def_text_args = {'color':'white'}
 
+        is_hc = (isinstance(halo_catalog, HaloCatalog) or
+                 (AAHaloCatalog and isinstance(halo_catalog, AAHaloCatalog)))
+
         if isinstance(halo_catalog, YTDataContainer):
             self.halo_data = halo_catalog
         elif isinstance(halo_catalog, Dataset):
             self.halo_data = halo_catalog.all_data()
-        elif isinstance(halo_catalog, HaloCatalog):
+        elif is_hc:
             if halo_catalog.data_source.ds == halo_catalog.halos_ds:
                 self.halo_data = halo_catalog.data_source
             else:
