@@ -270,6 +270,16 @@ and you can access the contents:
 
     print(my_dictionary)
 
+By default, the dataset series will be divided as equally as possible
+among the cores.  Often some datasets will require more work than
+others.  We offer the ``dynamic`` keyword in the
+:func:`~yt.data_objects.time_series.DatasetSeries.piter` function to
+enable dynamic load balancing with a task queue.  Dynamic load
+balancing works best with more cores and a variable workload.  Here
+one process will act as a server to assign the next available dataset
+to any free client.  For example, a 16 core job will have 15 cores
+analyzing the data with 1 core acting as the task manager.
+
 .. _parallelizing-your-analysis:
 
 Parallelizing over Multiple Objects
