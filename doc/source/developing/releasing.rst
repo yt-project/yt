@@ -117,8 +117,8 @@ yt git repository. If you are doing a minor or major version number release, you
 will also need to update back to the development branch and update the
 development version numbers in the same files.
 
-Uploadting to yt-project.org
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Uploading to yt-project.org
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Before uploading the release to the Python Package Index (pypi.org) we will
 first upload the package to yt-project.org. This facilitates building binary
@@ -127,15 +127,28 @@ wheels for pypi and binary conda packages on conda-forge before doing the
 users do ``pip install yt`` and end up downloading the source distribution
 instead of one of the binary wheels.
 
+To create the source distribution, issue the following command in the root of
+the yt repository::
+
+  $ python setup.py sdist
+
+This will generate a tarball in a ``dist/`` directory located in the root of the
+repository.
+  
 Access to yt-project.org mediated via SSH login. Please contact one of the
 current yt developers for access to the webserver running yt-project.org if you
 do not already have it. You will need a copy of your SSH public key so that your
 key can be added to the list of authorized keys. Once you login, use
 e.g. ``scp`` to upload a copy of the souce distribution tarball to
-http://yt-project.org/sdist.
+http://yt-project.org/sdist, like so::
+
+  $ scp dist/yt-3.5.1.tar.gz ytdh:yt-project.org/sdist
 
 Updating conda-forge and building wheels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Before we finish the release, we need to generate new binary builds by updating
+yt's conda-forge feedstock and the yt-wheels repository.
 
 Wheels and ``multibuild``
 +++++++++++++++++++++++++
@@ -160,7 +173,8 @@ version. To generate new wheels you need to push the changes to GitHub (you
 likely want to use a pull request to test the changes) and wait for the wheel
 files to be uploaded to http://wheels.scipy.org. Once that happens, download the
 wheel files and copy them to the ``dist`` folder in the yt repository so that
-they are sitting next to the source distribution we created earlier. Here's a one-liner to download all of the wheels for the yt 3.5.1 release::
+they are sitting next to the source distribution we created earlier. Here's a
+one-liner to download all of the wheels for the yt 3.5.1 release::
 
   $ wget -r --no-parent -A 'yt-3.5.1-*.whl' http://wheels.scipy.org/
 
@@ -180,11 +194,10 @@ Uploading to PyPI
 ~~~~~~~~~~~~~~~~~
 
 To actually upload the release to the Python Package Index, you just need to
-issue the following commands:
+issue the following command:
 
 .. code-block:: bash
 
-   python setup.py sdist
    twine upload dist/*
 
 Please ensure that both the source distribution and binary wheels are present in
