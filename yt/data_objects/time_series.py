@@ -43,7 +43,7 @@ from yt.utilities.exceptions import \
     YTException, \
     YTOutputNotIdentified
 from yt.utilities.parallel_tools.parallel_analysis_interface \
-    import parallel_objects, parallel_root_only
+    import parallel_objects, parallel_root_only, communication_system
 from yt.utilities.parameter_file_storage import \
     simulation_time_series_registry
      
@@ -209,7 +209,7 @@ class DatasetSeries(object):
     def outputs(self):
         return self._pre_outputs
 
-    def piter(self, storage = None):
+    def piter(self, storage = None, dynamic = False):
         r"""Iterate over time series components in parallel.
 
         This allows you to iterate over a time series while dispatching
@@ -237,6 +237,13 @@ class DatasetSeries(object):
             course of the iteration.  The keys will be the dataset
             indices and the values will be whatever is assigned to the *result*
             attribute on the storage during iteration.
+        dynamic : boolean
+            This governs whether or not dynamic load balancing will be
+            enabled.  This requires one dedicated processor; if this
+            is enabled with a set of 128 processors available, only
+            127 will be available to iterate over objects as one will
+            be load balancing the rest.
+
 
         Examples
         --------
@@ -274,14 +281,22 @@ class DatasetSeries(object):
         ...
 
         """
-        dynamic = False
         if self.parallel is False:
             njobs = 1
-        else:
+        elif dynamic is False:
             if self.parallel is True:
                 njobs = -1
             else:
                 njobs = self.parallel
+        else:
+            my_communicator = communication_system.communicators[-1]
+            nsize = my_communicator.size
+            if nsize == 1:
+                self.parallel = False
+                dynamic = False
+                njobs = 1
+            else:
+                njobs = nsize - 1
 
         for output in parallel_objects(self._pre_outputs, njobs=njobs,
                                        storage=storage, dynamic=dynamic):
