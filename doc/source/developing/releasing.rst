@@ -216,10 +216,10 @@ You will be prompted for your PyPI credentials and then the package should
 upload. Note that for this to complete successfully, you will need an account on
 PyPI and that account will need to be registered as an "owner" or "maintainer" 
 of the yt package. 
-Right now there are five owners: Matt Turk, Britton Smith, Nathan
-Goldbaum, John ZuHone, and Kacper Kowalik. In addition, you should attempt to
-upload the yt package along with compiled binary wheel packages for various
-platforms that we support.
+Right now the following people have access to upload packages: Matt Turk, 
+Britton Smith, Nathan Goldbaum, John ZuHone, Kacper Kowalik, and Madicken Munk. 
+The yt package source distribution should be uploaded along with compiled 
+binary wheel packages for various platforms that we support.
 
 
 After the release is uploaded to PyPI, you should send out an announcement
