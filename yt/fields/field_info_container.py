@@ -19,7 +19,6 @@ import numpy as np
 from numbers import Number as numeric_type
 import warnings
 
-from yt.extern.six import string_types
 from yt.funcs import mylog, only_on_root
 from yt.units.unit_object import Unit
 from yt.units.dimensions import dimensionless
@@ -185,7 +184,7 @@ class FieldInfoContainer(dict):
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
-            if not isinstance(units, string_types) and args[0] != "":
+            if not isinstance(units, str) and args[0] != "":
                 units = "((%s)*%s)" % (args[0], units)
             if isinstance(units, (numeric_type, np.number, np.ndarray)) and \
                 args[0] == "" and units != 1.0:

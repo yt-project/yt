@@ -40,7 +40,7 @@ from yt.data_objects.static_output import \
     ParticleFile, \
     validate_index_order
 from yt.extern.six import \
-    string_types
+    str
 from yt.funcs import \
     is_root, \
     parse_h5_attr
@@ -163,7 +163,7 @@ class SavedDataset(Dataset):
                                self.parameters["%s_units" % attr])
                 del self.parameters[attr]
                 del self.parameters["%s_units" % attr]
-            elif isinstance(unit, string_types):
+            elif isinstance(unit, str):
                 uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
@@ -351,7 +351,7 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
     def _parse_parameter_file(self):
         super(YTSpatialPlotDataset, self)._parse_parameter_file()
         if self.parameters["container_type"] == "proj":
-            if isinstance(self.parameters["weight_field"], string_types) and \
+            if isinstance(self.parameters["weight_field"], str) and \
               self.parameters["weight_field"] == "None":
                 self.parameters["weight_field"] = None
             elif isinstance(self.parameters["weight_field"], np.ndarray):
@@ -755,7 +755,7 @@ class YTProfileDataset(YTNonspatialDataset):
     def _parse_parameter_file(self):
         super(YTGridDataset, self)._parse_parameter_file()
 
-        if isinstance(self.parameters["weight_field"], string_types) and \
+        if isinstance(self.parameters["weight_field"], str) and \
           self.parameters["weight_field"] == "None":
             self.parameters["weight_field"] = None
         elif isinstance(self.parameters["weight_field"], np.ndarray):
@@ -788,7 +788,7 @@ class YTProfileDataset(YTNonspatialDataset):
             setattr(self, range_name, self.parameters[range_name])
 
             bin_field = "%s_field" % ax
-            if isinstance(self.parameters[bin_field], string_types) and \
+            if isinstance(self.parameters[bin_field], str) and \
               self.parameters[bin_field] == "None":
                 self.parameters[bin_field] = None
             elif isinstance(self.parameters[bin_field], np.ndarray):

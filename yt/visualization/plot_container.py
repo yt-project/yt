@@ -15,7 +15,7 @@ A base class for "image" plots with colorbars.
 from yt.extern.six.moves import builtins
 from yt.extern.six import  \
     iteritems, \
-    string_types
+    str
 
 import base64
 import numpy as np
@@ -715,7 +715,7 @@ class ImagePlotContainer(PlotContainer):
         actual_field = self.data_source._determine_fields(field)[0]
         if color is None:
             cmap = self._colormaps[actual_field]
-            if isinstance(cmap, string_types):
+            if isinstance(cmap, str):
                 try:
                     cmap = yt_colormaps[cmap]
                 except KeyError:

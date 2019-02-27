@@ -9,7 +9,6 @@ FITSImageData Class
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from yt.extern.six import string_types
 import numpy as np
 from yt.fields.derived_field import DerivedField
 from yt.funcs import mylog, iterable, fix_axis, ensure_list, \
@@ -129,7 +128,7 @@ class FITSImageData(object):
 
         self.hdulist = _astropy.pyfits.HDUList()
 
-        if isinstance(fields, string_types):
+        if isinstance(fields, str):
             fields = [fields]
 
         if hasattr(data, 'keys'):

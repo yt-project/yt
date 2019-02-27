@@ -16,7 +16,7 @@ from __future__ import absolute_import
 
 from yt.extern.six.moves import builtins
 from yt.extern.six.moves import zip as izip
-from yt.extern.six import string_types, iteritems
+from yt.extern.six import str, iteritems
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import base64
@@ -120,7 +120,7 @@ def sanitize_label(label, nprofiles):
         raise RuntimeError("Number of labels must match number of profiles")
 
     for l in label:
-        if l is not None and not isinstance(l, string_types):
+        if l is not None and not isinstance(l, str):
             raise RuntimeError("All labels must be None or a string")
 
     return label

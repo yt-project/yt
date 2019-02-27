@@ -3,7 +3,6 @@ from yt.utilities.lib.particle_mesh_operations import \
     CICSample_3
 from yt.funcs import get_pbar, issue_deprecation_warning
 from yt.units.yt_array import uconcatenate
-from yt.extern.six import string_types
 
 class ParticleGenerator(object):
 
@@ -18,7 +17,7 @@ class ParticleGenerator(object):
         """
         self.ds = ds
         self.num_particles = num_particles
-        self.field_list = [(ptype, fd) if isinstance(fd, string_types) else fd
+        self.field_list = [(ptype, fd) if isinstance(fd, str) else fd
                            for fd in field_list]
         self.field_list.append((ptype, "particle_index"))
         self.field_units = dict(
@@ -120,7 +119,7 @@ class ParticleGenerator(object):
             self.ParticleGridIndices[1] = self.NumberOfParticles.squeeze()
         if setup_fields is not None:
             for key, value in setup_fields.items():
-                field = (self.ptype, key) if isinstance(key, string_types) else key
+                field = (self.ptype, key) if isinstance(key, str) else key
                 if field not in self.default_fields:
                     self.particles[:,self.field_list.index(field)] = value[idxs]
 

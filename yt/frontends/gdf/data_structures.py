@@ -17,7 +17,6 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import weakref
 import os
-from yt.extern.six import string_types
 from yt.funcs import \
     ensure_tuple, \
     just_one, \
@@ -204,7 +203,7 @@ class GDFDataset(Dataset):
                 self.field_units[field_name] = just_one(field_conv)
             elif 'field_units' in current_field.attrs:
                 field_units = current_field.attrs['field_units']
-                if isinstance(field_units, string_types):
+                if isinstance(field_units, str):
                     current_field_units = current_field.attrs['field_units']
                 else:
                     current_field_units = \

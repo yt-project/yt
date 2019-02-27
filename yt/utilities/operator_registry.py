@@ -14,11 +14,10 @@ Operation registry class
 #-----------------------------------------------------------------------------
 
 import copy
-from yt.extern.six import string_types
 
 class OperatorRegistry(dict):
     def find(self, op, *args, **kwargs):
-        if isinstance(op, string_types):
+        if isinstance(op, str):
             # Lookup, assuming string or hashable object
             op = copy.deepcopy(self[op])
             op.args = args

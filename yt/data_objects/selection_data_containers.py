@@ -20,7 +20,6 @@ from yt.data_objects.data_containers import \
     YTSelectionContainer0D, YTSelectionContainer1D, \
     YTSelectionContainer2D, YTSelectionContainer3D, YTSelectionContainer
 from yt.data_objects.static_output import Dataset
-from yt.extern.six import string_types
 from yt.frontends.sph.data_structures import \
     SPHDataset
 from yt.funcs import ensure_list, iterable, validate_width_tuple, \
@@ -904,7 +903,7 @@ class YTCutRegion(YTSelectionContainer3D):
         validate_object(data_source, YTSelectionContainer)
         validate_iterable(conditionals)
         for condition in conditionals:
-            validate_object(condition, string_types)
+            validate_object(condition, str)
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(base_object, YTSelectionContainer)

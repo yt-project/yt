@@ -18,7 +18,7 @@ from collections import OrderedDict
 from yt.config import \
     ytcfg
 from yt.funcs import mylog, get_image_suffix
-from yt.extern.six import iteritems, itervalues, string_types
+from yt.extern.six import iteritems, itervalues
 from yt.units.dimensions import \
     length
 from yt.units.unit_registry import \
@@ -288,7 +288,7 @@ class Scene(object):
             if len(rensources) > 0:
                 rs = rensources[0]
                 basename = rs.data_source.ds.basename
-                if isinstance(rs.field, string_types):
+                if isinstance(rs.field, str):
                     field = rs.field
                 else:
                     field = rs.field[-1]
@@ -406,7 +406,7 @@ class Scene(object):
             if len(rensources) > 0:
                 rs = rensources[0]
                 basename = rs.data_source.ds.basename
-                if isinstance(rs.field, string_types):
+                if isinstance(rs.field, str):
                     field = rs.field
                 else:
                     field = rs.field[-1]

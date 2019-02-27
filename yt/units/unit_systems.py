@@ -11,7 +11,6 @@ Unit system class.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.extern.six import string_types
 from yt.units import dimensions
 from yt.units.unit_object import Unit, unit_system_registry, _get_system_unit_string
 from yt.utilities import physical_constants as pc
@@ -81,7 +80,7 @@ class UnitSystem(object):
         self.constants = UnitSystemConstants(self.name)
 
     def __getitem__(self, key):
-        if isinstance(key, string_types):
+        if isinstance(key, str):
             key = getattr(dimensions, key)
         um = self.units_map
         if key not in um or um[key].dimensions is not key:
@@ -90,7 +89,7 @@ class UnitSystem(object):
         return self.units_map[key]
 
     def __setitem__(self, key, value):
-        if isinstance(key, string_types):
+        if isinstance(key, str):
             if key not in self._dims:
                 self._dims.append(key)
             key = getattr(dimensions, key)

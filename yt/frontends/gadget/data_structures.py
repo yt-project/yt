@@ -13,7 +13,6 @@ Data structures for Gadget frontend
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.extern.six import string_types
 from yt.funcs import only_on_root
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
@@ -41,7 +40,7 @@ from .fields import \
     GadgetFieldInfo
 
 def _fix_unit_ordering(unit):
-    if isinstance(unit[0], string_types):
+    if isinstance(unit[0], str):
         unit = unit[1], unit[0]
     return unit
 
@@ -61,7 +60,7 @@ class GadgetBinaryHeader(object):
 
     def __init__(self, filename, header_spec):
         self.filename = filename
-        if isinstance(header_spec, string_types):
+        if isinstance(header_spec, str):
             header_spec = [header_spec]
         self.spec = [GadgetDataset._setup_binary_spec(hs, gadget_header_specs)
                      for hs in header_spec]
@@ -319,7 +318,7 @@ class GadgetDataset(SPHDataset):
 
     @classmethod
     def _setup_binary_spec(cls, spec, spec_dict):
-        if isinstance(spec, string_types):
+        if isinstance(spec, str):
             _hs = ()
             for hs in spec.split("+"):
                 _hs += spec_dict[hs]

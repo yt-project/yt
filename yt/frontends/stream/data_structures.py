@@ -76,7 +76,6 @@ from yt.utilities.flagging_methods import \
 from yt.data_objects.unstructured_mesh import \
     SemiStructuredMesh, \
     UnstructuredMesh
-from yt.extern.six import string_types
 from .fields import \
     StreamFieldInfo
 from yt.frontends.exodus_ii.util import \
@@ -335,7 +334,7 @@ class StreamDataset(Dataset):
         attrs = ('length_unit', 'mass_unit', 'time_unit', 'velocity_unit', 'magnetic_unit')
         cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
-            if isinstance(unit, string_types):
+            if isinstance(unit, str):
                 uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
@@ -509,11 +508,11 @@ def process_data(data, grid_dims=None):
         # val is a tuple of (data, units)
         elif isinstance(val, tuple) and len(val) == 2:
             try:
-                assert isinstance(field, (string_types, tuple)), \
+                assert isinstance(field, (str, tuple)), \
                   "Field name is not a string!"
                 assert isinstance(val[0], np.ndarray), \
                   "Field data is not an ndarray!"
-                assert isinstance(val[1], string_types), \
+                assert isinstance(val[1], str), \
                   "Unit specification is not a string!"
                 field_units[field] = val[1]
                 new_data[field] = val[0]

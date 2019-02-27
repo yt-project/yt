@@ -16,7 +16,6 @@ Python-based grid handler, not to be confused with the SWIG-handler
 import warnings
 import weakref
 import numpy as np
-from six import string_types
 
 from yt.config import ytcfg
 from yt.data_objects.data_containers import \
@@ -278,7 +277,7 @@ class AMRGridPatch(YTSelectionContainer):
         return cube
 
     def get_vertex_centered_data(self, fields, smoothed=True, no_ghost=False):
-        _old_api = isinstance(fields, (string_types, tuple))
+        _old_api = isinstance(fields, (str, tuple))
         if _old_api:
             message = (
                 'get_vertex_centered_data() requires list of fields, rather than '
