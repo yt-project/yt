@@ -47,7 +47,7 @@ def _sanitize_list(flist):
     temp = []
     for item in flist:
         if isinstance(item, str):
-            temp.append(item)
+            temp.append(item.encode("latin-1"))
         elif isinstance(item, tuple) and \
                 all(isinstance(i, str) for i in item):
             temp.append(tuple(_sanitize_list(list(item))))
