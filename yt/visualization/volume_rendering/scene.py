@@ -38,7 +38,7 @@ from .render_source import \
     PointSource, \
     LineSource
 from .zbuffer_array import ZBuffer
-from yt.extern.six.moves import builtins
+import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
 
 class Scene(object):

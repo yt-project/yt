@@ -40,8 +40,7 @@ from yt.funcs import \
     update_hg_or_git, \
     enable_plugins, \
     download_file
-from yt.extern.six.moves import urllib, input
-from yt.extern.six.moves.urllib.parse import urlparse
+import urllib
 from yt.extern.tqdm import tqdm
 from yt.convenience import load
 from yt.visualization.plot_window import \
@@ -143,7 +142,7 @@ def _get_girder_client():
         print("or follow the instruction on:")
         print("  http://yt-project.org/docs/dev/sharing_data.html#obtaining-an-api-key")
         sys.exit()
-    hub_url = urlparse(ytcfg.get("yt", "hub_url"))
+    hub_url = urllib.urlparse(ytcfg.get("yt", "hub_url"))
     gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
     gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
     return gc

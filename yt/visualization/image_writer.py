@@ -27,7 +27,7 @@ from .color_maps import mcm
 from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
-from yt.extern.six.moves import builtins
+import builtins
 
 
 def scale_image(image, mi=None, ma=None):

@@ -12,7 +12,7 @@ A base class for "image" plots with colorbars.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from yt.extern.six.moves import builtins
+import builtins
 from yt.extern.six import  \
     iteritems, \
     str

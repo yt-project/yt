@@ -14,7 +14,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.extern.six.moves import cStringIO
+from io import StringIO
 import itertools
 import logging
 import numpy as np
@@ -924,7 +924,7 @@ class Communicator(object):
         if self.comm.rank == 0:
             return open(fn, "w")
         else:
-            return cStringIO()
+            return StringIO()
 
     def get_filename(self, prefix, rank=None):
         if not self._distributed: return prefix

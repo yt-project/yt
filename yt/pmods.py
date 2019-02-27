@@ -196,7 +196,7 @@ from __future__ import print_function
 import sys
 import imp
 import types
-from yt.extern.six.moves import builtins
+import builtins
 from mpi4py import MPI
 
 

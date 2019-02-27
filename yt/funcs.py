@@ -15,7 +15,7 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import errno
-from yt.extern.six.moves import input, builtins
+import builtins
 import time
 import inspect
 import traceback

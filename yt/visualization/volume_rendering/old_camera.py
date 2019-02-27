@@ -13,7 +13,7 @@ Import the components of the volume rendering extension
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.extern.six.moves import builtins
+import builtins
 import numpy as np
 
 from yt.config import \

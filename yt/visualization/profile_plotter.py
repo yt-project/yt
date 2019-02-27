@@ -14,9 +14,8 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.extern.six.moves import builtins
-from yt.extern.six.moves import zip as izip
-from yt.extern.six import str, iteritems
+import builtins
+from yt.extern.six import iteritems
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import base64
@@ -283,7 +282,7 @@ class ProfilePlot(object):
             self._setup_plots()
         unique = set(self.plots.values())
         if len(unique) < len(self.plots):
-            iters = izip(range(len(unique)), sorted(unique))
+            iters = zip(range(len(unique)), sorted(unique))
         else:
             iters = iteritems(self.plots)
         if not suffix:
@@ -353,7 +352,7 @@ class ProfilePlot(object):
         ret = ''
         unique = set(self.plots.values())
         if len(unique) < len(self.plots):
-            iters = izip(range(len(unique)), sorted(unique))
+            iters = zip(range(len(unique)), sorted(unique))
         else:
             iters = iteritems(self.plots)
         for uid, plot in iters:

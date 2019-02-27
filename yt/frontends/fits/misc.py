@@ -12,15 +12,11 @@ Miscellaneous FITS routines
 
 import numpy as np
 import base64
-from yt.extern.six import PY3
 from yt.fields.derived_field import ValidateSpatial
 from yt.funcs import mylog, issue_deprecation_warning
 from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity, YTArray
-if PY3:
-    from io import BytesIO as IO
-else:
-    from yt.extern.six.moves import StringIO as IO
+from io import BytesIO
 
 import os
 
@@ -284,7 +280,7 @@ class PlotWindowWCS(object):
         ret = ''
         for k, v in self.plots.items():
             canvas = FigureCanvasAgg(v)
-            f = IO()
+            f = BytesIO()
             canvas.print_figure(f)
             f.seek(0)
             img = base64.b64encode(f.read()).decode()

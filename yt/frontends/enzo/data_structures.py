@@ -28,7 +28,6 @@ import re
 from yt.utilities.on_demand_imports import \
     _libconf as libconf
 from collections import defaultdict
-from yt.extern.six.moves import zip as izip
 
 from yt.frontends.enzo.misc import \
     cosmology_get_units
@@ -364,7 +363,7 @@ class EnzoHierarchy(GridIndex):
         mylog.info("Finished rebuilding")
 
     def _populate_grid_objects(self):
-        for g,f in izip(self.grids, self.filenames):
+        for g,f in zip(self.grids, self.filenames):
             g._prepare_grid()
             g._setup_dx()
             g.set_filename(f[0])
