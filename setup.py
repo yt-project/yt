@@ -15,8 +15,8 @@ from distutils.version import LooseVersion
 import pkg_resources
 
 
-if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 5):
-    print("yt currently supports Python 2.7 or versions newer than Python 3.5")
+if sys.version_info < (3, 5):
+    print("yt currently supports versions newer than Python 3.5")
     print("certain features may fail unexpectedly and silently with older "
           "versions.")
     sys.exit(1)
@@ -345,10 +345,10 @@ setup(
                  "Operating System :: POSIX :: Linux",
                  "Programming Language :: C",
                  "Programming Language :: Python :: 2",
-                 "Programming Language :: Python :: 2.7",
                  "Programming Language :: Python :: 3",
-                 "Programming Language :: Python :: 3.4",
                  "Programming Language :: Python :: 3.5",
+                 "Programming Language :: Python :: 3.6",
+                 "Programming Language :: Python :: 3.7",
                  "Topic :: Scientific/Engineering :: Astronomy",
                  "Topic :: Scientific/Engineering :: Physics",
                  "Topic :: Scientific/Engineering :: Visualization"],
