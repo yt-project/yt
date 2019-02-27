@@ -20,8 +20,8 @@ import sys
 from yt.utilities.on_demand_imports import _h5py as h5
 import os
 from uuid import uuid4
-from yt.extern.six.moves import urllib
-from yt.extern.six.moves import cPickle as pickle
+import urllib
+import pickle
 from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import \

@@ -23,7 +23,7 @@ import weakref
 import warnings
 
 from collections import defaultdict
-from six.moves import cPickle
+import pickle
 
 from yt.config import ytcfg
 from yt.fields.derived_field import \
@@ -259,7 +259,7 @@ class Dataset(metaclass = RegisteredDataset):
                 obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
-        cache_key = (apath, cPickle.dumps(args), cPickle.dumps(kwargs))
+        cache_key = (apath, pickle.dumps(args), pickle.dumps(kwargs))
         if ytcfg.getboolean("yt","skip_dataset_cache"):
             obj = object.__new__(cls)
         elif cache_key not in _cached_datasets:

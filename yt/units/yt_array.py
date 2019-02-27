@@ -944,7 +944,7 @@ class YTArray(np.ndarray):
         ...              info=myinfo)
         """
         from yt.utilities.on_demand_imports import _h5py as h5py
-        from yt.extern.six.moves import cPickle as pickle
+        import pickle
         if info is None:
             info = {}
 
@@ -999,7 +999,7 @@ class YTArray(np.ndarray):
 
         """
         import h5py
-        from yt.extern.six.moves import cPickle as pickle
+        import pickle
 
         if dataset_name is None:
             dataset_name = 'array_data'

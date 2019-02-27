@@ -15,7 +15,7 @@ from __future__ import print_function
 
 import hashlib
 import matplotlib
-from yt.extern.six.moves import cPickle
+import pickle
 import itertools as it
 import numpy as np
 import functools
@@ -1013,7 +1013,7 @@ def check_results(func):
             ha = hashlib.md5(_rv.tostring()).hexdigest()
             fn = "func_results_ref_%s.cpkl" % (name)
             with open(fn, "wb") as f:
-                cPickle.dump( (mi, ma, st, su, si, ha), f)
+                pickle.dump( (mi, ma, st, su, si, ha), f)
             return rv
         return _func
     from yt.mods import unparsed_args
@@ -1040,7 +1040,7 @@ def check_results(func):
                 print("Answers need to be created with --answer-reference .")
                 return False
             with open(fn, "rb") as f:
-                ref = cPickle.load(f)
+                ref = pickle.load(f)
             print("Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4]))
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
