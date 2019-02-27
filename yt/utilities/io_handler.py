@@ -19,7 +19,6 @@ from contextlib import contextmanager
 import os
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-from yt.extern.six import add_metaclass
 from yt.utilities.lru_cache import \
     local_lru_cache, _make_key
 from yt.geometry.selection_routines import GridSelector
@@ -42,14 +41,15 @@ class RegisteredIOHandler(type):
             cls._read_obj_field = local_lru_cache(maxsize=use_caching, 
                     typed=True, make_key=_make_io_key)(cls._read_obj_field)
 
-@add_metaclass(RegisteredIOHandler)
-class BaseIOHandler(object):
+class BaseIOHandler(metaclass = RegisteredIOHandler):
     _vector_fields = ()
     _dataset_type = None
     _particle_reader = False
     _cache_on = False
     _misses = 0
     _hits = 0
+
+    __metaclass__ = RegisteredIOHandler
 
     def __init__(self, ds):
         self.queue = defaultdict(dict)

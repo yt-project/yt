@@ -40,7 +40,6 @@ from yt.funcs import \
     update_hg_or_git, \
     enable_plugins, \
     download_file
-from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib, input
 from yt.extern.six.moves.urllib.parse import urlparse
 from yt.extern.tqdm import tqdm
@@ -74,7 +73,7 @@ def _fix_ds(arg, *args, **kwargs):
     return ds
 
 def _add_arg(sc, arg):
-    if isinstance(arg, string_types):
+    if isinstance(arg, str):
         arg = _common_options[arg].copy()
     argc = dict(arg.items())
     argnames = []
@@ -198,8 +197,7 @@ class YTCommandSubtype(type):
                 for arg in cls.args:
                     _add_arg(sc, arg)
 
-@add_metaclass(YTCommandSubtype)
-class YTCommand(object):
+class YTCommand(metaclass = YTCommandSubtype):
     args = ()
     name = None
     description = ""

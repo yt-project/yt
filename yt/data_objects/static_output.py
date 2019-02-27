@@ -23,7 +23,6 @@ import weakref
 import warnings
 
 from collections import defaultdict
-from yt.extern.six import add_metaclass, string_types
 from six.moves import cPickle
 
 from yt.config import ytcfg
@@ -134,7 +133,7 @@ class FieldTypeContainer(object):
         ob = None
         if isinstance(obj, FieldNameContainer):
             ob = obj.field_type
-        elif isinstance(obj, string_types):
+        elif isinstance(obj, str):
             ob = obj
 
         return ob in self.field_types
@@ -173,7 +172,7 @@ class FieldNameContainer(object):
         elif isinstance(obj, tuple):
             if self.field_type == obj[0] and obj in self.ds.field_info:
                 return True
-        elif isinstance(obj, string_types):
+        elif isinstance(obj, str):
             if (self.field_type, obj) in self.ds.field_info:
                 return True
         return False
@@ -228,8 +227,7 @@ def requires_index(attr_name):
 
     return ireq
 
-@add_metaclass(RegisteredDataset)
-class Dataset(object):
+class Dataset(metaclass = RegisteredDataset):
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
@@ -251,7 +249,7 @@ class Dataset(object):
     _ionization_label_format = 'roman_numeral'
 
     def __new__(cls, filename=None, *args, **kwargs):
-        if not isinstance(filename, string_types):
+        if not isinstance(filename, str):
             obj = object.__new__(cls)
             # The Stream frontend uses a StreamHandler object to pass metadata
             # to __init__.
@@ -712,7 +710,7 @@ class Dataset(object):
         # concatenation fields.
         n = getattr(filter, "name", filter)
         self.known_filters[n] = None
-        if isinstance(filter, string_types):
+        if isinstance(filter, str):
             used = False
             f = filter_registry.get(filter, None)
             if f is None:

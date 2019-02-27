@@ -22,7 +22,6 @@ import weakref
 
 from functools import wraps
 
-from yt.extern.six import add_metaclass, string_types
 from yt.convenience import load
 from yt.config import ytcfg
 from yt.data_objects.data_containers import data_object_registry
@@ -153,7 +152,7 @@ class DatasetSeries(object):
 
     """
     def __new__(cls, outputs, *args, **kwargs):
-        if isinstance(outputs, string_types):
+        if isinstance(outputs, str):
             outputs = get_filenames_from_glob_pattern(outputs)
         ret = super(DatasetSeries, cls).__new__(cls)
         try:
@@ -166,7 +165,7 @@ class DatasetSeries(object):
                  mixed_dataset_types = False, **kwargs):
         # This is needed to properly set _pre_outputs for Simulation subclasses.
         self._mixed_dataset_types = mixed_dataset_types
-        if iterable(outputs) and not isinstance(outputs, string_types):
+        if iterable(outputs) and not isinstance(outputs, str):
             self._pre_outputs = outputs[:]
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
@@ -182,7 +181,7 @@ class DatasetSeries(object):
     def __iter__(self):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
-            if isinstance(o, string_types):
+            if isinstance(o, str):
                 ds = self._load(o, **self.kwargs)
                 self._setup_function(ds)
                 yield ds
@@ -196,7 +195,7 @@ class DatasetSeries(object):
             # This will return a sliced up object!
             return DatasetSeries(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
-        if isinstance(o, string_types):
+        if isinstance(o, str):
             o = self._load(o, **self.kwargs)
             self._setup_function(o)
         return o
@@ -287,7 +286,7 @@ class DatasetSeries(object):
             if storage is not None:
                 sto, output = output
 
-            if isinstance(output, string_types):
+            if isinstance(output, str):
                 ds = self._load(output, **self.kwargs)
                 self._setup_function(ds)
             else:
@@ -367,13 +366,13 @@ class DatasetSeries(object):
 
         """
         
-        if isinstance(filenames, string_types):
+        if isinstance(filenames, str):
             filenames = get_filenames_from_glob_pattern(filenames)
 
         # This will crash with a less informative error if filenames is not
         # iterable, but the plural keyword should give users a clue...
         for fn in filenames:
-            if not isinstance(fn, string_types):
+            if not isinstance(fn, str):
                 raise YTOutputNotIdentified("DataSeries accepts a list of "
                                             "strings, but "
                                             "received {0}".format(fn))
@@ -489,8 +488,7 @@ class RegisteredSimulationTimeSeries(type):
             simulation_time_series_registry[code_name] = cls
             mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
-@add_metaclass(RegisteredSimulationTimeSeries)
-class SimulationTimeSeries(DatasetSeries):
+class SimulationTimeSeries(DatasetSeries, metaclass = RegisteredSimulationTimeSeries):
     def __init__(self, parameter_filename, find_outputs=False):
         """
         Base class for generating simulation time series types.

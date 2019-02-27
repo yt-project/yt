@@ -18,7 +18,6 @@ from yt.units.dimensions import temperature, mass, energy, length, rate, \
     electric_field_mks, resistance_cgs, resistance_mks
 
 from yt.utilities.physical_ratios import speed_of_light_cm_per_s
-from yt.extern.six import add_metaclass
 import numpy as np
 
 equivalence_registry = {}
@@ -29,8 +28,7 @@ class RegisteredEquivalence(type):
         if hasattr(cls, "_type_name") and not cls._skip_add:
             equivalence_registry[cls._type_name] = cls
 
-@add_metaclass(RegisteredEquivalence)
-class Equivalence(object):
+class Equivalence(metaclass = RegisteredEquivalence):
     _skip_add = False
     _one_way = False
     def __init__(self):
