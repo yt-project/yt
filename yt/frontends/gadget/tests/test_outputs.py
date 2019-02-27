@@ -32,8 +32,6 @@ isothermal_bin = "IsothermalCollapse/snap_505"
 BE_Gadget = "BigEndianGadgetBinary/BigEndianGadgetBinary"
 LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
-snap_33 = "snapshot_033/snap_033.0.hdf5"
-snap_33_dir = "snapshot_033/"
 
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
@@ -100,13 +98,3 @@ def test_pid_uniqueness():
     ad = ds.all_data()
     pid = ad['ParticleIDs']
     assert len(pid) == len(set(pid.v))
-
-@requires_file(snap_33)
-@requires_file(snap_33_dir)
-def test_multifile_read():
-    """
-    Tests to make sure multi-file gadget snapshot can be loaded by passing '.0' file
-    or by passing the directory containing the multi-file snapshot.
-    """
-    assert isinstance(data_dir_load(snap_33), GadgetDataset)
-    assert isinstance(data_dir_load(snap_33_dir), GadgetDataset)

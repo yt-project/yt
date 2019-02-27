@@ -15,8 +15,6 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import os
-
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 import yt.units
@@ -60,22 +58,8 @@ class OWLSDataset(GadgetHDF5Dataset):
                        'PartType0/ChemicalAbundances',
                        'RuntimePars', 'HashTable']
         valid = True
-        valid_fname = args[0]
-        # If passed arg is a directory, look for the .0 file in that dir
-        if os.path.isdir(args[0]):
-            valid_files = []
-            for f in os.listdir(args[0]):
-                fname = os.path.join(args[0], f)
-                if ('.0' in f) and ('.ewah' not in f) and os.path.isfile(fname):
-                    valid_files.append(fname)
-            if len(valid_files) == 0:
-                valid = False
-            elif len(valid_files) > 1:
-                valid = False
-            else:
-                valid_fname = valid_files[0]
         try:
-            fileh = h5py.File(valid_fname, mode='r')
+            fileh = h5py.File(args[0], mode='r')
             for ng in need_groups:
                 if ng not in fileh["/"]:
                     valid = False
