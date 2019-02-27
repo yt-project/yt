@@ -39,8 +39,6 @@ from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile, \
     validate_index_order
-from yt.extern.six import \
-    str
 from yt.funcs import \
     is_root, \
     parse_h5_attr

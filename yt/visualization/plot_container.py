@@ -14,8 +14,7 @@ A base class for "image" plots with colorbars.
 #-----------------------------------------------------------------------------
 import builtins
 from yt.extern.six import  \
-    iteritems, \
-    str
+    iteritems
 
 import base64
 import numpy as np

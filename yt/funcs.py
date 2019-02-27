@@ -36,7 +36,7 @@ import getpass
 from math import floor, ceil
 from numbers import Number as numeric_type
 
-from yt.extern.six.moves import urllib
+import urllib
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.lru_cache import lru_cache
 from yt.utilities.exceptions import \
@@ -454,8 +454,9 @@ def paste_traceback(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     sys.__excepthook__(exc_type, exc, tb)
-    from yt.extern.six.moves import StringIO, xmlrpc_client
-    p = xmlrpc_client.ServerProxy(
+    import xmlrpc.client
+    from io import StringIO
+    p = xmlrpc.client.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     s = StringIO()
@@ -472,7 +473,8 @@ def paste_traceback_detailed(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     import cgitb
-    from yt.extern.six.moves import StringIO, xmlrpc_client
+    from io import StringIO
+    import xmlrpc.client
     s = StringIO()
     handler = cgitb.Hook(format="text", file = s)
     handler(exc_type, exc, tb)
