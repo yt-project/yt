@@ -1962,7 +1962,7 @@ class YTSurface(YTSelectionContainer3D):
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
         line = "element face %i\n" % (nv / 3)
-        f.write(line.encode('latin-1))
+        f.write(line.encode("latin-1"))
         f.write(b"property list uchar int vertex_indices\n")
         if color_field is not None and sample_type == "face":
             f.write(b"property uchar red\n")

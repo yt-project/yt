@@ -142,7 +142,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         fid, data = fid_data
         if fid is None:
             close = True
-            fid = h5py.h5f.open(obj.filename.encode('latin-1'), h5py.h5f.ACC_RDONLY)
+            fid = h5py.h5f.open(obj.filename.encode("latin-1"), h5py.h5f.ACC_RDONLY)
         else:
             close = False
         if data is None:
@@ -151,7 +151,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         ftype, fname = field
         try:
             node = "/Grid%08i/%s" % (obj.id, fname)
-            dg = h5py.h5d.open(fid, node.encode('latin-1))
+            dg = h5py.h5d.open(fid, node.encode("latin-1"))
         except KeyError:
             if fname == "Dark_Matter_Density":
                 data[:] = 0
