@@ -480,7 +480,7 @@ def paste_traceback_detailed(exc_type, exc, tb):
     handler(exc_type, exc, tb)
     s = s.getvalue()
     print(s)
-    p = xmlrpc_client.ServerProxy(
+    p = xmlrpc.client.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     ret = p.pastes.newPaste('text', s, None, '', '', True)
