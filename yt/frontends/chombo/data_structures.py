@@ -27,7 +27,6 @@ from yt.funcs import \
     setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
-from yt.extern import six
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \

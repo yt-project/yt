@@ -16,7 +16,6 @@ from __future__ import print_function
 import numpy as np
 import matplotlib
 import types
-import six
 import sys
 
 from collections import defaultdict
@@ -1014,11 +1013,10 @@ class PWViewerMPL(PlotWindow):
                 try:
                     callback(cbw)
                 except YTDataTypeUnsupported as e:
-                    six.reraise(YTDataTypeUnsupported, e)
+                    raise e
                 except Exception as e:
-                    six.reraise(YTPlotCallbackError,
-                                YTPlotCallbackError(callback._type_name, e),
-                                sys.exc_info()[2])
+                    new_exc = YTPlotCallbackError(callback._type_name, e)
+                    raise new_exc.with_traceback(sys.exc_info()[2])
             for key in self.frb.keys():
                 if key not in keys:
                     del self.frb[key]

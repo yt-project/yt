@@ -17,7 +17,6 @@ from yt.utilities.exceptions import \
     YTException
 from yt.utilities.io_handler import \
     BaseIOHandler
-from yt.extern.six import iteritems
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
@@ -50,7 +49,7 @@ class EnzoPIOHandler(BaseIOHandler):
         dtypes = set()
         # keep one field for each particle type so we can count later
         sample_pfields = {}
-        for name, v in iteritems(group):
+        for name, v in group.items():
             if not hasattr(v, "shape") or v.dtype == "O":
                 continue
             # mesh fields are "field <name>"

@@ -19,7 +19,6 @@ from distutils.version import LooseVersion
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut
 from yt.utilities.lib.fnv_hash import fnv_hash
-from yt.extern import six
 from sympy import \
     sympify, \
     srepr, \
@@ -149,7 +148,7 @@ class UnitRegistry:
         Returns a json-serialized version of the unit registry
         """
         sanitized_lut = {}
-        for k, v in six.iteritems(self.lut):
+        for k, v in self.lut.items():
             san_v = list(v)
             repr_dims = srepr(v[1])
             if SYMPY_VERSION < LooseVersion("1.0.0"):
@@ -168,7 +167,7 @@ class UnitRegistry:
         """
         data = json.loads(json_text)
         lut = {}
-        for k, v in six.iteritems(data):
+        for k, v in data.items():
             unsan_v = list(v)
             unsan_v[1] = sympify(v[1])
             lut[k] = tuple(unsan_v)

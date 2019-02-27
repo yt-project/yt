@@ -4,8 +4,6 @@ import requests
 import shutil
 import tempfile
 
-from yt.extern.six.moves import input
-
 API_URL = 'https://api.github.com/graphql'
 
 YT_REPO = "https://github.com/yt-project/yt"

@@ -15,7 +15,6 @@ from __future__ import absolute_import
 #-----------------------------------------------------------------------------
 
 import builtins
-from yt.extern.six import iteritems
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import base64
@@ -284,7 +283,7 @@ class ProfilePlot(object):
         if len(unique) < len(self.plots):
             iters = zip(range(len(unique)), sorted(unique))
         else:
-            iters = iteritems(self.plots)
+            iters = self.plots.items()
         if not suffix:
             suffix = "png"
         suffix = ".%s" % suffix
@@ -354,7 +353,7 @@ class ProfilePlot(object):
         if len(unique) < len(self.plots):
             iters = zip(range(len(unique)), sorted(unique))
         else:
-            iters = iteritems(self.plots)
+            iters = self.plots.items()
         for uid, plot in iters:
             with matplotlib_style_context():
                 img = plot._repr_png_()
@@ -1258,7 +1257,7 @@ class PhasePlot(ImagePlotContainer):
             if suffix is None:
                 suffix = get_image_suffix(name)
                 if suffix != '':
-                    for k, v in iteritems(self.plots):
+                    for k, v in self.plots.items():
                         names.append(v.save(name, mpl_kwargs))
                     return names
                 else:

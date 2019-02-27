@@ -6,14 +6,8 @@ from collections import namedtuple
 from nose.tools import nottest
 from unittest import TestCase
 
-from . import six
-
-if six.PY3:
-    def new_instancemethod(f, *args):
-        return f
-else:
-    import new
-    new_instancemethod = new.instancemethod
+def new_instancemethod(f, *args):
+    return f
 
 _param = namedtuple("param", "args kwargs")
 
@@ -68,7 +62,7 @@ class param(_param):
             """
         if isinstance(args, param):
             return args
-        if isinstance(args, six.string_types):
+        if isinstance(args, str):
             args = (args, )
         return cls(*args)
 
@@ -208,7 +202,7 @@ class parameterized(object):
             for num, args in enumerate(get_input()):
                 p = param.from_decorator(args)
                 name_suffix = "_%s" %(num, )
-                if len(p.args) > 0 and isinstance(p.args[0], six.string_types):
+                if len(p.args) > 0 and isinstance(p.args[0], str):
                     name_suffix += "_" + cls.to_safe_name(p.args[0])
                 name = base_name + name_suffix
                 frame_locals[name] = cls.param_as_standalone_func(p, f, name)
