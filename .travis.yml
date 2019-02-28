@@ -66,6 +66,7 @@ install:
         $PIP install numpy==1.16.2 cython==0.29
         $PIP install -r tests/test_requirements.txt
       fi
+      pip install git+git://github.com/cykdtree/cykdtree.git
       $PIP install -e .
     else
       $PIP install -r tests/lint_requirements.txt
