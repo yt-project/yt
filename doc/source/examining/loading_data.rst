@@ -1060,7 +1060,7 @@ from the OWLS project can be found at :ref:`owls-notebook`.
    file to the ``load`` command or the directory containing all of the files.
    For instance, to load the *zeroth* file: ``yt.load("snapshot_061.0.hdf5")`` . To
    give just the directory, if you have all of your ``snapshot_000.*`` files in a directory
-   called snapshot_000, do: ``yt.load("/path/to/snapshot_000")``.
+   called ``snapshot_000``, do: ``yt.load("/path/to/snapshot_000")``.
 
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
