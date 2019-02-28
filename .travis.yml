@@ -65,6 +65,7 @@ install:
         # the hack is no longer necessary.
         $PIP install numpy==1.16.2 cython==0.29
         $PIP install -r tests/test_requirements.txt
+        $PIP install cartopy==0.17.0
       fi
       pip install git+git://github.com/cykdtree/cykdtree.git
       $PIP install -e .
