@@ -35,6 +35,7 @@ INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
 INST_SCIPY=0    # Install scipy?
 INST_H5PY=1     # Install h5py?
 INST_ASTROPY=0  # Install astropy?
+INST_CARTOPY=0  # Install cartopy?
 INST_NOSE=1     # Install nose?
 INST_NETCDF4=1  # Install netcdf4 and its python bindings?
 INST_HG=0       # Install Mercurial or not?
@@ -136,6 +137,7 @@ function write_config
     echo INST_EMBREE=${INST_EMBREE} >> ${CONFIG_FILE}
     echo INST_H5PY=${INST_H5PY} >> ${CONFIG_FILE}
     echo INST_ASTROPY=${INST_ASTROPY} >> ${CONFIG_FILE}
+    echo INST_CARTOPY=${INST_CARTOPY} >> ${CONFIG_FILE}
     echo INST_NOSE=${INST_NOSE} >> ${CONFIG_FILE}
 
     echo YT_DIR=${YT_DIR} >> ${CONFIG_FILE}
@@ -323,6 +325,10 @@ printf "%-18s = %s so I " "INST_ASTROPY" "${INST_ASTROPY}"
 get_willwont ${INST_ASTROPY}
 echo "be installing astropy"
 
+printf "%-18s = %s so I " "INST_CARTOPY" "${INST_CARTOPY}"
+get_willwont ${INST_CARTOPY}
+echo "be installing cartopy"
+
 printf "%-18s = %s so I " "INST_NOSE" "${INST_NOSE}"
 get_willwont ${INST_NOSE}
 echo "be installing nose"
@@ -494,6 +500,10 @@ fi
 if [ $INST_ASTROPY -ne 0 ]
 then
     YT_DEPS+=('astropy')
+fi
+if [ $INST_CARTOPY -ne 0 ]
+then
+    YT_DEPS+=('cartopy')
 fi
 YT_DEPS+=('conda-build')
 if [ $INST_PY3 -eq 0 ] && [ $INST_HG -eq 1 ]

@@ -25,7 +25,7 @@ cdef class FortranFile:
     the docstrings.
     """
     def __cinit__(self, str fname):
-        self.cfile = fopen(fname.encode('utf-8'), 'r')
+        self.cfile = fopen(fname.encode('utf-8'), 'rb')
         self._closed = False
 
     def __enter__(self):

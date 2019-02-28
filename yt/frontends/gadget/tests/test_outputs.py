@@ -17,6 +17,8 @@ Gadget frontend tests
 from collections import OrderedDict
 from itertools import product
 import os
+import shutil
+import tempfile
 
 import yt
 from yt.testing import requires_file
@@ -34,6 +36,12 @@ LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
 snap_33 = "snapshot_033/snap_033.0.hdf5"
 snap_33_dir = "snapshot_033/"
+
+# py2/py3 compat
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
 
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
@@ -53,6 +61,8 @@ iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
 def test_gadget_binary():
     header_specs = ['default', 'default+pad32', ['default', 'pad32']]
+    curdir = os.getcwd()
+    tmpdir = tempfile.mkdtemp()
     for header_spec, endian, fmt in product(header_specs, '<>', [1, 2]):
         fake_snap = fake_gadget_binary(
             header_spec=header_spec,
@@ -62,7 +72,13 @@ def test_gadget_binary():
         ds = yt.load(fake_snap, header_spec=header_spec)
         assert isinstance(ds, GadgetDataset)
         ds.field_list
-        os.remove(fake_snap)
+        try:
+            os.remove(fake_snap)
+        except FileNotFoundError:
+            # sometimes this happens for mysterious reasons
+            pass
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
 
 
 @requires_file(isothermal_h5)
@@ -110,3 +126,9 @@ def test_multifile_read():
     """
     assert isinstance(data_dir_load(snap_33), GadgetDataset)
     assert isinstance(data_dir_load(snap_33_dir), GadgetDataset)
+
+@requires_ds(BE_Gadget)
+def test_bigendian_field_access():
+    ds = data_dir_load(BE_Gadget)
+    data = ds.all_data()
+    data['Halo', 'Velocities']

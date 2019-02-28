@@ -33,7 +33,8 @@ from yt.funcs import \
     mylog, \
     set_intersection, \
     ensure_list, \
-    iterable
+    iterable, \
+    setdefaultattr
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
@@ -540,7 +541,7 @@ class Dataset(object):
         if hasattr(self, "cosmological_simulation") and \
            getattr(self, "cosmological_simulation"):
             for a in ["current_redshift", "omega_lambda", "omega_matter",
-                      "hubble_constant"]:
+                      "omega_radiation", "hubble_constant"]:
                 if not hasattr(self, a):
                     mylog.error("Missing %s in parameter file definition!", a)
                     continue
@@ -852,9 +853,9 @@ class Dataset(object):
         source = self.all_data()
         max_val, mx, my, mz = \
             source.quantities.max_location(field)
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
-              max_val, mx, my, mz)
         center = self.arr([mx, my, mz], dtype="float64").to('code_length')
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
+              max_val, center[0], center[1], center[2])
         return max_val, center
 
     def find_min(self, field):
@@ -865,9 +866,9 @@ class Dataset(object):
         source = self.all_data()
         min_val, mx, my, mz = \
             source.quantities.min_location(field)
-        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
-              min_val, mx, my, mz)
         center = self.arr([mx, my, mz], dtype="float64").to('code_length')
+        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
+              min_val, center[0], center[1], center[2])
         return min_val, center
 
     def find_field_values_at_point(self, fields, coords):
@@ -1057,10 +1058,14 @@ class Dataset(object):
             w_0 = getattr(self, 'w_0', -1.0)
             w_a = getattr(self, 'w_a', 0.0)
 
+            # many frontends do not set this
+            setdefaultattr(self, "omega_radiation", 0.0)
+
             self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
                               omega_lambda=self.omega_lambda,
+                              omega_radiation=self.omega_radiation,
                               use_dark_factor = use_dark_factor,
                               w_0 = w_0, w_a = w_a)
             self.critical_density = \
