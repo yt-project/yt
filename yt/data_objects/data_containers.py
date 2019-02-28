@@ -1813,6 +1813,15 @@ class YTSelectionContainer1D(YTSelectionContainer):
         self._sortkey = None
         self._sorted = {}
 
+    def to_astropy_table(self, fields):
+        from astropy.table import QTable
+        t = QTable()
+        fields = self._determine_fields(fields)
+        for field in fields:
+            t[field[-1]] = self[field].to_astropy()
+        return t
+
+
 class YTSelectionContainer2D(YTSelectionContainer):
     _key_fields = ['px','py','pdx','pdy']
     _dimensionality = 2
