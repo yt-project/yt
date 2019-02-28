@@ -528,6 +528,19 @@ class Profile1D(ProfileND):
         from yt.visualization.profile_plotter import ProfilePlot
         return ProfilePlot.from_profiles(self)
 
+    def to_astropy_table(self, only_used=False):
+        from astropy.table import QTable
+        if only_used:
+            idxs = self.used
+        else:
+            idxs = slice(None, None, None)
+        t = QTable()
+        t[self.x_field[-1]] = self.x[idxs].to_astropy()
+        for field, data in self.field_data.items():
+            t[field[-1]] = data[idxs].to_astropy()
+        return t
+
+
 class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
     """
     A 1D profile object loaded from a ytdata dataset.
