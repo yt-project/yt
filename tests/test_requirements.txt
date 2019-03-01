@@ -16,6 +16,8 @@ pyqt5==5.11.3
 pint==0.8.1
 netCDF4==1.4.2
 libconf==1.0.1
+cartopy==0.17.0
 pyaml==17.10.0
 mpi4py==3.0.0
 pyyaml>=4.2b1
+git+git://github.com/cykdtree/cykdtree@master#egg=cykdtree
