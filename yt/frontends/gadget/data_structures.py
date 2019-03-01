@@ -390,9 +390,10 @@ class GadgetDataset(SPHDataset):
             # ComovingIntegration hvals["Time"] will in fact be the expansion
             # factor, not the actual integration time, so we re-calculate
             # global time from our Cosmology.
-            cosmo = Cosmology(self.hubble_constant,
-                              self.omega_matter, self.omega_lambda)
-            self.current_time = cosmo.hubble_time(self.current_redshift)
+            cosmo = Cosmology(hubble_constant=self.hubble_constant,
+                              omega_matter=self.omega_matter,
+                              omega_lambda=self.omega_lambda)
+            self.current_time = cosmo.lookback_time(self.current_redshift, 1e6)
             only_on_root(mylog.info, "Calculating time from %0.3e to be %0.3e seconds",
                          hvals["Time"], self.current_time)
         self.parameters = hvals

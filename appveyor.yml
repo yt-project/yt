@@ -29,7 +29,7 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib mock pandas"
+    - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib mock pandas cartopy"
     # HACK, FIXME BEFORE MERGING
     - "pip install https://github.com/cykdtree/cykdtree/archive/master.zip"
     # install yt
