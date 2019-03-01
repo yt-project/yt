@@ -36,22 +36,25 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
     def _specific_angular_momentum_x(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
+        units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units = data["index", "x"].units)
+        rv = data.ds.arr(rv, input_units=units)
         return yv * rv[...,2] - zv * rv[...,1]
 
     def _specific_angular_momentum_y(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
+        units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units = data["index", "x"].units)
+        rv = data.ds.arr(rv, input_units=units)
         return - (xv * rv[...,2] - zv * rv[...,0])
 
     def _specific_angular_momentum_z(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
+        units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units = data["index", "x"].units)
+        rv = data.ds.arr(rv, input_units=units)
         return xv * rv[...,1] - yv * rv[...,0]
 
     registry.add_field((ftype, "specific_angular_momentum_x"),

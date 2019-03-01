@@ -172,8 +172,8 @@ class StreamParticleIOHandler(BaseIOHandler):
             if needed_ptype is not None and needed_ptype is not ptype:
                 continue
             try:
-                pos = np.column_stack(self.fields[data_file.filename][
-                    (ptype, "particle_position_%s" % ax)] for ax in 'xyz')
+                pos = np.column_stack([self.fields[data_file.filename][
+                    (ptype, "particle_position_%s" % ax)] for ax in 'xyz'])
             except KeyError:
                 pos = self.fields[data_file.filename][ptype, "particle_position"]
             if np.any(pos.min(axis=0) < data_file.ds.domain_left_edge) or \

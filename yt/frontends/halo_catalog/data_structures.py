@@ -89,7 +89,7 @@ class HaloCatalogHDF5File(HaloCatalogFile):
         pcount = self.header["num_halos"]
         pos = np.empty((pcount, 3), dtype="float64")
         for i, ax in enumerate('xyz'):
-            pos[:, i] = f["particle_position_%s" % ax].value
+            pos[:, i] = f["particle_position_%s" % ax][()]
 
         if close:
             f.close()

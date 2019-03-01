@@ -1006,15 +1006,14 @@ def enable_plugins():
         ytdict = yt.__dict__
         execdict = ytdict.copy()
         execdict['add_field'] = my_plugins_fields.add_field
-        localdict = {}
         with open(_fn) as f:
             code = compile(f.read(), _fn, 'exec')
-            exec(code, execdict, localdict)
+            exec(code, execdict, execdict)
         ytnamespace = list(ytdict.keys())
-        for k in localdict.keys():
+        for k in execdict.keys():
             if k not in ytnamespace:
-                if callable(localdict[k]):
-                    setattr(yt, k, localdict[k])
+                if callable(execdict[k]):
+                    setattr(yt, k, execdict[k])
 
 def subchunk_count(n_total, chunk_size):
     handled = 0

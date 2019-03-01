@@ -125,9 +125,10 @@ class AHFHalosDataset(Dataset):
         self.current_redshift = param['z']
         self.omega_lambda = simu['lambda0']
         self.omega_matter = simu['omega0']
-        cosmo = Cosmology(self.hubble_constant,
-                          self.omega_matter, self.omega_lambda)
-        self.current_time = cosmo.hubble_time(param['z']).in_units('s')
+        cosmo = Cosmology(hubble_constant=self.hubble_constant,
+                          omega_matter=self.omega_matter,
+                          omega_lambda=self.omega_lambda)
+        self.current_time = cosmo.lookback_time(param['z'], 1e6).in_units('s')
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
