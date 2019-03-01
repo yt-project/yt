@@ -550,10 +550,16 @@ class Profile1D(ProfileND):
             idxs = self.used
         else:
             idxs = slice(None, None, None)
-        t = QTable()
+        if not only_used and not np.all(self.used):
+            masked = True
+        else:
+            masked = False
+        t = QTable(masked=masked)
         t[self.x_field[-1]] = self.x[idxs].to_astropy()
         for field, data in self.field_data.items():
             t[field[-1]] = data[idxs].to_astropy()
+            if masked:
+                t[field[-1]].mask = ~self.used
         return t
 
 
