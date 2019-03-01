@@ -1814,6 +1814,24 @@ class YTSelectionContainer1D(YTSelectionContainer):
         self._sorted = {}
 
     def to_astropy_table(self, fields):
+        """
+        Export region data to a :class:~astropy.table.table.QTable,
+        which is a Table object which is unit-aware. The QTable can then
+        be exported to an ASCII file, FITS file, etc.
+
+        See the AstroPy Table docs for more details:
+        http://docs.astropy.org/en/stable/table/
+
+        Parameters
+        ----------
+        fields : list of strings
+            The list of fields to be exported to the QTable.
+
+        Examples
+        --------
+        >>> sp = ds.sphere("c", (1.0, "Mpc"))
+        >>> t = sp.to_astropy_table(["density","temperature"])
+        """
         from astropy.table import QTable
         t = QTable()
         fields = self._determine_fields(fields)

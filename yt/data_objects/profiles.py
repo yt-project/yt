@@ -522,13 +522,29 @@ class Profile1D(ProfileND):
 
     def plot(self):
         r"""
-        This returns a :class:~yt.visualization.profile_plotter.ProfilePlot
+        This returns a :class:`~yt.visualization.profile_plotter.ProfilePlot`
         with the fields that have been added to this object.
         """
         from yt.visualization.profile_plotter import ProfilePlot
         return ProfilePlot.from_profiles(self)
 
     def to_astropy_table(self, only_used=False):
+        """
+        Export the profile data to a :class:`~astropy.table.table.QTable`,
+        which is a Table object which is unit-aware. The QTable can then
+        be exported to an ASCII file, FITS file, etc.
+
+        See the AstroPy Table docs for more details:
+        http://docs.astropy.org/en/stable/table/
+
+        Parameters
+        ----------
+        only_used : boolean, optional
+            If True, only the bins which are used are copied
+            to the QTable as rows. If False, all bins are
+            copied, but the bins which are not used are masked.
+            Default: False
+        """
         from astropy.table import QTable
         if only_used:
             idxs = self.used
