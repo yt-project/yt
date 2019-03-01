@@ -370,16 +370,22 @@ class AMRGridPatch(YTSelectionContainer):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs. Everything inside
-        # this is Fortran ordered because of the ordering in the octree deposit
-        # routines, so we reverse it here to match the convention there
-        op = cls(tuple(self.ActiveDimensions[::-1]), kernel_name)
+        # We allocate number of zones, not number of octs. Everything
+        # inside this is Fortran ordered because of the ordering in the
+        # octree deposit routines, so we reverse it here to match the
+        # convention there
+        nvals = tuple(self.ActiveDimensions[::-1])
+        # append a dummy dimension because we are only depositing onto
+        # one grid
+        op = cls(nvals + (1,), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
         if vals is None: return
         # Fortran-ordered, so transpose.
-        return vals.transpose()
+        vals = vals.transpose()
+        # squeeze dummy dimension we appended above
+        return np.squeeze(vals, axis=0)
 
     def select_blocks(self, selector):
         mask = self._get_selector_mask(selector)

@@ -40,7 +40,6 @@ from .definitions import \
 from .fields import \
     GadgetFieldInfo
 
-
 def _fix_unit_ordering(unit):
     if isinstance(unit[0], string_types):
         unit = unit[1], unit[0]
@@ -246,6 +245,15 @@ class GadgetDataset(SPHDataset):
                  w_a = 0.0):
         if self._instantiated:
             return
+        # Check if filename is a directory
+        if os.path.isdir(filename):
+            # Get the .0 snapshot file. We know there's only 1 and it's valid since we
+            # came through _is_valid in load()
+            for f in os.listdir(filename):
+                fname = os.path.join(filename, f)
+                if ('.0' in f) and ('.ewah' not in f) and os.path.isfile(fname):
+                    filename = os.path.join(filename, f)
+                    break
         self._header = GadgetBinaryHeader(filename, header_spec)
         header_size = self._header.size
         if header_size != [256]:
@@ -383,9 +391,10 @@ class GadgetDataset(SPHDataset):
             # ComovingIntegration hvals["Time"] will in fact be the expansion
             # factor, not the actual integration time, so we re-calculate
             # global time from our Cosmology.
-            cosmo = Cosmology(self.hubble_constant,
-                              self.omega_matter, self.omega_lambda)
-            self.current_time = cosmo.hubble_time(self.current_redshift)
+            cosmo = Cosmology(hubble_constant=self.hubble_constant,
+                              omega_matter=self.omega_matter,
+                              omega_lambda=self.omega_lambda)
+            self.current_time = cosmo.lookback_time(self.current_redshift, 1e6)
             only_on_root(mylog.info, "Calculating time from %0.3e to be %0.3e seconds",
                          hvals["Time"], self.current_time)
         self.parameters = hvals
@@ -498,8 +507,27 @@ class GadgetDataset(SPHDataset):
             header_spec = kwargs['header_spec']
         else:
             header_spec = 'default'
-        header = GadgetBinaryHeader(args[0], header_spec)
+        # Check to see if passed filename is a directory. If so, use it to get
+        # the .0 snapshot file. Make sure there's only one such file, otherwise
+        # there's an ambiguity about which file the user wants. Ignore ewah files
+        if os.path.isdir(args[0]):
+            valid_files = []
+            for f in os.listdir(args[0]):
+                fname = os.path.join(args[0], f)
+                if ('.0' in f) and ('.ewah' not in f) and os.path.isfile(fname):
+                    valid_files.append(f)
+            if len(valid_files) == 0:
+                return False
+            elif len(valid_files) > 1:
+                return False
+            else:
+                validated_file = os.path.join(args[0], valid_files[0])
+        else:
+            validated_file = args[0]
+        header = GadgetBinaryHeader(validated_file, header_spec)
         return header.validate()
+
+            
 
 
 class GadgetHDF5Dataset(GadgetDataset):

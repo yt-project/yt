@@ -127,14 +127,17 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 g = f["/%s" % ptype]
-                coords = g["Coordinates"][si:ei].astype("float64")
-                if ptype == 'PartType0':
-                    hsmls = g["SmoothingLength"][si:ei].astype("float64")
+                if getattr(selector, 'is_all_data', False):
+                    mask = slice(None, None, None)
                 else:
-                    hsmls = 0.0
-                mask = selector.select_points(
-                    coords[:,0], coords[:,1], coords[:,2], hsmls)
-                del coords
+                    coords = g["Coordinates"][si:ei].astype("float64")
+                    if ptype == 'PartType0':
+                        hsmls = g["SmoothingLength"][si:ei].astype("float64")
+                    else:
+                        hsmls = 0.0
+                    mask = selector.select_points(
+                        coords[:,0], coords[:,1], coords[:,2], hsmls)
+                    del coords
                 if mask is None:
                     continue
                 for field in field_list:
@@ -309,19 +312,22 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items()):
-                f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(
-                    f, tp[ptype], "Coordinates")
-                if ptype == self.ds._sph_ptype:
-                    f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
-                    hsml = self._read_field_from_file(
-                        f, tp[ptype], "SmoothingLength")
+                if getattr(selector, 'is_all_data', False):
+                    mask = slice(None, None, None)
                 else:
-                    hsml = 0.0
-                mask = selector.select_points(
-                    pos[:, 0], pos[:, 1], pos[:, 2], hsml)
-                del pos
-                del hsml
+                    f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
+                    pos = self._read_field_from_file(
+                        f, tp[ptype], "Coordinates")
+                    if ptype == self.ds._sph_ptype:
+                        f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
+                        hsml = self._read_field_from_file(
+                            f, tp[ptype], "SmoothingLength")
+                    else:
+                        hsml = 0.0
+                    mask = selector.select_points(
+                        pos[:, 0], pos[:, 1], pos[:, 2], hsml)
+                    del pos
+                    del hsml
                 if mask is None:
                     continue
                 for field in field_list:
@@ -345,9 +351,14 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             dt = self._endian + self.ds._id_dtype
         else:
             dt = self._endian + self._float_type
+        dt = np.dtype(dt)
         if name in self._vector_fields:
             count *= self._vector_fields[name]
         arr = np.fromfile(f, dtype=dt, count=count)
+        # ensure data are in native endianness to avoid errors
+        # when field data are passed to cython
+        dt = dt.newbyteorder('N')
+        arr = arr.astype(dt)
         if name in self._vector_fields:
             factor = self._vector_fields[name]
             arr = arr.reshape((count // factor, factor), order="C")

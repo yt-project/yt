@@ -220,14 +220,18 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                             auxdata.append(aux)
                 if afields:
                     p = append_fields(p, afields, auxdata)
-                x = p["Coordinates"]['x'].astype("float64")
-                y = p["Coordinates"]['y'].astype("float64")
-                z = p["Coordinates"]['z'].astype("float64")
-                if ptype == 'Gas':
-                    hsml = self._read_smoothing_length(data_file, count)
+                if getattr(selector, 'is_all_data', False):
+                    mask = slice(None, None, None)
                 else:
-                    hsml = 0.
-                mask = selector.select_points(x, y, z, hsml)
+                    x = p["Coordinates"]['x'].astype("float64")
+                    y = p["Coordinates"]['y'].astype("float64")
+                    z = p["Coordinates"]['z'].astype("float64")
+                    if ptype == 'Gas':
+                        hsml = self._read_smoothing_length(data_file, count)
+                    else:
+                        hsml = 0.
+                    mask = selector.select_points(x, y, z, hsml)
+                    del x, y, z, hsml
                 if mask is None:
                     continue
                 tf = self._fill_fields(field_list, p, hsml, mask, data_file)
