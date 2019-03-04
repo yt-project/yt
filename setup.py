@@ -110,6 +110,23 @@ cython_extensions = [
               include_dirs=["yt/utilities/lib/",
                             "yt/geometry/"],
               libraries=std_libs),
+    Extension("yt.utilities.lib.cykdtree.kdtree",
+              [
+                  "yt/utilities/lib/cykdtree/kdtree.pyx",
+                  "yt/utilities/lib/cykdtree/c_kdtree.cpp",
+                  "yt/utilities/lib/cykdtree/c_utils.cpp",
+              ],
+              libraries=std_libs,
+              language="c++",
+              extra_compile_arg=["-std=c++03"]),
+    Extension("yt.utilities.lib.cykdtree.utils",
+              [
+                  "yt/utilities/lib/cykdtree/utils.pyx",
+                  "yt/utilities/lib/cykdtree/c_utils.cpp",
+              ],
+              libraries=std_libs,
+              language="c++",
+              extra_compile_arg=["-std=c++03"]),    
     Extension("yt.utilities.lib.fnv_hash",
               ["yt/utilities/lib/fnv_hash.pyx"],
               include_dirs=["yt/utilities/lib/"],
@@ -317,9 +334,7 @@ package manager for your python environment.""" %
         else:
             __builtins__.__NUMPY_SETUP__ = False
         import numpy
-        import cykdtree
         self.include_dirs.append(numpy.get_include())
-        self.include_dirs.append(cykdtree.get_include())
 
 class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython
