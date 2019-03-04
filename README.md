@@ -1,4 +1,4 @@
-# The yt Project
+# The yt Project: Feet First 
 
 [![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
 [![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-dev@python.org//)
