@@ -713,6 +713,78 @@ class PlotContainer(object):
             self.plots[f].show_colorbar()
         return self
 
+    def hide_axes(self, field=None, draw_frame=False):
+        """
+        Hides the axes for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
+        PlotContainer object.
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to hide the axes.
+
+        draw_frame : boolean
+            If True, the axes frame will still be drawn. Defaults to False.
+            See note below for more details.
+
+        Examples
+        --------
+
+        This will save an image with no axes.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.save()
+
+        This will save an image with no axis or colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.hide_colorbar()
+        >>> s.save()
+
+        Note
+        ----
+        By default, when removing the axes, the patch on which the axes are
+        drawn is disabled, making it impossible to later change e.g. the
+        background colour. To force the axes patch to be displayed while still
+        hiding the axes, set the ``draw_frame`` keyword argument to ``True``.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].hide_axes(draw_frame)
+        return self
+
+
+    def show_axes(self, field=None):
+        """
+        Shows the axes for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
+        PlotContainer object.  See hide_axes().
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to show the axes.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].show_axes()
+        return self
+
+
+
 class ImagePlotContainer(PlotContainer):
     """A container for plots with colorbars.
 
