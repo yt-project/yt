@@ -16,6 +16,8 @@ shared with other people. For instance, one can upload a dataset and allow other
 people to remotely analyze it with a jupyter notebook or upload notebooks and
 view them from any web browser.
 
+This is my change to update Thing 1. 
+
 .. note:: All items posted on the hub are public!
 
 Over time, more widgets will be added, and more datatypes will be able to be
