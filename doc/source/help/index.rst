@@ -9,6 +9,8 @@ on your own, but if those don't yield results, we have provided a number of
 ways to connect with our community of users and developers to solve the
 problem together.
 
+Everybody needs help sometimes! 
+
 To summarize, here are the steps in order:
 
 .. contents::
