@@ -2,7 +2,7 @@ include README* CREDITS COPYING.txt CITATION  setupext.py CONTRIBUTING.rst
 include yt/visualization/mapserver/html/map_index.html
 include yt/utilities/mesh_types.yaml
 exclude scripts/pr_backport.py
-recursive-include yt *.py *.pyx *.pxd *.h README* *.txt LICENSE* *.cu
+recursive-include yt *.py *.pyx *.pxd *.h *.hpp README* *.txt LICENSE* *.cu
 recursive-include doc *.rst *.txt *.py *.ipynb *.png *.jpg *.css *.html
 recursive-include doc *.h *.c *.sh *.svgz *.pdf *.svg *.pyx
 include doc/README doc/activate doc/activate.csh doc/cheatsheet.tex
