@@ -116,6 +116,10 @@ cython_extensions = [
                   "yt/utilities/lib/cykdtree/c_kdtree.cpp",
                   "yt/utilities/lib/cykdtree/c_utils.cpp",
               ],
+              depends=[
+                  "yt/utilities/lib/cykdtree/c_kdtree.hpp",
+                  "yt/utilities/lib/cykdtree/c_utils.hpp",
+              ],
               libraries=std_libs,
               language="c++",
               extra_compile_arg=["-std=c++03"]),
@@ -124,6 +128,7 @@ cython_extensions = [
                   "yt/utilities/lib/cykdtree/utils.pyx",
                   "yt/utilities/lib/cykdtree/c_utils.cpp",
               ],
+              depends=["yt/utilities/lib/cykdtree/c_utils.hpp"],
               libraries=std_libs,
               language="c++",
               extra_compile_arg=["-std=c++03"]),    
