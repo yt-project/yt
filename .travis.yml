@@ -54,8 +54,9 @@ install:
     # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       if [[ $MINIMAL == 1 ]]; then
-        # HACK: install numpy and cython so cykdtree builds
-        $PIP install numpy==1.10.4 cython==0.24
+        # Ensure numpy and cython are installed so dependencies that need to be built
+        # don't error out
+        $PIP install numpy==1.10.4 cython==0.26.1
         $PIP install -r tests/test_minimal_requirements.txt
       else
         # Getting cartopy installed requires getting cython and numpy installed
