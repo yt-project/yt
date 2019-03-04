@@ -1019,6 +1019,10 @@ class PhasePlot(ImagePlotContainer):
             self._recreate_profile()
         return self._profile
 
+    @property
+    def fields(self):
+        return list(self.plots.keys())
+
     def _setup_plots(self):
         if self._plot_valid:
             return

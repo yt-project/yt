@@ -651,6 +651,67 @@ class PlotContainer(object):
                 axes_unit_labels[i] = '\ \ ('+un+')'
         return axes_unit_labels
 
+    
+    def hide_colorbar(self, field=None):
+        """
+        Hides the colorbar for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
+        PlotContainer object.
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to hide the colorbar. If None
+            is provided, will default to using all fields available for this
+            object.
+
+        Examples
+        --------
+
+        This will save an image with no colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_colorbar()
+        >>> s.save()
+
+        This will save an image with no axis or colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.hide_colorbar()
+        >>> s.save()
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].hide_colorbar()
+        return self
+
+
+    def show_colorbar(self, field=None):
+        """
+        Shows the colorbar for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
+        PlotContainer object.  See hide_colorbar().
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+        The name of the field(s) that we want to show the colorbar.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].show_colorbar()
+        return self
 
 class ImagePlotContainer(PlotContainer):
     """A container for plots with colorbars.

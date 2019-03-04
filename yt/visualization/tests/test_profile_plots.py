@@ -262,3 +262,29 @@ def test_phaseplot_set_log():
     p2.set_log(ds.fields.gas.temperature, False)
     assert p1.y_log["gas", "density"] is False
     assert p2.y_log is False
+
+
+
+def test_phaseplot_showhide_colorbar():
+    fields = ('density', 'temperature')
+    units = ('g/cm**3', 'K',)
+    ds = fake_random_ds(16, fields=fields, units=units)
+    ad = ds.all_data()
+    plot = yt.PhasePlot(ad, ("gas", "density"), ("gas", "temperature"), "cell_mass")
+
+    # make sure we can hide colorbar
+    plot.hide_colorbar()
+
+    with tempfile.NamedTemporaryFile(suffix='png') as f1:
+        plot.save(f1.name)
+
+    # make sure we can show colorbar
+    plot.show_colorbar()
+
+    with tempfile.NamedTemporaryFile(suffix='png') as f2:
+        plot.save(f2.name)
+
+
+
+
+

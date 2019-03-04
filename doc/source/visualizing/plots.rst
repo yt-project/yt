@@ -1320,7 +1320,10 @@ Customizing Phase Plots
 Similarly to 1D profile plots, :class:`~yt.visualization.profile_plotter.PhasePlot`
 can be customized via ``set_unit``,
 ``set_xlim``, ``set_ylim``, and ``set_zlim``.  The following example illustrates
-how to manipulate these functions.
+how to manipulate these functions. :class:`~yt.visualization.profile_plotter.PhasePlot`
+can also be customized in a similar manner as 
+:class:`~yt.visualization.plot_window.SlicePlot`, such as with ``hide_colorbar``
+and ``show_colorbar``.
 
 .. python-script::
 
