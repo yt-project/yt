@@ -313,9 +313,9 @@ class build_ext(_build_ext):
 """Could not import cython or numpy. Building yt from source requires
 cython and numpy to be installed. Please install these packages using
 the appropriate package manager for your python environment.""")
-        if LooseVersion(cython.__version__) < LooseVersion('0.24'):
+        if LooseVersion(cython.__version__) < LooseVersion('0.26.1'):
             raise RuntimeError(
-"""Building yt from source requires Cython 0.24 or newer but
+"""Building yt from source requires Cython 0.26.1 or newer but
 Cython %s is installed. Please update Cython using the appropriate
 package manager for your python environment.""" %
                 cython.__version__)
