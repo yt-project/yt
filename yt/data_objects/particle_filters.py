@@ -15,13 +15,12 @@ This is a library for defining and using particle filters.
 #-----------------------------------------------------------------------------
 
 import copy
-
 from contextlib import contextmanager
 
 from yt.fields.field_info_container import \
     NullFunc, TranslationFunc
-from yt.utilities.exceptions import YTIllDefinedFilter
 from yt.funcs import mylog
+from yt.utilities.exceptions import YTIllDefinedFilter
 
 # One to one mapping
 filter_registry = {}
@@ -52,13 +51,6 @@ class ParticleFilter(object):
             if f[0] != self.filtered_type: continue
             if tr.shape != filter.shape and tr.shape[0] != filter.shape[0]:
                 raise YTIllDefinedFilter(self, tr.shape, filter.shape)
-            elif filter.size == 0:
-                # Filtering empty set.  This keeps our dimensions correct.
-                # Otherwise we end up with out-of-axis and shape problems.
-                d = tr.copy() 
-            elif len(tr.shape) > len(filter.shape):
-                # Filter must always be 1D
-                d = tr[filter,:]
             else:
                 d = tr[filter]
             dobj.field_data[self.name, f[1]] = d
@@ -78,6 +70,8 @@ class ParticleFilter(object):
         new_fi.name = (self.name, field_name[1])
         if old_fi._function == NullFunc:
             new_fi._function = TranslationFunc(old_fi.name)
+        # Marking the field as inherited
+        new_fi._inherited_particle_filter = True
         return new_fi
 
 

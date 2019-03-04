@@ -21,7 +21,6 @@ import numpy as np
 import sys
 import os
 import traceback
-import types
 from functools import wraps
 
 from yt.funcs import \
@@ -271,7 +270,7 @@ class ParallelDummy(type):
             if attrname.startswith("_") or attrname in skip:
                 if attrname not in extra: continue
             attr = getattr(cls, attrname)
-            if isinstance(attr, types.MethodType):
+            if callable(attr):
                 setattr(cls, attrname, parallel_simple_proxy(attr))
 
 def parallel_passthrough(func):
@@ -1212,7 +1211,7 @@ class ParallelAnalysisInterface(object):
         """
         LE, RE = left_edge[:], right_edge[:]
         if not self._distributed:
-            raise NotImplemented
+            raise NotImplementedError
             return LE, RE #, re
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)

@@ -598,7 +598,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 "Length of edges must match the dimensionality of the "
                 "dataset")
         if hasattr(edge, 'units'):
-            edge_units = edge.units
+            edge_units = edge.units.copy()
+            edge_units.registry = self.ds.unit_registry
         else:
             edge_units = 'code_length'
         return self.ds.arr(edge, edge_units)
@@ -749,15 +750,20 @@ class YTCoveringGrid(YTSelectionContainer3D):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs. Everything inside
-        # this is fortran ordered because of the ordering in the octree deposit
-        # routines, so we reverse it here to match the convention there
-        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
+        # We allocate number of zones, not number of octs. Everything
+        # inside this is Fortran ordered because of the ordering in the
+        # octree deposit routines, so we reverse it here to match the
+        # convention there
+        nvals = tuple(self.ActiveDimensions[::-1])
+        # append a dummy dimension because we are only depositing onto
+        # one grid
+        op = cls(nvals + (1,), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
-        vals = op.finalize()
         # Fortran-ordered, so transpose.
-        return vals.transpose()
+        vals = op.finalize().transpose()
+        # squeeze dummy dimension we appended above
+        return np.squeeze(vals, axis=0)
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):
@@ -782,7 +788,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         Examples
         --------
         >>> cube.write_to_gdf("clumps.h5", ["density","temperature"], nprocs=16,
-        ...                   clobber=True)
+        ...                   overwrite=True)
         """
         data = {}
         for field in fields:
@@ -922,7 +928,9 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         self._final_start_index = self.global_startindex
 
     def _setup_data_source(self, level_state = None):
-        if level_state is None: return
+        if level_state is None:
+            super(YTSmoothedCoveringGrid, self)._setup_data_source()
+            return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
         level_state.data_source = self.ds.region(
@@ -1761,8 +1769,8 @@ class YTSurface(YTSelectionContainer3D):
             if sample_type == "face" and \
                 color_field not in self.field_data:
                 self[color_field]
-            elif sample_type == "vertex" and \
-                color_field not in self.vertex_data:
+            elif (sample_type == "vertex" and
+                  color_field not in self.vertex_samples):
                 self.get_data(color_field, sample_type, no_ghost=no_ghost)
         self._export_ply(filename, bounds, color_field, color_map, color_log,
                          sample_type)

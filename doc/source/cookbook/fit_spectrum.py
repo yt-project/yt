@@ -15,7 +15,7 @@ def _OVI_number_density(field, data):
 def setup_ds(ds):
     ds.add_field(("gas","O_p5_number_density"),
                  function=_OVI_number_density,
-                 units="cm**-3")
+                 units="cm**-3", sampling_type="cell")
 
 # Define species and associated parameters to add to continuum
 # Parameters used for both adding the transition to the spectrum

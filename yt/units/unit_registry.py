@@ -67,7 +67,7 @@ class UnitRegistry:
             for k, v in self.lut.items():
                 hash_data.extend(k.encode('ascii'))
                 hash_data.extend(repr(v).encode('ascii'))
-            self._unit_system_id = "code_%d" % fnv_hash(hash_data)
+            self._unit_system_id = "us_%d" % fnv_hash(hash_data)
         return self._unit_system_id
 
     def add(self, symbol, base_value, dimensions, tex_repr=None, offset=None):
@@ -174,3 +174,15 @@ class UnitRegistry:
             lut[k] = tuple(unsan_v)
 
         return cls(lut=lut, add_default_symbols=False)
+
+    def list_same_dimensions(self, unit_object):
+        """
+        Return a list of base unit names that this registry knows about that
+        are of equivalent dimensions to *unit_object*.
+        """
+        equiv = [k for k, v in self.lut.items()
+                 if v[1] is unit_object.dimensions]
+        equiv += [n for n, u in self.unit_objs.items()
+                 if u.dimensions is unit_object.dimensions]
+        equiv = list(sorted(set(equiv)))
+        return equiv

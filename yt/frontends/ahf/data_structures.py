@@ -20,8 +20,9 @@ import stat
 import numpy as np
 
 from yt.data_objects.static_output import \
-    Dataset, \
-    ParticleFile
+    Dataset
+from yt.frontends.halo_catalog.data_structures import \
+    HaloCatalogFile
 from yt.funcs import \
     setdefaultattr
 from yt.geometry.particle_geometry_handler import \
@@ -32,7 +33,7 @@ from yt.utilities.cosmology import \
 from .fields import AHFHalosFieldInfo
 
 
-class AHFHalosFile(ParticleFile):
+class AHFHalosFile(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
         root, _ = os.path.splitext(filename)
         candidates = glob.glob(root + '*.AHF_halos')
@@ -57,6 +58,17 @@ class AHFHalosFile(ParticleFile):
             names = [name.split('(')[0] for name in names]
             return names
 
+    def _read_particle_positions(self, ptype, f=None):
+        """
+        Read all particle positions in this file.
+        """
+
+        halos = self.read_data(usecols=['Xc', 'Yc', 'Zc'])
+        pos = np.empty((halos.size, 3), dtype="float64")
+        for i, ax in enumerate('XYZ'):
+            pos[:, i] = halos['%sc' % ax].astype('float64')
+
+        return pos
 
 class AHFHalosDataset(Dataset):
     _index_class = ParticleIndex
@@ -113,9 +125,10 @@ class AHFHalosDataset(Dataset):
         self.current_redshift = param['z']
         self.omega_lambda = simu['lambda0']
         self.omega_matter = simu['omega0']
-        cosmo = Cosmology(self.hubble_constant,
-                          self.omega_matter, self.omega_lambda)
-        self.current_time = cosmo.hubble_time(param['z']).in_units('s')
+        cosmo = Cosmology(hubble_constant=self.hubble_constant,
+                          omega_matter=self.omega_matter,
+                          omega_lambda=self.omega_lambda)
+        self.current_time = cosmo.lookback_time(param['z'], 1e6).in_units('s')
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

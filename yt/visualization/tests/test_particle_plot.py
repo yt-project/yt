@@ -214,7 +214,7 @@ class TestParticlePhasePlotSave(unittest.TestCase):
         particle_phases[0]._repr_html_()
         for p in particle_phases:
             for fname in TEST_FLNMS:
-                assert assert_fname(p.save(fname)[0])
+                assert_fname(p.save(fname)[0])
 
 tgal = 'TipsyGalaxy/galaxy.00300'
 @requires_file(tgal)
@@ -227,8 +227,8 @@ def test_particle_phase_plot_semantics():
                         ('Gas', 'density'),
                         ('Gas', 'temperature'),
                         ('Gas', 'particle_mass'))
-    plot.set_log('density', True)
-    plot.set_log('temperature', True)
+    plot.set_log(('Gas', 'density'), True)
+    plot.set_log(('Gas', 'temperature'), True)
     p = plot.profile
 
     # bin extrema are field extrema
@@ -246,8 +246,8 @@ def test_particle_phase_plot_semantics():
     dylogybins = logybins[1:] - logybins[:-1]
     assert_allclose(dylogybins, dylogybins[0])
 
-    plot.set_log('density', False)
-    plot.set_log('temperature', False)
+    plot.set_log(('Gas', 'density'), False)
+    plot.set_log(('Gas', 'temperature'), False)
     p = plot.profile
 
     # bin extrema are field extrema
@@ -307,7 +307,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         for dim in range(3):
             pplot = ParticleProjectionPlot(test_ds, dim, "particle_mass")
             for fname in TEST_FLNMS:
-                assert assert_fname(pplot.save(fname)[0])
+                assert_fname(pplot.save(fname)[0])
 
     def test_particle_plot_ds(self):
         test_ds = fake_particle_ds()
@@ -346,3 +346,26 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
             [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
             [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
             [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
+
+def test_particle_plot_instance():
+    """
+    Tests the type of plot instance returned by ParticlePlot.
+
+    If x_field and y_field are any combination of valid particle_position in x,
+    y or z axis,then ParticleProjectionPlot instance is expected.
+
+
+    """
+    ds = fake_particle_ds()
+    x_field = ('all', 'particle_position_x')
+    y_field = ('all', 'particle_position_y')
+    z_field = ('all', 'particle_velocity_x')
+
+    plot = ParticlePlot(ds, x_field, y_field)
+    assert isinstance(plot, ParticleProjectionPlot)
+
+    plot = ParticlePlot(ds, y_field, x_field)
+    assert isinstance(plot, ParticleProjectionPlot)
+
+    plot = ParticlePlot(ds, x_field, z_field)
+    assert isinstance(plot, ParticlePhasePlot)

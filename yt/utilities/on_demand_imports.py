@@ -11,6 +11,7 @@ A set of convenient on-demand imports
 #-----------------------------------------------------------------------------
 
 from pkg_resources import parse_version
+import sys
 
 class NotAModule(object):
     """
@@ -30,6 +31,31 @@ class NotAModule(object):
     def __call__(self, *args, **kwargs):
         raise self.error
 
+class NotCartopy(NotAModule):
+    """
+    A custom class to return error messages dependent on system installation
+    for cartopy imports.
+    """
+    def __init__(self, pkg_name):
+        self.pkg_name = pkg_name
+        if any(s in sys.version for s in ("Anaconda", "Continuum")):
+            # the conda-based installs of cartopy don't have issues with the
+            # GEOS library, so the error message for users with conda can be
+            # relatively short. Discussion related to this is in
+            # yt-project/yt#1966
+            self.error = ImportError(
+                "This functionality requires the %s "
+                "package to be installed." % self.pkg_name)
+        else:
+            self.error = ImportError(
+                "This functionality requires the %s "
+                "package to be installed. Try installing proj4 and "
+                "geos with your package manager and building shapely "
+                "and cartopy from source with: \n \n "
+                "pip install --no-binary :all: shapely cartopy \n \n"
+                "For further instruction please refer to the "
+                "yt documentation." % self.pkg_name)
+
 class netCDF4_imports(object):
     _name = "netCDF4"
     _Dataset = None
@@ -43,9 +69,7 @@ class netCDF4_imports(object):
             self._Dataset = Dataset
         return self._Dataset
 
-
 _netCDF4 = netCDF4_imports()
-
 
 class astropy_imports(object):
     _name = "astropy"
@@ -146,6 +170,18 @@ class astropy_imports(object):
             self._wcsaxes = wcsaxes
         return self._wcsaxes
 
+    _version = None
+    @property
+    def __version__(self):
+        if self._version is None:
+            try:
+                import astropy
+                version = astropy.__version__
+            except ImportError:
+                version = NotAModule(self._name)
+            self._version = version
+        return self._version
+
 _astropy = astropy_imports()
 
 class astropy_healpix_imports(object):
@@ -162,6 +198,34 @@ class astropy_healpix_imports(object):
         return self._HEALPix
 
 _astropy_healpix = astropy_healpix_imports()
+
+class cartopy_imports(object):
+    _name = "cartopy"
+
+    _crs = None
+    @property
+    def crs(self):
+        if self._crs is None:
+            try:
+                import cartopy.crs as crs
+            except ImportError:
+                crs = NotCartopy(self._name)
+            self._crs = crs
+        return self._crs
+
+    _version = None
+    @property
+    def __version__(self):
+        if self._version is None:
+            try:
+                import cartopy
+                version = cartopy.__version__
+            except ImportError:
+                version = NotCartopy(self._name)
+            self._version = version
+        return self._version
+
+_cartopy = cartopy_imports()
 
 class scipy_imports(object):
     _name = "scipy"
@@ -219,7 +283,7 @@ class scipy_imports(object):
                 special = NotAModule(self._name)
             self._special = special
         return self._special
-    
+
     _signal = None
     @property
     def signal(self):
@@ -406,3 +470,33 @@ class nose_imports(object):
         return self._run
 
 _nose = nose_imports()
+
+class libconf_imports(object):
+    _name = "libconf"
+    _load = None
+    @property
+    def load(self):
+        if self._load is None:
+            try:
+                from libconf import load
+            except ImportError:
+                load = NotAModule(self._name)
+            self._load = load
+        return self._load
+
+_libconf = libconf_imports()
+
+class yaml_imports(object):
+    _name = "yaml"
+    _load = None
+    @property
+    def load(self):
+        if self._load is None:
+            try:
+                from yaml import load
+            except ImportError:
+                load = NotAModule(self._name)
+            self._load = load
+        return self._load
+
+_yaml = yaml_imports()

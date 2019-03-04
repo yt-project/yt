@@ -50,7 +50,7 @@ def test_fits_image():
     assert_equal(fid1["density"].data, fits_prj["density"].data)
     assert_equal(fid1["temperature"].data, fits_prj["temperature"].data)
 
-    fid1.writeto("fid1.fits", clobber=True)
+    fid1.writeto("fid1.fits", overwrite=True)
     new_fid1 = FITSImageData.from_file("fid1.fits")
 
     assert_equal(fid1["density"].data, new_fid1["density"].data)
@@ -96,7 +96,7 @@ def test_fits_image():
     assert_equal(fid3["temperature"].data, fits_cut["temperature"].data)
 
     fid3.create_sky_wcs([30.,45.], (1.0,"arcsec/kpc"))
-    fid3.writeto("fid3.fits", clobber=True)
+    fid3.writeto("fid3.fits", overwrite=True)
     new_fid3 = FITSImageData.from_file("fid3.fits")
     assert_same_wcs(fid3.wcs, new_fid3.wcs)
     assert new_fid3.wcs.wcs.cunit[0] == "deg"

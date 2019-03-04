@@ -90,7 +90,7 @@ class FixedResolutionBuffer(object):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
-        self.buff_size = buff_size
+        self.buff_size = (int(buff_size[0]), int(buff_size[1]))
         self.antialias = antialias
         self.data = {}
         self._filters = []
@@ -296,8 +296,8 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
-    def export_fits(self, filename, fields=None, clobber=False,
-                    other_keys=None, units="cm"):
+    def export_fits(self, filename, fields=None, overwrite=False,
+                    other_keys=None, units="cm", **kwargs):
         r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
@@ -310,7 +310,7 @@ class FixedResolutionBuffer(object):
         fields : list of strings
             These fields will be pixelized and output. If "None", the keys of the
             FRB will be used.
-        clobber : boolean
+        overwrite : boolean
             If the file exists, this governs whether we will overwrite.
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
@@ -336,7 +336,7 @@ class FixedResolutionBuffer(object):
         if other_keys is not None:
             for k,v in other_keys.items():
                 fib.update_all_headers(k,v)
-        fib.writeto(filename, clobber=clobber)
+        fib.writeto(filename, overwrite=overwrite, **kwargs)
 
     def export_dataset(self, fields=None, nprocs=1):
         r"""Export a set of pixelized fields to an in-memory dataset that can be
@@ -587,9 +587,16 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         y_data = self.data_source.dd[ftype, self.y_field]
         data = self.data_source.dd[item]
 
+        # handle periodicity
+        dx = x_data.in_units("code_length").d - bounds[0]
+        dy = y_data.in_units("code_length").d - bounds[2]
+        if self.periodic:
+            dx %= float(self._period[0].in_units("code_length"))
+            dy %= float(self._period[1].in_units("code_length"))
+
         # convert to pixels
-        px = (x_data - self.bounds[0]) / (self.bounds[1] - self.bounds[0])
-        py = (y_data - self.bounds[2]) / (self.bounds[3] - self.bounds[2])
+        px = dx / (bounds[1] - bounds[0])
+        py = dy / (bounds[3] - bounds[2])
 
         # select only the particles that will actually show up in the image
         mask = np.logical_and(np.logical_and(px >= 0.0, px <= 1.0),

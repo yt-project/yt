@@ -448,7 +448,7 @@ def read_particles(file, Nrow, idxa, idxb, fields):
     words = 6  # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4  # for file_particle_data; not always true?
     np_per_page = Nrow**2  # defined in ART a_setup.h, # of particles/page
-    num_pages = os.path.getsize(file)/(real_size*words*np_per_page)
+    num_pages = os.path.getsize(file)//(real_size*words*np_per_page)
     fh = open(file, 'r')
     skip, count = idxa, idxb - idxa
     kwargs = dict(words=words, real_size=real_size,

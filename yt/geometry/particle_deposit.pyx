@@ -38,6 +38,9 @@ cdef append_axes(np.ndarray arr, int naxes):
 
 cdef class ParticleDepositOperation:
     def __init__(self, nvals, kernel_name):
+        # nvals is a tuple containing the active dimensions of the
+        # grid to deposit onto and the number of grids,
+        # (nx, ny, nz, ngrids)
         self.nvals = nvals
         self.update_values = 0 # This is the default
         self.sph_kernel = get_kernel_func(kernel_name)
@@ -340,11 +343,11 @@ cdef class CICDeposit(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] field
     cdef public object ofield
     def initialize(self):
-        if not all(_ > 1 for _ in self.nvals):
+        if not all(_ > 1 for _ in self.nvals[:-1]):
             from yt.utilities.exceptions import YTBoundsDefinitionError
             raise YTBoundsDefinitionError(
-                "CIC requires minimum of 2 zones in all spatial dimensions",
-                self.nvals)
+                "CIC requires minimum of 2 zones in all spatial dimensions.",
+                self.nvals[:-1])
         self.field = append_axes(
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 

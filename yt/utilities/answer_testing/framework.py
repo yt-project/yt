@@ -45,7 +45,8 @@ from yt.data_objects.time_series import SimulationTimeSeries
 from yt.utilities.exceptions import \
     YTNoOldAnswer, \
     YTCloudError, \
-    YTOutputNotIdentified
+    YTOutputNotIdentified, \
+    YTNoAnswerNameSpecified
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
@@ -138,25 +139,28 @@ class AnswerTesting(Plugin):
                 print('Please supply an output directory with the --local-dir option')
                 sys.exit(1)
             storage_class = AnswerTestLocalStorage
+            output_dir = os.path.realpath(options.output_dir)
             # Fix up filename for local storage
             if self.compare_name is not None:
-                self.compare_name = "%s/%s/%s" % \
-                    (os.path.realpath(options.output_dir), self.compare_name,
-                     self.compare_name)
-            if self.store_name is not None and options.store_results:
-                name_dir_path = "%s/%s" % \
-                    (os.path.realpath(options.output_dir),
-                    self.store_name)
+                self.compare_name = os.path.join(output_dir, self.compare_name,
+                                                 self.compare_name)
+
+            # Create a local directory only when `options.answer_name` is
+            # provided. If it is not provided then creating local directory
+            # will depend on the `AnswerTestingTest.answer_name` value of the
+            # test, this case is handled in AnswerTestingTest class.
+            if options.store_results and options.answer_name is not None:
+                name_dir_path = os.path.join(output_dir, self.store_name)
                 if not os.path.isdir(name_dir_path):
                     os.makedirs(name_dir_path)
-                self.store_name= "%s/%s" % \
-                        (name_dir_path, self.store_name)
+                self.store_name = os.path.join(name_dir_path, self.store_name)
         else:
             storage_class = AnswerTestCloudStorage
 
         # Initialize answer/reference storage
         AnswerTestingTest.reference_storage = self.storage = \
                 storage_class(self.compare_name, self.store_name)
+        AnswerTestingTest.options = options
 
         self.local_results = options.local_results
         global run_big_data
@@ -213,7 +217,8 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         # This is where we dump our result storage up to Amazon, if we are able
         # to.
         import pyrax
-        pyrax.set_credential_file(os.path.expanduser("~/.yt/rackspace"))
+        credentials = os.path.expanduser(os.path.join('~', '.yt', 'rackspace'))
+        pyrax.set_credential_file(credentials)
         cf = pyrax.cloudfiles
         c = cf.get_container("yt-answer-tests")
         pb = get_pbar("Storing results ", len(result_storage))
@@ -331,6 +336,10 @@ class AnswerTestingTest(object):
     reference_storage = None
     result_storage = None
     prefix = ""
+    options = None
+    # This variable should be set if we are not providing `--answer-name` as
+    # command line parameter while running yt's answer testing using nosetests.
+    answer_name = None
     def __init__(self, ds_fn):
         if ds_fn is None:
             self.ds = None
@@ -343,7 +352,38 @@ class AnswerTestingTest(object):
         if AnswerTestingTest.result_storage is None:
             return
         nv = self.run()
+
+        # Test answer name should be provided either as command line parameters
+        # or by setting AnswerTestingTest.answer_name
+        if self.options.answer_name is None and self.answer_name is None:
+            raise YTNoAnswerNameSpecified()
+
+        # This is for running answer test when `--answer-name` is not set in
+        # nosetests command line arguments. In this case, set the answer_name
+        # from the `answer_name` keyword in the test case
+        if self.options.answer_name is None:
+            pyver = "py{}{}".format(sys.version_info.major,
+                                    sys.version_info.minor)
+            self.answer_name = "{}_{}".format(pyver, self.answer_name)
+
+            answer_store_dir = os.path.realpath(self.options.output_dir)
+            ref_name = os.path.join(answer_store_dir, self.answer_name,
+                                    self.answer_name)
+            self.reference_storage.reference_name = ref_name
+            self.reference_storage.answer_name = ref_name
+
+            # If we are generating golden answers (passed --answer-store arg):
+            # - create the answer directory for this test
+            # - self.reference_storage.answer_name will be path to answer files
+            if self.options.store_results:
+                answer_test_dir = os.path.join(answer_store_dir,
+                                               self.answer_name)
+                if not os.path.isdir(answer_test_dir):
+                    os.makedirs(answer_test_dir)
+                self.reference_storage.reference_name = None
+
         if self.reference_storage.reference_name is not None:
+            # Compare test generated values against the golden answer
             dd = self.reference_storage.get(self.storage_name)
             if dd is None or self.description not in dd:
                 raise YTNoOldAnswer(
@@ -351,6 +391,7 @@ class AnswerTestingTest(object):
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
+            # Store results, hence do nothing (in case of --answer-store arg)
             ov = None
         self.result_storage[self.storage_name][self.description] = nv
 
@@ -872,7 +913,7 @@ class GenericImageTest(AnswerTestingTest):
         tmpdir = tempfile.mkdtemp()
         image_prefix = os.path.join(tmpdir,"test_img")
         self.image_func(image_prefix, *args, **kwargs)
-        imgs = glob.glob(image_prefix+"*")
+        imgs = sorted(glob.glob(image_prefix+"*"))
         assert(len(imgs) > 0)
         for img in imgs:
             img_data = mpimg.imread(img)

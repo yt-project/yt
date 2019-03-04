@@ -531,6 +531,10 @@ class YTArray(np.ndarray):
         """
         return str(self.view(np.ndarray)) + ' ' + str(self.units)
 
+    def __format__(self, format_spec):
+        ret = super(YTArray, self).__format__(format_spec)
+        return ret + ' {}'.format(self.units)
+
     #
     # Start unit conversion methods
     #
@@ -788,6 +792,24 @@ class YTArray(np.ndarray):
 
         """
         return np.array(self)
+
+    def argsort(self, axis=-1, kind='quicksort', order=None):
+        """
+        Returns the indices that would sort the array.
+
+        See the documentation of ndarray.argsort for details about the keyword
+        arguments.
+
+        Example
+        -------
+        >>> from yt.units import km
+        >>> data = [3, 8, 7]*km
+        >>> np.argsort(data)
+        array([0, 2, 1])
+        >>> data.argsort()
+        array([0, 2, 1])
+        """
+        return self.view(np.ndarray).argsort(axis, kind, order)
 
     @classmethod
     def from_astropy(cls, arr, unit_registry=None):
@@ -1438,7 +1460,13 @@ class YTArray(np.ndarray):
         metadata extracted in __reduce__ and then serialized by pickle.
         """
         super(YTArray, self).__setstate__(state[1:])
-        unit, lut = state[0]
+        try:
+            unit, lut = state[0]
+        except TypeError:
+            # this case happens when we try to load an old pickle file
+            # created before we serialized the unit symbol lookup table
+            # into the pickle file
+            unit, lut = str(state[0]), default_unit_symbol_lut.copy()
         # need to fix up the lut if the pickle was saved prior to PR #1728
         # when the pickle format changed
         if len(lut['m']) == 2:
@@ -1655,12 +1683,30 @@ def uhstack(arrs):
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 
+def ustack(arrs, axis=0):
+    """Join a sequence of arrays along a new axis while preserving units
+
+    The axis parameter specifies the index of the new axis in the
+    dimensions of the result. For example, if ``axis=0`` it will be the
+    first dimension and if ``axis=-1`` it will be the last dimension.
+
+    This is a wrapper around np.stack that preserves units.
+
+    """
+    v = np.stack(arrs)
+    v = validate_numpy_wrapper_units(v, arrs)
+    return v
+
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
     if isinstance(field, tuple):
-        units = data.ds._get_field_info(field[0],field[1]).output_units
+        finfo = data.ds._get_field_info(field[0],field[1])
     else:
-        units = data.ds._get_field_info(field).output_units
+        finfo = data.ds._get_field_info(field)
+    if finfo.sampling_type == 'particle':
+        units = finfo.output_units
+    else:
+        units = finfo.units
     if isinstance(x, YTArray):
         arr = copy.deepcopy(x)
         arr.convert_to_units(units)

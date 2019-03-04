@@ -28,4 +28,4 @@ versions of these example notebooks.  If you would like to run them locally on
 your own computer, simply download the notebook by clicking the 'Download
 Notebook' link in the top right corner of each page.
 
-1. `IPython Notebook Tutorials <http://nbviewer.ipython.org/github/ipython/ipython/blob/master/examples/Notebook/Index.ipynb>`_
+1. `IPython Notebook Tutorials <https://nbviewer.jupyter.org/github/ipython/ipython/blob/master/examples/Index.ipynb>`_

@@ -13,11 +13,17 @@ Data structures for Enzo-P
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from __future__ import absolute_import
+
 from yt.utilities.on_demand_imports import \
     _h5py as h5py
+from yt.utilities.on_demand_imports import \
+    _libconf as libconf
+import io as io
 import numpy as np
 import os
 import stat
+import warnings
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -25,12 +31,16 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.fields.field_info_container import \
     NullFunc
+from yt.frontends.enzo.misc import \
+    cosmology_get_units
 from yt.funcs import \
     ensure_tuple, \
     get_pbar, \
     setdefaultattr
 from yt.geometry.grid_geometry_handler import \
     GridIndex
+from yt.utilities.cosmology import \
+    Cosmology
 from yt.utilities.logger import \
     ytLogger as mylog
 
@@ -41,6 +51,7 @@ from yt.frontends.enzo_p.misc import \
     get_child_index, \
     get_root_blocks, \
     get_root_block_id, \
+    nested_dict_get, \
     is_parent
 
 class EnzoPGrid(AMRGridPatch):
@@ -65,6 +76,14 @@ class EnzoPGrid(AMRGridPatch):
 
     def __repr__(self):
         return "EnzoPGrid_%04d" % self.id
+
+    def _prepare_grid(self):
+        """Copies all the appropriate attributes from the index."""
+        h = self.index  # cache it
+        my_ind = self.id - self._id_offset
+        self.ActiveDimensions = h.grid_dimensions[my_ind]
+        self.LeftEdge = h.grid_left_edge[my_ind]
+        self.RightEdge = h.grid_right_edge[my_ind]
 
     def get_parent_id(self, desc_block_name):
         if self.block_name == desc_block_name:
@@ -91,6 +110,26 @@ class EnzoPGrid(AMRGridPatch):
         d_block = child.block_name[1:].replace(":", "")
         cid = get_child_index(a_block, d_block)
         self._children_ids[cid] = child.id
+
+    _particle_count = None
+    @property
+    def particle_count(self):
+        if self._particle_count is None:
+            with h5py.File(self.filename, "r") as f:
+                fnstr = "%s/%s" % \
+                  (self.block_name,
+                   self.ds.index.io._sep.join(["particle", "%s", "%s"]))
+                self._particle_count = \
+                  dict((ptype, f.get(fnstr % (ptype, pfield)).size)
+                        for ptype, pfield in self.ds.index.io.sample_pfields.items())
+        return self._particle_count
+
+    _total_particles = None
+    @property
+    def total_particles(self):
+        if self._total_particles is None:
+            self._total_particles = sum(self.particle_count.values())
+        return self._total_particles
 
     @property
     def Parent(self):
@@ -143,7 +182,7 @@ class EnzoPHierarchy(GridIndex):
     def _parse_index(self):
         self.grids = np.empty(self.num_grids, dtype='object')
 
-        pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
+        pbar = get_pbar("Parsing Hierarchy", self.num_grids)
         f = open(self.ds.parameter_filename, "r")
         fblock_size = 32768
         f.seek(0, 2)
@@ -167,12 +206,31 @@ class EnzoPHierarchy(GridIndex):
                 nnl = buff.find("\n", bnl)
                 line = buff[bnl:nnl]
                 block_name, block_file = line.split()
-                level, left, right = get_block_info(block_name)
 
-                rbindex = get_root_block_id(block_name)
-                rbid = rbindex[0] * rbdim[1:].prod() + \
-                  rbindex[1] * rbdim[2:].prod() + rbindex[2]
+                # The B__ block is a negative refinement level
+                # that cannot be used.
+                if "0" not in block_name and "1" not in block_name:
+                    level = -1
+                    left = self.ds.domain_left_edge.d
+                    right = self.ds.domain_right_edge.d
+                else:
+                    level, left, right = get_block_info(block_name)
+                    rbindex = get_root_block_id(block_name)
+                    rbid = rbindex[0] * rbdim[1:].prod() + \
+                      rbindex[1] * rbdim[2:].prod() + rbindex[2]
+
+                # There are also blocks at lower level than the
+                # real root blocks. These can be ignored.
                 if level == 0:
+                    check_root = get_root_blocks(block_name).prod()
+                    if check_root < nroot_blocks:
+                        level = -1
+
+                if level == -1:
+                    grid_id = child_id
+                    parent_id = -1
+                    child_id += 1
+                elif level == 0:
                     grid_id = rbid
                     parent_id = -1
                 else:
@@ -229,30 +287,35 @@ class EnzoPHierarchy(GridIndex):
             if isinstance(fname, tuple): continue
             if field._function is NullFunc: continue
 
+    def _get_particle_type_counts(self):
+        return dict((ptype, sum([g.particle_count[ptype] for g in self.grids]))
+                    for ptype in self.ds.particle_types_raw)
+
     def _detect_output_fields(self):
         self.field_list = []
         # Do this only on the root processor to save disk work.
         if self.comm.rank in (0, None):
             # Just check the first grid.
             grid = self.grids[0]
-            field_list = self.io._read_field_names(grid)
+            field_list, ptypes = self.io._read_field_names(grid)
             mylog.debug("Grid %s has: %s", grid.id, field_list)
-            ptypes = self.dataset.particle_types
-            ptypes_raw = self.dataset.particle_types_raw
         else:
             field_list = None
             ptypes = None
-            ptypes_raw = None
         self.field_list = list(self.comm.mpi_bcast(field_list))
         self.dataset.particle_types = list(self.comm.mpi_bcast(ptypes))
-        self.dataset.particle_types_raw = list(self.comm.mpi_bcast(ptypes_raw))
+        self.dataset.particle_types_raw = self.dataset.particle_types[:]
 
 class EnzoPDataset(Dataset):
     """
     Enzo-P-specific output, set at a fixed time.
     """
+    refine_by = 2
     _index_class = EnzoPHierarchy
     _field_info_class = EnzoPFieldInfo
+    _suffix = ".block_list"
+    particle_types = None
+    particle_types_raw = None
 
     def __init__(self, filename, dataset_type=None,
                  file_style = None,
@@ -278,6 +341,10 @@ class EnzoPDataset(Dataset):
         self.storage_filename = storage_filename
         Dataset.__init__(self, filename, dataset_type, file_style=file_style,
                          units_override=units_override, unit_system=unit_system)
+        warnings.warn(
+            "The Enzo-P file format is still under development and may " +
+            "change. If loading fails, simulation data will need to be " +
+            "re-generated.")
 
     def _parse_parameter_file(self):
         """
@@ -295,6 +362,43 @@ class EnzoPDataset(Dataset):
         self.periodicity = \
           ensure_tuple(np.ones(self.dimensionality, dtype=bool))
 
+        lcfn = self.parameter_filename[:-len(self._suffix)] + ".libconfig"
+        if os.path.exists(lcfn):
+            with io.open(lcfn, "r") as lf:
+                self.parameters = libconf.load(lf)
+            cosmo = nested_dict_get(
+                self.parameters, ("Physics", "cosmology"))
+            if cosmo is not None:
+                self.cosmological_simulation = 1
+                co_pars = ["hubble_constant_now", "omega_matter_now",
+                           "omega_lambda_now", "comoving_box_size",
+                           "initial_redshift"]
+                co_dict = \
+                  dict((attr, nested_dict_get(self.parameters,
+                    ("Physics", "cosmology", attr))) for attr in co_pars)
+                for attr in ["hubble_constant",
+                             "omega_matter",
+                             "omega_lambda"]:
+                    setattr(self, attr, co_dict["%s_now" % attr])
+
+                # Current redshift is not stored, so it's not possible
+                # to set all cosmological units yet.
+                # Get the time units and use that to figure out redshift.
+                k = cosmology_get_units(
+                    self.hubble_constant, self.omega_matter,
+                    co_dict["comoving_box_size"],
+                    co_dict["initial_redshift"], 0)
+                setdefaultattr(
+                    self, 'time_unit', self.quan(k['utim'], 's'))
+                co = Cosmology(hubble_constant=self.hubble_constant,
+                               omega_matter=self.omega_matter,
+                               omega_lambda=self.omega_lambda)
+            else:
+                self.cosmological_simulation = 0
+        else:
+            self.cosmological_simulation = 0
+
+
         fh = h5py.File(os.path.join(self.directory, fn0), "r")
         self.domain_left_edge  = fh.attrs["lower"]
         self.domain_right_edge = fh.attrs["upper"]
@@ -311,34 +415,61 @@ class EnzoPDataset(Dataset):
         self.domain_dimensions = root_blocks * self.active_grid_dimensions
         fh.close()
 
-        self.periodicity += (False, ) * (3 - self.dimensionality)
+        if self.cosmological_simulation:
+            self.current_redshift = \
+              co.z_from_t(self.current_time * self.time_unit)
 
-        # WIP hard-coded for now
-        self.refine_by = 2
-        self.cosmological_simulation = 0
-        self.gamma = 5. / 3.
-        self.particle_types = ()
-        self.particle_types_raw = self.particle_types
+        self.periodicity += (False, ) * (3 - self.dimensionality)
+        self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
+
         self.unique_identifier = \
           str(int(os.stat(self.parameter_filename)[stat.ST_CTIME]))
 
     def _set_code_unit_attributes(self):
-        setdefaultattr(self, 'length_unit', self.quan(1, "cm"))
-        setdefaultattr(self, 'mass_unit', self.quan(1, "g"))
-        setdefaultattr(self, 'time_unit', self.quan(1, "s"))
-        setdefaultattr(self, 'velocity_unit',
-                       self.length_unit / self.time_unit)
+        if self.cosmological_simulation:
+            box_size = \
+              self.parameters["Physics"]["cosmology"]["comoving_box_size"]
+            k = cosmology_get_units(
+                self.hubble_constant, self.omega_matter, box_size,
+                self.parameters["Physics"]["cosmology"]["initial_redshift"],
+                self.current_redshift)
+            # Now some CGS values
+            setdefaultattr(self, 'length_unit', self.quan(box_size, "Mpccm/h"))
+            setdefaultattr(
+                self, 'mass_unit',
+                self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3)
+            setdefaultattr(self, 'velocity_unit', self.quan(k['uvel'], 'cm/s'))
+        else:
+            p = self.parameters
+            for d, u in zip(("length", "time"),
+                            ("cm", "s")):
+                val = nested_dict_get(p, ("Units", d), default=1)
+                setdefaultattr(self, '%s_unit' % d, self.quan(val, u))
+            mass = nested_dict_get(p, ("Units", "mass"))
+            if mass is None:
+                density = nested_dict_get(p, ("Units", "density"))
+                if density is not None:
+                    mass = density * self.length_unit**3
+                else:
+                    mass = 1
+            setdefaultattr(self, 'mass_unit', self.quan(mass, "g"))
+            setdefaultattr(self, 'velocity_unit',
+                           self.length_unit / self.time_unit)
+
         magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                 (self.time_unit**2 * self.length_unit))
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
         setdefaultattr(self, 'magnetic_unit',
                        self.quan(magnetic_unit, "gauss"))
 
+    def __repr__(self):
+        return self.basename[:-len(self._suffix)]
+
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         fn = args[0]
         ddir = os.path.dirname(fn)
-        if not fn.endswith(".block_list"):
+        if not fn.endswith(cls._suffix):
             return False
         try:
             with open(fn, "r") as f:

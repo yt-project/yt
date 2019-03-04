@@ -493,6 +493,8 @@ class BoxlibHierarchy(GridIndex):
         mylog.debug("Done creating grid objects")
 
     def _reconstruct_parent_child(self):
+        if (self.max_level == 0):
+            return
         mask = np.empty(len(self.grids), dtype='int32')
         mylog.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
@@ -1307,7 +1309,7 @@ class NyxDataset(BoxlibDataset):
 
         # alias
         self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
-        if os.path.isdir(os.path.join(self.output_dir, "DM")):
+        if os.path.isfile(os.path.join(self.output_dir, "DM/Header")):
             # we have particles
             self.parameters["particles"] = 1 
             self.particle_types = ("DM",)
@@ -1348,7 +1350,7 @@ def _guess_pcast(vals):
 
 def _read_raw_field_names(raw_file):
     header_files = glob.glob(raw_file + "*_H")
-    return [hf.split("/")[-1][:-2] for hf in header_files]
+    return [hf.split(os.sep)[-1][:-2] for hf in header_files]
 
 
 def _string_to_numpy_array(s):
@@ -1556,16 +1558,16 @@ class WarpXDataset(BoxlibDataset):
             periodicity += [True]  # pad to 3D
         self.periodicity = ensure_tuple(periodicity)
 
-        
-
-        species_list = []
-        species_dirs = glob.glob(self.output_dir + "/particle*")
-        for species in species_dirs:
-            species_list.append(species[len(self.output_dir)+1:])
-        self.particle_types = tuple(species_list)
-        self.particle_types_raw = self.particle_types
-
-
+        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
+        if len(particle_types) > 0:
+            self.parameters["particles"] = 1
+            self.particle_types = tuple(particle_types)
+            self.particle_types_raw = self.particle_types
+        else:
+            self.particle_types = ()
+            self.particle_types_raw = ()
+            
     def _set_code_unit_attributes(self):
         setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))
         setdefaultattr(self, 'mass_unit', self.quan(1.0, "kg"))
@@ -1607,7 +1609,7 @@ class AMReXDataset(BoxlibDataset):
     def _parse_parameter_file(self):
         super(AMReXDataset, self)._parse_parameter_file()
         particle_types = glob.glob(self.output_dir + "/*/Header")
-        particle_types = [cpt.split("/")[-2] for cpt in particle_types]
+        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)

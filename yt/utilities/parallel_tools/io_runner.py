@@ -142,7 +142,7 @@ class IOHandlerRemote(BaseIOHandler):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
         #sl = tuple(reversed(sl))
-        return self._read_data_set(grid,field)[sl]
+        return self._read_data_set(grid,field)[tuple(sl)]
 
     def terminate(self):
         msg = dict(op='end')

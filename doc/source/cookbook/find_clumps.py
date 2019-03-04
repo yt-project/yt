@@ -1,7 +1,7 @@
 import numpy as np
 
 import yt
-from yt.analysis_modules.level_sets.api import *
+from yt.data_objects.level_sets.api import *
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
@@ -37,7 +37,7 @@ find_clumps(master_clump, c_min, c_max, step)
 fn = master_clump.save_as_dataset(fields=["density", "particle_mass"])
 
 # We can traverse the clump hierarchy to get a list of all of the 'leaf' clumps
-leaf_clumps = get_lowest_clumps(master_clump)
+leaf_clumps = master_clump.leaves
 
 # If you'd like to visualize these clumps, a list of clumps can be supplied to
 # the "clumps" callback on a plot.  First, we create a projection plot:
@@ -51,6 +51,16 @@ prj.save('clumps')
 
 # Reload the clump dataset.
 cds = yt.load(fn)
+
+# Clump annotation can also be done with the reloaded clump dataset.
+
+# Remove the original clump annotation
+prj.annotate_clear()
+
+# Get the leaves and add the callback.
+leaf_clumps_reloaded = cds.leaves
+prj.annotate_clumps(leaf_clumps_reloaded)
+prj.save('clumps_reloaded')
 
 # Query fields for clumps in the tree.
 print (cds.tree["clump", "center_of_mass"])

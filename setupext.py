@@ -18,6 +18,7 @@ CCODE = """
 #include <omp.h>
 #include <stdio.h>
 int main() {
+  omp_set_num_threads(2);
   #pragma omp parallel
   printf("nthreads=%d\\n", omp_get_num_threads());
   return 0;
@@ -58,7 +59,7 @@ def check_for_openmp():
     """
 
     # See https://bugs.python.org/issue25150
-    if sys.version_info[:3] == (3, 5, 0) or os.name == 'nt':
+    if sys.version_info[:3] == (3, 5, 0):
         return False
 
     # Create a temporary directory

@@ -68,6 +68,7 @@ class StreamFieldInfo(FieldInfoContainer):
         ("density", ("code_mass/code_length**3", ["density"], None)),
         ("temperature", ("code_temperature", ["temperature"], None)),
         ("creation_time", ("code_time", ["creation_time"], None)),
+        ("age", ("code_time", [], None))
     )
 
     def setup_fluid_fields(self):

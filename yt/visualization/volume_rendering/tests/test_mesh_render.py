@@ -10,11 +10,11 @@ Test Surface Mesh Rendering
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
+from nose.plugins.attrib import attr
 from yt.testing import \
     fake_tetrahedral_ds, \
     fake_hexahedral_ds, \
-    requires_module
+    requires_module, ANSWER_TEST_TAG
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
@@ -26,13 +26,14 @@ from yt.visualization.volume_rendering.api import \
 from yt.config import \
     ytcfg
 
-def compare(ds, im, test_prefix, decimals=12):
+def compare(ds, im, test_prefix, test_name=None, decimals=12):
     def mesh_render_image_func(filename_prefix):
         return im.write_image(filename_prefix)
 
     mesh_render_image_func.__name__ = "func_{}".format(test_prefix)
     test = GenericImageTest(ds, mesh_render_image_func, decimals)
     test.prefix = test_prefix
+    test.answer_name = test_name
     return test
 
 def surface_mesh_render():
@@ -69,6 +70,16 @@ def test_surface_mesh_render():
     ytcfg["yt", "ray_tracing_engine"] = "yt"
     surface_mesh_render()
 
+@attr(ANSWER_TEST_TAG)
+def test_fake_hexahedral_ds_render():
+    ds = fake_hexahedral_ds()
+    field_list = [('connect1', 'elem'), ('connect1', 'test')]
+    for field in field_list:
+        sc = create_scene(ds, field)
+        im = sc.render()
+        test_prefix = "yt_render_fake_hexahedral_%s_%s" % (field[0], field[1])
+        yield compare(ds, im, test_prefix=test_prefix,
+                      test_name="fake_hexahedral_ds_render")
 
 hex8 = "MOOSE_sample_data/out.e-s010"
 hex8_fields = [('connect1', 'diffused'), ('connect2', 'convected')]

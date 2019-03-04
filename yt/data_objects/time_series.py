@@ -43,7 +43,7 @@ from yt.utilities.exceptions import \
     YTException, \
     YTOutputNotIdentified
 from yt.utilities.parallel_tools.parallel_analysis_interface \
-    import parallel_objects, parallel_root_only
+    import parallel_objects, parallel_root_only, communication_system
 from yt.utilities.parameter_file_storage import \
     simulation_time_series_registry
      
@@ -88,7 +88,8 @@ attrs = ("refine_by", "dimensionality", "current_time",
          "domain_dimensions", "domain_left_edge",
          "domain_right_edge", "unique_identifier",
          "current_redshift", "cosmological_simulation",
-         "omega_matter", "omega_lambda", "hubble_constant")
+         "omega_matter", "omega_lambda", "omega_radiation",
+         "hubble_constant")
 
 class TimeSeriesParametersContainer(object):
     def __init__(self, data_object):
@@ -120,9 +121,12 @@ class DatasetSeries(object):
         This parameter governs the behavior when .piter() is called on the
         resultant DatasetSeries object.  If this is set to False, the time
         series will not iterate in parallel when .piter() is called.  If
-        this is set to either True or an integer, it will be iterated with
-        1 or that integer number of processors assigned to each parameter
-        file provided to the loop.
+        this is set to either True, one processor will be allocated for
+        each iteration of the loop. If this is set to an integer, the loop
+        will be parallelized over this many workgroups. It the integer
+        value is less than the total number of available processors,
+        more than one processor will be allocated to a given loop iteration,
+        causing the functionality within the loop to be run in parallel.
     setup_function : callable, accepts a ds
         This function will be called whenever a dataset is loaded.
     mixed_dataset_types : True or False, default False
@@ -205,7 +209,7 @@ class DatasetSeries(object):
     def outputs(self):
         return self._pre_outputs
 
-    def piter(self, storage = None):
+    def piter(self, storage = None, dynamic = False):
         r"""Iterate over time series components in parallel.
 
         This allows you to iterate over a time series while dispatching
@@ -233,6 +237,13 @@ class DatasetSeries(object):
             course of the iteration.  The keys will be the dataset
             indices and the values will be whatever is assigned to the *result*
             attribute on the storage during iteration.
+        dynamic : boolean
+            This governs whether or not dynamic load balancing will be
+            enabled.  This requires one dedicated processor; if this
+            is enabled with a set of 128 processors available, only
+            127 will be available to iterate over objects as one will
+            be load balancing the rest.
+
 
         Examples
         --------
@@ -270,14 +281,22 @@ class DatasetSeries(object):
         ...
 
         """
-        dynamic = False
         if self.parallel is False:
             njobs = 1
-        else:
+        elif dynamic is False:
             if self.parallel is True:
                 njobs = -1
             else:
                 njobs = self.parallel
+        else:
+            my_communicator = communication_system.communicators[-1]
+            nsize = my_communicator.size
+            if nsize == 1:
+                self.parallel = False
+                dynamic = False
+                njobs = 1
+            else:
+                njobs = nsize - 1
 
         for output in parallel_objects(self._pre_outputs, njobs=njobs,
                                        storage=storage, dynamic=dynamic):
@@ -315,7 +334,7 @@ class DatasetSeries(object):
                 # We catch and store YT-originating exceptions
                 # This fixes the standard problem of having a sphere that's too
                 # small.
-                except YTException as rv:
+                except YTException:
                     pass
                 store.result.append(rv)
         return [v for k, v in sorted(return_values.items())]
@@ -401,7 +420,7 @@ class DatasetSeries(object):
         self._dataset_cls = ds.__class__
         return ds
 
-    def particle_trajectories(self, indices, fields=None, suppress_logging=False):
+    def particle_trajectories(self, indices, fields=None, suppress_logging=False, ptype=None):
         r"""Create a collection of particle trajectories in time over a series of
         datasets.
 
@@ -418,6 +437,8 @@ class DatasetSeries(object):
         suppress_logging : boolean
             Suppress yt's logging when iterating over the simulation time
             series. Default: False
+        ptype : str, optional
+            Only use this particle type. Default: None, which uses all particle type.
 
         Examples
         --------
@@ -433,8 +454,14 @@ class DatasetSeries(object):
         >>> trajs = ts.particle_trajectories(indices, fields=fields)
         >>> for t in trajs :
         >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
+
+        Note
+        ----
+        This function will fail if there are duplicate particle ids or if some of the particle
+        disappear.
         """
-        return ParticleTrajectories(self, indices, fields=fields, suppress_logging=suppress_logging)
+        return ParticleTrajectories(self, indices, fields=fields, suppress_logging=suppress_logging,
+                                    ptype=ptype)
 
 class TimeSeriesQuantitiesContainer(object):
     def __init__(self, data_object, quantities):
@@ -555,8 +582,8 @@ class SimulationTimeSeries(DatasetSeries):
                   "cosmological_simulation"]:
             self._print_attr(a)
         if getattr(self, "cosmological_simulation", False):
-            for a in ["box_size", "omega_lambda",
-                      "omega_matter", "hubble_constant",
+            for a in ["box_size", "omega_matter", "omega_lambda",
+                      "omega_radiation", "hubble_constant",
                       "initial_redshift", "final_redshift"]:
                 self._print_attr(a)
         for a in self.key_parameters:

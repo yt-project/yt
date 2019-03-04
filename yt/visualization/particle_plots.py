@@ -95,8 +95,9 @@ class ParticleProjectionPlot(PWViewerMPL):
          or the axis name itself
     fields : string, list or None
          If a string or list, the name of the particle field(s) to be used 
-         one the colorbar. If None, the particle positions will be indicated
-         using a fixed color, instead. Default is None.
+         one the colorbar. The color shown will correspond to the sum of the
+         given field along the line of sight. If None, the particle positions
+         will be indicated using a fixed color, instead. Default is None.
     color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
          One the matplotlib-recognized color strings.
          The color that will indicate the particle locations
@@ -138,6 +139,8 @@ class ParticleProjectionPlot(PWViewerMPL):
          are assumed. Defaults to the entire domain.
     weight_field : string
          The name of the weighting field.  Set to None for no weight.
+         If given, the plot will show a weighted average along the line of
+         sight of the fields given in the ``fields`` argument.
     axes_unit : A string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
@@ -277,7 +280,9 @@ class ParticlePhasePlot(PhasePlot):
         If None, particles will be splatted onto the mesh,
         but no colormap will be used.
         If str or list, the name of the field or fields to
-        be displayed on the colorbar.
+        be displayed on the colorbar. The displayed values will
+        correspond to the sum of the field or fields along the
+        line of sight.
         Default: None.
     color : 'b', 'g', 'r', 'c', 'm', 'y', 'k', or 'w'
         One the matplotlib-recognized color strings.
@@ -292,7 +297,9 @@ class ParticlePhasePlot(PhasePlot):
         The number of bins in y field for the mesh.
         Default: 800.
     weight_field : str
-        The field to weight by. Default: None.
+        The field to weight by. If given, the plot will show a weighted
+        average along the line of sight of the fields given in the
+        ``z_fields`` argument. Default: None.
     deposition : str
         Either 'ngp' or 'cic'. Controls what type of
         interpolation will be used to deposit the
@@ -512,7 +519,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
         ax_field_template = 'particle_position_%s'
         xf = ax_field_template % ds.coordinates.axis_name[xax]
         yf = ax_field_template % ds.coordinates.axis_name[yax]
-        if (x_field[1], y_field[1]) == (xf, yf):
+        if (x_field[1], y_field[1]) in [(xf, yf), (yf, xf)]:
             direction = axis
             break
 

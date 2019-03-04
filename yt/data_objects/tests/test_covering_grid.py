@@ -1,13 +1,10 @@
 import numpy as np
 
-from yt import \
-    load
 from yt.frontends.stream.data_structures import load_particles
-from yt.testing import \
-    requires_file, \
-    fake_random_ds, \
-    assert_equal, \
-    assert_almost_equal
+from yt.testing import fake_random_ds, assert_equal, assert_almost_equal, \
+    fake_octree_ds
+
+from yt.units import kpc
 
 def setup():
     from yt.config import ytcfg
@@ -134,29 +131,30 @@ def test_arbitrary_grid():
                     2**ref_level * ds.domain_dimensions)
             assert_almost_equal(cg["density"], ag["density"])
 
-output_00080 = "output_00080/info_00080.txt"
-@requires_file(output_00080)
 def test_octree_cg():
-    ds = load(output_00080)
-    cgrid = ds.covering_grid(0, left_edge=ds.domain_left_edge, dims=ds.domain_dimensions)
+    ds = fake_octree_ds(over_refine_factor=0, partial_coverage=0)
+    cgrid = ds.covering_grid(0, left_edge=ds.domain_left_edge,
+                             dims=ds.domain_dimensions)
     density_field = cgrid["density"]
     assert_equal((density_field == 0.0).sum(), 0)
 
-ekh = 'EnzoKelvinHelmholtz/DD0011/DD0011'
-@requires_file(ekh)
 def test_smoothed_covering_grid_2d_dataset():
-    ds = load(ekh)
+    ds = fake_random_ds([32, 32, 1], nprocs=4)
     ds.periodicity = (True, True, True)
-    scg = ds.smoothed_covering_grid(1, [0, 0, 0], [128, 128, 1])
-    assert_equal(scg['density'].shape, [128, 128, 1])
+    scg = ds.smoothed_covering_grid(1, [0.0, 0.0, 0.0], [32, 32, 1])
+    assert_equal(scg['density'].shape, [32, 32, 1])
 
-isogal = "IsolatedGalaxy/galaxy0030/galaxy0030"
-@requires_file(isogal)
 def test_arbitrary_grid_derived_field():
+    def custom_metal_density(field, data):
+        # Calculating some random value
+        return data['gas', 'density']*np.random.random_sample()
+
+    ds = fake_random_ds(64, nprocs=8, particles=16**2)
+    ds.add_field(("gas", "Metal_Density"), units="g/cm**3",
+                 function=custom_metal_density, sampling_type='cell')
+
     def _tracerf(field, data):
         return data['Metal_Density']/data['gas', 'density']
-
-    ds = load(isogal)
 
     ds.add_field(("gas", "tracerf"), function=_tracerf, units="dimensionless",
                  take_log=False)
@@ -164,3 +162,39 @@ def test_arbitrary_grid_derived_field():
     galgas = ds.arbitrary_grid([0.4, 0.4, 0.4], [0.99, 0.99, 0.99],
                                dims=[32, 32, 32])
     galgas['tracerf']
+
+def test_arbitrary_grid_edge():
+    # Tests bug fix for issue #2087
+    # Regardless of how left_edge and right_edge are passed, the result should be
+    # a YTArray with a unit registry that matches that of the dataset.
+    dims = [32,32,32]
+    ds = fake_random_ds(dims)
+    # Test when edge is a list, numpy array, YTArray with dataset units, and
+    # YTArray with non-dataset units
+    ledge = [ [0., 0., 0.],
+            np.array([0., 0., 0.]),
+            [0., 0., 0.] * ds.length_unit,
+            [0., 0., 0.] * kpc]
+
+    redge = [ [1., 1., 1.],
+            np.array([1., 1., 1.]),
+            [1., 1., 1.] * ds.length_unit,
+            [1., 1., 1.] * kpc]
+
+    ledge_ans = [ [0., 0., 0.] * ds.length_unit.to('code_length'),
+                np.array([0., 0., 0.]) * ds.length_unit.to('code_length'),
+                [0., 0., 0.] * ds.length_unit,
+                [0., 0., 0.] * kpc]
+
+    redge_ans = [ [1., 1., 1.] * ds.length_unit.to('code_length'),
+                np.array([1., 1., 1.]) * ds.length_unit.to('code_length'),
+                [1., 1., 1.] * ds.length_unit,
+                [1., 1., 1.] * kpc]
+
+    for le, re, le_ans, re_ans in zip(ledge, redge, ledge_ans, redge_ans):
+        ag = ds.arbitrary_grid(left_edge = le, right_edge = re, dims = dims)
+        assert np.array_equal(ag.left_edge, le_ans)
+        assert np.array_equal(ag.right_edge, re_ans)
+        assert ag.left_edge.units.registry == ds.unit_registry
+        assert ag.right_edge.units.registry == ds.unit_registry
+        ag['density']

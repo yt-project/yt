@@ -60,9 +60,9 @@ Code Errors and Failures
 yt fails saying that it cannot import yt modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is commonly exhibited with this error:
-``ImportError: cannot import name obtain_rvec``.  This is likely because
-you need to rebuild the source.  You can do this automatically by running:
+This is commonly exhibited with an error about not being able to import code
+that is part of yt. This is likely because the code that is failing to import
+needs to be compiled or recompiled, You can do this automatically by running:
 
 .. code-block:: bash
 
@@ -176,7 +176,7 @@ units, you can convert it to a YTQuantity with units of ``kpc`` by running:
 
     x = x*ds.length_unit.in_units('kpc')
 
-For more information about unit conversion, see :ref:`data_selection_and_fields`.
+For more information about unit conversion, see :ref:`units`.
 
 How do I make a YTQuantity tied to a specific dataset's units?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -200,7 +200,7 @@ You can then naturally exploit the units system:
     print("One Mpc in AU:", one_Mpc.in_units('AU'))
     print("One Mpc in comoving kpc:", one_Mpc.in_units('kpccm'))
 
-For more information about unit conversion, see :ref:`data_selection_and_fields`.
+For more information about unit conversion, see :ref:`units`.
 
 .. _accessing-unitless-data:
 
@@ -240,7 +240,7 @@ attribute, which returns the data itself:
 
     2.0
 
-For more information about this functionality with units, see :ref:`data_selection_and_fields`.
+For more information about this functionality with units, see :ref:`units`.
 
 Fields
 ------
