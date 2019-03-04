@@ -265,7 +265,7 @@ def test_phaseplot_set_log():
 
 
 
-def test_phaseplot_showhide_colorbar():
+def test_phaseplot_showhide_colorbar_axes():
     fields = ('density', 'temperature')
     units = ('g/cm**3', 'K',)
     ds = fake_random_ds(16, fields=fields, units=units)
@@ -274,16 +274,23 @@ def test_phaseplot_showhide_colorbar():
 
     # make sure we can hide colorbar
     plot.hide_colorbar()
-
     with tempfile.NamedTemporaryFile(suffix='png') as f1:
         plot.save(f1.name)
 
     # make sure we can show colorbar
     plot.show_colorbar()
-
     with tempfile.NamedTemporaryFile(suffix='png') as f2:
         plot.save(f2.name)
 
+    # make sure we can hide axes
+    plot.hide_axes()
+    with tempfile.NamedTemporaryFile(suffix='png') as f3:
+        plot.save(f3.name)
+
+    # make sure we can show axes
+    plot.show_axes()
+    with tempfile.NamedTemporaryFile(suffix='png') as f4:
+        plot.save(f4.name)
 
 
 
