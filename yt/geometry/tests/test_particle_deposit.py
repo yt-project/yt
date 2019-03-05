@@ -19,6 +19,7 @@ def test_cic_deposit():
     assert_raises(YTBoundsDefinitionError, my_reg.__getitem__, f)
 
 RAMSES = 'output_00080/info_00080.txt'
+ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
 
 @requires_file(RAMSES)
 def test_one_zone_octree_deposit():
@@ -32,44 +33,48 @@ def test_one_zone_octree_deposit():
     assert sp['deposit', 'io_cic'].shape == (1,)
 
 @requires_file(RAMSES)
+@requires_file(ISOGAL)
 def test_mesh_deposition():
-    ds = yt.load(RAMSES)
-    ds.add_deposited_mesh_field(('index', 'x'), ptype='all')
-    ds.add_deposited_mesh_field(('index', 'dx'), ptype='all')
+    for fn in [RAMSES, ISOGAL]:
+        ds = yt.load(fn)
+        ds.add_deposited_mesh_field(('index', 'x'), ptype='all')
+        ds.add_deposited_mesh_field(('index', 'dx'), ptype='all')
 
-    dx = ds.r['all', 'cell_index_dx']
-    xc = ds.r['all', 'cell_index_x']
-    xp = ds.r['all', 'particle_position_x']
+        dx = ds.r['all', 'cell_index_dx']
+        xc = ds.r['all', 'cell_index_x']
+        xp = ds.r['all', 'particle_position_x']
 
-    dist = xp - xc
+        dist = xp - xc
 
-    assert_array_less(dist, dx)
-    assert_array_less(-dist, dx)
+        assert_array_less(dist, dx)
+        assert_array_less(-dist, dx)
 
 @requires_file(RAMSES)
+@requires_file(ISOGAL)
 def test_mesh_deposition_for_filtered_particles():
-    ds = yt.load(RAMSES)
+    for fn in [RAMSES, ISOGAL]:
+        ds = yt.load(RAMSES)
 
-    @yt.particle_filter(requires=['particle_position_x'], filtered_type='io')
-    def left(pfilter, data):
-        return data[(pfilter.filtered_type, 'particle_position_x')].to('code_length') < 0.5
-    ds.add_particle_filter('left')
+        @yt.particle_filter(requires=['particle_position_x'], filtered_type='io')
+        def left(pfilter, data):
+            return data[(pfilter.filtered_type, 'particle_position_x')].to('code_length') < 0.5
+        ds.add_particle_filter('left')
 
-    for f in (('index', 'x'), ('index', 'dx'), ('gas', 'density')):
-        ds.add_deposited_mesh_field(f, ptype='io')
-        ds.add_deposited_mesh_field(f, ptype='left')
+        for f in (('index', 'x'), ('index', 'dx'), ('gas', 'density')):
+            ds.add_deposited_mesh_field(f, ptype='io')
+            ds.add_deposited_mesh_field(f, ptype='left')
 
-    data_sources = (ds.all_data(), ds.box([0]*3, [0.1]*3))
+        data_sources = (ds.all_data(), ds.box([0]*3, [0.1]*3))
 
-    def test_source(ptype, src):
-        # Test accessing
-        src[ptype, 'cell_index_x']
-        src[ptype, 'cell_index_dx']
-        src[ptype, 'cell_gas_density']
+        def test_source(ptype, src):
+            # Test accessing
+            src[ptype, 'cell_index_x']
+            src[ptype, 'cell_index_dx']
+            src[ptype, 'cell_gas_density']
 
-    for ptype in ('io', 'left'):
-        for src in data_sources:
-            yield test_source, ptype, src
+        for ptype in ('io', 'left'):
+            for src in data_sources:
+                test_source(ptype, src)
 
 @requires_file(RAMSES)
 def test_deposition_with_indexing():
@@ -90,3 +95,4 @@ def test_deposition_with_indexing():
 
     # Check same answer is returned
     assert_allclose(v1, v2)
+

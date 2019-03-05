@@ -29,7 +29,6 @@ from six.moves import cPickle
 from yt.config import ytcfg
 from yt.fields.derived_field import \
     DerivedField
-from yt.fields.field_detector import FieldDetector
 from yt.funcs import \
     mylog, \
     set_intersection, \
@@ -83,7 +82,6 @@ from yt.geometry.coordinates.api import \
     GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler, \
     InternalGeographicCoordinateHandler
-from yt.geometry.oct_geometry_handler import OctreeIndex
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
@@ -1293,94 +1291,12 @@ class Dataset(object):
         True
 
         """
-        self.index
         if isinstance(deposit_field, tuple):
             ftype, deposit_field = deposit_field[0], deposit_field[1]
         else:
             raise RuntimeError
 
-        if not isinstance(self.index, OctreeIndex):
-            raise NotImplementedError(
-                'The mesh deposition scheme is only implemented for oct-based datasets.')
-
-        units = self.field_info[ftype, deposit_field].units
-        take_log = self.field_info[ftype, deposit_field].take_log
-        field_name = "cell_%s_%s" % (ftype, deposit_field)
-
-        def _deposit_cell_index(field, data):
-            # Get the position of the particles
-            pos = data[ptype, "particle_position"]
-            Npart = pos.shape[0]
-            ret = np.zeros(Npart)
-            tmp = np.zeros(Npart)
-
-            if isinstance(data, FieldDetector):
-                return ret
-
-            remaining = np.ones(Npart, dtype=bool)
-            Nremaining = Npart
-
-            Nobjs = len(data._current_chunk.objs)
-            Nbits = int(np.ceil(np.log2(Nobjs)))
-
-            for i, subset in enumerate(data._current_chunk.objs):
-                if Nremaining == 0:
-                    continue
-                icell = subset['index', 'ones'].T.reshape(-1).astype(np.int64).cumsum().value - 1
-                mesh_data = ((icell << Nbits) + i).astype(np.float64)
-                # Access the mesh data and attach them to their particles
-                tmp[:Nremaining] = subset.mesh_deposit(pos[remaining], mesh_data)
-
-                ret[remaining] = tmp[:Nremaining]
-
-                remaining[remaining] = np.isnan(tmp[:Nremaining])
-                Nremaining = remaining.sum()
-
-            return data.ds.arr(ret.astype(np.float64), input_units='1')
-
-        def _deposit_field(field, data):
-            """
-            Create a grid field for particle quantities using given method.
-            """
-            ones = data[ptype, 'particle_ones']
-
-            # Access "cell_index" field
-            cell_data = data[ftype, deposit_field].reshape(-1)
-            Npart = ones.shape[0]
-            ret = np.zeros(Npart)
-            cell_index = np.array(data[ptype, 'cell_index'], np.int64)
-
-            if isinstance(data, FieldDetector):
-                return ret
-
-            # The index of the obj is stored on the first bits
-            Nobjs = len(data._current_chunk.objs)
-            Nbits = int(np.ceil(np.log2(Nobjs)))
-            icell = cell_index >> Nbits
-            iobj = cell_index - (icell << Nbits)
-            for i, subset in enumerate(data._current_chunk.objs):
-                mask = (iobj == i)
-
-                cell_data = subset[ftype, deposit_field].T.reshape(-1)
-
-                ret[mask] = cell_data[icell[mask]]
-
-            return data.ds.arr(ret, input_units=cell_data.units)
-
-        if (ptype, 'cell_index') not in self.derived_field_list:
-            self.add_field(
-                (ptype, 'cell_index'),
-                function=_deposit_cell_index,
-                sampling_type="particle",
-                units='1')
-
-        self.add_field(
-            (ptype, field_name),
-            function=_deposit_field,
-            sampling_type="particle",
-            units=units,
-            take_log=take_log)
-        return (ptype, field_name)
+        return self.index._add_deposited_mesh_field(deposit_field, ftype, ptype)
 
     def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
                                      weight_field='particle_mass'):
