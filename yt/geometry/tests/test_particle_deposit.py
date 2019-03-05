@@ -34,11 +34,11 @@ def test_one_zone_octree_deposit():
 
 @requires_file(RAMSES)
 @requires_file(ISOGAL)
-def test_mesh_deposition():
+def test_mesh_sampling():
     for fn in [RAMSES, ISOGAL]:
         ds = yt.load(fn)
-        ds.add_deposited_mesh_field(('index', 'x'), ptype='all')
-        ds.add_deposited_mesh_field(('index', 'dx'), ptype='all')
+        ds.add_mesh_sampling_particle_field(('index', 'x'), ptype='all')
+        ds.add_mesh_sampling_particle_field(('index', 'dx'), ptype='all')
 
         dx = ds.r['all', 'cell_index_dx']
         xc = ds.r['all', 'cell_index_x']
@@ -51,7 +51,7 @@ def test_mesh_deposition():
 
 @requires_file(RAMSES)
 @requires_file(ISOGAL)
-def test_mesh_deposition_for_filtered_particles():
+def test_mesh_sampling_for_filtered_particles():
     for fn in [RAMSES, ISOGAL]:
         ds = yt.load(RAMSES)
 
@@ -61,8 +61,8 @@ def test_mesh_deposition_for_filtered_particles():
         ds.add_particle_filter('left')
 
         for f in (('index', 'x'), ('index', 'dx'), ('gas', 'density')):
-            ds.add_deposited_mesh_field(f, ptype='io')
-            ds.add_deposited_mesh_field(f, ptype='left')
+            ds.add_mesh_sampling_particle_field(f, ptype='io')
+            ds.add_mesh_sampling_particle_field(f, ptype='left')
 
         data_sources = (ds.all_data(), ds.box([0]*3, [0.1]*3))
 
@@ -77,10 +77,10 @@ def test_mesh_deposition_for_filtered_particles():
                 test_source(ptype, src)
 
 @requires_file(RAMSES)
-def test_deposition_with_indexing():
+def test_mesh_sampling_with_indexing():
     # Access with index caching
     ds = yt.load(RAMSES)
-    ds.add_deposited_mesh_field(('gas', 'density'), ptype='all')
+    ds.add_mesh_sampling_particle_field(('gas', 'density'), ptype='all')
 
     ad = ds.all_data()
     ad['all', 'cell_index']
@@ -88,7 +88,7 @@ def test_deposition_with_indexing():
 
     # Access with no index caching
     ds = yt.load(RAMSES)
-    ds.add_deposited_mesh_field(('gas', 'density'), ptype='all')
+    ds.add_mesh_sampling_particle_field(('gas', 'density'), ptype='all')
 
     ad = ds.all_data()
     v2 = ad['all', 'cell_gas_density']

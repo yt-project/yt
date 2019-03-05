@@ -163,7 +163,7 @@ class FieldDetector(defaultdict):
     def deposit(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
 
-    def mesh_deposit(self, *args, **kwargs):
+    def mesh_sampling_particle_field(self, *args, **kwargs):
         pos = args[0]
         npart = len(pos)
         return np.random.rand(npart)

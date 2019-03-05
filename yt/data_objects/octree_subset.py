@@ -195,12 +195,12 @@ class OctreeSubset(YTSelectionContainer):
         if vals is None: return
         return np.asfortranarray(vals)
 
-    def mesh_deposit(self, positions, mesh_field):
+    def mesh_sampling_particle_field(self, positions, mesh_field):
         r"""Operate on the particles, in a mesh-against-particle
         fashion, with exclusively local input.
 
         This uses the octree indexing system to call a "mesh
-        deposition" operation (defined in yt/geometry/particle_deposit.pyx).
+        sampling" operation (defined in yt/geometry/particle_deposit.pyx).
         For each particle, the function returns the value of the cell
         containing the particle.
 

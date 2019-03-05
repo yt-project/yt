@@ -37,12 +37,12 @@ class OctreeIndex(Index):
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
 
-    def _add_deposited_mesh_field(self, deposit_field, ftype, ptype):
+    def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):
         units = self.ds.field_info[ftype, deposit_field].units
         take_log = self.ds.field_info[ftype, deposit_field].take_log
         field_name = "cell_%s_%s" % (ftype, deposit_field)
 
-        def _deposit_cell_index(field, data):
+        def _cell_index(field, data):
             # Get the position of the particles
             pos = data[ptype, "particle_position"]
             Npart = pos.shape[0]
@@ -64,7 +64,7 @@ class OctreeIndex(Index):
                 icell = obj['index', 'ones'].T.reshape(-1).astype(np.int64).cumsum().value - 1
                 mesh_data = ((icell << Nbits) + i).astype(np.float64)
                 # Access the mesh data and attach them to their particles
-                tmp[:Nremaining] = obj.mesh_deposit(pos[remaining], mesh_data)
+                tmp[:Nremaining] = obj.mesh_sampling_particle_field(pos[remaining], mesh_data)
 
                 ret[remaining] = tmp[:Nremaining]
 
@@ -73,7 +73,7 @@ class OctreeIndex(Index):
 
             return data.ds.arr(ret.astype(np.float64), input_units='1')
 
-        def _deposit_field(field, data):
+        def _mesh_sampling_particle_field(field, data):
             """
             Create a grid field for particle quantities using given method.
             """
@@ -105,13 +105,13 @@ class OctreeIndex(Index):
         if (ptype, 'cell_index') not in self.ds.derived_field_list:
             self.ds.add_field(
                 (ptype, 'cell_index'),
-                function=_deposit_cell_index,
+                function=_cell_index,
                 sampling_type="particle",
                 units='1')
 
         self.ds.add_field(
             (ptype, field_name),
-            function=_deposit_field,
+            function=_mesh_sampling_particle_field,
             sampling_type="particle",
             units=units,
             take_log=take_log)
