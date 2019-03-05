@@ -157,7 +157,7 @@ def test_arbitrary_grid_derived_field():
         return data['Metal_Density']/data['gas', 'density']
 
     ds.add_field(("gas", "tracerf"), function=_tracerf, units="dimensionless",
-                 take_log=False)
+                 take_log=False, sampling_type='cell')
 
     galgas = ds.arbitrary_grid([0.4, 0.4, 0.4], [0.99, 0.99, 0.99],
                                dims=[32, 32, 32])

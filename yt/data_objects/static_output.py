@@ -32,8 +32,9 @@ from yt.fields.derived_field import \
 from yt.funcs import \
     mylog, \
     set_intersection, \
-    setdefaultattr, \
-    ensure_list
+    ensure_list, \
+    iterable, \
+    setdefaultattr
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
@@ -123,7 +124,7 @@ class FieldTypeContainer(object):
         return list(self.field_types)
 
     def __iter__(self):
-        for ft in self.field_types:
+        for ft in sorted(list(self.field_types)):
             fnc = FieldNameContainer(self.ds, ft)
             if len(dir(fnc)) == 0:
                 yield self.__getattribute__(ft)
@@ -151,14 +152,17 @@ class FieldNameContainer(object):
             return self.__getattribute__(attr)
         return ds.field_info[ft, attr]
 
+    @property
+    def _field_names(self):
+        return set(
+            (t, n) for t, n in self.ds.field_info if t == self.field_type)
+
     def __dir__(self):
-        return [n for t, n in self.ds.field_info
-                if t == self.field_type]
+        return [f[1] for f in sorted(list(self._field_names))]
 
     def __iter__(self):
-        for t, n in self.ds.field_info:
-            if t == self.field_type:
-                yield self.ds.field_info[t, n]
+        for field_name in sorted(self._field_names):
+            yield self.ds.field_info[field_name]
 
     def __contains__(self, obj):
         if isinstance(obj, DerivedField):
@@ -244,6 +248,7 @@ class Dataset(object):
     fields = requires_index("fields")
     _instantiated = False
     _particle_type_counts = None
+    _proj_type = 'quad_proj'
     _ionization_label_format = 'roman_numeral'
 
     def __new__(cls, filename=None, *args, **kwargs):
@@ -338,7 +343,7 @@ class Dataset(object):
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
-            if not isinstance(v, YTArray):
+            if not isinstance(v, YTArray) and v is not None:
                 v = self.arr(v, "code_length")
                 setattr(self, n, v)
 
@@ -567,6 +572,21 @@ class Dataset(object):
             nfields = self.add_particle_union(pu)
             if nfields == 0:
                 mylog.debug("zero common fields: skipping particle union 'all'")
+        if "nbody" not in self.particle_types:
+            mylog.debug("Creating Particle Union 'nbody'")
+            ptypes = list(self.particle_types_raw)
+            if hasattr(self, '_sph_ptype') and self._sph_ptype in ptypes:
+                ptypes.remove(self._sph_ptype)
+            if ptypes:
+                nbody_ptypes = []
+                for ptype in ptypes:
+                    if (ptype, 'particle_mass') in self.field_info:
+                        nbody_ptypes.append(ptype)
+                pu = ParticleUnion("nbody", nbody_ptypes)
+                nfields = self.add_particle_union(pu)
+                if nfields == 0:
+                    mylog.debug(
+                        "zero common fields, skipping particle union 'nbody'")
         self.field_info.setup_extra_union_fields()
         mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins(self.default_fluid_type)
@@ -777,10 +797,10 @@ class Dataset(object):
             # the type of field it is.  So we look at the field type and
             # determine if we need to change the type.
             fi = self._last_finfo = self.field_info[fname]
-            if fi.particle_type and self._last_freq[0] \
+            if fi.sampling_type == "particle" and self._last_freq[0] \
                 not in self.particle_types:
                     field = "all", field[1]
-            elif not fi.particle_type and self._last_freq[0] \
+            elif not fi.sampling_type == "particle" and self._last_freq[0] \
                 not in self.fluid_types:
                     field = self.default_fluid_type, field[1]
             self._last_freq = field
@@ -788,9 +808,11 @@ class Dataset(object):
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
         if guessing_type:
-            to_guess = ["all", self.default_fluid_type] \
-                     + list(self.fluid_types) \
-                     + list(self.particle_types)
+            if hasattr(self, '_sph_ptype'):
+                to_guess = [self.default_fluid_type, 'all']
+            else:
+                to_guess = ['all', self.default_fluid_type]
+            to_guess +=  list(self.fluid_types) + list(self.particle_types)
             for ftype in to_guess:
                 if (ftype, fname) in self.field_info:
                     self._last_freq = (ftype, fname)
@@ -812,6 +834,12 @@ class Dataset(object):
         self.object_types.sort()
 
     def _add_object_class(self, name, base):
+        # skip projection data objects that don't make sense
+        # for this type of data
+        if 'proj' in name and name != self._proj_type:
+            return
+        elif 'proj' in name:
+            name = 'proj'
         self.object_types.append(name)
         obj = functools.partial(base, ds=weakref.proxy(self))
         obj.__doc__ = base.__doc__
@@ -892,6 +920,7 @@ class Dataset(object):
         all_data is a wrapper to the Region object for creating a region
         which covers the entire simulation domain.
         """
+        self.index
         if find_max: c = self.find_max("density")[1]
         else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
         return self.region(c,
@@ -902,6 +931,9 @@ class Dataset(object):
         box is a wrapper to the Region object for creating a region
         without having to specify a *center* value.  It assumes the center
         is the midpoint between the left_edge and right_edge.
+
+        Keyword arguments are passed to the initializer of the YTRegion object
+        (e.g. ds.region).
         """
         # we handle units in the region data object
         # but need to check if left_edge or right_edge is a
@@ -1240,9 +1272,10 @@ class Dataset(object):
                           "force_override=True.", name)
         if kwargs.setdefault('particle_type', False):
             if sampling_type is not None and sampling_type != "particle":
-                raise RuntimeError("Clashing definition of 'sampling_type' and "
-                               "'particle_type'. Note that 'particle_type' is "
-                               "deprecated. Please just use 'sampling_type'.")
+                raise RuntimeError(
+                    "Clashing definition of 'sampling_type' and "
+                    "'particle_type'. Note that 'particle_type' is "
+                    "deprecated. Please just use 'sampling_type'.")
             else:
                 sampling_type = "particle"
         if sampling_type is None:
@@ -1477,13 +1510,22 @@ def _reconstruct_ds(*args, **kwargs):
     ds = datasets.get_ds_hash(*args)
     return ds
 
+@functools.total_ordering
 class ParticleFile(object):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range = None):
         self.ds = ds
         self.io = weakref.proxy(io)
         self.filename = filename
         self.file_id = file_id
+        if range is None:
+            range = (None, None)
+        self.start, self.end = range
         self.total_particles = self.io._count_particles(self)
+        # Now we adjust our start/end, in case there are fewer particles than
+        # we realized
+        if self.start is None:
+            self.start = 0
+        self.end = max(self.total_particles.values()) + self.start
 
     def select(self, selector):
         pass
@@ -1491,22 +1533,47 @@ class ParticleFile(object):
     def count(self, selector):
         pass
 
-    def _calculate_offsets(self, fields):
+    def _calculate_offsets(self, fields, pcounts):
         pass
 
     def __lt__(self, other):
-        return self.filename < other.filename
+        if self.filename != other.filename:
+            return self.filename < other.filename
+        return self.start < other.start
 
+    def __eq__(self, other):
+        if self.filename != other.filename:
+            return False
+        return self.start == other.start
+
+    def __hash__(self):
+        return hash((self.filename, self.file_id, self.start, self.end))
+        
 
 class ParticleDataset(Dataset):
     _unit_base = None
     filter_bbox = False
+    _proj_type = 'particle_proj'
 
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
-                 n_ref=64, over_refine_factor=1):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+                 index_order=None, index_filename=None):
+        self.index_order = validate_index_order(index_order)
+        self.index_filename = index_filename
         super(ParticleDataset, self).__init__(
             filename, dataset_type=dataset_type, file_style=file_style,
             units_override=units_override, unit_system=unit_system)
+
+def validate_index_order(index_order):
+    if index_order is None:
+        index_order = (7, 5)
+    elif not iterable(index_order):
+        index_order = (int(index_order), 1)
+    else:
+        if len(index_order) != 2:
+            raise RuntimeError(
+                'Tried to load a dataset with index_order={}, but '
+                'index_order\nmust be an integer or a two-element tuple of '
+                'integers.'.format(index_order))
+        index_order = tuple([int(o) for o in index_order])
+    return index_order

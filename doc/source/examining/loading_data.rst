@@ -1056,9 +1056,11 @@ from the OWLS project can be found at :ref:`owls-notebook`.
 
 .. note:: 
 
-   If you are loading a multi-file dataset with Gadget, supply the *zeroth*
-   file to the ``load`` command.  For instance,
-   ``yt.load("snapshot_061.0.hdf5")`` .
+   If you are loading a multi-file dataset with Gadget, you can either supply the *zeroth*
+   file to the ``load`` command or the directory containing all of the files.
+   For instance, to load the *zeroth* file: ``yt.load("snapshot_061.0.hdf5")`` . To
+   give just the directory, if you have all of your ``snapshot_000.*`` files in a directory
+   called ``snapshot_000``, do: ``yt.load("/path/to/snapshot_000")``.
 
 Gadget data in HDF5 format can be loaded with the ``load`` command:
 
@@ -1140,21 +1142,6 @@ The number of cells in an oct is defined by the expression
 
 It's recommended that if you want higher-resolution, try reducing the value of
 ``n_ref`` to 32 or 16.
-
-Also yt can be set to generate the global mesh index according to a specific
-type of particles instead of all the particles through the parameter
-``index_ptype``. For example, to build the octree only according to the
-``"PartType0"`` particles, you can do:
-
-.. code-block:: python
-
-   ds = yt.load("snapshot_061.hdf5", index_ptype="PartType0")
-
-By default, ``index_ptype`` is set to ``"all"``, which means all the particles.
-For Gadget binary outputs, ``index_ptype`` should be set using the particle type
-names yt uses internally (e.g. ``'Gas'``, ``'Halo'``, ``'Disk'``, etc). For
-Gadget HDF5 outputs the particle type names come from the HDF5 output and so
-should be referred to using names like ``'PartType0'``.
 
 .. _gadget-field-spec:
 
@@ -1307,6 +1294,26 @@ argument of this form:
    unit_base = {'length': (1.0, 'cm'), 'mass': (1.0, 'g'), 'time': (1.0, 's')}
 
 yt will utilize length, mass and time to set up all other units.
+
+.. _loading-swift-data:
+
+SWIFT Data
+-----------
+
+yt has support for reading in SWIFT data from the HDF5 file format. It is able
+to access all particles and fields which are stored on-disk and it is also able
+to generate derived fields, i.e, linear momentum from on-disk fields.
+
+It is also possible to smooth the data onto a grid or an octree. This
+interpolation can be done using an SPH kernel using either the scatter or gather
+approach. The SWIFT frontend is supported and cared for by Ashley Kelly.
+
+SWIFT data in HDF5 format can be loaded with the ``load`` command:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("EAGLE_6/eagle_0005.hdf5")
 
 .. _loading-gamer-data:
 

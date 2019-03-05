@@ -1,6 +1,7 @@
 language: python
 dist: xenial
 sudo: required
+dist: xenial
 cache:
   pip: true
   directories:
@@ -10,15 +11,12 @@ addons:
   apt:
     packages:
       - libhdf5-serial-dev
+      - libnetcdf-dev
       - libproj-dev
       - proj-data
       - proj-bin
       - libgeos-dev
       - libopenmpi-dev
-
-env:
-  global:
-    PIP=pip
 
 env:
   global:
@@ -56,7 +54,9 @@ install:
     # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       if [[ $MINIMAL == 1 ]]; then
-        $PIP install numpy==1.10.4 cython==0.24
+        # Ensure numpy and cython are installed so dependencies that need to be built
+        # don't error out
+        $PIP install numpy==1.10.4 cython==0.26.1
         $PIP install -r tests/test_minimal_requirements.txt
       else
         # Getting cartopy installed requires getting cython and numpy installed
@@ -75,7 +75,7 @@ install:
 jobs:
   include:
     - stage: lint
-      python: 3.6
+      python: 3.7
       script: flake8 yt/
 
     - stage: lint
@@ -83,14 +83,9 @@ jobs:
       script: flake8 yt/
 
     - stage: tests
-      name: "Python: 2.7 Unit Tests"
-      python: 2.7
+      name: "Minimal Dependency Version Unit Tests"
+      python: 3.5
       env: MINIMAL=1
-      script: coverage run $(which nosetests) -c nose_unit.cfg
-
-    - stage: tests
-      name: "Python: 2.7 Unit Tests"
-      python: 2.7
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
@@ -104,15 +99,19 @@ jobs:
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
-      name: "Python: 2.7 Minimal Dependency Answer Tests"
-      python: 2.7
+      name: "Python: 3.7 Unit Tests"
+      python: 3.7
+      script: coverage run $(which nosetests) -c nose_unit.cfg
+      
+    - name: "Minimal Dependency Version Answer Tests"
+      python: 3.5
       env: MINIMAL=1
       script: coverage run $(which nosetests) -c nose_answer.cfg
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 
     - stage: tests
-      name: "Python: 3.6 Answer Tests"
-      python: 3.6
+      name: "Python: 3.7 Answer Tests"
+      python: 3.7
       script: coverage run $(which nosetests) -c nose_answer.cfg
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 

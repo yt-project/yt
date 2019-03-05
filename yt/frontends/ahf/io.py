@@ -43,6 +43,13 @@ class IOHandlerAHFHalos(BaseIOHandler):
             x, y, z = (pos[:, i] for i in range(3))
             yield 'halos', (x, y, z)
 
+    def _yield_coordinates(self, data_file):
+        halos = data_file.read_data(usecols=['Xc', 'Yc', 'Zc'])
+        x = halos['Xc'].astype('float64')
+        y = halos['Yc'].astype('float64')
+        z = halos['Zc'].astype('float64')
+        yield 'halos', np.asarray((x, y, z)).T
+
     def _read_particle_fields(self, chunks, ptf, selector):
         # This gets called after the arrays have been allocated.  It needs to
         # yield ((ptype, field), data) where data is the masked results of
@@ -90,7 +97,11 @@ class IOHandlerAHFHalos(BaseIOHandler):
 
     def _count_particles(self, data_file):
         halos = data_file.read_data(usecols=['ID'])
-        return {'halos': len(halos['ID'])}
+        nhalos = len(halos['ID'])
+        si, ei = data_file.start, data_file.end
+        if None not in (si, ei):
+            nhalos = np.clip(nhalos - si, 0, ei - si)
+        return {'halos': nhalos}
 
     def _identify_fields(self, data_file):
         fields = [('halos', f) for f in data_file.col_names]

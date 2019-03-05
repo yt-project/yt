@@ -18,8 +18,6 @@ cimport numpy as np
 cimport cython
 from cython cimport floating
 from libc.stdlib cimport malloc, free, realloc
-from yt.geometry.selection_routines cimport \
-    SelectorObject, AlwaysSelector, OctreeSubsetSelector
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     OctreeContainer, OctInfo

@@ -7,7 +7,6 @@ environment:
       PYTHON: "C:\\Miniconda36-x64"
 
   matrix:
-      - PYTHON_VERSION: "2.7"
       - PYTHON_VERSION: "3.6"
 
 platform:
@@ -31,6 +30,7 @@ install:
 
     # Install specified version of numpy and dependencies
     - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib mock pandas cartopy"
+    # install yt
     - "pip install -e ."
 
 # Not a .NET project

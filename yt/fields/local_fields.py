@@ -43,8 +43,10 @@ class LocalFieldInfoContainer(FieldInfoContainer):
             else:
                 sampling_type = "particle"
         if sampling_type is None:
-            warnings.warn("Because 'sampling_type' not specified, yt will "
-                          "assume a cell 'sampling_type'")
+            warnings.warn(
+                "Because 'sampling_type' is not specified, yt will "
+                "assume a 'cell' sampling_type for the %s field" % (name, ),
+                stacklevel=3)
             sampling_type = "cell"
         return super(LocalFieldInfoContainer,
                      self).add_field(name, sampling_type, function, **kwargs)

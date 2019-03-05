@@ -34,7 +34,7 @@ try:
 except pkg_resources.DistributionNotFound:
     pass  # yay!
 
-VERSION = "3.6.dev0"
+VERSION = "4.0.dev0"
 
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
@@ -53,12 +53,6 @@ else:
     std_libs = ["m"]
 
 cython_extensions = [
-    Extension("yt.analysis_modules.photon_simulator.utils",
-              ["yt/analysis_modules/photon_simulator/utils.pyx"],
-              include_dirs=["yt/utilities/lib"]),
-    Extension("yt.analysis_modules.ppv_cube.ppv_utils",
-              ["yt/analysis_modules/ppv_cube/ppv_utils.pyx"],
-              libraries=std_libs),
     Extension("yt.geometry.grid_visitors",
               ["yt/geometry/grid_visitors.pyx"],
               include_dirs=["yt/utilities/lib"],
@@ -78,7 +72,9 @@ cython_extensions = [
               libraries=std_libs),
     Extension("yt.geometry.particle_oct_container",
               ["yt/geometry/particle_oct_container.pyx"],
-              include_dirs=["yt/utilities/lib/"],
+              include_dirs=["yt/utilities/lib/",
+                            "yt/utilities/lib/ewahboolarray"],
+              language="c++",
               libraries=std_libs),
     Extension("yt.geometry.selection_routines",
               ["yt/geometry/selection_routines.pyx"],
@@ -114,6 +110,28 @@ cython_extensions = [
               include_dirs=["yt/utilities/lib/",
                             "yt/geometry/"],
               libraries=std_libs),
+    Extension("yt.utilities.lib.cykdtree.kdtree",
+              [
+                  "yt/utilities/lib/cykdtree/kdtree.pyx",
+                  "yt/utilities/lib/cykdtree/c_kdtree.cpp",
+                  "yt/utilities/lib/cykdtree/c_utils.cpp",
+              ],
+              depends=[
+                  "yt/utilities/lib/cykdtree/c_kdtree.hpp",
+                  "yt/utilities/lib/cykdtree/c_utils.hpp",
+              ],
+              libraries=std_libs,
+              language="c++",
+              extra_compile_arg=["-std=c++03"]),
+    Extension("yt.utilities.lib.cykdtree.utils",
+              [
+                  "yt/utilities/lib/cykdtree/utils.pyx",
+                  "yt/utilities/lib/cykdtree/c_utils.cpp",
+              ],
+              depends=["yt/utilities/lib/cykdtree/c_utils.hpp"],
+              libraries=std_libs,
+              language="c++",
+              extra_compile_arg=["-std=c++03"]),    
     Extension("yt.utilities.lib.fnv_hash",
               ["yt/utilities/lib/fnv_hash.pyx"],
               include_dirs=["yt/utilities/lib/"],
@@ -132,12 +150,26 @@ cython_extensions = [
     Extension("yt.utilities.lib.mesh_triangulation",
               ["yt/utilities/lib/mesh_triangulation.pyx"],
               depends=["yt/utilities/lib/mesh_triangulation.h"]),
+    Extension("yt.utilities.lib.particle_kdtree_tools",
+              ["yt/utilities/lib/particle_kdtree_tools.pyx"],
+              language="c++"),
+    Extension("yt.utilities.lib.bounded_priority_queue",
+              ["yt/utilities/lib/bounded_priority_queue.pyx"]),
     Extension("yt.utilities.lib.pixelization_routines",
               ["yt/utilities/lib/pixelization_routines.pyx",
                "yt/utilities/lib/pixelization_constants.c"],
               include_dirs=["yt/utilities/lib/"],
+              extra_compile_args=omp_args,
+              extra_link_args=omp_args,
+              language='c++',
               libraries=std_libs,
               depends=["yt/utilities/lib/pixelization_constants.h"]),
+    Extension("yt.utilities.lib.cyoctree",
+              ["yt/utilities/lib/cyoctree.pyx"],
+              extra_compile_args=omp_args,
+              extra_link_args=omp_args,
+              libraries=std_libs,
+              language='c++'),
     Extension("yt.utilities.lib.primitives",
               ["yt/utilities/lib/primitives.pyx"],
               libraries=std_libs),
@@ -154,6 +186,11 @@ cython_extensions = [
               include_dirs=["yt/utilities/lib/"],
               libraries=std_libs,
               depends=["yt/utilities/lib/fixed_interpolator.h"]),
+    Extension("yt.utilities.lib.ewah_bool_wrap",
+              ["yt/utilities/lib/ewah_bool_wrap.pyx"],
+              include_dirs=["yt/utilities/lib/",
+                            "yt/utilities/lib/ewahboolarray"],
+              language="c++"),
     Extension("yt.utilities.lib.image_samplers",
               ["yt/utilities/lib/image_samplers.pyx",
                "yt/utilities/lib/fixed_interpolator.c"],
@@ -192,7 +229,7 @@ lib_exts = [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
     "interpolators", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "mesh_utilities",
-    "amr_kdtools", "lenses", "distance_queue", "allocation_container"
+    "amr_kdtools", "lenses", "distance_queue", "allocation_container",
 ]
 for ext_name in lib_exts:
     cython_extensions.append(
@@ -207,12 +244,6 @@ for ext_name in lib_exts:
                   ["yt/utilities/lib/{}.pyx".format(ext_name)]))
 
 extensions = [
-    Extension("yt.analysis_modules.halo_finding.fof.EnzoFOF",
-              ["yt/analysis_modules/halo_finding/fof/EnzoFOF.c",
-               "yt/analysis_modules/halo_finding/fof/kd.c"],
-              libraries=std_libs),
-    Extension("yt.analysis_modules.halo_finding.hop.EnzoHop",
-              glob.glob("yt/analysis_modules/halo_finding/hop/*.c")),
     Extension("yt.frontends.artio._artio_caller",
               ["yt/frontends/artio/_artio_caller.pyx"] +
               glob.glob("yt/frontends/artio/artio_headers/*.c"),
@@ -258,32 +289,6 @@ if check_for_pyembree() is not None:
 
     cython_extensions += embree_extensions
 
-# ROCKSTAR
-if os.path.exists("rockstar.cfg"):
-    try:
-        rd = open("rockstar.cfg").read().strip()
-    except IOError:
-        print("Reading Rockstar location from rockstar.cfg failed.")
-        print("Please place the base directory of your")
-        print("Rockstar install in rockstar.cfg and restart.")
-        print("(ex: \"echo '/path/to/Rockstar-0.99' > rockstar.cfg\" )")
-        sys.exit(1)
-
-    rockstar_extdir = "yt/analysis_modules/halo_finding/rockstar"
-    rockstar_extensions = [
-        Extension("yt.analysis_modules.halo_finding.rockstar.rockstar_interface",
-                  sources=[os.path.join(rockstar_extdir, "rockstar_interface.pyx")]),
-        Extension("yt.analysis_modules.halo_finding.rockstar.rockstar_groupies",
-                  sources=[os.path.join(rockstar_extdir, "rockstar_groupies.pyx")])
-    ]
-    for ext in rockstar_extensions:
-        ext.library_dirs.append(rd)
-        ext.libraries.append("rockstar")
-        ext.define_macros.append(("THREADSAFE", ""))
-        ext.include_dirs += [rd,
-                             os.path.join(rd, "io"), os.path.join(rd, "util")]
-    extensions += rockstar_extensions
-
 if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
     gpd = os.environ["GPERFTOOLS"]
     idir = os.path.join(gpd, "include")
@@ -308,9 +313,9 @@ class build_ext(_build_ext):
 """Could not import cython or numpy. Building yt from source requires
 cython and numpy to be installed. Please install these packages using
 the appropriate package manager for your python environment.""")
-        if LooseVersion(cython.__version__) < LooseVersion('0.24'):
+        if LooseVersion(cython.__version__) < LooseVersion('0.26.1'):
             raise RuntimeError(
-"""Building yt from source requires Cython 0.24 or newer but
+"""Building yt from source requires Cython 0.26.1 or newer but
 Cython %s is installed. Please update Cython using the appropriate
 package manager for your python environment.""" %
                 cython.__version__)
@@ -333,6 +338,7 @@ package manager for your python environment.""" %
             __builtins__["__NUMPY_SETUP__"] = False
         else:
             __builtins__.__NUMPY_SETUP__ = False
+        import numpy
         self.include_dirs.append(numpy.get_include())
 
 class sdist(_sdist):

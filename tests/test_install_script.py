@@ -24,7 +24,6 @@ REQUIRED_DEPS = [
 OPTIONAL_DEPS = [
     'embree',
     'pyx',
-    'rockstar',
     'scipy',
     'astropy',
     'cartopy',
@@ -33,13 +32,10 @@ OPTIONAL_DEPS = [
 # dependencies that are only installable when yt is built from source
 YT_SOURCE_ONLY_DEPS = [
     'embree',
-    'rockstar'
 ]
 
 DEPENDENCY_IMPORT_TESTS = {
     'embree': "from yt.utilities.lib import mesh_traversal",
-    'rockstar': ("from yt.analysis_modules.halo_finding.rockstar "
-                 "import rockstar_interface")
 }
 
 

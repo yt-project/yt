@@ -52,7 +52,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         """
         return np.sqrt(3.0 * np.pi / (16.0 * G * data[ftype, "density"]))
 
-    registry.add_field((ftype, "dynamical_time"), sampling_type="cell", 
+    registry.add_field((ftype, "dynamical_time"),
+                       sampling_type="local",
                        function=_dynamical_time,
                        units=unit_system["time"])
 
@@ -65,7 +66,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
              (data[ftype, "density"]**(-0.5)))
         return u
 
-    registry.add_field((ftype, "jeans_mass"), sampling_type="cell", 
+    registry.add_field((ftype, "jeans_mass"),
+                       sampling_type="local",
                        function=_jeans_mass,
                        units=unit_system["mass"])
 
@@ -88,7 +90,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                                     - 1.6667 * logT0**1  - 0.2193 * logT0)),
                            "") # add correct units here
 
-    registry.add_field((ftype, "chandra_emissivity"), sampling_type="cell", 
+    registry.add_field((ftype, "chandra_emissivity"),
+                       sampling_type="local",
                        function=_chandra_emissivity,
                        units="") # add correct units here
 
@@ -97,12 +100,13 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
             X_H = data.get_field_parameter("X_H")
         else:
             X_H = 0.76
-        nenh = data["density"]/mh
+        nenh = data[ftype, "density"]/mh
         nenh *= nenh
-        nenh *= 0.5*(1.+X_H)*X_H*data["cell_volume"]
+        nenh *= 0.5*(1.+X_H)*X_H*data["index", "cell_volume"]
         return nenh
     
-    registry.add_field((ftype, "emission_measure"), sampling_type="cell", 
+    registry.add_field((ftype, "emission_measure"),
+                       sampling_type="local",
                        function=_emission_measure,
                        units=unit_system["number_density"])
 
@@ -112,18 +116,20 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                            * data[ftype, "temperature"].to_ndarray()**0.5,
                            "") # add correct units here
 
-    registry.add_field((ftype, "xray_emissivity"), sampling_type="cell", 
+    registry.add_field((ftype, "xray_emissivity"),
+                       sampling_type="local",
                        function=_xray_emissivity,
                        units="") # add correct units here
 
     def _mazzotta_weighting(field, data):
         # Spectroscopic-like weighting field for galaxy clusters
         # Only useful as a weight_field for temperature, metallicity, velocity
-        ret = data["density"]/mh
-        ret *= ret*data["kT"]**-0.75
+        ret = data[ftype, "density"]/mh
+        ret *= ret*data[ftype, "kT"]**-0.75
         return ret
 
-    registry.add_field((ftype,"mazzotta_weighting"), sampling_type="cell", 
+    registry.add_field((ftype,"mazzotta_weighting"),
+                       sampling_type="local",
                        function=_mazzotta_weighting,
                        units="keV**-0.75*cm**-6")
 
@@ -137,7 +143,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         # See issue #1225
         return -scale * vel * data[ftype, "density"]
 
-    registry.add_field((ftype, "sz_kinetic"), sampling_type="cell", 
+    registry.add_field((ftype, "sz_kinetic"),
+                       sampling_type="local",
                        function=_sz_kinetic,
                        units=unit_system["length"]**-1,
                        validators=[
@@ -147,6 +154,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         scale = 0.88 / mh * kboltz / (me * clight*clight) * sigma_thompson
         return scale * data[ftype, "density"] * data[ftype, "temperature"]
 
-    registry.add_field((ftype, "szy"), sampling_type="cell", 
+    registry.add_field((ftype, "szy"),
+                       sampling_type="local",
                        function=_szy,
                        units=unit_system["length"]**-1)

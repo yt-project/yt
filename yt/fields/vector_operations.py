@@ -41,11 +41,14 @@ def get_bulk(data, basename, unit):
 
 def create_magnitude_field(registry, basename, field_units,
                            ftype="gas", slice_info=None,
-                           validators=None, particle_type=False):
+                           validators=None, sampling_type=None):
 
     axis_order = registry.ds.coordinates.axis_order
 
     field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
+
+    if sampling_type is None:
+        sampling_type = 'local'
 
     def _magnitude(field, data):
         fn = field_components[0]
@@ -60,11 +63,6 @@ def create_magnitude_field(registry, basename, field_units,
             mag += (data[fn])**2
         return np.sqrt(mag)
 
-    if particle_type is True:
-        sampling_type = 'particle'
-    else:
-        sampling_type = 'cell'
-
     registry.add_field((ftype, "%s_magnitude" % basename),
                        sampling_type=sampling_type,
                        function=_magnitude,
@@ -72,8 +70,7 @@ def create_magnitude_field(registry, basename, field_units,
                        validators=validators)
 
 def create_relative_field(registry, basename, field_units, ftype='gas',
-                          slice_info=None, validators=None,
-                          particle_type=False):
+                          slice_info=None, validators=None):
 
     axis_order = registry.ds.coordinates.axis_order
 
@@ -88,22 +85,16 @@ def create_relative_field(registry, basename, field_units, ftype='gas',
             return d - bulk[iax]
         return _relative_vector
 
-    if particle_type is True:
-        sampling_type = 'particle'
-    else:
-        sampling_type = 'cell'
-
     for d in axis_order:
         registry.add_field((ftype, "relative_%s_%s" % (basename, d)),
-                           sampling_type=sampling_type,
+                           sampling_type='local',
                            function=relative_vector(d),
                            units=field_units,
                            validators=validators)
 
-
 def create_squared_field(registry, basename, field_units,
                          ftype="gas", slice_info=None,
-                         validators=None, particle_type=False):
+                         validators=None):
 
     axis_order = registry.ds.coordinates.axis_order
 
@@ -119,9 +110,11 @@ def create_squared_field(registry, basename, field_units,
             squared += data[fn] * data[fn]
         return squared
 
-    registry.add_field((ftype, "%s_squared" % basename), sampling_type="cell",
-                       function=_squared, units=field_units,
-                       validators=validators, particle_type=particle_type)
+    registry.add_field((ftype, "%s_squared" % basename),
+                       sampling_type="local",
+                       function=_squared,
+                       units=field_units,
+                       validators=validators)
 
 def create_vector_fields(registry, basename, field_units,
                          ftype="gas", slice_info=None):
@@ -173,7 +166,7 @@ def create_vector_fields(registry, basename, field_units,
         return rv
 
     registry.add_field((ftype, "%s_spherical_radius" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_spherical_radius_component,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
@@ -191,19 +184,19 @@ def create_vector_fields(registry, basename, field_units,
                        data[ftype, "%s_spherical_phi" % basename]**2.0)
 
     registry.add_field((ftype, "radial_%s" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_radial,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
                                    ValidateParameter("center")])
 
     registry.add_field((ftype, "radial_%s_absolute" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_radial_absolute,
                        units=field_units)
 
     registry.add_field((ftype, "tangential_%s" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_tangential,
                        units=field_units)
 
@@ -221,7 +214,7 @@ def create_vector_fields(registry, basename, field_units,
         return get_sph_theta_component(vectors, theta, phi, normal)
 
     registry.add_field((ftype, "%s_spherical_theta" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_spherical_theta_component,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
@@ -241,7 +234,7 @@ def create_vector_fields(registry, basename, field_units,
         return get_sph_phi_component(vectors, phi, normal)
 
     registry.add_field((ftype, "%s_spherical_phi" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_spherical_phi_component,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
@@ -259,7 +252,7 @@ def create_vector_fields(registry, basename, field_units,
 
     for ax in 'xyz':
         registry.add_field((ftype, "cutting_plane_%s_%s" % (basename, ax)),
-                           sampling_type="cell",
+                           sampling_type="local",
                            function=_cp_vectors(ax),
                            units=field_units)
 
@@ -285,14 +278,14 @@ def create_vector_fields(registry, basename, field_units,
     div_units = field_units / registry.ds.unit_system["length"]
 
     registry.add_field((ftype, "%s_divergence" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_divergence,
                        units=div_units,
                        validators=[ValidateSpatial(1),
                                    ValidateParameter('bulk_%s' % basename)])
     
     registry.add_field((ftype, "%s_divergence_absolute" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_divergence_abs,
                        units=div_units)
 
@@ -300,8 +293,9 @@ def create_vector_fields(registry, basename, field_units,
         tr = (data[ftype, "tangential_%s" % basename] /
               data[ftype, '%s_magnitude' % basename])
         return np.abs(tr)
+
     registry.add_field((ftype, "tangential_over_%s_magnitude" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_tangential_over_magnitude,
                        take_log=False)
 
@@ -318,7 +312,7 @@ def create_vector_fields(registry, basename, field_units,
         return get_cyl_r_component(vectors, theta, normal)
 
     registry.add_field((ftype, "%s_cylindrical_radius" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_radius_component,
                        units=field_units,
                        validators=[ValidateParameter("normal")])
@@ -328,7 +322,7 @@ def create_vector_fields(registry, basename, field_units,
         return data[ftype, '%s_cylindrical_radius' % basename]
 
     registry.add_field((ftype, "cylindrical_radial_%s" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_radial,
                        units=field_units)
 
@@ -337,7 +331,7 @@ def create_vector_fields(registry, basename, field_units,
         return np.abs(data[ftype, '%s_cylindrical_radius' % basename])
 
     registry.add_field((ftype, "cylindrical_radial_%s_absolute" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_radial_absolute,
                        units=field_units,
                        validators=[ValidateParameter("normal")])
@@ -356,7 +350,7 @@ def create_vector_fields(registry, basename, field_units,
         return get_cyl_theta_component(vectors, theta, normal)
 
     registry.add_field((ftype, "%s_cylindrical_theta" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_theta_component,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
@@ -365,22 +359,21 @@ def create_vector_fields(registry, basename, field_units,
 
     def _cylindrical_tangential(field, data):
         """This field is deprecated and will be removed in a future release"""
-        return data["%s_cylindrical_theta" % basename]
+        return data[ftype, "%s_cylindrical_theta" % basename]
 
     def _cylindrical_tangential_absolute(field, data):
         """This field is deprecated and will be removed in a future release"""
-        return np.abs(data['cylindrical_tangential_%s' % basename])
+        return np.abs(data[ftype, 'cylindrical_tangential_%s' % basename])
 
     registry.add_field((ftype, "cylindrical_tangential_%s" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_tangential,
                        units=field_units)
 
-    registry.add_field(
-        (ftype, "cylindrical_tangential_%s_absolute" % basename),
-        sampling_type="cell",
-        function=_cylindrical_tangential_absolute,
-        units=field_units)
+    registry.add_field((ftype, "cylindrical_tangential_%s_absolute" % basename),
+                       sampling_type="local",
+                       function=_cylindrical_tangential_absolute,
+                       units=field_units)
 
     def _cylindrical_z_component(field, data):
         """The cylindrical z component of the vector field
@@ -394,7 +387,7 @@ def create_vector_fields(registry, basename, field_units,
         return get_cyl_z_component(vectors, normal)
 
     registry.add_field((ftype, "%s_cylindrical_z" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_z_component,
                        units=field_units,
                        validators=[ValidateParameter("normal"),

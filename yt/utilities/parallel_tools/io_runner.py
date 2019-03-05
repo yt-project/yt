@@ -55,9 +55,9 @@ class IOCommunicator(BaseIOHandler):
     def initialize_data(self):
         ds = self.ds
         fields = [f for f in ds.field_list
-                  if not ds.field_info[f].particle_type]
+                  if not ds.field_info[f].sampling_type == "particle"]
         pfields = [f for f in ds.field_list
-                   if ds.field_info[f].particle_type]
+                   if ds.field_info[f].sampling_type == "particle"]
         # Preload is only defined for Enzo ...
         if ds.index.io._dataset_type == "enzo_packed_3d":
             self.queue = ds.index.io.queue
@@ -77,7 +77,7 @@ class IOCommunicator(BaseIOHandler):
 
     def _read(self, g, f):
         fi = self.ds.field_info[f]
-        if fi.particle_type and g.NumberOfParticles == 0:
+        if fi.sampling_type == "particle" and g.NumberOfParticles == 0:
             # because this gets upcast to float
             return np.array([],dtype='float64')
         try:
@@ -128,7 +128,7 @@ class IOHandlerRemote(BaseIOHandler):
         dest = self.proc_map[grid.id]
         msg = dict(grid_id = grid.id, field = field, op="read")
         mylog.debug("Requesting %s for %s from %s", field, grid, dest)
-        if self.ds.field_info[field].particle_type:
+        if self.ds.field_info[field].sampling_type == "particle":
             data = np.empty(grid.NumberOfParticles, 'float64')
         else:
             data = np.empty(grid.ActiveDimensions, 'float64')

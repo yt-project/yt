@@ -43,4 +43,7 @@ def test_fields_ahf_halos():
 
 @requires_file(ahf_halos)
 def test_AHFHalosDataset():
-    assert isinstance(load(ahf_halos), AHFHalosDataset)
+    ds = load(ahf_halos)
+    assert isinstance(ds, AHFHalosDataset)
+    ad = ds.all_data()
+    ad['particle_mass']

@@ -20,6 +20,7 @@ import numpy
 from yt.utilities.lib.fp_utils cimport *
 from libc.stdlib cimport malloc, free
 from yt.geometry.oct_container cimport OctreeContainer
+from yt.utilities.lib.geometry_utils cimport encode_morton_64bit
 
 # Now some visitor functions
 
@@ -71,6 +72,21 @@ cdef class CopyArrayF64(OctVisitor):
                 self.global_index, :]
         self.index += 1
 
+# This copies a bit array from source to the destination, based on file_ind
+cdef class CopyFileIndArrayI8(OctVisitor):
+    def __init__(self, OctreeContainer octree, int domain_id = -1):
+        super(CopyFileIndArrayI8, self).__init__(octree, domain_id)
+        self.root = -1
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        if self.level == 0:
+            self.root += 1
+        if self.last != o.domain_ind:
+            self.last = o.domain_ind
+            self.dest[o.domain_ind] = self.source[self.root]
+            self.index += 1
+
 # This counts the number of octs, selected or not, that the selector hits.
 # Note that the selector will not recursively visit unselected octs, so this is
 # still useful.
@@ -120,6 +136,34 @@ cdef class IndexOcts(OctVisitor):
         if self.last != o.domain_ind:
             self.last = o.domain_ind
             self.oct_index[o.domain_ind] = self.index
+            self.index += 1
+
+# Compute a mapping from domain_ind to flattend index with some octs masked.
+cdef class MaskedIndexOcts(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        # Note that we provide an index even if the cell is not selected.
+        if self.last != o.domain_ind:
+            self.last = o.domain_ind
+            if self.oct_mask[o.domain_ind] == 1:
+                self.oct_index[o.domain_ind] = self.index
+                self.index += 1
+
+# Compute a mapping from domain_ind to flattened index checking mask.
+cdef class IndexMaskMapOcts(OctVisitor):
+    def __init__(self, OctreeContainer octree, int domain_id = -1):
+        super(IndexMaskMapOcts, self).__init__(octree, domain_id)
+        self.map_index = 0
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        if self.last != o.domain_ind:
+            self.last = o.domain_ind
+            if self.oct_mask[o.domain_ind] == 1:
+                if self.map_domain_ind[self.map_index] >= 0:
+                    self.oct_index[self.map_domain_ind[self.map_index]] = self.index
+                self.map_index += 1
             self.index += 1
 
 # Integer coordinates
@@ -279,4 +323,23 @@ cdef class LoadOctree(OctVisitor):
         else:
             print "SOMETHING IS AMISS", self.index
             raise RuntimeError
+        self.index += 1
+
+cdef class MortonIndexOcts(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        if selected == 0: return
+        cdef np.int64_t coord[3]
+        cdef int i
+        for i in range(3):
+            coord[i] = (self.pos[i] << self.oref) + self.ind[i]
+            if (coord[i] < 0):
+                raise RuntimeError("Oct coordinate in dimension {} is ".format(i)+
+                                   "negative. ({})".format(coord[i]))
+        self.level_arr[self.index] = self.level
+        self.morton_ind[self.index] = encode_morton_64bit(
+                np.uint64(coord[0]),
+                np.uint64(coord[1]),
+                np.uint64(coord[2]))
         self.index += 1

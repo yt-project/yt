@@ -22,10 +22,9 @@ import glob
 import os
 
 from yt.frontends.sph.data_structures import \
-    SPHDataset
+    SPHDataset, \
+    SPHParticleIndex
 from yt.funcs import deprecate
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
 from yt.data_objects.static_output import \
     ParticleFile
 from yt.utilities.cosmology import \
@@ -43,23 +42,24 @@ if sys.version_info > (3,):
     long = int
 
 class TipsyFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
-        # To go above 1 domain, we need to include an indexing step in the
-        # IOHandler, rather than simply reading from a single file.
-        assert file_id == 0
-        super(TipsyFile, self).__init__(ds, io, filename, file_id)
-        io._create_dtypes(self)
-        io._update_domain(self)#Check automatically what the domain size is
+    def __init__(self, ds, io, filename, file_id, range=None):
+        super(TipsyFile, self).__init__(ds, io, filename, file_id, range)
+        if not hasattr(io, '_field_list'):
+            io._create_dtypes(self)
+            # Check automatically what the domain size is
+            io._update_domain(self)
+        self._calculate_offsets(io._field_list)
 
-    def _calculate_offsets(self, field_list):
-        self.field_offsets = self.io._calculate_particle_offsets(self)
+    def _calculate_offsets(self, field_list, pcounts=None):
+        self.field_offsets = self.io._calculate_particle_offsets(self, None)
 
 class TipsyDataset(SPHDataset):
-    _index_class = ParticleIndex
+    _index_class = SPHParticleIndex
     _file_class = TipsyFile
     _field_info_class = TipsyFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
+    _sph_ptype = "Gas"
     _header_spec = (('time',    'd'),
                     ('nbodies', 'i'),
                     ('ndim',    'i'),
@@ -73,7 +73,9 @@ class TipsyDataset(SPHDataset):
                  unit_base=None,
                  parameter_file=None,
                  cosmology_parameters=None,
-                 n_ref=64, over_refine_factor=1,
+                 index_order=None,
+                 index_filename=None,
+                 kdtree_filename=None,
                  kernel_name=None,
                  bounding_box=None,
                  units_override=None,
@@ -114,8 +116,8 @@ class TipsyDataset(SPHDataset):
                                "Use unit_base instead.")
         super(TipsyDataset, self).__init__(
             filename, dataset_type=dataset_type, unit_system=unit_system,
-            n_ref=n_ref, over_refine_factor=over_refine_factor,
-            kernel_name=kernel_name)
+            index_order=index_order, index_filename=index_filename,
+            kdtree_filename=kdtree_filename, kernel_name=kernel_name)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)
@@ -171,8 +173,7 @@ class TipsyDataset(SPHDataset):
                 self.parameters[param] = val
 
         self.current_time = hvals["time"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
         periodic = self.parameters.get('bPeriodic', True)
         period = self.parameters.get('dPeriod', None)
         self.periodicity = (periodic, periodic, periodic)
@@ -330,3 +331,8 @@ class TipsyDataset(SPHDataset):
     @deprecate(replacement='cosmological_simulation')
     def comoving(self):
         return self.cosmological_simulation == 1.0
+
+    # _instantiated_index = None
+    # @property
+    # def index(self):
+    #     index_nosoft = super(TipsyDataset, self).index

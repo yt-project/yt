@@ -281,6 +281,17 @@ class scipy_imports(object):
             self._spatial = spatial
         return self._spatial
 
+    _ndimage = None
+    @property
+    def ndimage(self):
+        if self._ndimage is None:
+            try:
+                import scipy.ndimage as ndimage
+            except ImportError:
+                ndimage = NotAModule(self._name)
+            self._ndimage = ndimage
+        return self._ndimage
+
 _scipy = scipy_imports()
 
 class h5py_imports(object):

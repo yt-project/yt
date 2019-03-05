@@ -27,6 +27,8 @@ filter_registry = {}
 
 class DummyFieldInfo(object):
     particle_type = True
+    sampling_type = 'particle'
+
 dfi = DummyFieldInfo()
 
 class ParticleFilter(object):

@@ -37,7 +37,8 @@ from yt.data_objects.profiles import \
     Profile3DFromDataset
 from yt.data_objects.static_output import \
     Dataset, \
-    ParticleFile
+    ParticleFile, \
+    validate_index_order
 from yt.extern.six import \
     string_types
 from yt.funcs import \
@@ -220,12 +221,12 @@ class YTDataset(SavedDataset):
         pass
 
 class YTDataHDF5File(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range):
         with h5py.File(filename, "r") as f:
             self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
 
-        super(YTDataHDF5File, self).__init__(ds, io, filename, file_id)
+        super(YTDataHDF5File, self).__init__(ds, io, filename, file_id, range)
 
 class YTDataContainerDataset(YTDataset):
     """Dataset for saved geometric data containers."""
@@ -236,10 +237,10 @@ class YTDataContainerDataset(YTDataset):
     fluid_types = ("grid", "gas", "deposit", "index")
 
     def __init__(self, filename, dataset_type="ytdatacontainer_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None,
+                 index_order=None, index_filename=None, units_override=None,
                  unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+        self.index_order = validate_index_order(index_order)
+        self.index_filename=index_filename
         super(YTDataContainerDataset, self).__init__(filename, dataset_type,
             units_override=units_override, unit_system=unit_system)
 
@@ -249,8 +250,7 @@ class YTDataContainerDataset(YTDataset):
         self.particle_types = self.particle_types_raw
         self.filename_template = self.parameter_filename
         self.file_count = 1
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
 
     def _setup_gas_alias(self):
         "Alias the grid type to gas by making a particle union."
@@ -386,7 +386,7 @@ class YTGrid(AMRGridPatch):
         except YTFieldTypeNotFound:
             return tr
         finfo = self.ds._get_field_info(*fields[0])
-        if not finfo.particle_type:
+        if not finfo.sampling_type == "particle":
             return tr.reshape(self.ActiveDimensions[:self.ds.dimensionality])
         return tr
 
@@ -602,7 +602,7 @@ class YTNonspatialGrid(AMRGridPatch):
         for ftype, fname in fields_to_get:
             finfo = self.ds._get_field_info(ftype, fname)
             finfos[ftype, fname] = finfo
-            if finfo.particle_type:
+            if finfo.sampling_type == "particle":
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))

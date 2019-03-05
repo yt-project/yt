@@ -51,7 +51,8 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                 self.alias(("gas","%s_%s" % (vel_prefix, comp)), vel_field,
                            units=unit_system["velocity"])
             elif mom_field in self.field_list:
-                self.add_output_field(mom_field, sampling_type="cell",
+                self.add_output_field(mom_field,
+                                      sampling_type="cell",
                                       units="code_mass/code_time/code_length**2")
                 self.add_field(("gas","%s_%s" % (vel_prefix, comp)), sampling_type="cell",
                                function=velocity_field(i+1), units=unit_system["velocity"])

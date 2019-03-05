@@ -49,6 +49,7 @@ from yt.utilities.exceptions import \
     YTFieldTypeNotFound, \
     YTDataSelectorNotImplemented, \
     YTDimensionalityError, \
+    YTNonIndexedDataContainer, \
     YTBooleanObjectError, \
     YTBooleanObjectsWrongDataset, YTException
 from yt.utilities.lib.marching_cubes import \
@@ -66,6 +67,7 @@ import yt.geometry.selection_routines
 from yt.geometry.selection_routines import \
     compose_selector
 from yt.extern.six import add_metaclass, string_types
+from yt.units.yt_array import uconcatenate
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 
@@ -74,7 +76,7 @@ data_object_registry = {}
 def sanitize_weight_field(ds, field, weight):
     field_object = ds._get_field_info(field)
     if weight is None:
-        if field_object.particle_type is True:
+        if field_object.sampling_type == "particle":
             weight_field = (field_object.name[0], 'particle_ones')
         else:
             weight_field = ('index', 'ones')
@@ -286,7 +288,7 @@ class YTDataContainer(object):
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
                 tr = self._generate_container_field(field)
-            if finfo.particle_type: # This is a property now
+            if finfo.sampling_type == "particle":
                 tr = self._generate_particle_field(field)
             else:
                 tr = self._generate_fluid_field(field)
@@ -317,7 +319,14 @@ class YTDataContainer(object):
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
-        rv = self.ds.arr(np.empty(self.ires.size, dtype="float64"), units)
+        try:
+            rv = self.ds.arr(np.zeros(self.ires.size, dtype="float64"), units)
+            accumulate = False
+        except YTNonIndexedDataContainer:
+            # In this case, we'll generate many tiny arrays of unknown size and
+            # then concatenate them.
+            outputs = []
+            accumulate = True
         ind = 0
         if ngz == 0:
             deps = self._identify_dependencies([field], spatial = True)
@@ -326,6 +335,11 @@ class YTDataContainer(object):
                 for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0,
                                                     preload_fields = deps)):
                     o = self._current_chunk.objs[0]
+                    if accumulate:
+                        rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"),
+                                         units)
+                        outputs.append(rv)
+                        ind = 0 # Does this work with mesh?
                     with o._activate_cache():
                         ind += o.select(self.selector, self[field], rv, ind)
         else:
@@ -335,10 +349,19 @@ class YTDataContainer(object):
                     gz = self._current_chunk.objs[0]
                     gz.field_parameters = self.field_parameters
                     wogz = gz._base_grid
-                    ind += wogz.select(
-                        self.selector,
-                        gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
-                        rv, ind)
+                    if accumulate:
+                        rv = self.ds.arr(np.empty(wogz.ires.size,
+                                dtype="float64"), units)
+                        outputs.append(rv)
+                    if gz._type_name == 'octree_subset':
+                        raise NotImplementedError
+                    else:
+                        ind += wogz.select(
+                            self.selector,
+                            gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
+                            rv, ind)
+        if accumulate:
+            rv = uconcatenate(outputs)
         return rv
 
     def _generate_particle_field(self, field):
@@ -585,7 +608,7 @@ class YTDataContainer(object):
             if field in self._container_fields:
                 ftypes[field] = "grid"
                 need_grid_positions = True
-            elif self.ds.field_info[field].particle_type:
+            elif self.ds.field_info[field].sampling_type == "particle":
                 if field[0] not in ptypes:
                     ptypes.append(field[0])
                 ftypes[field] = field[0]
@@ -1135,7 +1158,8 @@ class YTDataContainer(object):
         if obj is None: obj = self
         old_particle_type = obj._current_particle_type
         old_fluid_type = obj._current_fluid_type
-        if finfo.particle_type:
+        fluid_types = self.ds.fluid_types
+        if finfo.sampling_type == "particle" and ftype not in fluid_types:
             obj._current_particle_type = ftype
         else:
             obj._current_fluid_type = ftype
@@ -1163,8 +1187,14 @@ class YTDataContainer(object):
             else:
                 fname = field
                 finfo = self.ds._get_field_info("unknown", fname)
-                if finfo.particle_type:
+                if finfo.sampling_type == "particle":
                     ftype = self._current_particle_type
+                    if hasattr(self.ds, '_sph_ptype'):
+                        ptype = self.ds._sph_ptype
+                        if finfo.name[0] == ptype:
+                            ftype = finfo.name[0]
+                        elif finfo.alias_field and finfo.alias_name[0] == ptype:
+                            ftype = self._current_fluid_type
                 else:
                     ftype = self._current_fluid_type
                     if (ftype, fname) not in self.ds.field_info:
@@ -1182,9 +1212,13 @@ class YTDataContainer(object):
 
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
-            if finfo.particle_type and ftype not in self.ds.particle_types:
+            particle_field = finfo.sampling_type == "particle"
+            local_field = finfo.local_sampling
+            if local_field:
+                pass
+            elif particle_field and ftype not in self.ds.particle_types:
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
-            elif not finfo.particle_type and ftype not in self.ds.fluid_types:
+            elif not particle_field and ftype not in self.ds.fluid_types:
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
             explicit_fields.append((ftype, fname))
         return explicit_fields
@@ -1233,7 +1267,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if data_source is not None:
             if data_source.ds is not self.ds:
                 raise RuntimeError("Attempted to construct a DataContainer with a data_source "
-                                   "from a different DataSet", ds, data_source.ds)
+                                   "from a different Dataset", ds, data_source.ds)
             if data_source._dimensionality < self._dimensionality:
                 raise RuntimeError("Attempted to construct a DataContainer with a data_source "
                                    "of lower dimensionality (%u vs %u)" %
@@ -1253,7 +1287,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             raise YTDataSelectorNotImplemented(self._type_name)
 
         if self._data_source is not None:
-            self._selector = compose_selector(self, self._data_source.selector, sclass(self))
+            self._selector = compose_selector(
+                self, self._data_source.selector, sclass(self))
         else:
             self._selector = sclass(self)
         return self._selector
@@ -1359,7 +1394,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         for ftype, fname in fields_to_get:
             finfo = self.ds._get_field_info(ftype, fname)
             finfos[ftype, fname] = finfo
-            if finfo.particle_type:
+            if finfo.sampling_type == "particle":
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))
@@ -1863,8 +1898,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> verts = dd.extract_isocontours("Density", rho,
         ...             "triangles.obj", True)
         """
+        from yt.data_objects.static_output import ParticleDataset
+        from yt.frontends.stream.data_structures import StreamParticlesDataset
         verts = []
         samples = []
+        if isinstance(self.ds, (ParticleDataset, StreamParticlesDataset)):
+            raise NotImplementedError
         for block, mask in self.blocks:
             my_verts = self._extract_isocontours_from_grid(
                 block, mask, field, value, sample_values)

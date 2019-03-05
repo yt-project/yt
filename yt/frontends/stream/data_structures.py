@@ -39,6 +39,8 @@ from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.static_output import \
     ParticleFile
+from yt.frontends.sph.data_structures import \
+    SPHParticleIndex
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.geometry.grid_geometry_handler import \
@@ -47,8 +49,6 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
@@ -997,7 +997,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
             if not isinstance(field, tuple):
                 field = ("unknown", field)
             fi = base_ds._get_field_info(*field)
-            if fi.particle_type and field[0] in base_ds.particle_types_raw:
+            if fi.sampling_type == "particle" and field[0] in base_ds.particle_types_raw:
                 pdata[field] = uconcatenate([grid[field]
                                              for grid in base_ds.index.grids])
         pdata["number_of_particles"] = number_of_particles
@@ -1023,7 +1023,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                 if not isinstance(field, tuple):
                     field = ("unknown", field)
                 fi = ds._get_field_info(*field)
-                if not fi.particle_type:
+                if not fi.sampling_type == "particle":
                     gd[field] = g[field]
             grid_data.append(gd)
             if g.Level < ds.index.max_level: continue
@@ -1039,7 +1039,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                     if not isinstance(field, tuple):
                         field = ("unknown", field)
                     fi = ds._get_field_info(*field)
-                    if not fi.particle_type:
+                    if not fi.sampling_type == "particle":
                         gd[field] = grid[field]
                 grid_data.append(gd)
 
@@ -1057,7 +1057,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
 
     return ds
 
-class StreamParticleIndex(ParticleIndex):
+class StreamParticleIndex(SPHParticleIndex):
 
     def __init__(self, ds, dataset_type = None):
         self.stream_handler = ds.stream_handler
@@ -1079,27 +1079,39 @@ class StreamParticlesDataset(StreamDataset):
     _dataset_type = "stream_particles"
     file_count = 1
     filename_template = "stream_file"
-    n_ref = 64
-    over_refine_factor = 1
+    _proj_type = 'particle_proj'
+
+    def __init__(self, stream_handler, storage_filename=None,
+                 geometry='cartesian', unit_system='cgs'):
+        super(StreamParticlesDataset, self).__init__(
+            stream_handler, storage_filename=storage_filename,
+            geometry=geometry, unit_system=unit_system)
+        fields = list(stream_handler.fields['stream_file'].keys())
+        # This is the current method of detecting SPH data.
+        # This should be made more flexible in the future.
+        if ('io', 'density') in fields and ('io', 'smoothing_length') in fields:
+            self._sph_ptype = 'io'
 
 def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,
                    velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True),
-                   n_ref = 64, over_refine_factor = 1, geometry = "cartesian",
-                   unit_system="cgs"):
+                   geometry = "cartesian", unit_system="cgs"):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
-    This should allow a collection of particle data to be loaded directly into
+    This will allow a collection of particle data to be loaded directly into
     yt and analyzed as would any others.  This comes with several caveats:
 
-    * There must be sufficient space in memory to contain both the particle
-      data and the octree used to index the particles.
+    * There must be sufficient space in memory to contain all the particle
+      data.
     * Parallelism will be disappointing or non-existent in most cases.
+    * Fluid fields are not supported.
 
-    This will initialize an Octree of data.  Note that fluid fields will not
-    work yet, or possibly ever.
+    Note: in order for the dataset to take advantage of SPH functionality,
+    the following two fields must be provided:
+    * ('io', 'density')
+    * ('io', 'smoothing_length')
 
     Parameters
     ----------
@@ -1109,6 +1121,10 @@ def load_particles(data, length_unit = None, bbox=None,
         "particle_position_x", "particle_position_y", and "particle_position_z".
     length_unit : float
         Conversion factor from simulation length units to centimeters
+    bbox : array_like (xdim:zdim, LE:RE), optional
+        Size of computational domain in units of the length_unit
+    sim_time : float, optional
+        The simulation time in seconds
     mass_unit : float
         Conversion factor from simulation mass units to grams
     time_unit : float
@@ -1117,16 +1133,9 @@ def load_particles(data, length_unit = None, bbox=None,
         Conversion factor from simulation velocity units to cm/s
     magnetic_unit : float
         Conversion factor from simulation magnetic units to gauss
-    bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units of the length_unit
-    sim_time : float, optional
-        The simulation time in seconds
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
-    n_ref : int
-        The number of particles that result in refining an oct used for
-        indexing the particles.
 
     Examples
     --------
@@ -1140,7 +1149,7 @@ def load_particles(data, length_unit = None, bbox=None,
 
     """
 
-    domain_dimensions = np.ones(3, "int32") * (1 << over_refine_factor)
+    domain_dimensions = np.ones(3, "int32")
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
@@ -1206,8 +1215,6 @@ def load_particles(data, length_unit = None, bbox=None,
     handler.cosmology_simulation = 0
 
     sds = StreamParticlesDataset(handler, geometry=geometry, unit_system=unit_system)
-    sds.n_ref = n_ref
-    sds.over_refine_factor = over_refine_factor
 
     return sds
 
@@ -1504,8 +1511,6 @@ class StreamOctreeHandler(OctreeIndex):
 
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        # We actually do not really use the data files except as input to the
-        # ParticleOctreeSubset.
         # This is where we will perform cutting of the Octree and
         # load-balancing.  That may require a specialized selector object to
         # cut based on some space-filling curve index.

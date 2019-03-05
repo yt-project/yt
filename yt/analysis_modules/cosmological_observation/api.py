@@ -13,20 +13,10 @@ API for cosmology analysis.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import issue_deprecation_warning
+from yt.utilities.exceptions import \
+    YTModuleRemoved
 
-issue_deprecation_warning(
-    "Development of the CosmologySplice module has been moved to "
-    "the yt_astro_analysis package. This version is deprecated "
-    "and will be removed from yt in a future release. See "
-    "https://github.com/yt-project/yt_astro_analysis for further "
-    "information.")
-
-from .cosmology_splice import \
-    CosmologySplice
-
-from .light_cone.api import \
-    LightCone
-
-from .light_ray.api import \
-    LightRay
+raise YTModuleRemoved(
+    "CosmologySplice and LightCone",
+    "https://github.com/yt-project/yt_astro_analysis",
+    "https://yt-astro-analysis.readthedocs.io/")

@@ -425,7 +425,8 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
     def finalize(self):
         wf = np.asarray(self.wf)
         w = np.asarray(self.w)
-        rv = wf / w
+        with np.errstate(divide='ignore', invalid='ignore'):
+            rv = wf / w
         rv.shape = self.nvals
         return rv
 

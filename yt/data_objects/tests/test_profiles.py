@@ -15,6 +15,7 @@ from yt.testing import \
     assert_raises,\
     assert_rel_equal, \
     fake_random_ds, \
+    fake_sph_orientation_ds, \
     requires_module
 from yt.utilities.exceptions import YTIllDefinedProfile
 from yt.visualization.profile_plotter import ProfilePlot, PhasePlot
@@ -303,6 +304,12 @@ def test_profile_zero_weight():
                                 weight_field=("gas", "DM_cell_mass"))
 
     assert not np.any(np.isnan(profile['gas', 'radial_velocity']))
+
+def test_profile_sph_data():
+    ds = fake_sph_orientation_ds()
+    # test we create a profile without raising YTIllDefinedProfile
+    yt.create_profile(ds.all_data(), ['density', 'temperature'],
+                      ['kinetic_energy'], weight_field=None)
 
 def test_profile_override_limits():
     ds = fake_random_ds(64, nprocs = 8, fields = _fields, units = _units)

@@ -1,5 +1,5 @@
 """
-Enzo-specific IO functions
+Stream-specific IO functions
 
 
 
@@ -18,7 +18,6 @@ import numpy as np
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.exceptions import YTDomainOverflow
 
 class IOHandlerStream(BaseIOHandler):
@@ -109,67 +108,69 @@ class StreamParticleIOHandler(BaseIOHandler):
         super(StreamParticleIOHandler, self).__init__(ds)
 
     def _read_particle_coords(self, chunks, ptf):
-        chunks = list(chunks)
-        data_files = set([])
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(self._get_data_files(chunks),
+                                                     key=lambda x: (x.filename,
+                                                                    x.start)):
             f = self.fields[data_file.filename]
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
                 yield ptype, (f[ptype, "particle_position_x"],
                               f[ptype, "particle_position_y"],
                               f[ptype, "particle_position_z"])
-            
-    def __count_particles_chunks(self, chunks, ptf, selector):
-        # DISABLED
-        # I have left this in here, but disabled, because of two competing
-        # problems:
-        #   * The IndexedOctreeSubsetSelector currently selects *all* particles
-        #   * Slicing a deposited field thus throws an error, since the octree
-        #     estimate fails.
-        #   * BUT, it provides considerable speedup in some situations for
-        #     stream datasets.
-        # So, pending its re-enabling, we'll leave it here.
-        # 
-        # This is allowed to over-estimate.  We probably *will*, too, because
-        # we're going to count *all* of the particles, not just individual
-        # types.
-        count = 0
-        psize = {}
-        for chunk in chunks:
-            for obj in chunk.objs:
-                count += selector.count_octs(obj.oct_handler, obj.domain_id)
-        for ptype in ptf:
-            psize[ptype] = self.ds.n_ref * count
-        return psize
 
-    def _read_particle_fields(self, chunks, ptf, selector):
+    def _read_smoothing_length(self, chunks, ptf, ptype):
+        for data_file in sorted(self._get_data_files(chunks),
+                                                     key=lambda x: (x.filename,
+                                                                    x.start)):
+            f = self.fields[data_file.filename]
+            return f[ptype, 'smoothing_length']
+            
+    def _get_data_files(self, chunks):
         data_files = set([])
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        return data_files
+
+    def _count_particles_chunks(self, psize, chunks, ptf, selector):
+        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+            if (ptype, 'smoothing_length') in self.ds.field_list:
+                hsml = self._read_smoothing_length(chunks, ptf, ptype)
+            else:
+                hsml = 0.0
+            psize[ptype] += selector.count_points(x, y, z, hsml)
+        return psize
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        for data_file in sorted(self._get_data_files(chunks),
+                                                     key=lambda x: (x.filename,
+                                                                    x.start)):
             f = self.fields[data_file.filename]
             for ptype, field_list in sorted(ptf.items()):
                 if (ptype, "particle_position") in f:
-                    x = f[ptype, "particle_position"][:,0]
-                    y = f[ptype, "particle_position"][:,1]
-                    z = f[ptype, "particle_position"][:,2]
+                    ppos = f[ptype, "particle_position"]
+                    x = ppos[:,0]
+                    y = ppos[:,1]
+                    z = ppos[:,2]
                 else:
                     x, y, z = (f[ptype, "particle_position_%s" % ax]
                                for ax in 'xyz')
-                mask = selector.select_points(x, y, z, 0.0)
-                if mask is None: continue
+                if (ptype, 'smoothing_length') in self.ds.field_list:
+                    hsml = f[ptype, 'smoothing_length']
+                else:
+                    hsml = 0.0
+                mask = selector.select_points(x, y, z, hsml)
+                if mask is None:
+                    continue
                 for field in field_list:
                     data = f[ptype, field][mask]
                     yield (ptype, field), data
 
-    def _initialize_index(self, data_file, regions):
+    def _yield_coordinates(self, data_file, needed_ptype=None):
         # self.fields[g.id][fname] is the pattern here
-        morton = []
         for ptype in self.ds.particle_types_raw:
+            if needed_ptype is not None and needed_ptype is not ptype:
+                continue
             try:
                 pos = np.column_stack([self.fields[data_file.filename][
                     (ptype, "particle_position_%s" % ax)] for ax in 'xyz'])
@@ -180,15 +181,19 @@ class StreamParticleIOHandler(BaseIOHandler):
                 raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
                                        data_file.ds.domain_left_edge,
                                        data_file.ds.domain_right_edge)
-            regions.add_data_file(pos, data_file.file_id)
-            morton.append(compute_morton(
-                    pos[:,0], pos[:,1], pos[:,2],
-                    data_file.ds.domain_left_edge,
-                    data_file.ds.domain_right_edge))
-        return np.concatenate(morton)
+            yield ptype, pos
+
+    def _get_smoothing_length(self, data_file, dtype, shape):
+        ptype = self.ds._sph_ptype
+        return self.fields[data_file.filename][ptype, 'smoothing_length']
 
     def _count_particles(self, data_file):
         pcount = {}
+        for ptype in self.ds.particle_types_raw:
+            pcount[ptype] = 0
+        # stream datasets only have one "file"
+        if data_file.file_id > 0:
+            return pcount
         for ptype in self.ds.particle_types_raw:
             d = self.fields[data_file.filename]
             try:

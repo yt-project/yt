@@ -34,8 +34,14 @@ derived_quantity_registry = {}
 
 def get_position_fields(field, data):
     axis_names = [data.ds.coordinates.axis_name[num] for num in [0, 1, 2]]
-    if field[0] in data.ds.particle_types:
-        position_fields = [(field[0], 'particle_position_%s' % d)
+    field = data._determine_fields(field)[0]
+    finfo = data.ds.field_info[field]
+    if finfo.sampling_type == 'particle':
+        if finfo.alias_field:
+            ftype = finfo.alias_name[0]
+        else:
+            ftype = finfo.name[0]
+        position_fields = [(ftype, 'particle_position_%s' % d)
                            for d in axis_names]
     else:
         position_fields = axis_names
@@ -204,12 +210,12 @@ class TotalMass(TotalQuantity):
     def __call__(self):
         self.data_source.ds.index
         fi = self.data_source.ds.field_info
-        if ("gas", "cell_mass") in fi:
-            gas = super(TotalMass, self).__call__([('gas', 'cell_mass')])
+        if ("gas", "mass") in fi:
+            gas = super(TotalMass, self).__call__([('gas', 'mass')])
         else:
             gas = self.data_source.ds.arr([0], 'g')
-        if ("all", "particle_mass") in fi:
-            part = super(TotalMass, self).__call__([('all', 'particle_mass')])
+        if ("nbody", "particle_mass") in fi:
+            part = super(TotalMass, self).__call__([('nbody', 'particle_mass')])
         else:
             part = self.data_source.ds.arr([0], 'g')
         return self.data_source.ds.arr([gas, part])
@@ -244,31 +250,28 @@ class CenterOfMass(DerivedQuantity):
     >>> print ad.quantities.center_of_mass()
 
     """
-    def count_values(self, use_gas = True, use_particles = False, particle_type="all"):
-        if use_particles and particle_type not in self.data_source.ds.particle_types:
-            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
-        use_gas &= \
-          (("gas", "cell_mass") in self.data_source.ds.field_info)
-        use_particles &= \
-          ((particle_type, "particle_mass") in self.data_source.ds.field_info)
+    def count_values(self, use_gas = True, use_particles = False, particle_type="nbody"):
+        finfo = self.data_source.ds.field_info
+        includes_gas = ("gas", "mass") in finfo
+        includes_particles = (particle_type, "particle_mass") in finfo
+
+        self.use_gas = use_gas & includes_gas
+        self.use_particles = use_particles & includes_particles
+
         self.num_vals = 0
-        if use_gas:
+        if self.use_gas:
             self.num_vals += 4
-        if use_particles:
+        if self.use_particles:
             self.num_vals += 4
 
-    def process_chunk(self, data, use_gas = True, use_particles = False, particle_type="all"):
-        use_gas &= \
-          (("gas", "cell_mass") in self.data_source.ds.field_info)
-        use_particles &= \
-          ((particle_type, "particle_mass") in self.data_source.ds.field_info)
+    def process_chunk(self, data, use_gas = True, use_particles = False, particle_type="nbody"):
         vals = []
-        if use_gas:
+        if self.use_gas:
             vals += [(data["gas", ax] *
-                      data["gas", "cell_mass"]).sum(dtype=np.float64)
+                      data["gas", "mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
-        if use_particles:
+            vals.append(data["gas", "mass"].sum(dtype=np.float64))
+        if self.use_particles:
             vals += [(data[particle_type, "particle_position_%s" % ax] *
                       data[particle_type, "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
@@ -321,24 +324,24 @@ class BulkVelocity(DerivedQuantity):
     >>> print ad.quantities.bulk_velocity()
 
     """
-    def count_values(self, use_gas = True, use_particles = False, particle_type= "all"):
+    def count_values(self, use_gas=True, use_particles=False, particle_type="nbody"):
         if use_particles and particle_type not in self.data_source.ds.particle_types:
             raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
         # This is a list now
         self.num_vals = 0
         if use_gas:
             self.num_vals += 4
-        if use_particles:
+        if use_particles and 'nbody' in self.data_source.ds.particle_types:
             self.num_vals += 4
 
-    def process_chunk(self, data, use_gas = True, use_particles = False, particle_type= "all"):
+    def process_chunk(self, data, use_gas=True, use_particles=False, particle_type="nbody"):
         vals = []
         if use_gas:
             vals += [(data["gas", "velocity_%s" % ax] *
-                      data["gas", "cell_mass"]).sum(dtype=np.float64)
+                      data["gas", "mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
-        if use_particles:
+            vals.append(data["gas", "mass"].sum(dtype=np.float64))
+        if use_particles and 'nbody' in data.ds.particle_types:
             vals += [(data[particle_type, "particle_velocity_%s" % ax] *
                       data[particle_type, "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
@@ -465,7 +468,7 @@ class AngularMomentumVector(DerivedQuantity):
     >>> print sp.quantities.angular_momentum_vector(use_gas=False, use_particles=True, particle_type='PartType0')
 
     """
-    def count_values(self, use_gas=True, use_particles=True, particle_type = "all"):
+    def count_values(self, use_gas=True, use_particles=True, particle_type='all'):
         if use_particles and particle_type not in self.data_source.ds.particle_types:
             raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
         num_vals = 0
@@ -473,7 +476,7 @@ class AngularMomentumVector(DerivedQuantity):
         self.data_source.ds.index
         self.particle_type = particle_type
         self.use_gas = use_gas & \
-            (("gas", "cell_mass") in self.data_source.ds.field_info)
+            (("gas", "mass") in self.data_source.ds.field_info)
         self.use_particles = use_particles & \
             ((self.particle_type, "particle_mass") in self.data_source.ds.field_info)
         if self.use_gas:
@@ -486,9 +489,9 @@ class AngularMomentumVector(DerivedQuantity):
         rvals = []
         if self.use_gas:
             rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
-                           data["gas", "cell_mass"]).sum(dtype=np.float64) \
+                           data["gas", "mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
-            rvals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
+            rvals.append(data["gas", "mass"].sum(dtype=np.float64))
         if self.use_particles:
             rvals.extend([(data[self.particle_type, "particle_specific_angular_momentum_%s" % axis] *
                            data[self.particle_type, "particle_mass"]).sum(dtype=np.float64) \
@@ -633,7 +636,8 @@ class MaxLocation(SampleAtMaxFieldValues):
         self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
         rv = super(MaxLocation, self).__call__(field, sample_fields)
-        if len(rv) == 1: rv = rv[0]
+        if len(rv) == 1:
+            rv = rv[0]
         return rv
 
 class SampleAtMinFieldValues(SampleAtMaxFieldValues):
@@ -684,7 +688,8 @@ class MinLocation(SampleAtMinFieldValues):
         self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
         rv = super(MinLocation, self).__call__(field, sample_fields)
-        if len(rv) == 1: rv = rv[0]
+        if len(rv) == 1:
+            rv = rv[0]
         return rv
 
 class SpinParameter(DerivedQuantity):
@@ -727,11 +732,11 @@ class SpinParameter(DerivedQuantity):
     def count_values(self, **kwargs):
         self.num_vals = 3
 
-    def process_chunk(self, data, use_gas=True, use_particles=True, particle_type= "all"):
+    def process_chunk(self, data, use_gas=True, use_particles=True, particle_type="nbody"):
         if use_particles and particle_type not in self.data_source.ds.particle_types:
             raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
         use_gas &= \
-          (("gas", "cell_mass") in self.data_source.ds.field_info)
+          (("gas", "mass") in self.data_source.ds.field_info)
         use_particles &= \
           ((particle_type, "particle_mass") in self.data_source.ds.field_info)
         e = data.ds.quan(0., "erg")
@@ -739,9 +744,9 @@ class SpinParameter(DerivedQuantity):
         m = data.ds.quan(0., "g")
         if use_gas:
             e += (data["gas", "kinetic_energy"] *
-                  data["gas", "cell_volume"]).sum(dtype=np.float64)
+                  data["gas", "volume"]).sum(dtype=np.float64)
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
-            m += data["gas", "cell_mass"].sum(dtype=np.float64)
+            m += data["gas", "mass"].sum(dtype=np.float64)
         if use_particles:
             e += (data[particle_type, "particle_velocity_magnitude"]**2 *
                   data[particle_type, "particle_mass"]).sum(dtype=np.float64)

@@ -42,8 +42,7 @@ def test_pkdgrav():
                                 hubble_constant = 0.702)
     kwargs = dict(field_dtypes = {"Coordinates": "d"},
                   cosmology_parameters = cosmology_parameters,
-                  unit_base = {'length': (60.0, "Mpccm/h")},
-                  n_ref = 64)
+                  unit_base = {'length': (60.0, "Mpccm/h")})
     ds = data_dir_load(pkdgrav, TipsyDataset, (), kwargs)
     assert_equal(str(ds), "halo1e11_run1.00400")
     dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
@@ -73,8 +72,7 @@ def test_gasoline_dmonly():
                                 omega_matter = 0.272,
                                 hubble_constant = 0.702)
     kwargs = dict(cosmology_parameters = cosmology_parameters,
-                  unit_base = {'length': (60.0, "Mpccm/h")},
-                  n_ref = 64)
+                  unit_base = {'length': (60.0, "Mpccm/h")})
     ds = data_dir_load(gasoline_dmonly, TipsyDataset, (), kwargs)
     assert_equal(str(ds), "agora_1e11.00400")
     dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
@@ -120,3 +118,10 @@ def test_tipsy_galaxy():
 def test_TipsyDataset():
     assert isinstance(data_dir_load(pkdgrav), TipsyDataset)
     assert isinstance(data_dir_load(gasoline_dmonly), TipsyDataset)
+
+
+@requires_file(tipsy_gal)
+def test_tipsy_index():
+    ds = data_dir_load(tipsy_gal)
+    sl = ds.slice('z', 0.0)
+    assert sl['gas', 'density'].shape[0]!=0

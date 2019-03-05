@@ -327,7 +327,7 @@ Overplot Halo Annotations
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
 
-   Accepts a :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
+   Accepts a :class:`~yt_astro_analysis.halo_analysis.halo_catalog.HaloCatalog`
    and plots a circle at the location of each halo with the radius of the
    circle corresponding to the virial radius of the halo. Also accepts a
    :ref:`loaded halo catalog dataset <halo-catalog-data>` or a data
@@ -774,7 +774,7 @@ Overplot the Path of a Ray
     ray can be either a
     :class:`~yt.data_objects.selection_data_containers.YTOrthoRay`,
     :class:`~yt.data_objects.selection_data_containers.YTRay`, or a
-    :class:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay`
+    :class:`~trident.light_ray.LightRay`
     object.  annotate_ray() will properly account for periodic rays across the
     volume.
 

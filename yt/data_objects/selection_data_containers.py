@@ -21,16 +21,22 @@ from yt.data_objects.data_containers import \
     YTSelectionContainer2D, YTSelectionContainer3D, YTSelectionContainer
 from yt.data_objects.static_output import Dataset
 from yt.extern.six import string_types
+from yt.frontends.sph.data_structures import \
+    SPHDataset
 from yt.funcs import ensure_list, iterable, validate_width_tuple, \
     fix_length, fix_axis, validate_3d_array, validate_float, \
     validate_iterable, validate_object, validate_axis, validate_center
 from yt.units.yt_array import \
+    udot, \
+    unorm, \
     YTArray, \
     YTQuantity
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
     YTEllipsoidOrdering
+from yt.utilities.lib.pixelization_routines import \
+    SPHKernelInterpolationTable
 from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
@@ -236,12 +242,26 @@ class YTRay(YTSelectionContainer1D):
             self.end_point = \
               self.ds.arr(end_point, 'code_length',
                           dtype='float64')
+        # FIXME FIXME FIXME don't merge this code if this comment is still here
+        # Right now we don't handle periodic offsets correctly for particle rays
+        # need to check if we do handle it correctly for grid codes and how we
+        # handle it there.
+        if ((self.start_point < self.ds.domain_left_edge).any() or
+            (self.end_point > self.ds.domain_right_edge).any()):
+            raise RuntimeError("Need to fix case of ray extending beyond edge of domain")
         self.vec = self.end_point - self.start_point
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
         self._dts, self._ts = None, None
 
     def _generate_container_field(self, field):
+        # What should we do with `ParticleDataset`?
+        if isinstance(self.ds, SPHDataset):
+            return self._generate_container_field_sph(field)
+        else:
+            return self._generate_container_field_grid(field)
+
+    def _generate_container_field_grid(self, field):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if field == "dts":
@@ -250,6 +270,30 @@ class YTRay(YTSelectionContainer1D):
             return self._current_chunk.tcoords
         else:
             raise KeyError(field)
+
+    def _generate_container_field_sph(self, field):
+        if field not in ["dts", "t"]:
+            raise KeyError(field)
+
+        length = unorm(self.vec)
+        pos = self[self.ds._sph_ptype, "particle_position"]
+        r = pos - self.start_point
+        l = udot(r, self.vec/length)
+
+        if field == "t":
+            return l / length
+
+        hsml = self[self.ds._sph_ptype, "smoothing_length"]
+        mass = self[self.ds._sph_ptype, "particle_mass"]
+        dens = self[self.ds._sph_ptype, "density"]
+        # impact parameter from particle to ray
+        b = np.sqrt(np.sum(r**2, axis=1) - l**2)
+
+        # Use an interpolation table to evaluate the integrated 2D
+        # kernel from the dimensionless impact parameter b/hsml.
+        itab = SPHKernelInterpolationTable(self.ds.kernel_name)
+        dl = itab.interpolate_array(b / hsml) * mass / dens / hsml**2
+        return dl / length
 
 class YTSlice(YTSelectionContainer2D):
     """
@@ -395,7 +439,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
          fields.
     data_source: optional
         Draw the selection from the provided data source rather than
-        all data associated with the data_set
+        all data associated with the dataset
 
     Notes
     -----

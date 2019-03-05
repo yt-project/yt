@@ -18,7 +18,8 @@ import warnings
 
 from yt.extern.six import string_types, PY2
 from yt.funcs import \
-    ensure_list
+    ensure_list, \
+    VisibleDeprecationWarning
 from .field_exceptions import \
     NeedsGridType, \
     NeedsOriginalGrid, \
@@ -179,7 +180,25 @@ class DerivedField(object):
 
     @property
     def particle_type(self):
+        warnings.warn("particle_type has been deprecated, "
+                      "check for field.sampling_type == 'particle' instead.",
+                      VisibleDeprecationWarning, stacklevel=2)
         return self.sampling_type in ("discrete", "particle")
+
+    @property
+    def is_sph_field(self):
+        is_sph_field = False
+        if self.alias_field:
+            name = self.alias_name
+        else:
+            name = self.name
+        if hasattr(self.ds, '_sph_ptype'):
+            is_sph_field |= name[0] in (self.ds._sph_ptype, 'gas')
+        return is_sph_field
+
+    @property
+    def local_sampling(self):
+        return self.sampling_type in ('discrete', 'particle', 'local')
 
     def get_units(self):
         if self.ds is not None:
@@ -291,6 +310,22 @@ class DerivedField(object):
         data_label += r"$"
         return data_label
 
+    @property
+    def alias_field(self):
+        if PY2:
+            func_name = self._function.func_name
+        else:
+            func_name = self._function.__name__
+        if func_name == "_TranslationFunc":
+            return True
+        return False
+
+    @property
+    def alias_name(self):
+        if self.alias_field:
+            return self._function.alias_name
+        return None
+
     def __repr__(self):
         if PY2:
             func_name = self._function.func_name
@@ -299,7 +334,7 @@ class DerivedField(object):
         if self._function == NullFunc:
             s = "On-Disk Field "
         elif func_name == "_TranslationFunc":
-            s = "Alias Field for \"%s\" " % (self._function.alias_name,)
+            s = "Alias Field for \"%s\" " % (self.alias_name,)
         else:
             s = "Derived Field "
         if isinstance(self.name, tuple):
@@ -309,7 +344,7 @@ class DerivedField(object):
         s += "(units: %s" % self.units
         if self.display_name is not None:
             s += ", display_name: '%s'" % (self.display_name)
-        if self.particle_type:
+        if self.sampling_type == "particle":
             s += ", particle field"
         s += ")"
         return s

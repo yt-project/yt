@@ -76,7 +76,6 @@ def preserve_source_parameters(func):
         return tr
     return save_state
 
-
 class ProfileFieldAccumulator(object):
     def __init__(self, n_fields, size):
         shape = size + (n_fields,)
@@ -1041,12 +1040,12 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     """
     bin_fields = data_source._determine_fields(bin_fields)
     fields = ensure_list(fields)
-    is_pfield = [data_source.ds._get_field_info(f).particle_type
+    is_pfield = [data_source.ds._get_field_info(f).sampling_type == "particle"
                  for f in bin_fields + fields]
     wf = None
     if weight_field is not None:
         wf = data_source.ds._get_field_info(weight_field)
-        is_pfield.append(wf.particle_type)
+        is_pfield.append(wf.sampling_type == "particle")
         wf = wf.name
 
     if len(bin_fields) > 1 and isinstance(accumulation, bool):
@@ -1060,9 +1059,20 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     override_bins = sanitize_field_tuple_keys(override_bins, data_source)
 
     if any(is_pfield) and not all(is_pfield):
-        raise YTIllDefinedProfile(
-            bin_fields, data_source._determine_fields(fields), wf, is_pfield)
-    elif len(bin_fields) == 1:
+        if hasattr(data_source.ds, '_sph_ptype'):
+            is_local = [data_source.ds.field_info[f].sampling_type == "local"
+                        for f in bin_fields + fields]
+            is_local_or_pfield = [pf or lf for (pf, lf) in
+                                  zip(is_pfield, is_local)]
+            if not all(is_local_or_pfield):
+                raise YTIllDefinedProfile(
+                    bin_fields, data_source._determine_fields(fields), wf,
+                    is_pfield)
+        else:
+            raise YTIllDefinedProfile(
+                bin_fields, data_source._determine_fields(fields), wf,
+                is_pfield)
+    if len(bin_fields) == 1:
         cls = Profile1D
     elif len(bin_fields) == 2 and all(is_pfield):
         if deposition == 'cic':
@@ -1089,7 +1099,8 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         raise NotImplementedError
     if weight_field is not None and cls == ParticleProfile:
         weight_field, = data_source._determine_fields([weight_field])
-        if not data_source.ds._get_field_info(weight_field).particle_type:
+        wf = data_source.ds._get_field_info(weight_field)
+        if not wf.sampling_type == "particle":
             weight_field = None
     if not iterable(n_bins):
         n_bins = [n_bins] * len(bin_fields)

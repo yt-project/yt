@@ -19,8 +19,6 @@ import numpy as np
 
 from yt.data_objects.data_containers import \
     YTSelectionContainer
-from yt.data_objects.field_data import \
-    YTFieldData
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 
@@ -76,7 +74,7 @@ class OctreeSubset(YTSelectionContainer):
         except YTFieldTypeNotFound:
             return tr
         finfo = self.ds._get_field_info(*fields[0])
-        if not finfo.particle_type:
+        if not finfo.sampling_type == "particle":
             # We may need to reshape the field, if it is being queried from
             # field_data.  If it's already cached, it just passes through.
             if len(tr.shape) < 4:
@@ -179,6 +177,10 @@ class OctreeSubset(YTSelectionContainer):
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
+        if np.max(self.domain_ind) >= nvals[-1]:
+            print ('nocts, domain_ind >= 0, max {} {} {}'.format(
+                self.oct_handler.nocts, nvals[-1], np.max(self.domain_ind)))
+            raise Exception()
         # We allocate number of zones, not number of octs
         op = cls(nvals, kernel_name)
         op.initialize()
@@ -254,7 +256,7 @@ class OctreeSubset(YTSelectionContainer):
             # This should ensure we get everything within one neighbor of home.
             particle_octree.n_ref = nneighbors * 2
             particle_octree.add(morton)
-            particle_octree.finalize()
+            particle_octree.finalize(self.domain_id)
             pdom_ind = particle_octree.domain_ind(self.selector)
         else:
             particle_octree = self.oct_handler
@@ -284,7 +286,6 @@ class OctreeSubset(YTSelectionContainer):
         # error.
         with np.errstate(invalid='ignore'):
             vals = op.finalize()
-        if vals is None: return
         if isinstance(vals, list):
             vals = [np.asfortranarray(v) for v in vals]
         else:
@@ -404,35 +405,6 @@ class OctreeSubset(YTSelectionContainer):
     def select_particles(self, selector, x, y, z):
         mask = selector.select_points(x,y,z, 0.0)
         return mask
-
-class ParticleOctreeSubset(OctreeSubset):
-    # Subclassing OctreeSubset is somewhat dubious.
-    # This is some subset of an octree.  Note that the sum of subsets of an
-    # octree may multiply include data files.  While we can attempt to mitigate
-    # this, it's unavoidable for many types of data storage on disk.
-    _type_name = 'indexed_octree_subset'
-    _con_args = ('data_files', 'ds', 'min_ind', 'max_ind')
-    domain_id = -1
-    def __init__(self, base_region, data_files, ds, min_ind = 0, max_ind = 0,
-                 over_refine_factor = 1):
-        # The first attempt at this will not work in parallel.
-        self._num_zones = 1 << (over_refine_factor)
-        self._oref = over_refine_factor
-        self.data_files = data_files
-        self.field_data = YTFieldData()
-        self.field_parameters = {}
-        self.ds = ds
-        self._index = self.ds.index
-        self.oct_handler = ds.index.oct_handler
-        self.min_ind = min_ind
-        if max_ind == 0: max_ind = (1 << 63)
-        self.max_ind = max_ind
-        self._last_mask = None
-        self._last_selector_id = None
-        self._current_particle_type = 'all'
-        self._current_fluid_type = self.ds.default_fluid_type
-        self.base_region = base_region
-        self.base_selector = base_region.selector
 
 class OctreeSubsetBlockSlicePosition(object):
     def __init__(self, ind, block_slice):

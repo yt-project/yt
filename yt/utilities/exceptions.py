@@ -539,6 +539,15 @@ class YTGDFAlreadyExists(Exception):
     def __str__(self):
         return "A file already exists at %s and overwrite=False." % self.filename
 
+class YTNonIndexedDataContainer(YTException):
+    def __init__(self, cont):
+        self.cont = cont
+
+    def __str__(self):
+        return ("The data container (%s) is an unindexed type.  "
+                "Operations such as ires, icoords, fcoords and fwidth "
+                "will not work on it." % type(self.cont))
+
 class YTGDFUnknownGeometry(Exception):
     def __init__(self, geometry):
         self.geometry = geometry
@@ -595,10 +604,11 @@ class YTInvalidFieldType(YTException):
         self.fields = fields
 
     def __str__(self):
-        msg = ("\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can only "
-               "plot fields that\n"
-               "are defined on a mesh, but received the following particle "
-               "fields:\n\n"
+        msg = ("\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can "
+               "only plot fields that\n"
+               "are defined on a mesh or for SPH particles, but received the "
+               "following N-body\n"
+               "particle fields:\n\n"
                "    %s\n\n"
                "Did you mean to use ParticlePlot or plot a deposited particle "
                "field instead?" % self.fields)
@@ -775,3 +785,12 @@ class YTCommandRequiresModule(YTException):
         msg += "or:\n"
         msg += "  pip install %s\n" % self.module
         return msg
+
+class YTModuleRemoved(Exception):
+    def __init__(self, name, new_home=None, info=None):
+        message = "The %s module has been removed from yt." % name
+        if new_home is not None:
+            message += "\nIt has been moved to %s." % new_home
+        if info is not None:
+            message += "\nFor more information, see %s." % info
+        Exception.__init__(self, message)

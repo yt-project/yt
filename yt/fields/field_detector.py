@@ -123,7 +123,7 @@ class FieldDetector(defaultdict):
                 if not self.flat: self[item] = vv
                 else: self[item] = vv.ravel()
                 return self[item]
-        elif finfo is not None and finfo.particle_type:
+        elif finfo is not None and finfo.sampling_type == "particle":
             if "particle_position" in (item, item[1]) or \
                "particle_velocity" in (item, item[1]) or \
                "particle_magnetic_field" in (item, item[1]) or \
@@ -161,6 +161,11 @@ class FieldDetector(defaultdict):
         return
 
     def deposit(self, *args, **kwargs):
+        from yt.frontends.stream.data_structures import StreamParticlesDataset
+        from yt.data_objects.static_output import ParticleDataset
+        if kwargs['method'] == 'mesh_id':
+            if isinstance(self.ds, (StreamParticlesDataset, ParticleDataset)):
+                raise ValueError
         return np.random.random((self.nd, self.nd, self.nd))
 
     def smooth(self, *args, **kwargs):
@@ -175,7 +180,7 @@ class FieldDetector(defaultdict):
     def _read_data(self, field_name):
         self.requested.append(field_name)
         finfo = self.ds._get_field_info(*field_name)
-        if finfo.particle_type:
+        if finfo.sampling_type == "particle":
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
         return YTArray(defaultdict.__missing__(self, field_name),

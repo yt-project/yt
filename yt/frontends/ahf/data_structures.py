@@ -34,7 +34,7 @@ from .fields import AHFHalosFieldInfo
 
 
 class AHFHalosFile(HaloCatalogFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range=None):
         root, _ = os.path.splitext(filename)
         candidates = glob.glob(root + '*.AHF_halos')
         if len(candidates) == 1:
@@ -42,7 +42,7 @@ class AHFHalosFile(HaloCatalogFile):
         else:
             raise ValueError('Too many AHF_halos files.')
         self.col_names = self._read_column_names(filename)
-        super(AHFHalosFile, self).__init__(ds, io, filename, file_id)
+        super(AHFHalosFile, self).__init__(ds, io, filename, file_id, range)
 
     def read_data(self, usecols=None):
         return np.genfromtxt(self.filename, names=self.col_names,

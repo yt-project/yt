@@ -32,7 +32,6 @@ from yt.utilities.exceptions import YTFieldNotFound
 
 class Index(ParallelAnalysisInterface):
     """The base index class"""
-    _global_mesh = True
     _unsupported_objects = ()
     _index_properties = ()
 
@@ -221,8 +220,9 @@ class Index(ParallelAnalysisInterface):
         selector = dobj.selector
         if chunk is None:
             self._identify_base_chunk(dobj)
+        chunks = self._chunk_io(dobj, cache = False)
         fields_to_return = self.io._read_particle_selection(
-            self._chunk_io(dobj, cache = False),
+            chunks,
             selector,
             fields_to_read)
         return fields_to_return, fields_to_generate
