@@ -7,7 +7,7 @@ from yt.testing import \
     fake_random_ds, \
     requires_file
 from numpy.testing import \
-    assert_raises, assert_array_less
+    assert_raises, assert_array_less, assert_allclose
 import yt
 
 
@@ -70,3 +70,23 @@ def test_mesh_deposition_for_filtered_particles():
     for ptype in ('io', 'left'):
         for src in data_sources:
             yield test_source, ptype, src
+
+@requires_file(RAMSES)
+def test_deposition_with_indexing():
+    # Access with index caching
+    ds = yt.load(RAMSES)
+    ds.add_deposited_mesh_field(('gas', 'density'), ptype='all')
+
+    ad = ds.all_data()
+    ad['all', 'cell_index']
+    v1 = ad['all', 'cell_gas_density']
+
+    # Access with no index caching
+    ds = yt.load(RAMSES)
+    ds.add_deposited_mesh_field(('gas', 'density'), ptype='all')
+
+    ad = ds.all_data()
+    v2 = ad['all', 'cell_gas_density']
+
+    # Check same answer is returned
+    assert_allclose(v1, v2)
