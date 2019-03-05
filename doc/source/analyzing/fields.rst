@@ -521,18 +521,19 @@ depose a field onto the particles like so:
    print('The temperature at the location of the particles is')
    print(ds.r['all', 'cell_gas_temperature'])
 
-For octree codes (e.g. RAMSES), you can trigger the build of an index so that the next deposition operations will be mush faster
+For octree codes (e.g. RAMSES), you can trigger the build of an index so 
+that the next deposition operations will be mush faster
 
 .. code-block:: python
 
-  import yt
+   import yt
 
-  ds = yt.load("output_00080/info_00080.txt")
-  ds.add_deposited_mesh_field(('gas', 'temperature'), ptype='all')
+   ds = yt.load("output_00080/info_00080.txt")
+   ds.add_deposited_mesh_field(('gas', 'temperature'), ptype='all')
 
-  ad = ds.all_data()
-  ad['all', 'cell_index']  # Trigger the build of the index of the cell containing the particles
-  ad['all', 'cell_gas_temperature']  # This is now much faster
+   ad = ds.all_data()
+   ad['all', 'cell_index']            # Trigger the build of the index of the cell containing the particles
+   ad['all', 'cell_gas_temperature']  # This is now much faster
 
 .. _sph-fields:
 
