@@ -67,7 +67,7 @@ pycodestyle:
         - W605
         - E203
         - W504
-    ignore:
+    exclude:
         - doc
         - benchmarks
         - \*/api.py
