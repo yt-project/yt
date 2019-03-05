@@ -650,7 +650,9 @@ straightforward.
    they should be made.
 #. Commit those changes to your local repository.
 #. Push the changes to your fork::
+
       git push origin my-first-pull-request
+
 #. Your pull request will be automatically updated.
 
 Once your pull request is merged, sync up with the main yt repository by pulling
