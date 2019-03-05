@@ -584,8 +584,8 @@ cdef class OctreeContainer:
         cdef int domain_id = subset.domain_id
 
         # Initialize selector & visitor
-        selector = selection_routines.AlwaysSelector(subset)
-        # selector = subset.selector
+        # selector = selection_routines.AlwaysSelector(subset)
+        selector = subset.selector
 
         visitor = oct_visitors.MarkAndPosOcts(self, domain_id)
         visitor.mark = np.zeros((self.nocts, 2, 2, 2), np.int64)-1
