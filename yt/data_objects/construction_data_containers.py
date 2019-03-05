@@ -342,7 +342,8 @@ class YTProj(YTSelectionContainer2D):
                 # First time calling a units="auto" field, infer units and cache
                 # for future field accesses.
                 finfo.units = str(chunk[field].units)
-            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
+            field_unit = Unit(finfo.output_units,
+                              registry=self.ds.unit_registry)
             if self.method == "mip" or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
