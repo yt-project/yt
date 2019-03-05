@@ -154,7 +154,8 @@ cdef class ParticleDepositOperation:
                      np.float64_t dds[3], np.int64_t offset,
                      np.float64_t ppos[3], np.float64_t[:] fields,
                      np.int64_t domain_ind) nogil except -1:
-        raise NotImplementedError
+        with gil:
+            raise NotImplementedError
 
 cdef class CountParticles(ParticleDepositOperation):
     cdef np.int64_t[:,:,:,:] count
