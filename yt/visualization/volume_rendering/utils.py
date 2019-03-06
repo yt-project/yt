@@ -4,7 +4,7 @@ from yt.data_objects.data_containers import \
 from yt.data_objects.static_output import Dataset
 from yt.utilities.lib import bounding_volume_hierarchy
 from yt.utilities.lib.image_samplers import \
-    VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler
+    VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler, LightSourceRenderSampler
 
 from yt.utilities.on_demand_imports import NotAModule
 try:
@@ -72,6 +72,36 @@ def new_volume_render_sampler(camera, render_source):
         kwargs['zbuffer'] = np.ones(params['image'].shape[:2], "float64")
 
     sampler = VolumeRenderSampler(*args, **kwargs)
+    return sampler
+
+def new_light_render_sampler(camera, render_source):
+    params = ensure_code_unit_params(camera._get_sampler_params(render_source))
+    params.update(transfer_function=render_source.transfer_function)
+    params.update(transfer_function=render_source.transfer_function)
+    params.update(num_samples=render_source.num_samples)
+    args = (
+        np.atleast_3d(params['vp_pos']),
+        np.atleast_3d(params['vp_dir']),
+        params['center'],
+        params['bounds'],
+        params['image'],
+        params['x_vec'],
+        params['y_vec'],
+        params['width'],
+        params['transfer_function'],
+        params['num_samples'],
+    )
+    kwargs = {'lens_type': params['lens_type']}
+    if "camera_data" in params:
+        kwargs['camera_data'] = params['camera_data']
+    if render_source.zbuffer is not None:
+        kwargs['zbuffer'] = render_source.zbuffer.z
+        args[4][:] = np.reshape(render_source.zbuffer.rgba[:], \
+            (camera.resolution[0], camera.resolution[1], 4))
+    else:
+        kwargs['zbuffer'] = np.ones(params['image'].shape[:2], "float64")
+
+    sampler = LightSourceRenderSampler(*args, **kwargs, light_dir=[-1, 1, 1])
     return sampler
 
 

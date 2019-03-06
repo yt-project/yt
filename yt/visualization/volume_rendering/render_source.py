@@ -24,7 +24,7 @@ from .transfer_functions import TransferFunction, \
     ProjectionTransferFunction, ColorTransferFunction
 from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler, new_mesh_sampler, \
-    new_interpolated_projection_sampler
+    new_interpolated_projection_sampler, new_light_render_sampler
 from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.visualization.image_writer import apply_colormap
 from yt.data_objects.image_array import ImageArray
@@ -400,6 +400,8 @@ class VolumeSource(RenderSource):
         """
         if self.sampler_type == 'volume-render':
             sampler = new_volume_render_sampler(camera, self)
+        elif self.sampler_type == 'light-render':
+            sampler = new_light_render_sampler(camera, self)
         elif self.sampler_type == 'projection' and interpolated:
             sampler = new_interpolated_projection_sampler(camera, self)
         elif self.sampler_type == 'projection':
