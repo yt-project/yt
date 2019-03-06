@@ -44,15 +44,6 @@ from yt.utilities.logger import ytLogger as \
     mylog
 
 class GadgetFOFParticleIndex(ParticleIndex):
-    def __init__(self, ds, dataset_type):
-        self.dataset_type = dataset_type
-        self.dataset = weakref.proxy(ds)
-        self.float_type = np.float64
-        self._setup_data_io()
-        self._setup_filenames()
-        super(ParticleIndex, self).__init__(ds, dataset_type)
-        self._initialize_index()
-
     def _calculate_particle_count(self):
         """
         Calculate the total number of each type of particle.
@@ -116,8 +107,9 @@ class GadgetFOFParticleIndex(ParticleIndex):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
-    def _setup_geometry(self):
-        super(GadgetFOFParticleIndex, self)._setup_geometry()
+    def _setup_data_io(self):
+        super(GadgetFOFParticleIndex, self)._setup_data_io()
+        self._setup_filenames()
         self._calculate_particle_count()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
