@@ -70,6 +70,7 @@ from yt.extern.six import add_metaclass, string_types
 from yt.units.yt_array import uconcatenate
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
+from yt.utilities.lib.cykdtree import PyKDTree
 
 data_object_registry = {}
 
@@ -2179,3 +2180,60 @@ def _reconstruct_object(*args, **kwargs):
     obj = cls(*new_args)
     obj.field_parameters.update(field_parameters)
     return ReconstructedObject((ds, obj))
+
+def monte_carlo_sample(ds, n_samples=100000, fields=None, n_neighbors=2):
+    """
+    """
+    from yt.utilities.lib.particle_kdtree_tools import \
+        generate_smoothing_length
+    from yt.frontends.stream.api import \
+        load_particles
+    l_unit = 'code_length'
+    m_unit = 'code_mass'
+    d_unit = 'code_mass/code_length**3'
+    rands = np.random.rand(n_samples)
+    m_tot = ds.r[('gas', 'cell_mass')].sum()
+    bins = np.cumsum(ds.r[('gas', 'cell_mass')] / m_tot)
+    indices = np.digitize(rands, bins)
+    x_off = np.random.uniform(-0.5, 0.5, n_samples)
+    y_off = np.random.uniform(-0.5, 0.5, n_samples)
+    z_off = np.random.uniform(-0.5, 0.5, n_samples)
+    x_pos = ds.r[('gas', 'x')][indices] + x_off*ds.r[('gas', 'dx')][indices]
+    y_pos = ds.r[('gas', 'y')][indices] + y_off*ds.r[('gas', 'dy')][indices]
+    z_pos = ds.r[('gas', 'z')][indices] + z_off*ds.r[('gas', 'dz')][indices]
+    pos = ds.arr([x_pos, y_pos, z_pos]).T.to(l_unit).v
+    masses = (m_tot / n_samples) * np.ones(n_samples)
+
+    # Get smoothing length
+    left_edge = ds.domain_left_edge.to(l_unit).v
+    right_edge = ds.domain_right_edge.to(l_unit).v
+    kdtree = PyKDTree(
+        pos.astype('float64'),
+        left_edge=left_edge,
+        right_edge=right_edge,
+        periodic=ds.periodicity,
+        leafsize=2*int(n_neighbors),
+    )
+    pos_kd = pos[kdtree.idx]
+    hsml = generate_smoothing_length(pos_kd, kdtree, n_neighbors)
+    hsml = hsml[np.argsort(kdtree.idx)]
+
+    data = {'particle_position_x' : (x_pos.to(l_unit), l_unit),
+            'particle_position_y' : (y_pos.to(l_unit), l_unit),
+            'particle_position_z' : (z_pos.to(l_unit), l_unit),
+            'particle_mass' : (masses.to(m_unit), m_unit),
+            'density' : (ds.r[('gas', 'density')][indices].to(d_unit), d_unit),
+            'smoothing_length' : (hsml, l_unit)}
+
+    # Collect dataset code units
+    code_units = {}
+    for key in ['length', 'mass', 'time', 'velocity', 'magnetic']:
+        full_key = key + '_unit'
+        if hasattr(ds, full_key):
+            code_units[full_key] = getattr(ds, full_key)
+
+    return load_particles(data,
+                          bbox=list(zip(left_edge, right_edge)),
+                          sim_time=ds.current_time,
+                          periodicity=ds.periodicity,
+                          **code_units)
