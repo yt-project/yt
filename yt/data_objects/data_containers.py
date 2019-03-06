@@ -749,7 +749,8 @@ class YTDataContainer(object):
         try:
             from firefly_api.reader import Reader
             from firefly_api.particlegroup import ParticleGroup
-            from firefly_api.errors import FireflyError
+            from firefly_api.errors import FireflyError,FireflyWarning
+            from firefly_api.errors import warnings as firefly_warnings
         except ImportError:
             raise ImportError("Can't find firefly_api, ensure it"+
                 "is in your python path or install it with"+
@@ -785,7 +786,7 @@ class YTDataContainer(object):
                     if 'position' in field or 'velocity' in field:
                         continue
                     if field not in fields_to_include:
-                        warnings.warn(FireflyWarning(
+                        firefly_warnings.warn(FireflyWarning(
                             'detected (but did not request) {} {}'.format(ptype,field)))
                         continue
 
