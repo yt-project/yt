@@ -71,6 +71,8 @@ from yt.units.yt_array import uconcatenate
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.utilities.lib.cykdtree import PyKDTree
+from yt.utilities.lib.particle_kdtree_tools import \
+    generate_smoothing_length
 
 data_object_registry = {}
 
@@ -2181,16 +2183,46 @@ def _reconstruct_object(*args, **kwargs):
     obj.field_parameters.update(field_parameters)
     return ReconstructedObject((ds, obj))
 
-def monte_carlo_sample(ds, n_samples=100000, fields=None, n_neighbors=2):
+def monte_carlo_sample(ds, n_samples=100000, fields=None, n_neighbors=8):
     """
+    Uses Monte Carlo sampling to create a particle-based dataset out of a
+    grid-based dataset.  For each sample, the code probabilistically selects
+    a cell weighted according to its mass, and a particle is created possessing
+    the gas fields of the cell at some random location within the cell's volume.
+
+    By default the fields that are created are mass, density, smoothing_length,
+    and the position and velocity fields.
+
+    Parameters
+    ----------
+    ds : Dataset
+        Grid-based dataset used as source
+
+    n_samples : int
+        Number of times to sample the dataset
+
+    fields : list
+        List of additional fields you want to include in returned dataset
+
+    n_neighbors : int
+        Number of neighbors for each node in kdtree to determine
+        smoothing_length
+
+    Returns
+    -------
+    StreamParticlesDataset
+
+    Examples
+    --------
+    >>> ds_grid = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> ds_sph = monte_carlo_sample(ds_grid)
     """
-    from yt.utilities.lib.particle_kdtree_tools import \
-        generate_smoothing_length
     from yt.frontends.stream.api import \
         load_particles
     l_unit = 'code_length'
     m_unit = 'code_mass'
     d_unit = 'code_mass/code_length**3'
+    v_unit = 'code_length/code_time'
     rands = np.random.rand(n_samples)
     m_tot = ds.r[('gas', 'cell_mass')].sum()
     bins = np.cumsum(ds.r[('gas', 'cell_mass')] / m_tot)
@@ -2221,9 +2253,13 @@ def monte_carlo_sample(ds, n_samples=100000, fields=None, n_neighbors=2):
     data = {'particle_position_x' : (x_pos.to(l_unit), l_unit),
             'particle_position_y' : (y_pos.to(l_unit), l_unit),
             'particle_position_z' : (z_pos.to(l_unit), l_unit),
+            'particle_velocity_x' : (ds.r[('gas', 'velocity_x')][indices].to(v_unit), v_unit),
+            'particle_velocity_y' : (ds.r[('gas', 'velocity_y')][indices].to(v_unit), v_unit),
+            'particle_velocity_z' : (ds.r[('gas', 'velocity_z')][indices].to(v_unit), v_unit),
             'particle_mass' : (masses.to(m_unit), m_unit),
             'density' : (ds.r[('gas', 'density')][indices].to(d_unit), d_unit),
             'smoothing_length' : (hsml, l_unit)}
+            #'smoothing_length' : (ds.r[('gas', 'dx')][indices].to(l_unit), l_unit)}
 
     # Collect dataset code units
     code_units = {}
