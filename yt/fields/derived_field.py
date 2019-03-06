@@ -37,6 +37,8 @@ from yt.utilities.exceptions import \
 
 def TranslationFunc(field_name):
     def _TranslationFunc(field, data):
+        if not isinstance(data, FieldDetector):
+            pass   
         # We do a bunch of in-place modifications, so we will copy this.
         return data[field_name].copy()
     _TranslationFunc.alias_name = field_name

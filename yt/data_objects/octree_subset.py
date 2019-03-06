@@ -24,7 +24,7 @@ from yt.data_objects.field_data import \
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 
-from yt.funcs import mylog
+from yt.funcs import mylog, ensure_list
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer
@@ -34,6 +34,9 @@ from yt.utilities.exceptions import \
     YTInvalidPositionArray, \
     YTFieldTypeNotFound, \
     YTParticleDepositionNotImplemented
+from yt.fields.field_exceptions import \
+    NeedsGridType, \
+    NeedsOriginalGrid
 
 def cell_count_cache(func):
     def cc_cache_func(self, dobj):
@@ -55,7 +58,7 @@ class OctreeSubset(YTSelectionContainer):
     _cell_count = -1
     _block_reorder = None
 
-    def __init__(self, base_region, domain, ds, over_refine_factor = 1):
+    def __init__(self, base_region, domain, ds, over_refine_factor=1):
         super(OctreeSubset, self).__init__(ds, None)
         self._num_zones = 1 << (over_refine_factor)
         self._oref = over_refine_factor
@@ -76,7 +79,7 @@ class OctreeSubset(YTSelectionContainer):
         except YTFieldTypeNotFound:
             return tr
         finfo = self.ds._get_field_info(*fields[0])
-        if not finfo.particle_type:
+        if not finfo.sampling_type == "particle":
             # We may need to reshape the field, if it is being queried from
             # field_data.  If it's already cached, it just passes through.
             if len(tr.shape) < 4:
@@ -181,6 +184,10 @@ class OctreeSubset(YTSelectionContainer):
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
+        if np.max(self.domain_ind) >= nvals[-1]:
+            print ('nocts, domain_ind >= 0, max {} {} {}'.format(
+                self.oct_handler.nocts, nvals[-1], np.max(self.domain_ind)))
+            raise Exception()
         # We allocate number of zones, not number of octs
         op = cls(nvals, kernel_name)
         op.initialize()
@@ -310,7 +317,7 @@ class OctreeSubset(YTSelectionContainer):
             # This should ensure we get everything within one neighbor of home.
             particle_octree.n_ref = nneighbors * 2
             particle_octree.add(morton)
-            particle_octree.finalize()
+            particle_octree.finalize(self.domain_id)
             pdom_ind = particle_octree.domain_ind(self.selector)
         else:
             particle_octree = self.oct_handler
@@ -340,7 +347,6 @@ class OctreeSubset(YTSelectionContainer):
         # error.
         with np.errstate(invalid='ignore'):
             vals = op.finalize()
-        if vals is None: return
         if isinstance(vals, list):
             vals = [np.asfortranarray(v) for v in vals]
         else:
@@ -460,6 +466,125 @@ class OctreeSubset(YTSelectionContainer):
     def select_particles(self, selector, x, y, z):
         mask = selector.select_points(x,y,z, 0.0)
         return mask
+
+    def retrieve_ghost_zones(self, ghost_zones, fields, smoothed=False):
+        new_subset = OctreeSubsetWithGhostZones(
+            self.base_region, self.domain, self.ds, self._oref,
+            ghost_zone=1)
+        new_subset._base_grid = self
+        return new_subset
+
+class OctreeSubsetWithGhostZones(OctreeSubset):
+    _base_grid = None
+    _container_fields = (("index", "dx"),
+                        ("index", "dy"),
+                        ("index", "dz"),
+                        ("index", "x"),
+                        ("index", "y"),
+                        ("index", "z"))
+    def __init__(self, base_region, domain, ds, over_refine_factor=1, ghost_zone=0):
+        super(OctreeSubsetWithGhostZones, self).__init__(base_region, domain, ds, over_refine_factor)
+        
+        if not (0 <= ghost_zone <= 1):
+            raise NotImplementedError('OctreeSubset does not support %s ghost zones.' % ghost_zone)
+        self.ghost_zone = ghost_zone
+        self._num_ghost_zones = ghost_zone
+
+    def __getitem__(self, field):
+        self.get_data(field)
+        tmp = super(OctreeSubsetWithGhostZones, self).__getitem__(field)
+        return tmp
+
+    def get_data(self, fields = None):
+        if fields is None: return
+        fields = self._determine_fields(ensure_list(fields))
+        fields_to_get = [f for f in fields if f not in self.field_data]
+        fields_to_get = self._identify_dependencies(fields_to_get)
+        if len(fields_to_get) == 0: return
+        try:
+            fill, gen, part, alias = self._split_fields(fields_to_get)
+        except NeedsGridType:
+            if self._num_ghost_zones == 0:
+                raise RuntimeError(
+                    "Attempting to access a field that needs ghost zones, but "
+                    "num_ghost_zones = %s. You should create the covering grid "
+                    "with nonzero num_ghost_zones." % self._num_ghost_zones)
+            else:
+                raise
+        if len(part) > 0: self._fill_particles(part)
+        if len(fill) > 0: self._fill_fields(fill)
+        for a, f in sorted(alias.items()):
+            if f.particle_type:
+                raise RuntimeError('TODO')
+            else:
+                self[a] = f(self)
+            self.field_data[a].convert_to_units(f.output_units)
+
+        if len(gen) > 0:
+            part_gen = []
+            cell_gen = []
+            for field in gen:
+                finfo = self.ds.field_info[field]
+                if finfo.particle_type:
+                    part_gen.append(field)
+                else:
+                    cell_gen.append(field)
+            self._generate_fields(cell_gen)
+            for p in part_gen:
+                self[p] = self._data_source[p]
+
+    def _split_fields(self, fields_to_get):
+        fill, gen = self.index._split_fields(fields_to_get)
+        particles = []
+        alias = {}
+        for field in gen:
+            finfo = self.ds._get_field_info(*field)
+            if finfo._function.__name__ == "_TranslationFunc":
+                alias[field] = finfo
+                continue
+            try:
+                finfo.check_available(self)
+            except NeedsOriginalGrid:
+                fill.append(field)
+        for field in fill:
+            finfo = self.ds._get_field_info(*field)
+            if finfo.particle_type:
+                particles.append(field)
+        gen = [f for f in gen if f not in fill and f not in alias]
+        fill = [f for f in fill if f not in particles]
+        return fill, gen, particles, alias
+
+    def _fill_fields(self, fields):
+        for f in fields:
+            data = self._base_grid[f]
+            *_, noct = data.shape
+
+            data_out = self.oct_handler.get_hypercube(
+                self._base_grid, {'data': data}
+            )
+            self[f] = data_out['data']
+
+    @property
+    def fwidth(self):
+        fwidth = super(OctreeSubsetWithGhostZones, self).fwidth
+        fwidth = fwidth.reshape((2, 2, 2, -1, 3))
+        data_in = {
+            'dx': fwidth[..., 0],
+            'dy': fwidth[..., 1],
+            'dz': fwidth[..., 2]
+        }
+        data_out = self.oct_handler.get_hypercube(
+            self._base_grid, data_in)
+        fwidth_out = self.apply_units(
+            np.stack([
+                data_out['dx'],
+                data_out['dy'],
+                data_out['dz']
+        ], axis=-1), fwidth.units)
+        return fwidth_out
+
+    def _fill_particles(self, fields):
+        raise NotImplementedError
 
 class ParticleOctreeSubset(OctreeSubset):
     # Subclassing OctreeSubset is somewhat dubious.
