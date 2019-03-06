@@ -26,7 +26,7 @@ from collections import defaultdict
 
 from numbers import Number as numeric_type
 
-from cykdtree import PyKDTree
+from yt.utilities.lib.cykdtree import PyKDTree
 from yt.funcs import \
     iterable, \
     ensure_list, \
