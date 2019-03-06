@@ -138,6 +138,7 @@ def create_vector_fields(registry, basename, field_units,
     if slice_info is None:
         sl_left = slice(None, -2, None)
         sl_right = slice(2, None, None)
+        sl_centre = slice(1, -1, None)
         div_fac = 2.0
     else:
         sl_left, sl_right, div_fac = slice_info
