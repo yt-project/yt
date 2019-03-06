@@ -1,7 +1,7 @@
 cimport numpy as np
 cimport cython
 
-from cykdtree.kdtree cimport KDTree, uint64_t
+from yt.utilities.lib.cykdtree.kdtree cimport KDTree, uint64_t
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
 
 cdef struct axes_range:
