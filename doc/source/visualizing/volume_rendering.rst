@@ -856,7 +856,7 @@ Exporting an Example Dataset to Firefly
 Here is an example of how to use yt to export data to Firefly using some 
 `sample data <https://yt-project.org/data/>`_.
 
-.. python-script::
+.. code-block:: python
 
    ramses_ds = yt.load("DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt")
 
