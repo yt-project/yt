@@ -3,16 +3,18 @@ import nose
 from yt.config import ytcfg
 from yt.testing import fake_particle_ds, requires_module
 
-def setup_func():
-    ytcfg["yt", "__withintesting"] = "True"
+import tempfile
 
-@requires_module('firefly')
-@nose.with_setup(setup_func)
+@requires_module('firefly_api')
 def test_firefly_JSON_object():
+    tmpdir = tempfile.mkdtemp()
+
     ds = fake_particle_ds()
     ad = ds.all_data()
     reader = ad.create_firefly_object(
-        path_to_firefly = 
-        )
+        path_to_firefly = tmpdir,
+        velocity_units = 'cm/s',
+        coordinate_units = 'cm',
+        dataset_name='test')
     reader.dumpToJSON()
 
