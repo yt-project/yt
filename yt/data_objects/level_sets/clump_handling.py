@@ -408,8 +408,9 @@ class Clump(TreeContainer):
 def find_clumps(clump, min_val, max_val, d_clump):
     mylog.info("Finding clumps: min: %e, max: %e, step: %f" % 
                (min_val, max_val, d_clump))
-    if min_val >= max_val: return
-    clump.find_children(min_val)
+    if min_val >= max_val:
+        return
+    clump.find_children(min_val, max_val=max_val)
 
     if len(clump.children) == 1:
         find_clumps(clump, min_val*d_clump, max_val, d_clump)
