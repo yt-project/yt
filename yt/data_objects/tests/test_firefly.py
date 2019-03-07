@@ -1,8 +1,4 @@
-import nose
-
-from yt.config import ytcfg
 from yt.testing import fake_particle_ds, requires_module
-
 import tempfile
 
 @requires_module('firefly_api')
