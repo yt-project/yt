@@ -2183,7 +2183,7 @@ def _reconstruct_object(*args, **kwargs):
     obj.field_parameters.update(field_parameters)
     return ReconstructedObject((ds, obj))
 
-def monte_carlo_sample(ds, n_samples=100000, fields=None, n_neighbors=8):
+def monte_carlo_sample(ds, n_samples=100000, fields=None, n_neighbors=1):
     """
     Uses Monte Carlo sampling to create a particle-based dataset out of a
     grid-based dataset.  For each sample, the code probabilistically selects
@@ -2259,7 +2259,6 @@ def monte_carlo_sample(ds, n_samples=100000, fields=None, n_neighbors=8):
             'particle_mass' : (masses.to(m_unit), m_unit),
             'density' : (ds.r[('gas', 'density')][indices].to(d_unit), d_unit),
             'smoothing_length' : (hsml, l_unit)}
-            #'smoothing_length' : (ds.r[('gas', 'dx')][indices].to(l_unit), l_unit)}
 
     # Collect dataset code units
     code_units = {}
