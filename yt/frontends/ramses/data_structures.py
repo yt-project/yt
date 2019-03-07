@@ -530,7 +530,7 @@ class RAMSESDataset(Dataset):
                     dom, mi, ma = f.readline().split()
                     self.hilbert_indices[int(dom)] = (float(mi), float(ma))
 
-        if rheader['ordering type'] != 'hilbert' and self.bbox:
+        if rheader['ordering type'] != 'hilbert' and hasattr(self, 'bbox'):
             raise NotImplementedError(
                 'The ordering %s is not compatible with the `bbox` argument.'
                 % rheader['ordering type'])
