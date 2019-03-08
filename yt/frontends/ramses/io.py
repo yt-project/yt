@@ -214,7 +214,9 @@ def _read_part_file_descriptor(fname):
     Read a file descriptor and returns the array of the fields found.
     """
     VERSION_RE = re.compile(r'# version: *(\d+)')
-    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
+    # This will match any line that look like
+    #    01, foo_bar, baz
+    VAR_DESC_RE = re.compile(r'\s*(\S+),\s*(\S+),\s*(\S+)')
 
     # Mapping
     mapping = [
