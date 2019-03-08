@@ -216,7 +216,7 @@ def _read_part_file_descriptor(fname):
     VERSION_RE = re.compile(r'# version: *(\d+)')
     # This will match any line that look like
     #    01, foo_bar, baz
-    VAR_DESC_RE = re.compile(r'\s*(\S+),\s*(\S+),\s*(\S+)')
+    VAR_DESC_RE = re.compile(r'\s*([^,]+),\s*([^,]+),\s*([^,]+)')
 
     # Mapping
     mapping = [
