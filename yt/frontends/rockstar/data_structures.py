@@ -37,7 +37,7 @@ from .definitions import \
     header_dt
 
 class RockstarBinaryFile(HaloCatalogFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range):
         with open(filename, "rb") as f:
             self.header = fpu.read_cattrs(f, header_dt, "=")
             self._position_offset = f.tell()

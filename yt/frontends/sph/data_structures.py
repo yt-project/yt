@@ -128,7 +128,7 @@ class SPHParticleIndex(ParticleIndex):
         super(SPHParticleIndex, self)._initialize_index()
 
     def _generate_kdtree(self, fname):
-        from cykdtree import PyKDTree
+        from yt.utilities.lib.cykdtree import PyKDTree
         if fname is not None:
             if os.path.exists(fname):
                 mylog.info('Loading KDTree from %s' % os.path.basename(fname))
