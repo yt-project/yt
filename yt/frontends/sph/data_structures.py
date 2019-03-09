@@ -83,6 +83,8 @@ class SPHDataset(ParticleDataset):
                                     kernel_name=None):
         """Add a new smoothed particle field
 
+        WARNING: This method is deprecated since yt-4.0.
+
         Creates a new smoothed field based on the particle *smooth_field*.
 
         Parameters
@@ -109,11 +111,9 @@ class SPHDataset(ParticleDataset):
 
         The field name tuple for the newly created field.
         """
-        if kernel_name is None:
-            kernel_name = self.kernel_name
-        return super(SPHDataset, self).add_smoothed_particle_field(
-            smooth_field=smooth_field, method=method, nneighbors=nneighbors,
-            kernel_name=kernel_name
+        issue_deprecation_warning(
+            "This method is deprecated since yt-4.0, because the global octree"
+            " for particle datasets no longer exists."
         )
 
 class SPHParticleIndex(ParticleIndex):
