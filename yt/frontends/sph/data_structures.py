@@ -20,7 +20,9 @@ import os
 
 from yt.data_objects.static_output import \
     ParticleDataset
-from yt.funcs import mylog
+from yt.funcs import \
+    issue_deprecation_warning, \
+    mylog
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 
