@@ -806,51 +806,10 @@ def add_particle_average(registry, ptype, field_name,
 def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         smoothing_length_name, density_name, smoothed_field, registry,
         nneighbors = 64, kernel_name = 'cubic'):
-    unit_system = registry.ds.unit_system
-    if kernel_name == 'cubic':
-        field_name = ("deposit", "%s_smoothed_%s" % (ptype, smoothed_field))
-    else:
-        field_name = ("deposit", "%s_%s_smoothed_%s" % (ptype, kernel_name,
-                      smoothed_field))
-    field_units = registry[ptype, smoothed_field].units
-    def _vol_weight(field, data):
-        pos = data[ptype, coord_name]
-        pos = pos.convert_to_units("code_length")
-        mass = data[ptype, mass_name].in_base(unit_system.name)
-        dens = data[ptype, density_name].in_base(unit_system.name)
-        quan = data[ptype, smoothed_field]
-        if hasattr(quan, "units"):
-            quan = quan.convert_to_units(field_units)
-
-        if smoothing_length_name is None:
-            hsml = np.zeros(quan.shape, dtype='float64') - 1
-            hsml = data.apply_units(hsml, "code_length")
-        else:
-            hsml = data[ptype, smoothing_length_name]
-            hsml.convert_to_units("code_length")
-        # This is for applying cutoffs, similar to in the SPLASH paper.
-        smooth_cutoff = data["index","cell_volume"]**(1./3)
-        smooth_cutoff.convert_to_units("code_length")
-        # volume_weighted smooth operations return lists of length 1.
-        rv = data.smooth(pos, [mass, hsml, dens, quan],
-                         index_fields=[smooth_cutoff],
-                         method="volume_weighted",
-                         create_octree=True,
-                         nneighbors=nneighbors,
-                         kernel_name=kernel_name)[0]
-        rv[np.isnan(rv)] = 0.0
-        # Now some quick unit conversions.
-        # This should be used when seeking a non-normalized value:
-        rv /= hsml.uq**3 / hsml.uq.in_base(unit_system.name).uq**3
-        rv = data.apply_units(rv, field_units)
-        return rv
-    registry.add_field(field_name,
-                       sampling_type="cell",
-                       function = _vol_weight,
-                       validators = [ValidateSpatial(0)],
-                       units = field_units)
-    registry.find_dependencies((field_name,))
-    return [field_name]
+    issue_deprecation_warning(
+        "This function is deprecated since yt-4.0, because the global octree"
+        " for particle datasets no longer exists."
+    )
 
 def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
     field_name = (ptype, "nearest_neighbor_distance_%s" % (nneighbors))
