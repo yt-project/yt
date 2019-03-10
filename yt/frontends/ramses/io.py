@@ -23,7 +23,7 @@ from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTFileNotParseable
-from .config import VERSION_RE, VAR_DESC_RE
+from .definitions import VERSION_RE, VAR_DESC_RE
 
 def convert_ramses_ages(ds, conformal_ages):
     tf = ds.t_frw
