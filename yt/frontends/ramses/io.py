@@ -23,7 +23,7 @@ from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTFileNotParseable
-import re
+from .config import VERSION_RE, VAR_DESC_RE
 
 def convert_ramses_ages(ds, conformal_ages):
     tf = ds.t_frw
@@ -213,10 +213,6 @@ def _read_part_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile(r'# version: *(\d+)')
-    # This will match any line that look like
-    #    01, foo_bar, baz
-    VAR_DESC_RE = re.compile(r'\s*([^,]+),\s*([^,]+),\s*([^,]+)')
 
     # Mapping
     mapping = [
@@ -272,8 +268,6 @@ def _read_fluid_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile(r'# version: *(\d+)')
-    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping
     mapping = [
