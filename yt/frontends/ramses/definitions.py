@@ -64,7 +64,7 @@ field_aliases = {
 VERSION_RE = re.compile(r'# version: *(\d+)')
 # This will match comma-separated strings, discarding whitespaces
 # on the left hand side
-VAR_DESC_RE = re.compile(r'\s*([^,]+),\s*([^,]+),\s*([^,]+)')
+VAR_DESC_RE = re.compile(r'\s*([^\s]+),\s*([^\s]+),\s*([^\s]+)')
 
 
 ## Configure family mapping
