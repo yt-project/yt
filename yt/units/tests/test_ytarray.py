@@ -1281,7 +1281,7 @@ def test_numpy_wrappers():
     union_answer = [1, 2, 3, 4, 5, 6]
     vstack_answer = [[2, 3, 4, 5, 6],
                      [7, 8, 9,10, 11]]
-    vstack_answer_first_axis = [[ 2,  7], [ 3,  8], [ 4,  9], [ 5, 10], [ 6, 11]]
+    vstack_answer_last_axis = [[ 2, 7], [ 3, 8], [ 4, 9], [ 5, 10], [ 6, 11]]
 
     assert_array_equal(YTArray(catenate_answer, 'cm'),
                        uconcatenate((a1, a2)))
@@ -1303,8 +1303,8 @@ def test_numpy_wrappers():
     assert_array_equal(YTArray(vstack_answer, 'cm'), ustack([a2, a3]))
     assert_array_equal(vstack_answer, np.stack([a2, a3]))
 
-    assert_array_equal(YTArray(vstack_answer_first_axis, 'cm'), ustack([a2, a3], axis=-1))
-    assert_array_equal(vstack_answer_first_axis, np.stack([a2, a3], axis=-1))
+    assert_array_equal(YTArray(vstack_answer_last_axis, 'cm'), ustack([a2, a3], axis=-1))
+    assert_array_equal(vstack_answer_last_axis, np.stack([a2, a3], axis=-1))
 
 def test_dimensionless_conversion():
     a = YTQuantity(1, 'Zsun')
