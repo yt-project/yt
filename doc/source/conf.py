@@ -246,12 +246,16 @@ man_pages = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None,
-                       'http://ipython.readthedocs.io/en/stable/': None,
-                       'http://docs.scipy.org/doc/numpy/': None,
-                       'http://matplotlib.org/': None,
-                       'http://docs.astropy.org/en/stable': None,
-                       }
+intersphinx_mapping = {
+    'http://docs.python.org/': None,
+    'http://ipython.readthedocs.io/en/stable/': None,
+    'http://docs.scipy.org/doc/numpy/': None,
+    'http://matplotlib.org/': None,
+    'http://docs.astropy.org/en/stable': None,
+    'trident': ('http://trident.readthedocs.io/en/latest/', None),
+    'yt_astro_analysis': ('https://yt-astro-analysis.readthedocs.io/en/latest/', None),
+    'yt_attic': ('https://yt-attic.readthedocs.io/en/latest/', None),
+}
 
 if not on_rtd:
     autosummary_generate = glob.glob("reference/api/api.rst")

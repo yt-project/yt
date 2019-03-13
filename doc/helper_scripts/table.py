@@ -23,13 +23,6 @@ contents = [
      ("interacting/index.html", "Interacting with yt",
       "Different ways -- scripting, GUIs, prompts, explorers -- to explore " +
       "your data."),
-     ("analysis_modules/index.html", "Analysis Modules",
-      "Discussions of some provided procedures for astrophysical analysis " +
-      "like halo finding and synthetic spectra.  Halo finding, analyzing " +
-      "cosmology simulations, halo mass functions, halo profiling, light " +
-      "cone generator, making absorption spectrums, star particle " +
-      "analysis, two-point functions, halo merger trees, clump finding, " +
-      "radial column density, exporting to sunrise.")
   ]),
   ("Advanced Usage", [
      ("advanced/index.html", "Advanced yt usage",

@@ -53,12 +53,6 @@ else:
     std_libs = ["m"]
 
 cython_extensions = [
-    Extension("yt.analysis_modules.photon_simulator.utils",
-              ["yt/analysis_modules/photon_simulator/utils.pyx"],
-              include_dirs=["yt/utilities/lib"]),
-    Extension("yt.analysis_modules.ppv_cube.ppv_utils",
-              ["yt/analysis_modules/ppv_cube/ppv_utils.pyx"],
-              libraries=std_libs),
     Extension("yt.geometry.grid_visitors",
               ["yt/geometry/grid_visitors.pyx"],
               include_dirs=["yt/utilities/lib"],
@@ -116,6 +110,28 @@ cython_extensions = [
               include_dirs=["yt/utilities/lib/",
                             "yt/geometry/"],
               libraries=std_libs),
+    Extension("yt.utilities.lib.cykdtree.kdtree",
+              [
+                  "yt/utilities/lib/cykdtree/kdtree.pyx",
+                  "yt/utilities/lib/cykdtree/c_kdtree.cpp",
+                  "yt/utilities/lib/cykdtree/c_utils.cpp",
+              ],
+              depends=[
+                  "yt/utilities/lib/cykdtree/c_kdtree.hpp",
+                  "yt/utilities/lib/cykdtree/c_utils.hpp",
+              ],
+              libraries=std_libs,
+              language="c++",
+              extra_compile_arg=["-std=c++03"]),
+    Extension("yt.utilities.lib.cykdtree.utils",
+              [
+                  "yt/utilities/lib/cykdtree/utils.pyx",
+                  "yt/utilities/lib/cykdtree/c_utils.cpp",
+              ],
+              depends=["yt/utilities/lib/cykdtree/c_utils.hpp"],
+              libraries=std_libs,
+              language="c++",
+              extra_compile_arg=["-std=c++03"]),    
     Extension("yt.utilities.lib.fnv_hash",
               ["yt/utilities/lib/fnv_hash.pyx"],
               include_dirs=["yt/utilities/lib/"],
@@ -228,12 +244,6 @@ for ext_name in lib_exts:
                   ["yt/utilities/lib/{}.pyx".format(ext_name)]))
 
 extensions = [
-    Extension("yt.analysis_modules.halo_finding.fof.EnzoFOF",
-              ["yt/analysis_modules/halo_finding/fof/EnzoFOF.c",
-               "yt/analysis_modules/halo_finding/fof/kd.c"],
-              libraries=std_libs),
-    Extension("yt.analysis_modules.halo_finding.hop.EnzoHop",
-              glob.glob("yt/analysis_modules/halo_finding/hop/*.c")),
     Extension("yt.frontends.artio._artio_caller",
               ["yt/frontends/artio/_artio_caller.pyx"] +
               glob.glob("yt/frontends/artio/artio_headers/*.c"),
@@ -279,32 +289,6 @@ if check_for_pyembree() is not None:
 
     cython_extensions += embree_extensions
 
-# ROCKSTAR
-if os.path.exists("rockstar.cfg"):
-    try:
-        rd = open("rockstar.cfg").read().strip()
-    except IOError:
-        print("Reading Rockstar location from rockstar.cfg failed.")
-        print("Please place the base directory of your")
-        print("Rockstar install in rockstar.cfg and restart.")
-        print("(ex: \"echo '/path/to/Rockstar-0.99' > rockstar.cfg\" )")
-        sys.exit(1)
-
-    rockstar_extdir = "yt/analysis_modules/halo_finding/rockstar"
-    rockstar_extensions = [
-        Extension("yt.analysis_modules.halo_finding.rockstar.rockstar_interface",
-                  sources=[os.path.join(rockstar_extdir, "rockstar_interface.pyx")]),
-        Extension("yt.analysis_modules.halo_finding.rockstar.rockstar_groupies",
-                  sources=[os.path.join(rockstar_extdir, "rockstar_groupies.pyx")])
-    ]
-    for ext in rockstar_extensions:
-        ext.library_dirs.append(rd)
-        ext.libraries.append("rockstar")
-        ext.define_macros.append(("THREADSAFE", ""))
-        ext.include_dirs += [rd,
-                             os.path.join(rd, "io"), os.path.join(rd, "util")]
-    extensions += rockstar_extensions
-
 if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
     gpd = os.environ["GPERFTOOLS"]
     idir = os.path.join(gpd, "include")
@@ -329,9 +313,9 @@ class build_ext(_build_ext):
 """Could not import cython or numpy. Building yt from source requires
 cython and numpy to be installed. Please install these packages using
 the appropriate package manager for your python environment.""")
-        if LooseVersion(cython.__version__) < LooseVersion('0.24'):
+        if LooseVersion(cython.__version__) < LooseVersion('0.26.1'):
             raise RuntimeError(
-"""Building yt from source requires Cython 0.24 or newer but
+"""Building yt from source requires Cython 0.26.1 or newer but
 Cython %s is installed. Please update Cython using the appropriate
 package manager for your python environment.""" %
                 cython.__version__)
@@ -343,7 +327,8 @@ package manager for your python environment.""" %
                 numpy.__version__)
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
-            self.distribution.ext_modules)
+            self.distribution.ext_modules,
+            compiler_directives={'language_level': 2})
         _build_ext.finalize_options(self)
         # Prevent numpy from thinking it is still in its setup process
         # see http://stackoverflow.com/a/21621493/1382869
@@ -354,9 +339,7 @@ package manager for your python environment.""" %
         else:
             __builtins__.__NUMPY_SETUP__ = False
         import numpy
-        import cykdtree
         self.include_dirs.append(numpy.get_include())
-        self.include_dirs.append(cykdtree.get_include())
 
 class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython
@@ -365,7 +348,10 @@ class sdist(_sdist):
     def run(self):
         # Make sure the compiled Cython files in the distribution are up-to-date
         from Cython.Build import cythonize
-        cythonize(cython_extensions)
+        cythonize(
+            cython_extensions,
+            compiler_directives={'language_level': 2},
+        )
         _sdist.run(self)
 
 setup(

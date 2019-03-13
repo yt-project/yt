@@ -20,9 +20,10 @@ def _myfunc(field, data):
     return np.random.random(data['density'].shape)
 add_field('random', dimensions='dimensionless',
           function=_myfunc, units='auto', sampling_type='cell')
+constant = 3
 def myfunc():
-    return 4
-foobar = 12
+    return constant*4
+foobar = 17
 '''
 
 def setUpModule():
@@ -94,5 +95,5 @@ class TestPluginFile(unittest.TestCase):
         dd = ds.all_data()
         self.assertEqual(str(dd['random'].units), 'dimensionless')
         self.assertEqual(dd['random'].shape, dd['density'].shape)
-        assert yt.myfunc() == 4
+        assert yt.myfunc() == 12
         assert_raises(AttributeError, getattr, yt, 'foobar')

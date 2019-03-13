@@ -61,6 +61,10 @@ class HaloCatalogFile(ParticleFile):
         dle = self.ds.domain_left_edge.to('code_length').v
         dw = self.ds.domain_width.to('code_length').v
         pos = self._read_particle_positions(ptype, f=f)
+        si, ei = self.start, self.end
+        if None not in (si, ei):
+            pos = pos[si:ei]
+
         np.subtract(pos, dle, out=pos)
         np.mod(pos, dw, out=pos)
         np.add(pos, dle, out=pos)
@@ -89,7 +93,7 @@ class HaloCatalogHDF5File(HaloCatalogFile):
         pcount = self.header["num_halos"]
         pos = np.empty((pcount, 3), dtype="float64")
         for i, ax in enumerate('xyz'):
-            pos[:, i] = f["particle_position_%s" % ax].value
+            pos[:, i] = f["particle_position_%s" % ax][()]
 
         if close:
             f.close()

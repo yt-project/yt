@@ -1087,10 +1087,9 @@ class StreamParticlesDataset(StreamDataset):
             stream_handler, storage_filename=storage_filename,
             geometry=geometry, unit_system=unit_system)
         fields = list(stream_handler.fields['stream_file'].keys())
+        # This is the current method of detecting SPH data.
+        # This should be made more flexible in the future.
         if ('io', 'density') in fields and ('io', 'smoothing_length') in fields:
-            # FIXME FIXME FIXME don't merge PR with this
-            # this is hacky and will only work with fields for SPH data with
-            # the 'io' ptype
             self._sph_ptype = 'io'
 
 def load_particles(data, length_unit = None, bbox=None,
@@ -1101,15 +1100,18 @@ def load_particles(data, length_unit = None, bbox=None,
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
-    This should allow a collection of particle data to be loaded directly into
+    This will allow a collection of particle data to be loaded directly into
     yt and analyzed as would any others.  This comes with several caveats:
 
-    * There must be sufficient space in memory to contain both the particle
-      data and the octree used to index the particles.
+    * There must be sufficient space in memory to contain all the particle
+      data.
     * Parallelism will be disappointing or non-existent in most cases.
+    * Fluid fields are not supported.
 
-    This will initialize an Octree of data.  Note that fluid fields will not
-    work yet, or possibly ever.
+    Note: in order for the dataset to take advantage of SPH functionality,
+    the following two fields must be provided:
+    * ('io', 'density')
+    * ('io', 'smoothing_length')
 
     Parameters
     ----------

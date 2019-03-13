@@ -26,9 +26,7 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
     big_patch_amr, \
-    data_dir_load, \
-    AnalyticHaloMassFunctionTest, \
-    SimulatedHaloMassFunctionTest
+    data_dir_load
 from yt.visualization.plot_window import \
     SlicePlot
 from yt.frontends.enzo.api import EnzoDataset
@@ -46,6 +44,7 @@ toro1d = "ToroShockTube/DD0001/data0001"
 kh2d = "EnzoKelvinHelmholtz/DD0011/DD0011"
 mhdctot = "MHDCTOrszagTang/DD0004/data0004"
 dnz = "DeeplyNestedZoom/DD0025/data0025"
+p3mini = "PopIII_mini/DD0034/DD0034"
 
 def check_color_conservation(ds):
     species_names = ds.field_info.species_names
@@ -107,18 +106,6 @@ def test_kh2d():
     for test in small_patch_amr(ds, ds.field_list):
         test_toro1d.__name__ = test.description
         yield test
-
-@requires_ds(enzotiny)
-def test_simulated_halo_mass_function():
-    ds = data_dir_load(enzotiny)
-    for finder in ["fof", "hop"]:
-        yield SimulatedHaloMassFunctionTest(ds, finder)
-
-@requires_ds(enzotiny)
-def test_analytic_halo_mass_function():
-    ds = data_dir_load(enzotiny)
-    for fit in range(1, 6):
-        yield AnalyticHaloMassFunctionTest(ds, fit)
 
 @requires_ds(ecp, big_data=True)
 def test_ecp():
@@ -228,3 +215,17 @@ def test_2d_grid_shape():
     ds = data_dir_load(kh2d)
     g = ds.index.grids[1]
     assert g['density'].shape == (128, 100, 1)
+
+@requires_file(p3mini)
+def test_nonzero_omega_radiation():
+    """
+    Test support for non-zero omega_radiation cosmologies.
+    """
+    ds = data_dir_load(p3mini)
+
+    assert_equal(ds.omega_radiation, ds.cosmology.omega_radiation)
+
+    tratio = ds.current_time / \
+      ds.cosmology.t_from_z(ds.current_redshift)
+    assert_almost_equal(tratio, 1, 4,
+      err_msg='Simulation time not consistent with cosmology calculator.')

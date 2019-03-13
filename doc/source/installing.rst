@@ -125,7 +125,9 @@ In addition, you can tell the install script to download and install some
 additional packages --- currently these include
 `PyX <http://pyx.sourceforge.net/>`_, the `Rockstar halo
 finder <http://arxiv.org/abs/1110.4372>`_, `SciPy <https://www.scipy.org/>`_,
-`Astropy <http://www.astropy.org/>`_, and the necessary dependencies for
+`Astropy <http://www.astropy.org/>`_, 
+`Cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_, 
+and the necessary dependencies for
 :ref:`unstructured mesh rendering <unstructured_mesh_rendering>`. The script has
 all of the options for installing optional packages near the top of the
 file. You should be able to open it and edit it without any knowledge of bash
@@ -285,9 +287,9 @@ Clone the yt repository with:
 
   $ git clone https://github.com/yt-project/yt
 
-Once inside the yt directory, update to the appropriate branch and
-run ``pip install -e .``. For example, the following commands will allow you
-to see the tip of the development branch.
+Once inside the yt directory, update to the appropriate branch and run
+``pip install -e .``. For example, the following commands will allow
+you to see the tip of the development branch.
 
 .. code-block:: bash
 
@@ -297,58 +299,9 @@ to see the tip of the development branch.
 This will make sure you are running a version of yt corresponding to the
 most up-to-date source code.
 
-Installing Support for the Rockstar Halo Finder
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. note::
 
-The easiest way to set rockstar up in a conda-based python environment is to run
-the install script with ``INST_ROCKSTAR=1``.
-
-If you want to do this manually, you will need to follow these
-instructions. First, clone Matt Turk's fork of rockstar and compile it:
-
-.. code-block:: bash
-
-  $ git clone https://github.com/yt-project/rockstar
-  $ cd rockstar
-  $ make lib
-
-Next, copy `librockstar.so` into the `lib` folder of your anaconda installation:
-
-.. code-block:: bash
-
-  $ cp librockstar.so /path/to/anaconda/lib
-
-Finally, you will need to recompile yt to enable the rockstar interface. Clone a
-copy of the yt git repository (see :ref:`conda-source-build`), or navigate
-to a clone that you have already made, and do the following:
-
-.. code-block:: bash
-
-  $ cd /path/to/yt-git
-  $ ./clean.sh
-  $ echo /path/to/rockstar > rockstar.cfg
-  $ pip install -e .
-
-Here ``/path/to/yt-git`` is the path to your clone of the yt git repository
-and ``/path/to/rockstar`` is the path to your clone of Matt Turk's fork of
-rockstar.
-
-Finally, to actually use rockstar, you will need to ensure the folder containing
-`librockstar.so` is in your LD_LIBRARY_PATH:
-
-.. code-block:: bash
-
-  $ export LD_LIBRARY_PATH=/path/to/anaconda/lib
-
-You should now be able to enter a python session and import the rockstar
-interface:
-
-.. code-block:: python
-
-  >>> from yt.analysis_modules.halo_finding.rockstar import rockstar_interface
-
-If this python import fails, then you have not installed rockstar and yt's
-rockstar interface correctly.
+  Alternatively, you can replace ``pip install -e .`` with ``conda develop -b .``.
 
 .. _windows-installation:
 
@@ -395,8 +348,8 @@ which can be installed with ``pip``:
   $ pip install numpy cython
 
 You may also want to install some of yt's optional dependencies, including
-``jupyter``, ``h5py`` (which in turn depends on the HDF5 library), ``scipy``, or
-``astropy``,
+``jupyter``, ``h5py`` (which in turn depends on the HDF5 library), ``scipy``,
+``astropy``, or ``cartopy``.
 
 The source code for yt may be found on GitHub. If you prefer to install the
 development version of yt instead of the latest stable release, you will need

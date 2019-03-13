@@ -23,9 +23,19 @@ from yt.data_objects.static_output import Dataset
 from yt.extern.six import string_types
 from yt.frontends.sph.data_structures import \
     SPHDataset
-from yt.funcs import ensure_list, iterable, validate_width_tuple, \
-    fix_length, fix_axis, validate_3d_array, validate_float, \
-    validate_iterable, validate_object, validate_axis, validate_center
+from yt.funcs import \
+    ensure_list, \
+    iterable, \
+    validate_width_tuple, \
+    fix_length, \
+    fix_axis, \
+    mylog, \
+    validate_3d_array, \
+    validate_float, \
+    validate_iterable, \
+    validate_object, \
+    validate_axis, \
+    validate_center
 from yt.units.yt_array import \
     udot, \
     unorm, \
@@ -242,13 +252,11 @@ class YTRay(YTSelectionContainer1D):
             self.end_point = \
               self.ds.arr(end_point, 'code_length',
                           dtype='float64')
-        # FIXME FIXME FIXME don't merge this code if this comment is still here
-        # Right now we don't handle periodic offsets correctly for particle rays
-        # need to check if we do handle it correctly for grid codes and how we
-        # handle it there.
         if ((self.start_point < self.ds.domain_left_edge).any() or
             (self.end_point > self.ds.domain_right_edge).any()):
-            raise RuntimeError("Need to fix case of ray extending beyond edge of domain")
+            mylog.warn(
+                'Ray start or end is outside the domain. ' +
+                'Returned data will only be for the ray section inside the domain.')
         self.vec = self.end_point - self.start_point
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
@@ -780,7 +788,7 @@ class YTSphere(YTSelectionContainer3D):
         if radius < self.index.get_smallest_dx():
             raise YTSphereTooSmall(ds, radius.in_units("code_length"),
                                    self.index.get_smallest_dx().in_units("code_length"))
-        self.set_field_parameter('radius',radius)
+        self.set_field_parameter('radius', radius)
         self.set_field_parameter("center", self.center)
         self.radius = radius
 
@@ -920,7 +928,6 @@ class YTCutRegion(YTSelectionContainer3D):
         self.conditionals = ensure_list(conditionals)
         self.base_object = data_source
         self._selector = None
-        self._particle_mask = {}
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
 
@@ -1036,18 +1043,14 @@ class YTCutRegion(YTSelectionContainer3D):
         return mask
 
     def _part_ind(self, ptype):
-        if self._particle_mask.get(ptype) is None:
-            # If scipy is installed, use the fast KD tree
-            # implementation. Else, fall back onto the direct
-            # brute-force algorithm.
-            try:
-                _scipy.spatial.KDTree
-                mask = self._part_ind_KDTree(ptype)
-            except ImportError:
-                mask = self._part_ind_brute_force(ptype)
-
-            self._particle_mask[ptype] = mask
-        return self._particle_mask[ptype]
+        # If scipy is installed, use the fast KD tree
+        # implementation. Else, fall back onto the direct
+        # brute-force algorithm.
+        try:
+            _scipy.spatial.KDTree
+            return self._part_ind_KDTree(ptype)
+        except ImportError:
+            return self._part_ind_brute_force(ptype)
 
     @property
     def icoords(self):

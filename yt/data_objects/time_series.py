@@ -88,7 +88,8 @@ attrs = ("refine_by", "dimensionality", "current_time",
          "domain_dimensions", "domain_left_edge",
          "domain_right_edge", "unique_identifier",
          "current_redshift", "cosmological_simulation",
-         "omega_matter", "omega_lambda", "hubble_constant")
+         "omega_matter", "omega_lambda", "omega_radiation",
+         "hubble_constant")
 
 class TimeSeriesParametersContainer(object):
     def __init__(self, data_object):
@@ -566,8 +567,8 @@ class SimulationTimeSeries(DatasetSeries):
                   "cosmological_simulation"]:
             self._print_attr(a)
         if getattr(self, "cosmological_simulation", False):
-            for a in ["box_size", "omega_lambda",
-                      "omega_matter", "hubble_constant",
+            for a in ["box_size", "omega_matter", "omega_lambda",
+                      "omega_radiation", "hubble_constant",
                       "initial_redshift", "final_redshift"]:
                 self._print_attr(a)
         for a in self.key_parameters:

@@ -342,7 +342,8 @@ class YTProj(YTSelectionContainer2D):
                 # First time calling a units="auto" field, infer units and cache
                 # for future field accesses.
                 finfo.units = str(chunk[field].units)
-            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
+            field_unit = Unit(finfo.output_units,
+                              registry=self.ds.unit_registry)
             if self.method == "mip" or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
@@ -637,7 +638,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 "Length of edges must match the dimensionality of the "
                 "dataset")
         if hasattr(edge, 'units'):
-            edge_units = edge.units
+            edge_units = edge.units.copy()
+            edge_units.registry = self.ds.unit_registry
         else:
             edge_units = 'code_length'
         return self.ds.arr(edge, edge_units)
@@ -868,15 +870,20 @@ class YTCoveringGrid(YTSelectionContainer3D):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs. Everything inside
-        # this is fortran ordered because of the ordering in the octree deposit
-        # routines, so we reverse it here to match the convention there
-        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
+        # We allocate number of zones, not number of octs. Everything
+        # inside this is Fortran ordered because of the ordering in the
+        # octree deposit routines, so we reverse it here to match the
+        # convention there
+        nvals = tuple(self.ActiveDimensions[::-1])
+        # append a dummy dimension because we are only depositing onto
+        # one grid
+        op = cls(nvals + (1,), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
-        vals = op.finalize()
         # Fortran-ordered, so transpose.
-        return vals.transpose()
+        vals = op.finalize().transpose()
+        # squeeze dummy dimension we appended above
+        return np.squeeze(vals, axis=0)
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):

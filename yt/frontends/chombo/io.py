@@ -51,7 +51,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         while 1:
             lname = 'level_%i' % level
             if lname not in self._handle: break
-            boxes = self._handle['level_0']['boxes'].value
+            boxes = self._handle['level_0']['boxes'][()]
             box_sizes = np.array([box_size(box) for box in boxes])
 
             offsets = np.cumsum(box_sizes*num_comp, dtype='int64') 
@@ -177,7 +177,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         field_index = self.particle_field_index[name]
         lev = 'level_%s' % grid.Level
 
-        particles_per_grid = self._handle[lev]['particles:offsets'].value
+        particles_per_grid = self._handle[lev]['particles:offsets'][()]
         items_per_particle = len(self._particle_field_index)
 
         # compute global offset position
