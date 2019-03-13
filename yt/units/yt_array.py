@@ -1693,7 +1693,7 @@ def ustack(arrs, axis=0):
     This is a wrapper around np.stack that preserves units.
 
     """
-    v = np.stack(arrs)
+    v = np.stack(arrs, axis=axis)
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 
