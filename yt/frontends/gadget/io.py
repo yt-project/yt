@@ -134,22 +134,19 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 g = f["/%s" % ptype]
-                if getattr(selector, 'is_all_data', False):
-                    mask = slice(None, None, None)
                 coords = g["Coordinates"][si:ei].astype("float64")
                 if ptype == 'PartType0':
                     hsmls = self._get_smoothing_length(data_file,
                                                        g["Coordinates"].dtype, 
                                                        g["Coordinates"].shape)
                 else:
-                    coords = g["Coordinates"][si:ei].astype("float64")
-                    if ptype == 'PartType0':
-                        hsmls = g["SmoothingLength"][si:ei].astype("float64")
-                    else:
-                        hsmls = 0.0
+                    hsmls = 0.0
+                if getattr(selector, 'is_all_data', False):
+                    mask = slice(None, None, None)
+                else:
                     mask = selector.select_points(
                         coords[:,0], coords[:,1], coords[:,2], hsmls)
-                    del coords
+                del coords
                 if mask is None:
                     continue
                 for field in field_list:
