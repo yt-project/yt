@@ -135,7 +135,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     if ptype == 'PartType0':
                         hsmls = self._get_smoothing_length(data_file,
                                                            g["Coordinates"].dtype,
-                                                           g["Coordinates"].shape)
+                                                           g["Coordinates"].shape).astype("float64")
                     else:
                         hsmls = 0.0
                     mask = selector.select_points(
