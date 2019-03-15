@@ -1,5 +1,5 @@
 """
-Gadget frontend tests
+Arepo frontend tests
 
 
 
