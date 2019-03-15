@@ -243,13 +243,8 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     if len(g[kk].shape) > 1:
                         self._vector_fields[kk] = g[kk].shape[1]
                     fields.append((ptype, str(kk)))
-        if self._dataset_type == "arepo_hdf5":
-            fields.append(("PartType0", "smoothing_length"))
         f.close()
         return fields, {}
-
-class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
-    _dataset_type = "arepo_hdf5"
 
 
 ZeroMass = object()
