@@ -30,7 +30,6 @@ from yt.frontends.gadget.api import GadgetHDF5Dataset, GadgetDataset
 from yt.frontends.gadget.testing import fake_gadget_binary
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
-bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"
 BE_Gadget = "BigEndianGadgetBinary/BigEndianGadgetBinary"
 LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
