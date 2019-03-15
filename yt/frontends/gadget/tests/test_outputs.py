@@ -30,7 +30,6 @@ from yt.frontends.gadget.api import GadgetHDF5Dataset, GadgetDataset
 from yt.frontends.gadget.testing import fake_gadget_binary
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
-bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"
 BE_Gadget = "BigEndianGadgetBinary/BigEndianGadgetBinary"
 LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
@@ -134,20 +133,3 @@ def test_bigendian_field_access():
     data = ds.all_data()
     data['Halo', 'Velocities']
 
-bullet_fields = OrderedDict(
-    [
-        (("gas", "density"), None),
-        (("gas", "temperature"), None),
-        (("gas", "temperature"), ('gas', 'density')),
-        (('gas', 'velocity_magnitude'), None)
-    ]
-)
-
-
-@requires_ds(bullet_h5)
-def test_arepo_bullet():
-    ds = data_dir_load(bullet_h5)
-    for test in sph_answer(ds, 'snapshot_150', 40193369, 
-                           bullet_fields):
-        test_arepo_bullet.__name__ = test.description
-        yield test
