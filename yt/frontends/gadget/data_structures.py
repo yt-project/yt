@@ -38,8 +38,7 @@ from .definitions import \
     SNAP_FORMAT_2_OFFSET
 
 from .fields import \
-    GadgetFieldInfo, \
-    ArepoFieldInfo
+    GadgetFieldInfo
 
 def _fix_unit_ordering(unit):
     if isinstance(unit[0], string_types):
