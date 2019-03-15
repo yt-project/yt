@@ -1320,10 +1320,8 @@ SWIFT data in HDF5 format can be loaded with the ``load`` command:
 Arepo Data
 ----------
 
-Arepo data is currently treated as a special case of Gadget data. Currently, 
-only Arepo HDF5 snapshots are supported. The gas cells in Arepo data are
-treated as SPH particles, and have smoothing lengths assigned using the 
-following prescription for a given gas cell :math:`i`:
+Arepo data is currently treated as SPH data. The gas cells have smoothing lengths
+assigned using the following prescription for a given gas cell :math:`i`:
 
 .. math::
 
@@ -1339,6 +1337,8 @@ value can be changed when loading an Arepo dataset by setting the
 
    import yt
    ds = yt.load("snapshot_100.hdf5", smoothing_factor=1.5)
+
+Currently, only Arepo HDF5 snapshots are supported.
 
 .. _loading-gamer-data:
 
