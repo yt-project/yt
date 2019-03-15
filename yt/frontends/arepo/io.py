@@ -1,6 +1,6 @@
 from yt.frontends.gadget.api import IOHandlerGadgetHDF5
-import h5py
 import numpy as np
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
     _dataset_type = "arepo_hdf5"
