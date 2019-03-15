@@ -667,12 +667,12 @@ class YTDataContainer(object):
     def create_firefly_object(
         self,
         path_to_firefly,
-        fields_to_include= [],
-        fields_units = [],
+        fields_to_include = None,
+        fields_units = None,
         default_decimation_factor = 100,
         velocity_units = 'km/s',
         coordinate_units = 'kpc',
-        show_unused_fields=0,
+        show_unused_fields = 0,
         dataset_name = 'yt'):
         r"""This function links a region of data stored in a yt dataset
             to the Python frontend API for [Firefly](github.com/ageller/Firefly),
@@ -749,17 +749,19 @@ class YTDataContainer(object):
         try:
             from firefly_api.reader import Reader
             from firefly_api.particlegroup import ParticleGroup
-            from firefly_api.errors import FireflyError,FireflyWarning
-            from firefly_api.errors import warnings as firefly_warnings
         except ImportError:
             raise ImportError("Can't find firefly_api, ensure it"+
                 "is in your python path or install it with"+
                 "'$ pip install firefly_api'. It is also available"+
                 "on github at github.com/agurvich/firefly_api")
-        try:
-            assert len(fields_units) == len(fields_to_include)
-        except AssertionError:
-            raise FireflyError("Each requested field must have units.")
+
+        ## handle default arguments
+        fields_to_include = [] if fields_to_include is None else fields_to_include
+        fields_units = [] if fields_units is None else fields_units
+
+        ## handle input validation, if any
+        if len(fields_units) != len(fields_to_include):
+            raise RuntimeError("Each requested field must have units.")
         
         ## for safety, in case someone passes a float just cast it
         default_decimation_factor = int(default_decimation_factor)
@@ -777,18 +779,15 @@ class YTDataContainer(object):
             if self[ptype,'relative_particle_position'].shape[0]==0:
                 continue
             
+            ## loop through the fields and print them to the screen
             if show_unused_fields:
                 ## read the available extra fields from yt
                 this_ptype_fields = self.ds.particle_fields_by_type[ptype]
 
-                ## load the extra fields
+                ## load the extra fields and print them
                 for field in this_ptype_fields:
-                    if 'position' in field or 'velocity' in field:
-                        continue
                     if field not in fields_to_include:
-                        firefly_warnings.warn(FireflyWarning(
-                            'detected (but did not request) {} {}'.format(ptype,field)))
-                        continue
+                        mylog.warn('detected (but did not request) {} {}'.format(ptype,field))
 
             ## you must have velocities (and they must be named "Velocities")
             tracked_arrays = [
