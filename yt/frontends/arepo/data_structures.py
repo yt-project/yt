@@ -1,5 +1,5 @@
 from yt.frontends.gadget.api import GadgetHDF5Dataset
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import \
     ArepoFieldInfo
