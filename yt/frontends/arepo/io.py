@@ -5,32 +5,6 @@ import numpy as np
 class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
     _dataset_type = "arepo_hdf5"
 
-    def _read_particle_coords(self, chunks, ptf):
-        # This will read chunks and yield the results.
-        chunks = list(chunks)
-        data_files = set([])
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            si, ei = data_file.start, data_file.end
-            f = h5py.File(data_file.filename, "r")
-            # This double-reads
-            for ptype, field_list in sorted(ptf.items()):
-                if data_file.total_particles[ptype] == 0:
-                    continue
-                x = f["/%s/Coordinates" % ptype][si:ei, 0].astype("float64")
-                y = f["/%s/Coordinates" % ptype][si:ei, 1].astype("float64")
-                z = f["/%s/Coordinates" % ptype][si:ei, 2].astype("float64")
-                if ptype == self.ds._sph_ptype:
-                    pdtype = f["/%s/Coordinates" % ptype].dtype
-                    pshape = f["/%s/Coordinates" % ptype].shape
-                    hsml = self._get_smoothing_length(data_file, pdtype, pshape)
-                else:
-                    hsml = 0.0
-                yield ptype, (x, y, z), hsml
-            f.close()
-
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
         ptype = self.ds._sph_ptype
         ind = int(ptype[-1])
