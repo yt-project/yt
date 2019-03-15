@@ -27,57 +27,6 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
             hsml[:] = ds
             return hsml
 
-    def _read_particle_fields(self, chunks, ptf, selector):
-        # Now we have all the sizes, and we can allocate
-        data_files = set([])
-        for chunk in chunks:
-            for obj in chunk.objs:
-                data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            si, ei = data_file.start, data_file.end
-            f = h5py.File(data_file.filename, "r")
-            for ptype, field_list in sorted(ptf.items()):
-                if data_file.total_particles[ptype] == 0:
-                    continue
-                g = f["/%s" % ptype]
-                if getattr(selector, 'is_all_data', False):
-                    mask = slice(None, None, None)
-                else:
-                    coords = g["Coordinates"][si:ei].astype("float64")
-                    if ptype == 'PartType0':
-                        hsmls = self._get_smoothing_length(data_file,
-                                                           g["Coordinates"].dtype,
-                                                           g["Coordinates"].shape)
-                    else:
-                        hsmls = 0.0
-                    mask = selector.select_points(
-                            coords[:,0], coords[:,1], coords[:,2], hsmls)
-                    del coords
-                if mask is None:
-                    continue
-                for field in field_list:
-                    if field in ("Mass", "Masses") and \
-                            ptype not in self.var_mass:
-                        data = np.empty(mask.sum(), dtype="float64")
-                        ind = self._known_ptypes.index(ptype)
-                        data[:] = self.ds["Massarr"][ind]
-                    elif field in self._element_names:
-                        rfield = 'ElementAbundance/' + field
-                        data = g[rfield][si:ei][mask, ...]
-                    elif field.startswith("Metallicity_"):
-                        col = int(field.rsplit("_", 1)[-1])
-                        data = g["Metallicity"][si:ei, col][mask]
-                    elif field.startswith("Chemistry_"):
-                        col = int(field.rsplit("_", 1)[-1])
-                        data = g["ChemistryAbundances"][si:ei, col][mask]
-                    elif field == "smoothing_length":
-                        data = hsmls[mask].astype("float64")
-                    else:
-                        data = g[field][si:ei][mask, ...]
-
-                    yield (ptype, field), data
-            f.close()
-
     def _identify_fields(self, data_file):
         fields, _units = super(IOHandlerArepoHDF5, 
                                self)._identify_fields(data_file)
