@@ -107,8 +107,3 @@ class GadgetFieldInfo(SPHFieldInfo):
         add_volume_weighted_smoothed_field(
             ptype, "particle_position", "particle_mass", "smoothing_length",
             "density", "Temperature", self, num_neighbors)
-
-
-class ArepoFieldInfo(GadgetFieldInfo):
-    known_particle_fields = GadgetFieldInfo.known_particle_fields + \
-                            (("smoothing_length", ("code_length", [], None)),)
