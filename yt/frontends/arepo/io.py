@@ -104,58 +104,9 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
                     yield (ptype, field), data
             f.close()
 
-
     def _identify_fields(self, data_file):
-        f = h5py.File(data_file.filename, "r")
-        fields = []
-        cname = self.ds._particle_coordinates_name  # Coordinates
-        mname = self.ds._particle_mass_name  # Mass
-
-        # loop over all keys in OWLS hdf5 file
-        #--------------------------------------------------
-        for key in f.keys():
-
-            # only want particle data
-            #--------------------------------------
-            if not key.startswith("PartType"):
-                continue
-
-            # particle data group
-            #--------------------------------------
-            g = f[key]
-            if cname not in g:
-                continue
-
-            # note str => not unicode!
-            ptype = str(key)
-            if ptype not in self.var_mass:
-                fields.append((ptype, mname))
-
-            # loop over all keys in PartTypeX group
-            #----------------------------------------
-            for k in g.keys():
-
-                if k == 'ElementAbundance':
-                    gp = g[k]
-                    for j in gp.keys():
-                        kk = j
-                        fields.append((ptype, str(kk)))
-                elif k == 'Metallicity' and len(g[k].shape) > 1:
-                    # Vector of metallicity
-                    for i in range(g[k].shape[1]):
-                        fields.append((ptype, "Metallicity_%02i" % i))
-                elif k == "ChemistryAbundances" and len(g[k].shape) > 1:
-                    for i in range(g[k].shape[1]):
-                        fields.append((ptype, "Chemistry_%03i" % i))
-                else:
-                    kk = k
-                    if not hasattr(g[kk], "shape"):
-                        continue
-                    if len(g[kk].shape) > 1:
-                        self._vector_fields[kk] = g[kk].shape[1]
-                    fields.append((ptype, str(kk)))
-        if self._dataset_type == "arepo_hdf5":
-            fields.append(("PartType0", "smoothing_length"))
-        f.close()
-        return fields, {}
+        fields, _units = super(IOHandlerArepoHDF5, 
+                               self)._identify_fields(data_file)
+        fields.append(("PartType0", "smoothing_length"))
+        return fields, _units
 
