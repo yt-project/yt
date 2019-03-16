@@ -137,6 +137,8 @@ PROJECTION_METHODS = (
     'mip'
 )
 
+BUFF_SIZES = [(800, 800), (1600, 1600), (1254, 1254), (800, 600)]
+
 def simple_contour(test_obj, plot):
     plot.annotate_contour(test_obj.plot_field)
 
@@ -334,6 +336,15 @@ class TestPlotWindowSave(unittest.TestCase):
         for method in PROJECTION_METHODS:
             proj = ProjectionPlot(test_ds, 0, 'density', method=method)
             proj.save()
+
+    def test_projection_plot_bs(self):
+        test_ds = fake_random_ds(16)
+        for bf in BUFF_SIZES:
+            proj = ProjectionPlot(test_ds, 0, ('gas', 'density'), buff_size=bf)
+            image = proj.frb['gas', 'density']
+
+            # note that image.shape is inverted relative to the passed in buff_size
+            assert_equal(image.shape[::-1], bf)
 
     def test_offaxis_slice_plot(self):
         test_ds = fake_random_ds(16)
