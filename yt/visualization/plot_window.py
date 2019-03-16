@@ -1364,7 +1364,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of sight-lines 
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
          used.  Effectively sets a resolution limit to the image if buff_size is 
          smaller than the finest gridding.
 
@@ -1547,7 +1547,7 @@ class ProjectionPlot(PWViewerMPL):
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of sight-lines 
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
          used.  Effectively sets a resolution limit to the image if buff_size is 
          smaller than the finest gridding.
 
@@ -1680,7 +1680,7 @@ class OffAxisSlicePlot(PWViewerMPL):
          Object to be used for data selection.  Defaults ds.all_data(), a
          region covering the full domain.
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of sight-lines 
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
          used.  Effectively sets a resolution limit to the image if buff_size is 
          smaller than the finest gridding.
     """
@@ -1840,7 +1840,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of sight-lines 
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
          used.  Effectively sets a resolution limit to the image if buff_size is 
          smaller than the finest gridding.         
     """
