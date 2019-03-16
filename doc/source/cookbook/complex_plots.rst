@@ -48,17 +48,18 @@ of the four preceding classes.
 2. `figure_size`, which can be altered with either 
 :meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`
 or with :meth:`~yt.visualization.plot_container.PlotWindow.set_window_size`
-(which simply calls `set_figure_size`), or can be set during image
-creation with the `window_size` argument.  This sets the size of 
-the final image (including the visualization and, if applicable, the
-axes and colorbar as well) in inches.
+(the latter simply calls 
+:meth:`~yt.visualization.plot_container.PlotContainer.set_figure_size`), 
+or can be set during image creation with the `window_size` argument.  
+This sets the size of the final image (including the visualization and, 
+if applicable, the axes and colorbar as well) in inches.
 
 3. `dpi`, i.e. the dots-per-inch in your final file, which can also 
 be thought of as the actual resolution of your image.  This can
 only be set on save via the `mpl_kwargs` parameter to 
 :meth:`~yt.visualization.plot_container.PlotContainer.save`.  The
 `dpi` and `figure_size` together set the true resolution of your 
-image (final image will be :math:`dpi * figure_size` pixels on a
+image (final image will be `dpi` :math:`*` `figure_size` pixels on a
 side), so if these are set too low, then your `buff_size` will not
 matter.  On the other hand, increasing these without increasing
 `buff_size` accordingly will simply blow up your resolution 
@@ -72,11 +73,11 @@ underlying resolution of your simulation.  Regardless, for either
 grid data or deposited particle data, your image will never be 
 higher resolution than your simulation data.  In other words,
 if you are visualizing a region 50 kpc across that includes 
-data that reaches a resolution (or interparticle spacing) of
-100 pc, then there's no reason to set a `buff_size` (or a 
-:math:`dpi * figure_size`) above :math:`50 kpc/ 100 pc = 500`.
+data that reaches a resolution of 100 pc, then there's no reason 
+to set a `buff_size` (or a `dpi` :math:`*` `figure_size`) above 
+50 kpc/ 100 pc = 500.
 
-The included script demonstrates how each of these can be varied.
+The below script demonstrates how each of these can be varied.
 
 .. yt_cookbook:: image_resolution.py
 
