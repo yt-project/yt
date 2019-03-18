@@ -1041,9 +1041,10 @@ class Dataset(object):
             # Comoving lengths
             for my_unit in ["m", "pc", "AU", "au"]:
                 new_unit = "%scm" % my_unit
-                self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0] /
-                                       (1 + self.current_redshift),
-                                       length, "\\rm{%s}/(1+z)" % my_unit)
+                my_u = Unit(my_unit, registry=self.unit_registry)
+                self.unit_registry.add(
+                    new_unit, my_u.base_value / (1 + self.current_redshift),
+                    length, "\\rm{%s}/(1+z)" % my_unit, prefixable=True)
             self.unit_registry.modify('a', 1/(1+self.current_redshift))
 
         self.set_code_units()
@@ -1065,7 +1066,7 @@ class Dataset(object):
                               omega_lambda=self.omega_lambda,
                               omega_radiation=self.omega_radiation,
                               use_dark_factor = use_dark_factor,
-                              w_0 = w_0, w_a = w_a)
+                              w_0 = w_0, w_a = w_a, unit_registry=self.unit_registry)
             self.critical_density = \
                     self.cosmology.critical_density(self.current_redshift)
             self.scale_factor = 1.0 / (1.0 + self.current_redshift)

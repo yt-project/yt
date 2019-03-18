@@ -17,13 +17,14 @@ import functools
 import numpy as np
 
 from yt.funcs import \
-     issue_deprecation_warning
+    issue_deprecation_warning
 from yt.units import dimensions
 from yt.units.unit_registry import \
-     UnitRegistry
+    default_unit_registry, \
+    UnitRegistry
 from yt.units.yt_array import \
-     YTArray, \
-     YTQuantity
+    YTArray, \
+    YTQuantity
 
 from yt.utilities.physical_constants import \
      gravitational_constant_cgs as G, \
@@ -97,7 +98,7 @@ class Cosmology(object):
         self.omega_lambda = float(omega_lambda)
         self.omega_curvature = float(omega_curvature)
         if unit_registry is None:
-            unit_registry = UnitRegistry()
+            unit_registry = UnitRegistry(registry=default_unit_registry)
             unit_registry.modify("h", hubble_constant)
             for my_unit in ["m", "pc", "AU", "au"]:
                 new_unit = "%scm" % my_unit
