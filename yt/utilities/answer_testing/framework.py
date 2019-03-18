@@ -992,10 +992,6 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
               for ptype in ds.particle_types_raw)
     assert_equal(tot, ds_nparticles)
     for dobj_name in dso:
-        dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
-        s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        assert_equal(s1, s2)
         for field, weight_field in fields.items():
             if field[0] in ds.particle_types:
                 particle_type = True
