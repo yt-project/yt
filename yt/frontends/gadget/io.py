@@ -161,9 +161,11 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["ChemistryAbundances"][si:ei, col][mask]
                     elif field == "smoothing_length":
-                        # This is for frontends which don't define a 
-                        # smoothing length
-                        data = hsmls[mask].astype("float64")
+                        # This is for frontends which do not store
+                        # the smoothing length on-disk, so we do not
+                        # attempt to read them, but instead assume
+                        # that they are calculated in _get_smoothing_length.
+                        data = hsmls[mask]
                     else:
                         data = g[field][si:ei][mask, ...]
 

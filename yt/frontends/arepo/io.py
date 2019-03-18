@@ -12,19 +12,14 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
         with h5py.File(data_file.filename, "r") as f:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
             pcount = np.clip(pcount - si, 0, ei - si)
-            ds = f[ptype]["Masses"][si:ei,...]/f[ptype]["Density"][si:ei,...]
-            ds *= 3.0/(4.0*np.pi)
-            ds **= (1./3.)
-            ds *= self.ds.smoothing_factor
-            dt = ds.dtype.newbyteorder("N") # Native
-            if position_dtype is not None and dt < position_dtype:
-                # Sometimes positions are stored in double precision
-                # but smoothing lengths are stored in single precision.
-                # In these cases upcast smoothing length to double precision
-                # to avoid ValueErrors when we pass these arrays to Cython.
-                dt = position_dtype
-            hsml = np.empty(ds.shape, dtype=dt)
-            hsml[:] = ds
+            # Arepo cells do not have "smoothing lengths" by definition, so
+            # we compute one here by finding the radius of the sphere
+            # corresponding to the volume of the Voroni cell and multiplying
+            # by a user-configurable smoothing factor.
+            hsml = f[ptype]["Masses"][si:ei,...]/f[ptype]["Density"][si:ei,...]
+            hsml *= 3.0/(4.0*np.pi)
+            hsml **= (1./3.)
+            hsml *= self.ds.smoothing_factor
             return hsml
 
     def _identify_fields(self, data_file):
