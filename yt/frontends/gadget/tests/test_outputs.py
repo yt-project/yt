@@ -50,10 +50,6 @@ iso_fields = OrderedDict(
         (("gas", "temperature"), None),
         (("gas", "temperature"), ('gas', 'density')),
         (('gas', 'velocity_magnitude'), None),
-        (("deposit", "all_density"), None),
-        (("deposit", "all_count"), None),
-        (("deposit", "all_cic"), None),
-        (("deposit", "PartType0_density"), None),
     ]
 )
 iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])

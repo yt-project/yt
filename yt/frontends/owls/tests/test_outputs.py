@@ -35,11 +35,6 @@ _fields = OrderedDict(
         (("gas", "temperature"), ("gas", "density")),
         (('gas', 'He_p0_number_density'), None),
         (('gas', 'velocity_magnitude'), None),
-        (("deposit", "all_density"), None),
-        (("deposit", "all_count"), None),
-        (("deposit", "all_cic"), None),
-        (("deposit", "PartType0_density"), None),
-        (("deposit", "PartType4_density"), None),
     ]
 )
 
