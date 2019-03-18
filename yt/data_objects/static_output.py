@@ -57,6 +57,8 @@ from yt.fields.derived_field import \
     ValidateSpatial
 from yt.fields.fluid_fields import \
     setup_gradient_fields
+from yt.fields.particle_fields import \
+    DEP_MSG_SMOOTH_FIELD
 from yt.data_objects.particle_filters import \
     filter_registry
 from yt.data_objects.particle_unions import \
@@ -1396,8 +1398,7 @@ class Dataset(object):
         The field name tuple for the newly created field.
         """
         issue_deprecation_warning(
-            "This method is deprecated since yt-4.0, because the global octree"
-            " for particle datasets no longer exists."
+            "This method is deprecated. " + DEP_MSG_SMOOTH_FIELD
         )
 
     def add_gradient_fields(self, input_field):

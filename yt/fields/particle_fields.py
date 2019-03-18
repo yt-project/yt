@@ -803,12 +803,20 @@ def add_particle_average(registry, ptype, field_name,
                        units = field_units)
     return fn
 
+DEP_MSG_SMOOTH_FIELD = (
+    "The notion of a smoothed field no longer exists since yt-4.0, because the "
+    "global octree is removed. Now the SPH particle fields directly accessible "
+    "from disk are treated properly in the visualization machinaries. So there "
+    "is no need to add a separate smoothed field. "
+    "See this page to learn more:\n"
+    "https://yt-project.org/doc/yt4differences.html"
+)
+
 def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         smoothing_length_name, density_name, smoothed_field, registry,
         nneighbors = 64, kernel_name = 'cubic'):
     issue_deprecation_warning(
-        "This function is deprecated since yt-4.0, because the global octree"
-        " for particle datasets no longer exists."
+        "This function is deprecated. " + DEP_MSG_SMOOTH_FIELD
     )
 
 def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
