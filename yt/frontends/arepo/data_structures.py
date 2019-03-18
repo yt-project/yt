@@ -22,6 +22,9 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
             index_order=index_order, index_filename=index_filename,
             kernel_name=kernel_name, bounding_box=bounding_box,
             units_override=units_override, unit_system=unit_system)
+        # The "smoothing_factor" is a user-configurable parameter which
+        # is multiplied by the radius of the sphere with a volume equal
+        # to that of the Voronoi cell to create smoothing lengths.
         self.smoothing_factor = smoothing_factor
 
     @classmethod
