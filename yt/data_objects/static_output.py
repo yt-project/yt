@@ -310,7 +310,7 @@ class Dataset(object):
         self.min_level = 0
         self.no_cgs_equiv_length = False
 
-        self._create_unit_registry()
+        self._create_unit_registry(unit_system)
 
         self._parse_parameter_file()
         self.set_units()
@@ -1006,14 +1006,14 @@ class Dataset(object):
         create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit)
         if unit_system == "code":
-            unit_system = self.unit_registry.unit_system_id
+            unit_system = self.unit_registry.unit_system
         else:
             unit_system = str(unit_system).lower()
         self.unit_system = unit_system_registry[unit_system]
 
-    def _create_unit_registry(self):
-        self.unit_registry = UnitRegistry()
+    def _create_unit_registry(self, unit_system):
         import yt.units.dimensions as dimensions
+        self.unit_registry = UnitRegistry(unit_system=unit_system)
         self.unit_registry.add("code_length", 1.0, dimensions.length)
         self.unit_registry.add("code_mass", 1.0, dimensions.mass)
         self.unit_registry.add("code_density", 1.0, dimensions.density)
@@ -1026,6 +1026,7 @@ class Dataset(object):
         self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
         self.unit_registry.add("code_metallicity", 1.0,
                                dimensions.dimensionless)
+        self.unit_registry.add("h", 1.0, dimensions.dimensionless, r"h")
         self.unit_registry.add("a", 1.0, dimensions.dimensionless)
 
     def set_units(self):
