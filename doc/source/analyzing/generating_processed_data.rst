@@ -187,6 +187,22 @@ for each bin field or ``None`` to use the default settings.
                                 override_bins = {("gas", "density"):custom_bins,
                                                  ("gas", "temperature"):None}) 
 
+.. _profile-astropy-export:
+
+One-dimensional profile data can be exported to an AstroPy Table object. This
+table can then be written to disk in a number of formats, such as ASCII text
+or FITS files, and manipulated in a number of ways. Units are preserved in the
+table by converting the YTArrays to AstroPy Quantity objects as explained here.
+
+To convert the 1D profile to a Table object, simply call 
+:meth:`yt.data_objects.profiles.Profile1D.to_astropy_table`:
+
+.. code-block:: python
+
+    # Adds all of the data to the table, but non-used bins are masked
+    t = profile.to_astropy_table()
+    # Only adds the used bins to the table
+    t_used = profile.to_astropy_table(only_used=True)
 
 .. _generating-line-queries:
 
