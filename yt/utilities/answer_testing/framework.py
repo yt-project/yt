@@ -989,7 +989,7 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
     dd = ds.all_data()
     assert_equal(dd["particle_position"].shape, (ds_nparticles, 3))
     tot = sum(dd[ptype, "particle_position"].shape[0]
-              for ptype in ds.particle_types if ptype != "all")
+              for ptype in ds.particle_types_raw)
     assert_equal(tot, ds_nparticles)
     for dobj_name in dso:
         dobj = create_obj(ds, dobj_name)
