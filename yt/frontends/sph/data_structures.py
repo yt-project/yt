@@ -21,7 +21,6 @@ import os
 from yt.data_objects.static_output import \
     ParticleDataset
 from yt.funcs import \
-    issue_deprecation_warning, \
     mylog
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
@@ -80,43 +79,6 @@ class SPHDataset(ParticleDataset):
             raise ValueError("SPH normalization needs to be True or False!")
         self._use_sph_normalization = value
 
-    def add_smoothed_particle_field(self, smooth_field,
-                                    method="volume_weighted", nneighbors=64,
-                                    kernel_name=None):
-        """Add a new smoothed particle field
-
-        WARNING: This method is deprecated since yt-4.0.
-
-        Creates a new smoothed field based on the particle *smooth_field*.
-
-        Parameters
-        ----------
-
-        smooth_field : tuple
-           The field name tuple of the particle field the smoothed field will
-           be created from.  This must be a field name tuple so yt can
-           appropriately infer the correct particle type.
-        method : string, default 'volume_weighted'
-           The particle smoothing method to use. Can only be 'volume_weighted'
-           for now.
-        neighbors : int, default 64
-            The number of neighbors to examine during the process.
-        kernel_name : string or None, default None
-            This is the name of the smoothing kernel to use. Current supported
-            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
-            `wendland4`, and `wendland6`. If left as None,
-            :attr:`~yt.frontends.sph.data_structures.SPHDataset.kernel_name`
-            will be used.
-
-        Returns
-        -------
-
-        The field name tuple for the newly created field.
-        """
-        issue_deprecation_warning(
-            "This method is deprecated since yt-4.0, because the global octree"
-            " for particle datasets no longer exists."
-        )
 
 class SPHParticleIndex(ParticleIndex):
     def _initialize_index(self):
