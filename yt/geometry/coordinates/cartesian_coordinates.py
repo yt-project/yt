@@ -36,6 +36,53 @@ from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
 from yt.units.yt_array import uconcatenate
 
+
+def _find_object_bbox(data_source):
+    """
+    This function determines the minimum bounding box
+    of a data container.
+    """
+    if hasattr(data_source, "base_object"):
+        # This a cut region so we'll figure out
+        # its bounds from its parent object
+        data_src = data_source.base_object
+    else:
+        data_src = data_source
+
+    if hasattr(data_src, "left_edge"):
+        # Region or grid
+        le = data_src.left_edge
+        re = data_src.right_edge
+    elif data_src._type_name == "sphere":
+        # Sphere
+        le = -data_src.radius + data_src.center
+        re = data_src.radius + data_src.center
+    elif data_src._type_name == "ray":
+        # Ray
+        le = data_src.start_point
+        re = data_src.end_point
+    elif data_src._type_name == "ortho_ray":
+        # OrthoRay
+        le = data_src.ds.arr(np.zeros(3), "code_length")
+        xax = data_src.ds.coordinates.x_axis[data_src.axis]
+        yax = data_src.ds.coordinates.y_axis[data_src.axis]
+        le[xax] = data_src.px
+        le[yax] = data_src.py
+        re = le.copy()
+        le[data_src.axis] = data_src.ds.domain_left_edge[data_src.axis]
+        re[data_src.axis] = data_src.ds.domain_right_edge[data_src.axis]
+    else:
+        # For any other object, return the domain edges. We 
+        # may implement other objects at a later time.
+        le = data_source.ds.domain_left_edge
+        re = data_source.ds.domain_right_edge
+
+    le.convert_to_units("code_length")
+    re.convert_to_units("code_length")
+
+    return le, re
+
+
 def _sample_ray(ray, npoints, field):
     """
     Private function that uses a ray object for calculating the field values
