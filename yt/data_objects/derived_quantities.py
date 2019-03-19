@@ -118,7 +118,7 @@ class WeightedAverageQuantity(DerivedQuantity):
     >>> ad = ds.all_data()
     >>> print(ad.quantities.weighted_average_quantity([("gas", "density"),
     ...                                                ("gas", "temperature")],
-    ...                                                ("gas", "cell_mass")))
+    ...                                                ("gas", "mass")))
 
     """
 
@@ -157,7 +157,7 @@ class TotalQuantity(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.total_quantity([("gas", "cell_mass")]))
+    >>> print(ad.quantities.total_quantity([("gas", "mass")]))
 
     """
 
@@ -400,7 +400,7 @@ class WeightedStandardDeviation(DerivedQuantity):
     >>> ad = ds.all_data()
     >>> print(ad.quantities.weighted_standard_deviation([("gas", "density"),
     ...                                                  ("gas", "temperature")],
-    ...                                                  ("gas", "cell_mass")))
+    ...                                                  ("gas", "mass")))
 
     """
 
