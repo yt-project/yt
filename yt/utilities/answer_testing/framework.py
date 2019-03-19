@@ -463,8 +463,11 @@ class FieldValuesTest(AnswerTestingTest):
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
         field = obj._determine_fields(self.field)[0]
+        fd = self.ds.field_info[field]
         if self.particle_type:
             weight_field = (field[0], "particle_ones")
+        elif fd.is_sph_field:
+            weight_field = (field[0], "ones")
         else:
             weight_field = ("index", "ones")
         avg = obj.quantities.weighted_average_quantity(
