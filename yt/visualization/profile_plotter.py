@@ -321,7 +321,8 @@ class ProfilePlot:
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> pp = ProfilePlot(ds.all_data(), ('gas', 'density'),
+        ...                                 ('gas', 'temperature'))
         >>> pp.show()
 
         """
@@ -614,7 +615,8 @@ class ProfilePlot:
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = yt.ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> pp = yt.ProfilePlot(ds.all_data(), ('gas', 'density'),
+        ...                                    ('gas', 'temperature'))
         >>> pp.set_xlim(1e-29, 1e-24)
         >>> pp.save()
 
@@ -675,8 +677,10 @@ class ProfilePlot:
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = yt.ProfilePlot(ds.all_data(), 'density', ['temperature', 'x-velocity'])
-        >>> pp.set_ylim('temperature', 1e4, 1e6)
+        >>> pp = yt.ProfilePlot(ds.all_data(), ('gas', 'density'),
+        ...                     [('gas', 'temperature'),
+        ...                      ('gas', 'velocity_x')])
+        >>> pp.set_ylim(('gas', 'temperature'), 1e4, 1e6)
         >>> pp.save()
 
         """
@@ -758,7 +762,8 @@ class ProfilePlot:
 
         >>> # Setting same plot title for both the given fields
         >>> plot.annotate_title("Profile Plot: Temperature-Dark Matter Density",
-                                ["temperature", "dark_matter_density"])
+        ...                     [('gas', 'temperature'),
+        ...                      ('deposit', 'dark_matter_density')])
 
         """
         fields = list(self.axes.keys()) if field == "all" else field
@@ -1197,9 +1202,11 @@ class PhasePlot(ImagePlotContainer):
         ... 'temperature': (1e1, 1e8),
         ... ('gas', 'mass'): (1e-6, 1e-1),
         ... }
-        >>> profile = yt.create_profile(ds.all_data(), ['density', 'temperature'],
-        ...                             fields=[('gas', 'mass')],extrema=extrema,
-        ...                             fractional=True)
+        >>> profile = yt.create_profile(ds.all_data(),
+        ...                             [('gas', 'density'),
+        ...                              ('gas', 'temperature')],
+        ...                             fields=[('gas', 'mass')],
+        ...                             extrema=extrema, fractional=True)
         >>> ph = yt.PhasePlot.from_profile(profile)
         >>> ph.save()
         """
@@ -1350,7 +1357,7 @@ class PhasePlot(ImagePlotContainer):
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
-        >>> prof = ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> prof = ProfilePlot(ds, ('gas', 'density'), ('gas', 'temperature'))
         >>> slc.set_font({'family':'sans-serif', 'style':'italic',
         ...               'weight':'bold', 'size':24, 'color':'blue'})
 
@@ -1528,7 +1535,9 @@ class PhasePlot(ImagePlotContainer):
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> pp = yt.PhasePlot(ds.all_data(), 'density', 'temperature', ('gas', 'mass'))
+        >>> pp = yt.PhasePlot(ds, ('gas', 'density'),
+        ...                       ('gas', 'temperature'),
+        ...                       ('gas', 'mass'))
         >>> pp.set_ylim(1e4, 1e6)
         >>> pp.save()
 
