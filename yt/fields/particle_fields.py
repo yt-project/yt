@@ -261,8 +261,7 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
         def particle_vectors(field, data):
             v = [data[_ptype, name].in_units(field.units)
                   for name in names]
-            c = np.column_stack(v)
-            return data.apply_units(c, field.units)
+            return np.column_stack(v)*v[0].units
         return particle_vectors
 
     registry.add_field((ptype, "particle_position"),
