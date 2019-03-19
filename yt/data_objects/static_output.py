@@ -327,7 +327,15 @@ class Dataset(object):
         self.min_level = 0
         self.no_cgs_equiv_length = False
 
-        self._create_unit_registry(unit_system)
+        if unit_system == 'code':
+            # create a fake CGS unit system which we will override later to
+            # avoid chicken/egg issue of the unit registry needing a unit system
+            # but code units need a unit registry to define the code units on
+            used_unit_system = 'cgs'
+        else:
+            used_unit_system = unit_system
+
+        self._create_unit_registry(used_unit_system)
 
         self._parse_parameter_file()
         self.set_units()
@@ -1012,21 +1020,17 @@ class Dataset(object):
             # if the magnetic unit is in T, we need to create the code unit
             # system as an MKS-like system
             if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
-                if unit_system == "code":
-                    current_mks_unit = 'A'
-                elif unit_system == 'mks':
-                    pass
-                else:
+                if unit_system == "cgs":
+                    current_mks_unit = None
                     # this is perhaps a little funky
                     self.magnetic_unit = self.magnetic_unit.to('T').to('gauss')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        create_code_unit_system(
+        us = create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit)
-        if unit_system == "code":
-            unit_system = self.unit_registry.unit_system
-        else:
-            unit_system = str(unit_system).lower()
-        self.unit_system = unit_system_registry[unit_system]
+        if unit_system != "code":
+            us = unit_system_registry[str(unit_system).lower()]
+        self.unit_system = us
+        self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
         import yt.units.dimensions as dimensions

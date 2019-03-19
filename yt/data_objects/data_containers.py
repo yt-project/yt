@@ -130,10 +130,14 @@ class YTDataContainer(object):
         self.ds.objects.append(weakref.proxy(self))
         mylog.debug("Appending object to %s (type: %s)", self.ds, type(self))
         self.field_data = YTFieldData()
+        if self.ds.unit_system.has_current_mks:
+            mag_unit = "T"
+        else:
+            mag_unit = "G"
         self._default_field_parameters = {
             'center': self.ds.arr(np.zeros(3, dtype='float64'), 'cm'),
             'bulk_velocity': self.ds.arr(np.zeros(3, dtype='float64'), 'cm/s'),
-            'bulk_magnetic_field': self.ds.arr(np.zeros(3, dtype='float64'), 'G'),
+            'bulk_magnetic_field': self.ds.arr(np.zeros(3, dtype='float64'), mag_unit),
             'normal': self.ds.arr([0.0, 0.0, 1.0], ''),
         }
         if field_parameters is None: field_parameters = {}

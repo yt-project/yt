@@ -234,7 +234,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         # Grid dataset case
         def mag_field(fd):
             def _mag_field(field, data):
-                return data[fd]
+                return data[fd].to(field.units)
             return _mag_field
         for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields):
             registry.add_field((ftype,"magnetic_field_%s" % ax),

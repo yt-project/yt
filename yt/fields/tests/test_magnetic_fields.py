@@ -30,9 +30,9 @@ def test_magnetic_fields():
     dd2 = ds2.all_data()
     dd3 = ds3.all_data()
 
-    assert ds1.fields.gas.magnetic_field_strength.units == "gauss"
-    assert ds1.fields.gas.magnetic_field_poloidal.units == "gauss"
-    assert ds1.fields.gas.magnetic_field_toroidal.units == "gauss"
+    assert ds1.fields.gas.magnetic_field_strength.units == "G"
+    assert ds1.fields.gas.magnetic_field_poloidal.units == "G"
+    assert ds1.fields.gas.magnetic_field_toroidal.units == "G"
     assert ds2.fields.gas.magnetic_field_strength.units == "T"
     assert ds2.fields.gas.magnetic_field_poloidal.units == "T"
     assert ds2.fields.gas.magnetic_field_toroidal.units == "T"
@@ -52,7 +52,7 @@ def test_magnetic_fields():
 
     emag3 = (dd3["magnetic_field_x"]**2 +
              dd3["magnetic_field_y"]**2 +
-             dd3["magnetic_field_z"]**2)/(8.0*np.pi)
+             dd3["magnetic_field_z"]**2)/(2.0*mu_0)
     emag3.convert_to_units("code_pressure")
 
     assert_almost_equal(emag1, dd1["magnetic_energy"])
