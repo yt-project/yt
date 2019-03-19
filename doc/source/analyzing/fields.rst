@@ -48,6 +48,16 @@ its attributes the fields themselves.  When one of these is printed, it returns
 information about the field and things like units and so on.  You can use this
 for tab-completing as well as easier access to information.
 
+Additionally, if you have `ipywidgets
+<https://ipywidgets.readthedocs.io/en/stable/`_ installed and are in a `Jupyter
+environment <https://jupyter.org/>`_, you can view the rich representation of
+the fields (including source code) by either typing `ds.fields` as the last
+item in a cell or by calling `display(ds.fields)`.  The resulting output will
+have tabs and source:
+
+.. image:: _images/fields_ipywidget.png
+   :scale: 50%
+
 As an example, you might browse the available fields like so:
 
 .. code-block:: python
