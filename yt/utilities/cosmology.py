@@ -98,7 +98,7 @@ class Cosmology(object):
         self.omega_lambda = float(omega_lambda)
         self.omega_curvature = float(omega_curvature)
         if unit_registry is None:
-            unit_registry = UnitRegistry(registry=default_unit_registry)
+            unit_registry = UnitRegistry(unit_system=unit_system)
             unit_registry.modify("h", hubble_constant)
             for my_unit in ["m", "pc", "AU", "au"]:
                 new_unit = "%scm" % my_unit
