@@ -17,7 +17,6 @@ import numpy as np
 
 from yt.units import dimensions
 from yt.units.yt_array import ustack
-from yt.utilities.physical_constants import mu_0
 
 from yt.fields.derived_field import \
     ValidateParameter
@@ -29,12 +28,11 @@ from yt.utilities.math_utils import \
     get_sph_theta_component, \
     get_sph_phi_component
 
-mag_factors = {dimensions.magnetic_field_cgs: 4.0*np.pi,
-               dimensions.magnetic_field_mks: mu_0}
-
 @register_field_plugin
 def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
-    unit_system = registry.ds.unit_system
+    ds = registry.ds
+    
+    unit_system = ds.unit_system
 
     axis_names = registry.ds.coordinates.axis_order
 
@@ -42,6 +40,9 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
         return
 
     u = registry[ftype,"magnetic_field_%s" % axis_names[0]].units
+
+    mag_factors = {dimensions.magnetic_field_cgs: 4.0*np.pi,
+                   dimensions.magnetic_field_mks: ds.units.physical_constants.mu_0}
 
     def _magnetic_field_strength(field, data):
         xm = "relative_magnetic_field_%s" % axis_names[0]

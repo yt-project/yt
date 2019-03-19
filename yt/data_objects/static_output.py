@@ -26,6 +26,8 @@ from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
 from six.moves import cPickle
 
+from unyt.unit_systems import add_symbols, add_constants
+
 from yt.config import ytcfg
 from yt.fields.derived_field import \
     DerivedField
@@ -212,6 +214,21 @@ class MutableAttribute(object):
 
     def __set__(self, instance, value):
         self.data[instance] = value
+
+class ConstantContainer(object):
+    def __init__(self, registry):
+        add_constants(vars(self), registry)
+
+class SymbolContainer(object):
+    def __init__(self, registry):
+        add_symbols(vars(self), registry)
+        
+class UnitContainer(object):
+    def __init__(self, registry):
+        add_constants(vars(self), registry)
+        add_symbols(vars(self), registry)
+        self.unit_symbols = SymbolContainer(registry)
+        self.physical_constants = ConstantContainer(registry)
 
 def requires_index(attr_name):
     @property
@@ -1132,6 +1149,17 @@ class Dataset(object):
                     val = (val, cgs)
                 mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
                 setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
+
+    _units = None
+    _unit_system_id = None
+    @property
+    def units(self):
+        current_uid = self.unit_registry.unit_system_id
+        if self._units is not None and self._unit_system_id == current_uid:
+            return self._units
+        self._unit_system_id = current_uid
+        self._units = UnitContainer(self.unit_registry)
+        return self._units
 
     _arr = None
     @property
