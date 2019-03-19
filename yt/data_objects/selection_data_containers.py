@@ -225,8 +225,7 @@ class YTRay(YTSelectionContainer1D):
     >>> my_ray = ds.ray(...)
     >>> ray_sort = np.argsort(my_ray["t"])
     >>> density = my_ray["density"][ray_sort]
-
-"""
+    """
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     _container_fields = ("t", "dts")
