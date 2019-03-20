@@ -29,4 +29,23 @@ def test_object_bbox():
     le, re = ep.get_bbox()
     assert_equal(le, -ds.quan(0.3, "code_length")+sp.center)
     assert_equal(re, ds.quan(0.3, "code_length")+sp.center)
-
+    spb = ds.sphere(ds.domain_center-ds.quan(0.1, "code_length"), (0.1, "code_length"))
+    regb = ds.box(ds.domain_center, ds.domain_center+ds.quan(0.2,"code_length"))
+    br1 = spb & regb
+    br2 = spb | regb
+    br3 = spb ^ regb
+    br4 = ~regb
+    le1, re1 = br1.get_bbox()
+    le2, re2 = br2.get_bbox()
+    le3, re3 = br3.get_bbox()
+    le4, re4 = br4.get_bbox()
+    le0 = ds.arr([0.3, 0.3, 0.3], "code_length")
+    re0 = ds.arr([0.7, 0.7, 0.7], "code_length")
+    assert_allclose_units(le1, le0)
+    assert_allclose_units(re1, re0)
+    assert_allclose_units(le2, le0)
+    assert_allclose_units(re2, re0)
+    assert_allclose_units(le3, le0)
+    assert_allclose_units(re3, re0)
+    assert_equal(le4, regb.left_edge)
+    assert_equal(re4, regb.right_edge)
