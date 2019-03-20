@@ -2150,6 +2150,15 @@ class YTBooleanContainer(YTSelectionContainer3D):
         sel_cls = getattr(yt.geometry.selection_routines, name)
         self._selector = sel_cls(self)
 
+    def _get_bbox(self):
+        le1, re1 = self.dobj1._get_bbox()
+        if self.op == "NOT":
+            return le1, re1
+        else:
+            le2, re2 = self.dobj2._get_bbox()
+            return np.minimum(le1, le2), np.maximum(re1, re2)
+
+
 # Many of these items are set up specifically to ensure that
 # we are not breaking old pickle files.  This means we must only call the
 # _reconstruct_object and that we cannot mandate any additional arguments to
