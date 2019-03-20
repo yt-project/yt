@@ -234,6 +234,9 @@ def test_particle_profile_negative_field():
         ad,
         ["particle_position_x", "particle_position_y"],
         "particle_velocity_x",
+        logs = {'particle_position_x': True,
+                'particle_position_y': True,
+                'particle_position_z': True},
         weight_field=None)
     assert profile['particle_velocity_x'].min() < 0
     assert profile.x_bins.min() > 0
@@ -243,9 +246,6 @@ def test_particle_profile_negative_field():
         ad,
         ["particle_position_x", "particle_position_y"],
         "particle_velocity_x",
-        logs = {'particle_position_x': False,
-                'particle_position_y': False,
-                'particle_position_z': False},
         weight_field=None)
     assert profile['particle_velocity_x'].min() < 0
     assert profile.x_bins.min() < 0
