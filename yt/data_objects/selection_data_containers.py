@@ -685,7 +685,7 @@ class YTDisk(YTSelectionContainer3D):
         self.radius = fix_length(radius, self.ds)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
 
-    def get_bbox(self):
+    def _get_bbox(self):
         """
         Return the minimum bounding box for the disk.
         """
@@ -740,7 +740,7 @@ class YTRegion(YTSelectionContainer3D):
             # need to assign this dataset's unit registry to the YTArray
             self.right_edge = self.ds.arr(right_edge.copy())
 
-    def get_bbox(self):
+    def _get_bbox(self):
         """
         Return the minimum bounding box for the region.
         """
@@ -811,7 +811,7 @@ class YTSphere(YTSelectionContainer3D):
         self.set_field_parameter("center", self.center)
         self.radius = radius
 
-    def get_bbox(self):
+    def _get_bbox(self):
         """
         Return the minimum bounding box for the sphere.
         """
@@ -908,7 +908,7 @@ class YTEllipsoid(YTSelectionContainer3D):
         self.set_field_parameter('e1', e1)
         self.set_field_parameter('e2', e2)
 
-    def get_bbox(self):
+    def _get_bbox(self):
         """
         Get the bounding box for the ellipsoid. NOTE that in this case
         it is not the *minimum* bounding box.
@@ -1103,12 +1103,12 @@ class YTCutRegion(YTSelectionContainer3D):
     def fwidth(self):
         return self.base_object.fwidth[self._cond_ind,:]
 
-    def get_bbox(self):
+    def _get_bbox(self):
         """
         Get the bounding box for the cut region. Here we just use
         the bounding box for the source region.
         """
-        return self.base_object.get_bbox()
+        return self.base_object._get_bbox()
 
 
 class YTIntersectionContainer3D(YTSelectionContainer3D):
