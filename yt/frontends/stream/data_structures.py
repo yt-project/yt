@@ -1366,29 +1366,20 @@ def load_particles(data, length_unit=None, bbox=None,
 
     return sds
 
-def load_as_sph(ds, ptype, n_neighbors=64, smoothing_length=None, density=None,
-                force=False, fields=None):
-    r"""Load one particle type from a dataset as SPH particles.
+def load_particles_from(dobj, ptype_src, ptype_dst="io", fields=None):
+    r"""Load particles from a data object.
 
     This is a convenience function to create a stream particle dataset from
-    the specified particle type of an existing dataset. At a minimum,
-    "particle_position", and "particle_mass" should be available from the
-    dataset. Smoothing length and density fields would be computed if not
-    provided.
+    an existing dataset.
 
     Parameters
     ----------
-    ds : Dataset
-        The dataset to extract data from.
-    ptype : str
-        The particle type to consider.
-    n_neighbors : int
-        The number of neighbors to consider when computing smoothing length.
-    smoothing_length, density : YTArray
-        Optional SPH fields to provide. If provided, no computation would be
-        done.
-    force : bool
-        Force computation of SPH fields even when they are on-disk.
+    dobj : yt data object
+        The yt data object to extract data from.
+    ptype_src : str
+        The source particle type.
+    ptype_dst : str
+        The destination particle type.
     fields : list
         List of on-disk fields to add.
 
@@ -1400,79 +1391,36 @@ def load_as_sph(ds, ptype, n_neighbors=64, smoothing_length=None, density=None,
     Examples
     --------
 
-    >>> ds_sph = load_as_sph(ds, 'PartType1')
+    >>> ad = ds.all_data()
+    >>> fields = ["particle_mass", "particle_position_x"]
+    >>> ds_stream = load_particles_from(ad, "PartType1", fields=fields)
 
     """
+    ds = dobj.ds
 
-    l_unit = 'code_length'
-    m_unit = 'code_mass'
-    d_unit = 'code_mass / code_length**3'
-
-    ad = ds.all_data()
-    left_edge = ds.domain_left_edge.to(l_unit).v
-    right_edge = ds.domain_right_edge.to(l_unit).v
-
-    # Read basic particle fields
-    pos = ad[ptype, 'particle_position'].to(l_unit).v
-    mass = ad[ptype, 'particle_mass'].to(m_unit).v
-
-    # Get smoothing length
-    if smoothing_length is not None:
-        hsml = smoothing_length
-    elif not force and (ptype, 'smoothing_length') in ds.derived_field_list:
-        hsml = ad[ptype, 'smoothing_length']
-    else:
-        left_edge = ds.domain_left_edge.to(l_unit).v
-        right_edge = ds.domain_right_edge.to(l_unit).v
-        kdtree = PyKDTree(
-            pos.astype('float64'),
-            left_edge=left_edge,
-            right_edge=right_edge,
-            periodic=ds.periodicity,
-            leafsize=2*int(n_neighbors),
-        )
-        pos_kd = pos[kdtree.idx]
-        hsml = generate_smoothing_length(pos_kd, kdtree, n_neighbors)
-        hsml = hsml[np.argsort(kdtree.idx)]
-
-    # Get density
-    if density is not None:
-        dens = density
-    elif not force and (ptype, 'density') in ds.derived_field_list:
-        dens = ad[ptype, 'density']
-    else:
-        # The following is an oversimplified way to compute density given
-        # smoothing length, which is not too bad for the purpose of
-        # vizualization, but could be improved in the future.
-        vol = np.pi * hsml**3 * 4 / 3
-        dens = mass / vol
-
-    # Add basic particle fields
-    posx, posy, posz = pos.T
-    data = {
-        'particle_position_x': (posx, l_unit),
-        'particle_position_y': (posy, l_unit),
-        'particle_position_z': (posz, l_unit),
-        'particle_mass': (mass, m_unit),
-        'smoothing_length': (hsml, l_unit),
-        'density': (dens, d_unit),
-    }
-
-    # Add other fields
+    # Load data
+    data = {}
     if fields is not None:
         for field in fields:
-            data[field] = ad[ptype, field]
+            data[ptype_dst, field] = dobj[ptype_src, field]
 
-    # Collect dataset code units
+    # Get bounding box
+    if hasattr(dobj, "left_edge") and hasattr(dobj, "right_edge"):
+        left_edge = dobj.left_edge.to("code_length").v
+        right_edge = dobj.right_edge.to("code_length").v
+        bbox = list(zip(left_edge, right_edge))
+    else:
+        bbox = None
+
+    # Get code units
     code_units = {}
-    for key in ['length', 'mass', 'time', 'velocity', 'magnetic']:
-        full_key = key + '_unit'
-        if hasattr(ds, full_key):
-            code_units[full_key] = getattr(ds, full_key)
+    for key in ["length", "mass", "time", "velocity", "magnetic"]:
+        full_key = key + "_unit"
+        code_units[full_key] = ds.quan(1, "code_" + key).in_cgs()
 
     return load_particles(
         data,
-        bbox=list(zip(left_edge, right_edge)),
+        bbox=bbox,
         sim_time=ds.current_time,
         periodicity=ds.periodicity,
         **code_units
