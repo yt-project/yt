@@ -298,7 +298,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             py_name = 'particle_position_%s' % self.axis_name[self.y_axis[dim]]
             if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
-                le, re = _find_object_bbox(data_source.data_source)
+                le, re = data_source.data_source.get_bbox()
                 le[self.x_axis[dim]] = bounds[0]
                 le[self.y_axis[dim]] = bounds[2]
                 re[self.x_axis[dim]] = bounds[1]
