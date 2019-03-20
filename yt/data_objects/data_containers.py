@@ -2183,30 +2183,51 @@ def _reconstruct_object(*args, **kwargs):
     obj.field_parameters.update(field_parameters)
     return ReconstructedObject((ds, obj))
 
-def monte_carlo_sample(ds, n_samples=100000, fields=None, n_neighbors=1):
+def monte_carlo_sample(data_source, weight_field=('gas', 'cell_mass'),
+                       n_samples=100000, fields=None,
+                       calculate_smoothing=False, n_neighbors=4):
     """
     Uses Monte Carlo sampling to create a particle-based dataset out of a
-    grid-based dataset.  For each sample, the code probabilistically selects
-    a cell weighted according to its mass, and a particle is created possessing
-    the gas fields of the cell at some random location within the cell's volume.
+    grid-based data object.  For each sample, the code probabilistically selects
+    a cell weighted from the original object by the weight_field, and a
+    particle is created.  The particle's fields are inherited from the
+    cell, and it's position is a random location within the cell's volume.
 
     By default the fields that are created are mass, density, smoothing_length,
     and the position and velocity fields.
 
+    Calculating smoothing length on the fly is expensive for large numbers
+    of particles, so the option exists to just utlize the 'dx' field from
+    the original data object for uses that do not rely on a perfect
+    smoothing_length field.  This is roughly accurate, but produces grid
+    artifacts in smoothing_length.
+
     Parameters
     ----------
-    ds : Dataset
-        Grid-based dataset used as source
+    data_source : YTSelectionContainer Object
+        The data object to be profiled, such as all_data, region, or
+        sphere. If a dataset is passed in instead, an all_data data object
+        is generated internally from the dataset.
+
+    weight_field : field
+        The weight_field to use for the monte carlo selection
+        Default: ('gas', 'cell_mass')
 
     n_samples : int
-        Number of times to sample the dataset
+        Number of times to sample the dataset (i.e., n_particles)
 
     fields : list
         List of additional fields you want to include in returned dataset
 
+    calculate_smoothing: boolean
+        Should we calculate the smoothing length on the fly? This is more
+        accurate but time consuming.  If this is set to False, we just use
+        the `dx` length from the original dataset, which is fast and roughly
+        accurate but produces grid artifacts in the output dataset.
+
     n_neighbors : int
-        Number of neighbors for each node in kdtree to determine
-        smoothing_length
+        Number of neighbors for each node in kdtree when calculating
+        smoothing_length on the fly
 
     Returns
     -------
@@ -2219,45 +2240,56 @@ def monte_carlo_sample(ds, n_samples=100000, fields=None, n_neighbors=1):
     """
     from yt.frontends.stream.api import \
         load_particles
+    from yt.visualization.profile_plotter import \
+        data_object_or_all_data
     l_unit = 'code_length'
     m_unit = 'code_mass'
     d_unit = 'code_mass/code_length**3'
     v_unit = 'code_length/code_time'
+
+    # if a dataset, use ds.all_data()
+    data_source = data_object_or_all_data(data_source)
+    ds = data_source.ds
+    field_tot = data_source[weight_field].sum()
+    bins = np.cumsum(data_source[weight_field] / field_tot)
+
+    # calculate where the sampling occurs
     rands = np.random.rand(n_samples)
-    m_tot = ds.r[('gas', 'cell_mass')].sum()
-    bins = np.cumsum(ds.r[('gas', 'cell_mass')] / m_tot)
     indices = np.digitize(rands, bins)
     x_off = np.random.uniform(-0.5, 0.5, n_samples)
     y_off = np.random.uniform(-0.5, 0.5, n_samples)
     z_off = np.random.uniform(-0.5, 0.5, n_samples)
-    x_pos = ds.r[('gas', 'x')][indices] + x_off*ds.r[('gas', 'dx')][indices]
-    y_pos = ds.r[('gas', 'y')][indices] + y_off*ds.r[('gas', 'dy')][indices]
-    z_pos = ds.r[('gas', 'z')][indices] + z_off*ds.r[('gas', 'dz')][indices]
+    x_pos = data_source[('gas', 'x')][indices] + x_off*data_source[('gas', 'dx')][indices]
+    y_pos = data_source[('gas', 'y')][indices] + y_off*data_source[('gas', 'dy')][indices]
+    z_pos = data_source[('gas', 'z')][indices] + z_off*data_source[('gas', 'dz')][indices]
     pos = ds.arr([x_pos, y_pos, z_pos]).T.to(l_unit).v
-    masses = (m_tot / n_samples) * np.ones(n_samples)
+    masses = (field_tot / n_samples) * np.ones(n_samples)
 
-    # Get smoothing length
+    # Get smoothing length?
     left_edge = ds.domain_left_edge.to(l_unit).v
     right_edge = ds.domain_right_edge.to(l_unit).v
-    kdtree = PyKDTree(
-        pos.astype('float64'),
-        left_edge=left_edge,
-        right_edge=right_edge,
-        periodic=ds.periodicity,
-        leafsize=2*int(n_neighbors),
-    )
-    pos_kd = pos[kdtree.idx]
-    hsml = generate_smoothing_length(pos_kd, kdtree, n_neighbors)
-    hsml = hsml[np.argsort(kdtree.idx)]
+    if calculate_smoothing:
+        kdtree = PyKDTree(
+            pos.astype('float64'),
+            left_edge=left_edge,
+            right_edge=right_edge,
+            periodic=ds.periodicity,
+            leafsize=2*int(n_neighbors),
+        )
+        pos_kd = pos[kdtree.idx]
+        hsml = generate_smoothing_length(pos_kd, kdtree, n_neighbors)
+        hsml = hsml[np.argsort(kdtree.idx)]
+    else:
+        hsml = data_source[('gas', 'dx')][indices].to(l_unit)
 
     data = {'particle_position_x' : (x_pos.to(l_unit), l_unit),
             'particle_position_y' : (y_pos.to(l_unit), l_unit),
             'particle_position_z' : (z_pos.to(l_unit), l_unit),
-            'particle_velocity_x' : (ds.r[('gas', 'velocity_x')][indices].to(v_unit), v_unit),
-            'particle_velocity_y' : (ds.r[('gas', 'velocity_y')][indices].to(v_unit), v_unit),
-            'particle_velocity_z' : (ds.r[('gas', 'velocity_z')][indices].to(v_unit), v_unit),
+            'particle_velocity_x' : (data_source[('gas', 'velocity_x')][indices].to(v_unit), v_unit),
+            'particle_velocity_y' : (data_source[('gas', 'velocity_y')][indices].to(v_unit), v_unit),
+            'particle_velocity_z' : (data_source[('gas', 'velocity_z')][indices].to(v_unit), v_unit),
             'particle_mass' : (masses.to(m_unit), m_unit),
-            'density' : (ds.r[('gas', 'density')][indices].to(d_unit), d_unit),
+            'density' : (data_source[('gas', 'density')][indices].to(d_unit), d_unit),
             'smoothing_length' : (hsml, l_unit)}
 
     # Collect dataset code units
