@@ -1072,6 +1072,49 @@ class StreamParticleIndex(SPHParticleIndex):
         else:
             self.io = io_registry[self.dataset_type](self.ds)
 
+    def update_data(self, data):
+        """
+        Update the stream data with a new data dict. If fields already exist,
+        they will be replaced, but if they do not, they will be added. Fields
+        already in the stream but not part of the data dict will be left
+        alone.
+        """
+        # Alias
+        ds = self.ds
+        handler = ds.stream_handler
+
+        # Preprocess
+        field_units, data, _ = process_data(data)
+        pdata = {}
+        for key in data.keys():
+            if not isinstance(key, tuple):
+                field = ("io", key)
+                mylog.debug("Reassigning '%s' to '%s'", key, field)
+            else:
+                field = key
+            pdata[field] = data[key]
+        data = pdata # Drop reference count
+        particle_types = set_particle_types(data)
+
+        # Update particle types
+        handler.particle_types.update(particle_types)
+        ds._find_particle_types()
+
+        # Update fields
+        handler.field_units.update(field_units)
+        fields = handler.fields
+        for field in data.keys():
+            if field not in fields._additional_fields:
+                fields._additional_fields += (field,)
+        fields["stream_file"].update(data)
+
+        # Update field list
+        for field in self.ds.field_list:
+            if field[0] in ["all", "nbody"]:
+                self.ds.field_list.remove(field)
+        self._detect_output_fields()
+        self.ds.create_field_info()
+
 class StreamParticleFile(ParticleFile):
     pass
 
@@ -1094,6 +1137,75 @@ class StreamParticlesDataset(StreamDataset):
         # This should be made more flexible in the future.
         if ('io', 'density') in fields and ('io', 'smoothing_length') in fields:
             self._sph_ptype = 'io'
+
+    def add_sph_fields(self, n_neighbors=64, sph_ptype="io"):
+        """Add SPH fields for the specified particle type.
+
+        For a particle type with "particle_position" and "particle_mass" already
+        defined, this method add the "smoothing_length" and "density" fields.
+        "smoothing_length" is computed as the distance to the nth nearest
+        neighbor. "density" is simply assuming a sphere with "smoothing_length"
+        as its radius.
+
+        Parameters
+        ----------
+        n_neighbors : int
+            The number of neighbors to use when computing smoothing length.
+        sph_ptype : str
+            The SPH particle type. Each dataset could have one SPH particle type
+            only.
+
+        """
+        ad = self.all_data()
+
+        l_unit = "code_length"
+        m_unit = "code_mass"
+        d_unit = "code_mass / code_length**3"
+
+        # Read basic particle fields
+        pos = ad[sph_ptype, "particle_position"].to(l_unit).v
+        mass = ad[sph_ptype, "particle_mass"].to(m_unit).v
+
+        def exists(fname):
+            if (sph_ptype, fname) in self.derived_field_list:
+                mylog.info("Field ('%s','%s') already exists. Skipping",
+                            sph_ptype, fname)
+                return True
+            else:
+                mylog.info("Generating field ('%s','%s')",
+                            sph_ptype, fname)
+                return False
+
+        data = {}
+
+        # Compute smoothing length field
+        fname = "smoothing_length"
+        if not exists(fname):
+            left_edge = self.domain_left_edge.to(l_unit).v
+            right_edge = self.domain_right_edge.to(l_unit).v
+            kdtree = PyKDTree(
+                pos.astype("float64"),
+                left_edge=left_edge,
+                right_edge=right_edge,
+                periodic=self.periodicity,
+                leafsize=2*int(n_neighbors),
+            )
+            pos_kd = pos[kdtree.idx]
+            hsml = generate_smoothing_length(pos_kd, kdtree, n_neighbors)
+            hsml = hsml[np.argsort(kdtree.idx)]
+            data[(sph_ptype, fname)] = (hsml, l_unit)
+
+        # Compute density field
+        fname = "density"
+        if not exists(fname):
+            # FIXME: the following calculation might be wrong
+            vol = np.pi * hsml**3 * 4 / 3
+            dens = mass / vol
+            data[(sph_ptype, fname)] = (dens, d_unit)
+
+        # Add fields
+        self._sph_ptype = sph_ptype
+        self.index.update_data(data)
 
 def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,
@@ -1221,29 +1333,20 @@ def load_particles(data, length_unit = None, bbox=None,
 
     return sds
 
-def load_as_sph(ds, ptype, n_neighbors=64, smoothing_length=None, density=None,
-                force=False, fields=None):
-    r"""Load one particle type from a dataset as SPH particles.
+def load_particles_from(dobj, ptype_src, ptype_dst="io", fields=None):
+    r"""Load particles from a data object.
 
     This is a convenience function to create a stream particle dataset from
-    the specified particle type of an existing dataset. At a minimum,
-    "particle_position", and "particle_mass" should be available from the
-    dataset. Smoothing length and density fields would be computed if not
-    provided.
+    an existing dataset.
 
     Parameters
     ----------
-    ds : Dataset
-        The dataset to extract data from.
-    ptype : str
-        The particle type to consider.
-    n_neighbors : int
-        The number of neighbors to consider when computing smoothing length.
-    smoothing_length, density : YTArray
-        Optional SPH fields to provide. If provided, no computation would be
-        done.
-    force : bool
-        Force computation of SPH fields even when they are on-disk.
+    dobj : yt data object
+        The yt data object to extract data from.
+    ptype_src : str
+        The source particle type.
+    ptype_dst : str
+        The destination particle type.
     fields : list
         List of on-disk fields to add.
 
@@ -1255,79 +1358,36 @@ def load_as_sph(ds, ptype, n_neighbors=64, smoothing_length=None, density=None,
     Examples
     --------
 
-    >>> ds_sph = load_as_sph(ds, 'PartType1')
+    >>> ad = ds.all_data()
+    >>> fields = ["particle_mass", "particle_position_x"]
+    >>> ds_stream = load_particles_from(ad, "PartType1", fields=fields)
 
     """
+    ds = dobj.ds
 
-    l_unit = 'code_length'
-    m_unit = 'code_mass'
-    d_unit = 'code_mass / code_length**3'
-
-    ad = ds.all_data()
-    left_edge = ds.domain_left_edge.to(l_unit).v
-    right_edge = ds.domain_right_edge.to(l_unit).v
-
-    # Read basic particle fields
-    pos = ad[ptype, 'particle_position'].to(l_unit).v
-    mass = ad[ptype, 'particle_mass'].to(m_unit).v
-
-    # Get smoothing length
-    if smoothing_length is not None:
-        hsml = smoothing_length
-    elif not force and (ptype, 'smoothing_length') in ds.derived_field_list:
-        hsml = ad[ptype, 'smoothing_length']
-    else:
-        left_edge = ds.domain_left_edge.to(l_unit).v
-        right_edge = ds.domain_right_edge.to(l_unit).v
-        kdtree = PyKDTree(
-            pos.astype('float64'),
-            left_edge=left_edge,
-            right_edge=right_edge,
-            periodic=ds.periodicity,
-            leafsize=2*int(n_neighbors),
-        )
-        pos_kd = pos[kdtree.idx]
-        hsml = generate_smoothing_length(pos_kd, kdtree, n_neighbors)
-        hsml = hsml[np.argsort(kdtree.idx)]
-
-    # Get density
-    if density is not None:
-        dens = density
-    elif not force and (ptype, 'density') in ds.derived_field_list:
-        dens = ad[ptype, 'density']
-    else:
-        # The following is an oversimplified way to compute density given
-        # smoothing length, which is not too bad for the purpose of
-        # vizualization, but could be improved in the future.
-        vol = np.pi * hsml**3 * 4 / 3
-        dens = mass / vol
-
-    # Add basic particle fields
-    posx, posy, posz = pos.T
-    data = {
-        'particle_position_x': (posx, l_unit),
-        'particle_position_y': (posy, l_unit),
-        'particle_position_z': (posz, l_unit),
-        'particle_mass': (mass, m_unit),
-        'smoothing_length': (hsml, l_unit),
-        'density': (dens, d_unit),
-    }
-
-    # Add other fields
+    # Load data
+    data = {}
     if fields is not None:
         for field in fields:
-            data[field] = ad[ptype, field]
+            data[ptype_dst, field] = dobj[ptype_src, field]
 
-    # Collect dataset code units
+    # Get bounding box
+    if hasattr(dobj, "left_edge") and hasattr(dobj, "right_edge"):
+        left_edge = dobj.left_edge.to("code_length").v
+        right_edge = dobj.right_edge.to("code_length").v
+        bbox = list(zip(left_edge, right_edge))
+    else:
+        bbox = None
+
+    # Get code units
     code_units = {}
-    for key in ['length', 'mass', 'time', 'velocity', 'magnetic']:
-        full_key = key + '_unit'
-        if hasattr(ds, full_key):
-            code_units[full_key] = getattr(ds, full_key)
+    for key in ["length", "mass", "time", "velocity", "magnetic"]:
+        full_key = key + "_unit"
+        code_units[full_key] = ds.quan(1, "code_" + key).in_cgs()
 
     return load_particles(
         data,
-        bbox=list(zip(left_edge, right_edge)),
+        bbox=bbox,
         sim_time=ds.current_time,
         periodicity=ds.periodicity,
         **code_units
