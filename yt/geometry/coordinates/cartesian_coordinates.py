@@ -77,7 +77,7 @@ def _find_object_bbox(data_source):
         pa = data_src.center + data_src._norm_vec*data_src.height
         pb = data_src.center - data_src._norm_vec*data_src.height
         a = pa - pb
-        db = data_src.radius*np.sqrt(1.0-a*a/np.dot(a,a))
+        db = data_src.radius*np.sqrt(1.0-a.d*a.d/np.dot(a,a))
         le = np.minimum(pa-db, pb-db)
         re = np.maximum(pa+db, pb+db)
     elif data_src._type_name == "ellipsoid":
