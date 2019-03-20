@@ -2094,6 +2094,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         le, re = self._get_bbox()
         le.convert_to_units("code_length")
         re.convert_to_units("code_length")
+        return le, re
 
     def volume(self):
         """
