@@ -137,28 +137,28 @@ def _sample_ray(ray, npoints, field):
     return x, field_values
 
 def all_data(data, ptype, fields, kdtree=False):
-        field_data = {}
-        fields = set(fields)
+    field_data = {}
+    fields = set(fields)
+    for field in fields:
+        field_data[field] = []
+
+    for chunk in data.all_data().chunks([], "io"):
         for field in fields:
-            field_data[field] = []
+            field_data[field].append(chunk[ptype,
+                                           field].in_base("code"))
 
-        for chunk in data.all_data().chunks([], "io"):
-            for field in fields:
-                field_data[field].append(chunk[ptype,
-                                               field].in_base("code"))
+    for field in fields:
+        field_data[field] = uconcatenate(field_data[field])
 
+    if kdtree is True:
+        kdtree = data.index.kdtree
         for field in fields:
-            field_data[field] = uconcatenate(field_data[field])
+            if len(field_data[field].shape) == 1:
+                field_data[field] = field_data[field][kdtree.idx]
+            else:
+                field_data[field] = field_data[field][kdtree.idx, :]
 
-        if kdtree is True:
-            kdtree = data.index.kdtree
-            for field in fields:
-                if len(field_data[field].shape) == 1:
-                    field_data[field] = field_data[field][kdtree.idx]
-                else:
-                    field_data[field] = field_data[field][kdtree.idx, :]
-
-        return field_data
+    return field_data
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
