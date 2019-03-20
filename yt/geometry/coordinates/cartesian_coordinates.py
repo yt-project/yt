@@ -49,20 +49,20 @@ def _find_object_bbox(data_source):
     else:
         data_src = data_source
 
-    if hasattr(data_src, "left_edge"):
-        # Region or grid
+    if data_src._type_name == "region":
+        # YTRegion
         le = data_src.left_edge
         re = data_src.right_edge
     elif data_src._type_name == "sphere":
-        # Sphere
+        # YTSphere
         le = -data_src.radius + data_src.center
         re = data_src.radius + data_src.center
     elif data_src._type_name == "ray":
-        # Ray
+        # YTRay
         le = data_src.start_point
         re = data_src.end_point
     elif data_src._type_name == "ortho_ray":
-        # OrthoRay
+        # YTOrthoRay
         le = data_src.ds.arr(np.zeros(3), "code_length")
         xax = data_src.ds.coordinates.x_axis[data_src.axis]
         yax = data_src.ds.coordinates.y_axis[data_src.axis]
@@ -71,9 +71,27 @@ def _find_object_bbox(data_source):
         re = le.copy()
         le[data_src.axis] = data_src.ds.domain_left_edge[data_src.axis]
         re[data_src.axis] = data_src.ds.domain_right_edge[data_src.axis]
+    elif data_src._type_name == "disk":
+        # YTDisk
+        # http://www.iquilezles.org/www/articles/diskbbox/diskbbox.htm
+        pa = data_src.center + data_src._norm_vec*data_src.height
+        pb = data_src.center - data_src._norm_vec*data_src.height
+        a = pa - pb
+        db = data_src.radius*np.sqrt(1.0-a*a/np.dot(a,a))
+        le = np.minimum(pa-db, pb-db)
+        re = np.maximum(pa+db, pb+db)
+    elif data_src._type_name == "ellipsoid":
+        # YTEllipsoid
+        # For simplicity, find the bounding sphere around the ellipsoid
+        # and use this to find the bounding box
+        radius = np.max([data_src._A, data_src._B, data_src._C])
+        radius = data_src.ds.arr(radius, "code_length")
+        le = -radius + data_src.center
+        re = radius + data_src.center
     else:
-        # For any other object, return the domain edges. We 
-        # may implement other objects at a later time.
+        # For any other object, return the domain edges. If you
+        # end up here, it's probably because you chose an object
+        # that doesn't make much sense.
         le = data_source.ds.domain_left_edge
         re = data_source.ds.domain_right_edge
 
