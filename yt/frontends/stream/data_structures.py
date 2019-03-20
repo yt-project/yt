@@ -1333,11 +1333,14 @@ def load_particles(data, length_unit = None, bbox=None,
 
     return sds
 
-def load_particles_from(dobj, ptype_src, ptype_dst="io", fields=None):
-    r"""Load particles from a data object.
+def load_particles_from(dobj, ptype_src, ptype_dst="io", basic_fields=True,
+                        extra_fields=None):
+    r"""Load particles from an existing dataset.
 
     This is a convenience function to create a stream particle dataset from
-    an existing dataset.
+    an existing dataset. A source particle type is mapped to a destination
+    particle type. And a selection of fields are loaded into the output stream
+    dataset.
 
     Parameters
     ----------
@@ -1347,8 +1350,11 @@ def load_particles_from(dobj, ptype_src, ptype_dst="io", fields=None):
         The source particle type.
     ptype_dst : str
         The destination particle type.
-    fields : list
-        List of on-disk fields to add.
+    basic_fields : bool
+        Whether to load the basic fields "particle_position_x",
+        "particle_position_y", "particle_position_z", and "particle_mass".
+    extra_fields : list
+        List of extra fields to load.
 
     Returns
     -------
@@ -1359,17 +1365,23 @@ def load_particles_from(dobj, ptype_src, ptype_dst="io", fields=None):
     --------
 
     >>> ad = ds.all_data()
-    >>> fields = ["particle_mass", "particle_position_x"]
-    >>> ds_stream = load_particles_from(ad, "PartType1", fields=fields)
+    >>> ds_stream = load_particles_from(ad, "PartType1")
 
     """
     ds = dobj.ds
 
-    # Load data
-    data = {}
-    if fields is not None:
-        for field in fields:
-            data[ptype_dst, field] = dobj[ptype_src, field]
+    # Load fields
+    if basic_fields:
+        basic_fields = [
+            "particle_position_x",
+            "particle_position_y",
+            "particle_position_z",
+            "particle_mass",
+        ]
+    if extra_fields is None:
+        extra_fields = []
+    fields = {*basic_fields, *extra_fields}
+    data = {(ptype_dst, field): dobj[ptype_src, field] for field in fields}
 
     # Get bounding box
     if hasattr(dobj, "left_edge") and hasattr(dobj, "right_edge"):
