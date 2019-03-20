@@ -397,4 +397,19 @@ class FieldInfoContainer(dict):
             mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
         dfl = set(self.ds.derived_field_list).union(deps.keys())
         self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
+        self.set_linear_fields()
         return deps, unavailable
+
+    def set_linear_fields(self):
+        """
+        Sets which fields use linear as their default scaling in Profiles and
+        PhasePlots. Default for all fields is set to log, so this sets which
+        are linear.  For now, set linear to geometric fields: position and
+        velocity coordinates.
+        """
+        log_prefixes = ['', 'velocity_', 'particle_position_', 'particle_velocity_']
+        coords = ['x', 'y', 'z']
+        log_fields = [prefix+coord for prefix in log_prefixes for coord in coords]
+        for field in self.ds.derived_field_list:
+            if field[1] in log_fields:
+                self[field].take_log = False
