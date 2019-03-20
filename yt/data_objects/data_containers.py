@@ -2077,12 +2077,23 @@ class YTSelectionContainer3D(YTSelectionContainer):
                     {'contour_slices_%s' % contour_key: cids})
         return cons, contours
 
-    def get_bbox(self):
+    def _get_bbox(self):
         """
         Return the bounding box for this data container.
         This generic version will return the bounds of the entire domain.
         """
         return self.ds.domain_left_edge, self.ds.domain_right_edge
+
+    def get_bbox(self):
+        """
+        Return the bounding box for this data container.
+        """
+        if self.ds.geometry != "cartesian":
+            raise NotImplementedError("get_bbox is currently only implemented "
+                                      "for cartesian geometries!")
+        le, re = self._get_bbox()
+        le.convert_to_units("code_length")
+        re.convert_to_units("code_length")
 
     def volume(self):
         """
