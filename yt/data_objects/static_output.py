@@ -328,10 +328,10 @@ class Dataset(object):
         self.no_cgs_equiv_length = False
 
         if unit_system == 'code':
-            # create a fake CGS unit system which we will override later to
+            # create a fake MKS unit system which we will override later to
             # avoid chicken/egg issue of the unit registry needing a unit system
             # but code units need a unit registry to define the code units on
-            used_unit_system = 'cgs'
+            used_unit_system = 'mks'
         else:
             used_unit_system = unit_system
 
@@ -1014,14 +1014,15 @@ class Dataset(object):
         return self.refine_by**(l1-l0)
 
     def _assign_unit_system(self, unit_system):
-        current_mks_unit = 'A'
+        if unit_system == "cgs":
+            current_mks_unit = None
+        else:
+            current_mks_unit = 'A'
         magnetic_unit = getattr(self, 'magnetic_unit', None)
-        if magnetic_unit is not None:
+        if magnetic_unit is not None and unit_system == "cgs":
             # if the magnetic unit is in T, we need to create the code unit
             # system as an MKS-like system
             if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
-                if unit_system == "cgs":
-                    current_mks_unit = None
                     # this is perhaps a little funky
                     self.magnetic_unit = self.magnetic_unit.to('T').to('gauss')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
@@ -1041,7 +1042,10 @@ class Dataset(object):
         self.unit_registry.add("code_specific_energy", 1.0,
                                dimensions.energy / dimensions.mass)
         self.unit_registry.add("code_time", 1.0, dimensions.time)
-        self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
+        if unit_system == "cgs":
+            self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field_cgs)
+        else:
+            self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
         self.unit_registry.add("code_pressure", 1.0, dimensions.pressure)
         self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
