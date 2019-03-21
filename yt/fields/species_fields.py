@@ -163,7 +163,7 @@ def add_nuclei_density_fields(registry, ftype):
         if element in elements:
             continue
         registry.add_field((ftype, "%s_nuclei_density" % element),
-                           sampling_type="cell",
+                           sampling_type="local",
                            function = _default_nuclei_density,
                            units = unit_system["number_density"])
 
