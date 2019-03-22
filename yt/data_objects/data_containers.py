@@ -2077,7 +2077,24 @@ class YTSelectionContainer3D(YTSelectionContainer):
                     {'contour_slices_%s' % contour_key: cids})
         return cons, contours
 
+    def _get_bbox(self):
+        """
+        Return the bounding box for this data container.
+        This generic version will return the bounds of the entire domain.
+        """
+        return self.ds.domain_left_edge, self.ds.domain_right_edge
 
+    def get_bbox(self):
+        """
+        Return the bounding box for this data container.
+        """
+        if self.ds.geometry != "cartesian":
+            raise NotImplementedError("get_bbox is currently only implemented "
+                                      "for cartesian geometries!")
+        le, re = self._get_bbox()
+        le.convert_to_units("code_length")
+        re.convert_to_units("code_length")
+        return le, re
 
     def volume(self):
         """
@@ -2132,6 +2149,15 @@ class YTBooleanContainer(YTSelectionContainer3D):
         name = "Boolean%sSelector" % (self.op,)
         sel_cls = getattr(yt.geometry.selection_routines, name)
         self._selector = sel_cls(self)
+
+    def _get_bbox(self):
+        le1, re1 = self.dobj1._get_bbox()
+        if self.op == "NOT":
+            return le1, re1
+        else:
+            le2, re2 = self.dobj2._get_bbox()
+            return np.minimum(le1, le2), np.maximum(re1, re2)
+
 
 # Many of these items are set up specifically to ensure that
 # we are not breaking old pickle files.  This means we must only call the
