@@ -134,8 +134,8 @@ def test_ray_from_r():
     start = [(0.1,"cm"), 0.2, (0.3,"cm")]
     end = [(0.5,"cm"), (0.4,"cm"), 0.6]
     ray5 = ds.r[start:end]
-    start_arr = [ds.quan(0.1,"cm"), 0.2, ds.quan(0.3,"cm")]
-    end_arr = [ds.quan(0.5,"cm"), ds.quan(0.4,"cm"), 0.6]
+    start_arr = [ds.quan(0.1, "cm"), ds.quan(0.2, "cm"), ds.quan(0.3, "cm")]
+    end_arr = [ds.quan(0.5, "cm"), ds.quan(0.4, "cm"), ds.quan(0.6, "cm")]
     ray6 = ds.ray(start_arr, end_arr)
     assert_equal(ray5["density"], ray6["density"])
 
