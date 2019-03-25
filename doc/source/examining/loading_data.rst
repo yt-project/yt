@@ -698,39 +698,48 @@ can read FITS image files that have the following (case-insensitive) suffixes:
 * fts.gz
 
 yt can currently read two kinds of FITS files: FITS image files and FITS
-binary table files containing positions, times, and energies of X-ray events.
+binary table files containing positions, times, and energies of X-ray
+events. These are described in more detail below. 
 
-Though a FITS image is composed of a single array in the FITS file,
-upon being loaded into yt it is automatically decomposed into grids:
+Types of FITS Datasets Supported by yt
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: python
+yt FITS Data Standard
+"""""""""""""""""""""
 
-   import yt
-   ds = yt.load("m33_hi.fits")
-   ds.print_stats()
+Astronomical Image Data
+"""""""""""""""""""""""
 
-.. parsed-literal::
+These files are one of three types:
 
-   level  # grids         # cells     # cells^3
-   ----------------------------------------------
-     0       512          981940800       994
-   ----------------------------------------------
-             512          981940800
+* Generic two-dimensional FITS images in sky coordinates
+* Three dimensional "spectral cubes"
+* *Chandra* event files
 
-yt will generate its own domain decomposition, but the number of grids can be
-set manually by passing the ``nprocs`` parameter to the ``load`` call:
+*Chandra* X-ray event data will be loaded as particle fields in yt, but a 
+grid will be constructed from the WCS information in the FITS header. There 
+is a helper function, ``setup_counts_fields``, which may be used to make 
+deposited image fields from the event data for different energy bands (for 
+an example see :ref:`xray_fits`).
 
-.. code-block:: python
+Generic FITS Images
+"""""""""""""""""""
 
-   ds = load("m33_hi.fits", nprocs=1024)
+If the FITS file contains images but does not have adequate header information
+to fall into one of the above categories, yt will still load the data, but 
+the resulting field and/or coordinate information will necessarily be 
+incomplete. Field names may not be descriptive, and units may be incorrect. To
+get the full use out of yt for FITS files, make sure that the file is sufficiently
+self-descripting to fall into one of the above categories.
 
 Making the Most of yt for FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt will load data without WCS information and/or some missing header keywords, but the resulting
-field information will necessarily be incomplete. For example, field names may not be descriptive,
-and units will not be correct. To get the full use out of yt for FITS files, make sure that for
-each image the following header keywords have sensible values:
+yt will load data without WCS information and/or some missing header keywords, 
+but the resulting field and/or coordinate information will necessarily be 
+incomplete. For example, field names may not be descriptive, and units will not 
+be correct. To get the full use out of yt for FITS files, make sure that for
+each image HDU the following standard header keywords have sensible values:
 
 * ``CDELTx``: The pixel width in along axis ``x``
 * ``CRVALx``: The coordinate value at the reference position along axis ``x``
@@ -745,8 +754,8 @@ to set the ``BTYPE`` and ``BUNIT`` keywords:
 
 .. code-block:: python
 
-   import astropy.io.fits as pyfits
-   f = pyfits.open("xray_flux_image.fits", mode="update")
+   from astropy.io import fits
+   f = fits.open("xray_flux_image.fits", mode="update")
    f[0].header["BUNIT"] = "cts/s/pixel"
    f[0].header["BTYPE"] = "flux"
    f.flush()
@@ -812,8 +821,7 @@ set manually by passing the ``nprocs`` parameter to the ``load`` call:
 
 .. code-block:: python
 
-   ds = load("m33_hi.fits", nprocs=64)
-
+   ds = yt.load("m33_hi.fits", nprocs=64)
 
 Fields in FITS Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -833,7 +841,7 @@ The third way is if auxiliary files are included along with the main file, like 
 
 .. code-block:: python
 
-   ds = load("flux.fits", auxiliary_files=["temp.fits","metal.fits"])
+   ds = yt.load("flux.fits", auxiliary_files=["temp.fits","metal.fits"])
 
 The image blocks in each of these files will be loaded as a separate field,
 provided they have the same dimensions as the image blocks in the main file.
@@ -842,12 +850,6 @@ Additionally, fields corresponding to the WCS coordinates will be generated.
 based on the corresponding ``CTYPEx`` keywords. When queried, these fields
 will be generated from the pixel coordinates in the file using the WCS
 transformations provided by AstroPy.
-
-X-ray event data will be loaded as particle fields in yt, but a grid will be
-constructed from the WCS information in the FITS header. There is a helper
-function, ``setup_counts_fields``, which may be used to make deposited image
-fields from the event data for different energy bands (for an example see
-:ref:`xray_fits`).
 
 .. note::
 
@@ -874,11 +876,11 @@ containing different mask values for different fields:
 
 .. code-block:: python
 
-   # passing a single float
-   ds = load("m33_hi.fits", nan_mask=0.0)
+   # passing a single float for all images
+   ds = yt.load("m33_hi.fits", nan_mask=0.0)
 
    # passing a dict
-   ds = load("m33_hi.fits", nan_mask={"intensity":-1.0,"temperature":0.0})
+   ds = yt.load("m33_hi.fits", nan_mask={"intensity":-1.0,"temperature":0.0})
 
 ``suppress_astropy_warnings``
 """""""""""""""""""""""""""""
@@ -978,8 +980,8 @@ individual lines from an intensity cube:
                   'CH3NH2': (218.40956, 'GHz')}
   slab_width = (0.05, "GHz")
   ds = create_spectral_slabs("intensity_cube.fits",
-                                    slab_centers, slab_width,
-                                    nan_mask=0.0)
+                             slab_centers, slab_width,
+                             nan_mask=0.0)
 
 All keyword arguments to ``create_spectral_slabs`` are passed on to ``load`` when
 creating the dataset (see :ref:`additional_fits_options` above). In the
@@ -992,7 +994,7 @@ zero, and the left and right edges of the domain along this axis are
 Examples of Using FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The following IPython notebooks show examples of working with FITS data in yt,
+The following Jupyter notebooks show examples of working with FITS data in yt,
 which we recommend you look at in the following order:
 
 * :ref:`radio_cubes`
