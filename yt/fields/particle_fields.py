@@ -804,11 +804,12 @@ def add_particle_average(registry, ptype, field_name,
     return fn
 
 DEP_MSG_SMOOTH_FIELD = (
-    "The notion of a smoothed field no longer exists since yt-4.0, because the "
-    "global octree is removed. Now the SPH particle fields directly accessible "
-    "from disk are treated properly in the visualization machinaries. So there "
-    "is no need to add a separate smoothed field. "
-    "See this page to learn more:\n"
+    "Since yt-4.0, it's no longer necessary to add a field specifically for "
+    "smoothing, because the global octree is removed. The old behavior of "
+    "interpolating onto a grid structure can be recovered through data objects "
+    "like ds.arbitrary_grid, ds.covering_grid, and most closely ds.octree. The "
+    "visualization machinery now treats SPH fields properly by smoothing onto "
+    "pixel locations. See this page to learn more: "
     "https://yt-project.org/doc/yt4differences.html"
 )
 
