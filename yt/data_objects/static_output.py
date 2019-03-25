@@ -1036,19 +1036,19 @@ class Dataset(object):
     def _create_unit_registry(self, unit_system):
         import yt.units.dimensions as dimensions
         self.unit_registry = UnitRegistry(unit_system=unit_system)
-        self.unit_registry.add("code_length", 1.0, dimensions.length)
-        self.unit_registry.add("code_mass", 1.0, dimensions.mass)
-        self.unit_registry.add("code_density", 1.0, dimensions.density)
+        self.unit_registry.add("code_length", .01, dimensions.length)
+        self.unit_registry.add("code_mass", .001, dimensions.mass)
+        self.unit_registry.add("code_density", 1000., dimensions.density)
         self.unit_registry.add("code_specific_energy", 1.0,
                                dimensions.energy / dimensions.mass)
         self.unit_registry.add("code_time", 1.0, dimensions.time)
         if unit_system == "cgs":
             self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field_cgs)
         else:
-            self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
+            self.unit_registry.add("code_magnetic", .0001, dimensions.magnetic_field)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
-        self.unit_registry.add("code_pressure", 1.0, dimensions.pressure)
-        self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
+        self.unit_registry.add("code_pressure", 0.1, dimensions.pressure)
+        self.unit_registry.add("code_velocity", .01, dimensions.velocity)
         self.unit_registry.add("code_metallicity", 1.0,
                                dimensions.dimensionless)
         self.unit_registry.add("h", 1.0, dimensions.dimensionless, r"h")
