@@ -455,6 +455,8 @@ General Particle Fields
 Every particle will contain both a ``particle_position`` and ``particle_velocity``
 that tracks the position and velocity (respectively) in code units.
 
+.. FIXME: Update the following sections to reflect differences in yt-4.0.
+
 .. _deposited-particle-fields:
 
 Deposited Particle Fields
@@ -496,9 +498,7 @@ available are:
 SPH Fields
 ----------
 
-In yt < 4.0, there was a notion of a smoothed SPH field, which is a field
-interpolated onto a global octree using an SPH kernel. Since yt 4.0, the global
-octree no longer exists, and the SPH fields went away with it.
+See :ref:`yt4differences`.
 
 Computing the Nth Nearest Neighbor
 ----------------------------------
