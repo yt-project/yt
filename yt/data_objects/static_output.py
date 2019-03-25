@@ -1035,6 +1035,9 @@ class Dataset(object):
 
     def _create_unit_registry(self, unit_system):
         import yt.units.dimensions as dimensions
+        # yt assumes a CGS unit system by default (for back compat reasons).
+        # Since unyt is MKS by default we specify the MKS values of the base
+        # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
         self.unit_registry = UnitRegistry(unit_system=unit_system)
         self.unit_registry.add("code_length", .01, dimensions.length)
         self.unit_registry.add("code_mass", .001, dimensions.mass)
