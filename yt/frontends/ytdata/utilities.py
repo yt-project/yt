@@ -233,12 +233,6 @@ def _yt_array_hdf5_attr(fh, attr, val):
     if val is None: val = "None"
     if hasattr(val, "units"):
         fh.attrs["%s_units" % attr] = str(val.units)
-    # The following is a crappy workaround for getting
-    # Unicode strings into HDF5 attributes in Python 3
-    if iterable(val):
-        val = np.array(val)
-        if val.dtype.kind == 'U':
-            val = val.astype('|S')
     try:
         fh.attrs[str(attr)] = val
     # This is raised if no HDF5 equivalent exists.
