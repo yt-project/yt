@@ -2183,8 +2183,8 @@ class YTOctree(YTSelectionContainer3D):
         YTSelectionContainer3D.__init__(self,
             center, ds, field_parameters)
 
-        self.left_edge = self._sanitize_edge(left_edge)
-        self.right_edge = self._sanitize_edge(right_edge)
+        self.left_edge = self._sanitize_edge(left_edge, ds.domain_left_edge)
+        self.right_edge = self._sanitize_edge(right_edge, ds.domain_right_edge)
         self.n_ref = n_ref
         self.density_factor = density_factor
         self.over_refine_factor = over_refine_factor
@@ -2282,7 +2282,9 @@ class YTOctree(YTSelectionContainer3D):
         self._data_source = self.ds.region(
             self.center, self.left_edge, self.right_edge)
 
-    def _sanitize_edge(self, edge):
+    def _sanitize_edge(self, edge, default):
+        if edge is None:
+            return default.copy()
         if not iterable(edge):
             edge = [edge]*len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
