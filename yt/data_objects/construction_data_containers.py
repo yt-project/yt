@@ -642,7 +642,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             edge_units.registry = self.ds.unit_registry
         else:
             edge_units = 'code_length'
-        return self.ds.arr(edge, edge_units)
+        return self.ds.arr(edge, edge_units, dtype='float64')
 
     def _reshape_vals(self, arr):
         if len(arr.shape) == 3: return arr
