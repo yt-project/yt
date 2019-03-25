@@ -168,14 +168,15 @@ def test_sph_datasets_derived_quantities():
     for fname in [tipsy_gal, iso_collapse]:
         ds = yt.load(fname)
         ad = ds.all_data()
+        use_particles = 'nbody' in ds.particle_types
         ad.quantities.angular_momentum_vector()
-        ad.quantities.bulk_velocity(True, True)
-        ad.quantities.center_of_mass(True, True)
-        ad.quantities.extrema(['density', 'temperature'])
-        ad.quantities.min_location('density')
-        ad.quantities.max_location('density')
+        ad.quantities.bulk_velocity(True, use_particles)
+        ad.quantities.center_of_mass(True, use_particles)
+        ad.quantities.extrema([('gas', 'density'), ('gas', 'temperature')])
+        ad.quantities.min_location(('gas', 'density'))
+        ad.quantities.max_location(('gas', 'density'))
         ad.quantities.total_mass()
-        ad.quantities.weighted_average_quantity('density', 'mass')
+        ad.quantities.weighted_average_quantity(('gas', 'density'), ('gas', 'mass'))
 
 def test_derived_quantities_with_particle_types():
 
