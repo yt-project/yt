@@ -1207,11 +1207,12 @@ class StreamParticlesDataset(StreamDataset):
         self._sph_ptype = sph_ptype
         self.index.update_data(data)
 
-def load_particles(data, length_unit = None, bbox=None,
-                   sim_time=0.0, mass_unit = None, time_unit = None,
+def load_particles(data, length_unit=None, bbox=None,
+                   sim_time=None, mass_unit=None, time_unit=None,
                    velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True),
-                   geometry = "cartesian", unit_system="cgs"):
+                   geometry="cartesian", unit_system="cgs",
+                   data_source=None):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -1231,8 +1232,8 @@ def load_particles(data, length_unit = None, bbox=None,
     Parameters
     ----------
     data : dict
-        This is a dict of numpy arrays or (numpy array, unit name) tuples, 
-        where the keys are the field names. Particles positions must be named 
+        This is a dict of numpy arrays or (numpy array, unit name) tuples,
+        where the keys are the field names. Particles positions must be named
         "particle_position_x", "particle_position_y", and "particle_position_z".
     length_unit : float
         Conversion factor from simulation length units to centimeters
@@ -1251,6 +1252,9 @@ def load_particles(data, length_unit = None, bbox=None,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
+    data_source : YTSelectionContainer, optional
+        If set, parameters like `bbox`, `sim_time`, and code units are derived
+        from it.
 
     Examples
     --------
@@ -1266,6 +1270,15 @@ def load_particles(data, length_unit = None, bbox=None,
 
     domain_dimensions = np.ones(3, "int32")
     nprocs = 1
+
+    # Parse bounding box
+    if (data_source is not None and
+            hasattr(data_source, "left_edge") and
+            hasattr(data_source, "right_edge")):
+        bbox = list(zip(
+            data_source.left_edge.to("code_length").v,
+            data_source.right_edge.to("code_length").v,
+        ))
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
     else:
@@ -1274,6 +1287,29 @@ def load_particles(data, length_unit = None, bbox=None,
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
+    # Parse simulation time
+    if data_source is not None:
+        sim_time = data_source.ds.current_time
+    if sim_time is None:
+        sim_time = 0.0
+    else:
+        sim_time = float(sim_time)
+
+    # Parse units
+    def parse_unit(unit, dimension):
+        if unit is None:
+            unit = "code_" + dimension
+            if data_source is not None:
+                unit = data_source.ds.quan(1, unit).in_cgs()
+        return unit
+
+    length_unit = parse_unit(length_unit, "length")
+    mass_unit = parse_unit(mass_unit, "mass")
+    time_unit = parse_unit(time_unit, "time")
+    velocity_unit = parse_unit(velocity_unit, "velocity")
+    magnetic_unit = parse_unit(magnetic_unit, "magnetic")
+
+    # Preprocess data
     field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
@@ -1292,17 +1328,6 @@ def load_particles(data, length_unit = None, bbox=None,
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
     grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
-
-    if length_unit is None:
-        length_unit = 'code_length'
-    if mass_unit is None:
-        mass_unit = 'code_mass'
-    if time_unit is None:
-        time_unit = 'code_time'
-    if velocity_unit is None:
-        velocity_unit = 'code_velocity'
-    if magnetic_unit is None:
-        magnetic_unit = 'code_magnetic'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(
@@ -1332,78 +1357,6 @@ def load_particles(data, length_unit = None, bbox=None,
     sds = StreamParticlesDataset(handler, geometry=geometry, unit_system=unit_system)
 
     return sds
-
-def load_particles_from(dobj, ptype_src, ptype_dst="io", basic_fields=True,
-                        extra_fields=None):
-    r"""Load particles from an existing dataset.
-
-    This is a convenience function to create a stream particle dataset from
-    an existing dataset. A source particle type is mapped to a destination
-    particle type. And a selection of fields are loaded into the output stream
-    dataset.
-
-    Parameters
-    ----------
-    dobj : yt data object
-        The yt data object to extract data from.
-    ptype_src : str
-        The source particle type.
-    ptype_dst : str
-        The destination particle type.
-    basic_fields : bool
-        Whether to load the basic fields "particle_position_x",
-        "particle_position_y", "particle_position_z", and "particle_mass".
-    extra_fields : list
-        List of extra fields to load.
-
-    Returns
-    -------
-    StreamParticlesDatasets
-        The constructued dataset with SPH particles.
-
-    Examples
-    --------
-
-    >>> ad = ds.all_data()
-    >>> ds_stream = load_particles_from(ad, "PartType1")
-
-    """
-    ds = dobj.ds
-
-    # Load fields
-    if basic_fields:
-        basic_fields = [
-            "particle_position_x",
-            "particle_position_y",
-            "particle_position_z",
-            "particle_mass",
-        ]
-    if extra_fields is None:
-        extra_fields = []
-    fields = {*basic_fields, *extra_fields}
-    data = {(ptype_dst, field): dobj[ptype_src, field] for field in fields}
-
-    # Get bounding box
-    if hasattr(dobj, "left_edge") and hasattr(dobj, "right_edge"):
-        left_edge = dobj.left_edge.to("code_length").v
-        right_edge = dobj.right_edge.to("code_length").v
-        bbox = list(zip(left_edge, right_edge))
-    else:
-        bbox = None
-
-    # Get code units
-    code_units = {}
-    for key in ["length", "mass", "time", "velocity", "magnetic"]:
-        full_key = key + "_unit"
-        code_units[full_key] = ds.quan(1, "code_" + key).in_cgs()
-
-    return load_particles(
-        data,
-        bbox=bbox,
-        sim_time=ds.current_time,
-        periodicity=ds.periodicity,
-        **code_units
-    )
 
 _cis = np.fromiter(chain.from_iterable(product([0,1], [0,1], [0,1])),
                 dtype=np.int64, count = 8*3)
