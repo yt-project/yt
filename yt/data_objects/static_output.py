@@ -33,6 +33,7 @@ from yt.funcs import \
     mylog, \
     set_intersection, \
     ensure_list, \
+    issue_deprecation_warning, \
     iterable, \
     setdefaultattr
 from yt.utilities.cosmology import \
@@ -57,7 +58,7 @@ from yt.fields.derived_field import \
 from yt.fields.fluid_fields import \
     setup_gradient_fields
 from yt.fields.particle_fields import \
-    add_volume_weighted_smoothed_field
+    DEP_MSG_SMOOTH_FIELD
 from yt.data_objects.particle_filters import \
     filter_registry
 from yt.data_objects.particle_unions import \
@@ -1370,6 +1371,8 @@ class Dataset(object):
                                     kernel_name="cubic"):
         """Add a new smoothed particle field
 
+        WARNING: This method is deprecated since yt-4.0.
+
         Creates a new smoothed field based on the particle *smooth_field*.
 
         Parameters
@@ -1394,32 +1397,9 @@ class Dataset(object):
 
         The field name tuple for the newly created field.
         """
-        # The magical step
-        self.index
-
-        # Parse arguments
-        if isinstance(smooth_field, tuple):
-            ptype, smooth_field = smooth_field[0], smooth_field[1]
-        else:
-            raise RuntimeError("smooth_field must be a tuple, received %s" %
-                               smooth_field)
-        if method != "volume_weighted":
-            raise NotImplementedError("method must be 'volume_weighted'")
-
-        # Prepare field names and registry to be used later
-        coord_name = "particle_position"
-        mass_name = "particle_mass"
-        smoothing_length_name = "smoothing_length"
-        if (ptype, smoothing_length_name) not in self.derived_field_list:
-            raise ValueError("%s not in derived_field_list" %
-                             ((ptype, smoothing_length_name),))
-        density_name = "density"
-        registry = self.field_info
-
-        # Do the actual work
-        return add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
-                   smoothing_length_name, density_name, smooth_field, registry,
-                   nneighbors=nneighbors, kernel_name=kernel_name)[0]
+        issue_deprecation_warning(
+            "This method is deprecated. " + DEP_MSG_SMOOTH_FIELD
+        )
 
     def add_gradient_fields(self, input_field):
         """Add gradient fields.

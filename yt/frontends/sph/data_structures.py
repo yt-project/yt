@@ -20,7 +20,8 @@ import os
 
 from yt.data_objects.static_output import \
     ParticleDataset
-from yt.funcs import mylog
+from yt.funcs import \
+    mylog
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 
@@ -78,43 +79,6 @@ class SPHDataset(ParticleDataset):
             raise ValueError("SPH normalization needs to be True or False!")
         self._use_sph_normalization = value
 
-    def add_smoothed_particle_field(self, smooth_field,
-                                    method="volume_weighted", nneighbors=64,
-                                    kernel_name=None):
-        """Add a new smoothed particle field
-
-        Creates a new smoothed field based on the particle *smooth_field*.
-
-        Parameters
-        ----------
-
-        smooth_field : tuple
-           The field name tuple of the particle field the smoothed field will
-           be created from.  This must be a field name tuple so yt can
-           appropriately infer the correct particle type.
-        method : string, default 'volume_weighted'
-           The particle smoothing method to use. Can only be 'volume_weighted'
-           for now.
-        neighbors : int, default 64
-            The number of neighbors to examine during the process.
-        kernel_name : string or None, default None
-            This is the name of the smoothing kernel to use. Current supported
-            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
-            `wendland4`, and `wendland6`. If left as None,
-            :attr:`~yt.frontends.sph.data_structures.SPHDataset.kernel_name`
-            will be used.
-
-        Returns
-        -------
-
-        The field name tuple for the newly created field.
-        """
-        if kernel_name is None:
-            kernel_name = self.kernel_name
-        return super(SPHDataset, self).add_smoothed_particle_field(
-            smooth_field=smooth_field, method=method, nneighbors=nneighbors,
-            kernel_name=kernel_name
-        )
 
 class SPHParticleIndex(ParticleIndex):
     def _initialize_index(self):
