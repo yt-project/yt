@@ -206,18 +206,6 @@ def test_add_deposited_particle_field():
     # The sum should equal the number of cells that have particles
     assert_equal(ret.sum(), np.count_nonzero(ad[("deposit", "io_count")]))
 
-@requires_file('GadgetDiskGalaxy/snapshot_200.hdf5')
-def test_add_smoothed_particle_field():
-    # FIXME come back to this
-    import nose
-    raise nose.SkipTest
-    ds = load('GadgetDiskGalaxy/snapshot_200.hdf5')
-    fn = ds.add_smoothed_particle_field(('PartType0', 'particle_ones'))
-    assert_equal(fn, ('deposit', 'PartType0_smoothed_particle_ones'))
-    dd = ds.sphere('center', (500, 'code_length'))
-    ret = dd[fn]
-    assert_almost_equal(ret.sum(), 638.5652315154682)
-
 def test_add_gradient_fields():
     ds = get_base_ds(1)
     gfields = ds.add_gradient_fields(("gas","density"))

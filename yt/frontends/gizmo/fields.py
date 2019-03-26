@@ -18,8 +18,6 @@ from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.fields.magnetic_field import \
     setup_magnetic_field_aliases
-from yt.fields.particle_fields import \
-    add_volume_weighted_smoothed_field
 from yt.fields.species_fields import \
     add_species_field_by_density, \
     setup_species_fields
@@ -118,14 +116,9 @@ class GizmoFieldInfo(GadgetFieldInfo):
             return data[ptype, "density"] * \
               data[ptype, "%s_metallicity" % species]
 
-        num_neighbors = 64
         for species in ['H', 'H_p0', 'H_p1']:
             for suf in ["_density", "_number_density"]:
                 field = "%s%s" % (species, suf)
-                add_volume_weighted_smoothed_field(
-                    ptype, "particle_position", "particle_mass",
-                    "smoothing_length", "density", field,
-                    self, num_neighbors)
                 self.alias(("gas", field), (ptype, field))
 
         for species in self.nuclei_names:
@@ -136,10 +129,6 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
             for suf in ["_nuclei_mass_density", "_metallicity"]:
                 field = "%s%s" % (species, suf)
-                add_volume_weighted_smoothed_field(
-                    ptype, "particle_position", "particle_mass",
-                    "smoothing_length", "density", field,
-                    self, num_neighbors)
                 self.alias(("gas", field), (ptype, field))
 
         def _metal_density_field(field, data):
