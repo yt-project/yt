@@ -188,14 +188,14 @@ class YTDataContainer(object):
             self.center = None
             return
         elif isinstance(center, YTArray):
-            self.center = self.ds.arr(center.copy())
+            self.center = self.ds.arr(center.astype('float64'))
             self.center.convert_to_units('code_length')
         elif isinstance(center, (list, tuple, np.ndarray)):
             if isinstance(center[0], YTQuantity):
-                self.center = self.ds.arr([c.copy() for c in center])
+                self.center = self.ds.arr([c.copy() for c in center], dtype='float64')
                 self.center.convert_to_units('code_length')
             else:
-                self.center = self.ds.arr(center, 'code_length')
+                self.center = self.ds.arr(center, 'code_length', dtype='float64')
         elif isinstance(center, string_types):
             if center.lower() in ("c", "center"):
                 self.center = self.ds.domain_center
