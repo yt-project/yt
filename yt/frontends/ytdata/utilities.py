@@ -14,9 +14,6 @@ Utility functions for ytdata frontend.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
-from yt.funcs import iterable
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.logger import \
