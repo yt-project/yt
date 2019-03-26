@@ -319,9 +319,9 @@ the appropriate package manager for your python environment.""")
 Cython %s is installed. Please update Cython using the appropriate
 package manager for your python environment.""" %
                 cython.__version__)
-        if LooseVersion(numpy.__version__) < LooseVersion('1.10.4'):
+        if LooseVersion(numpy.__version__) < LooseVersion('1.13.3'):
             raise RuntimeError(
-"""Building yt from source requires NumPy 1.10.4 or newer but
+"""Building yt from source requires NumPy 1.13.3 or newer but
 NumPy %s is installed. Please update NumPy using the appropriate
 package manager for your python environment.""" %
                 numpy.__version__)
