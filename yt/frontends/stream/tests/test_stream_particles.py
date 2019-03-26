@@ -307,6 +307,46 @@ def test_load_particles_types():
         assert npart == num_tot_particles
         assert dd["all", "particle_position_%s" % ax].size == num_tot_particles
 
+def test_load_particles_with_data_source():
+
+    num_particles = 100
+
+    data = {"particle_position_x": np.random.random(size=num_particles),
+            "particle_position_y": np.random.random(size=num_particles),
+            "particle_position_z": np.random.random(size=num_particles),
+            "particle_mass": np.ones(num_particles)}
+    kwargs = dict(
+        bbox=[[-1.0, 1.0]] * 3,
+        sim_time=1.0,
+        length_unit='km',
+        mass_unit='kg',
+        time_unit='yr',
+        velocity_unit='km / yr',
+        magnetic_unit='T'
+    )
+
+    ds1 = load_particles(data, **kwargs)
+    ds2 = load_particles(data, data_source=ds.all_data())
+
+    def in_cgs(quan):
+        return quan.in_cgs().v
+
+    # Test bbox is parsed correctly
+    for attr in ['domain_left_edge', 'domain_right_edge']:
+        assert np.allclose(
+            in_cgs(getattr(ds1, attr)),
+            in_cgs(getattr(ds2, attr))
+        )
+
+    # Test sim_time is parsed correctly
+    assert in_cgs(ds1.current_time) == in_cgs(ds2.current_time)
+
+    # Test code units are parsed correctly
+    def get_cu(ds, dim):
+        return ds.quan(1, 'code_' + dim)
+    for dim in ['length', 'mass', 'time', 'velocity', 'magnetic']:
+        assert in_cgs(get_cu(ds1, dim)) == in_cgs(get_cu(ds2, dim))
+
 def test_particles_outside_domain():
     np.random.seed(0x4d3d3d3)
     posx_arr = np.random.uniform(low=-1.6, high=1.5, size=1000)

@@ -1690,6 +1690,22 @@ The ``load_particles`` function also accepts the following keyword parameters:
 ``bbox``
        The bounding box for the particle positions.
 
+Sometimes, you might want to load particles from an existing dataset, but it's
+tedious to manually extract parameters like ``bbox`` or code units from the
+dataset. In this case, use the ``data_source`` keyword parameter:
+
+.. code-block:: python
+
+    import yt
+
+    ad = ds.all_data()
+    pt = 'PartType1'
+    data = dict(particle_position_x=ad[pt, 'particle_position_x'],
+                particle_position_y=ad[pt, 'particle_position_y'],
+                particle_position_z=ad[pt, 'particle_position_z'],
+                particle_mass=ad[pt, 'particle_mass'])
+    ds_stream = yt.load_particles(data, data_source=ad)
+
 .. _loading-gizmo-data:
 
 Gizmo Data
