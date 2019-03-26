@@ -2,6 +2,7 @@ import numpy as np
 
 from yt.testing import \
     assert_equal, \
+    fake_particle_ds, \
     fake_sph_orientation_ds
 from yt.frontends.stream.api import load_uniform_grid, \
     refine_amr, \
@@ -308,25 +309,13 @@ def test_load_particles_types():
         assert dd["all", "particle_position_%s" % ax].size == num_tot_particles
 
 def test_load_particles_with_data_source():
+    ds1 = fake_particle_ds()
 
-    num_particles = 100
-
-    data = {"particle_position_x": np.random.random(size=num_particles),
-            "particle_position_y": np.random.random(size=num_particles),
-            "particle_position_z": np.random.random(size=num_particles),
-            "particle_mass": np.ones(num_particles)}
-    kwargs = dict(
-        bbox=[[-1.0, 1.0]] * 3,
-        sim_time=1.0,
-        length_unit='km',
-        mass_unit='kg',
-        time_unit='yr',
-        velocity_unit='km / yr',
-        magnetic_unit='T'
-    )
-
-    ds1 = load_particles(data, **kwargs)
-    ds2 = load_particles(data, data_source=ds.all_data())
+    # Load from dataset
+    ad = ds1.all_data()
+    fields = ['particle_mass'] + [f'particle_position_{ax}' for ax in 'xyz']
+    data = {field: ad[field] for field in fields}
+    ds2 = load_particles(data, data_source=ad)
 
     def in_cgs(quan):
         return quan.in_cgs().v
@@ -346,6 +335,16 @@ def test_load_particles_with_data_source():
         return ds.quan(1, 'code_' + dim)
     for dim in ['length', 'mass', 'time', 'velocity', 'magnetic']:
         assert in_cgs(get_cu(ds1, dim)) == in_cgs(get_cu(ds2, dim))
+
+def test_add_sph_fields():
+    ds = fake_particle_ds()
+    ds.index
+    assert set(ds.particle_types) == {'io', 'all', 'nbody'}
+
+    ds.add_sph_fields()
+    assert set(ds.particle_types) == {'io', 'all'}
+    assert ('io', 'smoothing_length') in ds.field_list
+    assert ('io', 'density') in ds.field_list
 
 def test_particles_outside_domain():
     np.random.seed(0x4d3d3d3)
@@ -372,4 +371,3 @@ def test_stream_sph_projection():
     image = frb['gas', 'density']
     assert image.max() > 0
     assert image.shape == (256, 256)
-    
