@@ -397,7 +397,7 @@ class FITSDataset(Dataset):
                                 if str(v[1]) == "(length)"]
         more_length_units = []
         for unit in default_length_units:
-            if unit in self.ds.unit_registry.prefixable_units:
+            if unit in self.unit_registry.prefixable_units:
                 more_length_units += [prefix+unit for prefix in unit_prefixes]
         default_length_units += more_length_units
         file_units = []
