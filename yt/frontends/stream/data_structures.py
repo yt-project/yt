@@ -1272,13 +1272,11 @@ def load_particles(data, length_unit=None, bbox=None,
     nprocs = 1
 
     # Parse bounding box
-    if (data_source is not None and
-            hasattr(data_source, "left_edge") and
-            hasattr(data_source, "right_edge")):
-        bbox = list(zip(
-            data_source.left_edge.to("code_length").v,
-            data_source.right_edge.to("code_length").v,
-        ))
+    if data_source is not None:
+        le, re = data_source.get_bbox()
+        le = le.to("code_length").v
+        re = re.to("code_length").v
+        bbox = list(zip(le, re))
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
     else:
