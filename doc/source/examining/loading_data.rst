@@ -1661,21 +1661,40 @@ The ``load_particles`` function also accepts the following keyword parameters:
 ``bbox``
        The bounding box for the particle positions.
 
-Sometimes, you might want to load particles from an existing dataset, but it's
-tedious to manually extract parameters like ``bbox`` or code units from the
-dataset. In this case, use the ``data_source`` keyword parameter:
+A novel use of the ``load_particles`` function is to facilitate SPH
+visualization of non-SPH particles. See the example below:
 
 .. code-block:: python
 
     import yt
 
+    # Load dataset
+    ds = yt.load('FIRE_M12i_ref11/snapshot_600.hdf5')
+
+    # Reload star particles into a stream dataset
     ad = ds.all_data()
-    pt = 'PartType1'
-    data = dict(particle_position_x=ad[pt, 'particle_position_x'],
-                particle_position_y=ad[pt, 'particle_position_y'],
-                particle_position_z=ad[pt, 'particle_position_z'],
-                particle_mass=ad[pt, 'particle_mass'])
-    ds_stream = yt.load_particles(data, data_source=ad)
+    pt = 'PartType4'
+    fields = ['particle_mass'] + [f'particle_position_{ax}' for ax in 'xyz']
+    data = {('io', field): ad[pt, field] for field in fields}
+    ds_star = yt.load_particles(data, data_source=ad)
+
+    # Create the missing SPH fields
+    ds_star.add_sph_fields()
+
+    # Make projection plot
+    _, center = ds_star.find_max('density')
+    proj = yt.ProjectionPlot(ds_star, 'z', 'density',
+                            center=center, width=(100, 'kpc'))
+    proj.set_unit('density', 'Msun/kpc**2')
+    proj.show()
+
+Here we see two new things. First, ``load_particles`` accepts a ``data_source``
+argument to infer parameters like code units, which could be tedious to provide
+otherwise. Second, the returned
+:class:`~yt.frontends.stream.data_structures.StreamParticleDataset` has an
+:meth:`~yt.frontends.stream.data_structures.StreamParticleDataset.add_sph_fields`
+method, to create the ``smoothing_length`` and ``density`` fields required for
+SPH visualization to work.
 
 .. _loading-gizmo-data:
 
