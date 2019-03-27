@@ -1668,25 +1668,25 @@ visualization of non-SPH particles. See the example below:
 
     import yt
 
-    # Load dataset
+    # Load dataset and center on the dense region
     ds = yt.load('FIRE_M12i_ref11/snapshot_600.hdf5')
+    _, center = ds.find_max(('PartType0', 'density'))
 
-    # Reload star particles into a stream dataset
+    # Reload DM particles into a stream dataset
     ad = ds.all_data()
-    pt = 'PartType4'
+    pt = 'PartType1'
     fields = ['particle_mass'] + [f'particle_position_{ax}' for ax in 'xyz']
-    data = {('io', field): ad[pt, field] for field in fields}
-    ds_star = yt.load_particles(data, data_source=ad)
+    data = {field: ad[pt, field] for field in fields}
+    ds_dm = yt.load_particles(data, data_source=ad)
 
-    # Create the missing SPH fields
-    ds_star.add_sph_fields()
+    # Generate the missing SPH fields
+    ds_dm.add_sph_fields()
 
-    # Make projection plot
-    _, center = ds_star.find_max('density')
-    proj = yt.ProjectionPlot(ds_star, 'z', 'density',
-                            center=center, width=(100, 'kpc'))
-    proj.set_unit('density', 'Msun/kpc**2')
-    proj.show()
+    # Make the SPH projection plot
+    p = yt.ProjectionPlot(ds_dm, 'z', ('io', 'density'),
+                          center=center, width=(1, 'Mpc'))
+    p.set_unit('density', 'Msun/kpc**2')
+    p.show()
 
 Here we see two new things. First, ``load_particles`` accepts a ``data_source``
 argument to infer parameters like code units, which could be tedious to provide
