@@ -19,5 +19,5 @@ libconf==1.0.1
 cartopy==0.17.0
 pyaml==17.10.0
 mpi4py==3.0.0
-unyt==2.1.0
+unyt==2.1.1
 pyyaml>=4.2b1
