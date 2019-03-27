@@ -17,6 +17,8 @@ This is a library of yt-defined exceptions
 # We don't need to import 'exceptions'
 import os.path
 
+from unyt.exceptions import UnitOperationError
+
 class YTException(Exception):
     def __init__(self, message = None, ds = None):
         Exception.__init__(self, message)
@@ -167,6 +169,9 @@ class YTCoordinateNotImplemented(YTException):
     def __str__(self):
         return "This coordinate is not implemented for this geometry type."
 
+# define for back compat reasons for code written before yt 4.0
+YTUnitOperationError = UnitOperationError
+    
 class YTUnitNotRecognized(YTException):
     def __init__(self, unit):
         self.unit = unit
