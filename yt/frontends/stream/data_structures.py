@@ -60,7 +60,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.lib.particle_kdtree_tools import \
-    generate_smoothing_length
+    estimate_density
 from yt.geometry.grid_container import \
     GridTree, \
     MatchPointsToGrids
@@ -1138,73 +1138,65 @@ class StreamParticlesDataset(StreamDataset):
         if ('io', 'density') in fields and ('io', 'smoothing_length') in fields:
             self._sph_ptype = 'io'
 
-    def add_sph_fields(self, n_neighbors=64, sph_ptype="io"):
+    def add_sph_fields(self, n_neighbors=32, kernel="cubic", sph_ptype="io"):
         """Add SPH fields for the specified particle type.
 
         For a particle type with "particle_position" and "particle_mass" already
-        defined, this method add the "smoothing_length" and "density" fields.
+        defined, this method adds the "smoothing_length" and "density" fields.
         "smoothing_length" is computed as the distance to the nth nearest
-        neighbor. "density" is simply assuming a sphere with "smoothing_length"
-        as its radius.
+        neighbor. "density" is computed as the SPH (gather) smoothed mass.
+
+        Caution: this method will overwrite existing "smoothing_length" and
+        "density" fields.
 
         Parameters
         ----------
         n_neighbors : int
-            The number of neighbors to use when computing smoothing length.
+            The number of neighbors to use in smoothing length computation.
+        kernel : str
+            The kernel function to use in density estimation.
         sph_ptype : str
-            The SPH particle type. Each dataset could have one SPH particle type
-            only.
+            The SPH particle type. Each dataset has one sph_ptype only. This
+            method will overwrite existing sph_ptype of the dataset.
 
         """
-        ad = self.all_data()
+        mylog.info("Generating SPH fields")
 
+        # Unify units
         l_unit = "code_length"
         m_unit = "code_mass"
         d_unit = "code_mass / code_length**3"
 
-        # Read basic particle fields
-        pos = ad[sph_ptype, "particle_position"].to(l_unit).v
-        mass = ad[sph_ptype, "particle_mass"].to(m_unit).v
+        # Read basic fields
+        ad = self.all_data()
+        pos = ad[sph_ptype, "particle_position"].to(l_unit).d
+        mass = ad[sph_ptype, "particle_mass"].to(m_unit).d
 
-        def exists(fname):
-            if (sph_ptype, fname) in self.derived_field_list:
-                mylog.info("Field ('%s','%s') already exists. Skipping",
-                            sph_ptype, fname)
-                return True
-            else:
-                mylog.info("Generating field ('%s','%s')",
-                            sph_ptype, fname)
-                return False
+        # Construct k-d tree
+        left_edge = self.domain_left_edge.to(l_unit).v
+        right_edge = self.domain_right_edge.to(l_unit).v
+        kdtree = PyKDTree(
+            pos.astype("float64"),
+            left_edge=left_edge,
+            right_edge=right_edge,
+            periodic=self.periodicity,
+            leafsize=2*int(n_neighbors),
+        )
 
-        data = {}
-
-        # Compute smoothing length field
-        fname = "smoothing_length"
-        if not exists(fname):
-            left_edge = self.domain_left_edge.to(l_unit).v
-            right_edge = self.domain_right_edge.to(l_unit).v
-            kdtree = PyKDTree(
-                pos.astype("float64"),
-                left_edge=left_edge,
-                right_edge=right_edge,
-                periodic=self.periodicity,
-                leafsize=2*int(n_neighbors),
-            )
-            pos_kd = pos[kdtree.idx]
-            hsml = generate_smoothing_length(pos_kd, kdtree, n_neighbors)
-            hsml = hsml[np.argsort(kdtree.idx)]
-            data[(sph_ptype, fname)] = (hsml, l_unit)
-
-        # Compute density field
-        fname = "density"
-        if not exists(fname):
-            # FIXME: the following calculation might be wrong
-            vol = np.pi * hsml**3 * 4 / 3
-            dens = mass / vol
-            data[(sph_ptype, fname)] = (dens, d_unit)
+        # SPH density estimation
+        hsml, dens = estimate_density(
+            pos[kdtree.idx], mass[kdtree.idx],
+            kdtree, n_neighbors, kernel_name=kernel,
+        )
+        order = np.argsort(kdtree.idx)
+        hsml = hsml[order]
+        dens = dens[order]
 
         # Add fields
         self._sph_ptype = sph_ptype
+        data = {}
+        data[(sph_ptype, "smoothing_length")] = (hsml, l_unit)
+        data[(sph_ptype, "density")] = (dens, d_unit)
         self.index.update_data(data)
 
 def load_particles(data, length_unit=None, bbox=None,

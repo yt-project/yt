@@ -31,6 +31,10 @@ from libc.math cimport sqrt
 from libcpp.vector cimport vector
 
 from yt.funcs import get_pbar
+from yt.geometry.particle_deposit cimport (
+    get_kernel_func,
+    kernel_func,
+)
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
 
 cdef int CHUNKSIZE = 4096
@@ -116,6 +120,82 @@ def generate_smoothing_length(np.float64_t[:, ::1] tree_positions,
     pbar.update(n_particles-1)
     pbar.finish()
     return np.asarray(smoothing_length)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def estimate_density(np.float64_t[:, ::1] tree_positions, np.float64_t[:] mass,
+                     PyKDTree kdtree, int n_neighbors, kernel_name="cubic"):
+    """Generate smoothing length and estimate density.
+
+    Parameters
+    ----------
+
+    tree_positions: array of floats with shape (n_particles, 3)
+        The positions of particles in kdtree sorted order. Currently assumed
+        to be 3D postions.
+    mass: array of floats with shape (n_particles)
+        The masses of particles in kdtree sorted order.
+    kdtree: A PyKDTree instance
+        A kdtree to do nearest neighbors searches with.
+    n_neighbors: int
+        The neighbor number to calculate the distance to.
+    kernel_name: str
+        The name of the kernel function to use in density estimation.
+
+    Returns
+    -------
+
+    smoothing_length: array of floats with shape (n_particles)
+        The calculated smoothing length.
+
+    density: array of floats with shape (n_particles)
+        The calculated density.
+
+    """
+    cdef int i, j, k
+    cdef KDTree * c_tree = kdtree._tree
+    cdef int n_particles = tree_positions.shape[0]
+    cdef np.float64_t h_i2, ih_i2, q_ij
+    cdef np.float64_t * pos
+    cdef np.float64_t[:] smoothing_length = np.empty(n_particles)
+    cdef np.float64_t[:] density = np.empty(n_particles)
+    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neighbors, True)
+    cdef kernel_func kernel = get_kernel_func(kernel_name)
+
+    # We are using all spatial dimensions
+    cdef axes_range axes
+    set_axes_range(&axes, -1)
+
+    pbar = get_pbar("Generate smoothing length and density", n_particles)
+    with nogil:
+        for i in range(n_particles):
+            # Reset queue to "empty" state, doing it this way avoids
+            # needing to reallocate memory
+            queue.size = 0
+
+            if i % CHUNKSIZE == 0:
+                with gil:
+                    pbar.update(i - 1)
+                    PyErr_CheckSignals()
+
+            pos = &(tree_positions[i, 0])
+            find_neighbors(pos, tree_positions, queue, c_tree, i, &axes)
+
+            h_i2 = queue.heap[0]
+            ih_i2 = 1.0 / h_i2
+            smoothing_length[i] = sqrt(h_i2)
+
+            # See eq. 10 of Price 2012
+            density[i] = mass[i] * kernel(0)
+            for k in range(queue.size):
+                j = queue.pids[0]
+                q_ij = sqrt(queue.heap[k] * ih_i2)
+                density[i] += mass[j] * kernel(q_ij)
+
+    pbar.update(n_particles - 1)
+    pbar.finish()
+    return np.asarray(smoothing_length), np.asarray(density)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
