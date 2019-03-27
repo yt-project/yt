@@ -1173,12 +1173,10 @@ class StreamParticlesDataset(StreamDataset):
         mass = ad[sph_ptype, "particle_mass"].to(m_unit).d
 
         # Construct k-d tree
-        left_edge = self.domain_left_edge.to(l_unit).v
-        right_edge = self.domain_right_edge.to(l_unit).v
         kdtree = PyKDTree(
             pos.astype("float64"),
-            left_edge=left_edge,
-            right_edge=right_edge,
+            left_edge=self.domain_left_edge.to_value(l_unit),
+            right_edge=self.domain_right_edge.to_value(l_unit),
             periodic=self.periodicity,
             leafsize=2*int(n_neighbors),
         )
@@ -1266,8 +1264,8 @@ def load_particles(data, length_unit=None, bbox=None,
     # Parse bounding box
     if data_source is not None:
         le, re = data_source.get_bbox()
-        le = le.to("code_length").v
-        re = re.to("code_length").v
+        le = le.to_value("code_length")
+        re = re.to_value("code_length")
         bbox = list(zip(le, re))
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
