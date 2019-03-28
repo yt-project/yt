@@ -82,7 +82,7 @@ def test_scene_and_camera_attributes():
             try:
                 # test setters/getters
                 getattr(cam, 'set_%s' % attribute)(attribute_value)
-                assert_equal(getattr(cam, 'get_%s' % attribute)(),
+                assert_almost_equal(getattr(cam, 'get_%s' % attribute)(),
                              expected_result)
             except RuntimeError:
                 assert expected_result is RuntimeError
