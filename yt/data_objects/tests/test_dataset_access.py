@@ -1,8 +1,13 @@
 import numpy as np
 from nose.tools import assert_raises
 
-from yt.testing import assert_equal, fake_amr_ds, fake_particle_ds, \
-    fake_random_ds, requires_file
+from yt.testing import \
+    assert_equal, \
+    assert_almost_equal, \
+    fake_amr_ds, \
+    fake_particle_ds, \
+    fake_random_ds, \
+    requires_file
 from yt.utilities.answer_testing.framework import data_dir_load
 from yt.utilities.exceptions import YTDimensionalityError
 from yt.visualization.line_plot import LineBuffer
@@ -24,9 +29,9 @@ def test_box_creation():
     region = ds.region(center, left_edge, right_edge)
 
     for b in boxes:
-        assert_equal(b.left_edge, region.left_edge)
-        assert_equal(b.right_edge, region.right_edge)
-        assert_equal(b.center, region.center)
+        assert_almost_equal(b.left_edge, region.left_edge)
+        assert_almost_equal(b.right_edge, region.right_edge)
+        assert_almost_equal(b.center, region.center)
 
 def test_region_from_d():
     ds = fake_amr_ds(fields=["density"])
