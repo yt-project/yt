@@ -18,7 +18,7 @@ def test_geographic_coordinates():
     # means our volume will be that of a shell 1000 wide, starting at r of
     # whatever our surface_height is set to.
     ds = fake_amr_ds(geometry="geographic")
-    ds.surface_height = ds.quan(5000, "code_length")
+    ds.surface_height = ds.quan(5000., "code_length")
     axes = ["latitude", "longitude", "altitude"]
     for i, axis in enumerate(axes):
         dd = ds.all_data()
