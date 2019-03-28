@@ -86,7 +86,7 @@ class SavedDataset(Dataset):
             for key in f.attrs.keys():
                 v = parse_h5_attr(f, key)
                 if key == "con_args":
-                    v = v.astype("str")
+                    v = eval(v)
                 self.parameters[key] = v
             self._with_parameter_file_open(f)
 
