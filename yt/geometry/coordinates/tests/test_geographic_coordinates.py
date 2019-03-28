@@ -55,7 +55,7 @@ def test_internal_geographic_coordinates():
     # means our volume will be that of a shell 1000 wide, starting at r of
     # outer_radius - 1000.
     ds = fake_amr_ds(geometry="internal_geographic")
-    ds.outer_radius = ds.quan(5000, "code_length")
+    ds.outer_radius = ds.quan(5000., "code_length")
     axes = ["latitude", "longitude", "depth"]
     for i, axis in enumerate(axes):
         dd = ds.all_data()
