@@ -14,6 +14,7 @@ import numpy as np
 import yt.units as u
 
 from yt.testing import \
+    assert_almost_equal, \
     assert_equal, \
     fake_random_ds
 from yt.visualization.volume_rendering.api import \
@@ -74,7 +75,7 @@ def test_scene_and_camera_attributes():
             try:
                 # test properties
                 setattr(cam, attribute, attribute_value)
-                assert_equal(getattr(cam, attribute), expected_result)
+                assert_almost_equal(getattr(cam, attribute), expected_result)
             except RuntimeError:
                 assert expected_result is RuntimeError
 
