@@ -653,7 +653,7 @@ class YTDataContainer(object):
 
         extra_attrs = dict([(arg, getattr(self, arg, None))
                             for arg in self._con_args + self._tds_attrs])
-        extra_attrs["con_args"] = self._con_args
+        extra_attrs["con_args"] = repr(self._con_args)
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
         extra_attrs["dimensionality"] = self._dimensionality
