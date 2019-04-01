@@ -216,20 +216,45 @@ class MutableAttribute(object):
     def __set__(self, instance, value):
         self.data[instance] = value
 
+
 class ConstantContainer(object):
     def __init__(self, registry):
-        add_constants(vars(self), registry)
+        self._registry = registry
+
+    def __getattr__(self, item):
+        import unyt.physical_constants as pc
+
+        if hasattr(pc, item):
+            return getattr(pc, item).in_base(self._registry.unit_system)
+
 
 class SymbolContainer(object):
     def __init__(self, registry):
-        add_symbols(vars(self), registry)
-        
+        self._registry = registry
+
+    def __getattr__(self, item):
+        import unyt.unit_symbols as us
+
+        if hasattr(us, item):
+            return Unit(getattr(us, item).expr, registry=self._registry)
+        if item in self._registry:
+            return Unit(item, registry=self._registry)
+        raise AttributeError(item)
+
+
 class UnitContainer(object):
     def __init__(self, registry):
-        add_constants(vars(self), registry)
-        add_symbols(vars(self), registry)
         self.unit_symbols = SymbolContainer(registry)
         self.physical_constants = ConstantContainer(registry)
+
+    def __getattr__(self, item):
+        ret = getattr(self.physical_constants, item, None) or getattr(
+            self.unit_symbols, item, None
+        )
+        if not ret:
+            raise AttributeError(item)
+        return ret
+
 
 def requires_index(attr_name):
     @property
