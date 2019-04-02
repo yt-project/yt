@@ -230,7 +230,9 @@ class ConstantContainer(object):
         if item in self._cache:
             return self._cache[item]
         if hasattr(pc, item):
-            const = getattr(pc, item).in_base(self._registry.unit_system)
+            const = getattr(pc, item).copy()
+            const.units.registry = self._registry
+            const.convert_to_base(self._registry.unit_system)
             const_v, const_unit = const.v, const.units
             ret = YTQuantity(const_v, const_unit, registry=self._registry)
             self._cache[item] = ret
