@@ -41,8 +41,11 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
     u = registry[ftype,"magnetic_field_%s" % axis_names[0]].units
 
-    mag_factors = {dimensions.magnetic_field_cgs: 4.0*np.pi,
-                   dimensions.magnetic_field_mks: ds.units.physical_constants.mu_0}
+    def mag_factors(dims):
+        if dims == dimensions.magnetic_field_cgs:
+            return 4.0*np.pi
+        elif dims == dimensions.magnetic_field_mks:
+            return ds.units.physical_constants.mu_0
 
     def _magnetic_field_strength(field, data):
         xm = "relative_magnetic_field_%s" % axis_names[0]
@@ -61,7 +64,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
     def _magnetic_energy(field, data):
         B = data[ftype,"magnetic_field_strength"]
-        return 0.5*B*B/mag_factors[B.units.dimensions]
+        return 0.5*B*B/mag_factors(B.units.dimensions)
     registry.add_field((ftype, "magnetic_energy"),
                        sampling_type="local",
                        function=_magnetic_energy,
@@ -156,7 +159,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
     def _alfven_speed(field,data):
         B = data[ftype,'magnetic_field_strength']
-        return B/np.sqrt(mag_factors[B.units.dimensions]*data[ftype,'density'])
+        return B/np.sqrt(mag_factors(B.units.dimensions)*data[ftype,'density'])
 
     registry.add_field((ftype, "alfven_speed"),
                        sampling_type="local",

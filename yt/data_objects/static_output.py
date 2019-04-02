@@ -26,7 +26,8 @@ from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
 from six.moves import cPickle
 
-from unyt.unit_systems import add_symbols, add_constants
+import unyt.physical_constants as pc
+import unyt.unit_symbols as us
 
 from yt.config import ytcfg
 from yt.fields.derived_field import \
@@ -216,36 +217,58 @@ class MutableAttribute(object):
     def __set__(self, instance, value):
         self.data[instance] = value
 
-
 class ConstantContainer(object):
     def __init__(self, registry):
         self._registry = registry
+        self._cache = {}
+
+    def __dir__(self):
+        ret = [p for p in pc.__dir__() if not p.startswith('_')] + object.__dir__(self)
+        return list(set(ret))
 
     def __getattr__(self, item):
-        import unyt.physical_constants as pc
-
+        if item in self._cache:
+            return self._cache[item]
         if hasattr(pc, item):
-            return getattr(pc, item).in_base(self._registry.unit_system)
-
+            const = getattr(pc, item).in_base(self._registry.unit_system)
+            const_v, const_unit = const.v, const.units
+            ret = YTQuantity(const_v, const_unit, registry=self._registry)
+            self._cache[item] = ret
+            return ret
+        raise AttributeError(item)
 
 class SymbolContainer(object):
     def __init__(self, registry):
         self._registry = registry
+        self._cache = {}
+
+    def __dir__(self):
+        ret = [u for u in us.__dir__() if not u.startswith('_')]
+        ret += list(self._registry.keys())
+        ret += object.__dir__(self)
+        return list(set(ret))
 
     def __getattr__(self, item):
-        import unyt.unit_symbols as us
-
+        if item in self._cache:
+            return self._cache[item]
         if hasattr(us, item):
-            return Unit(getattr(us, item).expr, registry=self._registry)
-        if item in self._registry:
-            return Unit(item, registry=self._registry)
-        raise AttributeError(item)
-
+            ret = Unit(getattr(us, item).expr, registry=self._registry)
+        elif item in self._registry:
+            ret = Unit(item, registry=self._registry)
+        else:
+            raise AttributeError(item)
+        self._cache[item] = ret
+        return ret
 
 class UnitContainer(object):
     def __init__(self, registry):
         self.unit_symbols = SymbolContainer(registry)
         self.physical_constants = ConstantContainer(registry)
+
+    def __dir__(self):
+        all_dir = self.unit_symbols.__dir__() + self.physical_constants.__dir__()
+        all_dir += object.__dir__(self)
+        return list(set(all_dir))
 
     def __getattr__(self, item):
         ret = getattr(self.physical_constants, item, None) or getattr(
