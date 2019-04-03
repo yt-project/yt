@@ -390,7 +390,7 @@ setup(
     install_requires=[
         'matplotlib>=1.5.3',
         'setuptools>=19.6',
-        'sympy>=1.0',
+        'sympy>=1.2',
         'numpy>=1.10.4',
         'IPython>=1.0',
         'unyt>=2.2.0',

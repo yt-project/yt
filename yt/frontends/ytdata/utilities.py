@@ -235,4 +235,4 @@ def _yt_array_hdf5_attr(fh, attr, val):
     # This is raised if no HDF5 equivalent exists.
     # In that case, save its string representation.
     except TypeError:
-        fh.attrs[str(attr)] = str(val)
+        fh.attrs[str(attr)] = repr(val)
