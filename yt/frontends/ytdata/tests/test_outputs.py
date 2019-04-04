@@ -30,9 +30,9 @@ from yt.testing import \
     assert_equal, \
     assert_fname, \
     fake_random_ds, \
+    requires_file, \
     requires_module
 from yt.utilities.answer_testing.framework import \
-    requires_ds, \
     data_dir_load, \
     AnswerTestingTest
 from yt.units.yt_array import \
@@ -48,6 +48,12 @@ import numpy as np
 import tempfile
 import os
 import shutil
+
+def make_tempdir():
+    if int(os.environ.get('GENERATE_YTDATA', 0)):
+        return '.'
+    else:
+        return tempfile.mkdtemp()
 
 def compare_unit_attributes(ds1, ds2):
     attrs = ('length_unit', 'mass_unit', 'time_unit',
@@ -93,9 +99,9 @@ class YTDataFieldTest(AnswerTestingTest):
                                   err_msg=err_msg, verbose=True)
 
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
-@requires_ds(enzotiny)
+@requires_file(enzotiny)
 def test_datacontainer_data():
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = make_tempdir()
     curdir = os.getcwd()
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
@@ -114,11 +120,12 @@ def test_datacontainer_data():
     assert isinstance(cr_ds, YTDataContainerDataset)
     assert (cr["temperature"] == cr_ds.data["temperature"]).all()
     os.chdir(curdir)
-    shutil.rmtree(tmpdir)
+    if tmpdir != '.':
+        shutil.rmtree(tmpdir)
 
-@requires_ds(enzotiny)
+@requires_file(enzotiny)
 def test_grid_datacontainer_data():
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = make_tempdir()
     curdir = os.getcwd()
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
@@ -151,11 +158,12 @@ def test_grid_datacontainer_data():
     assert isinstance(frb_ds, YTGridDataset)
     yield YTDataFieldTest(full_fn, "density", geometric=False)
     os.chdir(curdir)
-    shutil.rmtree(tmpdir)
+    if tmpdir != '.':
+        shutil.rmtree(tmpdir)
 
-@requires_ds(enzotiny)
+@requires_file(enzotiny)
 def test_spatial_data():
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = make_tempdir()
     curdir = os.getcwd()
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
@@ -167,11 +175,12 @@ def test_spatial_data():
     assert isinstance(proj_ds, YTSpatialPlotDataset)
     yield YTDataFieldTest(full_fn, ("grid", "density"), geometric=False)
     os.chdir(curdir)
-    shutil.rmtree(tmpdir)
+    if tmpdir != '.':
+        shutil.rmtree(tmpdir)
 
-@requires_ds(enzotiny)
+@requires_file(enzotiny)
 def test_profile_data():
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = make_tempdir()
     curdir = os.getcwd()
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
@@ -215,11 +224,12 @@ def test_profile_data():
     yield YTDataFieldTest(full_fn, "y", geometric=False)
     yield YTDataFieldTest(full_fn, "cell_mass", geometric=False)
     os.chdir(curdir)
-    shutil.rmtree(tmpdir)
+    if tmpdir != '.':
+        shutil.rmtree(tmpdir)
 
-@requires_ds(enzotiny)
+@requires_file(enzotiny)
 def test_nonspatial_data():
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = make_tempdir()
     curdir = os.getcwd()
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
@@ -246,35 +256,37 @@ def test_nonspatial_data():
     assert isinstance(new_ds, YTNonspatialDataset)
     yield YTDataFieldTest(full_fn, "density", geometric=False)
     os.chdir(curdir)
-    shutil.rmtree(tmpdir)
+    if tmpdir != '.':
+        shutil.rmtree(tmpdir)
 
 @requires_module('h5py')
 def test_plot_data():
-    tmpdir = tempfile.mkdtemp()
+    tmpdir = make_tempdir()
     curdir = os.getcwd()
     os.chdir(tmpdir)
     ds = fake_random_ds(16)
 
     plot = SlicePlot(ds, 'z', 'density')
-    plot.data_source.save_as_dataset('slice.h5')
-    ds_slice = load('slice.h5')
+    fn = plot.data_source.save_as_dataset('slice.h5')
+    ds_slice = load(fn)
     p = SlicePlot(ds_slice, 'z', 'density')
     fn = p.save()
     assert_fname(fn[0])
 
     plot = ProjectionPlot(ds, 'z', 'density')
-    plot.data_source.save_as_dataset('proj.h5')
-    ds_proj = load('slice.h5')
+    fn = plot.data_source.save_as_dataset('proj.h5')
+    ds_proj = load(fn)
     p = ProjectionPlot(ds_proj, 'z', 'density')
     fn = p.save()
     assert_fname(fn[0])
 
     plot = SlicePlot(ds, [1, 1, 1], 'density')
-    plot.data_source.save_as_dataset('oas.h5')
-    ds_oas = load('oas.h5')
+    fn = plot.data_source.save_as_dataset('oas.h5')
+    ds_oas = load(fn)
     p = SlicePlot(ds_oas, [1, 1, 1], 'density')
     fn = p.save()
     assert_fname(fn[0])
 
     os.chdir(curdir)
-    shutil.rmtree(tmpdir)
+    if tmpdir != '.':
+        shutil.rmtree(tmpdir)
