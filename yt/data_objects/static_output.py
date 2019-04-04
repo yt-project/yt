@@ -273,9 +273,9 @@ class UnitContainer(object):
         return list(set(all_dir))
 
     def __getattr__(self, item):
-        ret = getattr(self.physical_constants, item, None) or getattr(
-            self.unit_symbols, item, None
-        )
+        pc = self.physical_constants
+        us = self.unit_symbols
+        ret = getattr(us, item, None) or getattr(pc, item, None)
         if not ret:
             raise AttributeError(item)
         return ret
