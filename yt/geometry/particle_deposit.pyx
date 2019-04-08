@@ -75,7 +75,7 @@ cdef class ParticleDepositOperation:
         cdef Oct *oct
         cdef np.int64_t numpart = positions.shape[0]
         cdef np.int8_t use_lvlmax
-        cdef np.ndarray[np.int64_t, ndim=1] lvlmaxval = lvlmax
+        cdef np.ndarray[np.int32_t, ndim=1] lvlmaxval = np.asarray(lvlmax, dtype=np.int32)
         moff = octree.get_domain_offset(domain_id + domain_offset)
         use_lvlmax = len(lvlmax) > 0
 
