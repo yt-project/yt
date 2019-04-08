@@ -195,7 +195,7 @@ class OctreeSubset(YTSelectionContainer):
         if vals is None: return
         return np.asfortranarray(vals)
 
-    def mesh_sampling_particle_field(self, positions, mesh_field):
+    def mesh_sampling_particle_field(self, positions, mesh_field, lvlmax=None):
         r"""Operate on the particles, in a mesh-against-particle
         fashion, with exclusively local input.
 
@@ -210,6 +210,8 @@ class OctreeSubset(YTSelectionContainer):
             The positions of all of the particles to be examined.
         mesh_field : array_like (M,)
             The value of the field to deposit.
+        lvlmax : array_like (N), optional
+            If provided, the maximum level where to look for cells
 
         Returns
         -------
@@ -227,8 +229,13 @@ class OctreeSubset(YTSelectionContainer):
         pos = np.asarray(positions.convert_to_units("code_length"),
                          dtype="float64")
 
-        op.process_octree(self.oct_handler, self.domain_ind, pos, None,
-            self.domain_id, self._domain_offset)
+        if lvlmax is not None:
+            op.process_octree(self.oct_handler, self.domain_ind, pos, None,
+                self.domain_id, self._domain_offset, lvlmax=lvlmax)
+        else:
+            op.process_octree(self.oct_handler, self.domain_ind, pos, None,
+                self.domain_id, self._domain_offset)
+
         igrid, icell = op.finalize()
 
         igrid = np.asfortranarray(igrid)

@@ -25,7 +25,7 @@ from .oct_container cimport Oct, OctreeContainer
 
 cdef extern from "platform_dep.h":
     void *alloca(int)
-    
+
 cdef inline int gind(int i, int j, int k, int dims[3]):
     # The ordering is such that we want i to vary the slowest in this instance,
     # even though in other instances it varies the fastest.  To see this in

@@ -58,7 +58,7 @@ cdef class ParticleDepositOperation:
                      np.ndarray[np.int64_t, ndim=1] dom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None, int domain_id = -1,
-                     int domain_offset = 0):
+                     int domain_offset = 0, lvlmax = []):
         cdef int nf, i, j
         if fields is None:
             fields = []
@@ -74,7 +74,11 @@ cdef class ParticleDepositOperation:
         cdef np.int64_t offset, moff
         cdef Oct *oct
         cdef np.int64_t numpart = positions.shape[0]
+        cdef np.int8_t use_lvlmax
+        cdef np.ndarray[np.int64_t, ndim=1] lvlmaxval = lvlmax
         moff = octree.get_domain_offset(domain_id + domain_offset)
+        use_lvlmax = len(lvlmax) > 0
+
         for i in range(positions.shape[0]):
             # We should check if particle remains inside the Oct here
             for j in range(nf):
@@ -87,7 +91,10 @@ cdef class ParticleDepositOperation:
             # previously generated.  This way we can support not knowing the
             # full octree structure.  All we *really* care about is some
             # arbitrary offset into a field value for deposition.
-            oct = octree.get(pos, &oi)
+            if not use_lvlmax:
+                oct = octree.get(pos, &oi)
+            else:
+                oct = octree.get(pos, &oi, max_level=lvlmaxval[i])
             # This next line is unfortunate.  Basically it says, sometimes we
             # might have particles that belong to octs outside our domain.
             # For the distributed-memory octrees, this will manifest as a NULL
