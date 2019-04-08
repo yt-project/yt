@@ -25,6 +25,7 @@ from yt.frontends.ytdata.tests.test_outputs import \
     compare_unit_attributes, \
     YTDataFieldTest
 from yt.testing import \
+    assert_allclose_units, \
     assert_array_equal, \
     assert_fname, \
     requires_file, \
@@ -92,7 +93,7 @@ def test_grid_datacontainer_data():
     fn = "DD0046_proj_frb.h5"
     full_fn = os.path.join(ytdata_dir, fn)
     frb_ds = data_dir_load(full_fn)
-    assert_array_equal(frb["density"], frb_ds.data["density"])
+    assert_allclose_units(frb["density"], frb_ds.data["density"], 1e-7)
     compare_unit_attributes(ds, frb_ds)
     assert isinstance(frb_ds, YTGridDataset)
     yield YTDataFieldTest(full_fn, "density", geometric=False)
