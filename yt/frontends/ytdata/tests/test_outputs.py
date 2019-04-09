@@ -30,9 +30,9 @@ from yt.testing import \
     assert_equal, \
     assert_fname, \
     fake_random_ds, \
-    requires_file, \
     requires_module
 from yt.utilities.answer_testing.framework import \
+    requires_ds, \
     data_dir_load, \
     AnswerTestingTest
 from yt.units.yt_array import \
@@ -99,7 +99,7 @@ class YTDataFieldTest(AnswerTestingTest):
                                   err_msg=err_msg, verbose=True)
 
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
-@requires_file(enzotiny)
+@requires_ds(enzotiny)
 def test_datacontainer_data():
     tmpdir = make_tempdir()
     curdir = os.getcwd()
@@ -123,7 +123,7 @@ def test_datacontainer_data():
     if tmpdir != '.':
         shutil.rmtree(tmpdir)
 
-@requires_file(enzotiny)
+@requires_ds(enzotiny)
 def test_grid_datacontainer_data():
     tmpdir = make_tempdir()
     curdir = os.getcwd()
@@ -161,7 +161,7 @@ def test_grid_datacontainer_data():
     if tmpdir != '.':
         shutil.rmtree(tmpdir)
 
-@requires_file(enzotiny)
+@requires_ds(enzotiny)
 def test_spatial_data():
     tmpdir = make_tempdir()
     curdir = os.getcwd()
@@ -178,7 +178,7 @@ def test_spatial_data():
     if tmpdir != '.':
         shutil.rmtree(tmpdir)
 
-@requires_file(enzotiny)
+@requires_ds(enzotiny)
 def test_profile_data():
     tmpdir = make_tempdir()
     curdir = os.getcwd()
@@ -227,7 +227,7 @@ def test_profile_data():
     if tmpdir != '.':
         shutil.rmtree(tmpdir)
 
-@requires_file(enzotiny)
+@requires_ds(enzotiny)
 def test_nonspatial_data():
     tmpdir = make_tempdir()
     curdir = os.getcwd()

@@ -31,6 +31,7 @@ from yt.testing import \
     requires_file, \
     requires_module
 from yt.utilities.answer_testing.framework import \
+    requires_ds, \
     data_dir_load
 from yt.units.yt_array import \
     YTArray
@@ -48,9 +49,9 @@ import shutil
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
 ytdata_dir = "ytdata_test"
 
-@requires_file(enzotiny)
-@requires_file(ytdata_dir)
-def test_datacontainer_data():
+@requires_ds(enzotiny)
+@requires_ds(ytdata_dir)
+def test_old_datacontainer_data():
     ds = data_dir_load(enzotiny)
     sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
     fn = "DD0046_sphere.h5"
@@ -67,9 +68,9 @@ def test_datacontainer_data():
     assert isinstance(cr_ds, YTDataContainerDataset)
     assert (cr["temperature"] == cr_ds.data["temperature"]).all()
 
-@requires_file(enzotiny)
-@requires_file(ytdata_dir)
-def test_grid_datacontainer_data():
+@requires_ds(enzotiny)
+@requires_ds(ytdata_dir)
+def test_old_grid_datacontainer_data():
     ds = data_dir_load(enzotiny)
 
     fn = "DD0046_covering_grid.h5"
@@ -98,9 +99,9 @@ def test_grid_datacontainer_data():
     assert isinstance(frb_ds, YTGridDataset)
     yield YTDataFieldTest(full_fn, "density", geometric=False)
 
-@requires_file(enzotiny)
-@requires_file(ytdata_dir)
-def test_spatial_data():
+@requires_ds(enzotiny)
+@requires_ds(ytdata_dir)
+def test_old_spatial_data():
     ds = data_dir_load(enzotiny)
     fn = "DD0046_proj.h5"
     full_fn = os.path.join(ytdata_dir, fn)
@@ -109,9 +110,9 @@ def test_spatial_data():
     assert isinstance(proj_ds, YTSpatialPlotDataset)
     yield YTDataFieldTest(full_fn, ("grid", "density"), geometric=False)
 
-@requires_file(enzotiny)
-@requires_file(ytdata_dir)
-def test_profile_data():
+@requires_ds(enzotiny)
+@requires_ds(ytdata_dir)
+def test_old_profile_data():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
     os.chdir(tmpdir)
@@ -155,9 +156,9 @@ def test_profile_data():
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 
-@requires_file(enzotiny)
-@requires_file(ytdata_dir)
-def test_nonspatial_data():
+@requires_ds(enzotiny)
+@requires_ds(ytdata_dir)
+def test_old_nonspatial_data():
     ds = data_dir_load(enzotiny)
     region = ds.box([0.25]*3, [0.75]*3)
     sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
@@ -181,7 +182,7 @@ def test_nonspatial_data():
 
 @requires_module('h5py')
 @requires_file(ytdata_dir)
-def test_plot_data():
+def test_old_plot_data():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
     os.chdir(tmpdir)
