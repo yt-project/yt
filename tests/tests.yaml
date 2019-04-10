@@ -109,8 +109,9 @@ answer_tests:
   local_ramses_001:
     - yt/frontends/ramses/tests/test_outputs.py
 
-  local_ytdata_004:
-    - yt/frontends/ytdata
+  local_ytdata_006:
+    - yt/frontends/ytdata/tests/test_outputs.py
+    - yt/frontends/ytdata/tests/test_old_outputs.py
 
   local_absorption_spectrum_007:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
