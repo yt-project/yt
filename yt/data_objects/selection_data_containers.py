@@ -871,9 +871,18 @@ class YTCutRegion(YTSelectionContainer3D):
                 raise RuntimeError(
                     "Cannot use both base_object and data_source")
             data_source=base_object
+
+        self.conditionals = ensure_list(conditionals)
+        if isinstance(data_source, YTCutRegion):
+            # If the source is also a cut region, add its conditionals
+            # and set the source to be its source.
+            # Preserve order of conditionals.
+            self.conditionals = data_source.conditionals + \
+              self.conditionals
+            data_source = data_source.base_object
+
         super(YTCutRegion, self).__init__(
             data_source.center, ds, field_parameters, data_source=data_source)
-        self.conditionals = ensure_list(conditionals)
         self.base_object = data_source
         self._selector = None
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
