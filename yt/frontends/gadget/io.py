@@ -68,8 +68,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 y = f["/%s/Coordinates" % ptype][si:ei, 1].astype("float64")
                 z = f["/%s/Coordinates" % ptype][si:ei, 2].astype("float64")
                 if ptype == self.ds._sph_ptype:
-                    hsml = f[
-                        "/%s/SmoothingLength" % ptype][si:ei].astype("float64")
+                    pdtype = f["/%s/Coordinates" % ptype].dtype
+                    pshape = f["/%s/Coordinates" % ptype].shape
+                    hsml = self._get_smoothing_length(data_file, pdtype, pshape)
                 else:
                     hsml = 0.0
                 yield ptype, (x, y, z), hsml
@@ -132,7 +133,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 else:
                     coords = g["Coordinates"][si:ei].astype("float64")
                     if ptype == 'PartType0':
-                        hsmls = g["SmoothingLength"][si:ei].astype("float64")
+                        hsmls = self._get_smoothing_length(data_file,
+                                                           g["Coordinates"].dtype,
+                                                           g["Coordinates"].shape).astype("float64")
                     else:
                         hsmls = 0.0
                     mask = selector.select_points(
@@ -157,6 +160,12 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     elif field.startswith("Chemistry_"):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["ChemistryAbundances"][si:ei, col][mask]
+                    elif field == "smoothing_length":
+                        # This is for frontends which do not store
+                        # the smoothing length on-disk, so we do not
+                        # attempt to read them, but instead assume
+                        # that they are calculated in _get_smoothing_length.
+                        data = hsmls[mask]
                     else:
                         data = g[field][si:ei][mask, ...]
 

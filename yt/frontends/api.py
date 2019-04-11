@@ -19,6 +19,7 @@ from yt.extern.six.moves import cPickle as pickle
 _frontends = [
     'ahf',
     'art',
+    'arepo',
     'artio',
     'athena',
     'athena_pp',
