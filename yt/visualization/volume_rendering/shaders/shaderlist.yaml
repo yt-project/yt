@@ -2,7 +2,7 @@ fragment:
   apply_colormap:
     info: A second pass fragment shader used to apply a colormap to the result of
       the first pass rendering
-    source: apply_colormap.fragmentshader
+    source: apply_colormap.frag.glsl
     blend_func:
     - src alpha
     - dst alpha
@@ -10,23 +10,23 @@ fragment:
   draw_blocks:
     info: A first pass fragment shader that performs ray casting using transfer function.
       See :ref:`volume-rendering-method` for more details.
-    source: block_outline.fragmentshader
+    source: block_outline.frag.glsl
   draw_box:
     info: A box annotation.
-    source: box_outline.fragmentshader
+    source: box_outline.frag.glsl
   max_intensity:
     info: A first pass fragment shader that computes Maximum Intensity Projection
       of the data. See :ref:`projection-types` for more information.
     source:
-    - ray_tracing.fragmentshader
-    - max_intensity.fragmentshader
+    - ray_tracing.frag.glsl
+    - max_intensity.frag.glsl
     blend_func:
     - one
     - one
     blend_equation: max
   mesh:
     info: A vertex shader used for unstructured mesh rendering.
-    source: mesh.fragmentshader
+    source: mesh.frag.glsl
     depth_test: less
     blend_func:
     - one
@@ -35,11 +35,11 @@ fragment:
   noop:
     info: A second pass fragment shader that performs no operation.  Usually used
       if the first pass already took care of applying proper color to the data
-    source: noop.fragmentshader
+    source: noop.frag.glsl
   passthrough:
     info: A first pass fragment shader that performs no operation. Used for debug
       puproses. It's distinct from NoOpFragmentShader, because of the number of uniforms
-    source: passthrough.fragmentshader
+    source: passthrough.frag.glsl
     blend_func:
     - src alpha
     - dst alpha
@@ -48,15 +48,15 @@ fragment:
     info: A first pass fragment shader that performs unweighted integration of the
       data along the line of sight. See :ref:`projection-types` for more information.
     source:
-    - ray_tracing.fragmentshader
-    - projection.fragmentshader
+    - ray_tracing.frag.glsl
+    - projection.frag.glsl
     blend_func:
     - one
     - one
     blend_equation: func add
   text_overlay:
     info: A simple text overlay shader
-    source: textoverlay.fragmentshader
+    source: textoverlay.frag.glsl
     blend_func:
     - src alpha
     - one minus src alpha
@@ -65,8 +65,8 @@ fragment:
     info: A first pass fragment shader that performs ray casting using transfer function.
       See :ref:`volume-rendering-method` for more details.
     source:
-    - ray_tracing.fragmentshader
-    - transfer_function.fragmentshader
+    - ray_tracing.frag.glsl
+    - transfer_function.frag.glsl
     blend_func_separate:
     - one minus dst alpha
     - one
@@ -79,14 +79,14 @@ vertex:
   default:
     info: A first pass vertex shader that tranlates the location of vertices from
       the world coordinates to the viewing plane coordinates
-    source: default.vertexshader
+    source: default.vert.glsl
   mesh:
     info: A vertex shader used for unstructured mesh rendering.
-    source: mesh.vertexshader
+    source: mesh.vert.glsl
     depth_test: less
   passthrough:
     info: A second pass vertex shader that performs no operations on vertices
-    source: passthrough.vertexshader
+    source: passthrough.vert.glsl
   text_overlay:
     info: A simple text overlay shader
-    source: textoverlay.vertexshader
+    source: textoverlay.vert.glsl
