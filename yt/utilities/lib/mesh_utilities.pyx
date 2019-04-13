@@ -75,6 +75,33 @@ def fill_fwidths(np.ndarray[np.float64_t, ndim=2] coords,
             fwidths[i, j] = RE[j] - LE[j]
     return fwidths
 
+def fill_fcoords_extruded(np.ndarray[np.float64_t, ndim=3] grid_xy,
+                          np.ndarray[np.float64_t, ndim=1] grid_z):
+    cdef np.ndarray[np.float64_t, ndim=2] fcoords
+    # This is for barycenters
+    nv = 8
+    cdef int nx, ny, nz, ind
+    cdef np.float64_t pos[3]
+    nx = grid_xy.shape[0]
+    ny = grid_xy.shape[1]
+    nz = grid_z.shape[0]
+    nc = (nx - 1) * (ny - 1) * (nz - 1)
+    fcoords = np.empty((nc, 3), dtype="float64")
+    ind = 0
+    for i in range(nx - 1):
+        for j in range(ny - 1):
+            pos[0] = (grid_xy[i,j,0] + grid_xy[i+1,j,0] +
+                      grid_xy[i+1,j,0] + grid_xy[i+1,j+1,0])/4.0
+            pos[1] = (grid_xy[i,j,1] + grid_xy[i+1,j,1] +
+                      grid_xy[i+1,j,1] + grid_xy[i+1,j+1,1])/4.0
+            for k in range(nz - 1):
+                pos[2] = (grid_z[k] + grid_z[k+1])/2.0
+                fcoords[ind, 0] = pos[0]
+                fcoords[ind, 1] = pos[1]
+                fcoords[ind, 2] = pos[2]
+                ind += 1
+    return fcoords
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)

@@ -92,3 +92,7 @@ class UnstructuredIndex(Index):
         for subset in oobjs:
             s = self._count_selection(dobj, oobjs)
             yield YTDataChunk(dobj, "io", [subset], s, cache = cache)
+
+class ExtrudedGridIndex(UnstructuredIndex):
+    def get_smallest_dx(self):
+        raise NotImplementedError
