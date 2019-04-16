@@ -270,8 +270,8 @@ class DepthBuffer(Texture2D):
     
     def create_texture(self, w, h):
         with self.bind():
-            GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH_COMPONENT24, 
-                    w, h, 0, GL.GL_DEPTH_COMPONENT, GL.GL_FLOAT, None)
+            GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH24_STENCIL8,
+                            w, h, 0, GL.GL_DEPTH_COMPONENT, GL.GL_FLOAT, None)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T,
@@ -437,11 +437,11 @@ class Framebuffer(traitlets.HasTraits):
         if not self.initialized:
             GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fb_id)
             GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, self.rb_id)
-            GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT32F,
+            GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH24_STENCIL8,
                                      self.viewport[2], self.viewport[3])
             GL.glFramebufferRenderbuffer(
-                GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_RENDERBUFFER,
-                self.rb_id
+                GL.GL_FRAMEBUFFER, GL.GL_DEPTH_STENCIL_ATTACHMENT,
+                GL.GL_RENDERBUFFER, self.rb_id
             )
 
             GL.glFramebufferTexture2D(
