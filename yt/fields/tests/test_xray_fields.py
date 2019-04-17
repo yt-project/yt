@@ -38,3 +38,13 @@ def test_d9p_cloudy():
     for test in check_xray_fields(ds, fields):
         test_d9p_cloudy.__name__ = test.description
         yield test
+
+@requires_ds(d9p, big_data=True)
+def test_d9p_cloudy_local():
+    ds = data_dir_load(d9p)
+    fields = add_xray_emissivity_field(ds, 0.5, 2.0, dist=(1.0, "Mpc"),
+                                       table_type="cloudy",
+                                       metallicity=("gas", "metallicity"))
+    for test in check_xray_fields(ds, fields):
+        test_d9p_cloudy_local.__name__ = test.description
+        yield test
