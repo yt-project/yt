@@ -252,7 +252,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                  sampling_type="local", units="erg/cm**3/s")
 
     def _luminosity_field(field, data):
-        return data[emiss_name]*data[ftype, "density"]/data[ftype, "mass"]
+        return data[emiss_name]*data[ftype, "mass"]/data[ftype, "density"]
 
     lum_name = (ftype, "xray_luminosity_%s_%s_keV" % (e_min, e_max))
     ds.add_field(lum_name, function=_luminosity_field,
@@ -323,6 +323,6 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
         fields += [ei_name, i_name]
 
-    [mylog.info("Adding %s field." % field) for field in fields]
+    [mylog.info("Adding ('%s','%s') field." % field) for field in fields]
 
     return fields
