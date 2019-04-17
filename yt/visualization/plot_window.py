@@ -1574,7 +1574,7 @@ class OffAxisProjectionDummyDataSource(object):
     _type_name = 'proj'
     _key_fields = []
     def __init__(self, center, ds, normal_vector, width, fields,
-                 interpolated, resolution = (800,800), weight=None,
+                 interpolated, weight=None,
                  volume=None, no_ghost=False, le=None, re=None,
                  north_vector=None, method="integrate",
                  data_source=None):
@@ -1590,7 +1590,6 @@ class OffAxisProjectionDummyDataSource(object):
         fields = self.dd._determine_fields(fields)
         self.fields = fields
         self.interpolated = interpolated
-        self.resolution = resolution
         if weight is not None:
             weight = self.dd._determine_fields(weight)[0]
         self.weight_field = weight
@@ -1712,7 +1711,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
                             bounds[5] - bounds[4]))
         OffAxisProj = OffAxisProjectionDummyDataSource(
             center_rot, ds, normal, oap_width, fields, interpolated,
-            weight=weight_field,  volume=volume, no_ghost=no_ghost,
+            weight=weight_field, volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector, method=method,
             data_source=data_source)
 
@@ -1736,8 +1735,6 @@ class OffAxisProjectionPlot(PWViewerMPL):
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
 
-    def _recreate_frb(self):
-        super(OffAxisProjectionPlot, self)._recreate_frb()
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
