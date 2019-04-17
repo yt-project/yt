@@ -24,5 +24,5 @@ class ArepoFieldInfo(GadgetFieldInfo):
         magnetic_field = "MagneticField"
         if (ptype, magnetic_field) in self.field_list:
             setup_magnetic_field_aliases(
-                self, ptype, magnetic_field, ftype=ptype
+                self, ptype, magnetic_field
             )
