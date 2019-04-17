@@ -158,6 +158,7 @@ def _default_nuclei_density(field, data):
     element = field.name[1][:field.name[1].find("_")]
     amu_cgs = data.ds.units.physical_constants.amu_cgs
     if element == "El":
+        # This assumes full ionization!
         muinv = 1.0*_primordial_mass_fraction["H"] / \
           ChemicalFormula("H").weight / amu_cgs
         muinv += 2.0*_primordial_mass_fraction["He"] / \
