@@ -28,7 +28,10 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
             hsml *= 3.0/(4.0*np.pi)
             hsml **= (1./3.)
             hsml *= self.ds.smoothing_factor
-            return hsml.astype("float64")
+            dt = hsml.dtype.newbyteorder("N") # Native
+            if position_dtype is not None and dt < position_dtype:
+                dt = position_dtype
+            return hsml.astype(dt)
 
     def _identify_fields(self, data_file):
         fields, _units = super(IOHandlerArepoHDF5, 
