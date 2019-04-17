@@ -86,13 +86,16 @@ class AMRVACHierarchy(GridIndex):
         with open(self.dataset.parameter_filename, 'rb') as df:
             #devnote: here I'm loading everything in the RAM, defeating the purpose
             # this is a tmp workaround
-            leaves_dat = get_block_data(df)
-        leave_levels = [d['lvl'] for d in leaves_dat]
+            blocks = get_block_data(df)
+        # @NIELS: The "blocks" array literally gives the amount of grids in the .dat file
+        self.num_grids = len(blocks)
+        """
+        block_lvls = [d['lvl'] for d in blocks]
         lmax = self.dataset.parameters["levmax"]
         ndim = self.dataset.dimensionality
-        n_leaves = {l: leave_levels.count(l) for l in range(1, lmax+1)}
+        n_leaves = {l: block_lvls.count(l) for l in range(1, lmax+1)}
         assert sum(n_leaves.values()) == self.dataset.parameters["nleafs"]
-
+        
         n_grids = {lmax: n_leaves[lmax]}
         for l in reversed(range(1, lmax)):
             n_ghost_grids = n_grids[l+1]/2**ndim
@@ -100,9 +103,10 @@ class AMRVACHierarchy(GridIndex):
             n_grids.update({l: n_leaves[l] + int(n_ghost_grids)})
 
         self.num_grids = sum(n_grids.values())
+        """
 
 
-    def create_patch(level, bottom):
+    def create_patch(self, level, bottom):
         """
         level: int, level of the patch to be created
         bottom: a leaf (bottom level base for the current patch being created)
@@ -213,6 +217,11 @@ class AMRVACDataset(Dataset):
         #
         #devnote: I'm using the default code because there need to be something but
         # this needs revising
+        """TODO: This will be impossible to know, as they are defined in the mod_usr.t file and are not passed on to
+                 to the .dat file... By extension, these are also used to calculate code normalizations.
+                 Only three are required: unit_length and unit_numberdensity, together with EITHER unit_velocity or
+                 unit_temperature. Fix: add these to the .dat file."""
+
         self.length_unit = self.quan(1.0, "cm")
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
@@ -278,6 +287,8 @@ class AMRVACDataset(Dataset):
         validation = False
         try:
             with open(args[0], 'rb') as fi:
+                # TODO: better checks, use header info? Maybe add "amrvac" as additional header argument to keep
+                # TODO: backwards compatibility
                 assert 'rho' in fi.readline().decode('latin-1')
             validation = True
         finally:
