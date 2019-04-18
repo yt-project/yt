@@ -105,7 +105,7 @@ class SPHParticleIndex(ParticleIndex):
         positions = []
         for data_file in self.data_files:
                 for _, ppos in self.io._yield_coordinates(
-                    data_file, needed_ptype=self.ds._sph_ptype):
+                    data_file, needed_ptype=self.ds._sph_ptypes[0]):
                     positions.append(ppos)
         if positions == []:
             self._kdtree = None

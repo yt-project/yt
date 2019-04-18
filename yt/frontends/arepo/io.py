@@ -14,7 +14,7 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
     _dataset_type = "arepo_hdf5"
 
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
-        ptype = self.ds._sph_ptype
+        ptype = self.ds._sph_ptypes[0]
         ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
         with h5py.File(data_file.filename, "r") as f:

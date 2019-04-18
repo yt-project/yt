@@ -114,7 +114,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             #-----------------------------------------------
             for s in self._elements:
                 field_names = add_species_field_by_fraction(self, ptype, s)
-                if ptype == self.ds._sph_ptype:
+                if ptype == self.ds._sph_ptypes[0]:
                     for fn in field_names:
                         self.alias(("gas", fn[1]), fn)
 
