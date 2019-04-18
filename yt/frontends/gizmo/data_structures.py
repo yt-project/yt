@@ -24,6 +24,9 @@ from yt.frontends.gadget.data_structures import \
 from .fields import \
     GizmoFieldInfo
 
+import numpy as np
+
+
 class GizmoDataset(GadgetHDF5Dataset):
     _field_info_class = GizmoFieldInfo
 
@@ -58,3 +61,12 @@ class GizmoDataset(GadgetHDF5Dataset):
             valid = False
             pass
         return valid
+
+    def _set_code_unit_attributes(self):
+        super(GizmoDataset, self)._set_code_unit_attributes()
+        munit = np.sqrt(self.mass_unit /
+                        (self.time_unit**2 * self.length_unit)).to("gauss")
+        if self.cosmological_simulation:
+            self.magnetic_unit = self.quan(munit.value, "%s/a**2" % munit.units)
+        else:
+            self.magnetic_unit = munit
