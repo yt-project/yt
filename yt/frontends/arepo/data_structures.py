@@ -12,6 +12,8 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 from .fields import \
     ArepoFieldInfo
 
+import numpy as np
+
 
 class ArepoHDF5Dataset(GadgetHDF5Dataset):
     _field_info_class = ArepoFieldInfo
@@ -51,3 +53,12 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
             valid = False
             pass
         return valid
+
+    def _set_code_unit_attributes(self):
+        super(ArepoHDF5Dataset, self)._set_code_unit_attributes()
+        munit = np.sqrt(self.mass_unit /
+                        (self.time_unit**2 * self.length_unit)).to("gauss")
+        if self.cosmological_simulation:
+            self.magnetic_unit = self.quan(munit.value, "%s/a**2" % munit.units)
+        else:
+            self.magnetic_unit = munit
