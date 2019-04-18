@@ -1059,7 +1059,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     override_bins = sanitize_field_tuple_keys(override_bins, data_source)
 
     if any(is_pfield) and not all(is_pfield):
-        if hasattr(data_source.ds, '_sph_ptype'):
+        if hasattr(data_source.ds, '_sph_ptypes'):
             is_local = [data_source.ds.field_info[f].sampling_type == "local"
                         for f in bin_fields + fields]
             is_local_or_pfield = [pf or lf for (pf, lf) in

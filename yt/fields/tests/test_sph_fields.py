@@ -46,11 +46,11 @@ def sph_fields_validate(ds_fn):
     ad = ds.all_data()
     for gf, pf in gas_fields_to_particle_fields.items():
         gas_field = ad['gas', gf]
-        part_field = ad[ds._sph_ptype, pf]
+        part_field = ad[ds._sph_ptypes[0], pf]
 
         assert_array_almost_equal(gas_field, part_field)
 
-        npart = ds.particle_type_counts[ds._sph_ptype]
+        npart = ds.particle_type_counts[ds._sph_ptypes[0]]
         err_msg = "Field %s is not the correct shape" % (gf,)
         assert_equal(npart, gas_field.shape[0], err_msg=err_msg)
 
