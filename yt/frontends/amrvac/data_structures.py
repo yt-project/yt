@@ -185,7 +185,7 @@ class AMRVACHierarchy(GridIndex):
 
         self.grid_levels = levels.reshape(self.num_grids, 1)
         self.max_level = self.dataset.parameters["levmax"] - 1
-        assert (self.dataset.parameters["levmax"] - 1) == max(levels)
+        assert (self.max_level) == max(levels)
 
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
