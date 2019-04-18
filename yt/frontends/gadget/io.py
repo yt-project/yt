@@ -130,6 +130,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 g = f["/%s" % ptype]
                 if getattr(selector, 'is_all_data', False):
                     mask = slice(None, None, None)
+                    mask_sum = ei-si
                 else:
                     coords = g["Coordinates"][si:ei].astype("float64")
                     if ptype == 'PartType0':
@@ -140,6 +141,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         hsmls = 0.0
                     mask = selector.select_points(
                         coords[:,0], coords[:,1], coords[:,2], hsmls)
+                    mask_sum = mask.sum()
                     del coords
                 if mask is None:
                     continue
@@ -147,7 +149,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
                     if field in ("Mass", "Masses") and \
                             ptype not in self.var_mass:
-                        data = np.empty(mask.sum(), dtype="float64")
+                        data = np.empty(mask_sum, dtype="float64")
                         ind = self._known_ptypes.index(ptype)
                         data[:] = self.ds["Massarr"][ind]
 
