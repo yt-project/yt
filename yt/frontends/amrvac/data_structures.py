@@ -106,7 +106,7 @@ class AMRVACHierarchy(GridIndex):
         """
 
 
-    def create_patch(self, level, bottom):
+    def _create_patch(self, level, bottom):
         """
         level: int, level of the patch to be created
         bottom: a leaf (bottom level base for the current patch being created)
@@ -121,6 +121,7 @@ class AMRVACHierarchy(GridIndex):
 
 
     def _add_patch(self, patch):
+        return # TODO
         for idim, ledge in enumerate(patch['left_edge']):
             # workaround the variable dimensionality of input data
             # missing values are left to init values
@@ -133,37 +134,37 @@ class AMRVACHierarchy(GridIndex):
         with open(self.dataset.parameter_filename, 'rb') as df:
             #devnote: here I'm loading everything in the RAM, defeating the purpose
             # this is a tmp workaround
-            leaves_dat = get_block_data(df)
+            blocks = get_block_data(df)
         header = self.dataset.parameters
         ndim = self.dataset.dimensionality
 
         #all of these are (ndim) arrays
-        domain_width = header['xmax'] - header['xmin']
-        nblocks = header['domain_nx'] / header['block_nx']
-        block_width = domain_width / nblocks
-
-        self.grids = np.empty(len(leaves_dat), dtype='object')
+        #domain_width = header['xmax'] - header['xmin']
+        #nblocks = header['domain_nx'] / header['block_nx']
+        #block_width = domain_width / nblocks
 
         # those are YTarray instances, already initialized with proper shape
+        # TODO: @niels: what are these supposed to be?
         self.grid_left_edge[:]  = 0.0
         self.grid_right_edge[:] = 1.0
 
 
+        # TODO: @niels: What are 'patches'?
         # wip
         # --------------------------------------------
-        expected_levels = [1] * nblocks
-        ileaf = igrid = 0
-        while igrid < self.num_grids:
-            leaf = leaves_dat[ileaf]
-            while leaf['lvl'] > expected_levels[-1]:
-                current_level = expected_levels.pop()
-                expected_levels += [current_level+1] * 2**ndim
-                patch = create_patch(level=current_level, bottom=leaf)
-                self._add_patch(patch)
-                igrid += 1
-            patch = create_patch(level=leaf['lvl'], bottom=leaf)
-            self._add_patch(patch)
-            ileaf += 1
+        # expected_levels = [1] * nblocks
+        # ileaf = igrid = 0
+        # while igrid < self.num_grids:
+        #     leaf = leaves_dat[ileaf]
+        #     while leaf['lvl'] > expected_levels[-1]:
+        #         current_level = expected_levels.pop()
+        #         expected_levels += [current_level+1] * 2**ndim
+        #         patch = create_patch(level=current_level, bottom=leaf)
+        #         self._add_patch(patch)
+        #         igrid += 1
+        #     patch = create_patch(level=leaf['lvl'], bottom=leaf)
+        #     self._add_patch(patch)
+        #     ileaf += 1
 
         # deprecated abstraction
         # ---------------------------------------------
@@ -179,13 +180,23 @@ class AMRVACHierarchy(GridIndex):
         #         self.grid_dimensions[ip,idim] = patch['w'].shape[idim]
         #     self.grids[ip] = self.grid(id=ip, index=self, level=patch['lvl'])
 
-        levels = np.array([leaf["lvl"] for leaf in leaves_dat])
+        # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
+        levels = np.array([(block["lvl"] - 1) for block in blocks])
+
         self.grid_levels = levels.reshape(self.num_grids, 1)
-        self.max_level = self.dataset.parameters["levmax"]
-        assert self.dataset.parameters["levmax"] == max(levels)
+        self.max_level = self.dataset.parameters["levmax"] - 1
+        assert (self.dataset.parameters["levmax"] - 1) == max(levels)
+
+        self.grids = np.empty(self.num_grids, dtype='object')
+        for i in range(self.num_grids):
+            self.grids[i] = self.grid(i, self, self.grid_levels[i, 0])
+
+
+
+
 
     def _populate_grid_objects(self):
-        lvls = set(self.grid_levels)
+        lvls = set(self.grid_levels[:, 0])
         for lvl in lvls:
             # set up Children and Parent...
             pass
