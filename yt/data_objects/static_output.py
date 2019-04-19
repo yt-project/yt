@@ -579,7 +579,7 @@ class Dataset(object):
             if hasattr(self, '_sph_ptypes'):
                 for sph_ptype in self._sph_ptypes:
                     if sph_ptype in ptypes:
-                        ptypes.remove(self._sph_ptype)
+                        ptypes.remove(sph_ptype)
             if ptypes:
                 nbody_ptypes = []
                 for ptype in ptypes:
@@ -730,6 +730,7 @@ class Dataset(object):
             self.known_filters.pop(n, None)
             return False
         self.known_filters[filter.name] = filter
+        
         return True
 
     def _setup_filtered_type(self, filter):
@@ -762,6 +763,8 @@ class Dataset(object):
                 self.particle_types += (filter.name,)
             if filter.name not in self.filtered_particle_types:
                 self.filtered_particle_types.append(filter.name)
+            if filter.filtered_type in self._sph_ptypes:
+                self._sph_ptypes = self._sph_ptypes + (filter.name,)
             new_fields = self._setup_particle_types([filter.name])
             deps, _ = self.field_info.check_derived_fields(new_fields)
             self.field_dependencies.update(deps)
