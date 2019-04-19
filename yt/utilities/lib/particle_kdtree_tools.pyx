@@ -181,7 +181,7 @@ def estimate_density(np.float64_t[:, ::1] tree_positions, np.float64_t[:] mass,
 
             pos = &(tree_positions[i, 0])
             h_i2 = smoothing_length[i] ** 2
-            find_neighbors_ball(pos, tree_positions, nblist, h_i2, c_tree, i, &axes)
+            find_neighbors_ball(pos, h_i2, tree_positions, nblist, c_tree, i, &axes)
             ih_i2 = 1.0 / h_i2
 
             # See eq. 10 of Price 2012
@@ -296,18 +296,20 @@ cdef inline int process_node_points(Node* node,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int find_neighbors_ball(
-        np.float64_t * pos, np.float64_t[:, ::1] tree_positions,
-        NeighborList nblist, np.float64_t r2, KDTree * c_tree,
-        uint64_t skipidx, axes_range * axes) nogil except -1:
+cdef int find_neighbors_ball(np.float64_t * pos, np.float64_t r2,
+                             np.float64_t[:, ::1] tree_positions,
+                             NeighborList nblist, KDTree * c_tree,
+                             uint64_t skipidx, axes_range * axes
+                             ) nogil except -1:
+    """Find neighbors within a ball."""
     cdef Node* leafnode
 
     # Make an initial guess based on the closest node
     leafnode = c_tree.search(&pos[0])
-    process_node_points_ball(leafnode, nblist, r2, tree_positions, pos, skipidx, axes)
+    process_node_points_ball(leafnode, nblist, tree_positions, pos, r2, skipidx, axes)
 
     # Traverse the rest of the kdtree to finish the neighbor list
-    find_ball(c_tree.root, nblist, r2, tree_positions, pos, leafnode.leafid,
+    find_ball(c_tree.root, nblist, tree_positions, pos, r2, leafnode.leafid,
               skipidx, axes)
 
     return 0
@@ -316,25 +318,24 @@ cdef int find_neighbors_ball(
 @cython.wraparound(False)
 cdef int find_ball(Node* node,
                    NeighborList nblist,
-                   np.float64_t r2,
                    np.float64_t[:, ::1] tree_positions,
                    np.float64_t* pos,
+                   np.float64_t r2,
                    uint32_t skipleaf,
                    uint64_t skipidx,
                    axes_range * axes,
                    ) nogil except -1:
-    # if we aren't a leaf then we keep traversing until we find a leaf, else we
-    # we actually begin to check the leaf
+    """Traverse the k-d tree to process leaf nodes."""
     if not node.is_leaf:
         if not cull_node_ball(node.less, pos, r2, skipleaf, axes):
-            find_ball(node.less, nblist, r2, tree_positions, pos, skipleaf,
+            find_ball(node.less, nblist, tree_positions, pos, r2, skipleaf,
                       skipidx, axes)
         if not cull_node_ball(node.greater, pos, r2, skipleaf, axes):
-            find_ball(node.greater, nblist, r2, tree_positions, pos, skipleaf,
+            find_ball(node.greater, nblist, tree_positions, pos, r2, skipleaf,
                       skipidx, axes)
     else:
         if not cull_node_ball(node, pos, r2, skipleaf, axes):
-            process_node_points_ball(node, nblist, r2, tree_positions, pos,
+            process_node_points_ball(node, nblist, tree_positions, pos, r2,
                                      skipidx, axes)
     return 0
 
@@ -346,6 +347,7 @@ cdef inline int cull_node_ball(Node* node,
                                uint32_t skipleaf,
                                axes_range * axes,
                                ) nogil except -1:
+    """Check if the node does not intersect with the ball at all."""
     cdef int k
     cdef np.float64_t v
     cdef np.float64_t tpos, ndist = 0
@@ -372,12 +374,13 @@ cdef inline int cull_node_ball(Node* node,
 @cython.wraparound(False)
 cdef inline int process_node_points_ball(Node* node,
                                          NeighborList nblist,
-                                         np.float64_t r2,
                                          np.float64_t[:, ::1] positions,
                                          np.float64_t* pos,
+                                         np.float64_t r2,
                                          int skipidx,
                                          axes_range * axes,
                                          ) nogil except -1:
+    """Add points from the leaf node within the ball to the neighbor list."""
     cdef uint64_t i, k, n
     cdef np.float64_t tpos, sq_dist
     for i in range(node.left_idx, node.left_idx + node.children):
