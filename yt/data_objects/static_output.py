@@ -576,8 +576,10 @@ class Dataset(object):
         if "nbody" not in self.particle_types:
             mylog.debug("Creating Particle Union 'nbody'")
             ptypes = list(self.particle_types_raw)
-            if hasattr(self, '_sph_ptype') and self._sph_ptype in ptypes:
-                ptypes.remove(self._sph_ptype)
+            if hasattr(self, '_sph_ptypes'):
+                for sph_ptype in self._sph_ptypes:
+                    if sph_ptype in ptypes:
+                        ptypes.remove(self._sph_ptype)
             if ptypes:
                 nbody_ptypes = []
                 for ptype in ptypes:

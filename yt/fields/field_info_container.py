@@ -146,7 +146,7 @@ class FieldInfoContainer(dict):
 
     def setup_smoothed_fields(self, ptype, num_neighbors = 64, ftype = "gas"):
         # We can in principle compute this, but it is not yet implemented.
-        if (ptype, "density") not in self or not hasattr(self.ds, '_sph_ptype'):
+        if (ptype, "density") not in self or not hasattr(self.ds, '_sph_ptypes'):
             return
         new_aliases = []
         for ptype2, alias_name in list(self):
