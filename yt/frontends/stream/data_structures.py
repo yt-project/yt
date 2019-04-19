@@ -60,6 +60,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.lib.particle_kdtree_tools import \
+    generate_smoothing_length, \
     estimate_density
 from yt.geometry.grid_container import \
     GridTree, \
@@ -1144,10 +1145,8 @@ class StreamParticlesDataset(StreamDataset):
         For a particle type with "particle_position" and "particle_mass" already
         defined, this method adds the "smoothing_length" and "density" fields.
         "smoothing_length" is computed as the distance to the nth nearest
-        neighbor. "density" is computed as the SPH (gather) smoothed mass.
-
-        Caution: this method will overwrite existing "smoothing_length" and
-        "density" fields.
+        neighbor. "density" is computed as the SPH (gather) smoothed mass. The
+        SPH fields are added only if they don't already exist.
 
         Parameters
         ----------
@@ -1180,21 +1179,42 @@ class StreamParticlesDataset(StreamDataset):
             periodic=self.periodicity,
             leafsize=2*int(n_neighbors),
         )
-
-        # SPH density estimation
-        hsml, dens = estimate_density(
-            pos[kdtree.idx], mass[kdtree.idx],
-            kdtree, n_neighbors, kernel_name=kernel,
-        )
         order = np.argsort(kdtree.idx)
-        hsml = hsml[order]
-        dens = dens[order]
+
+        def exists(fname):
+            if (sph_ptype, fname) in self.derived_field_list:
+                mylog.info("Field ('%s','%s') already exists. Skipping",
+                            sph_ptype, fname)
+                return True
+            else:
+                mylog.info("Generating field ('%s','%s')",
+                            sph_ptype, fname)
+                return False
+        data = {}
+
+        # Add smoothing length field
+        fname = "smoothing_length"
+        if not exists(fname):
+            hsml = generate_smoothing_length(
+                pos[kdtree.idx], kdtree, n_neighbors
+            )
+            hsml = hsml[order]
+            data[(sph_ptype, "smoothing_length")] = (hsml, l_unit)
+        else:
+            hsml = ad[sph_ptype, fname].to(l_unit).d
+
+        # Add density field
+        fname = "density"
+        if not exists(fname):
+            dens = estimate_density(
+                pos[kdtree.idx], mass[kdtree.idx], hsml[kdtree.idx],
+                kdtree, kernel_name=kernel,
+            )
+            dens = dens[order]
+            data[(sph_ptype, "density")] = (dens, d_unit)
 
         # Add fields
         self._sph_ptype = sph_ptype
-        data = {}
-        data[(sph_ptype, "smoothing_length")] = (hsml, l_unit)
-        data[(sph_ptype, "density")] = (dens, d_unit)
         self.index.update_data(data)
 
 def load_particles(data, length_unit=None, bbox=None,
