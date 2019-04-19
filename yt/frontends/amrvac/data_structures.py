@@ -323,9 +323,11 @@ class AMRVACDataset(Dataset):
         with open(self.parameter_filename, 'rb') as df:
             self.parameters = get_header(df)
 
-        self.current_time   = self.parameters['time']
-        self.dimensionality = self.parameters['ndim'] #devnote, warining : ndir != ndim
-        #self.domain_dimensions = self.parameters[''].astype('int64') #devnote: number of cells, or grids ??
+        self.current_time      = self.parameters['time']
+        self.dimensionality    = self.parameters['ndim'] #devnote, warining : ndir != ndim
+        # for domain_dimensions, found similar thing in Flash frontend
+        self.domain_dimensions = self.parameters['block_nx'] * 2**self.parameters['levmax']
+        self.gamma             = self.parameters['gamma']
 
         dle = np.zeros(3)
         dre = np.ones(3)
