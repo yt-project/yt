@@ -106,28 +106,74 @@ class AMRVACHierarchy(GridIndex):
         """
 
 
-    def _create_patch(self, level, bottom):
-        """
-        level: int, level of the patch to be created
-        bottom: a leaf (bottom level base for the current patch being created)
-        """
-        assert bottom["lvl"] >= level
+    def _create_patch(self, current_grid):
+        # """
+        # level: int, level of the patch to be created
+        # bottom: a leaf (bottom level base for the current patch being created)
+        # """
+        # assert bottom["lvl"] >= level
+        # patch = {
+        #     "left_edge": 0.0,
+        #     "right_edge": 0.0,
+        #     "width": self._block_width / 2**(level-1)
+        # }
+        # return patch
+
+        # Current level of the block
+        current_level = current_grid["lvl"]
+        assert current_level <= self.dataset.parameters["levmax"]
+        # Current index of the Morton Curve, see http://amrvac.org/md_doc_amrstructure.html
+        current_idx = current_grid["ix"]
+
+        grid_difference = 2**(self.dataset.parameters["levmax"] - current_level)
+        max_idx = current_idx * grid_difference
+        min_idx = max_idx - grid_difference
+
+        # init indices of block
+        idx0 = min_idx * self.dataset.parameters["block_nx"]
+        # outer indices of block    TODO: these depend on AMR level, right?
+        if current_level == self.dataset.parameters["levmax"]:
+            idx1 = idx0 + self.dataset.parameters["block_nx"]
+        else:
+            idx1 = idx0 + (self.dataset.parameters["block_nx"] * grid_difference)
+
+        # Outer index of domain, taking AMR into account
+        domain_end_idx = self.dataset.parameters["block_nx"] * 2**self.dataset.parameters["levmax"]
+        # Width of the domain, used to correctly calculate fractions
+        domain_width   = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
+
+        # TODO @Niels
+        # So idx0 / domain_end_idx gives the "fraction" (between 0 and 1) of the current block
+        # position. Multiply this by domain_width to take the width of the domain into account,
+        # as this can vary from one. Tested this in a separate file and seems to work. I hope this is
+        # meant by "patches" and "left_edge" and "right_edge"...
         patch = {
-            "left_edge": 0.0, #TODO
-            "right_edge": 0.0, #TODO
-            "width": self._block_width / 2**(level-1)
+            "left_edge" : (idx0 / domain_end_idx) * domain_width,
+            "right_edge": (idx1 / domain_end_idx) * domain_width,
+            "width"     : ((idx1 - idx0) / domain_end_idx) * domain_width
         }
+
         return patch
 
 
-    def _add_patch(self, patch):
-        return # TODO
-        for idim, ledge in enumerate(patch['left_edge']):
-            # workaround the variable dimensionality of input data
-            # missing values are left to init values
-            self.grid_left_edge[igrid,idim]  = patch_left_edge[idim]
-            self.grid_right_edge[igrid,idim] = patch_right_edge[idim]
-            #self.grid_dimensions[igrid,idim] = ...
+
+    def _add_patch(self, igrid, patch):
+        # for idim, ledge in enumerate(patch['left_edge']):
+        #     # workaround the variable dimensionality of input data
+        #     # missing values are left to init values
+        #     self.grid_left_edge[igrid,idim]  = patch_left_edge[idim]
+        #     self.grid_right_edge[igrid,idim] = patch_right_edge[idim]
+        #     #self.grid_dimensions[igrid,idim] = ...
+        # TODO: @Niels: can this be done in a shorter and "nicer" way??
+        for idim, left_edge in enumerate(patch['left_edge']):
+            self.grid_left_edge[igrid, idim] = left_edge
+        for idim, right_edge in enumerate(patch['right_edge']):
+            self.grid_right_edge[igrid, idim] = right_edge
+        for idim, width in enumerate(patch['width']):
+            self.grid_dimensions[igrid, idim] = width
+        # TODO: when running test_load() this gives a "divide by zero" error, somewhere the self.ActiveDimensions
+        #       attribute is equal to zero??
+
 
 
     def _parse_index(self):
@@ -144,12 +190,18 @@ class AMRVACHierarchy(GridIndex):
         #block_width = domain_width / nblocks
 
         # those are YTarray instances, already initialized with proper shape
-        # TODO: @niels: what are these supposed to be?
         self.grid_left_edge[:]  = 0.0
         self.grid_right_edge[:] = 1.0
 
 
-        # TODO: @niels: What are 'patches'?
+        igrid = 0
+        while igrid < self.num_grids:
+            current_grid = blocks[igrid]
+            patch = self._create_patch(current_grid)
+            self._add_patch(igrid, patch)
+            igrid += 1
+
+
         # wip
         # --------------------------------------------
         # expected_levels = [1] * nblocks
@@ -185,7 +237,7 @@ class AMRVACHierarchy(GridIndex):
 
         self.grid_levels = levels.reshape(self.num_grids, 1)
         self.max_level = self.dataset.parameters["levmax"] - 1
-        assert (self.max_level) == max(levels)
+        assert self.max_level == max(levels)
 
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
