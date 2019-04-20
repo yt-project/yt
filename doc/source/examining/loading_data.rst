@@ -1690,6 +1690,41 @@ The ``load_particles`` function also accepts the following keyword parameters:
 ``bbox``
        The bounding box for the particle positions.
 
+A novel use of the ``load_particles`` function is to facilitate SPH
+visualization of non-SPH particles. See the example below:
+
+.. code-block:: python
+
+    import yt
+
+    # Load dataset and center on the dense region
+    ds = yt.load('FIRE_M12i_ref11/snapshot_600.hdf5')
+    _, center = ds.find_max(('PartType0', 'density'))
+
+    # Reload DM particles into a stream dataset
+    ad = ds.all_data()
+    pt = 'PartType1'
+    fields = ['particle_mass'] + [f'particle_position_{ax}' for ax in 'xyz']
+    data = {field: ad[pt, field] for field in fields}
+    ds_dm = yt.load_particles(data, data_source=ad)
+
+    # Generate the missing SPH fields
+    ds_dm.add_sph_fields()
+
+    # Make the SPH projection plot
+    p = yt.ProjectionPlot(ds_dm, 'z', ('io', 'density'),
+                          center=center, width=(1, 'Mpc'))
+    p.set_unit('density', 'Msun/kpc**2')
+    p.show()
+
+Here we see two new things. First, ``load_particles`` accepts a ``data_source``
+argument to infer parameters like code units, which could be tedious to provide
+otherwise. Second, the returned
+:class:`~yt.frontends.stream.data_structures.StreamParticleDataset` has an
+:meth:`~yt.frontends.stream.data_structures.StreamParticleDataset.add_sph_fields`
+method, to create the ``smoothing_length`` and ``density`` fields required for
+SPH visualization to work.
+
 .. _loading-gizmo-data:
 
 Gizmo Data
