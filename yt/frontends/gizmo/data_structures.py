@@ -64,9 +64,4 @@ class GizmoDataset(GadgetHDF5Dataset):
 
     def _set_code_unit_attributes(self):
         super(GizmoDataset, self)._set_code_unit_attributes()
-        munit = np.sqrt(self.mass_unit /
-                        (self.time_unit**2 * self.length_unit)).to("gauss")
-        if self.cosmological_simulation:
-            self.magnetic_unit = self.quan(munit.value, "%s/a**2" % munit.units)
-        else:
-            self.magnetic_unit = munit
+        self.magnetic_unit = self.quan(1.0, "gauss")
