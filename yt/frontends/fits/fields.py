@@ -58,6 +58,7 @@ class YTFITSFieldInfo(FieldInfoContainer):
     def __init__(self, ds, field_list, slice_info=None):
         super(YTFITSFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
 
+
 class WCSFITSFieldInfo(FITSFieldInfo):
 
     def setup_fluid_fields(self):
