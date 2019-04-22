@@ -24,8 +24,6 @@ from yt.frontends.gadget.data_structures import \
 from .fields import \
     GizmoFieldInfo
 
-import numpy as np
-
 
 class GizmoDataset(GadgetHDF5Dataset):
     _field_info_class = GizmoFieldInfo
