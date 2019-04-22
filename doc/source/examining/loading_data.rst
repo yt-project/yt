@@ -736,6 +736,18 @@ non-spatial axes, the coordinates are in units of the image pixels. The
 coordinates of these pixels in the WCS coordinate systems will be available
 in separate fields. 
 
+Often, the aspect ratio of 3D spectral cubes can be far from unity. Because yt
+sets the pixel scale as the ``code_length``, certain visualizations (such as
+volume renderings) may look extended or distended in ways that are
+undesirable. To adjust the width in ``code_length`` of the spectral axis, set
+``spectral_factor`` equal to a constant which gives the desired scaling, or set
+it to ``"auto"`` to make the width the same as the largest axis in the sky
+plane:
+
+.. code-block:: python
+
+   ds = yt.load("m33_hi.fits.gz", spectral_factor=0.1)
+
 For 4D spectral cubes, the fourth axis is assumed to be composed of different 
 fields altogether (e.g., Stokes parameters for radio data).
 
