@@ -7,6 +7,7 @@
 #-----------------------------------------------------------------------------
 
 from yt.frontends.gadget.api import GadgetHDF5Dataset
+from yt.funcs import mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import \
@@ -54,7 +55,24 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
             pass
         return valid
 
+    def _get_uvals(self):
+        handle = h5py.File(self.parameter_filename, mode="r")
+        uvals = {}
+        missing = False
+        for unit in ["UnitLength_in_cm", "UnitMass_in_g", 
+                     "UnitVelocity_in_cm_per_s"]:
+            if unit in handle["/Header"].attrs:
+                uvals[unit] = handle["/Header"].attrs[unit]
+            else:
+                mylog.warning("Arepo header is missing %s!" % unit)
+                missing = True
+        handle.close()
+        if missing:
+            uvals = None
+        return uvals
+
     def _set_code_unit_attributes(self):
+        self._unit_base = self._get_uvals()
         super(ArepoHDF5Dataset, self)._set_code_unit_attributes()
         munit = np.sqrt(self.mass_unit /
                         (self.time_unit**2 * self.length_unit)).to("gauss")
