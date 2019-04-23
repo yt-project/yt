@@ -630,6 +630,7 @@ class FITSImageData(object):
         image_list : list of FITSImageData instances
             The images to be combined.
         """
+        image_list = ensure_list(image_list)
         w = image_list[0].wcs
         img_shape = image_list[0].shape
         data = []
@@ -640,7 +641,7 @@ class FITSImageData(object):
                 raise RuntimeError("Images do not have the same shape!")
             for hdu in fid.hdulist:
                 if first:
-                    data.append(hdu)
+                    data.append(_astropy.pyfits.PrimaryHDU(hdu.data, header=hdu.header))
                     first = False
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
