@@ -381,10 +381,13 @@ class FITSImageData(object):
         self.field_units[new_name] = self.field_units.pop(old_name)
         self.fields[idx] = new_name
 
-    def convolve(self, field, kernel):
+    def convolve(self, field, kernel, **kwargs):
         """
         Convolve an image with a kernel, either a simple
-        Gaussian or one provided by AstroPy.
+        Gaussian kernel or one provided by AstroPy.
+
+        All keyword arguments are passed to
+        :meth:`~astropy.convolution.convolve`.
 
         Parameters
         ----------
@@ -418,7 +421,7 @@ class FITSImageData(object):
                 kernel = stddev/pix_scale
             kernel = conv.Gaussian2DKernel(x_stddev=kernel)
         self.hdulist[idx].data = conv.convolve(self.hdulist[idx].data, 
-                                               kernel)
+                                               kernel, **kwargs)
 
     def update_header(self, field, key, value):
         """
