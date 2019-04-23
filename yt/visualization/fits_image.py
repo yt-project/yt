@@ -384,7 +384,8 @@ class FITSImageData(object):
     def convolve(self, field, kernel, **kwargs):
         """
         Convolve an image with a kernel, either a simple
-        Gaussian kernel or one provided by AstroPy.
+        Gaussian kernel or one provided by AstroPy. Currently,
+        this only works for 2D images.
 
         All keyword arguments are passed to
         :meth:`~astropy.convolution.convolve`.
@@ -406,6 +407,8 @@ class FITSImageData(object):
         >>> fid = FITSSlice(ds, "z", "density")
         >>> fid.convolve("density", (3.0, "kpc"))
         """
+        if self.dimensionality == 3:
+            raise RuntimeError("Convolution currently only works for 2D FITSImageData!")
         conv = _astropy.conv
         if field not in self.keys():
             raise KeyError("%s not an image!" % field)
