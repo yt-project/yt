@@ -66,7 +66,9 @@ class GadgetFieldInfo(SPHFieldInfo):
                 # Assume cosmic abundances
                 x_H = 0.76
                 gamma = 5.0/3.0
-                if data.has_field_parameter("mean_molecular_weight"):
+                if self.ds.mean_molecular_weight is not None:
+                    mu = self.ds.mean_molecular_weight
+                elif data.has_field_parameter("mean_molecular_weight"):
                     mu = data.get_field_parameter("mean_molecular_weight")
                 else:
                     # Assume zero ionization

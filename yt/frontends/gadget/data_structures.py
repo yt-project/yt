@@ -222,6 +222,7 @@ class GadgetDataset(SPHDataset):
                  ptype_spec = "default",
                  long_ids = False,
                  units_override=None,
+                 mean_molecular_weight=None,
                  header_offset = 0,
                  unit_system="cgs",
                  use_dark_factor = False,
@@ -300,6 +301,7 @@ class GadgetDataset(SPHDataset):
             self.time_unit.convert_to_units('s')
             self.length_unit.convert_to_units('kpc')
             self.mass_unit.convert_to_units('Msun')
+        self.mean_molecular_weight = mean_molecular_weight
 
     @classmethod
     def _setup_binary_spec(cls, spec, spec_dict):
