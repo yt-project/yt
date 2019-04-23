@@ -166,6 +166,9 @@ class FITSImageData(object):
         exclude_fields = ['x', 'y', 'z', 'px', 'py', 'pz',
                           'pdx', 'pdy', 'pdz', 'weight_field']
 
+        if isinstance(data, _astropy.pyfits.PrimaryHDU):
+            data = _astropy.pyfits.HDUList([data])
+
         if isinstance(data, _astropy.pyfits.HDUList):
             self.hdulist = data
             for hdu in data:
@@ -406,14 +409,14 @@ class FITSImageData(object):
         idx = self.fields.index(field)
         if not isinstance(kernel, conv.Kernel):
             if not isinstance(kernel, numeric_type):
-                pix_scale = YTQuantity(self.wcs.cdelt[0], self.wcs.cunit[0])
+                unit = str(self.wcs.wcs.cunit[0])
+                pix_scale = YTQuantity(self.wcs.wcs.cdelt[0], unit)
                 if isinstance(kernel, tuple):
-                    stddev = YTQuantity(kernel[0], 
-                                        kernel[1]).to(self.wcs.cunit[0])
+                    stddev = YTQuantity(kernel[0], kernel[1]).to(unit)
                 else:
-                    stddev = kernel.to(self.wcs.cunit[0])
+                    stddev = kernel.to(unit)
                 kernel = stddev/pix_scale
-            kernel = conv.Gaussian2DKernel(stddev=kernel)
+            kernel = conv.Gaussian2DKernel(x_stddev=kernel)
         self.hdulist[idx].data = conv.convolve(self.hdulist[idx].data, 
                                                kernel)
 
@@ -599,9 +602,8 @@ class FITSImageData(object):
         im = self.hdulist.pop(idx)
         self.field_units.pop(key)
         self.fields.remove(key)
-        data = _astropy.pyfits.HDUList([im])
-        return FITSImageData(data)
-
+        return FITSImageData(_astropy.pyfits.PrimaryHDU(im.data, header=im.header))
+ 
     def close(self):
         self.hdulist.close()
 
