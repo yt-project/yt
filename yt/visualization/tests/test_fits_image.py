@@ -19,7 +19,9 @@ import shutil
 from yt.testing import fake_random_ds, requires_module
 from yt.convenience import load
 from numpy.testing import \
-    assert_equal
+    assert_equal, \
+    assert_allclose
+from yt.utilities.on_demand_imports import _astropy
 from yt.visualization.fits_image import \
     FITSImageData, FITSProjection, \
     FITSSlice, FITSOffAxisSlice, \
@@ -43,8 +45,8 @@ def test_fits_image():
     prj = ds.proj("density", 2)
     prj_frb = prj.to_frb((0.5, "unitary"), 128)
 
-    fid1 = FITSImageData(prj_frb, fields=["density","temperature"],
-                         length_unit="cm")
+    fid1 = prj_frb.to_fits_data(fields=[("gas", "density"), ("gas","temperature")],
+                                length_unit="cm")
     fits_prj = FITSProjection(ds, "z", [ds.fields.gas.density,"temperature"],
                               image_res=128, width=(0.5, "unitary"))
 
@@ -60,8 +62,8 @@ def test_fits_image():
     ds2 = load("fid1.fits")
     ds2.index
 
-    assert ("fits","density") in ds2.field_list
-    assert ("fits","temperature") in ds2.field_list
+    assert ("fits", "density") in ds2.field_list
+    assert ("fits", "temperature") in ds2.field_list
 
     dw_cm = ds2.domain_width.in_units("cm")
 
@@ -71,9 +73,9 @@ def test_fits_image():
     slc = ds.slice(2, 0.5)
     slc_frb = slc.to_frb((0.5, "unitary"), 128)
 
-    fid2 = FITSImageData(slc_frb, fields=["density","temperature"],
-                         length_unit="cm")
-    fits_slc = FITSSlice(ds, "z", ["density",("gas","temperature")],
+    fid2 = slc_frb.to_fits_data(fields=[("gas", "density"), ("gas", "temperature")],
+                                length_unit="cm")
+    fits_slc = FITSSlice(ds, "z", [("gas", "density"), ("gas", "temperature")],
                          image_res=128, width=(0.5,"unitary"))
 
     assert_equal(fid2["density"].data, fits_slc["density"].data)
@@ -89,8 +91,9 @@ def test_fits_image():
     cut = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
     cut_frb = cut.to_frb((0.5, "unitary"), 128)
 
-    fid3 = FITSImageData(cut_frb, fields=[("gas","density"), ds.fields.gas.temperature], 
-                         length_unit="cm")
+    fid3 = cut_frb.to_fits_data(fields=[("gas","density"),
+                                        ds.fields.gas.temperature],
+                                length_unit="cm")
     fits_cut = FITSOffAxisSlice(ds, [0.1, 0.2, -0.9], ["density","temperature"],
                                 image_res=128, center=[0.5, 0.42, 0.6],
                                 width=(0.5, "unitary"))
@@ -128,7 +131,7 @@ def test_fits_image():
 
     cvg = ds.covering_grid(ds.index.max_level, [0.25, 0.25, 0.25],
                            [32, 32, 32], fields=["density", "temperature"])
-    fid5 = FITSImageData(cvg, fields=["density", "temperature"])
+    fid5 = cvg.to_fits_data(fields=["density", "temperature"])
     assert fid5.dimensionality == 3
 
     fid5.update_header("density", "time", 0.1)
@@ -137,6 +140,27 @@ def test_fits_image():
     assert fid5["density"].header["time"] == 0.1
     assert fid5["temperature"].header["units"] == "cgs"
     assert fid5["density"].header["units"] == "cgs"
+
+    fid6 = FITSImageData.from_images(fid5)
+
+    fid5.change_image_name("density", "mass_per_volume")
+    assert fid5["mass_per_volume"].name == "mass_per_volume"
+    assert fid5["mass_per_volume"].header["BTYPE"] == "mass_per_volume"
+    assert "mass_per_volume" in fid5.fields
+    assert "mass_per_volume" in fid5.field_units
+    assert "density" not in fid5.fields
+    assert "density" not in fid5.field_units
+
+    assert "density" in fid6.fields
+    assert_equal(fid6["density"].data, fid5["mass_per_volume"].data)
+
+    fid7 = FITSImageData.from_images(fid4)
+    fid7.convolve("density", (3.0, "cm"))
+
+    sigma = 3.0/fid7.wcs.wcs.cdelt[0]
+    kernel = _astropy.conv.Gaussian2DKernel(x_stddev=sigma)
+    data_conv = _astropy.conv.convolve(fid4["density"].data.d, kernel)
+    assert_allclose(data_conv, fid7["density"].data.d)
 
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
