@@ -141,7 +141,8 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         hsmls = 0.0
                     mask = selector.select_points(
                         coords[:,0], coords[:,1], coords[:,2], hsmls)
-                    mask_sum = mask.sum()
+                    if mask is not None:
+                        mask_sum = mask.sum()
                     del coords
                 if mask is None:
                     continue
@@ -152,7 +153,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         data = np.empty(mask_sum, dtype="float64")
                         ind = self._known_ptypes.index(ptype)
                         data[:] = self.ds["Massarr"][ind]
-
                     elif field in self._element_names:
                         rfield = 'ElementAbundance/' + field
                         data = g[rfield][si:ei][mask, ...]
