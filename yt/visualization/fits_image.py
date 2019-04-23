@@ -374,6 +374,7 @@ class FITSImageData(object):
         """
         idx = self.fields.index(old_name)
         self.hdulist[idx].name = new_name
+        self.hdulist[idx].header['BTYPE'] = new_name
         self.field_units[new_name] = self.field_units.pop(old_name)
         self.fields[idx] = new_name
 
