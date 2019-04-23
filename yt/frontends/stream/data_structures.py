@@ -1214,7 +1214,7 @@ class StreamParticlesDataset(StreamDataset):
             data[(sph_ptype, "density")] = (dens, d_unit)
 
         # Add fields
-        self._sph_ptype = sph_ptype
+        self._sph_ptypes = (sph_ptype,)
         self.index.update_data(data)
 
 def load_particles(data, length_unit=None, bbox=None,
