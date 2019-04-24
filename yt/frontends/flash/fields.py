@@ -159,7 +159,8 @@ class FLASHFieldInfo(FieldInfoContainer):
             self.add_output_field(("flash", "abar"),
                                   sampling_type="cell",
                                   units="1")
-        else:
+            self.alias(("gas","mean_molecular_weight"), ("flash", "abar"))
+        elif ("flash", "sumy") in self.field_list:
             def _abar(field, data):
                 return 1.0 / data["flash","sumy"]
             self.add_field(("flash","abar"),
