@@ -128,6 +128,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 g = f["/%s" % ptype]
+                hsmls = None
                 if getattr(selector, 'is_all_data', False):
                     mask = slice(None, None, None)
                     mask_sum = ei-si
