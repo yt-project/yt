@@ -51,7 +51,7 @@ class IOHandlerSwift(IOHandlerSPH):
                     continue
                 pos = f["/%s/Coordinates" % ptype][si:ei, :]
                 pos = pos.astype("float64", copy=False)
-                if ptype in self.ds._sph_ptypes:
+                if ptype == self.ds._sph_ptypes[0]:
                     hsml = self._get_smoothing_length(sub_file)
                 else:
                     hsml = 0.0

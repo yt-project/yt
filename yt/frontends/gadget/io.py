@@ -67,7 +67,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 x = f["/%s/Coordinates" % ptype][si:ei, 0].astype("float64")
                 y = f["/%s/Coordinates" % ptype][si:ei, 1].astype("float64")
                 z = f["/%s/Coordinates" % ptype][si:ei, 2].astype("float64")
-                if ptype in self.ds._sph_ptypes:
+                if ptype == self.ds._sph_ptypes[0]:
                     pdtype = f["/%s/Coordinates" % ptype].dtype
                     pshape = f["/%s/Coordinates" % ptype].shape
                     hsml = self._get_smoothing_length(data_file, pdtype, pshape)
@@ -309,7 +309,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                 pos = self._read_field_from_file(
                     f, tp[ptype], "Coordinates")
-                if ptype in self.ds._sph_ptypes:
+                if ptype == self.ds._sph_ptypes[0]:
                     f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
                     hsml = self._read_field_from_file(
                         f, tp[ptype], "SmoothingLength")
@@ -334,7 +334,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                     pos = self._read_field_from_file(
                         f, tp[ptype], "Coordinates")
-                    if ptype in self.ds._sph_ptypes:
+                    if ptype == self.ds._sph_ptypes[0]:
                         f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
                         hsml = self._read_field_from_file(
                             f, tp[ptype], "SmoothingLength")
