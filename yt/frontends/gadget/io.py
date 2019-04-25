@@ -131,6 +131,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 if getattr(selector, 'is_all_data', False):
                     mask = slice(None, None, None)
                     mask_sum = ei-si
+                    hsmls = None
                 else:
                     coords = g["Coordinates"][si:ei].astype("float64")
                     if ptype == 'PartType0':
@@ -167,6 +168,10 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         # the smoothing length on-disk, so we do not
                         # attempt to read them, but instead assume
                         # that they are calculated in _get_smoothing_length.
+                        if hsmls is None:
+                            hsmls = self._get_smoothing_length(data_file,
+                                                               g["Coordinates"].dtype,
+                                                               g["Coordinates"].shape).astype("float64")
                         data = hsmls[mask]
                     else:
                         data = g[field][si:ei][mask, ...]
