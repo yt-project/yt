@@ -22,6 +22,9 @@ from yt.data_objects.grid_patch import \
    AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
    GridIndex
+from yt.funcs import \
+    mylog, \
+    setdefaultattr
 from yt.data_objects.static_output import \
    Dataset
 from yt.geometry.oct_geometry_handler import \
@@ -150,7 +153,8 @@ class AMRVACHierarchy(GridIndex):
         patch = {
             "left_edge" : (idx0 / domain_end_idx) * domain_width,
             "right_edge": (idx1 / domain_end_idx) * domain_width,
-            "width"     : ((idx1 - idx0) / domain_end_idx) * domain_width
+            #"width"     : ((idx1 - idx0) / domain_end_idx) * domain_width  # !! yields divide by zero
+            "width"     : domain_width      # TODO then it should be this, as in "width of block"?
         }
 
         return patch
@@ -171,8 +175,7 @@ class AMRVACHierarchy(GridIndex):
             self.grid_right_edge[igrid, idim] = right_edge
         for idim, width in enumerate(patch['width']):
             self.grid_dimensions[igrid, idim] = width
-        # TODO: when running test_load() this gives a "divide by zero" error, somewhere the self.ActiveDimensions
-        #       attribute is equal to zero??
+        print(self.grid_dimensions)
 
 
 
@@ -285,6 +288,43 @@ class AMRVACDataset(Dataset):
                  Only three are required: unit_length and unit_numberdensity, together with EITHER unit_velocity or
                  unit_temperature. Fix: add these to the .dat file."""
 
+        # TODO: MPI-AMRVAC has the possibility to switch between SI and CGS units...
+
+        """
+        CGS = True
+        He_abundance = 0.1
+        H_abundance = 1 - He_abundance
+        mu = 1. / (2 * H_abundance + 0.75 * He_abundance)
+        mp = 1.6726219e-24      # proton mass, g
+        kB = 1.38064852e-16     # Boltzmann constant, erg/K
+
+        unit_length         = 1e9       # cm
+        unit_temperature    = 1e6       # K
+        unit_numberdensity  = 1e15      # cm-3
+        unit_velocity       = 0
+
+        unit_density  = (1.0 + 4.0*He_abundance) * mp * unit_numberdensity
+        unit_pressure = (2.0 + 3.0*He_abundance) * unit_numberdensity * kB * unit_temperature
+        unit_velocity = np.sqrt(unit_pressure / unit_density)
+        unit_magneticfield = np.sqrt(4*np.pi * unit_pressure)
+        unit_time     = unit_length / unit_velocity
+
+        # Derived quantity
+        unit_mass = unit_density * unit_length**3
+
+        setdefaultattr(self, "length_unit", self.quan(unit_length, "cm"))
+        setdefaultattr(self, "temperature_unit", self.quan(unit_temperature, "K"))
+        #setdefaultattr(self, "numberdensity_unit", self.quan(unit_numberdensity, "1/cm3"))
+
+        #setdefaultattr(self, "density_unit", self.quan(unit_density, ""))      # TODO units
+        #setdefaultattr(self, "pressure_unit", self.quan(unit_pressure, ""))    # TODO units
+        setdefaultattr(self, "velocity_unit", self.quan(unit_velocity, "cm/s"))
+        setdefaultattr(self, "magnetic_unit", self.quan(unit_magneticfield, "gauss"))
+        setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
+        setdefaultattr(self, "mass_unit", self.quan(unit_mass, "g"))
+        """
+
+
         self.length_unit = self.quan(1.0, "cm")
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
@@ -292,6 +332,11 @@ class AMRVACDataset(Dataset):
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
+
+    # TODO: uncomment this when using "setdefaultattr" above, it overrides default yt code units (see flash)
+    #def set_code_units(self):
+    #    super(AMRVACDataset, self).set_code_units()
+
 
     def _parse_parameter_file(self):
         # This needs to set up the following items.  Note that these are all
