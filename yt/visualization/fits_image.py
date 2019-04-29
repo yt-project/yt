@@ -145,11 +145,7 @@ class FITSImageData(object):
         self._set_units(ds, [length_unit, mass_unit, time_unit, velocity_unit,
                              magnetic_unit])
 
-        if self.length_unit.value != 1.0:
-            wcs_unit = "%g*%s" % (self.length_unit.value,
-                                  self.length_unit.units)
-        else:
-            wcs_unit = str(self.length_unit.units)
+        wcs_unit = str(self.length_unit.units)
 
         self._fix_current_time(ds, current_time)
 
@@ -341,9 +337,16 @@ class FITSImageData(object):
                 uq = YTQuantity(u[0], u[1])
             else:
                 uq = None
+
             if uq is not None and uq.units.is_code_unit:
                 raise RuntimeError("Cannot use code units when creating "
                                    "a FITSImageData instance!")
+
+            if attr == "length_unit" and uq.value != 1.0:
+                mylog.warning("Converting length units "
+                              "from %s to %s." % (uq, uq.units))
+                uq = YTQuantity(1.0, uq.units)
+
             setattr(self, attr, uq)
 
     def set_wcs(self, wcs, wcsname=None, suffix=None):
@@ -772,6 +775,8 @@ def construct_image(ds, axis, data_source, center, image_res, width,
     unit = sanitize_fits_unit(unit)
     if length_unit is None:
         length_unit = unit
+    if any(char.isdigit() for char in length_unit) and "*" in length_unit:
+        length_unit = length_unit.split("*")[-1]
     cunit = [length_unit]*2
     ctype = ["LINEAR"]*2
     cdelt = [dx.in_units(length_unit), dy.in_units(length_unit)]
