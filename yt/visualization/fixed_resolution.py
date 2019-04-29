@@ -327,7 +327,7 @@ class FixedResolutionBuffer(object):
         from yt.visualization.fits_image import FITSImageData
 
         if length_unit is None:
-            length_unit = str(self.ds.unit_system["length"])
+            length_unit = self.ds.length_unit
 
         if "units" in kwargs:
             issue_deprecation_warning("The 'units' keyword argument has been "

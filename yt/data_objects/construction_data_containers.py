@@ -958,7 +958,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         """
         from yt.visualization.fits_image import FITSImageData
         if length_unit is None:
-            length_unit = str(self.ds.unit_system["length"])
+            length_unit = self.ds.length_unit
         fields = ensure_list(fields)
         fid = FITSImageData(self, fields, length_unit=length_unit)
         return fid
