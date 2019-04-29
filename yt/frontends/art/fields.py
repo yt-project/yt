@@ -137,7 +137,9 @@ class ARTFieldInfo(FieldInfoContainer):
                        sampling_type="cell",
                        function=_metallicity,
                        units='')
-
+        atoms = ['C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', \
+        'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', \
+        'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn']
         for atom in atoms:
             def _specific_metal_density(field, data):
                 nucleus_densityIa = data[('gas','metal_ia_density')].in_units("g / cm**3")*\
