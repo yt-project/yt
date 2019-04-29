@@ -341,6 +341,9 @@ class FITSImageData(object):
                 uq = YTQuantity(u[0], u[1])
             else:
                 uq = None
+            if uq is not None and uq.units.is_code_unit:
+                raise RuntimeError("Cannot use code units when creating "
+                                   "a FITSImageData instance!")
             setattr(self, attr, uq)
 
     def set_wcs(self, wcs, wcsname=None, suffix=None):
