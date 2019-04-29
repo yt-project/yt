@@ -213,6 +213,21 @@ class FITSImageData(object):
             else:
                 self.fields.append(fd)
 
+        # Sanity checking names
+        s = set()
+        duplicates = set(f for f in self.fields if f in s or s.add(f))
+        if len(duplicates) > 0:
+            for i, fd in enumerate(self.fields):
+                if fd in duplicates:
+                    if isinstance(fields[i], tuple):
+                        ftype, fname = fields[i]
+                    elif isinstance(fields[i], DerivedField):
+                        ftype, fname = fields[i].name
+                    else:
+                        raise RuntimeError("Cannot distinguish between fields "
+                                           "with same name %s!" % fd)
+                    self.fields[i] = "%s_%s" % (ftype, fname)
+
         first = True
         for i, name, field in zip(count(), self.fields, fields):
             if name not in exclude_fields:
