@@ -347,15 +347,17 @@ class FITSImageData(object):
             elif isinstance(u, numeric_type):
                 uq = YTQuantity(u, cgs_unit)
             elif isinstance(u, YTQuantity):
-                uq = u
+                uq = u.copy()
             elif isinstance(u, tuple):
                 uq = YTQuantity(u[0], u[1])
             else:
                 uq = None
 
             if uq is not None and uq.units.is_code_unit:
-                raise RuntimeError("Cannot use code units when creating "
-                                   "a FITSImageData instance!")
+                mylog.warning("Cannot use code units of '%s' " % uq.units +
+                              "when creating a FITSImageData instance! "
+                              "Converting to a cgs equivalent.")
+                uq.convert_to_cgs()
 
             if attr == "length_unit" and uq.value != 1.0:
                 mylog.warning("Converting length units "
