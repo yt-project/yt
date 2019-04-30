@@ -1381,10 +1381,12 @@ def _read_header(raw_file, field):
         header_file = level_file + "/" + field + "_H"
         with open(header_file, "r") as f:
         
-            # skip the first five lines
-            for _ in range(5):
-                f.readline()
-
+            f.readline()  # version
+            f.readline()  # how
+            f.readline()  # ncomp
+            nghost = int(f.readline().strip())  # nghost
+            f.readline()  # num boxes
+            
             # read boxes
             boxes = []
             for line in f:
@@ -1407,7 +1409,7 @@ def _read_header(raw_file, field):
             all_file_names += file_names
             all_offsets += offsets
 
-    return all_boxes, all_file_names, all_offsets
+    return nghost, all_boxes, all_file_names, all_offsets
 
 
 class WarpXHeader(object):
@@ -1481,9 +1483,11 @@ class WarpXHierarchy(BoxlibHierarchy):
         self.field_list += [('raw', f) for f in self.raw_fields]
         self.raw_field_map = {}
         self.ds.nodal_flags = {}
+        self.raw_field_nghost = {}
         for field_name in self.raw_fields:
-            boxes, file_names, offsets = _read_header(self.raw_file, field_name)
-            self.raw_field_map[field_name] = (boxes, file_names, offsets) 
+            nghost, boxes, file_names, offsets = _read_header(self.raw_file, field_name)
+            self.raw_field_map[field_name] = (boxes, file_names, offsets)
+            self.raw_field_nghost[field_name] = nghost
             self.ds.nodal_flags[field_name] = np.array(boxes[0][2])
 
 
