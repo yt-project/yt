@@ -212,10 +212,10 @@ extensions = [
                "yt/analysis_modules/halo_finding/fof/kd.c"],
               libraries=std_libs),
     Extension("yt.analysis_modules.halo_finding.hop.EnzoHop",
-              glob.glob("yt/analysis_modules/halo_finding/hop/*.c")),
+              sorted(glob.glob("yt/analysis_modules/halo_finding/hop/*.c"))),
     Extension("yt.frontends.artio._artio_caller",
               ["yt/frontends/artio/_artio_caller.pyx"] +
-              glob.glob("yt/frontends/artio/artio_headers/*.c"),
+              sorted(glob.glob("yt/frontends/artio/artio_headers/*.c")),
               include_dirs=["yt/frontends/artio/artio_headers/",
                             "yt/geometry/",
                             "yt/utilities/lib/"],

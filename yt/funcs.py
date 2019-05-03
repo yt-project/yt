@@ -649,7 +649,10 @@ def get_yt_version():
     if version is None:
         return version
     else:
-        return version[:12].strip().decode('utf-8')
+        v_str = version[:12].strip()
+        if hasattr(v_str, 'decode'):
+            v_str = v_str.decode('utf-8')
+        return v_str
 
 def get_version_stack():
     version_info = {}

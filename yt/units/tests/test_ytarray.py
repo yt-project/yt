@@ -37,9 +37,11 @@ from yt.units.yt_array import \
     unary_operators, binary_operators, \
     uconcatenate, uintersect1d, \
     uhstack, uvstack, ustack, \
-    uunion1d, loadtxt, savetxt
+    uunion1d, loadtxt, savetxt, \
+    display_ytarray
 from yt.utilities.exceptions import \
-    YTUnitOperationError, YTUfuncUnitError
+    YTUnitOperationError, YTUfuncUnitError, \
+    YTArrayTooLargeToDisplay
 from yt.testing import \
     fake_random_ds, \
     requires_module, \
@@ -1281,6 +1283,7 @@ def test_numpy_wrappers():
     union_answer = [1, 2, 3, 4, 5, 6]
     vstack_answer = [[2, 3, 4, 5, 6],
                      [7, 8, 9,10, 11]]
+    vstack_answer_last_axis = [[ 2, 7], [ 3, 8], [ 4, 9], [ 5, 10], [ 6, 11]]
 
     assert_array_equal(YTArray(catenate_answer, 'cm'),
                        uconcatenate((a1, a2)))
@@ -1301,6 +1304,9 @@ def test_numpy_wrappers():
 
     assert_array_equal(YTArray(vstack_answer, 'cm'), ustack([a2, a3]))
     assert_array_equal(vstack_answer, np.stack([a2, a3]))
+
+    assert_array_equal(YTArray(vstack_answer_last_axis, 'cm'), ustack([a2, a3], axis=-1))
+    assert_array_equal(vstack_answer_last_axis, np.stack([a2, a3], axis=-1))
 
 def test_dimensionless_conversion():
     a = YTQuantity(1, 'Zsun')
@@ -1379,3 +1385,20 @@ def test_ones_and_zeros_like():
     assert_equal(zd.units, data.units)
     assert_equal(od, YTArray([1, 1, 1], 'cm'))
     assert_equal(od.units, data.units)
+
+@requires_module('ipywidgets')
+def test_display_ytarray():
+    arr = YTArray([1,2,3], 'cm')
+    widget = display_ytarray(arr)
+    dropdown = widget.children[-1]
+    dropdown.value = 'm'
+    # Check that our original array did *not* change
+    assert_equal(arr.to_value(), np.array([1.0, 2.0, 3.0]))
+    # Check our values did change
+    assert_equal([float(_.value) for _ in widget.children[:-1]],
+        arr.to_value()/100.0)
+            
+
+def test_display_ytarray_too_large():
+    arr = YTArray([1,2,3,4], 'cm')
+    assert_raises(YTArrayTooLargeToDisplay, display_ytarray, arr)

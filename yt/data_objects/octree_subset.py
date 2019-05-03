@@ -92,8 +92,10 @@ class OctreeSubset(YTSelectionContainer):
         nz = self.nz
         if len(arr.shape) <= 2:
             n_oct = arr.shape[0] // (nz**3)
+        elif arr.shape[-1] == 3:
+            n_oct = arr.shape[-2]
         else:
-            n_oct = max(arr.shape)
+            n_oct = arr.shape[-1]
         if arr.size == nz*nz*nz*n_oct:
             new_shape = (nz, nz, nz, n_oct)
         elif arr.size == nz*nz*nz*n_oct * 3:

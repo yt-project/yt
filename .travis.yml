@@ -56,6 +56,7 @@ install:
     # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       if [[ $MINIMAL == 1 ]]; then
+        $PIP install numpy==1.10.4 cython==0.24
         $PIP install -r tests/test_minimal_requirements.txt
       else
         # Getting cartopy installed requires getting cython and numpy installed
@@ -63,7 +64,7 @@ install:
         # pyproject.toml in cartopy.
         # These versions are pinned, so we will need to update/remove them when
         # the hack is no longer necessary.
-        $PIP install numpy==1.15.3 cython==0.29
+        $PIP install numpy==1.16.2 cython==0.29.6
         $PIP install -r tests/test_requirements.txt
       fi
       $PIP install -e .

@@ -775,3 +775,14 @@ class YTCommandRequiresModule(YTException):
         msg += "or:\n"
         msg += "  pip install %s\n" % self.module
         return msg
+
+class YTArrayTooLargeToDisplay(YTException):
+    def __init__(self, size, max_size):
+        self.size = size
+        self.max_size = max_size
+
+    def __str__(self):
+        msg  = "The requested array is of size %s.\n" % self.size
+        msg += "We do not support displaying arrays larger\n"
+        msg += "than size %s." % self.max_size
+        return msg

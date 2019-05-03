@@ -18,15 +18,17 @@ import numpy as np
 import os
 from yt.utilities.on_demand_imports import \
     _yaml as yaml
-
 from yt.testing import \
      assert_almost_equal, \
      assert_rel_equal, \
      assert_equal, \
+     requires_file, \
      requires_module
 from yt.units.yt_array import \
      YTArray, \
      YTQuantity
+from yt.utilities.answer_testing.framework import \
+     data_dir_load
 from yt.utilities.cosmology import \
      Cosmology
 
@@ -222,7 +224,7 @@ def test_cosmology_calculator_answers():
     """
 
     fn = os.path.join(local_dir, 'cosmology_answers.yml')
-    data = yaml.load(open(fn, 'r'))
+    data = yaml.load(open(fn, 'r'), Loader=yaml.FullLoader)
 
     cosmologies = data['cosmologies']
     functions = data['functions']
@@ -247,3 +249,22 @@ def test_cosmology_calculator_answers():
             assert_almost_equal(
                 val, finfo['answers'][cname], 10,
                 err_msg=err_msg)
+
+enzotiny = 'enzo_tiny_cosmology/DD0020/DD0020'
+
+@requires_file(enzotiny)
+def test_dataset_cosmology_calculator():
+    """
+    Test datasets's cosmology calculator against standalone.
+    """
+
+    ds = data_dir_load(enzotiny)
+
+    co = Cosmology(
+        hubble_constant=ds.hubble_constant,
+        omega_matter=ds.omega_matter,
+        omega_lambda=ds.omega_lambda)
+
+    v1 = ds.cosmology.comoving_radial_distance(1, 5).to('Mpccm').v
+    v2 = co.comoving_radial_distance(1, 5).to('Mpccm').v
+    assert_equal(v1, v2)
