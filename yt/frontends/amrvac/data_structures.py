@@ -175,7 +175,6 @@ class AMRVACHierarchy(GridIndex):
             self.grid_right_edge[igrid, idim] = right_edge
         for idim, width in enumerate(patch['width']):
             self.grid_dimensions[igrid, idim] = width
-        print(self.grid_dimensions)
 
 
 
@@ -253,6 +252,7 @@ class AMRVACHierarchy(GridIndex):
     def _populate_grid_objects(self):
         lvls = set(self.grid_levels[:, 0])
         for lvl in lvls:
+            # TODO: @Niels: I think this gives a 'dx referenced before assignment' error when calling ds.print_stats()
             # set up Children and Parent...
             pass
         for g in self.grids:
@@ -290,7 +290,7 @@ class AMRVACDataset(Dataset):
 
         # TODO: MPI-AMRVAC has the possibility to switch between SI and CGS units...
 
-        """
+
         CGS = True
         He_abundance = 0.1
         H_abundance = 1 - He_abundance
@@ -322,20 +322,20 @@ class AMRVACDataset(Dataset):
         setdefaultattr(self, "magnetic_unit", self.quan(unit_magneticfield, "gauss"))
         setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
         setdefaultattr(self, "mass_unit", self.quan(unit_mass, "g"))
-        """
 
 
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
+
+        # self.length_unit = self.quan(1.0, "cm")
+        # self.mass_unit = self.quan(1.0, "g")
+        # self.time_unit = self.quan(1.0, "s")
         #
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
 
     # TODO: uncomment this when using "setdefaultattr" above, it overrides default yt code units (see flash)
-    #def set_code_units(self):
-    #    super(AMRVACDataset, self).set_code_units()
+    def set_code_units(self):
+        super(AMRVACDataset, self).set_code_units()
 
 
     def _parse_parameter_file(self):
