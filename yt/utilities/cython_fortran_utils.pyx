@@ -190,8 +190,12 @@ cdef class FortranFile:
         attrs : iterable of iterables
             This object should be an iterable of one of the formats:
             [ (attr_name, count, struct type), ... ].
-            [ ((name1,name2,name3),count, vector type]
-            [ ((name1,name2,name3),count, 'type type type']
+            [ ((name1,name2,name3), count, vector type]
+            [ ((name1,name2,name3), count, 'type type type']
+            [ (attr_name, count, struct type, optional)]
+
+            `optional` : boolean.
+                If True, the attribute can be stored as an empty Fortran record.
 
         Returns
         -------
