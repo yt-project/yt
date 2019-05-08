@@ -139,7 +139,7 @@ class RAMSESDomainFile(object):
 
         for header in ramses_header(hvals):
             hvals.update(f.read_attrs(header))
-        f.seek(4+8+4)  # skip reading of mass_sph
+        f.seek(4+8+4, 1)  # skip reading of mass_sph
         # For speedup, skip reading of 'headl' and 'taill'
         f.skip(2)
         hvals['numbl'] = f.read_vector('i')
