@@ -42,7 +42,7 @@ def ramses_header(hvals):
                  ('stat', 3, 'd'),
                  ('cosm', 7, 'd'),
                  ('timing', 5, 'd'),
-                 #('mass_sph', 1, 'd') 
+                 ('mass_sph', 1, 'd', True)
                  )
     yield next_set
 
