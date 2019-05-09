@@ -373,10 +373,10 @@ def test_formation_time():
 
 @requires_file(ramses_new_format)
 def test_cooling_fields():
-    
+
     #Test the field is being loaded correctly
     ds=yt.load(ramses_new_format)
-    
+
     #Derived cooling fields
     assert ('gas','cooling_net') in ds.derived_field_list
     assert ('gas','cooling_total') in ds.derived_field_list
@@ -395,7 +395,7 @@ def test_cooling_fields():
     assert ('gas','heating_primordial_prime') in ds.derived_field_list
     assert ('gas','heating_compton_prime') in ds.derived_field_list
     assert ('gas','mu') in ds.derived_field_list
-    
+
     #Abundances
     assert ('gas','Electron_number_density') in ds.derived_field_list
     assert ('gas','HI_number_density') in ds.derived_field_list
