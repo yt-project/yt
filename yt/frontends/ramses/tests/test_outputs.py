@@ -426,3 +426,15 @@ def test_ramses_mixed_files():
 
     # Access the field
     ds.r[('gas', 'mixed_files')]
+
+ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
+@requires_file(ramses_empty_record)
+def test_ramses_empty_record():
+    # Test that yt can load datasets with empty records
+    ds = yt.load(ramses_empty_record)
+
+    # This should not fail
+    ds.index
+
+    # Access some field
+    ds.r[('gas', 'density')]
