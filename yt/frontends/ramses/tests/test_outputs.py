@@ -373,10 +373,10 @@ def test_formation_time():
 
 @requires_file(ramses_new_format)
 def test_cooling_fields():
-    
+
     #Test the field is being loaded correctly
     ds=yt.load(ramses_new_format)
-    
+
     #Derived cooling fields
     assert ('gas','cooling_net') in ds.derived_field_list
     assert ('gas','cooling_total') in ds.derived_field_list
@@ -395,7 +395,7 @@ def test_cooling_fields():
     assert ('gas','heating_primordial_prime') in ds.derived_field_list
     assert ('gas','heating_compton_prime') in ds.derived_field_list
     assert ('gas','mu') in ds.derived_field_list
-    
+
     #Abundances
     assert ('gas','Electron_number_density') in ds.derived_field_list
     assert ('gas','HI_number_density') in ds.derived_field_list
@@ -426,3 +426,15 @@ def test_ramses_mixed_files():
 
     # Access the field
     ds.r[('gas', 'mixed_files')]
+
+ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
+@requires_file(ramses_empty_record)
+def test_ramses_empty_record():
+    # Test that yt can load datasets with empty records
+    ds = yt.load(ramses_empty_record)
+
+    # This should not fail
+    ds.index
+
+    # Access some field
+    ds.r[('gas', 'density')]
