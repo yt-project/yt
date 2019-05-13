@@ -57,6 +57,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
         for data_file in self._get_data_files(chunks, ptf):
+            si, ei = data_file.start, data_file.end
             cols = []
             for field_list in ptf.values():
                 cols.extend(field_list)
@@ -70,7 +71,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
             if mask is None: continue
             for ptype, field_list in sorted(ptf.items()):
                 for field in field_list:
-                    data = halos[field][mask].astype('float64')
+                    data = halos[field][si:ei][mask].astype('float64')
                     yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):

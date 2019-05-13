@@ -261,7 +261,11 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
                 return convert(data[ds_field][:, 'xyz'.index(ax)])
             return _mag_field
         for ax in registry.ds.coordinates.axis_order:
-            registry.add_field((ftype, "particle_magnetic_field_%s" % ax),
+            fname = "particle_magnetic_field_%s" % ax
+            registry.add_field((ds_ftype, fname),
                                sampling_type=sampling_type,
                                function=mag_field(ax),
                                units=units)
+            sph_ptype = getattr(registry.ds, "_sph_ptype", None)
+            if ds_ftype == sph_ptype:
+                registry.alias((ftype, "magnetic_field_%s" % ax), (ds_ftype, fname))

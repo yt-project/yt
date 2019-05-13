@@ -61,6 +61,10 @@ class HaloCatalogFile(ParticleFile):
         dle = self.ds.domain_left_edge.to('code_length').v
         dw = self.ds.domain_width.to('code_length').v
         pos = self._read_particle_positions(ptype, f=f)
+        si, ei = self.start, self.end
+        if None not in (si, ei):
+            pos = pos[si:ei]
+
         np.subtract(pos, dle, out=pos)
         np.mod(pos, dw, out=pos)
         np.add(pos, dle, out=pos)

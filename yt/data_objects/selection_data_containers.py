@@ -23,9 +23,19 @@ from yt.data_objects.static_output import Dataset
 from yt.extern.six import string_types
 from yt.frontends.sph.data_structures import \
     SPHDataset
-from yt.funcs import ensure_list, iterable, validate_width_tuple, \
-    fix_length, fix_axis, validate_3d_array, validate_float, \
-    validate_iterable, validate_object, validate_axis, validate_center
+from yt.funcs import \
+    ensure_list, \
+    iterable, \
+    validate_width_tuple, \
+    fix_length, \
+    fix_axis, \
+    mylog, \
+    validate_3d_array, \
+    validate_float, \
+    validate_iterable, \
+    validate_object, \
+    validate_axis, \
+    validate_center
 from yt.units.yt_array import \
     udot, \
     unorm, \
@@ -215,8 +225,7 @@ class YTRay(YTSelectionContainer1D):
     >>> my_ray = ds.ray(...)
     >>> ray_sort = np.argsort(my_ray["t"])
     >>> density = my_ray["density"][ray_sort]
-
-"""
+    """
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     _container_fields = ("t", "dts")
@@ -242,13 +251,11 @@ class YTRay(YTSelectionContainer1D):
             self.end_point = \
               self.ds.arr(end_point, 'code_length',
                           dtype='float64')
-        # FIXME FIXME FIXME don't merge this code if this comment is still here
-        # Right now we don't handle periodic offsets correctly for particle rays
-        # need to check if we do handle it correctly for grid codes and how we
-        # handle it there.
         if ((self.start_point < self.ds.domain_left_edge).any() or
             (self.end_point > self.ds.domain_right_edge).any()):
-            raise RuntimeError("Need to fix case of ray extending beyond edge of domain")
+            mylog.warn(
+                'Ray start or end is outside the domain. ' +
+                'Returned data will only be for the ray section inside the domain.')
         self.vec = self.end_point - self.start_point
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
@@ -678,6 +685,18 @@ class YTDisk(YTSelectionContainer3D):
         self.radius = fix_length(radius, self.ds)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
 
+    def _get_bbox(self):
+        """
+        Return the minimum bounding box for the disk.
+        """
+        # http://www.iquilezles.org/www/articles/diskbbox/diskbbox.htm
+        pa = self.center + self._norm_vec*self.height
+        pb = self.center - self._norm_vec*self.height
+        a = pa - pb
+        db = self.radius*np.sqrt(1.0-a.d*a.d/np.dot(a,a))
+        return np.minimum(pa-db, pb-db), np.maximum(pa+db, pb+db)
+
+
 class YTRegion(YTSelectionContainer3D):
     """A 3D region of data with an arbitrary center.
 
@@ -721,6 +740,13 @@ class YTRegion(YTSelectionContainer3D):
             # need to assign this dataset's unit registry to the YTArray
             self.right_edge = self.ds.arr(right_edge.copy())
 
+    def _get_bbox(self):
+        """
+        Return the minimum bounding box for the region.
+        """
+        return self.left_edge, self.right_edge
+
+
 class YTDataCollection(YTSelectionContainer3D):
     """
     By selecting an arbitrary *object_list*, we can act on those grids.
@@ -741,6 +767,7 @@ class YTDataCollection(YTSelectionContainer3D):
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],
                                 dtype="int64")
         self._obj_list = obj_list
+
 
 class YTSphere(YTSelectionContainer3D):
     """
@@ -783,6 +810,13 @@ class YTSphere(YTSelectionContainer3D):
         self.set_field_parameter('radius', radius)
         self.set_field_parameter("center", self.center)
         self.radius = radius
+
+    def _get_bbox(self):
+        """
+        Return the minimum bounding box for the sphere.
+        """
+        return -self.radius + self.center, self.radius + self.center
+
 
 class YTEllipsoid(YTSelectionContainer3D):
     """
@@ -873,6 +907,15 @@ class YTEllipsoid(YTSelectionContainer3D):
         self.set_field_parameter('e0', e0)
         self.set_field_parameter('e1', e1)
         self.set_field_parameter('e2', e2)
+
+    def _get_bbox(self):
+        """
+        Get the bounding box for the ellipsoid. NOTE that in this case
+        it is not the *minimum* bounding box.
+        """
+        radius = self.ds.arr(np.max([self._A, self._B, self._C]), "code_length")
+        return -radius + self.center, radius + self.center
+
 
 class YTCutRegion(YTSelectionContainer3D):
     """
@@ -1059,6 +1102,14 @@ class YTCutRegion(YTSelectionContainer3D):
     @property
     def fwidth(self):
         return self.base_object.fwidth[self._cond_ind,:]
+
+    def _get_bbox(self):
+        """
+        Get the bounding box for the cut region. Here we just use
+        the bounding box for the source region.
+        """
+        return self.base_object._get_bbox()
+
 
 class YTIntersectionContainer3D(YTSelectionContainer3D):
     """

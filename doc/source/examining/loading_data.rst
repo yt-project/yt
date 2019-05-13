@@ -1298,7 +1298,7 @@ yt will utilize length, mass and time to set up all other units.
 .. _loading-swift-data:
 
 SWIFT Data
------------
+----------
 
 yt has support for reading in SWIFT data from the HDF5 file format. It is able
 to access all particles and fields which are stored on-disk and it is also able
@@ -1315,20 +1315,47 @@ SWIFT data in HDF5 format can be loaded with the ``load`` command:
    import yt
    ds = yt.load("EAGLE_6/eagle_0005.hdf5")
 
+.. _arepo-data:
+
+Arepo Data
+----------
+
+Arepo data is currently treated as SPH data. The gas cells have smoothing lengths
+assigned using the following prescription for a given gas cell :math:`i`:
+
+.. math::
+
+    h_{\rm sml} = \alpha\left(\frac{3}{4\pi}\frac{m_i}{\rho_i}\right)^{1/3}
+
+where :math:`\alpha` is a constant factor. By default, :math:`\alpha = 2`. In
+practice, smoothing lengths are only used for creating slices and projections,
+and this value of :math:`\alpha` works well for this purpose. However, this 
+value can be changed when loading an Arepo dataset by setting the 
+``smoothing_factor`` parameter:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("snapshot_100.hdf5", smoothing_factor=1.5)
+
+Currently, only Arepo HDF5 snapshots are supported.
+
 .. _loading-gamer-data:
 
 GAMER Data
 ----------
 
-GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the data like this:
+GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the 
+data like this:
 
 .. code-block:: python
 
    import yt
    ds = yt.load("InteractingJets/jet_000002")
 
-For simulations without units (i.e., OPT__UNIT = 0), you can supply conversions for
-length, time, and mass to ``load`` using the ``units_override`` functionality:
+For simulations without units (i.e., OPT__UNIT = 0), you can supply conversions 
+for length, time, and mass to ``load`` using the ``units_override`` 
+functionality:
 
 .. code-block:: python
 
@@ -1338,14 +1365,16 @@ length, time, and mass to ``load`` using the ``units_override`` functionality:
                   "mass_unit"  :(1.4690033e+36,"g") }
    ds = yt.load("InteractingJets/jet_000002", units_override=code_units)
 
-This means that the yt fields, e.g., ``("gas","density")``, will be in cgs units, but the GAMER fields,
-e.g., ``("gamer","Dens")``, will be in code units.
+This means that the yt fields, e.g., ``("gas","density")``, will be in cgs units, 
+but the GAMER fields, e.g., ``("gamer","Dens")``, will be in code units.
 
-Particle data are supported and are always stored in the same file as the grid data.
+Particle data are supported and are always stored in the same file as the grid 
+data.
 
 .. rubric:: Caveats
 
-* GAMER data in raw binary format (i.e., OPT__OUTPUT_TOTAL = C-binary) is not supported.
+* GAMER data in raw binary format (i.e., OPT__OUTPUT_TOTAL = C-binary) is not 
+supported.
 
 .. _loading-amr-data:
 
@@ -1660,6 +1689,41 @@ The ``load_particles`` function also accepts the following keyword parameters:
 
 ``bbox``
        The bounding box for the particle positions.
+
+A novel use of the ``load_particles`` function is to facilitate SPH
+visualization of non-SPH particles. See the example below:
+
+.. code-block:: python
+
+    import yt
+
+    # Load dataset and center on the dense region
+    ds = yt.load('FIRE_M12i_ref11/snapshot_600.hdf5')
+    _, center = ds.find_max(('PartType0', 'density'))
+
+    # Reload DM particles into a stream dataset
+    ad = ds.all_data()
+    pt = 'PartType1'
+    fields = ['particle_mass'] + [f'particle_position_{ax}' for ax in 'xyz']
+    data = {field: ad[pt, field] for field in fields}
+    ds_dm = yt.load_particles(data, data_source=ad)
+
+    # Generate the missing SPH fields
+    ds_dm.add_sph_fields()
+
+    # Make the SPH projection plot
+    p = yt.ProjectionPlot(ds_dm, 'z', ('io', 'density'),
+                          center=center, width=(1, 'Mpc'))
+    p.set_unit('density', 'Msun/kpc**2')
+    p.show()
+
+Here we see two new things. First, ``load_particles`` accepts a ``data_source``
+argument to infer parameters like code units, which could be tedious to provide
+otherwise. Second, the returned
+:class:`~yt.frontends.stream.data_structures.StreamParticleDataset` has an
+:meth:`~yt.frontends.stream.data_structures.StreamParticleDataset.add_sph_fields`
+method, to create the ``smoothing_length`` and ``density`` fields required for
+SPH visualization to work.
 
 .. _loading-gizmo-data:
 

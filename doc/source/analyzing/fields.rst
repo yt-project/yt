@@ -455,6 +455,8 @@ General Particle Fields
 Every particle will contain both a ``particle_position`` and ``particle_velocity``
 that tracks the position and velocity (respectively) in code units.
 
+.. FIXME: Update the following sections to reflect differences in yt-4.0.
+
 .. _deposited-particle-fields:
 
 Deposited Particle Fields
@@ -496,49 +498,7 @@ available are:
 SPH Fields
 ----------
 
-For gas particles from SPH simulations, each particle will typically carry
-a field for the smoothing length ``h``, which is roughly equivalent to
-``(m/\rho)^{1/3}``, where ``m`` and ``rho`` are the particle mass and density
-respectively.  This can be useful for doing neighbour finding.
-
-As a note, SPH fields are special cases of the "deposited" particle fields.
-They contain an additional piece of information about what is being examined,
-and any fields that are recognized as being identical to intrinsic yt fields
-will be aliased.  For example, in a Gadget dataset, the smoothed density of
-``Gas`` particles will be aliased to the mesh field ``("gas", "density")`` so
-that operations conducted on the mesh field ``density`` (which are frequent
-occurrences) will operate on the smoothed gas density from the SPH particles.
-
-The special deposition types based on smoothing (``smoothed``) are defined in
-the file ``yt/geometry/particle_smooth.pyx``, and they require non-local
-operations defined on a variable number of neighbors.  The default smoothing
-type utilizes a cubic spline kernel and uses 64 nearest neighbors, providing a
-volume-normalized smoothing.  Other types are possible, and yt provides
-functionality for many different types of non-local correlation between
-particles.  (For instance, a friends-of-friends grouper has been built on this
-same infrastructure.)
-
-Every particle field on a smoothed particle type is the source for a smoothed
-field; this is not always useful, but it errs on the side of extra fields,
-rather than too few fields.  (For instance, it may be unlikely that the
-smoothed angular momentum field will be useful.)  The naming scheme is an
-extension of the scheme described in :ref:`deposited-particle-fields`, and is
-defined as such: ``("deposit", "particletype_smoothed_fieldname")``, where
-``fieldname`` is the name of the field being smoothed.  For example, smoothed
-``Temperature`` of the ``Gas`` particle type would be ``("deposit",
-"Gas_smoothed_Temperature")``, which in most cases would be aliased to the
-field ``("gas", "temperature")`` for convenience.
-
-Other smoothing kernels besides the cubic spline one are available through a
-keyword argument ``kernel_name`` of the method ``add_smoothed_particle_field``.
-Current available kernel names include:
-
-* ``cubic``, ``quartic``, and ``quintic`` - spline kernels.
-* ``wendland2``, ``wendland4`` and ``wendland6`` - Wendland kernels.
-
-The added smoothed particle field can be accessed by
-``("deposit", "particletype_kernelname_smoothed_fieldname")`` (except for the
-cubic spline kernel, which obeys the naming scheme given above).
+See :ref:`yt4differences`.
 
 Computing the Nth Nearest Neighbor
 ----------------------------------
@@ -567,7 +527,3 @@ Note that ``fn`` here is the "field name" that yt adds.  It will be of the form
 default this is 64, but it can be supplied as the final argument to
 ``add_nearest_neighbor_field``.  For the example above, it would be
 ``nearest_neighbor_64``.
-
-This can then be used as input to the function
-``add_volume_weighted_smoothed_field``, which can enable smoothing particle
-types that would normally not be smoothed.

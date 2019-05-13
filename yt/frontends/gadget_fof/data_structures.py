@@ -44,9 +44,6 @@ from yt.utilities.logger import ytLogger as \
     mylog
 
 class GadgetFOFParticleIndex(ParticleIndex):
-    def __init__(self, ds, dataset_type):
-        super(GadgetFOFParticleIndex, self).__init__(ds, dataset_type)
-
     def _calculate_particle_count(self):
         """
         Calculate the total number of each type of particle.
@@ -110,14 +107,15 @@ class GadgetFOFParticleIndex(ParticleIndex):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
-    def _setup_geometry(self):
-        super(GadgetFOFParticleIndex, self)._setup_geometry()
+    def _setup_data_io(self):
+        super(GadgetFOFParticleIndex, self)._setup_data_io()
+        self._setup_filenames()
         self._calculate_particle_count()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
 
 class GadgetFOFHDF5File(HaloCatalogFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, frange):
         with h5py.File(filename, "r") as f:
             self.header = \
               dict((str(field), val)
@@ -127,11 +125,9 @@ class GadgetFOFHDF5File(HaloCatalogFile):
             self.group_subs_sum = f["Group/GroupNsubs"][()].sum() \
               if "Group/GroupNsubs" in f else 0
         self.total_ids = self.header["Nids_ThisFile"]
-        self.total_particles = \
-          {"Group": self.header["Ngroups_ThisFile"],
-           "Subhalo": self.header["Nsubgroups_ThisFile"]}
         self.total_offset = 0
-        super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
+        super(GadgetFOFHDF5File, self).__init__(
+            ds, io, filename, file_id, frange)
 
     def _read_particle_positions(self, ptype, f=None):
         """
