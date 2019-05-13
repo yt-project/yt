@@ -356,13 +356,9 @@ class Dataset(object):
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
-<<<<<<< HEAD
             if not isinstance(v, YTArray) and v is not None:
-=======
-            if not isinstance(v, YTArray):
                 # Note that we don't add on _ipython_display_ here because
                 # everything is stored inside a MutableAttribute.
->>>>>>> upstream/master
                 v = self.arr(v, "code_length")
                 setattr(self, n, v)
 
