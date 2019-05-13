@@ -32,6 +32,8 @@ from yt.utilities.lib.misc_utilities import \
 
 @register_field_plugin
 def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
+    # Angular momentum defined here needs to be consistent with
+    # _particle_specific_angular_momentum in particle_fields.py
     unit_system = registry.ds.unit_system
     def _specific_angular_momentum_x(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
@@ -39,7 +41,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
         rv = data.ds.arr(rv, input_units=units)
-        return yv * rv[...,2] - zv * rv[...,1]
+        return rv[...,1] * zv - rv[...,2] * yv
 
     def _specific_angular_momentum_y(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
@@ -47,7 +49,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
         rv = data.ds.arr(rv, input_units=units)
-        return - (xv * rv[...,2] - zv * rv[...,0])
+        return rv[...,2] * xv - rv[...,0] * zv
 
     def _specific_angular_momentum_z(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
@@ -55,7 +57,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
         rv = data.ds.arr(rv, input_units=units)
-        return xv * rv[...,1] - yv * rv[...,0]
+        return rv[...,0] * yv - rv[...,1] * xv
 
     registry.add_field((ftype, "specific_angular_momentum_x"),
                        sampling_type="local",

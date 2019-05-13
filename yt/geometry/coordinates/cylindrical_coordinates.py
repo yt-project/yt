@@ -245,7 +245,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             width = [2.0 * np.pi * self.ds.domain_width.uq,
                      self.ds.domain_width[z_ax]]
         elif name == "theta":
-            width = [self.ds.domain_right_edge[r_ax],
+            width = [self.ds.domain_width[r_ax],
                      self.ds.domain_width[z_ax]]
         elif name == "z":
             width = [2.0*self.ds.domain_right_edge[r_ax],

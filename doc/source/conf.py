@@ -259,3 +259,8 @@ intersphinx_mapping = {
 
 if not on_rtd:
     autosummary_generate = glob.glob("reference/api/api.rst")
+
+# as of Sphinx/1.6.1 this is the supported way to link custom style sheets
+#   see: https://github.com/ryan-roemer/sphinx-bootstrap-theme#adding-custom-css
+def setup(app):
+    app.add_stylesheet("custom.css")

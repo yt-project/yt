@@ -24,6 +24,9 @@ from .derived_field import \
 from .field_plugin_registry import \
     register_field_plugin
 
+from yt.geometry.geometry_handler import \
+    is_curvilinear
+
 from .vector_operations import \
     create_averaged_field, \
     create_magnitude_field, \
@@ -197,6 +200,9 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                           weight="cell_mass")
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
+    # Current implementation for gradient is not valid for curvilinear geometries
+    if is_curvilinear(registry.ds.geometry): return
+
     assert(isinstance(grad_field, tuple))
     ftype, fname = grad_field
     if slice_info is None:

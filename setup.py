@@ -246,7 +246,7 @@ for ext_name in lib_exts:
 extensions = [
     Extension("yt.frontends.artio._artio_caller",
               ["yt/frontends/artio/_artio_caller.pyx"] +
-              glob.glob("yt/frontends/artio/artio_headers/*.c"),
+              sorted(glob.glob("yt/frontends/artio/artio_headers/*.c")),
               include_dirs=["yt/frontends/artio/artio_headers/",
                             "yt/geometry/",
                             "yt/utilities/lib/"],

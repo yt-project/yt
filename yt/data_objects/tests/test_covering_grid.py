@@ -2,7 +2,12 @@ import numpy as np
 
 from yt.frontends.stream.data_structures import load_particles
 from yt.testing import fake_random_ds, assert_equal, assert_almost_equal, \
-    fake_octree_ds
+    fake_octree_ds, requires_file
+from yt.convenience import load
+
+# cylindrical data for covering_grid test
+cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
+cyl_3d = "MHD_Cyl3d_hdf5_plt_cnt_0100/MHD_Cyl3d_hdf5_plt_cnt_0100.hdf5"
 
 from yt.units import kpc
 
@@ -10,46 +15,49 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
 
+@requires_file(cyl_2d)
+@requires_file(cyl_3d)
 def test_covering_grid():
     # We decompose in different ways
     for level in [0, 1, 2]:
         for nprocs in [1, 2, 4, 8]:
             ds = fake_random_ds(16, nprocs = nprocs)
+            axis_name = ds.coordinates.axis_name
             dn = ds.refine_by**level 
             cg = ds.covering_grid(level, [0.0, 0.0, 0.0],
                     dn * ds.domain_dimensions)
             # Test coordinate generation
-            assert_equal(np.unique(cg["dx"]).size, 1)
-            xmi = cg["x"].min()
-            xma = cg["x"].max()
-            dx = cg["dx"].flat[0:1]
+            assert_equal(np.unique(cg["d%s" % axis_name[0]]).size, 1)
+            xmi = cg[axis_name[0]].min()
+            xma = cg[axis_name[0]].max()
+            dx = cg["d%s" % axis_name[0]].flat[0:1]
             edges = ds.arr([[0,1],[0,1],[0,1]], 'code_length')
             assert_equal(xmi, edges[0,0] + dx/2.0)
-            assert_equal(xmi, cg["x"][0,0,0])
-            assert_equal(xmi, cg["x"][0,1,1])
+            assert_equal(xmi, cg[axis_name[0]][0,0,0])
+            assert_equal(xmi, cg[axis_name[0]][0,1,1])
             assert_equal(xma, edges[0,1] - dx/2.0)
-            assert_equal(xma, cg["x"][-1,0,0])
-            assert_equal(xma, cg["x"][-1,1,1])
-            assert_equal(np.unique(cg["dy"]).size, 1)
-            ymi = cg["y"].min()
-            yma = cg["y"].max()
-            dy = cg["dy"][0]
+            assert_equal(xma, cg[axis_name[0]][-1,0,0])
+            assert_equal(xma, cg[axis_name[0]][-1,1,1])
+            assert_equal(np.unique(cg["d%s" % axis_name[1]]).size, 1)
+            ymi = cg[axis_name[1]].min()
+            yma = cg[axis_name[1]].max()
+            dy = cg["d%s" % axis_name[1]][0]
             assert_equal(ymi, edges[1,0] + dy/2.0)
-            assert_equal(ymi, cg["y"][0,0,0])
-            assert_equal(ymi, cg["y"][1,0,1])
+            assert_equal(ymi, cg[axis_name[1]][0,0,0])
+            assert_equal(ymi, cg[axis_name[1]][1,0,1])
             assert_equal(yma, edges[1,1] - dy/2.0)
-            assert_equal(yma, cg["y"][0,-1,0])
-            assert_equal(yma, cg["y"][1,-1,1])
-            assert_equal(np.unique(cg["dz"]).size, 1)
-            zmi = cg["z"].min()
-            zma = cg["z"].max()
-            dz = cg["dz"][0]
+            assert_equal(yma, cg[axis_name[1]][0,-1,0])
+            assert_equal(yma, cg[axis_name[1]][1,-1,1])
+            assert_equal(np.unique(cg["d%s" % axis_name[2]]).size, 1)
+            zmi = cg[axis_name[2]].min()
+            zma = cg[axis_name[2]].max()
+            dz = cg["d%s" % axis_name[2]][0]
             assert_equal(zmi, edges[2,0] + dz/2.0)
-            assert_equal(zmi, cg["z"][0,0,0])
-            assert_equal(zmi, cg["z"][1,1,0])
+            assert_equal(zmi, cg[axis_name[2]][0,0,0])
+            assert_equal(zmi, cg[axis_name[2]][1,1,0])
             assert_equal(zma, edges[2,1] - dz/2.0)
-            assert_equal(zma, cg["z"][0,0,-1])
-            assert_equal(zma, cg["z"][1,1,-1])
+            assert_equal(zma, cg[axis_name[2]][0,0,-1])
+            assert_equal(zma, cg[axis_name[2]][1,1,-1])
             # Now we test other attributes
             assert_equal(cg["ones"].max(), 1.0)
             assert_equal(cg["ones"].min(), 1.0)
@@ -63,6 +71,15 @@ def test_covering_grid():
                                       dn*di[1]+i:dn*(di[1]+dd[1])+i:dn,
                                       dn*di[2]+i:dn*(di[2]+dd[2])+i:dn]
                     assert_equal(f, g["density"])
+
+    # More tests for cylindrical geometry
+    for fn in [cyl_2d, cyl_3d]:
+        ds = load(fn)
+        ad = ds.all_data()
+        upper_ad = ad.cut_region(["obj['z'] > 0"])
+        sp = ds.sphere((0, 0, 0), 0.5 * ds.domain_width[0],
+                       data_source=upper_ad)
+        sp.quantities.total_mass()
 
 def test_smoothed_covering_grid():
     # We decompose in different ways

@@ -29,6 +29,8 @@ from six.moves import cPickle
 from yt.config import ytcfg
 from yt.fields.derived_field import \
     DerivedField
+from yt.fields.field_type_container import \
+    FieldTypeContainer
 from yt.funcs import \
     mylog, \
     set_intersection, \
@@ -69,7 +71,8 @@ from yt.utilities.minimal_representation import \
     MinimalDataset
 from yt.units.yt_array import \
     YTArray, \
-    YTQuantity
+    YTQuantity, \
+    _wrap_display_ytarray
 from yt.units.unit_systems import \
     create_code_unit_system, \
     _make_unit_system_copy
@@ -200,8 +203,9 @@ class IndexProxy(object):
 
 class MutableAttribute(object):
     """A descriptor for mutable data"""
-    def __init__(self):
+    def __init__(self, display_array = False):
         self.data = weakref.WeakKeyDictionary()
+        self.display_array = display_array
 
     def __get__(self, instance, owner):
         if not instance:
@@ -211,6 +215,14 @@ class MutableAttribute(object):
             ret = ret.copy()
         except AttributeError:
             pass
+        if self.display_array:
+            try:
+                setattr(ret, "_ipython_display_",
+                        functools.partial(_wrap_display_ytarray, ret))
+            # This will error out if the items have yet to be turned into
+            # YTArrays, in which case we just let it go.
+            except AttributeError:
+                pass
         return ret
 
     def __set__(self, instance, value):
@@ -344,7 +356,13 @@ class Dataset(object):
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
+<<<<<<< HEAD
             if not isinstance(v, YTArray) and v is not None:
+=======
+            if not isinstance(v, YTArray):
+                # Note that we don't add on _ipython_display_ here because
+                # everything is stored inside a MutableAttribute.
+>>>>>>> upstream/master
                 v = self.arr(v, "code_length")
                 setattr(self, n, v)
 
@@ -407,11 +425,11 @@ class Dataset(object):
             self._checksum = m
         return self._checksum
 
-    domain_left_edge = MutableAttribute()
-    domain_right_edge = MutableAttribute()
-    domain_width = MutableAttribute()
-    domain_dimensions = MutableAttribute()
-    domain_center = MutableAttribute()
+    domain_left_edge = MutableAttribute(True)
+    domain_right_edge = MutableAttribute(True)
+    domain_width = MutableAttribute(True)
+    domain_dimensions = MutableAttribute(False)
+    domain_center = MutableAttribute(True)
 
     @property
     def _mrep(self):

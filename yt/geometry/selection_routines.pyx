@@ -1152,7 +1152,10 @@ cdef class CutRegionSelector(SelectorObject):
     cdef tuple _conditionals
 
     def __init__(self, dobj):
-        positions = np.array([dobj['index', 'x'], dobj['index', 'y'], dobj['index', 'z']]).T
+        axis_name = dobj.ds.coordinates.axis_name
+        positions = np.array([dobj['index', axis_name[0]],
+                              dobj['index', axis_name[1]],
+                              dobj['index', axis_name[2]]]).T
         self._conditionals = tuple(dobj.conditionals)
         self._positions = set(tuple(position) for position in positions)
 

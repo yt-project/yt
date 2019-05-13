@@ -104,8 +104,9 @@ answer_tests:
   local_ramses_001:
     - yt/frontends/ramses/tests/test_outputs.py
 
-  local_ytdata_004:
-    - yt/frontends/ytdata
+  local_ytdata_006:
+    - yt/frontends/ytdata/tests/test_outputs.py
+    - yt/frontends/ytdata/tests/test_old_outputs.py
 
   local_axialpix_006:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization

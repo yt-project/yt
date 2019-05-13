@@ -190,8 +190,12 @@ cdef class FortranFile:
         attrs : iterable of iterables
             This object should be an iterable of one of the formats:
             [ (attr_name, count, struct type), ... ].
-            [ ((name1,name2,name3),count, vector type]
-            [ ((name1,name2,name3),count, 'type type type']
+            [ ((name1,name2,name3), count, vector type]
+            [ ((name1,name2,name3), count, 'type type type']
+            [ (attr_name, count, struct type, optional)]
+
+            `optional` : boolean.
+                If True, the attribute can be stored as an empty Fortran record.
 
         Returns
         -------
@@ -218,12 +222,28 @@ cdef class FortranFile:
 
         data = {}
 
-        for key, n, dtype in attrs:
+        for a in attrs:
+            if len(a) == 3:
+                key, n, dtype = a
+                optional = False
+            else:
+                key, n, dtype, optional = a
             if n == 1:
-                data[key] = self.read_vector(dtype)[0]
+                tmp = self.read_vector(dtype)
+                if len(tmp) == 0 and optional:
+                    continue
+                elif len(tmp) == 1:
+                    data[key] = tmp[0]
+                else:
+                    raise ValueError("Expected a record of length %s, got %s" % (n, len(tmp)))
             else:
                 tmp = self.read_vector(dtype)
-                if type(key) == tuple:
+                if len(tmp) == 0 and optional:
+                    continue
+                elif len(tmp) != n:
+                    raise ValueError("Expected a record of length %s, got %s" % (n, len(tmp)))
+
+                if isinstance(key, tuple):
                     # There are multiple keys
                     for ikey in range(n):
                         data[key[ikey]] = tmp[ikey]
