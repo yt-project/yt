@@ -365,7 +365,7 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_data_container" and \
-                cont_type in ["cutting", "proj", "slice"]:
+                cont_type in ["cutting", "proj", "slice", "quad_proj"]:
                 return True
         return False
 
