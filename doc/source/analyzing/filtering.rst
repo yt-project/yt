@@ -96,7 +96,7 @@ filtering out unwanted regions. Such wrapper functions are methods of
    import yt
    ds = yt.load('Enzo_64/DD0042/data0042')
    ad = ds.all_data()
-   overpressure_and_fast = ds.include_above('pressure', 1e-14)
+   overpressure_and_fast = ad.include_above('pressure', 1e-14)
    # You can chain include_xx and exclude_xx to produce the intersection of cut regions
    overpressure_and_fast = overpressure_and_fast.include_above('velocity_magnitude', 1e2, 'km/s')
 
