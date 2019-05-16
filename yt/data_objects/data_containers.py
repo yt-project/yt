@@ -1953,7 +1953,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self._set_center(center)
         self.coords = None
         self._grids = None
-
+   
     def cut_region(self, field_cuts, field_parameters=None):
         """
         Return a YTCutRegion, where the a cell is identified as being inside
@@ -1986,7 +1986,422 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cr = self.ds.cut_region(self, field_cuts,
                                 field_parameters=field_parameters)
         return cr
+   
+    def exclude_above(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field is above a given value are masked.
 
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field above the given value masked.
+
+        Example
+        -------
+        
+        To find the total mass of hot gas with temperature colder than 10^6 K
+        in your volume:
+
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_above('temperature', 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        
+        """
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] <= ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units +
+                '") <= ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def include_above(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field is above a given value are included.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field above the given value masked.
+        
+        Example
+        -------
+        
+        To find the total mass of hot gas with temperature warmer than 10^6 K
+        in your volume:
+
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.include_above('temperature', 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] > ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units +
+                '") > ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def exclude_equal(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field are equal to given value are masked.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field equal to the given value masked.
+
+        Example
+        -------
+
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_equal('temperature', 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] != ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units +
+                '") != ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def include_equal(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field are equal to given value are included.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field equal to the given value included.
+        
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.include_equal('temperature', 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] == ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units +
+                '") == ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def exclude_inside(self, field, min_value, max_value, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field are inside the interval from min_value to max_value.
+        
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        min_value : float
+            The minimum value inside the interval to be excluded.
+        max_value : float
+            The maximum value inside the interval to be excluded.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+        
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field inside the given interval excluded.
+        
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_inside('temperature', 1e5, 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('(obj["' + field + '"] <= ' + str(min_value) + 
+                          ') | (obj["' + field + '"] >= ' + str(max_value) + 
+                          ')')
+        else:
+            field_cuts = ('(obj["' + field + '"].in_units("' + units + 
+                          '") <= ' + str(min_value) + ') | (obj["' + field + 
+                          '"].in_units("' + units + '") >= ' + str(max_value) +
+                          ')')
+        cr = self.cut_region(field_cuts)        
+        return cr
+    
+    def include_inside(self, field, min_value, max_value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field are inside the interval from min_value to max_value are
+        included.
+        
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        min_value : float
+            The minimum value inside the interval to be excluded.
+        max_value : float
+            The maximum value inside the interval to be excluded.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+        
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field inside the given interval excluded.
+
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.include_inside('temperature', 1e5, 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('(obj["' + field + '"] > ' + str(min_value) + 
+                          ') & (obj["' + field + '"] < ' + str(max_value) + 
+                          ')')
+        else:
+            field_cuts = ('(obj["' + field + '"].in_units("' + units + 
+                          '") > ' + str(min_value) + ') & (obj["' + field + 
+                          '"].in_units("' + units + '") < ' + str(max_value) +
+                          ')')
+        cr = self.cut_region(field_cuts)        
+        return cr
+    
+    def exclude_outside(self, field, min_value, max_value, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field are outside the interval from min_value to max_value.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        min_value : float
+            The minimum value inside the interval to be excluded.
+        max_value : float
+            The maximum value inside the interval to be excluded.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field outside the given interval excluded.
+        
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_outside('temperature', 1e5, 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        cr = self.exclude_below(field, min_value, units)
+        cr = cr.exclude_above(field, max_value, units)
+        return cr
+
+    def include_outside(self, field, min_value, max_value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field are outside the interval from min_value to max_value are
+        included.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        min_value : float
+            The minimum value inside the interval to be excluded.
+        max_value : float
+            The maximum value inside the interval to be excluded.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field outside the given interval excluded.
+    
+        Example
+        -------        
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_outside('temperature', 1e5, 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        cr = self.exclude_inside(field, min_value, max_value, units)
+        return cr
+    
+    def exclude_below(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field is below a given value are masked.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field below the given value masked.
+        
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_below('temperature', 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun') 
+        """
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] >= ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units + 
+                '") >= ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def exclude_nan(self, field, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field is NaN are masked.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the NaN entries of the field masked.
+        
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_nan('temperature')
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('~np.isnan(obj["' + field + '"])')
+        else:
+            field_cuts = ('~np.isnan(obj["' + field + '"].in_units("' + units + 
+                '"))')
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def include_below(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field is below a given value are included.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with only regions with the field below the given 
+            value included.
+
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.include_below('temperature', 1e5, 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] < ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units + 
+                '") < ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+    
     def extract_isocontours(self, field, value, filename = None,
                             rescale = False, sample_values = None):
         r"""This identifies isocontours on a cell-by-cell basis, with no
