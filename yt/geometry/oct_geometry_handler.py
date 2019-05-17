@@ -80,7 +80,6 @@ class OctreeIndex(Index):
             ones = data[ptype, 'particle_ones']
 
             # Access "cell_index" field
-            cell_data = data[ftype, deposit_field].reshape(-1)
             Npart = ones.shape[0]
             ret = np.zeros(Npart)
             cell_index = np.array(data[ptype, 'cell_index'], np.int64)
@@ -95,6 +94,8 @@ class OctreeIndex(Index):
             iobj = cell_index - (icell << Nbits)
             for i, subset in enumerate(data._current_chunk.objs):
                 mask = (iobj == i)
+
+                subset.field_parameters = data.field_parameters
 
                 cell_data = subset[ftype, deposit_field].T.reshape(-1)
 
