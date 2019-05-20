@@ -45,7 +45,7 @@ def test_fits_image():
     prj = ds.proj("density", 2)
     prj_frb = prj.to_frb((0.5, "unitary"), 128)
 
-    fid1 = prj_frb.to_fits_data(fields=[("gas", "density"), ("gas","temperature")],
+    fid1 = prj_frb.to_fits_data(fields=[("gas", "density"), ("gas", "temperature")],
                                 length_unit="cm")
     fits_prj = FITSProjection(ds, "z", [ds.fields.gas.density,"temperature"],
                               image_res=128, width=(0.5, "unitary"))
@@ -91,10 +91,10 @@ def test_fits_image():
     cut = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
     cut_frb = cut.to_frb((0.5, "unitary"), 128)
 
-    fid3 = cut_frb.to_fits_data(fields=[("gas","density"),
+    fid3 = cut_frb.to_fits_data(fields=[("gas", "density"),
                                         ds.fields.gas.temperature],
                                 length_unit="cm")
-    fits_cut = FITSOffAxisSlice(ds, [0.1, 0.2, -0.9], ["density","temperature"],
+    fits_cut = FITSOffAxisSlice(ds, [0.1, 0.2, -0.9], ["density", "temperature"],
                                 image_res=128, center=[0.5, 0.42, 0.6],
                                 width=(0.5, "unitary"))
 

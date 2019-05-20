@@ -994,6 +994,7 @@ which we recommend you look at in the following order:
 
 * :ref:`radio_cubes`
 * :ref:`xray_fits`
+* :ref:`writing_fits_images`
 
 .. _loading-flash-data:
 

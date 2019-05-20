@@ -67,9 +67,6 @@ sky_prefixes.difference_update({"X", "Y", "LINEAR"})
 sky_prefixes = list(sky_prefixes)
 spec_prefixes = list(spec_names.keys())
 
-field_from_unit = {"Jy": "intensity",
-                   "K": "temperature"}
-
 
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
@@ -104,25 +101,27 @@ class FITSHierarchy(GridIndex):
         pass
 
     def _guess_name_from_units(self, units):
+        field_from_unit = {"Jy": "intensity",
+                           "K": "temperature"}
         for k,v in field_from_unit.items():
             if k in units:
                 mylog.warning("Guessing this is a %s field based on its units of %s." % (v,k))
                 return v
         return None
 
-    def _determine_image_units(self, header):
+    def _determine_image_units(self, bunit):
         try:
             try:
                 # First let AstroPy attempt to figure the unit out
-                u = _astropy.units.Unit(header["bunit"], format="fits")
-                u = str(YTQuantity.from_astropy(1.0*u).units)
+                u = 1.0*_astropy.units.Unit(bunit, format="fits")
+                u = YTQuantity.from_astropy(u).units
             except ValueError:
                 try:
                     # Let yt try it by itself
-                    u = str(self.ds.quan(1.0, header["bunit"]).units)
+                    u = self.ds.quan(1.0, bunit).units
                 except UnitParseError:
-                    u = "dimensionless"
-            return u
+                    return "dimensionless"
+            return str(u)
         except KeyError:
             return "dimensionless"
 
@@ -154,7 +153,7 @@ class FITSHierarchy(GridIndex):
                 if isinstance(hdu, _astropy.pyfits.BinTableHDU) or hdu.header["naxis"] == 0:
                     continue
                 if self._ensure_same_dims(hdu):
-                    units = self._determine_image_units(hdu.header)
+                    units = self._determine_image_units(hdu.header["bunit"])
                     try:
                         # Grab field name from btype
                         fname = hdu.header["btype"]
@@ -386,28 +385,30 @@ class FITSDataset(Dataset):
         Generates the conversion to various physical _units based on the
         parameter file
         """
-        default_length_units = [u for u,v in default_unit_symbol_lut.items()
-                                if str(v[1]) == "(length)"]
-        more_length_units = []
-        for unit in default_length_units:
-            if unit in prefixable_units:
-                more_length_units += [prefix+unit for prefix in unit_prefixes]
-        default_length_units += more_length_units
-        file_units = []
-        cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
-        for unit in (_.to_string() for _ in cunits):
-            if unit in default_length_units:
-                file_units.append(unit)
-        if len(set(file_units)) == 1:
-            length_factor = self.wcs.wcs.cdelt[0]
-            length_unit = str(file_units[0])
-            mylog.info("Found length units of %s." % (length_unit))
-        elif "length_unit" not in self.units_override:
-            self.no_cgs_equiv_length = True
-            mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
-            length_factor = 1.0
-            length_unit = "cm"
-        setdefaultattr(self, 'length_unit', self.quan(length_factor, length_unit))
+        if getattr(self, 'length_unit', None) is None:
+            default_length_units = [u for u,v in default_unit_symbol_lut.items()
+                                    if str(v[1]) == "(length)"]
+            more_length_units = []
+            for unit in default_length_units:
+                if unit in prefixable_units:
+                    more_length_units += [prefix+unit for prefix in unit_prefixes]
+            default_length_units += more_length_units
+            file_units = []
+            cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
+            for unit in (_.to_string() for _ in cunits):
+                if unit in default_length_units:
+                    file_units.append(unit)
+            if len(set(file_units)) == 1:
+                length_factor = self.wcs.wcs.cdelt[0]
+                length_unit = str(file_units[0])
+                mylog.info("Found length units of %s." % length_unit)
+            else:
+                self.no_cgs_equiv_length = True
+                mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
+                length_factor = 1.0
+                length_unit = "cm"
+            setdefaultattr(self, 'length_unit', 
+                           self.quan(length_factor, length_unit))
         for unit, cgs in [("time", "s"), ("mass", "g")]:
             # We set these to cgs for now, but they may have been overridden
             if getattr(self, unit+'_unit', None) is not None:
@@ -666,6 +667,7 @@ class SkyDataFITSDataset(FITSDataset):
     def _is_valid(cls, *args, **kwargs):
         return check_sky_coords(args, 2)
 
+
 class SpectralCubeFITSHierarchy(FITSHierarchy):
 
     def _domain_decomp(self):
@@ -768,6 +770,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
     def _is_valid(cls, *args, **kwargs):
         return check_sky_coords(args, 3)
 
+
 class EventsFITSHierarchy(FITSHierarchy):
 
     def _detect_output_fields(self):
@@ -792,6 +795,7 @@ class EventsFITSHierarchy(FITSHierarchy):
             self.grid_particle_count[:] = 0.0
         self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
         self._particle_indices[1] = self.grid_particle_count.squeeze()
+
 
 class EventsFITSDataset(SkyDataFITSDataset):
     _index_class = EventsFITSHierarchy
