@@ -54,6 +54,9 @@ class TaskQueueNonRoot(object):
             raise StopIteration
         return msg['value']
 
+    # For Python 2 compatibility
+    next = __next__
+
     def __iter__(self):
         return self
 
