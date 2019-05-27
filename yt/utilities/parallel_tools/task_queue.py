@@ -28,7 +28,7 @@ class TaskQueueNonRoot(object):
             self.comm.comm.send(new_msg, dest = 0, tag=1)
         self.subcomm.barrier()
 
-    def get_next(self):
+    def __next__(self):
         msg = messages['task_req'].copy()
         if self.subcomm.rank == 0:
             self.comm.comm.send(msg, dest = 0, tag=1)
@@ -40,8 +40,7 @@ class TaskQueueNonRoot(object):
         return msg['value']
 
     def __iter__(self):
-        while 1:
-            yield self.get_next()
+        return self
 
     def run(self, callable):
         for task in self:
