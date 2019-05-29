@@ -137,20 +137,23 @@ class ARTFieldInfo(FieldInfoContainer):
                        sampling_type="cell",
                        function=_metallicity,
                        units='')
+
         atoms = ['C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', \
         'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', \
         'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn']
-        for atom in atoms:
+        def _specific_metal_density_function(atom):
             def _specific_metal_density(field, data):
-                nucleus_densityIa = data[('gas','metal_ia_density')].in_units("g / cm**3")*\
-                                    SNIa_abundance[atom]*atomic_mass[atom]**2
-                nucleus_densityII = data[('gas','metal_ii_density')].in_units("g / cm**3")*\
-                                    SNII_abundance[atom]*atomic_mass[atom]**2
+                nucleus_densityIa = data['gas','metal_ia_density']*\
+                                    SNIa_abundance[atom]
+                nucleus_densityII = data['gas','metal_ii_density']*\
+                                    SNII_abundance[atom]
                 return nucleus_densityIa + nucleus_densityII
-            self.add_field(('gas','%s_nuclei_mass_density'%atom),sampling_type="cell",
-                            function=_specific_metal_density,
+            return _specific_metal_density
+        for atom in atoms:
+            self.add_field(('gas','%s_nuclei_mass_density'%atom),
+                            sampling_type="cell",
+                            function=_specific_metal_density_function(atom),
                             units=unit_system["density"])
-
 
 
 # based on Iwamoto et al 1999
