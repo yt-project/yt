@@ -86,7 +86,7 @@ class IOHandlerExodusII(BaseIOHandler):
                                                        (field_ind + 1, mesh_id)][:]
                         data = fdata[self.ds.step, :]
                         ind += g.select(selector, data, rv[field], ind)  # caches
-                rv[field] = rv[field][:ind] # new
+                rv[field] = rv[field][:ind]
             return rv
 
     def _read_chunk_data(self, chunk, fields):
