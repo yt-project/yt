@@ -318,7 +318,7 @@ class ExodusIIDataset(Dataset):
             else:
                 coords = np.array([coord for coord in
                                    ds.variables["coord"][:]]).transpose().copy()
-            return coords
+            return coords.astype(np.float64)
 
     def _apply_displacement(self, coords, mesh_id):
 
