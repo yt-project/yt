@@ -698,46 +698,91 @@ can read FITS image files that have the following (case-insensitive) suffixes:
 * fts.gz
 
 yt can currently read two kinds of FITS files: FITS image files and FITS
-binary table files containing positions, times, and energies of X-ray events.
+binary table files containing positions, times, and energies of X-ray
+events. These are described in more detail below. 
 
-Though a FITS image is composed of a single array in the FITS file,
-upon being loaded into yt it is automatically decomposed into grids:
+Types of FITS Datasets Supported by yt
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+yt FITS Data Standard
+"""""""""""""""""""""
+
+yt has facilities for creating 2 and 3-dimensional FITS images from derived, 
+fixed-resolution data products from other datasets. These include images 
+produced from slices, projections, and 3D covering grids. The resulting
+FITS images are fully-describing in that unit, parameter, and coordinate 
+information is passed from the original dataset. These can be created via the 
+:class:`~yt.visualization.fits_image.FITSImageData` class and its subclasses. 
+For information about how to use these special classes, see 
+:ref:`writing_fits_images`.
+
+Once you have produced a FITS file in this fashion, you can load it using
+yt and it will be detected as a ``YTFITSDataset`` object, and it can be analyzed
+in the same way as any other dataset in yt. 
+
+Astronomical Image Data
+"""""""""""""""""""""""
+
+These files are one of three types:
+
+* Generic two-dimensional FITS images in sky coordinates
+* Three or four-dimensional "spectral cubes"
+* *Chandra* event files
+
+These FITS images typically are in celestial or galactic coordinates, and
+for 3D spectral cubes the third axis is typically in velocity, wavelength,
+or frequency units. For these datasets, since yt does not yet recognize 
+non-spatial axes, the coordinates are in units of the image pixels. The
+coordinates of these pixels in the WCS coordinate systems will be available
+in separate fields. 
+
+Often, the aspect ratio of 3D spectral cubes can be far from unity. Because yt
+sets the pixel scale as the ``code_length``, certain visualizations (such as
+volume renderings) may look extended or distended in ways that are
+undesirable. To adjust the width in ``code_length`` of the spectral axis, set
+``spectral_factor`` equal to a constant which gives the desired scaling, or set
+it to ``"auto"`` to make the width the same as the largest axis in the sky
+plane:
 
 .. code-block:: python
 
-   import yt
-   ds = yt.load("m33_hi.fits")
-   ds.print_stats()
+   ds = yt.load("m33_hi.fits.gz", spectral_factor=0.1)
 
-.. parsed-literal::
+For 4D spectral cubes, the fourth axis is assumed to be composed of different 
+fields altogether (e.g., Stokes parameters for radio data).
 
-   level  # grids         # cells     # cells^3
-   ----------------------------------------------
-     0       512          981940800       994
-   ----------------------------------------------
-             512          981940800
+*Chandra* X-ray event data, which is in tabular form, will be loaded as 
+particle fields in yt, but a grid will be constructed from the WCS 
+information in the FITS header. There is a helper function, 
+``setup_counts_fields``, which may be used to make deposited image fields 
+from the event data for different energy bands (for an example see 
+:ref:`xray_fits`).
 
-yt will generate its own domain decomposition, but the number of grids can be
-set manually by passing the ``nprocs`` parameter to the ``load`` call:
+Generic FITS Images
+"""""""""""""""""""
 
-.. code-block:: python
-
-   ds = load("m33_hi.fits", nprocs=1024)
+If the FITS file contains images but does not have adequate header information
+to fall into one of the above categories, yt will still load the data, but 
+the resulting field and/or coordinate information will necessarily be 
+incomplete. Field names may not be descriptive, and units may be incorrect. To
+get the full use out of yt for FITS files, make sure that the file is sufficiently
+self-descripting to fall into one of the above categories.
 
 Making the Most of yt for FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt will load data without WCS information and/or some missing header keywords, but the resulting
-field information will necessarily be incomplete. For example, field names may not be descriptive,
-and units will not be correct. To get the full use out of yt for FITS files, make sure that for
-each image the following header keywords have sensible values:
+yt will load data without WCS information and/or some missing header keywords, 
+but the resulting field and/or coordinate information will necessarily be 
+incomplete. For example, field names may not be descriptive, and units will not 
+be correct. To get the full use out of yt for FITS files, make sure that for
+each image HDU the following standard header keywords have sensible values:
 
 * ``CDELTx``: The pixel width in along axis ``x``
 * ``CRVALx``: The coordinate value at the reference position along axis ``x``
 * ``CRPIXx``: The reference pixel along axis ``x``
 * ``CTYPEx``: The projection type of axis ``x``
 * ``CUNITx``: The units of the coordinate along axis ``x``
-* ``BTYPE``: The type of the image
+* ``BTYPE``: The type of the image, this will be used as the field name
 * ``BUNIT``: The units of the image
 
 FITS header keywords can easily be updated using AstroPy. For example,
@@ -745,43 +790,13 @@ to set the ``BTYPE`` and ``BUNIT`` keywords:
 
 .. code-block:: python
 
-   import astropy.io.fits as pyfits
-   f = pyfits.open("xray_flux_image.fits", mode="update")
+   from astropy.io import fits
+   f = fits.open("xray_flux_image.fits", mode="update")
    f[0].header["BUNIT"] = "cts/s/pixel"
    f[0].header["BTYPE"] = "flux"
    f.flush()
    f.close()
 
-FITS Coordinates
-^^^^^^^^^^^^^^^^
-
-For FITS datasets, the unit of ``code_length`` is always the width of one
-pixel. yt will attempt to use the WCS information in the FITS header to
-construct information about the coordinate system, and provides support for
-the following dataset types:
-
-1. Rectilinear 2D/3D images with length units (e.g., Mpc, AU,
-   etc.) defined in the ``CUNITx`` keywords
-2. 2D images in some celestial coordinate systems (RA/Dec,
-   galactic latitude/longitude, defined in the ``CTYPEx``
-   keywords), and X-ray binary table event files
-3. 3D images with celestial coordinates and a third axis for another
-   quantity, such as velocity, frequency, wavelength, etc.
-4. 4D images with the first three axes like Case 3, where the slices
-   along the 4th axis are interpreted as different fields.
-
-If your data is of the first case, yt will determine the length units based
-on the information in the header. If your data is of the second or third
-cases, no length units will be assigned, but the world coordinate information
-about the axes will be stored in separate fields. If your data is of the
-fourth type, the coordinates of the first three axes will be determined
-according to cases 1-3.
-
-.. note::
-
-  Linear length-based coordinates (Case 1 above) are only supported if all
-  dimensions have the same value for ``CUNITx``. WCS coordinates are only
-  supported for Cases 2-4.
 
 FITS Data Decomposition
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -812,8 +827,7 @@ set manually by passing the ``nprocs`` parameter to the ``load`` call:
 
 .. code-block:: python
 
-   ds = load("m33_hi.fits", nprocs=64)
-
+   ds = yt.load("m33_hi.fits", nprocs=64)
 
 Fields in FITS Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -833,7 +847,7 @@ The third way is if auxiliary files are included along with the main file, like 
 
 .. code-block:: python
 
-   ds = load("flux.fits", auxiliary_files=["temp.fits","metal.fits"])
+   ds = yt.load("flux.fits", auxiliary_files=["temp.fits","metal.fits"])
 
 The image blocks in each of these files will be loaded as a separate field,
 provided they have the same dimensions as the image blocks in the main file.
@@ -842,12 +856,6 @@ Additionally, fields corresponding to the WCS coordinates will be generated.
 based on the corresponding ``CTYPEx`` keywords. When queried, these fields
 will be generated from the pixel coordinates in the file using the WCS
 transformations provided by AstroPy.
-
-X-ray event data will be loaded as particle fields in yt, but a grid will be
-constructed from the WCS information in the FITS header. There is a helper
-function, ``setup_counts_fields``, which may be used to make deposited image
-fields from the event data for different energy bands (for an example see
-:ref:`xray_fits`).
 
 .. note::
 
@@ -874,11 +882,11 @@ containing different mask values for different fields:
 
 .. code-block:: python
 
-   # passing a single float
-   ds = load("m33_hi.fits", nan_mask=0.0)
+   # passing a single float for all images
+   ds = yt.load("m33_hi.fits", nan_mask=0.0)
 
    # passing a dict
-   ds = load("m33_hi.fits", nan_mask={"intensity":-1.0,"temperature":0.0})
+   ds = yt.load("m33_hi.fits", nan_mask={"intensity":-1.0,"temperature":0.0})
 
 ``suppress_astropy_warnings``
 """""""""""""""""""""""""""""
@@ -886,17 +894,6 @@ containing different mask values for different fields:
 Generally, AstroPy may generate a lot of warnings about individual FITS
 files, many of which you may want to ignore. If you want to see these
 warnings, set ``suppress_astropy_warnings = False``.
-
-``spectral_factor``
-"""""""""""""""""""
-
-Often, the aspect ratio of 3D spectral cubes can be far from unity. Because yt
-sets the pixel scale as the ``code_length``, certain visualizations (such as
-volume renderings) may look extended or distended in ways that are
-undesirable. To adjust the width in ``code_length`` of the spectral axis, set
-``spectral_factor`` equal to a constant which gives the desired scaling, or set
-it to ``"auto"`` to make the width the same as the largest axis in the sky
-plane.
 
 Miscellaneous Tools for Use with FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -950,7 +947,7 @@ version of AstroPy >= 1.3 must be installed.
 .. code-block:: python
 
   wcs_slc = PlotWindowWCS(slc)
-  wcs_slc.show() # for the IPython notebook
+  wcs_slc.show() # for Jupyter notebooks
   wcs_slc.save()
 
 ``WCSAxes`` is still in an experimental state, but as its functionality
@@ -978,8 +975,8 @@ individual lines from an intensity cube:
                   'CH3NH2': (218.40956, 'GHz')}
   slab_width = (0.05, "GHz")
   ds = create_spectral_slabs("intensity_cube.fits",
-                                    slab_centers, slab_width,
-                                    nan_mask=0.0)
+                             slab_centers, slab_width,
+                             nan_mask=0.0)
 
 All keyword arguments to ``create_spectral_slabs`` are passed on to ``load`` when
 creating the dataset (see :ref:`additional_fits_options` above). In the
@@ -992,11 +989,12 @@ zero, and the left and right edges of the domain along this axis are
 Examples of Using FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The following IPython notebooks show examples of working with FITS data in yt,
+The following Jupyter notebooks show examples of working with FITS data in yt,
 which we recommend you look at in the following order:
 
 * :ref:`radio_cubes`
 * :ref:`xray_fits`
+* :ref:`writing_fits_images`
 
 .. _loading-flash-data:
 
