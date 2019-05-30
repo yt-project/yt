@@ -169,7 +169,7 @@ SNIa_abundance = {
     'Mn' : 6.47E-03, 'Fe' : 5.46E-01, 'Co' : 7.59E-04, 
     'Ni' : 9.17E-02, 'Cu' : 2.19E-06, 'Zn' : 2.06E-05}
 
-# number of grams atom per gram of SNII metal
+# mass fraction of each atom in SNII metal 
 SNII_abundance = {
     'H'  : 0.00E+00, 'He' : 0.00E+00, 'C'  : 3.12E-02, 
     'N'  : 6.15E-04, 'O'  : 7.11E-01, 'F'  : 4.57E-10, 
