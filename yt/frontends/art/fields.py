@@ -141,53 +141,42 @@ class ARTFieldInfo(FieldInfoContainer):
         atoms = ['C', 'N', 'O', 'F', 'Ne', 'Na', 'Mg', \
         'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca', 'Sc', \
         'Ti', 'V', 'Cr', 'Mn', 'Fe', 'Co', 'Ni', 'Cu', 'Zn']
-        for atom in atoms:
+        def _specific_metal_density_function(atom):
             def _specific_metal_density(field, data):
-                nucleus_densityIa = data[('gas','metal_ia_density')].in_units("g / cm**3")*\
-                                    data.ds.quan(SNIa_abundance[atom],"1 / g")*atomic_mass[atom]*mh
-                nucleus_densityII = data[('gas','metal_ii_density')].in_units("g / cm**3")*\
-                                    data.ds.quan(SNIa_abundance[atom],"1 / g")*atomic_mass[atom]*mh
+                nucleus_densityIa = data['gas','metal_ia_density']*\
+                                    SNIa_abundance[atom]
+                nucleus_densityII = data['gas','metal_ii_density']*\
+                                    SNII_abundance[atom]
                 return nucleus_densityIa + nucleus_densityII
-            self.add_field(('gas','%s_nuclei_mass_density'%atom),sampling_type="cell",
-                            function=_specific_metal_density,
+            return _specific_metal_density
+        for atom in atoms:
+            self.add_field(('gas','%s_nuclei_mass_density'%atom),
+                            sampling_type="cell",
+                            function=_specific_metal_density_function(atom),
                             units=unit_system["density"])
 
 
-
 # based on Iwamoto et al 1999
-# number of atoms per gram of SNIa metal
+# number of grams atom per gram of SNIa metal
 SNIa_abundance = {
-    'H'  : 0.00E+00, 'He' : 0.00E+00, 'C'  : 1.75E+21, 
-    'N'  : 3.61E+16, 'O'  : 3.90E+21, 'F'  : 1.30E+13, 
-    'Ne' : 9.76E+19, 'Na' : 1.20E+18, 'Mg' : 1.54E+20, 
-    'Al' : 1.59E+19, 'Si' : 2.43E+21, 'P'  : 5.02E+18, 
-    'S'  : 1.18E+21, 'Cl' : 2.14E+18, 'Ar' : 1.71E+20, 
-    'K'  : 8.74E+17, 'Ca' : 1.30E+20, 'Sc' : 2.14E+15, 
-    'Ti' : 3.12E+18, 'V'  : 6.41E+17, 'Cr' : 7.11E+19, 
-    'Mn' : 7.04E+19, 'Fe' : 5.85E+21, 'Co' : 7.69E+18, 
-    'Ni' : 9.34E+20, 'Cu' : 2.06E+16, 'Zn' : 1.88E+17}
+    'H'  : 0.00E+00, 'He' : 0.00E+00, 'C'  : 3.52E-02, 
+    'N'  : 8.47E-07, 'O'  : 1.04E-01, 'F'  : 4.14E-10, 
+    'Ne' : 3.30E-03, 'Na' : 4.61E-05, 'Mg' : 6.25E-03, 
+    'Al' : 7.19E-04, 'Si' : 1.14E-01, 'P'  : 2.60E-04, 
+    'S'  : 6.35E-02, 'Cl' : 1.27E-04, 'Ar' : 1.14E-02, 
+    'K'  : 5.72E-05, 'Ca' : 8.71E-03, 'Sc' : 1.61E-07, 
+    'Ti' : 2.50E-04, 'V'  : 5.46E-05, 'Cr' : 6.19E-03, 
+    'Mn' : 6.47E-03, 'Fe' : 5.46E-01, 'Co' : 7.59E-04, 
+    'Ni' : 9.17E-02, 'Cu' : 2.19E-06, 'Zn' : 2.06E-05}
 
-# number of atoms per gram of SNII metal
+# number of grams atom per gram of SNII metal
 SNII_abundance = {
-    'H'  : 0.00E+00, 'He' : 0.00E+00, 'C'  : 1.55E+21, 
-    'N'  : 2.62E+19, 'O'  : 2.66E+22, 'F'  : 1.44E+13, 
-    'Ne' : 2.70E+21, 'Na' : 6.67E+19, 'Mg' : 1.19E+21, 
-    'Al' : 1.29E+20, 'Si' : 1.02E+21, 'P'  : 9.20E+18, 
-    'S'  : 3.02E+20, 'Cl' : 7.95E+17, 'Ar' : 4.71E+19, 
-    'K'  : 4.06E+17, 'Ca' : 3.45E+19, 'Sc' : 1.20E+15, 
-    'Ti' : 6.47E+17, 'V'  : 4.62E+16, 'Cr' : 5.96E+18, 
-    'Mn' : 1.65E+18, 'Fe' : 3.82E+20, 'Co' : 2.90E+17, 
-    'Ni' : 2.40E+19, 'Cu' : 4.61E+15, 'Zn' : 6.81E+16}
-
-# taken from TRIDENT
-atomic_mass = {
-    'H' : 1.00794,   'He': 4.002602,  'Li': 6.941,
-    'Be': 9.012182,  'B' : 10.811,    'C' : 12.0107,
-    'N' : 14.0067,   'O' : 15.9994,   'F' : 18.9984032,
-    'Ne': 20.1797,   'Na': 22.989770, 'Mg': 24.3050,
-    'Al': 26.981538, 'Si': 28.0855,   'P' : 30.973761,
-    'S' : 32.065,    'Cl': 35.453,    'Ar': 39.948,
-    'K' : 39.0983,   'Ca': 40.078,    'Sc': 44.955910,
-    'Ti': 47.867,    'V' : 50.9415,   'Cr': 51.9961,
-    'Mn': 54.938049, 'Fe': 55.845,    'Co': 58.933200,
-    'Ni': 58.6934,   'Cu': 63.546,    'Zn': 65.409}
+    'H'  : 0.00E+00, 'He' : 0.00E+00, 'C'  : 3.12E-02, 
+    'N'  : 6.15E-04, 'O'  : 7.11E-01, 'F'  : 4.57E-10, 
+    'Ne' : 9.12E-02, 'Na' : 2.56E-03, 'Mg' : 4.84E-02, 
+    'Al' : 5.83E-03, 'Si' : 4.81E-02, 'P'  : 4.77E-04, 
+    'S'  : 1.62E-02, 'Cl' : 4.72E-05, 'Ar' : 3.15E-03, 
+    'K'  : 2.65E-05, 'Ca' : 2.31E-03, 'Sc' : 9.02E-08, 
+    'Ti' : 5.18E-05, 'V'  : 3.94E-06, 'Cr' : 5.18E-04, 
+    'Mn' : 1.52E-04, 'Fe' : 3.58E-02, 'Co' : 2.86E-05, 
+    'Ni' : 2.35E-03, 'Cu' : 4.90E-07, 'Zn' : 7.46E-06}
