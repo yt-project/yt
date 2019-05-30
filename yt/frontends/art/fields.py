@@ -157,7 +157,7 @@ class ARTFieldInfo(FieldInfoContainer):
 
 
 # based on Iwamoto et al 1999
-# number of grams atom per gram of SNIa metal
+# mass fraction of each atom in SNIa metal 
 SNIa_abundance = {
     'H'  : 0.00E+00, 'He' : 0.00E+00, 'C'  : 3.52E-02, 
     'N'  : 8.47E-07, 'O'  : 1.04E-01, 'F'  : 4.14E-10, 
