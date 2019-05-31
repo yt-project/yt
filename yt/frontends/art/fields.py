@@ -15,7 +15,6 @@ ART-specific fields
 
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.utilities.physical_constants import mh
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
