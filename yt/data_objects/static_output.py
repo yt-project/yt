@@ -1301,7 +1301,7 @@ class Dataset(object):
                 fields.append(data[ptype, weight_field])
             fields = [np.ascontiguousarray(f) for f in fields]
             d = data.deposit(pos, fields, method=method,
-                            kernel_name=kernel_name)
+                             kernel_name=kernel_name)
             d = data.ds.arr(d, input_units=units)
             if method == 'weighted_mean':
                 d[np.isnan(d)] = 0.0
