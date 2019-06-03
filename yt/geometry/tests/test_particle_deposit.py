@@ -19,6 +19,7 @@ def test_cic_deposit():
     assert_raises(YTBoundsDefinitionError, my_reg.__getitem__, f)
 
 RAMSES = 'output_00080/info_00080.txt'
+RAMSES_small = 'ramses_new_format/output_00002/info_00002.txt'
 ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
 
 @requires_file(RAMSES)
@@ -96,11 +97,17 @@ def test_mesh_sampling_with_indexing():
     # Check same answer is returned
     assert_allclose(v1, v2)
 
+@requires_file(RAMSES_small)
 def test_mesh_sampling_vs_field_value_at_point():
-    ds = fake_random_ds(ndims=3, particles=100)
-    ds.add_mesh_sampling_particle_field(('gas', 'density'), ptype='all')
+    all_ds = (
+        fake_random_ds(ndims=3, particles=500),
+        yt.load(RAMSES_small)
+    )
 
-    val = ds.r['all', 'cell_gas_density']
-    ref = ds.find_field_values_at_points(('stream', 'density'), ds.r['all', 'particle_position'])
+    for ds in all_ds:
+        ds.add_mesh_sampling_particle_field(('gas', 'density'), ptype='all')
 
-    assert_allclose(val, ref)
+        val = ds.r['all', 'cell_gas_density']
+        ref = ds.find_field_values_at_points(('gas', 'density'), ds.r['all', 'particle_position'])
+
+        assert_allclose(val, ref)
