@@ -504,7 +504,7 @@ available are:
 .. _mesh-sampling-particle-fields:
 
 Mesh Sampling Particle Fields
----------------------
+-----------------------------
 
 In order to turn mesh fields into discrete particle field, yt provides
 a mechanism to do sample mesh fields at particle locations. This operation is
