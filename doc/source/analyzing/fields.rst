@@ -508,7 +508,7 @@ Mesh Sampling Particle Fields
 
 In order to turn mesh fields into discrete particle field, yt provides
 a mechanism to do sample mesh fields at particle locations. This operation is
-the inverse operation as :ref:`deposited-particle-fields`: for each
+the inverse operation of :ref:`deposited-particle-fields`: for each
 particle the cell containing the particle is found and the value of
 the field in the cell is assigned to the particle. This is for
 example useful when using tracer particles to have access to the
@@ -519,7 +519,7 @@ The particle fields are named ``(ptype, cell_ftype_fname)`` where
 ``ftype`` is the mesh field type (e.g. ``gas``) and ``fname`` is the
 field (e.g. ``temperature``, ``density``, ...). You can directly use
 the ``add_mesh_sampling_particle_field`` function defined on each dataset to
-depose a field onto the particles like so:
+impose a field onto the particles like so:
 
 .. code-block:: python
 
