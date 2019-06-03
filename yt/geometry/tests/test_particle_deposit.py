@@ -96,3 +96,11 @@ def test_mesh_sampling_with_indexing():
     # Check same answer is returned
     assert_allclose(v1, v2)
 
+def test_mesh_sampling_vs_field_value_at_point():
+    ds = fake_random_ds(ndims=3, particles=100)
+    ds.add_mesh_sampling_particle_field(('gas', 'density'), ptype='all')
+
+    val = ds.r['all', 'cell_gas_density']
+    ref = ds.find_field_values_at_points(('stream', 'density'), ds.r['all', 'particle_position'])
+
+    assert_allclose(val, ref)
