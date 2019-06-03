@@ -60,7 +60,7 @@ class OctreeIndex(Index):
 
             for i, obj in enumerate(data._current_chunk.objs):
                 if Nremaining == 0:
-                    continue
+                    break
                 icell = obj['index', 'ones'].T.reshape(-1).astype(np.int64).cumsum().value - 1
                 mesh_data = ((icell << Nbits) + i).astype(np.float64)
                 # Access the mesh data and attach them to their particles

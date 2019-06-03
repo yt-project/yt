@@ -231,12 +231,8 @@ class OctreeSubset(YTSelectionContainer):
         pos = np.asarray(positions.convert_to_units("code_length"),
                          dtype="float64")
 
-        if lvlmax is not None:
-            op.process_octree(self.oct_handler, self.domain_ind, pos, None,
-                self.domain_id, self._domain_offset, lvlmax=lvlmax)
-        else:
-            op.process_octree(self.oct_handler, self.domain_ind, pos, None,
-                self.domain_id, self._domain_offset)
+        op.process_octree(self.oct_handler, self.domain_ind, pos, None,
+            self.domain_id, self._domain_offset, lvlmax=lvlmax)
 
         igrid, icell = op.finalize()
 
