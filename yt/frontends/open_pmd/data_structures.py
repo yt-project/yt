@@ -538,7 +538,7 @@ class OpenPMDDataset(Dataset):
             self.domain_dimensions = np.append(fs, np.ones(3 - self.dimensionality))
             self.domain_left_edge = np.append(dle, np.zeros(3 - len(dle)))
             self.domain_right_edge = np.append(dre, np.ones(3 - len(dre)))
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             if self.standard_version <= StrictVersion("1.1.0"):
                 self.dimensionality = 3
                 self.domain_dimensions = np.ones(3, dtype=np.float64)
