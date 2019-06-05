@@ -148,7 +148,7 @@ class OpenPMDHierarchy(GridIndex):
                 except AttributeError:
                     # This is a h5.Dataset (i.e. no axes)
                     mesh_fields.append(mname.replace("_", "-"))
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             pass
         self.field_list = [("openPMD", str(field)) for field in mesh_fields]
 
