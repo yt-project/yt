@@ -165,7 +165,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         self.known_other_fields += ((ytname, (unit, aliases, None)),)
             for i in self.known_other_fields:
                 mylog.debug("open_pmd - known_other_fields - {}".format(i))
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             pass
 
         try:
