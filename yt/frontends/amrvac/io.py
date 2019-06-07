@@ -25,6 +25,9 @@ class AMRVACIOHandler(BaseIOHandler):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
+        print("==========================================")
+        print("NOT IMPLEMENTED: io/_read_particle_coords")
+        print("==========================================")
         pass
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -33,6 +36,9 @@ class AMRVACIOHandler(BaseIOHandler):
         # reading ptype, field and applying the selector to the data read in.
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
+        print("==========================================")
+        print("NOT IMPLEMENTED: io/_read_particle_fields")
+        print("==========================================")
         pass
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -49,6 +55,9 @@ class AMRVACIOHandler(BaseIOHandler):
         # Fortran-like input array with the dimension (z,y,x), a matrix
         # transpose is required (e.g., using np_array.transpose() or
         # np_array.swapaxes(0,2)).
+        print("==========================================")
+        print("NOT IMPLEMENTED: io/_read_fluid_selection")
+        print("==========================================")
         pass
 
     def _read_chunk_data(self, chunk, fields):
@@ -56,4 +65,7 @@ class AMRVACIOHandler(BaseIOHandler):
         # and is only used for caching data that might be used by multiple
         # different selectors later. For instance, this can speed up ghost zone
         # computation.
+        print("==========================================")
+        print("NOT IMPLEMENTED: io/_read_chunk_data")
+        print("==========================================")
         pass

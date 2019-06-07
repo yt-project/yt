@@ -250,7 +250,7 @@ class AMRVACHierarchy(GridIndex):
 
 
     def _populate_grid_objects(self):
-        lvls = set(self.grid_levels[:, 0])
+        lvls = self.grid_levels[:, 0]
         for lvl in lvls:
             # TODO: @Niels: I think this gives a 'dx referenced before assignment' error when calling ds.print_stats()
             # set up Children and Parent...
