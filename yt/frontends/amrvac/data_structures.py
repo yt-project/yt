@@ -250,11 +250,7 @@ class AMRVACHierarchy(GridIndex):
 
 
     def _populate_grid_objects(self):
-        lvls = self.grid_levels[:, 0]
-        for lvl in lvls:
-            # TODO: @Niels: I think this gives a 'dx referenced before assignment' error when calling ds.print_stats()
-            # set up Children and Parent...
-            pass
+       # lvls = self.grid_levels[:, 0]
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
@@ -267,8 +263,8 @@ class AMRVACDataset(Dataset):
 
     def __init__(self, filename, dataset_type='amrvac',
                  storage_filename=None,
-                 units_override=None):
-        self.fluid_types += ('amrvac',) #devnote: input 'gas', 'dust' here ?
+                 units_override=None,):
+        self.fluid_types += ('gas',) #devnote: input 'gas', 'dust' here ?
         super(AMRVACDataset, self).__init__(filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
@@ -280,58 +276,89 @@ class AMRVACDataset(Dataset):
         # on-disk units.  These are the currently available quantities which
         # should be set, along with examples of how to set them to standard
         # values.
-        #
-        #devnote: I'm using the default code because there need to be something but
-        # this needs revising
-        """TODO: This will be impossible to know, as they are defined in the mod_usr.t file and are not passed on to
-                 to the .dat file... By extension, these are also used to calculate code normalizations.
-                 Only three are required: unit_length and unit_numberdensity, together with EITHER unit_velocity or
-                 unit_temperature. Fix: add these to the .dat file."""
 
-        # TODO: MPI-AMRVAC has the possibility to switch between SI and CGS units...
+        # TODO @Niels: Default to cgs. This will be implemented in upcoming .dat file extensions.
+
+        if "unit_system" in self.parameters:
+            unit_system = self.parameters["unit_system"]
+        else:
+            unit_system = "cgs"
+
+        # TODO @Niels: Units in AMRVAC are defined by specifying unit_numberdensity and unit_length, together with
+        #              EITHER unit_temperature or unit_velocity. This will again be implemented in .dat file changes.
+
+        # @Niels: can we use astropy here?
+        mp  = 1.672621777e-24    # cgs units (g)
+        kB  = 1.3806488e-16      # cgs units (erg / K)
+        mu0 = 4 * np.pi
+        He_abundance = 0.1       # hardcoded in AMRVAC
+
+        if unit_system == "cgs":
+            pass
+        elif unit_system == "si":
+            mp  = mp * 1e-3
+            kB  = kB * 1e-7
+            mu0 = 1.2566370614e-6
+        else:
+            raise RuntimeError("AMRVAC data file contains an "
+                               "unknown unit_system parameter {}".format(self.parameters["unit_system"]))
+
+        # Obtain unit normalisations from .dat file
+        if "unit_length" in self.parameters:
+            unit_length = self.parameters["unit_length"]
+        else:
+            unit_length = 1         # code default
+        if "unit_numberdensity" in self.parameters:
+            unit_numberdensity = self.parameters["unit_numberdensity"]
+        else:
+            unit_numberdensity = 1  # code default
+        if "unit_velocity" in self.parameters:
+            unit_velocity = self.parameters["unit_velocity"]
+        else:
+            unit_velocity = 0
+        if "unit_temperature" in self.parameters:
+            unit_temperature = self.parameters["unit_temperature"]
+        else:
+            unit_temperature = 1
+
+        unit_density = (1.0 + 4.0*He_abundance) * mp * unit_numberdensity
+
+        # numberdensity, length and temperature defined in mod_usr.t file.
+        if unit_velocity == 0:
+            unit_pressure = (2.0 + 3.0*He_abundance) * unit_numberdensity * kB * unit_temperature
+            unit_velocity = np.sqrt(unit_pressure / unit_density)
+        # numberdensity, length and velocity defined in mod_usr.t file.
+        else:
+            unit_pressure    = unit_density * unit_velocity**2
+            unit_temperature = unit_pressure / ((2.0 + 3.0*He_abundance) * unit_numberdensity * kB)
+
+        unit_magneticfield = np.sqrt(mu0 * unit_pressure)
+        unit_time          = unit_length / unit_velocity
+
+        unit_mass          = unit_numberdensity * unit_length**3
 
 
-        CGS = True
-        He_abundance = 0.1
-        H_abundance = 1 - He_abundance
-        mu = 1. / (2 * H_abundance + 0.75 * He_abundance)
-        mp = 1.6726219e-24      # proton mass, g
-        kB = 1.38064852e-16     # Boltzmann constant, erg/K
+        # Set unit attributes
+        if unit_system == "cgs":
+            setdefaultattr(self, "length_unit", self.quan(unit_length, "cm"))
+            setdefaultattr(self, "numberdensity_unit", self.quan(unit_numberdensity, "cm**-3"))
+            setdefaultattr(self, "velocity_unit", self.quan(unit_velocity, "cm/s"))
+            setdefaultattr(self, "temperature_unit", self.quan(unit_temperature, "K"))
+            setdefaultattr(self, "density_unit", self.quan(unit_density, "g*cm**-3"))
+            setdefaultattr(self, "pressure_unit", self.quan(unit_pressure, "dyn*cm**-2"))
+            setdefaultattr(self, "magnetic_unit", self.quan(unit_magneticfield, "gauss"))
+            setdefaultattr(self, "mass_unit", self.quan(unit_mass, "g"))
+            setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
+        else:
+            setdefaultattr(self, "length_unit", self.quan(unit_length, "m"))
+            setdefaultattr(self, "numberdensity_unit", self.quan(unit_numberdensity, "m**-3"))
+            setdefaultattr(self, "velocity_unit", self.quan(unit_velocity, "m/s"))
+            setdefaultattr(self, "temperature_unit", self.quan(unit_temperature, "K"))
+            setdefaultattr(self, "density_unit", self.quan(unit_density, "kg*m**-3"))
+            setdefaultattr(self, "pressure_unit", self.quan(unit_pressure, "pa"))
+            setdefaultattr(self, "mass_unit", self.quan(unit_mass, "kg"))
+            setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
 
-        unit_length         = 1e9       # cm
-        unit_temperature    = 1e6       # K
-        unit_numberdensity  = 1e15      # cm-3
-        unit_velocity       = 0
-
-        unit_density  = (1.0 + 4.0*He_abundance) * mp * unit_numberdensity
-        unit_pressure = (2.0 + 3.0*He_abundance) * unit_numberdensity * kB * unit_temperature
-        unit_velocity = np.sqrt(unit_pressure / unit_density)
-        unit_magneticfield = np.sqrt(4*np.pi * unit_pressure)
-        unit_time     = unit_length / unit_velocity
-
-        # Derived quantity
-        unit_mass = unit_density * unit_length**3
-
-        setdefaultattr(self, "length_unit", self.quan(unit_length, "cm"))
-        setdefaultattr(self, "temperature_unit", self.quan(unit_temperature, "K"))
-        #setdefaultattr(self, "numberdensity_unit", self.quan(unit_numberdensity, "1/cm3"))
-
-        #setdefaultattr(self, "density_unit", self.quan(unit_density, ""))      # TODO units
-        #setdefaultattr(self, "pressure_unit", self.quan(unit_pressure, ""))    # TODO units
-        setdefaultattr(self, "velocity_unit", self.quan(unit_velocity, "cm/s"))
-        setdefaultattr(self, "magnetic_unit", self.quan(unit_magneticfield, "gauss"))
-        setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
-        setdefaultattr(self, "mass_unit", self.quan(unit_mass, "g"))
-
-
-
-        # self.length_unit = self.quan(1.0, "cm")
-        # self.mass_unit = self.quan(1.0, "g")
-        # self.time_unit = self.quan(1.0, "s")
-        #
-        # These can also be set:
-        # self.velocity_unit = self.quan(1.0, "cm/s")
-        # self.magnetic_unit = self.quan(1.0, "gauss")
 
     # TODO: uncomment this when using "setdefaultattr" above, it overrides default yt code units (see flash)
     def set_code_units(self):
