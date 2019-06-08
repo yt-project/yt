@@ -264,7 +264,7 @@ class AMRVACDataset(Dataset):
     def __init__(self, filename, dataset_type='amrvac',
                  storage_filename=None,
                  units_override=None,):
-        self.fluid_types += ('gas',) #devnote: input 'gas', 'dust' here ?
+        self.fluid_types += ('amrvac',) #devnote: input 'gas', 'dust' here ?
         super(AMRVACDataset, self).__init__(filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
@@ -377,8 +377,8 @@ class AMRVACDataset(Dataset):
         #   self.domain_left_edge       <= array of float64                         OK
         #   self.domain_right_edge      <= array of float64                         OK
         #   self.dimensionality         <= int                                      OK
-        #   self.domain_dimensions      <= array of int64                           TODO
-        #   self.periodicity            <= three-element tuple of booleans          TODO
+        #   self.domain_dimensions      <= array of int64                           OK
+        #   self.periodicity            <= three-element tuple of booleans          OK
         #   self.current_time           <= simulation time in code units            OK
         #
         # We also set up cosmological information.  Set these to zero if
@@ -409,6 +409,9 @@ class AMRVACDataset(Dataset):
 
         self.domain_left_edge = dle
         self.domain_right_edge = dre
+
+        # TODO @Niels: this must also be included in .dat file.
+        self.periodicity = tuple([False, False, False])
 
         #devnote: these could be made optional if needed
         self.cosmological_simulation = 0
