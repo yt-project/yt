@@ -18,6 +18,7 @@ from yt.fields.field_info_container import \
 
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_length**2*code_time)"
+b_units   = "code_magnetic"
 
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
@@ -33,6 +34,9 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("m2", (mom_units, ["momentum_2"], r"$m_2$")),
         ("m3", (mom_units, ["momentum_3"], r"$m_3$")),
         ("e", ("J", ["energy"], r"$e$")),
+        ("b1", (b_units, [], r"$B_x$")),
+        ("b2", (b_units, [], r"$B_y$")),
+        ("b3", (b_units, [], r"$B_z$"))
         #devnote : missing a way to handle an arbitrary number of dust fluids here
     )
 
@@ -49,10 +53,11 @@ class AMRVACFieldInfo(FieldInfoContainer):
         # Here we do anything that might need info about the dataset.
         # You can use self.alias, self.add_output_field (for on-disk fields)
         # and self.add_field (for derived fields).
-        print("==========================================")
-        print("NOT IMPLEMENTED: fields/setup_fluid_fields")
-        print("==========================================")
-        pass
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
+
+        setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
+
 
     def setup_particle_fields(self, ptype):
         super(AMRVACFieldInfo, self).setup_particle_fields(ptype)
