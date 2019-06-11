@@ -207,8 +207,13 @@ class ParticleIndex(Index):
         dsl = []
         units = {}
         pcounts = self._get_particle_type_counts()
+        field_cache = {}
         for dom in self.data_files:
-            fl, _units = self.io._identify_fields(dom)
+            if dom.filename in field_cache:
+                fl, _units = field_cache[dom.filename]
+            else:
+                fl, _units = self.io._identify_fields(dom)
+                field_cache[dom.filename] = fl, _units
             units.update(_units)
             dom._calculate_offsets(fl, pcounts)
             for f in fl:
