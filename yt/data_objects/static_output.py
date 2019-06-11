@@ -763,8 +763,9 @@ class Dataset(object):
                 self.particle_types += (filter.name,)
             if filter.name not in self.filtered_particle_types:
                 self.filtered_particle_types.append(filter.name)
-            if filter.filtered_type in (self._sph_ptypes + ("gas",)):
-                self._sph_ptypes = self._sph_ptypes + (filter.name,)
+            if hasattr(self, '_sph_ptypes'):
+                if filter.filtered_type in (self._sph_ptypes + ("gas",)):
+                    self._sph_ptypes = self._sph_ptypes + (filter.name,)
             new_fields = self._setup_particle_types([filter.name])
             deps, _ = self.field_info.check_derived_fields(new_fields)
             self.field_dependencies.update(deps)
