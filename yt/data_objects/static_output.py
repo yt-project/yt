@@ -730,7 +730,10 @@ class Dataset(object):
             self.known_filters.pop(n, None)
             return False
         self.known_filters[filter.name] = filter
-        
+        if filter.filtered_type == self._sph_ptypes[0]:
+            mylog.warning("It appears that you are filtering on an SPH field "
+                          "type. It is recommended to use 'gas' as the "
+                          "filtered particle type in this case instead.")
         return True
 
     def _setup_filtered_type(self, filter):
