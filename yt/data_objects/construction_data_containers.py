@@ -341,7 +341,8 @@ class YTProj(YTSelectionContainer2D):
                 # First time calling a units="auto" field, infer units and cache
                 # for future field accesses.
                 finfo.units = str(chunk[field].units)
-            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
+            field_unit = Unit(finfo.output_units,
+                              registry=self.ds.unit_registry)
             if self.method == "mip" or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
@@ -636,7 +637,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 "Length of edges must match the dimensionality of the "
                 "dataset")
         if hasattr(edge, 'units'):
-            edge_units = edge.units
+            edge_units = edge.units.copy()
+            edge_units.registry = self.ds.unit_registry
         else:
             edge_units = 'code_length'
         return self.ds.arr(edge, edge_units)
@@ -867,15 +869,20 @@ class YTCoveringGrid(YTSelectionContainer3D):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs. Everything inside
-        # this is fortran ordered because of the ordering in the octree deposit
-        # routines, so we reverse it here to match the convention there
-        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
+        # We allocate number of zones, not number of octs. Everything
+        # inside this is Fortran ordered because of the ordering in the
+        # octree deposit routines, so we reverse it here to match the
+        # convention there
+        nvals = tuple(self.ActiveDimensions[::-1])
+        # append a dummy dimension because we are only depositing onto
+        # one grid
+        op = cls(nvals + (1,), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
-        vals = op.finalize()
         # Fortran-ordered, so transpose.
-        return vals.transpose()
+        vals = op.finalize().transpose()
+        # squeeze dummy dimension we appended above
+        return np.squeeze(vals, axis=0)
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):
@@ -932,6 +939,29 @@ class YTCoveringGrid(YTSelectionContainer3D):
         size = np.ones(3, dtype=int) * 2**self.level
 
         return bounds, size
+
+    def to_fits_data(self, fields, length_unit=None):
+        r"""Export a set of gridded fields to a FITS file.
+
+        This will export a set of FITS images of either the fields specified
+        or all the fields already in the object.
+
+        Parameters
+        ----------
+        fields : list of strings
+            These fields will be pixelized and output. If "None", the keys of the
+            FRB will be used.
+        length_unit : string, optional
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
+        """
+        from yt.visualization.fits_image import FITSImageData
+        if length_unit is None:
+            length_unit = self.ds.length_unit
+        fields = ensure_list(fields)
+        fid = FITSImageData(self, fields, length_unit=length_unit)
+        return fid
+
 
 class YTArbitraryGrid(YTCoveringGrid):
     """A 3D region with arbitrary bounds and dimensions.

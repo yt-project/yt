@@ -45,6 +45,7 @@ Example Notebooks
    ../visualizing/transfer_function_helper
    fits_radio_cubes
    fits_xray_images
+   geographic_projections
    tipsy_notebook
    halo_analysis_example
    ../visualizing/volume_rendering_tutorial

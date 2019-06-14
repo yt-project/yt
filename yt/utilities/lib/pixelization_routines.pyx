@@ -43,7 +43,13 @@ from yt.geometry.particle_deposit cimport \
 from cython.parallel cimport prange
 from cpython.exc cimport PyErr_CheckSignals
 from yt.funcs import get_pbar
-from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
+from yt.utilities.lib.cykdtree.kdtree cimport (
+    PyKDTree,
+    KDTree,
+    Node,
+    uint64_t,
+    uint32_t,
+)
 from yt.utilities.lib.particle_kdtree_tools cimport find_neighbors, \
     axes_range, \
     set_axes_range

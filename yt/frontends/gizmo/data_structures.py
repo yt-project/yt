@@ -24,6 +24,7 @@ from yt.frontends.gadget.data_structures import \
 from .fields import \
     GizmoFieldInfo
 
+
 class GizmoDataset(GadgetHDF5Dataset):
     _field_info_class = GizmoFieldInfo
 
@@ -58,3 +59,7 @@ class GizmoDataset(GadgetHDF5Dataset):
             valid = False
             pass
         return valid
+
+    def _set_code_unit_attributes(self):
+        super(GizmoDataset, self)._set_code_unit_attributes()
+        self.magnetic_unit = self.quan(1.0, "gauss")

@@ -32,7 +32,9 @@ from yt.funcs import \
     mylog, \
     set_intersection, \
     ensure_list, \
-    iterable
+    issue_deprecation_warning, \
+    iterable, \
+    setdefaultattr
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
@@ -55,7 +57,7 @@ from yt.fields.derived_field import \
 from yt.fields.fluid_fields import \
     setup_gradient_fields
 from yt.fields.particle_fields import \
-    add_volume_weighted_smoothed_field
+    DEP_MSG_SMOOTH_FIELD
 from yt.data_objects.particle_filters import \
     filter_registry
 from yt.data_objects.particle_unions import \
@@ -538,7 +540,7 @@ class Dataset(metaclass = RegisteredDataset):
         if hasattr(self, "cosmological_simulation") and \
            getattr(self, "cosmological_simulation"):
             for a in ["current_redshift", "omega_lambda", "omega_matter",
-                      "hubble_constant"]:
+                      "omega_radiation", "hubble_constant"]:
                 if not hasattr(self, a):
                     mylog.error("Missing %s in parameter file definition!", a)
                     continue
@@ -850,9 +852,9 @@ class Dataset(metaclass = RegisteredDataset):
         source = self.all_data()
         max_val, mx, my, mz = \
             source.quantities.max_location(field)
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
-              max_val, mx, my, mz)
         center = self.arr([mx, my, mz], dtype="float64").to('code_length')
+        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
+              max_val, center[0], center[1], center[2])
         return max_val, center
 
     def find_min(self, field):
@@ -863,9 +865,9 @@ class Dataset(metaclass = RegisteredDataset):
         source = self.all_data()
         min_val, mx, my, mz = \
             source.quantities.min_location(field)
-        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
-              min_val, mx, my, mz)
         center = self.arr([mx, my, mz], dtype="float64").to('code_length')
+        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
+              min_val, center[0], center[1], center[2])
         return min_val, center
 
     def find_field_values_at_point(self, fields, coords):
@@ -1055,10 +1057,14 @@ class Dataset(metaclass = RegisteredDataset):
             w_0 = getattr(self, 'w_0', -1.0)
             w_a = getattr(self, 'w_a', 0.0)
 
+            # many frontends do not set this
+            setdefaultattr(self, "omega_radiation", 0.0)
+
             self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
                               omega_lambda=self.omega_lambda,
+                              omega_radiation=self.omega_radiation,
                               use_dark_factor = use_dark_factor,
                               w_0 = w_0, w_a = w_a)
             self.critical_density = \
@@ -1363,6 +1369,8 @@ class Dataset(metaclass = RegisteredDataset):
                                     kernel_name="cubic"):
         """Add a new smoothed particle field
 
+        WARNING: This method is deprecated since yt-4.0.
+
         Creates a new smoothed field based on the particle *smooth_field*.
 
         Parameters
@@ -1387,32 +1395,9 @@ class Dataset(metaclass = RegisteredDataset):
 
         The field name tuple for the newly created field.
         """
-        # The magical step
-        self.index
-
-        # Parse arguments
-        if isinstance(smooth_field, tuple):
-            ptype, smooth_field = smooth_field[0], smooth_field[1]
-        else:
-            raise RuntimeError("smooth_field must be a tuple, received %s" %
-                               smooth_field)
-        if method != "volume_weighted":
-            raise NotImplementedError("method must be 'volume_weighted'")
-
-        # Prepare field names and registry to be used later
-        coord_name = "particle_position"
-        mass_name = "particle_mass"
-        smoothing_length_name = "smoothing_length"
-        if (ptype, smoothing_length_name) not in self.derived_field_list:
-            raise ValueError("%s not in derived_field_list" %
-                             ((ptype, smoothing_length_name),))
-        density_name = "density"
-        registry = self.field_info
-
-        # Do the actual work
-        return add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
-                   smoothing_length_name, density_name, smooth_field, registry,
-                   nneighbors=nneighbors, kernel_name=kernel_name)[0]
+        issue_deprecation_warning(
+            "This method is deprecated. " + DEP_MSG_SMOOTH_FIELD
+        )
 
     def add_gradient_fields(self, input_field):
         """Add gradient fields.

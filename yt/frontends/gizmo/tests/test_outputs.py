@@ -105,6 +105,7 @@ def test_gas_particle_fields():
     for species in metal_elements:
         for suffix in ["nuclei_mass_density", "metallicity"]:
             derived_fields += ["%s_%s" % (species, suffix)]
+    derived_fields += ["magnetic_field_%s" % axis for axis in "xyz"]
     for field in derived_fields:
         assert (ptype, field) in ds.derived_field_list
 

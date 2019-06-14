@@ -14,7 +14,6 @@ import stat
 import numpy as np
 import numpy.core.defchararray as np_char
 import os
-import re
 import time
 import uuid
 import weakref
@@ -35,28 +34,27 @@ from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
     Dataset
+from yt.units.unit_object import UnitParseError
+from yt.units.yt_array import YTQuantity
 from yt.utilities.file_handler import \
     FITSFileHandler
 from yt.utilities.io_handler import \
     io_registry
 from .fields import FITSFieldInfo, \
-    WCSFITSFieldInfo
+    WCSFITSFieldInfo, YTFITSFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.funcs import issue_deprecation_warning
+from yt.units import dimensions
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, \
     prefixable_units, \
     unit_prefixes
-from yt.units import dimensions
 from yt.utilities.on_demand_imports import \
     _astropy, NotAModule
 
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
-delimiters = ["*", "/", "-", "^", "(", ")"]
-delimiters += [str(i) for i in range(10)]
-regex_pattern = '|'.join(re.escape(_) for _ in delimiters)
 
 spec_names = {"V": "Velocity",
               "F": "Frequency",
@@ -69,11 +67,10 @@ sky_prefixes.difference_update({"X", "Y", "LINEAR"})
 sky_prefixes = list(sky_prefixes)
 spec_prefixes = list(spec_names.keys())
 
-field_from_unit = {"Jy":"intensity",
-                   "K":"temperature"}
 
 class FITSGrid(AMRGridPatch):
     _id_offset = 0
+
     def __init__(self, id, index, level):
         AMRGridPatch.__init__(self, id, filename=index.index_filename,
                               index=index)
@@ -84,6 +81,7 @@ class FITSGrid(AMRGridPatch):
     def __repr__(self):
         return "FITSGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
+
 class FITSHierarchy(GridIndex):
 
     grid = FITSGrid
@@ -92,7 +90,7 @@ class FITSHierarchy(GridIndex):
         self.dataset_type = dataset_type
         self.field_indexes = {}
         self.dataset = weakref.proxy(ds)
-        # for now, the index file is the dataset!
+        # for now, the index file is the dataset
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         self._handle = ds._handle
@@ -103,31 +101,27 @@ class FITSHierarchy(GridIndex):
         pass
 
     def _guess_name_from_units(self, units):
+        field_from_unit = {"Jy": "intensity",
+                           "K": "temperature"}
         for k,v in field_from_unit.items():
             if k in units:
                 mylog.warning("Guessing this is a %s field based on its units of %s." % (v,k))
                 return v
         return None
 
-    def _determine_image_units(self, header, known_units):
+    def _determine_image_units(self, bunit):
         try:
-            field_units = header["bunit"].lower().strip(" ").replace(" ", "")
-            # FITS units always return upper-case, so we need to get
-            # the right case by comparing against known units. This
-            # only really works for common units.
-            units = set(re.split(regex_pattern, field_units))
-            if '' in units: 
-                units.remove('')
-            n = int(0)
-            for unit in units:
-                if unit in known_units:
-                    field_units = field_units.replace(unit, known_units[unit])
-                    n += 1
-            if n != len(units) or n == 0:
-                field_units = "dimensionless"
-            if field_units[0] == "/":
-                field_units = "1%s" % field_units
-            return field_units
+            try:
+                # First let AstroPy attempt to figure the unit out
+                u = 1.0*_astropy.units.Unit(bunit, format="fits")
+                u = YTQuantity.from_astropy(u).units
+            except ValueError:
+                try:
+                    # Let yt try it by itself
+                    u = self.ds.quan(1.0, bunit).units
+                except UnitParseError:
+                    return "dimensionless"
+            return str(u)
         except KeyError:
             return "dimensionless"
 
@@ -149,15 +143,6 @@ class FITSHierarchy(GridIndex):
         self._ext_map = {}
         self._scale_map = {}
         dup_field_index = {}
-        # Since FITS header keywords are case-insensitive, we only pick a subset of
-        # prefixes, ones that we expect to end up in headers.
-        known_units = dict(
-            [(unit.lower(), unit) for unit in self.ds.unit_registry.lut]
-        )
-        for unit in list(known_units.values()):
-            if unit in prefixable_units:
-                for p in ["n","u","m","c","k"]:
-                    known_units[(p+unit).lower()] = p+unit
         # We create a field from each slice on the 4th axis
         if self.dataset.naxis == 4:
             naxis4 = self.dataset.primary_header["naxis4"]
@@ -168,7 +153,7 @@ class FITSHierarchy(GridIndex):
                 if isinstance(hdu, _astropy.pyfits.BinTableHDU) or hdu.header["naxis"] == 0:
                     continue
                 if self._ensure_same_dims(hdu):
-                    units = self._determine_image_units(hdu.header, known_units)
+                    units = self._determine_image_units(hdu.header["bunit"])
                     try:
                         # Grab field name from btype
                         fname = hdu.header["btype"]
@@ -275,6 +260,7 @@ class FITSHierarchy(GridIndex):
             yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
                               cache = cache)
 
+
 def find_primary_header(fileh):
     # Sometimes the primary hdu doesn't have an image
     if len(fileh) > 1 and fileh[0].header["naxis"] == 0:
@@ -283,6 +269,7 @@ def find_primary_header(fileh):
         first_image = 0
     header = fileh[first_image].header
     return header, first_image
+
 
 def check_fits_valid(args):
     ext = args[0].rsplit(".", 1)[-1]
@@ -306,12 +293,12 @@ def check_fits_valid(args):
         pass
     return None
 
+
 def check_sky_coords(args, ndim):
     fileh = check_fits_valid(args)
     if fileh is not None:
         try:
-            if (len(fileh) > 1 and
-                fileh[1].name == "EVENTS" and ndim == 2):
+            if len(fileh) > 1 and fileh[1].name == "EVENTS" and ndim == 2:
                 fileh.close()
                 return True
             else:
@@ -320,12 +307,15 @@ def check_sky_coords(args, ndim):
                     return False
                 axis_names = [header.get("ctype%d" % (i + 1), "")
                               for i in range(header["naxis"])]
+                if len(axis_names) == 3 and axis_names.count("LINEAR") == 2:
+                    return any(a[0] in spec_prefixes for a in axis_names)
                 x = find_axes(axis_names, sky_prefixes + spec_prefixes)
                 fileh.close()
                 return x >= ndim
         except:
             pass
     return False
+
 
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
@@ -392,39 +382,43 @@ class FITSDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         """
-        Generates the conversion to various physical _units based on the parameter file
+        Generates the conversion to various physical _units based on the
+        parameter file
         """
-        default_length_units = [u for u,v in default_unit_symbol_lut.items()
-                                if str(v[1]) == "(length)"]
-        more_length_units = []
-        for unit in default_length_units:
-            if unit in prefixable_units:
-                more_length_units += [prefix+unit for prefix in unit_prefixes]
-        default_length_units += more_length_units
-        file_units = []
-        cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
-        for unit in (_.to_string() for _ in cunits):
-            if unit in default_length_units:
-                file_units.append(unit)
-        if len(set(file_units)) == 1:
-            length_factor = self.wcs.wcs.cdelt[0]
-            length_unit = str(file_units[0])
-            mylog.info("Found length units of %s." % (length_unit))
-        else:
-            self.no_cgs_equiv_length = True
-            mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
-            length_factor = 1.0
-            length_unit = "cm"
-        setdefaultattr(self, 'length_unit', self.quan(length_factor,length_unit))
-        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
-        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
-        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm/s"))
-        if "beam_size" in self.specified_parameters:
-            beam_size = self.specified_parameters["beam_size"]
-            beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value
-        else:
-            beam_size = 1.0
-        self.unit_registry.add("beam", beam_size, dimensions=dimensions.solid_angle)
+        if getattr(self, 'length_unit', None) is None:
+            default_length_units = [u for u,v in default_unit_symbol_lut.items()
+                                    if str(v[1]) == "(length)"]
+            more_length_units = []
+            for unit in default_length_units:
+                if unit in prefixable_units:
+                    more_length_units += [prefix+unit for prefix in unit_prefixes]
+            default_length_units += more_length_units
+            file_units = []
+            cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
+            for unit in (_.to_string() for _ in cunits):
+                if unit in default_length_units:
+                    file_units.append(unit)
+            if len(set(file_units)) == 1:
+                length_factor = self.wcs.wcs.cdelt[0]
+                length_unit = str(file_units[0])
+                mylog.info("Found length units of %s." % length_unit)
+            else:
+                self.no_cgs_equiv_length = True
+                mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
+                length_factor = 1.0
+                length_unit = "cm"
+            setdefaultattr(self, 'length_unit', 
+                           self.quan(length_factor, length_unit))
+        for unit, cgs in [("time", "s"), ("mass", "g")]:
+            # We set these to cgs for now, but they may have been overridden
+            if getattr(self, unit+'_unit', None) is not None:
+                continue
+            mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
+            setdefaultattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
+        self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
+                                     (self.time_unit**2 * self.length_unit))
+        self.magnetic_unit.convert_to_units("gauss")
+        self.velocity_unit = self.length_unit / self.time_unit
 
     def _parse_parameter_file(self):
 
@@ -449,28 +443,13 @@ class FITSDataset(Dataset):
 
         self._determine_wcs()
 
+        self.current_time = 0.0
+
         self.domain_dimensions = np.array(self.dims)[:self.dimensionality]
         if self.dimensionality == 2:
             self.domain_dimensions = np.append(self.domain_dimensions,
                                                [int(1)])
-
-        domain_left_edge = np.array([0.5]*3)
-        domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
-
-        if self.dimensionality == 2:
-            domain_left_edge[-1] = 0.5
-            domain_right_edge[-1] = 1.5
-
-        self.domain_left_edge = domain_left_edge
-        self.domain_right_edge = domain_right_edge
-
-        # Get the simulation time
-        try:
-            self.current_time = self.parameters["time"]
-        except:
-            mylog.warning("Cannot find time")
-            self.current_time = 0.0
-            pass
+        self._determine_bbox()
 
         # For now we'll ignore these
         self.periodicity = (False,)*3
@@ -513,6 +492,17 @@ class FITSDataset(Dataset):
         else:
             self.wcs = wcs
 
+    def _determine_bbox(self):
+        domain_left_edge = np.array([0.5]*3)
+        domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
+
+        if self.dimensionality == 2:
+            domain_left_edge[-1] = 0.5
+            domain_right_edge[-1] = 1.5
+
+        self.domain_left_edge = domain_left_edge
+        self.domain_right_edge = domain_right_edge
+
     def _determine_axes(self):
         self.lat_axis = 1
         self.lon_axis = 0
@@ -542,12 +532,78 @@ class FITSDataset(Dataset):
     def close(self):
         self._handle.close()
 
+
 def find_axes(axis_names, prefixes):
     x = 0
     for p in prefixes:
         y = np_char.startswith(axis_names, p)
         x += np.any(y)
     return x
+
+
+class YTFITSDataset(FITSDataset):
+    _field_info_class = YTFITSFieldInfo
+
+    def _parse_parameter_file(self):
+        super(YTFITSDataset, self)._parse_parameter_file()
+        # Get the current time
+        if "time" in self.primary_header:
+            self.current_time = self.primary_header["time"]
+
+    def _set_code_unit_attributes(self):
+        """
+        Generates the conversion to various physical _units based on the parameter file
+        """
+        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
+                          ("velocity", "cm/s"), ("magnetic", "gauss")]:
+            if unit == "magnetic":
+                short_unit = "bfunit"
+            else:
+                short_unit = "%sunit" % unit[0]
+            if short_unit in self.primary_header:
+                # units should now be in header
+                u = self.quan(self.primary_header[short_unit],
+                              self.primary_header.comments[short_unit].strip("[]"))
+                mylog.info("Found %s units of %s." % (unit, u))
+            else:
+                if unit == "length":
+                    # Falling back to old way of getting units for length
+                    # in old files
+                    u = self.quan(1.0, str(self.wcs.wcs.cunit[0]))
+                    mylog.info("Found %s units of %s." % (unit, u))
+                else:
+                    # Give up otherwise
+                    u = self.quan(1.0, cgs)
+                    mylog.warning("No unit for %s found. Assuming 1.0 code_%s = 1.0 %s" % (unit, unit, cgs))
+            setdefaultattr(self, '%s_unit' % unit, u)
+
+    def _determine_bbox(self):
+        dx = np.zeros(3)
+        dx[:self.dimensionality] = self.wcs.wcs.cdelt
+        domain_left_edge = np.zeros(3)
+        domain_left_edge[:self.dimensionality] = self.wcs.wcs.crval-dx[:self.dimensionality]*(self.wcs.wcs.crpix-0.5)
+        domain_right_edge = domain_left_edge + dx*self.domain_dimensions
+
+        if self.dimensionality == 2:
+            domain_left_edge[-1] = 0.0
+            domain_right_edge[-1] = dx[0]
+
+        self.domain_left_edge = domain_left_edge
+        self.domain_right_edge = domain_right_edge
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        fileh = check_fits_valid(args)
+        if fileh is None:
+            return False
+        else:
+            if "WCSNAME" in fileh[0].header:
+                isyt = fileh[0].header["WCSNAME"].strip() == "yt"
+            else:
+                isyt = False
+            fileh.close()
+            return isyt
+
 
 class SkyDataFITSDataset(FITSDataset):
     _field_info_class = WCSFITSFieldInfo
@@ -602,10 +658,15 @@ class SkyDataFITSDataset(FITSDataset):
         pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
         pixel_dims = pixel_area.units.dimensions
         self.unit_registry.add("pixel", float(pixel_area.value), dimensions=pixel_dims)
+        if "beam_size" in self.specified_parameters:
+            beam_size = self.specified_parameters["beam_size"]
+            beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value
+            self.unit_registry.add("beam", beam_size, dimensions=dimensions.solid_angle)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         return check_sky_coords(args, 2)
+
 
 class SpectralCubeFITSHierarchy(FITSHierarchy):
 
@@ -709,6 +770,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
     def _is_valid(cls, *args, **kwargs):
         return check_sky_coords(args, 3)
 
+
 class EventsFITSHierarchy(FITSHierarchy):
 
     def _detect_output_fields(self):
@@ -733,6 +795,7 @@ class EventsFITSHierarchy(FITSHierarchy):
             self.grid_particle_count[:] = 0.0
         self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
         self._particle_indices[1] = self.grid_particle_count.squeeze()
+
 
 class EventsFITSDataset(SkyDataFITSDataset):
     _index_class = EventsFITSHierarchy

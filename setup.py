@@ -110,6 +110,28 @@ cython_extensions = [
               include_dirs=["yt/utilities/lib/",
                             "yt/geometry/"],
               libraries=std_libs),
+    Extension("yt.utilities.lib.cykdtree.kdtree",
+              [
+                  "yt/utilities/lib/cykdtree/kdtree.pyx",
+                  "yt/utilities/lib/cykdtree/c_kdtree.cpp",
+                  "yt/utilities/lib/cykdtree/c_utils.cpp",
+              ],
+              depends=[
+                  "yt/utilities/lib/cykdtree/c_kdtree.hpp",
+                  "yt/utilities/lib/cykdtree/c_utils.hpp",
+              ],
+              libraries=std_libs,
+              language="c++",
+              extra_compile_arg=["-std=c++03"]),
+    Extension("yt.utilities.lib.cykdtree.utils",
+              [
+                  "yt/utilities/lib/cykdtree/utils.pyx",
+                  "yt/utilities/lib/cykdtree/c_utils.cpp",
+              ],
+              depends=["yt/utilities/lib/cykdtree/c_utils.hpp"],
+              libraries=std_libs,
+              language="c++",
+              extra_compile_arg=["-std=c++03"]),    
     Extension("yt.utilities.lib.fnv_hash",
               ["yt/utilities/lib/fnv_hash.pyx"],
               include_dirs=["yt/utilities/lib/"],
@@ -291,9 +313,9 @@ class build_ext(_build_ext):
 """Could not import cython or numpy. Building yt from source requires
 cython and numpy to be installed. Please install these packages using
 the appropriate package manager for your python environment.""")
-        if LooseVersion(cython.__version__) < LooseVersion('0.24'):
+        if LooseVersion(cython.__version__) < LooseVersion('0.26.1'):
             raise RuntimeError(
-"""Building yt from source requires Cython 0.24 or newer but
+"""Building yt from source requires Cython 0.26.1 or newer but
 Cython %s is installed. Please update Cython using the appropriate
 package manager for your python environment.""" %
                 cython.__version__)
@@ -305,7 +327,8 @@ package manager for your python environment.""" %
                 numpy.__version__)
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
-            self.distribution.ext_modules)
+            self.distribution.ext_modules,
+            compiler_directives={'language_level': 2})
         _build_ext.finalize_options(self)
         # Prevent numpy from thinking it is still in its setup process
         # see http://stackoverflow.com/a/21621493/1382869
@@ -316,9 +339,7 @@ package manager for your python environment.""" %
         else:
             __builtins__.__NUMPY_SETUP__ = False
         import numpy
-        import cykdtree
         self.include_dirs.append(numpy.get_include())
-        self.include_dirs.append(cykdtree.get_include())
 
 class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython
@@ -327,7 +348,10 @@ class sdist(_sdist):
     def run(self):
         # Make sure the compiled Cython files in the distribution are up-to-date
         from Cython.Build import cythonize
-        cythonize(cython_extensions)
+        cythonize(
+            cython_extensions,
+            compiler_directives={'language_level': 2},
+        )
         _sdist.run(self)
 
 setup(

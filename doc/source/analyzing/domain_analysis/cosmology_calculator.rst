@@ -15,7 +15,8 @@ in the following way:
    from yt.utilities.cosmology import Cosmology
 
    co = Cosmology(hubble_constant=0.7, omega_matter=0.3,
-                  omega_lambda=0.7, omega_curvature=0.0)
+                  omega_lambda=0.7, omega_curvature=0.0,
+                  omega_radiation=0.0)
 
 Once created, various distance calculations as well as conversions between
 redshift and time are available:
@@ -24,8 +25,7 @@ redshift and time are available:
 
    from yt.utilities.cosmology import Cosmology
 
-   co = Cosmology(hubble_constant=0.7, omega_matter=0.3,
-                  omega_lambda=0.7, omega_curvature=0.0)
+   co = Cosmology()
 
    # Hubble distance (c / h)
    print("hubble distance", co.hubble_distance())
@@ -51,9 +51,6 @@ redshift and time are available:
    # time between two redshifts
    print("lookback time", co.lookback_time(0, 0.5).in_units("Gyr"))
 
-   # age of the Universe at a given redshift
-   print("hubble time", co.hubble_time(0).in_units("Gyr"))
-
    # critical density
    print("critical density", co.critical_density(0))
 
@@ -64,7 +61,7 @@ redshift and time are available:
    my_t = co.quan(8, "Gyr")
    print("z from t", co.z_from_t(my_t))
 
-   # convert redshift to time after Big Bang (same as Hubble time)
+   # convert redshift to time after Big Bang
    print("t from z", co.t_from_z(0.5).in_units("Gyr"))
 
 .. warning::
@@ -76,8 +73,7 @@ redshift and time are available:
    x, x.to("Mpc") and x.to("Mpccm") will be the same.  The user should take
    care to understand which reference frame is correct for the given calculation.
 
-All of the above
-functions accept scalar values and arrays.  The helper functions, `co.quan`
+The helper functions, `co.quan`
 and `co.arr` exist to create unitful `YTQuantities` and `YTArray` with the
 unit registry of the cosmology calculator.  For more information on the usage
 and meaning of each calculation, consult the reference documentation at

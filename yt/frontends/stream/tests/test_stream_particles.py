@@ -2,6 +2,7 @@ import numpy as np
 
 from yt.testing import \
     assert_equal, \
+    fake_particle_ds, \
     fake_sph_orientation_ds
 from yt.frontends.stream.api import load_uniform_grid, \
     refine_amr, \
@@ -307,6 +308,45 @@ def test_load_particles_types():
         assert npart == num_tot_particles
         assert dd["all", "particle_position_%s" % ax].size == num_tot_particles
 
+def test_load_particles_with_data_source():
+    ds1 = fake_particle_ds()
+
+    # Load from dataset
+    ad = ds1.all_data()
+    fields = ['particle_mass']
+    fields += ['particle_position_{}'.format(ax) for ax in 'xyz']
+    data = {field: ad[field] for field in fields}
+    ds2 = load_particles(data, data_source=ad)
+
+    def in_cgs(quan):
+        return quan.in_cgs().v
+
+    # Test bbox is parsed correctly
+    for attr in ['domain_left_edge', 'domain_right_edge']:
+        assert np.allclose(
+            in_cgs(getattr(ds1, attr)),
+            in_cgs(getattr(ds2, attr))
+        )
+
+    # Test sim_time is parsed correctly
+    assert in_cgs(ds1.current_time) == in_cgs(ds2.current_time)
+
+    # Test code units are parsed correctly
+    def get_cu(ds, dim):
+        return ds.quan(1, 'code_' + dim)
+    for dim in ['length', 'mass', 'time', 'velocity', 'magnetic']:
+        assert in_cgs(get_cu(ds1, dim)) == in_cgs(get_cu(ds2, dim))
+
+def test_add_sph_fields():
+    ds = fake_particle_ds()
+    ds.index
+    assert set(ds.particle_types) == {'io', 'all', 'nbody'}
+
+    ds.add_sph_fields()
+    assert set(ds.particle_types) == {'io', 'all'}
+    assert ('io', 'smoothing_length') in ds.field_list
+    assert ('io', 'density') in ds.field_list
+
 def test_particles_outside_domain():
     np.random.seed(0x4d3d3d3)
     posx_arr = np.random.uniform(low=-1.6, high=1.5, size=1000)
@@ -332,4 +372,3 @@ def test_stream_sph_projection():
     image = frb['gas', 'density']
     assert image.max() > 0
     assert image.shape == (256, 256)
-    

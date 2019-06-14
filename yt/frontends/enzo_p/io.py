@@ -109,7 +109,7 @@ class EnzoPIOHandler(BaseIOHandler):
                     if g.particle_count[ptype] == 0:
                         continue
                     coords = \
-                      tuple(np.asarray(group.get(pn % ax).value, dtype="=f8")
+                      tuple(np.asarray(group.get(pn % ax)[()], dtype="=f8")
                             for ax in 'xyz'[:self.ds.dimensionality])
                     for i in range(self.ds.dimensionality, 3):
                         coords += \
@@ -124,7 +124,7 @@ class EnzoPIOHandler(BaseIOHandler):
                     if mask is None:
                         continue
                     for field in field_list:
-                        data = np.asarray(group.get(pn % field).value, "=f8")
+                        data = np.asarray(group.get(pn % field)[()], "=f8")
                         yield (ptype, field), data[mask]
             if f: f.close()
 
@@ -161,7 +161,7 @@ class EnzoPIOHandler(BaseIOHandler):
         ftype, fname = field
         node = "/%s/field%s%s" % (obj.block_name, self._sep, fname)
         dg = h5py.h5d.open(fid, node.encode('latin-1'))
-        rdata = np.empty(self.ds.grid_dimensions[:self.ds.dimensionality],
+        rdata = np.empty(self.ds.grid_dimensions[:self.ds.dimensionality][::-1],
                          dtype=self._field_dtype)
         dg.read(h5py.h5s.ALL, h5py.h5s.ALL, rdata)
         if close:
