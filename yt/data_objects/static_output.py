@@ -730,10 +730,6 @@ class Dataset(object):
             self.known_filters.pop(n, None)
             return False
         self.known_filters[filter.name] = filter
-        if filter.filtered_type == self._sph_ptypes[0]:
-            mylog.warning("It appears that you are filtering on an SPH field "
-                          "type. It is recommended to use 'gas' as the "
-                          "filtered particle type in this case instead.")
         return True
 
     def _setup_filtered_type(self, filter):
@@ -767,6 +763,10 @@ class Dataset(object):
             if filter.name not in self.filtered_particle_types:
                 self.filtered_particle_types.append(filter.name)
             if hasattr(self, '_sph_ptypes'):
+                if filter.filtered_type == self._sph_ptypes[0]:
+                    mylog.warning("It appears that you are filtering on an SPH field "
+                                  "type. It is recommended to use 'gas' as the "
+                                  "filtered particle type in this case instead.")
                 if filter.filtered_type in (self._sph_ptypes + ("gas",)):
                     self._sph_ptypes = self._sph_ptypes + (filter.name,)
             new_fields = self._setup_particle_types([filter.name])
