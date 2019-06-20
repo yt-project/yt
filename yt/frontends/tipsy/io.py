@@ -450,7 +450,6 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             # refactorings could fix this.
             global_offsets[ptype] = pos
             size = self._pdtypes[ptype].itemsize
-            params = self.ds.parameters
             npart = self.ds.parameters[npart_mapping[ptype]]
             # Get the offset into just this particle type, and start at data_file.start
             if npart > data_file.start:
