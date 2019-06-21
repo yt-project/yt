@@ -180,7 +180,7 @@ class GridIndex(Index):
         print("%s" % (len(header.expandtabs())*"-"))
         for level in range(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
-                break
+                continue
             print("% 3i\t% 6i\t% 14i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
                    self.level_stats['numcells'][level],
