@@ -808,7 +808,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
     Parameters
     ----------
     points : array or YTArray
-        The points around that the sphere will contain.
+        The points that the sphere will contain.
 
     Examples
     --------
