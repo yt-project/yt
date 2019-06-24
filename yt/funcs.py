@@ -1197,7 +1197,7 @@ def validate_float(obj):
     """Validates if the passed argument is a float value.
 
     Raises an exception if `obj` is a single float value
-    or a YTQunatity of size 1.
+    or a YTQuantity of size 1.
 
     Parameters
     ----------

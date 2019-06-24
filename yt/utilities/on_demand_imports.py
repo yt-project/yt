@@ -474,3 +474,19 @@ class yaml_imports(object):
         return self._load
 
 _yaml = yaml_imports()
+
+class miniball_imports(object):
+    _name = 'miniball'
+    _Miniball = None
+
+    @property
+    def Miniball(self):
+        if self._Miniball is None:
+            try:
+                from miniball import Miniball
+            except ImportError:
+                Miniball = NotAModule(self._name)
+            self._Miniball = Miniball
+        return self._Miniball
+
+_miniball = miniball_imports()
