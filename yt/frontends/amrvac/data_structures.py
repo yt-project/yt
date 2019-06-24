@@ -75,7 +75,7 @@ class AMRVACHierarchy(GridIndex):
 
 
     def _detect_output_fields(self):
-        # devnote: probably should distinguish gas and dust fields here
+        # TODO (low priority): probably should distinguish gas and dust fields here
         # through the "field type" tag, which here is using self.dataset_type
         self.field_list = [(self.dataset_type, f) for f in self.dataset.parameters["w_names"]]
 
@@ -87,41 +87,12 @@ class AMRVACHierarchy(GridIndex):
         # represented by their respective subgrids.
         header = self.dataset.parameters
         with open(self.dataset.parameter_filename, 'rb') as df:
-            #devnote: here I'm loading everything in the RAM, defeating the purpose
-            # this is a tmp workaround
+            #TODO: rewrite this without get_block_data()
             blocks = get_block_data(df)
-        # @NIELS: The "blocks" array literally gives the amount of grids in the .dat file
         self.num_grids = len(blocks)
-        """
-        block_lvls = [d['lvl'] for d in blocks]
-        lmax = self.dataset.parameters["levmax"]
-        ndim = self.dataset.dimensionality
-        n_leaves = {l: block_lvls.count(l) for l in range(1, lmax+1)}
-        assert sum(n_leaves.values()) == self.dataset.parameters["nleafs"]
-        
-        n_grids = {lmax: n_leaves[lmax]}
-        for l in reversed(range(1, lmax)):
-            n_ghost_grids = n_grids[l+1]/2**ndim
-            assert int(n_ghost_grids) == n_ghost_grids
-            n_grids.update({l: n_leaves[l] + int(n_ghost_grids)})
-
-        self.num_grids = sum(n_grids.values())
-        """
 
 
     def _create_patch(self, current_grid):
-        # """
-        # level: int, level of the patch to be created
-        # bottom: a leaf (bottom level base for the current patch being created)
-        # """
-        # assert bottom["lvl"] >= level
-        # patch = {
-        #     "left_edge": 0.0,
-        #     "right_edge": 0.0,
-        #     "width": self._block_width / 2**(level-1)
-        # }
-        # return patch
-
         # Current level of the block
         current_level = current_grid["lvl"]
         assert current_level <= self.dataset.parameters["levmax"]
@@ -162,12 +133,6 @@ class AMRVACHierarchy(GridIndex):
 
 
     def _add_patch(self, igrid, patch):
-        # for idim, ledge in enumerate(patch['left_edge']):
-        #     # workaround the variable dimensionality of input data
-        #     # missing values are left to init values
-        #     self.grid_left_edge[igrid,idim]  = patch_left_edge[idim]
-        #     self.grid_right_edge[igrid,idim] = patch_right_edge[idim]
-        #     #self.grid_dimensions[igrid,idim] = ...
         # TODO: @Niels: can this be done in a shorter and "nicer" way??
         for idim, left_edge in enumerate(patch['left_edge']):
             self.grid_left_edge[igrid, idim] = left_edge
@@ -180,8 +145,7 @@ class AMRVACHierarchy(GridIndex):
 
     def _parse_index(self):
         with open(self.dataset.parameter_filename, 'rb') as df:
-            #devnote: here I'm loading everything in the RAM, defeating the purpose
-            # this is a tmp workaround
+            #TODO: rewrite this without get_block_data()
             blocks = get_block_data(df)
         header = self.dataset.parameters
         ndim = self.dataset.dimensionality
@@ -429,6 +393,8 @@ class AMRVACDataset(Dataset):
             with open(args[0], 'rb') as fi:
                 # TODO: better checks, use header info? Maybe add "amrvac" as additional header argument to keep
                 # TODO: backwards compatibility
+                # <<< clm : there is no need to change this admittedly heuristic line UNLESS it breaks other frontends.
+                # <<< so if nothing breaks when running nosetest at top level, resolve this (remove comments)
                 assert 'rho' in fi.readline().decode('latin-1')
             validation = True
         finally:
