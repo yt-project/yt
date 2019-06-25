@@ -59,11 +59,11 @@ class amrvac_unit_tests(unittest.TestCase):
         """Check various grid attributes"""
         grids = ds.index.grids
         for g in grids:
-            self.assertTrue(type(g) == yt.frontends.amrvac.AMRVACGrid)
-            self.assertTrue(type(g.LeftEdge) == yt.units.yt_array.YTArray)
-            self.assertTrue(type(g.RightEdge) == yt.units.yt_array.YTArray)
-            self.assertTrue(type(g.ActiveDimensions) == np.ndarray)
-            self.assertTrue(type(g.Level) == np.int32)
+            self.assertTrue(isinstance(g, yt.frontends.amrvac.AMRVACGrid))
+            self.assertTrue(isinstance(g.LeftEdge, yt.units.yt_array.YTArray))
+            self.assertTrue(isinstance(g.RightEdge, yt.units.yt_array.YTArray))
+            self.assertTrue(isinstance(g.ActiveDimensions, np.ndarray))
+            self.assertTrue(isinstance(g.Level, (np.int32, np.int64, int)))
         self.assertEqual(ds.index.max_level, 2)
 
     def test_grids(self):
