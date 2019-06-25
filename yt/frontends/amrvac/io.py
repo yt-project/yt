@@ -70,7 +70,7 @@ class AMRVACIOHandler(BaseIOHandler):
             if b['ix'].all() == grid.block_idx.all():
                 block = b
                 break
-        if block is None:
+        else: # if no break
             raise RuntimeError("Did not find specified grid index in .dat file...")
 
         # Always convert into 3D array, as grid.ActiveDimensions is always 3D
