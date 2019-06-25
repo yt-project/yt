@@ -44,12 +44,15 @@ class AMRVACGrid(AMRGridPatch):
     """devnote : a patch represent part of a block. The hierarchy/index is a collection of patches"""
     _id_offset = 0
 
-    def __init__(self, id, index, level):
+    def __init__(self, id, index, level, block_idx):
         super(AMRVACGrid, self).__init__(
             id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
+        # used to keep track of block index in the AMRVAC Morton curve
+        # (useful in reading the data itself in io.py)
+        self.block_idx = block_idx
 
     def __repr__(self):
         return "AMRVACGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
@@ -95,7 +98,6 @@ class AMRVACHierarchy(GridIndex):
     def _create_patch(self, current_grid):
         # Current level of the block
         current_level = current_grid["lvl"]
-        assert current_level <= self.dataset.parameters["levmax"]
         # Current index of the Morton Curve, see http://amrvac.org/md_doc_amrstructure.html
         current_idx = current_grid["ix"]
 
@@ -125,7 +127,8 @@ class AMRVACHierarchy(GridIndex):
             "left_edge" : (idx0 / domain_end_idx) * domain_width,
             "right_edge": (idx1 / domain_end_idx) * domain_width,
             #"width"     : ((idx1 - idx0) / domain_end_idx) * domain_width  # !! yields divide by zero
-            "width"     : domain_width      # TODO then it should be this, as in "width of block"?
+            "width"     : self.dataset.parameters["block_nx"], # TODO then it should be this, as in "width of block"?
+            "block_idx" : current_idx
         }
 
         return patch
@@ -140,6 +143,7 @@ class AMRVACHierarchy(GridIndex):
             self.grid_right_edge[igrid, idim] = right_edge
         for idim, width in enumerate(patch['width']):
             self.grid_dimensions[igrid, idim] = width
+        self.grid_block_idx = patch["block_idx"]
 
 
 
@@ -156,8 +160,8 @@ class AMRVACHierarchy(GridIndex):
         #block_width = domain_width / nblocks
 
         # those are YTarray instances, already initialized with proper shape
-        self.grid_left_edge[:]  = 0.0
-        self.grid_right_edge[:] = 1.0
+        #self.grid_left_edge[:]  = 0.0
+        #self.grid_right_edge[:] = 1.0
 
 
         igrid = 0
@@ -207,7 +211,7 @@ class AMRVACHierarchy(GridIndex):
 
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
-            self.grids[i] = self.grid(i, self, self.grid_levels[i, 0])
+            self.grids[i] = self.grid(i, self, self.grid_levels[i, 0], self.grid_block_idx)
 
 
 
@@ -234,6 +238,7 @@ class AMRVACDataset(Dataset):
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
+        self.cosmological_simulation = False
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various

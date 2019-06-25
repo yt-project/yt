@@ -82,6 +82,15 @@ class amrvac_unit_tests(unittest.TestCase):
         rho = g["density"]
         self.assertTrue(type(rho), yt.units.yt_array.YTArray)
 
+    def test_dataread_all(self):
+        ad = ds.all_data()
+        self.assertTrue(type(ad['rho']), yt.units.yt_array.YTArray)
+
+    def test_plot(self):
+        ad = ds.all_data()
+        p = yt.ProjectionPlot(ds, 'x', 'density')
+        p.show()
+
 
 
 if __name__ == '__main__':
