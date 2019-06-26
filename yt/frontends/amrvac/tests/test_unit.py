@@ -31,7 +31,7 @@ class amrvac_unit_tests(unittest.TestCase):
 
     def test_load_amrvac(self):
         """Check that that data is amrvac-formated"""
-        self.assertTrue(ds.__class__ == yt.frontends.amrvac.AMRVACDataset)
+        self.assertTrue(isinstance(ds, yt.frontends.amrvac.AMRVACDataset))
 
 
 
