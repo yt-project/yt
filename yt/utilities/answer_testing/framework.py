@@ -33,7 +33,7 @@ from matplotlib.testing.compare import compare_images
 from yt.funcs import \
     get_pbar
 from yt.testing import \
-    assert_allclose_units, \
+    assert_allclose_units
 from yt.convenience import load, simulation
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
@@ -66,46 +66,6 @@ def temp_cwd(cwd):
     yield
     os.chdir(oldcwd)
 
-def can_run_ds(ds_fn, file_check = False):
-    result_storage = AnswerTestingTest.result_storage
-    if isinstance(ds_fn, Dataset):
-        return result_storage is not None
-    path = ytcfg.get("yt", "test_data_dir")
-    if not os.path.isdir(path):
-        return False
-    if file_check:
-        return os.path.isfile(os.path.join(path, ds_fn)) and \
-            result_storage is not None
-    try:
-        load(ds_fn)
-    except YTOutputNotIdentified:
-        if ytcfg.getboolean("yt", "requires_ds_strict"):
-            if result_storage is not None:
-                result_storage['tainted'] = True
-            raise
-        return False
-    return result_storage is not None
-
-def can_run_sim(sim_fn, sim_type, file_check = False):
-    result_storage = AnswerTestingTest.result_storage
-    if isinstance(sim_fn, SimulationTimeSeries):
-        return result_storage is not None
-    path = ytcfg.get("yt", "test_data_dir")
-    if not os.path.isdir(path):
-        return False
-    if file_check:
-        return os.path.isfile(os.path.join(path, sim_fn)) and \
-            result_storage is not None
-    try:
-        simulation(sim_fn, sim_type)
-    except YTOutputNotIdentified:
-        if ytcfg.getboolean("yt", "requires_ds_strict"):
-            if result_storage is not None:
-                result_storage['tainted'] = True
-            raise
-        return False
-    return result_storage is not None
-
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     args = args or ()
     kwargs = kwargs or {}
@@ -129,7 +89,7 @@ def sim_dir_load(sim_fn, path = None, sim_type = "Enzo",
     return simulation(os.path.join(path, sim_fn), sim_type,
                       find_outputs=find_outputs)
 
-class FieldValuesTest(AnswerTestingTest):
+class FieldValuesTest():
     _type_name = "FieldValues"
     _attrs = ("field", )
 
@@ -162,7 +122,7 @@ class FieldValuesTest(AnswerTestingTest):
             assert_allclose_units(new_result, old_result, 10.**(-self.decimals),
                                   err_msg=err_msg, verbose=True)
 
-class AllFieldValuesTest(AnswerTestingTest):
+class AllFieldValuesTest():
     _type_name = "AllFieldValues"
     _attrs = ("field", )
 
@@ -186,7 +146,7 @@ class AllFieldValuesTest(AnswerTestingTest):
             assert_rel_equal(new_result, old_result, self.decimals,
                              err_msg=err_msg, verbose=True)
 
-class ProjectionValuesTest(AnswerTestingTest):
+class ProjectionValuesTest():
     _type_name = "ProjectionValues"
     _attrs = ("field", "axis", "weight_field")
 
@@ -237,7 +197,7 @@ class ProjectionValuesTest(AnswerTestingTest):
                 assert_allclose_units(nres, ores, 10.**-(self.decimals),
                                       err_msg=err_msg)
 
-class PixelizedProjectionValuesTest(AnswerTestingTest):
+class PixelizedProjectionValuesTest():
     _type_name = "PixelizedProjectionValues"
     _attrs = ("field", "axis", "weight_field")
 
@@ -274,7 +234,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         for k in new_result:
             assert_rel_equal(new_result[k], old_result[k], 10)
 
-class GridValuesTest(AnswerTestingTest):
+class GridValuesTest():
     _type_name = "GridValues"
     _attrs = ("field",)
 
@@ -296,7 +256,7 @@ class GridValuesTest(AnswerTestingTest):
         for k in new_result:
             assert_equal(new_result[k], old_result[k])
 
-class VerifySimulationSameTest(AnswerTestingTest):
+class VerifySimulationSameTest():
     _type_name = "VerifySimulationSame"
     _attrs = ()
 
@@ -316,7 +276,7 @@ class VerifySimulationSameTest(AnswerTestingTest):
                          err_msg="Output times not equal.",
                          verbose=True)
 
-class GridHierarchyTest(AnswerTestingTest):
+class GridHierarchyTest():
     _type_name = "GridHierarchy"
     _attrs = ()
 
@@ -333,7 +293,7 @@ class GridHierarchyTest(AnswerTestingTest):
         for k in new_result:
             assert_equal(new_result[k], old_result[k])
 
-class ParentageRelationshipsTest(AnswerTestingTest):
+class ParentageRelationshipsTest():
     _type_name = "ParentageRelationships"
     _attrs = ()
     def run(self):
@@ -357,7 +317,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newc == oldc)
 
-class SimulatedHaloMassFunctionTest(AnswerTestingTest):
+class SimulatedHaloMassFunctionTest():
     _type_name = "SimulatedHaloMassFunction"
     _attrs = ("finder",)
 
@@ -383,7 +343,7 @@ class SimulatedHaloMassFunctionTest(AnswerTestingTest):
         assert_equal(new_result, old_result,
                      err_msg=err_msg, verbose=True)
 
-class AnalyticHaloMassFunctionTest(AnswerTestingTest):
+class AnalyticHaloMassFunctionTest():
     _type_name = "AnalyticHaloMassFunction"
     _attrs = ("fitting_function",)
 
@@ -429,7 +389,7 @@ def compare_image_lists(new_result, old_result, decimals):
         for fn in fns:
             os.remove(fn)
 
-class VRImageComparisonTest(AnswerTestingTest):
+class VRImageComparisonTest():
     _type_name = "VRImageComparison"
     _attrs = ('desc',)
 
@@ -453,7 +413,7 @@ class VRImageComparisonTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
 
-class PlotWindowAttributeTest(AnswerTestingTest):
+class PlotWindowAttributeTest():
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args',
               'callback_id')
@@ -492,7 +452,7 @@ class PlotWindowAttributeTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
 
-class PhasePlotAttributeTest(AnswerTestingTest):
+class PhasePlotAttributeTest():
     _type_name = "PhasePlotAttribute"
     _attrs = ('plot_type', 'x_field', 'y_field', 'z_field',
               'attr_name', 'attr_args')
@@ -536,7 +496,7 @@ class PhasePlotAttributeTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
 
-class GenericArrayTest(AnswerTestingTest):
+class GenericArrayTest():
     _type_name = "GenericArray"
     _attrs = ('array_func_name','args','kwargs')
     def __init__(self, ds_fn, array_func, args=None, kwargs=None, decimals=None):
@@ -571,7 +531,7 @@ class GenericArrayTest(AnswerTestingTest):
                 assert_allclose_units(new_result[k], old_result[k],
                                       10**(-self.decimals))
 
-class GenericImageTest(AnswerTestingTest):
+class GenericImageTest():
     _type_name = "GenericImage"
     _attrs = ('image_func_name','args','kwargs')
     def __init__(self, ds_fn, image_func, decimals, args=None, kwargs=None):
@@ -604,7 +564,7 @@ class GenericImageTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
 
-class AxialPixelizationTest(AnswerTestingTest):
+class AxialPixelizationTest():
     # This test is typically used once per geometry or coordinates type.
     # Feed it a dataset, and it checks that the results of basic pixelization
     # don't change.
