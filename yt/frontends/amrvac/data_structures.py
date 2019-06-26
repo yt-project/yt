@@ -203,7 +203,7 @@ class AMRVACHierarchy(GridIndex):
         #     self.grids[ip] = self.grid(id=ip, index=self, level=patch['lvl'])
 
         # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
-        levels = np.array([(block["lvl"] - 1) for block in blocks])
+        levels = np.array([(block["lvl"] - 1) for block in blocks], dtype="int32")
 
         self.grid_levels = levels.reshape(self.num_grids, 1)
         self.max_level = self.dataset.parameters["levmax"] - 1
