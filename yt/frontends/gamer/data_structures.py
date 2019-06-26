@@ -316,6 +316,8 @@ class GAMERDataset(Dataset):
             # default to 0.6 for old data format
             self.mu    = parameters.get('MolecularWeight', 0.6)
             self.mhd   = parameters.get("Magnetohydrodynamics", 0)
+        else:
+            self.mhd   = 0
 
         # old data format (version < 2210) does not contain any information of code units
         self.parameters.setdefault('Opt__Unit', 0)
