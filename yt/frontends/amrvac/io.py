@@ -83,7 +83,6 @@ class AMRVACIOHandler(BaseIOHandler):
         else:
             data = block['w'][:, :, :, field_idx]
 
-        data = data.reshape(shape, order='F')
         return data
 
 
