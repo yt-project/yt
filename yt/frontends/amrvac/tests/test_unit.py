@@ -8,6 +8,7 @@ import numpy as np
 import unittest
 
 from yt.utilities.parameter_file_storage import output_type_registry
+from yt.extern.six.moves import builtins
 
 test_dir = pathlib.Path(__file__).parent.resolve()
 example_data_2D = str(test_dir / "data/blast_wave_Cartesian_3D/bw_3d0001.dat")
@@ -90,6 +91,7 @@ class amrvac_unit_tests(unittest.TestCase):
         ad = ds.all_data()
         self.assertTrue(isinstance(ad['rho'], yt.units.yt_array.YTArray))
 
+    @unittest.skipUnless("__IPYTHON__" in dir(builtins), "can not test outside Ipython notebook")
     def test_plot(self):
         ad = ds.all_data()
         p = yt.ProjectionPlot(ds, 'x', 'density')
