@@ -74,6 +74,10 @@ class amrvac_unit_tests(unittest.TestCase):
 
 
     # ========== TEST FOR DATA READING ==========
+    def test_get_data(self):
+        ad = ds.all_data()
+        data = ad.get_data()
+
     def test_grid_dataread(self):
         grids = ds.index.grids
         # select random grid
@@ -84,12 +88,10 @@ class amrvac_unit_tests(unittest.TestCase):
 
     def test_dataread_all(self):
         ad = ds.all_data()
-        ad.get_data()
         self.assertTrue(isinstance(ad['rho'], yt.units.yt_array.YTArray))
 
     def test_plot(self):
         ad = ds.all_data()
-        ad.get_data()
         p = yt.ProjectionPlot(ds, 'x', 'density')
         p.show()
 
