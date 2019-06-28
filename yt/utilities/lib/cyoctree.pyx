@@ -360,6 +360,66 @@ cdef class CyOctree:
         self._num_children = 2**(3 * value)
         self._num_children_per_dim  = 2**value
 
+    def cell_sizes(self, int axis):
+        cdef int i, j, z, k, l, num_leaves
+        cdef double delta
+
+        # Find all the leaves
+        num_leaves = 0
+        for i in range(self.nodes.size()):
+            if self.nodes[i].leaf == 1:
+                num_leaves += 1
+
+        cdef np.float64_t[:] sizes = np.zeros(
+                (num_leaves*self._num_cells),
+                dtype='float64'
+        )
+
+        z = 0
+        for i in range(self.nodes.size()):
+            if self.nodes[i].leaf == 0:
+                continue
+
+            delta = (
+                self.nodes[i].right_edge[axis] - self.nodes[i].left_edge[axis]
+            ) / self._num_cells_per_dim
+
+            for j in range(self._num_cells_per_dim):
+                for k in range(self._num_cells_per_dim):
+                    for l in range(self._num_cells_per_dim):
+                        sizes[z] = delta
+                        z += 1
+
+        return np.asarray(sizes)
+
+    @property
+    def refined(self):
+        cdef int i, j, z, k, l, num_leaves
+
+        num_leaves = 0
+        for i in range(self.nodes.size()):
+            if self.nodes[i].leaf == 1:
+                num_leaves += 1
+
+        cdef np.int8_t[:] refined = np.zeros(
+                (num_leaves*self._num_cells + self.nodes.size()),
+                dtype='int8'
+        )
+
+        z = 0
+        for i in range(self.nodes.size()):
+            if self.nodes[i].leaf == 0:
+                refined[z] = 1
+                z += 1
+            else:
+                for j in range(self._num_cells_per_dim):
+                    for k in range(self._num_cells_per_dim):
+                        for l in range(self._num_cells_per_dim):
+                            refined[z] = 0
+                            z += 1
+
+        return np.asarray(refined).astype("bool")
+
     @property
     def cell_positions(self):
         cdef int i, j, z, k, l, num_leaves

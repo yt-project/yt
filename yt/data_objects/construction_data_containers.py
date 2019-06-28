@@ -2190,7 +2190,9 @@ class YTOctree(YTSelectionContainer3D):
     _spatial = True
     _type_name = "octree"
     _con_args = ('left_edge', 'right_edge', 'n_ref')
-    _container_fields = (("index", "dx"),
+    _container_fields = (
+                         ("index", "refined"),
+                         ("index", "dx"),
                          ("index", "dy"),
                          ("index", "dz"),
                          ("index", "x"),
@@ -2277,11 +2279,24 @@ class YTOctree(YTSelectionContainer3D):
                 mylog.info('Detected hash mismatch, regenerating Octree')
                 self._generate_tree(fname)
 
+        # Setup some octree indexes
         pos = ds.arr(self._octree.cell_positions, "code_length")
         self[('index', 'coordinates')] = pos
         self[('index', 'x')] = pos[:, 0]
         self[('index', 'y')] = pos[:, 1]
         self[('index', 'z')] = pos[:, 2]
+
+        self[('index', 'refined')] = self._octree.refined
+
+        self[('index', 'dx')] = ds.arr(
+            self._octree.cell_sizes(0), "code_length"
+        )
+        self[('index', 'dy')] = ds.arr(
+            self._octree.cell_sizes(1), "code_length"
+        )
+        self[('index', 'dz')] = ds.arr(
+            self._octree.cell_sizes(2), "code_length"
+        )
 
         return self._octree
 
