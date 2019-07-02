@@ -991,7 +991,7 @@ def enable_plugins():
 
     if _fn is not None and os.path.isfile(_fn):
         if _fn.startswith(old_config_dir):
-            mylog.warn(
+            mylog.warning(
                 'Your plugin file is located in a deprecated directory. '
                 'Please move it from %s to %s',
                 os.path.join(old_config_dir, my_plugin_name),
