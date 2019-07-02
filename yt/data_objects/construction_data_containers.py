@@ -745,14 +745,17 @@ class YTCoveringGrid(YTSelectionContainer3D):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
 
-        ptype = self.ds._sph_ptype
         smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
         normalize = getattr(self.ds, 'use_sph_normalization', True)
 
         bounds, size = self._get_grid_bounds_size()
 
-        if(smoothing_style == "scatter"):
+        if smoothing_style == "scatter":
             for field in fields:
+                fi = self.ds._get_field_info(field)
+                ptype = fi.name[0]
+                if ptype not in self.ds._sph_ptypes:
+                    raise KeyError("%s is not a SPH particle type!" % ptype)
                 buff = np.zeros(size, dtype="float64")
                 if normalize:
                     buff_den = np.zeros(size, dtype="float64")
@@ -778,7 +781,6 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 if normalize:
                     normalization_3d_utility(buff, buff_den)
 
-                fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(buff, fi.units)
                 pbar.close()
 
@@ -2328,8 +2330,8 @@ class YTOctree(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
 
-        sph_ptype = getattr(self.ds, '_sph_ptype', 'None')
-        if fields[0] == sph_ptype:
+        sph_ptypes = getattr(self.ds, '_sph_ptypes', 'None')
+        if fields[0] in sph_ptypes:
             smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
             normalize = getattr(self.ds, 'use_sph_normalization', True)
 

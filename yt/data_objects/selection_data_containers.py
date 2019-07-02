@@ -283,16 +283,16 @@ class YTRay(YTSelectionContainer1D):
             raise KeyError(field)
 
         length = unorm(self.vec)
-        pos = self[self.ds._sph_ptype, "particle_position"]
+        pos = self[self.ds._sph_ptypes[0], "particle_position"]
         r = pos - self.start_point
         l = udot(r, self.vec/length)
 
         if field == "t":
             return l / length
 
-        hsml = self[self.ds._sph_ptype, "smoothing_length"]
-        mass = self[self.ds._sph_ptype, "particle_mass"]
-        dens = self[self.ds._sph_ptype, "density"]
+        hsml = self[self.ds._sph_ptypes[0], "smoothing_length"]
+        mass = self[self.ds._sph_ptypes[0], "particle_mass"]
+        dens = self[self.ds._sph_ptypes[0], "density"]
         # impact parameter from particle to ray
         b = np.sqrt(np.sum(r**2, axis=1) - l**2)
 

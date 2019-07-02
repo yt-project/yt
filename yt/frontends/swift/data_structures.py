@@ -33,7 +33,7 @@ class SwiftDataset(SPHDataset):
     _particle_mass_name = "Masses"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
-    _sph_ptype = "PartType0"
+    _sph_ptypes = ("PartType0",)
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type='swift',
