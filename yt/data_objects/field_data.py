@@ -4,6 +4,7 @@ The YTFieldData object.
 
 
 """
+from collections import OrderedDict
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2016, yt Development Team.
@@ -13,7 +14,7 @@ The YTFieldData object.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-class YTFieldData(dict):
+class YTFieldData(OrderedDict):
     """
     A Container object for field data, instead of just having it be a dict.
     """

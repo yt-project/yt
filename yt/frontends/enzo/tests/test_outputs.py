@@ -1,245 +1,467 @@
 """
-Enzo frontend tests
-
-
-
+Title:   test_enzo.py
+Purpose: Contains Enzo frontend tests
+Notes:
+    Copyright (c) 2013, yt Development Team.
+    Distributed under the terms of the Modified BSD License.
+    The full license is in the file COPYING.txt, distributed with this
+    software.
 """
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-import numpy as np
-
-from yt.testing import \
-    requires_file, \
-    units_override_check, \
-    assert_allclose_units
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    small_patch_amr, \
-    big_patch_amr, \
-    data_dir_load, \
-    AnalyticHaloMassFunctionTest, \
-    SimulatedHaloMassFunctionTest
-from yt.visualization.plot_window import \
-    SlicePlot
+import yt
 from yt.frontends.enzo.api import EnzoDataset
-from yt.frontends.enzo.fields import NODAL_FLAGS
+from yt.utilities.answer_testing import framework as fw
+from yt.utilities.answer_testing import utils
 
-# List of fields used in the test_moving7 and test_galaxy0030 methods
-_fields = ("temperature", "density", "velocity_magnitude",
-           "velocity_divergence")
 
-# Data required by the tests. All paths are relative to the yt
-# test_data_dir
-two_sphere_test = "ActiveParticleTwoSphere/DD0011/DD0011"
-active_particle_cosmology = "ActiveParticleCosmology/DD0046/DD0046"
-ecp = "enzo_cosmology_plus/DD0046/DD0046"
-g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
-enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
+# Files containing data to be used in tests. Paths are relative to
+# yt test_data_dir
 toro1d = "ToroShockTube/DD0001/data0001"
 kh2d = "EnzoKelvinHelmholtz/DD0011/DD0011"
-mhdctot = "MHDCTOrszagTang/DD0004/data0004"
-dnz = "DeeplyNestedZoom/DD0025/data0025"
-p3mini = "PopIII_mini/DD0034/DD0034"
 m7 = "DD0010/moving7_0010"
+g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
+ecp = "enzo_cosmology_plus/DD0046/DD0046"
 
-def check_color_conservation(ds):
-    species_names = ds.field_info.species_names
-    dd = ds.all_data()
-    dens_yt = dd["density"].copy()
-    # Enumerate our species here
-    for s in sorted(species_names):
-        if s == "El": continue
-        dens_yt -= dd["%s_density" % s]
-    dens_yt -= dd["metal_density"]
-    delta_yt = np.abs(dens_yt / dd["density"])
-    # Now we compare color conservation to Enzo's color conservation
-    dd = ds.all_data()
-    dens_enzo = dd["Density"].copy()
-    for f in sorted(ds.field_list):
-        ff = f[1]
-        if not ff.endswith("_Density"):
-            continue
-        start_strings = ["Electron_", "SFR_", "Forming_Stellar_",
-                         "Dark_Matter", "Star_Particle_"]
-        if any([ff.startswith(ss) for ss in start_strings]):
-            continue
-        dens_enzo -= dd[f]
-    delta_enzo = np.abs(dens_enzo / dd["Density"])
-    return assert_almost_equal, delta_yt, delta_enzo
 
-class TestEnzo:
-    @requires_ds(m7)
-    def test_moving7():
-        ds = data_dir_load(m7)
-        assert_equal(str(ds), "moving7_0010")
-        for test in small_patch_amr(m7, _fields):
-            test_moving7.__name__ = test.description
-            yield test
+#============================================
+#                 TestEnzo
+#============================================
+class TestEnzo(fw.AnswerTest):
+    """
+    Container for Enzo answer tests.
 
-    @requires_ds(g30, big_data=True)
-    def test_galaxy0030():
-        ds = data_dir_load(g30)
-        yield check_color_conservation(ds)
-        assert_equal(str(ds), "galaxy0030")
-        for test in big_patch_amr(ds, _fields):
-            test_galaxy0030.__name__ = test.description
-            yield test
-        assert_equal(ds.particle_type_counts, {'io': 1124453})
+    Attributes:
+    -----------
+        pass
 
-    @requires_ds(toro1d)
-    def test_toro1d():
-        ds = data_dir_load(toro1d)
-        assert_equal(str(ds), 'data0001')
-        for test in small_patch_amr(ds, ds.field_list):
-            test_toro1d.__name__ = test.description
-            yield test
+    Methods:
+    --------
+        pass
+    """
+    #-----
+    # test_toro1d
+    #-----
+    #@utils.requires_ds(toro1d)
+    def test_toro1d(self):
+        # Load data
+        ds = utils.data_dir_load(toro1d)
+        # Make sure we have the right data file
+        assert str(ds) == 'data0001'
+        # Set up arrays for testing
+        axes = [0, 1, 2]
+        input_center = "max"
+        ds_objs = [None, ("sphere", (input_center, (0.1, 'unitary')))]
+        weight_fields = [None, "density"]
+        fields = ds.field_list
+        # Grid hierarchy test
+        gh_hd = utils.generate_hash(
+            self.grid_hierarchy_test(ds)
+        )
+        # Parentage relationships test
+        pr_hd = utils.generate_hash(
+            self.parentage_relationships_test(ds)
+        )
+        # Grid values, projection values, and field values tests
+        # For these tests it might be possible for a frontend to not
+        # run them for every field, axis, or data source, so the tests
+        # are written to work with one instance of each of those. These
+        # loops therefore combine the results of each desired combo.
+        # This mirrors the way that it was done in the original test
+        gv_hd = b''
+        pv_hd = b''
+        fv_hd = b''
+        for field in fields:
+            gv_hd += self.grid_values_test(ds, field)
+            for axis in axes:
+                for dobj_name in ds_objs:
+                    for weight_field in weight_fields:
+                        pv_hd += self.projection_values_test(ds,
+                            axis,
+                            field,
+                            weight_field,
+                            dobj_name
+                        )
+                    fv_hd += self.field_values_test(ds,
+                        field,
+                        dobj_name
+                    )
+        # Hash the final byte arrays
+        gv_hd = utils.generate_hash(gv_hd)
+        pv_hd = utils.generate_hash(pv_hd)
+        fv_hd = utils.generate_hash(fv_hd)
+        # Prepare hashes for either writing or comparing
+        hashes = {}
+        hashes['grid_hierarchy'] = gh_hd
+        hashes['parentage_relationships'] = pr_hd
+        hashes['grid_values'] = gv_hd
+        hashes['projection_values'] = pv_hd
+        hashes['field_values'] = fv_hd
+        # Save answer
+        if self.answer_store:
+            utils.store_hashes('toro1d', hashes)
+        # Compare to already saved answer
+        else:
+            saved_hashes = utils.load_hashes('toro1d')
+            for key, value in hashes.items():
+                assert saved_hashes[key] == hashes[key]
 
-    @requires_ds(kh2d)
-    def test_kh2d():
-        ds = data_dir_load(kh2d)
-        assert_equal(str(ds), 'DD0011')
-        for test in small_patch_amr(ds, ds.field_list):
-            test_toro1d.__name__ = test.description
-            yield test
+    #-----
+    # test_kh2d
+    #-----
+    #@requires_ds(kh2d)
+    def test_kh2d(self):
+        # Load data
+        ds = utils.data_dir_load(kh2d)
+        # Make sure we're dealing with the right file
+        assert str(ds) == 'DD0011'
+        # Set up arrays for testing
+        axes = [0, 1, 2]
+        input_center = "max"
+        ds_objs = [None, ("sphere", (input_center, (0.1, 'unitary')))]
+        weight_fields = [None, "density"]
+        fields = ds.field_list
+        # Grid hierarchy test
+        gh_hd = utils.generate_hash(
+            self.grid_hierarchy_test(ds)
+        )
+        # Parentage relationships test
+        pr_hd = utils.generate_hash(
+            self.parentage_relationships_test(ds)
+        )
+        # Grid values, projection values, and field values tests
+        # For these tests it might be possible for a frontend to not
+        # run them for every field, axis, or data source, so the tests
+        # are written to work with one instance of each of those. These
+        # loops therefore combine the results of each desired combo.
+        # This mirrors the way that it was done in the original test
+        gv_hd = b''
+        pv_hd = b''
+        fv_hd = b''
+        for field in fields:
+            gv_hd += self.grid_values_test(ds, field)
+            for axis in axes:
+                for dobj_name in ds_objs:
+                    for weight_field in weight_fields:
+                        pv_hd += self.projection_values_test(ds,
+                            axis,
+                            field,
+                            weight_field,
+                            dobj_name
+                        )
+                    fv_hd += self.field_values_test(ds,
+                        field,
+                        dobj_name
+                    )
+        # Hash the final byte arrays
+        gv_hd = utils.generate_hash(gv_hd)
+        pv_hd = utils.generate_hash(pv_hd)
+        fv_hd = utils.generate_hash(fv_hd)
+        # Prepare hashes for either writing or comparing
+        hashes = {}
+        hashes['grid_hierarchy'] = gh_hd
+        hashes['parentage_relationships'] = pr_hd
+        hashes['grid_values'] = gv_hd
+        hashes['projection_values'] = pv_hd
+        hashes['field_values'] = fv_hd
+        # Save answer
+        if self.answer_store:
+            utils.store_hashes('kh2d', hashes)
+        # Compare to already saved answer
+        else:
+            saved_hashes = utils.load_hashes('kh2d')
+            for key, value in hashes.items():
+                assert saved_hashes[key] == hashes[key]
 
-    @requires_ds(enzotiny)
-    def test_simulated_halo_mass_function():
-        ds = data_dir_load(enzotiny)
+    #-----
+    # test_moving7
+    #-----
+    #@utils.requires_ds(m7)
+    def test_moving7(self):
+        # Load data
+        ds = utils.data_dir_load(m7)
+        # Make sure we have the right data file
+        assert str(ds) == 'moving7_0010'
+        # Set up arrays for testing
+        axes = [0, 1, 2]
+        input_center = "max"
+        ds_objs = [None, ("sphere", (input_center, (0.1, 'unitary')))]
+        weight_fields = [None, "density"]
+        fields = ("temperature", "density", "velocity_magnitude",
+            "velocity_divergence"
+        )
+        # Grid hierarchy test
+        gh_hd = utils.generate_hash(
+            self.grid_hierarchy_test(ds)
+        )
+        # Parentage relationships test
+        pr_hd = utils.generate_hash(
+            self.parentage_relationships_test(ds)
+        )
+        # Grid values, projection values, and field values tests
+        # For these tests it might be possible for a frontend to not
+        # run them for every field, axis, or data source, so the tests
+        # are written to work with one instance of each of those. These
+        # loops therefore combine the results of each desired combo.
+        # This mirrors the way that it was done in the original test
+        gv_hd = b''
+        pv_hd = b''
+        fv_hd = b''
+        for field in fields:
+            gv_hd += self.grid_values_test(ds, field)
+            for axis in axes:
+                for dobj_name in ds_objs:
+                    for weight_field in weight_fields:
+                        pv_hd += self.projection_values_test(ds,
+                            axis,
+                            field,
+                            weight_field,
+                            dobj_name
+                        )
+                    fv_hd += self.field_values_test(ds,
+                        field,
+                        dobj_name
+                    )
+        # Hash the final byte arrays
+        gv_hd = utils.generate_hash(gv_hd)
+        pv_hd = utils.generate_hash(pv_hd)
+        fv_hd = utils.generate_hash(fv_hd)
+        # Prepare hashes for either writing or comparing
+        hashes = {}
+        hashes['grid_hierarchy'] = gh_hd
+        hashes['parentage_relationships'] = pr_hd
+        hashes['grid_values'] = gv_hd
+        #hashes['projection_values'] = pv_hd
+        #hashes['field_values'] = fv_hd
+        # Save answer
+        if self.answer_store:
+            utils.store_hashes('moving7', hashes)
+        # Compare to already saved answer
+        else:
+            saved_hashes = utils.load_hashes('moving7')
+            for key, value in hashes.items():
+                assert saved_hashes[key] == hashes[key]
+
+    #-----
+    # test_galaxy0030
+    #-----
+    #@requres_ds(g30, big_data=True)
+    def test_galaxy0030(self):
+        """
+        Tests the galaxy_0030 big data simulation.
+
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        ds = utils.data_dir_load(g30)
+        # Make sure we have the right data file
+        assert str(ds) == 'galaxy0030'
+        # Set up arrays for testing
+        axes = [0, 1, 2]
+        input_center = "max"
+        ds_objs = [None, ("sphere", (input_center, (0.1, 'unitary')))]
+        weight_fields = [None, "density"]
+        fields = ("temperature", "density", "velocity_magnitude",
+                   "velocity_divergence")
+        # Color conservation test
+        self.color_conservation_test(ds)
+        # Grid hierarchy test
+        gh_hd = utils.generate_hash(
+            self.grid_hierarchy_test(ds)
+        )
+        # Parentage relationships test
+        pr_hd = utils.generate_hash(
+            self.parentage_relationships_test(ds)
+        )
+        # Grid values and pixelized projection values tests
+        # For these tests it might be possible for a frontend to not
+        # run them for every field, axis, or data source, so the tests
+        # are written to work with one instance of each of those. These
+        # loops therefore combine the results of each desired combo.
+        # This mirrors the way that it was done in the original test
+        gv_hd = b''
+        ppv_hd = b''
+        for field in fields:
+            gv_hd += self.grid_values_test(ds, field)
+            for axis in axes:
+                for dobj_name in ds_objs:
+                    for weight_field in weight_fields:
+                        ppv_hd += self.pixelized_projection_values_test(ds,
+                            axis,
+                            field,
+                            weight_field,
+                            dobj_name
+                        )
+        # Hash the final byte arrays
+        gv_hd = utils.generate_hash(gv_hd)
+        ppv_hd = utils.generate_hash(ppv_hd)
+        # Prepare hashes for either writing or comparing
+        hashes = {}
+        hashes['grid_hierarchy'] = gh_hd
+        hashes['parentage_relationships'] = pr_hd
+        hashes['grid_values'] = gv_hd
+        hashes['pixelized_projection_values'] = ppv_hd
+        # Save answer
+        if self.answer_store:
+            utils.store_hashes('galaxy0030', hashes)
+        # Compare to already saved answer
+        else:
+            saved_hashes = utils.load_hashes('galaxy0030')
+            for key, value in hashes.items():
+                assert saved_hashes[key] == hashes[key]
+
+    #-----
+    # test_simulated_halo_mass_function
+    #-----
+    #@requires_ds(enzotiny)
+    def test_simulated_halo_mass_function(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        # Load in the data
+        ds = utils.data_dir_load(enzotiny)
+        # Set up hex digest
+        shmf_hd = b''
+        # Loop over the different finders
         for finder in ["fof", "hop"]:
-            yield SimulatedHaloMassFunctionTest(ds, finder)
+            shmf_hd += self.simulated_halo_mass_function_test(ds, finder)
+        hashes = {}
+        hashes['simulated_halo_mass_function'] = utils.generate_hash(shmf_hd)
+        if self.answer_store:
+            utils.store_hashes('shmf-enzotiny', hashes)
+        else:
+            saved_hashes = utils.load_hashes('shmf-enzotiny')
+            for key, value in hashes.items():
+                assert saved_hashes[key] == hashes[key]
 
-    @requires_ds(enzotiny)
-    def test_analytic_halo_mass_function():
-        ds = data_dir_load(enzotiny)
-        for fit in range(1, 6):
-            yield AnalyticHaloMassFunctionTest(ds, fit)
-
-    @requires_ds(ecp, big_data=True)
-    def test_ecp():
-        ds = data_dir_load(ecp)
-        # Now we test our species fields
-        yield check_color_conservation(ds)
-
-    @requires_file(enzotiny)
-    def test_units_override():
-        units_override_check(enzotiny)
-
-    @requires_ds(ecp, big_data=True)
-    def test_nuclei_density_fields():
-        ds = data_dir_load(ecp)
-        ad = ds.all_data()
-        assert_array_equal(ad["H_nuclei_density"],
-                           (ad["H_number_density"] + ad["H_p1_number_density"]))
-        assert_array_equal(ad["He_nuclei_density"],
-            (ad["He_number_density"] +
-             ad["He_p1_number_density"] + ad["He_p2_number_density"]))
-
-    @requires_file(enzotiny)
-    def test_EnzoDataset():
-        assert isinstance(data_dir_load(enzotiny), EnzoDataset)
-
-    @requires_file(two_sphere_test)
-    @requires_file(active_particle_cosmology)
-    def test_active_particle_datasets():
-        two_sph = data_dir_load(two_sphere_test)
-        assert 'AccretingParticle' in two_sph.particle_types_raw
-        assert 'io' not in two_sph.particle_types_raw
-        assert 'all' in two_sph.particle_types
-        assert_equal(len(two_sph.particle_unions), 1)
-        pfields = ['GridID', 'creation_time', 'dynamical_time',
-                   'identifier', 'level', 'metallicity', 'particle_mass']
-        pfields += ['particle_position_%s' % d for d in 'xyz']
-        pfields += ['particle_velocity_%s' % d for d in 'xyz']
-
-        acc_part_fields = \
-            [('AccretingParticle', pf) for pf in ['AccretionRate'] + pfields]
-
-        real_acc_part_fields = sorted(
-            [f for f in two_sph.field_list if f[0] == 'AccretingParticle'])
-        assert_equal(acc_part_fields, real_acc_part_fields)
-
-
-        apcos = data_dir_load(active_particle_cosmology)
-        assert_equal(['CenOstriker', 'DarkMatter'], apcos.particle_types_raw)
-        assert 'all' in apcos.particle_unions
-
-        apcos_fields = [('CenOstriker', pf) for pf in pfields]
-
-        real_apcos_fields = sorted(
-            [f for f in apcos.field_list if f[0] == 'CenOstriker'])
-
-        assert_equal(apcos_fields, real_apcos_fields)
-
-        assert_equal(apcos.particle_type_counts,
-                     {'CenOstriker': 899755, 'DarkMatter': 32768})
-
-    @requires_file(mhdctot)
-    def test_face_centered_mhdct_fields():
-        ds = data_dir_load(mhdctot)
-
-        ad = ds.all_data()
-        grid = ds.index.grids[0]
-
-        for field, flag in NODAL_FLAGS.items():
-            dims = ds.domain_dimensions
-            assert_equal(ad[field].shape, (dims.prod(), 2*sum(flag)))
-            assert_equal(grid[field].shape, tuple(dims) + (2*sum(flag),))
-
-        # Average of face-centered fields should be the same as cell-centered field
-        assert (ad['BxF'].sum(axis=-1)/2 == ad['Bx']).all()
-        assert (ad['ByF'].sum(axis=-1)/2 == ad['By']).all()
-        assert (ad['BzF'].sum(axis=-1)/2 == ad['Bz']).all()
-
-    @requires_file(dnz)
-    def test_deeply_nested_zoom():
-        ds = data_dir_load(dnz)
-
-        # carefully chosen to just barely miss a grid in the middle of the image
-        center = [0.4915073260199302, 0.5052605316800006, 0.4905805557500548]
-        
-        plot = SlicePlot(ds, 'z', 'density', width=(0.001, 'pc'),
-                         center=center)
-
-        image = plot.frb['density']
-
-        assert (image > 0).all()
-
-        v, c = ds.find_max('density')
-
-        assert_allclose_units(v, ds.quan(0.005878286377124154, 'g/cm**3'))
-
-        c_actual = [0.49150732540021, 0.505260532936791, 0.49058055816398]
-        c_actual = ds.arr(c_actual, 'code_length')
-        assert_allclose_units(c, c_actual)
-
-        assert_equal(max([g['density'].max() for g in ds.index.grids]), v)
-
-    @requires_file(kh2d)
-    def test_2d_grid_shape():
-        # see issue #1601
-        # we want to make sure that accessing data on a grid object
-        # returns a 3D array with a dummy dimension.
-        ds = data_dir_load(kh2d)
-        g = ds.index.grids[1]
-        assert g['density'].shape == (128, 100, 1)
-
-    @requires_file(p3mini)
-    def test_nonzero_omega_radiation():
+    #-----
+    # test_analytic_halo_mass_function
+    #-----
+    #@requires_ds(enzotiny)
+    def test_analytic_halo_mass_function(self):
         """
-        Test support for non-zero omega_radiation cosmologies.
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
         """
-        ds = data_dir_load(p3mini)
+        # Load in the data
+        ds = utils.data_dir_load(enzotiny)
+        # Set up hex digest
+        ahmf_hd = b''
+        # Loop over the different finders
+        for fit in range(1,6):
+            ahmf_hd += self.analytic_halo_mass_function_test(ds, fit)
+        hashes = {}
+        hashes['analytic_halo_mass_function'] = utils.generate_hash(ahmf_hd)
+        if self.answer_store:
+            utils.store_hashes('ahmf-enzotiny', hashes)
+        else:
+            saved_hashes = utils.load_hashes('ahmf-enzotiny')
+            for key, value in hashes.items():
+                assert saved_hashes[key] == hashes[key]
 
-        assert_equal(ds.omega_radiation, ds.cosmology.omega_radiation)
+    #-----
+    # test_ecp
+    #-----
+    #@requires_ds(ecp, big_data=True)
+    def test_ecp(self):
+        """
+        Parameters:
+        -----------
+            pass
 
-        tratio = ds.current_time / \
-          ds.cosmology.t_from_z(ds.current_redshift)
-        assert_almost_equal(tratio, 1, 4,
-          err_msg='Simulation time not consistent with cosmology calculator.')
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        ds = utils.data_dir_load(ecp)
+        self.color_conservation_test(ds)
+
+    #-----
+    # test_units_override
+    #-----
+    #@requires_file(enzotiny)
+    def test_units_override(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        yt.testing.units_override_check(enzotiny)
+
+    #-----
+    # test_nuclei_density_fields
+    #-----
+    #@requires_ds(ecp, big_data=True)
+    def test_nuclei_density_fields(self):
+        ds = utils.data_dir_load(ecp)
+        ad = ds.all_data()
+        # Hydrogen
+        hd1 = utils.generate_hash(ad["H_nuclei_density"].tostring())
+        hd2 = utils.generate_hash((ad["H_number_density"] +
+            ad["H_p1_number_density"]).tostring())
+        assert hd1 == hd2
+        hd1 = utils.generate_hash(ad["He_nuclei_density"].tostring())
+        hd2 = utils.generate_hash((ad["He_number_density"] +
+            ad["He_p1_number_density"] +
+            ad["He_p2_number_density"]).tostring()
+        )
+        assert hd1 == hd2
+
+    #-----
+    # test_enzo_dataset
+    #-----
+    #@requires_file(enzotiny)
+    def test_enzo_dataset(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        assert isinstance(utils.data_dir_load(enzotiny), EnzoDataset)
