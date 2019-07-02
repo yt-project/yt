@@ -26,6 +26,7 @@ from collections import defaultdict
 
 from numbers import Number as numeric_type
 
+from yt.utilities.lib.cykdtree import PyKDTree
 from yt.funcs import \
     iterable, \
     ensure_list, \
@@ -58,6 +59,9 @@ from yt.data_objects.static_output import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
+from yt.utilities.lib.particle_kdtree_tools import \
+    generate_smoothing_length, \
+    estimate_density
 from yt.geometry.grid_container import \
     GridTree, \
     MatchPointsToGrids
@@ -1069,6 +1073,49 @@ class StreamParticleIndex(SPHParticleIndex):
         else:
             self.io = io_registry[self.dataset_type](self.ds)
 
+    def update_data(self, data):
+        """
+        Update the stream data with a new data dict. If fields already exist,
+        they will be replaced, but if they do not, they will be added. Fields
+        already in the stream but not part of the data dict will be left
+        alone.
+        """
+        # Alias
+        ds = self.ds
+        handler = ds.stream_handler
+
+        # Preprocess
+        field_units, data, _ = process_data(data)
+        pdata = {}
+        for key in data.keys():
+            if not isinstance(key, tuple):
+                field = ("io", key)
+                mylog.debug("Reassigning '%s' to '%s'", key, field)
+            else:
+                field = key
+            pdata[field] = data[key]
+        data = pdata # Drop reference count
+        particle_types = set_particle_types(data)
+
+        # Update particle types
+        handler.particle_types.update(particle_types)
+        ds._find_particle_types()
+
+        # Update fields
+        handler.field_units.update(field_units)
+        fields = handler.fields
+        for field in data.keys():
+            if field not in fields._additional_fields:
+                fields._additional_fields += (field,)
+        fields["stream_file"].update(data)
+
+        # Update field list
+        for field in self.ds.field_list:
+            if field[0] in ["all", "nbody"]:
+                self.ds.field_list.remove(field)
+        self._detect_output_fields()
+        self.ds.create_field_info()
+
 class StreamParticleFile(ParticleFile):
     pass
 
@@ -1090,13 +1137,92 @@ class StreamParticlesDataset(StreamDataset):
         # This is the current method of detecting SPH data.
         # This should be made more flexible in the future.
         if ('io', 'density') in fields and ('io', 'smoothing_length') in fields:
-            self._sph_ptype = 'io'
+            self._sph_ptypes = ('io',)
 
-def load_particles(data, length_unit = None, bbox=None,
-                   sim_time=0.0, mass_unit = None, time_unit = None,
+    def add_sph_fields(self, n_neighbors=32, kernel="cubic", sph_ptype="io"):
+        """Add SPH fields for the specified particle type.
+
+        For a particle type with "particle_position" and "particle_mass" already
+        defined, this method adds the "smoothing_length" and "density" fields.
+        "smoothing_length" is computed as the distance to the nth nearest
+        neighbor. "density" is computed as the SPH (gather) smoothed mass. The
+        SPH fields are added only if they don't already exist.
+
+        Parameters
+        ----------
+        n_neighbors : int
+            The number of neighbors to use in smoothing length computation.
+        kernel : str
+            The kernel function to use in density estimation.
+        sph_ptype : str
+            The SPH particle type. Each dataset has one sph_ptype only. This
+            method will overwrite existing sph_ptype of the dataset.
+
+        """
+        mylog.info("Generating SPH fields")
+
+        # Unify units
+        l_unit = "code_length"
+        m_unit = "code_mass"
+        d_unit = "code_mass / code_length**3"
+
+        # Read basic fields
+        ad = self.all_data()
+        pos = ad[sph_ptype, "particle_position"].to(l_unit).d
+        mass = ad[sph_ptype, "particle_mass"].to(m_unit).d
+
+        # Construct k-d tree
+        kdtree = PyKDTree(
+            pos.astype("float64"),
+            left_edge=self.domain_left_edge.to_value(l_unit),
+            right_edge=self.domain_right_edge.to_value(l_unit),
+            periodic=self.periodicity,
+            leafsize=2*int(n_neighbors),
+        )
+        order = np.argsort(kdtree.idx)
+
+        def exists(fname):
+            if (sph_ptype, fname) in self.derived_field_list:
+                mylog.info("Field ('%s','%s') already exists. Skipping",
+                            sph_ptype, fname)
+                return True
+            else:
+                mylog.info("Generating field ('%s','%s')",
+                            sph_ptype, fname)
+                return False
+        data = {}
+
+        # Add smoothing length field
+        fname = "smoothing_length"
+        if not exists(fname):
+            hsml = generate_smoothing_length(
+                pos[kdtree.idx], kdtree, n_neighbors
+            )
+            hsml = hsml[order]
+            data[(sph_ptype, "smoothing_length")] = (hsml, l_unit)
+        else:
+            hsml = ad[sph_ptype, fname].to(l_unit).d
+
+        # Add density field
+        fname = "density"
+        if not exists(fname):
+            dens = estimate_density(
+                pos[kdtree.idx], mass[kdtree.idx], hsml[kdtree.idx],
+                kdtree, kernel_name=kernel,
+            )
+            dens = dens[order]
+            data[(sph_ptype, "density")] = (dens, d_unit)
+
+        # Add fields
+        self._sph_ptypes = (sph_ptype,)
+        self.index.update_data(data)
+
+def load_particles(data, length_unit=None, bbox=None,
+                   sim_time=None, mass_unit=None, time_unit=None,
                    velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True),
-                   geometry = "cartesian", unit_system="cgs"):
+                   geometry="cartesian", unit_system="cgs",
+                   data_source=None):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -1116,8 +1242,8 @@ def load_particles(data, length_unit = None, bbox=None,
     Parameters
     ----------
     data : dict
-        This is a dict of numpy arrays or (numpy array, unit name) tuples, 
-        where the keys are the field names. Particles positions must be named 
+        This is a dict of numpy arrays or (numpy array, unit name) tuples,
+        where the keys are the field names. Particles positions must be named
         "particle_position_x", "particle_position_y", and "particle_position_z".
     length_unit : float
         Conversion factor from simulation length units to centimeters
@@ -1136,6 +1262,9 @@ def load_particles(data, length_unit = None, bbox=None,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
+    data_source : YTSelectionContainer, optional
+        If set, parameters like `bbox`, `sim_time`, and code units are derived
+        from it.
 
     Examples
     --------
@@ -1151,6 +1280,13 @@ def load_particles(data, length_unit = None, bbox=None,
 
     domain_dimensions = np.ones(3, "int32")
     nprocs = 1
+
+    # Parse bounding box
+    if data_source is not None:
+        le, re = data_source.get_bbox()
+        le = le.to_value("code_length")
+        re = re.to_value("code_length")
+        bbox = list(zip(le, re))
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
     else:
@@ -1159,6 +1295,29 @@ def load_particles(data, length_unit = None, bbox=None,
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
+    # Parse simulation time
+    if data_source is not None:
+        sim_time = data_source.ds.current_time
+    if sim_time is None:
+        sim_time = 0.0
+    else:
+        sim_time = float(sim_time)
+
+    # Parse units
+    def parse_unit(unit, dimension):
+        if unit is None:
+            unit = "code_" + dimension
+            if data_source is not None:
+                unit = data_source.ds.quan(1, unit).in_cgs()
+        return unit
+
+    length_unit = parse_unit(length_unit, "length")
+    mass_unit = parse_unit(mass_unit, "mass")
+    time_unit = parse_unit(time_unit, "time")
+    velocity_unit = parse_unit(velocity_unit, "velocity")
+    magnetic_unit = parse_unit(magnetic_unit, "magnetic")
+
+    # Preprocess data
     field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
@@ -1177,17 +1336,6 @@ def load_particles(data, length_unit = None, bbox=None,
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
     grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
-
-    if length_unit is None:
-        length_unit = 'code_length'
-    if mass_unit is None:
-        mass_unit = 'code_mass'
-    if time_unit is None:
-        time_unit = 'code_time'
-    if velocity_unit is None:
-        velocity_unit = 'code_velocity'
-    if magnetic_unit is None:
-        magnetic_unit = 'code_magnetic'
 
     # I'm not sure we need any of this.
     handler = StreamHandler(

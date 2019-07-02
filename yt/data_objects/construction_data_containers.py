@@ -745,14 +745,17 @@ class YTCoveringGrid(YTSelectionContainer3D):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
 
-        ptype = self.ds._sph_ptype
         smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
         normalize = getattr(self.ds, 'use_sph_normalization', True)
 
         bounds, size = self._get_grid_bounds_size()
 
-        if(smoothing_style == "scatter"):
+        if smoothing_style == "scatter":
             for field in fields:
+                fi = self.ds._get_field_info(field)
+                ptype = fi.name[0]
+                if ptype not in self.ds._sph_ptypes:
+                    raise KeyError("%s is not a SPH particle type!" % ptype)
                 buff = np.zeros(size, dtype="float64")
                 if normalize:
                     buff_den = np.zeros(size, dtype="float64")
@@ -778,7 +781,6 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 if normalize:
                     normalization_3d_utility(buff, buff_den)
 
-                fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(buff, fi.units)
                 pbar.close()
 
@@ -940,6 +942,29 @@ class YTCoveringGrid(YTSelectionContainer3D):
         size = np.ones(3, dtype=int) * 2**self.level
 
         return bounds, size
+
+    def to_fits_data(self, fields, length_unit=None):
+        r"""Export a set of gridded fields to a FITS file.
+
+        This will export a set of FITS images of either the fields specified
+        or all the fields already in the object.
+
+        Parameters
+        ----------
+        fields : list of strings
+            These fields will be pixelized and output. If "None", the keys of the
+            FRB will be used.
+        length_unit : string, optional
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
+        """
+        from yt.visualization.fits_image import FITSImageData
+        if length_unit is None:
+            length_unit = self.ds.length_unit
+        fields = ensure_list(fields)
+        fid = FITSImageData(self, fields, length_unit=length_unit)
+        return fid
+
 
 class YTArbitraryGrid(YTCoveringGrid):
     """A 3D region with arbitrary bounds and dimensions.
@@ -2307,8 +2332,8 @@ class YTOctree(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
 
-        sph_ptype = getattr(self.ds, '_sph_ptype', 'None')
-        if fields[0] == sph_ptype:
+        sph_ptypes = getattr(self.ds, '_sph_ptypes', 'None')
+        if fields[0] in sph_ptypes:
             smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
             normalize = getattr(self.ds, 'use_sph_normalization', True)
 

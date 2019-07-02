@@ -583,8 +583,10 @@ class Dataset(object):
         if "nbody" not in self.particle_types:
             mylog.debug("Creating Particle Union 'nbody'")
             ptypes = list(self.particle_types_raw)
-            if hasattr(self, '_sph_ptype') and self._sph_ptype in ptypes:
-                ptypes.remove(self._sph_ptype)
+            if hasattr(self, '_sph_ptypes'):
+                for sph_ptype in self._sph_ptypes:
+                    if sph_ptype in ptypes:
+                        ptypes.remove(sph_ptype)
             if ptypes:
                 nbody_ptypes = []
                 for ptype in ptypes:
@@ -767,6 +769,13 @@ class Dataset(object):
                 self.particle_types += (filter.name,)
             if filter.name not in self.filtered_particle_types:
                 self.filtered_particle_types.append(filter.name)
+            if hasattr(self, '_sph_ptypes'):
+                if filter.filtered_type == self._sph_ptypes[0]:
+                    mylog.warning("It appears that you are filtering on an SPH field "
+                                  "type. It is recommended to use 'gas' as the "
+                                  "filtered particle type in this case instead.")
+                if filter.filtered_type in (self._sph_ptypes + ("gas",)):
+                    self._sph_ptypes = self._sph_ptypes + (filter.name,)
             new_fields = self._setup_particle_types([filter.name])
             deps, _ = self.field_info.check_derived_fields(new_fields)
             self.field_dependencies.update(deps)

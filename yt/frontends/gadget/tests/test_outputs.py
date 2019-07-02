@@ -90,7 +90,7 @@ def test_gadget_hdf5():
 @requires_file(keplerian_ring)
 def test_non_cosmo_dataset():
     """
-    Non-cosmological datasets may not have the cosmological parametrs in the
+    Non-cosmological datasets may not have the cosmological parameters in the
     Header. The code should fall back gracefully when they are not present,
     with the Redshift set to 0.
     """
@@ -132,3 +132,4 @@ def test_bigendian_field_access():
     ds = data_dir_load(BE_Gadget)
     data = ds.all_data()
     data['Halo', 'Velocities']
+

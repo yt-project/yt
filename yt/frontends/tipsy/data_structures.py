@@ -59,7 +59,7 @@ class TipsyDataset(SPHDataset):
     _field_info_class = TipsyFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
-    _sph_ptype = "Gas"
+    _sph_ptypes = ("Gas",)
     _header_spec = (('time',    'd'),
                     ('nbodies', 'i'),
                     ('ndim',    'i'),

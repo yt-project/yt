@@ -194,8 +194,8 @@ class DerivedField(object):
             name = self.alias_name
         else:
             name = self.name
-        if hasattr(self.ds, '_sph_ptype'):
-            is_sph_field |= name[0] in (self.ds._sph_ptype, 'gas')
+        if hasattr(self.ds, '_sph_ptypes'):
+            is_sph_field |= name[0] in (self.ds._sph_ptypes + ('gas',))
         return is_sph_field
 
     @property

@@ -151,6 +151,38 @@ cdef class BoundedPriorityQueue:
                 index = (index - 1) // 2
         return 1
 
+cdef class NeighborList:
+    def __cinit__(self, np.intp_t init_size=32):
+        self.data = np.zeros(init_size)-1
+        self.data_ptr = &(self.data[0])
+        self.pids = np.zeros(init_size, dtype="int64")-1
+        self.pids_ptr = &(self.pids[0])
+        self.size = 0
+        self._max_size = init_size
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef int _extend(self) nogil except -1:
+        if self.size == self._max_size:
+            self._max_size *= 2
+            with gil:
+                self.data.resize(self._max_size)
+                self.pids.resize(self._max_size)
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef int add_pid(self, np.float64_t val, np.int64_t ind) nogil except -1:
+        self._extend()
+        self.data_ptr[self.size] = val
+        self.pids_ptr[self.size] = ind
+        self.size += 1
+        return 0
+
 # these are test functions which are called from
 # yt/utilities/lib/tests/test_nn.py
 # they are stored here to allow easy interaction with functions not exposed at

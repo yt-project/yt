@@ -433,6 +433,7 @@ class YTDataContainer(object):
             obj.field_parameters = old_fp
 
     _key_fields = None
+
     def write_out(self, filename, fields=None, format="%0.16e"):
         """Write out the YTDataContainer object in a text file.
 
@@ -1199,11 +1200,11 @@ class YTDataContainer(object):
                 finfo = self.ds._get_field_info("unknown", fname)
                 if finfo.sampling_type == "particle":
                     ftype = self._current_particle_type
-                    if hasattr(self.ds, '_sph_ptype'):
-                        ptype = self.ds._sph_ptype
-                        if finfo.name[0] == ptype:
+                    if hasattr(self.ds, '_sph_ptypes'):
+                        ptypes = self.ds._sph_ptypes
+                        if finfo.name[0] in ptypes:
                             ftype = finfo.name[0]
-                        elif finfo.alias_field and finfo.alias_name[0] == ptype:
+                        elif finfo.alias_field and finfo.alias_name[0] in ptypes:
                             ftype = self._current_fluid_type
                 else:
                     ftype = self._current_fluid_type
