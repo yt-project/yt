@@ -86,7 +86,11 @@ class SavedDataset(Dataset):
             for key in f.attrs.keys():
                 v = parse_h5_attr(f, key)
                 if key == "con_args":
-                    v = eval(v)
+                    try:
+                        v = eval(v)
+                    except ValueError:
+                        # support older ytdata outputs
+                        v = v.astype('str')
                 self.parameters[key] = v
             self._with_parameter_file_open(f)
 
