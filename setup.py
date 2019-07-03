@@ -393,7 +393,7 @@ setup(
         'sympy>=1.2',
         'numpy>=1.10.4',
         'IPython>=1.0',
-        'unyt>=2.2.1',
+        'unyt>=2.2.2',
     ],
     extras_require = {
         'hub':  ["girder_client"],
