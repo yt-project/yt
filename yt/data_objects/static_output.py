@@ -49,9 +49,10 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
+from yt.units import UnitContainer
 from yt.units.dimensions import current_mks
-from yt.units.unit_object import Unit, unit_system_registry, \
-    _define_unit
+from yt.units.unit_object import Unit, define_unit
+from yt.units.unit_systems import unit_system_registry
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
     ValidateSpatial
@@ -70,9 +71,7 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
-from yt.units.unit_systems import \
-    create_code_unit_system, \
-    _make_unit_system_copy
+from yt.units.unit_systems import create_code_unit_system
 from yt.data_objects.region_expression import \
     RegionExpression
 from yt.geometry.coordinates.api import \
@@ -313,7 +312,15 @@ class Dataset(object):
         self.min_level = 0
         self.no_cgs_equiv_length = False
 
-        self._create_unit_registry()
+        if unit_system == 'code':
+            # create a fake MKS unit system which we will override later to
+            # avoid chicken/egg issue of the unit registry needing a unit system
+            # but code units need a unit registry to define the code units on
+            used_unit_system = 'mks'
+        else:
+            used_unit_system = unit_system
+
+        self._create_unit_registry(used_unit_system)
 
         self._parse_parameter_file()
         self.set_units()
@@ -950,9 +957,11 @@ class Dataset(object):
         # list or other non-array iterable before calculating
         # the center
         if not isinstance(left_edge, np.ndarray):
-            left_edge = np.array(left_edge, dtype='float64')
+            left_edge = np.array(left_edge)
         if not isinstance(right_edge, np.ndarray):
-            right_edge = np.array(right_edge, dtype='float64')
+            right_edge = np.array(right_edge)
+        left_edge = left_edge.astype('float64')
+        right_edge = right_edge.astype('float64')
         c = (left_edge + right_edge)/2.0
         return self.region(c, left_edge, right_edge, **kwargs)
 
@@ -1001,44 +1010,47 @@ class Dataset(object):
         return self.refine_by**(l1-l0)
 
     def _assign_unit_system(self, unit_system):
-        current_mks_unit = None
+        if unit_system == "cgs":
+            current_mks_unit = None
+        else:
+            current_mks_unit = 'A'
         magnetic_unit = getattr(self, 'magnetic_unit', None)
-        if magnetic_unit is not None:
+        if magnetic_unit is not None and unit_system == "cgs":
             # if the magnetic unit is in T, we need to create the code unit
             # system as an MKS-like system
             if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
-                if unit_system == "code":
-                    current_mks_unit = 'A'
-                elif unit_system == 'mks':
-                    pass
-                else:
-                    self.magnetic_unit = \
-                        self.magnetic_unit.to_equivalent('gauss', 'CGS')
+                    # this is perhaps a little funky
+                    self.magnetic_unit = self.magnetic_unit.to('T').to('gauss')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        create_code_unit_system(self.unit_registry, 
-                                current_mks_unit=current_mks_unit)
-        if unit_system == "code":
-            unit_system = unit_system_registry[self.unit_registry.unit_system_id]
-        else:
-            sys_name = str(unit_system).lower()
-            unit_system = _make_unit_system_copy(self.unit_registry, sys_name)
-        self.unit_system = unit_system
+        us = create_code_unit_system(
+            self.unit_registry, current_mks_unit=current_mks_unit)
+        if unit_system != "code":
+            us = unit_system_registry[str(unit_system).lower()]
+        self.unit_system = us
+        self.unit_registry.unit_system = self.unit_system
 
-    def _create_unit_registry(self):
-        self.unit_registry = UnitRegistry()
+    def _create_unit_registry(self, unit_system):
         import yt.units.dimensions as dimensions
-        self.unit_registry.add("code_length", 1.0, dimensions.length)
-        self.unit_registry.add("code_mass", 1.0, dimensions.mass)
-        self.unit_registry.add("code_density", 1.0, dimensions.density)
+        # yt assumes a CGS unit system by default (for back compat reasons).
+        # Since unyt is MKS by default we specify the MKS values of the base
+        # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
+        self.unit_registry = UnitRegistry(unit_system=unit_system)
+        self.unit_registry.add("code_length", .01, dimensions.length)
+        self.unit_registry.add("code_mass", .001, dimensions.mass)
+        self.unit_registry.add("code_density", 1000., dimensions.density)
         self.unit_registry.add("code_specific_energy", 1.0,
                                dimensions.energy / dimensions.mass)
         self.unit_registry.add("code_time", 1.0, dimensions.time)
-        self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
+        if unit_system == "cgs":
+            self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field_cgs)
+        else:
+            self.unit_registry.add("code_magnetic", .0001, dimensions.magnetic_field)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
-        self.unit_registry.add("code_pressure", 1.0, dimensions.pressure)
-        self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
+        self.unit_registry.add("code_pressure", 0.1, dimensions.pressure)
+        self.unit_registry.add("code_velocity", .01, dimensions.velocity)
         self.unit_registry.add("code_metallicity", 1.0,
                                dimensions.dimensionless)
+        self.unit_registry.add("h", 1.0, dimensions.dimensionless, r"h")
         self.unit_registry.add("a", 1.0, dimensions.dimensionless)
 
     def set_units(self):
@@ -1053,9 +1065,10 @@ class Dataset(object):
             # Comoving lengths
             for my_unit in ["m", "pc", "AU", "au"]:
                 new_unit = "%scm" % my_unit
-                self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0] /
-                                       (1 + self.current_redshift),
-                                       length, "\\rm{%s}/(1+z)" % my_unit)
+                my_u = Unit(my_unit, registry=self.unit_registry)
+                self.unit_registry.add(
+                    new_unit, my_u.base_value / (1 + self.current_redshift),
+                    length, "\\rm{%s}/(1+z)" % my_unit, prefixable=True)
             self.unit_registry.modify('a', 1/(1+self.current_redshift))
 
         self.set_code_units()
@@ -1143,6 +1156,17 @@ class Dataset(object):
                     val = (val, cgs)
                 mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
                 setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
+
+    _units = None
+    _unit_system_id = None
+    @property
+    def units(self):
+        current_uid = self.unit_registry.unit_system_id
+        if self._units is not None and self._unit_system_id == current_uid:
+            return self._units
+        self._unit_system_id = current_uid
+        self._units = UnitContainer(self.unit_registry)
+        return self._units
 
     _arr = None
     @property
@@ -1334,7 +1358,7 @@ class Dataset(object):
         else:
             raise RuntimeError
 
-        units = self.field_info[ptype, deposit_field].units
+        units = self.field_info[ptype, deposit_field].output_units
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
                     "nearest": "nn", "simple_smooth": "ss", "count": "count"}
@@ -1491,8 +1515,8 @@ class Dataset(object):
         >>> two_weeks = YTQuantity(14.0, "days")
         >>> ds.define_unit("fortnight", two_weeks)
         """
-        _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr, 
-                     offset=offset, prefixable=prefixable)
+        define_unit(symbol, value, tex_repr=tex_repr, offset=offset,
+                    prefixable=prefixable, registry=self.unit_registry)
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()

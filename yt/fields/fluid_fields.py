@@ -29,15 +29,12 @@ from .vector_operations import \
     create_magnitude_field, \
     create_vector_fields
 
-from yt.utilities.physical_constants import \
-    mh, \
-    kboltz
-
 from yt.utilities.lib.misc_utilities import \
     obtain_relative_velocity_vector
 
 @register_field_plugin
 def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
+    pc = registry.ds.units.physical_constants
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
     # slice(None, -2, None)
@@ -53,8 +50,15 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     unit_system = registry.ds.unit_system
 
-    create_vector_fields(registry, "velocity", unit_system["velocity"], ftype, slice_info)
-    create_vector_fields(registry, "magnetic_field", unit_system["magnetic_field"], ftype, slice_info)
+    if unit_system.name == 'cgs':
+        mag_units = "magnetic_field_cgs"
+    else:
+        mag_units = "magnetic_field_mks"
+
+    create_vector_fields(registry, "velocity", unit_system["velocity"], ftype,
+                         slice_info)
+    create_vector_fields(registry, "magnetic_field", unit_system[mag_units],
+                         ftype, slice_info)
 
     def _cell_mass(field, data):
         return data[ftype, "density"] * data[ftype, "cell_volume"]
@@ -129,7 +133,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                        units=unit_system["pressure"])
 
     def _kT(field, data):
-        return (kboltz*data[ftype, "temperature"]).in_units("keV")
+        return (pc.kboltz*data[ftype, "temperature"]).in_units("keV")
     
     registry.add_field((ftype, "kT"),
                        sampling_type="local",
@@ -141,7 +145,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         mw = data.get_field_parameter("mu")
         if mw is None:
             mw = 1.0
-        mw *= mh
+        mw *= pc.mh
         gammam1 = 2./3.
         tr = data[ftype,"kT"] / ((data[ftype, "density"]/mw)**gammam1)
         return data.apply_units(tr, field.units)
@@ -179,7 +183,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                        units=unit_system["number_density"])
     
     def _mean_molecular_weight(field, data):
-        return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
+        return (data[ftype, "density"] / (pc.mh * data[ftype, "number_density"]))
     
     registry.add_field((ftype, "mean_molecular_weight"),
                        sampling_type="local",

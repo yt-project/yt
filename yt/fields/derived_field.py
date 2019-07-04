@@ -187,6 +187,8 @@ class DerivedField(object):
 
     @property
     def is_sph_field(self):
+        if self.sampling_type == "cell":
+            return False
         is_sph_field = False
         if self.alias_field:
             name = self.alias_name

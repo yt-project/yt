@@ -48,7 +48,6 @@ from yt.funcs import issue_deprecation_warning
 from yt.units import dimensions
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, \
-    prefixable_units, \
     unit_prefixes
 from yt.utilities.on_demand_imports import \
     _astropy, NotAModule
@@ -143,6 +142,15 @@ class FITSHierarchy(GridIndex):
         self._ext_map = {}
         self._scale_map = {}
         dup_field_index = {}
+        # Since FITS header keywords are case-insensitive, we only pick a subset of
+        # prefixes, ones that we expect to end up in headers.
+        known_units = dict(
+            [(unit.lower(), unit) for unit in self.ds.unit_registry.lut]
+        )
+        for unit in list(known_units.values()):
+            if unit in self.ds.unit_registry.prefixable_units:
+                for p in ["n","u","m","c","k"]:
+                    known_units[(p+unit).lower()] = p+unit
         # We create a field from each slice on the 4th axis
         if self.dataset.naxis == 4:
             naxis4 = self.dataset.primary_header["naxis4"]
@@ -390,7 +398,7 @@ class FITSDataset(Dataset):
                                     if str(v[1]) == "(length)"]
             more_length_units = []
             for unit in default_length_units:
-                if unit in prefixable_units:
+                if unit in self.unit_registry.prefixable_units:
                     more_length_units += [prefix+unit for prefix in unit_prefixes]
             default_length_units += more_length_units
             file_units = []
@@ -419,6 +427,7 @@ class FITSDataset(Dataset):
                                      (self.time_unit**2 * self.length_unit))
         self.magnetic_unit.convert_to_units("gauss")
         self.velocity_unit = self.length_unit / self.time_unit
+
 
     def _parse_parameter_file(self):
 

@@ -424,10 +424,10 @@ class WeightedVariance(DerivedQuantity):
             my_mean = values[i]
             my_var2 = values[i + int(len(values) / 2)]
             all_mean = (my_weight * my_mean).sum(dtype=np.float64) / all_weight
-            rvals.append(self.data_source.ds.arr([(np.sqrt((my_weight *
-                                                 (my_var2 + (my_mean -
-                                                  all_mean)**2)).sum(dtype=np.float64)
-                                                  / all_weight)), all_mean]))
+            ret = [(np.sqrt(
+                (my_weight * (my_var2 + (my_mean - all_mean)**2) / all_weight)
+                ).sum(dtype=np.float64)), all_mean]
+            rvals.append(self.data_source.ds.arr(ret))
         return rvals
 
 class AngularMomentumVector(DerivedQuantity):

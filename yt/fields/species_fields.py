@@ -18,8 +18,6 @@ import re
 
 from yt.frontends.sph.data_structures import \
     ParticleDataset
-from yt.utilities.physical_constants import \
-    amu_cgs
 from yt.utilities.physical_ratios import \
     primordial_H_mass_fraction
 from yt.utilities.chemical_formulas import \
@@ -60,9 +58,9 @@ def _mass_from_particle_mass_and_fraction(ftype, species):
 
 def _create_number_density_func(ftype, species):
     formula = ChemicalFormula(species)
-    weight = formula.weight # This is in AMU
-    weight *= amu_cgs
     def _number_density(field, data):
+        weight = formula.weight # This is in AMU
+        weight *= data.ds.units.physical_constants.amu_cgs
         return data[ftype, "%s_density" % species] \
              / weight
     return _number_density
@@ -165,7 +163,7 @@ def add_nuclei_density_fields(registry, ftype):
         if element in elements:
             continue
         registry.add_field((ftype, "%s_nuclei_density" % element),
-                           sampling_type="cell",
+                           sampling_type="local",
                            function = _default_nuclei_density,
                            units = unit_system["number_density"])
 
@@ -173,7 +171,7 @@ def _default_nuclei_density(field, data):
     ftype = field.name[0]
     element = field.name[1][:field.name[1].find("_")]
     return data[ftype, "density"] * _primordial_mass_fraction[element] / \
-      ChemicalFormula(element).weight / amu_cgs
+      ChemicalFormula(element).weight / data.ds.units.physical_constants.amu_cgs
         
 def _nuclei_density(field, data):
     ftype = field.name[0]
@@ -182,11 +180,11 @@ def _nuclei_density(field, data):
     nuclei_mass_field = "%s_nuclei_mass_density" % element
     if (ftype, nuclei_mass_field) in data.ds.field_info:
         return data[(ftype, nuclei_mass_field)] / \
-          ChemicalFormula(element).weight / amu_cgs
+          ChemicalFormula(element).weight / data.ds.units.physical_constants.amu_cgs
     metal_field = "%s_metallicity" % element
     if (ftype, metal_field) in data.ds.field_info:
         return data[ftype, "density"] * data[(ftype, metal_field)] / \
-          ChemicalFormula(element).weight / amu_cgs
+          ChemicalFormula(element).weight / data.ds.units.physical_constants.amu_cgs
 
     field_data = np.zeros_like(data[ftype, "%s_number_density" %
                                     data.ds.field_info.species_names[0]])

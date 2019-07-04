@@ -1,8 +1,13 @@
 import numpy as np
 from nose.tools import assert_raises
 
-from yt.testing import assert_equal, fake_amr_ds, fake_particle_ds, \
-    fake_random_ds, requires_file
+from yt.testing import \
+    assert_equal, \
+    assert_almost_equal, \
+    fake_amr_ds, \
+    fake_particle_ds, \
+    fake_random_ds, \
+    requires_file
 from yt.utilities.answer_testing.framework import data_dir_load
 from yt.utilities.exceptions import YTDimensionalityError
 from yt.visualization.line_plot import LineBuffer
@@ -24,9 +29,9 @@ def test_box_creation():
     region = ds.region(center, left_edge, right_edge)
 
     for b in boxes:
-        assert_equal(b.left_edge, region.left_edge)
-        assert_equal(b.right_edge, region.right_edge)
-        assert_equal(b.center, region.center)
+        assert_almost_equal(b.left_edge, region.left_edge)
+        assert_almost_equal(b.right_edge, region.right_edge)
+        assert_almost_equal(b.center, region.center)
 
 def test_region_from_d():
     ds = fake_amr_ds(fields=["density"])
@@ -134,8 +139,8 @@ def test_ray_from_r():
     start = [(0.1,"cm"), 0.2, (0.3,"cm")]
     end = [(0.5,"cm"), (0.4,"cm"), 0.6]
     ray5 = ds.r[start:end]
-    start_arr = [ds.quan(0.1,"cm"), 0.2, ds.quan(0.3,"cm")]
-    end_arr = [ds.quan(0.5,"cm"), ds.quan(0.4,"cm"), 0.6]
+    start_arr = [ds.quan(0.1, "cm"), ds.quan(0.2, "cm"), ds.quan(0.3, "cm")]
+    end_arr = [ds.quan(0.5, "cm"), ds.quan(0.4, "cm"), ds.quan(0.6, "cm")]
     ray6 = ds.ray(start_arr, end_arr)
     assert_equal(ray5["density"], ray6["density"])
 

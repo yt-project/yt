@@ -17,13 +17,15 @@ import functools
 import numpy as np
 
 from yt.funcs import \
-     issue_deprecation_warning
+    issue_deprecation_warning
 from yt.units import dimensions
 from yt.units.unit_registry import \
-     UnitRegistry
+    UnitRegistry
+from yt.units.unit_object import \
+    Unit
 from yt.units.yt_array import \
-     YTArray, \
-     YTQuantity
+    YTArray, \
+    YTQuantity
 
 from yt.utilities.physical_constants import \
      gravitational_constant_cgs as G, \
@@ -97,13 +99,15 @@ class Cosmology(object):
         self.omega_lambda = float(omega_lambda)
         self.omega_curvature = float(omega_curvature)
         if unit_registry is None:
-            unit_registry = UnitRegistry()
-            unit_registry.modify("h", hubble_constant)
+            unit_registry = UnitRegistry(unit_system=unit_system)
+            unit_registry.add("h", hubble_constant, dimensions.dimensionless, r"h")
             for my_unit in ["m", "pc", "AU", "au"]:
                 new_unit = "%scm" % my_unit
+                my_u = Unit(my_unit, registry=unit_registry)
                 # technically not true, but distances here are actually comoving
-                unit_registry.add(new_unit, unit_registry.lut[my_unit][0],
-                                  dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
+                unit_registry.add(
+                    new_unit, my_u.base_value, dimensions.length,
+                    "\\rm{%s}/(1+z)" % my_unit, prefixable=True)
         self.unit_registry = unit_registry
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
         self.unit_system = unit_system

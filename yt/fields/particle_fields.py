@@ -103,7 +103,6 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     def particle_count(field, data):
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method = "count")
-        d = data.ds.arr(d, input_units = "cm**-3")
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_count" % ptype),
@@ -128,8 +127,10 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
                        units = unit_system["mass"])
 
     def particle_density(field, data):
-        pos = data[ptype, coord_name].convert_to_units("code_length")
-        mass = data[ptype, mass_name].convert_to_units("code_mass")
+        pos = data[ptype, coord_name]
+        pos.convert_to_units("code_length")
+        mass = data[ptype, mass_name]
+        mass.convert_to_units("code_mass")
         d = data.deposit(pos, [mass], method = "sum")
         d = data.ds.arr(d, "code_mass")
         d /= data["index", "cell_volume"]
@@ -260,8 +261,7 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
         def particle_vectors(field, data):
             v = [data[_ptype, name].in_units(field.units)
                   for name in names]
-            c = np.column_stack(v)
-            return data.apply_units(c, field.units)
+            return data.ds.arr(np.column_stack(v), v[0].units)
         return particle_vectors
 
     registry.add_field((ptype, "particle_position"),
@@ -819,6 +819,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
     issue_deprecation_warning(
         "This function is deprecated. " + DEP_MSG_SMOOTH_FIELD
     )
+
 
 def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
     field_name = (ptype, "nearest_neighbor_distance_%s" % (nneighbors))

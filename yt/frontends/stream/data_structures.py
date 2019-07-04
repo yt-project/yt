@@ -1308,7 +1308,7 @@ def load_particles(data, length_unit=None, bbox=None,
         if unit is None:
             unit = "code_" + dimension
             if data_source is not None:
-                unit = data_source.ds.quan(1, unit).in_cgs()
+                unit = getattr(data_source.ds, dimension + '_unit', unit)
         return unit
 
     length_unit = parse_unit(length_unit, "length")
