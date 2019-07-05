@@ -1,5 +1,7 @@
 import numpy as np
 
+from yt.units.unit_object import Unit
+
 from .derived_field import \
     ValidateSpatial, \
     ValidateParameter
