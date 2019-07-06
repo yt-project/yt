@@ -2,8 +2,6 @@ import numpy as np
 
 from yt.units import dimensions
 from yt.units.yt_array import ustack
-from yt.utilities.physical_constants import \
-    eps_0, mu_0, qp, clight, me
 
 from yt.fields.derived_field import \
     ValidateParameter
@@ -26,6 +24,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     ds = registry.ds
 
     unit_system = ds.unit_system
+    pc = registry.ds.units.physical_constants
 
     axis_names = registry.ds.coordinates.axis_order
 
@@ -67,7 +66,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             ret = data[ftype, "magnetic_field_%s" % ({0: "x", 1: "y", 2: "z"}[mag_axis])]
         return ret
 
-    registry.add_field((ftype, "magnetic_field_los"), sampling_type="cell",
+    registry.add_field((ftype, "magnetic_field_los"), sampling_type="local",
                        function=_magnetic_field_los, units=u,
                        validators=[
                            ValidateParameter("axis", {'axis': [0, 1, 2]})])
@@ -187,16 +186,16 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     b_units = registry.ds.quan(1.0, u).units
     if dimensions.current_mks in b_units.dimensions.free_symbols:
-        rm_scale = qp.to("C", "SI")**3/(4.0*np.pi*eps_0)
+        rm_scale = pc.qp.to("C", "SI")**3/(4.0*np.pi*pc.eps_0)
     else:
-        rm_scale = qp**3/clight
-    rm_scale *= registry.ds.quan(1.0, "rad")/(2.0*np.pi*me**2*clight**3)
+        rm_scale = pc.qp**3/pc.clight
+    rm_scale *= registry.ds.quan(1.0, "rad")/(2.0*np.pi*pc.me**2*pc.clight**3)
     rm_units = registry.ds.quan(1.0, "rad/m**2").units/unit_system["length"]
 
     def _rotation_measure(field, data):
         return rm_scale*data[ftype, "magnetic_field_los"]*data[ftype, "El_nuclei_density"]
 
-    registry.add_field((ftype, "rotation_measure"), sampling_type="cell",
+    registry.add_field((ftype, "rotation_measure"), sampling_type="local",
                        function=_rotation_measure, units=rm_units,
                        validators=[
                            ValidateParameter("axis", {'axis': [0, 1, 2]})])
