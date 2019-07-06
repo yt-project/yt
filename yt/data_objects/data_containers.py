@@ -787,7 +787,7 @@ class YTDataContainer(object):
                 ## load the extra fields and print them
                 for field in this_ptype_fields:
                     if field not in fields_to_include:
-                        mylog.warn('detected (but did not request) {} {}'.format(ptype,field))
+                        mylog.warning('detected (but did not request) {} {}'.format(ptype,field))
 
             ## you must have velocities (and they must be named "Velocities")
             tracked_arrays = [
@@ -1595,7 +1595,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         self.field_data[field] = self.ds.arr(fd, units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")
-                        mylog.warn(msg % (fi.name, units))
+                        mylog.warning(msg % (fi.name, units))
                     try:
                         fd.convert_to_units(fi.units)
                     except AttributeError:

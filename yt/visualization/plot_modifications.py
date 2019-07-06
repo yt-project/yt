@@ -755,7 +755,7 @@ class GridBoundaryCallback(PlotCallback):
                     np.logical_and(levels >= min_level, levels <= max_level))
 
             if self.id_loc and not self.draw_ids:
-                mylog.warn("Supplied id_loc but draw_ids is False. Not drawing grid ids")
+                mylog.warning("Supplied id_loc but draw_ids is False. Not drawing grid ids")
 
             if self.draw_ids:
                 id_loc = self.id_loc.lower() # Make case-insensitive
@@ -1795,9 +1795,9 @@ class ParticleCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         if type(self.data_source)==YTCutRegion:
-            mylog.warn("Parameter 'width' is ignored in annotate_particles if the "
-                       "data_source is a cut_region. "
-                       "See https://github.com/yt-project/yt/issues/1933 for further details.")
+            mylog.warning("Parameter 'width' is ignored in annotate_particles if the "
+                          "data_source is a cut_region. "
+                          "See https://github.com/yt-project/yt/issues/1933 for further details.")
             self.region=self.data_source
         else:
             self.region=self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
