@@ -1,5 +1,10 @@
 from yt.frontends.sph.fields import SPHFieldInfo
 from yt.utilities.physical_constants import mp, kb
+from yt.utilities.chemical_formulas import \
+    ChemicalFormula
+from yt.utilities.physical_ratios import \
+    _primordial_mass_fraction
+
 
 class GadgetFieldInfo(SPHFieldInfo):
 
@@ -71,8 +76,11 @@ class GadgetFieldInfo(SPHFieldInfo):
                 elif data.has_field_parameter("mean_molecular_weight"):
                     mu = data.get_field_parameter("mean_molecular_weight")
                 else:
-                    # Assume zero ionization
-                    mu = 4.0 / (3.0 * x_H + 1.0)
+                    # Assume full ionization
+                    mu = ChemicalFormula("H").weight / \
+                         (2.0*_primordial_mass_fraction["H"])
+                    mu += ChemicalFormula("He").weight / \
+                          (3.0*_primordial_mass_fraction["He"])
                 ret = data[ptype, "InternalEnergy"]*(gamma-1)*mu*mp/kb
                 return ret.in_units(self.ds.unit_system["temperature"])
 
@@ -82,6 +90,6 @@ class GadgetFieldInfo(SPHFieldInfo):
                        units=self.ds.unit_system["temperature"])
         self.alias((ptype, 'temperature'), (ptype, 'Temperature'))
         # need to do this manually since that automatic aliasing that happens
-        # in the FieldInfoContainer base class has already hapenned at this
+        # in the FieldInfoContainer base class has already happened at this
         # point
         self.alias(('gas', 'temperature'), (ptype, 'Temperature'))

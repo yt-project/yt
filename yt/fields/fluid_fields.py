@@ -14,9 +14,11 @@ from .vector_operations import \
     create_magnitude_field, \
     create_vector_fields
 
+from yt.utilities.chemical_formulas import \
+    ChemicalFormula
 
 from yt.utilities.physical_ratios import \
-    primordial_H_mass_fraction
+    _primordial_mass_fraction
 
 from yt.utilities.lib.misc_utilities import \
     obtain_relative_velocity_vector
@@ -156,11 +158,14 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     else:
         def _number_density(field, data):
             if data.has_field_parameter("mean_molecular_weight"):
-                mu = data.get_field_parameter("mean_molecular_weight")
+                muinv = 1.0/data.get_field_parameter("mean_molecular_weight")
             else:
-                # Assume zero ionization
-                mu = 4.0 / (3.0 * primordial_H_mass_fraction + 1.0)
-            return data[ftype, "density"]/(mu*pc.mh)
+                # Assume full ionization
+                muinv = 2.0*_primordial_mass_fraction["H"] / \
+                        ChemicalFormula("H").weight
+                muinv += 3.0*_primordial_mass_fraction["He"] / \
+                         ChemicalFormula("He").weight
+            return data[ftype, "density"]*muinv/pc.mh
 
     registry.add_field((ftype, "number_density"),
                        sampling_type="local",

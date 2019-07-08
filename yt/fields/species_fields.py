@@ -4,15 +4,12 @@ import re
 from yt.frontends.sph.data_structures import \
     ParticleDataset
 from yt.utilities.physical_ratios import \
-    primordial_H_mass_fraction
+    _primordial_mass_fraction
 from yt.utilities.chemical_formulas import \
     ChemicalFormula
 from .field_plugin_registry import \
     register_field_plugin
 
-_primordial_mass_fraction = \
-  {"H": primordial_H_mass_fraction,
-   "He": (1 - primordial_H_mass_fraction)}
 
 # See YTEP-0003 for details, but we want to ensure these fields are all
 # populated:
@@ -87,6 +84,7 @@ def add_species_field_by_density(registry, ftype, species):
             (ftype, "%s_density" % species),
             (ftype, "%s_mass" % species)]
 
+
 def add_species_field_by_fraction(registry, ftype, species):
     """
     This takes a field registry, a fluid type, and a species name and then
@@ -153,6 +151,7 @@ def add_nuclei_density_fields(registry, ftype):
                            function=_default_nuclei_density,
                            units=unit_system["number_density"])
 
+
 def _default_nuclei_density(field, data):
     ftype = field.name[0]
     element = field.name[1][:field.name[1].find("_")]
@@ -160,13 +159,13 @@ def _default_nuclei_density(field, data):
     if element == "El":
         # This assumes full ionization!
         muinv = 1.0*_primordial_mass_fraction["H"] / \
-          ChemicalFormula("H").weight / amu_cgs
+          ChemicalFormula("H").weight
         muinv += 2.0*_primordial_mass_fraction["He"] / \
-          ChemicalFormula("He").weight / amu_cgs
+          ChemicalFormula("He").weight
     else:
         muinv = _primordial_mass_fraction[element] / \
-          ChemicalFormula(element).weight / amu_cgs
-    return data[ftype, "density"] * muinv
+          ChemicalFormula(element).weight
+    return data[ftype, "density"] * muinv / amu_cgs
 
 
 def _nuclei_density(field, data):
