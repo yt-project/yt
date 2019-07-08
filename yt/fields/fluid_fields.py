@@ -167,17 +167,8 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                        function=_number_density,
                        units=unit_system["number_density"])
 
-    if len(registry.ds.field_info.species_names) > 0:
-        def _mean_molecular_weight(field, data):
-            return data[ftype, "density"] / (pc.mh * data[ftype, "number_density"])
-    else:
-        def _mean_molecular_weight(field, data):
-            if data.has_field_parameter("mean_molecular_weight"):
-                mu = data.get_field_parameter("mean_molecular_weight")
-            else:
-                # Assume zero ionization
-                mu = 4.0 / (3.0 * primordial_H_mass_fraction + 1.0)
-            return mu*np.ones_like(data[ftype, "density"].d)
+    def _mean_molecular_weight(field, data):
+        return data[ftype, "density"] / (pc.mh * data[ftype, "number_density"])
 
     registry.add_field((ftype, "mean_molecular_weight"),
                        sampling_type="local",
