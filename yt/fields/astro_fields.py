@@ -2,13 +2,8 @@ import numpy as np
 
 from .derived_field import \
     ValidateParameter
-from .field_exceptions import \
-    NeedsParameter
 from .field_plugin_registry import \
     register_field_plugin
-
-from yt.funcs import \
-    iterable
 
 
 @register_field_plugin
