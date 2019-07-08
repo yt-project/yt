@@ -328,6 +328,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items()):
+                if tp[ptype] == 0:
+                    continue
                 if getattr(selector, 'is_all_data', False):
                     mask = slice(None, None, None)
                 else:
