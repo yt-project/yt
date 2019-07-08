@@ -99,7 +99,7 @@ def create_los_field(registry, basename, field_units,
         elif axis > 2:
             raise NeedsParameter(["axis"])
         else:
-            ret = data[ftype, fns[axis]]
+            ret = data[fns[axis]]
         return ret
 
     registry.add_field((ftype, "%s_los" % basename),
