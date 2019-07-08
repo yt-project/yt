@@ -1449,6 +1449,9 @@ class WarpXHeader(object):
             line = f.readline()
             while line:
                 line = line.strip().split()
+                if (len(line) == 1):
+                    line = f.readline()
+                    continue
                 self.data["species_%d" % i] = [float(val) for val in line]
                 i = i + 1
                 line = f.readline()
