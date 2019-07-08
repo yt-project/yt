@@ -82,24 +82,6 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "optical_depth"), sampling_type="local",
                        function=_optical_depth, units=unit_system["length"]**-1)
 
-    def _velocity_los(field, data):
-        vel_axis = data.get_field_parameter("axis")
-        if iterable(vel_axis):
-            ret = data[ftype, "velocity_x"]*vel_axis[0] + \
-                  data[ftype, "velocity_y"]*vel_axis[1] + \
-                  data[ftype, "velocity_z"]*vel_axis[2]
-        elif vel_axis > 2:
-            raise NeedsParameter(["axis"])
-        else:
-            ret = data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
-        return ret
-
-    registry.add_field((ftype, "velocity_los"), sampling_type="local",
-                       function=_velocity_los,
-                       units=unit_system["velocity"],
-                       validators=[
-                           ValidateParameter("axis", {'axis': [0, 1, 2]})])
-
     def _sz_kinetic(field, data):
         # minus sign is because radial velocity is WRT viewer
         # See issue #1225
