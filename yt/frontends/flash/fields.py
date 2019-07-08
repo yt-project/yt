@@ -168,12 +168,13 @@ class FLASHFieldInfo(FieldInfoContainer):
                            function=_abar,
                            units="1")
 
-        def _number_density(fields,data):
-            return (data["nele"]+data["nion"])
-        self.add_field(("gas","number_density"),
-                       sampling_type="cell",
-                       function=_number_density,
-                       units=unit_system["number_density"])
+        if "ye" in self.field_list:
+            def _number_density(fields,data):
+                return (data["nele"]+data["nion"])
+            self.add_field(("gas","number_density"),
+                           sampling_type="cell",
+                           function=_number_density,
+                           units=unit_system["number_density"])
 
         setup_magnetic_field_aliases(
             self, "flash", ["mag%s" % ax for ax in "xyz"])
