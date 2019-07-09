@@ -54,23 +54,6 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
                        validators=[ValidateParameter('bulk_magnetic_field')],
                        units=u)
 
-    def _magnetic_field_los(field, data):
-        mag_axis = data.get_field_parameter("axis")
-        if iterable(mag_axis):
-            ret = data[ftype, "magnetic_field_x"]*mag_axis[0] + \
-                  data[ftype, "magnetic_field_y"]*mag_axis[1] + \
-                  data[ftype, "magnetic_field_z"]*mag_axis[2]
-        elif mag_axis > 2:
-            raise NeedsParameter(["axis"])
-        else:
-            ret = data[ftype, "magnetic_field_%s" % ({0: "x", 1: "y", 2: "z"}[mag_axis])]
-        return ret
-
-    registry.add_field((ftype, "magnetic_field_los"), sampling_type="local",
-                       function=_magnetic_field_los, units=u,
-                       validators=[
-                           ValidateParameter("axis", {'axis': [0, 1, 2]})])
-
     def _magnetic_energy(field, data):
         B = data[ftype,"magnetic_field_strength"]
         return 0.5*B*B/mag_factors(B.units.dimensions)
