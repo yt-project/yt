@@ -1011,14 +1011,18 @@ class CuttingQuiverCallback(PlotCallback):
         pixX = np.zeros((ny, nx), dtype="f8")
         pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_off_axis_cartesian(pixX,
-                               plot.data['x'], plot.data['y'], plot.data['z'],
+                               plot.data['x'].to('code_length'),
+                               plot.data['y'].to('code_length'),
+                               plot.data['z'].to('code_length'),
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_x],
                                (x0, x1, y0, y1))
         pixelize_off_axis_cartesian(pixY,
-                               plot.data['x'], plot.data['y'], plot.data['z'],
+                               plot.data['x'].to('code_length'),
+                               plot.data['y'].to('code_length'),
+                               plot.data['z'].to('code_length'),
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
