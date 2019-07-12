@@ -111,6 +111,28 @@ class CoordinateHandler(object):
     def convert_from_spherical(self, coord):
         raise NotImplementedError
 
+    _data_projection = None
+    @property
+    def data_projection(self):
+        if self._data_projection is not None:
+            return self._data_projection
+        dpj = {}
+        for ax in self.axis_order:
+            dpj[ax] = None
+        self._data_projection = dpj
+        return dpj
+
+    _data_transform = None
+    @property
+    def data_transform(self):
+        if self._data_transform is not None:
+            return self._data_transform
+        dtx = {}
+        for ax in self.axis_order:
+            dtx[ax] = None
+        self._data_transform = dtx
+        return dtx
+
     _axis_name = None
     @property
     def axis_name(self):

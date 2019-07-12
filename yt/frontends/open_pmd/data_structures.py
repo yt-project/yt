@@ -328,7 +328,7 @@ class OpenPMDHierarchy(GridIndex):
                 patch = f[bp + pp + "/" + spec[0] + "/particlePatches"]
                 domain_dimension = np.ones(3, dtype=np.int32)
                 for (ind, axis) in enumerate(list(patch["extent"].keys())):
-                    domain_dimension[ind] = patch["extent/" + axis].value[int(spec[1])]
+                    domain_dimension[ind] = patch["extent/" + axis][()][int(spec[1])]
                 num_grids = int(np.ceil(count * self.vpg**-1))
                 gle = []
                 for axis in patch["offset"].keys():
@@ -341,7 +341,7 @@ class OpenPMDHierarchy(GridIndex):
                 gre = np.asarray(gre)
                 gre = np.append(gre, np.ones(3 - len(gre)))
                 np.add(gle, gre, gre)
-                npo = patch["numParticlesOffset"].value.item(int(spec[1]))
+                npo = patch["numParticlesOffset"][()].item(int(spec[1]))
                 particle_count = np.linspace(npo, npo + count, num_grids + 1,
                                              dtype=np.int32)
                 particle_names = [str(spec[0])]

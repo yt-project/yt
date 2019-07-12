@@ -350,9 +350,14 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             dt = self._endian + self.ds._id_dtype
         else:
             dt = self._endian + self._float_type
+        dt = np.dtype(dt)
         if name in self._vector_fields:
             count *= self._vector_fields[name]
         arr = np.fromfile(f, dtype=dt, count=count)
+        # ensure data are in native endianness to avoid errors
+        # when field data are passed to cython
+        dt = dt.newbyteorder('N')
+        arr = arr.astype(dt)
         if name in self._vector_fields:
             factor = self._vector_fields[name]
             arr = arr.reshape((count // factor, factor), order="C")

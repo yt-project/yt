@@ -26,6 +26,7 @@ OPTIONAL_DEPS = [
     'pyx',
     'scipy',
     'astropy',
+    'cartopy',
 ]
 
 # dependencies that are only installable when yt is built from source

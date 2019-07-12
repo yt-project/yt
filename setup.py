@@ -15,8 +15,8 @@ from distutils.version import LooseVersion
 import pkg_resources
 
 
-if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 5):
-    print("yt currently supports Python 2.7 or versions newer than Python 3.5")
+if sys.version_info < (3, 5):
+    print("yt currently supports versions newer than Python 3.5")
     print("certain features may fail unexpectedly and silently with older "
           "versions.")
     sys.exit(1)
@@ -305,7 +305,8 @@ package manager for your python environment.""" %
                 numpy.__version__)
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
-            self.distribution.ext_modules)
+            self.distribution.ext_modules,
+            compiler_directives={'language_level': 2})
         _build_ext.finalize_options(self)
         # Prevent numpy from thinking it is still in its setup process
         # see http://stackoverflow.com/a/21621493/1382869
@@ -327,7 +328,10 @@ class sdist(_sdist):
     def run(self):
         # Make sure the compiled Cython files in the distribution are up-to-date
         from Cython.Build import cythonize
-        cythonize(cython_extensions)
+        cythonize(
+            cython_extensions,
+            compiler_directives={'language_level': 2},
+        )
         _sdist.run(self)
 
 setup(
@@ -345,10 +349,10 @@ setup(
                  "Operating System :: POSIX :: Linux",
                  "Programming Language :: C",
                  "Programming Language :: Python :: 2",
-                 "Programming Language :: Python :: 2.7",
                  "Programming Language :: Python :: 3",
-                 "Programming Language :: Python :: 3.4",
                  "Programming Language :: Python :: 3.5",
+                 "Programming Language :: Python :: 3.6",
+                 "Programming Language :: Python :: 3.7",
                  "Topic :: Scientific/Engineering :: Astronomy",
                  "Topic :: Scientific/Engineering :: Physics",
                  "Topic :: Scientific/Engineering :: Visualization"],
