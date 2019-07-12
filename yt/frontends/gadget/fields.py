@@ -1,7 +1,5 @@
 from yt.frontends.sph.fields import SPHFieldInfo
 from yt.utilities.physical_constants import mp, kb
-from yt.utilities.chemical_formulas import \
-    ChemicalFormula
 from yt.utilities.physical_ratios import \
     _primordial_mass_fraction
 
