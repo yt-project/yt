@@ -1,103 +1,304 @@
 """
-Chombo frontend tests
-
-
-
+title: test_chombo.py
+Purpose: Chombo frontend tests
+Notes:
+    Copyright (c) 2013, yt Development Team.
+    Distributed under the terms of the Modified BSD License.
+    The full license is in the file COPYING.txt, distributed with this
+    software.
 """
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.testing import \
-    requires_file, \
-    assert_equal, \
-    units_override_check
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    small_patch_amr, \
-    data_dir_load
+from yt.testing import units_override_check
 from yt.frontends.chombo.api import \
     ChomboDataset, \
     Orion2Dataset, \
     PlutoDataset
+from yt.utilities.answer_testing import \
+    framework as fw, \
+    utils
 
-_fields = ("density", "velocity_magnitude",  # "velocity_divergence",
-           "magnetic_field_x")
-
+# Test data
 gc = "GaussianCloud/data.0077.3d.hdf5"
-@requires_ds(gc)
-def test_gc():
-    ds = data_dir_load(gc)
-    assert_equal(str(ds), "data.0077.3d.hdf5")
-    for test in small_patch_amr(ds, _fields):
-        test_gc.__name__ = test.description
-        yield test
-
 tb = "TurbBoxLowRes/data.0005.3d.hdf5"
-@requires_ds(tb)
-def test_tb():
-    ds = data_dir_load(tb)
-    assert_equal(str(ds), "data.0005.3d.hdf5")
-    for test in small_patch_amr(ds, _fields):
-        test_tb.__name__ = test.description
-        yield test
-
 iso = "IsothermalSphere/data.0000.3d.hdf5"
-@requires_ds(iso)
-def test_iso():
-    ds = data_dir_load(iso)
-    assert_equal(str(ds), "data.0000.3d.hdf5")
-    for test in small_patch_amr(ds, _fields):
-        test_iso.__name__ = test.description
-        yield test
-
-_zp_fields = ("rhs", "phi")
 zp = "ZeldovichPancake/plt32.2d.hdf5"
-@requires_ds(zp)
-def test_zp():
-    ds = data_dir_load(zp)
-    assert_equal(str(ds), "plt32.2d.hdf5")
-    for test in small_patch_amr(ds, _zp_fields, input_center="c",
-                                input_weight="rhs"):
-        test_zp.__name__ = test.description
-        yield test
-
 kho = "KelvinHelmholtz/data.0004.hdf5"
-@requires_ds(kho)
-def test_kho():
-    ds = data_dir_load(kho)
-    assert_equal(str(ds), "data.0004.hdf5")
-    for test in small_patch_amr(ds, _fields):
-        test_kho.__name__ = test.description
-        yield test
-
-@requires_file(zp)
-def test_ChomboDataset():
-    assert isinstance(data_dir_load(zp), ChomboDataset)
 
 
-@requires_file(gc)
-def test_Orion2Dataset():
-    assert isinstance(data_dir_load(gc), Orion2Dataset)
+#============================================
+#                 TestChombo
+#============================================
+class TestChombo(fw.AnswerTest):
+    """
+    Container for chombo frontend tests.
 
+    Attributes:
+    -----------
+        pass
 
-@requires_file(kho)
-def test_PlutoDataset():
-    assert isinstance(data_dir_load(kho), PlutoDataset)
+    Methods:
+    --------
+        pass
+    """
+    #-----
+    # test_gc
+    #-----
+    def test_gc(self):
+        """
+        Parameters:
+        -----------
+            pass
 
-@requires_file(zp)
-def test_units_override_zp():
-    units_override_check(zp)
+        Raises:
+        -------
+            pass
 
-@requires_file(gc)
-def test_units_override_gc():
-    units_override_check(gc)
+        Returns:
+        --------
+            pass
+        """
+        # Set up arrays for testing
+        axes = [0, 1, 2]
+        center = "max"
+        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
+        weights = [None, "density"]
+        fields = ("density", "velocity_magnitude", "magnetic_field_x")
+        ds = utils.data_dir_load(gc)
+        assert str(ds) ==  "data.0077.3d.hdf5"
+        # Run small patch amr test suite
+        hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
+        # Save or compare hashes
+        utils.handle_hashes('gaussiancloud', hashes, self.answer_store)
 
-@requires_file(kho)
-def test_units_override_kho():
-    units_override_check(kho)
+    #-----
+    # test_tb
+    #-----
+    def test_tb(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        # Set up arrays for testing
+        axes = [0, 1, 2]
+        center = "max"
+        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
+        weights = [None, "density"]
+        fields = ("density", "velocity_magnitude", "magnetic_field_x")
+        ds = utils.data_dir_load(tb)
+        assert str(ds) == "data.0005.3d.hdf5"
+        # Run small patch amr test suite
+        hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
+        # Save or compare hashes
+        utils.handle_hashes('turbboxlowres', hashes, self.answer_store)
+
+    #-----
+    # test_iso
+    #-----
+    def test_iso(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        # Set up arrays for testing
+        axes = [0, 1, 2]
+        center = "max"
+        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
+        weights = [None, "density"]
+        fields = ("density", "velocity_magnitude", "magnetic_field_x")
+        ds = utils.data_dir_load(iso)
+        assert str(ds) == "data.0000.3d.hdf5"
+        # Run small patch amr test suite
+        hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
+        # Save or compare hashes
+        utils.handle_hashes('isothermalsphere', hashes, self.answer_store)
+
+    #-----
+    # test_zp
+    #-----
+    def test_zp(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        # Set up arrays for testing
+        axes = [0, 1, 2]
+        center = "max"
+        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
+        weights = [None, "density"]
+        fields = ("rhs", "phi")
+        ds = utils.data_dir_load(zp)
+        assert str(ds) == "plt32.2d.hdf5"
+        # Run small patch amr test suite
+        hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
+        # Save or compare hashes
+        utils.handle_hashes('zeldovichpancake', hashes, self.answer_store)
+
+    #-----
+    # test_kho
+    #-----
+    def test_kho(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        # Set up arrays for testing
+        axes = [0, 1, 2]
+        center = "max"
+        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
+        weights = [None, "density"]
+        fields = ("density", "velocity_magnitude", "magnetic_field_x")
+        ds = utils.data_dir_load(kho)
+        assert str(ds) == "data.0004.hdf5"
+        # Run small patch amr test suite
+        hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
+        # Save or compare hashes
+        utils.handle_hashes('kelvinhelmholtz', hashes, self.answer_store)
+
+    #-----
+    # test_ChomboDataset
+    #-----
+    def test_ChomboDataset(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        assert isinstance(utils.data_dir_load(zp), ChomboDataset)
+
+    #-----
+    # test_Orion2Dataset
+    #-----
+    def test_Orion2Dataset(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        assert isinstance(utils.data_dir_load(gc), Orion2Dataset)
+
+    #-----
+    # test_PlutoDataset
+    #-----
+    def test_PlutoDataset(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        assert isinstance(utils.data_dir_load(kho), PlutoDataset)
+
+    #-----
+    # test_units_override_zp
+    #-----
+    def test_units_override_zp(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        units_override_check(zp)
+
+    #-----
+    # test_units_override_gc
+    #-----
+    def test_units_override_gc(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        units_override_check(gc)
+
+    #-----
+    # test_units_override_kho
+    #-----
+    def test_units_override_kho(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        units_override_check(kho)

@@ -21,7 +21,7 @@ import pytest
 from yt.analysis_modules.halo_analysis.api import HaloCatalog
 from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
 
-from . import utils
+import utils
 
 
 #============================================
@@ -97,7 +97,7 @@ class AnswerTest():
         for g in ds.index.grids:
             p = g.Parent
             if p is None:
-                result["parents"].append(None)
+                result["parents"].append(-1)
             elif hasattr(p, "id"):
                 result["parents"].append(p.id)
             else:
@@ -119,9 +119,6 @@ class AnswerTest():
             # use that in case using 0 ever needs to be changed for
             # some reason
             v = np.array(v)
-            if None in v:
-                inds = np.where(v == None)
-                v[inds] = -1
             s += bytes(k.encode('utf-8')) + bytes(v)
         return s
 
@@ -208,7 +205,7 @@ class AnswerTest():
             s += bytes(''.join(k).encode('utf-8')) + bytes(v)
         return s
 
-    def field_values_test(self, ds, field, obj_type=False, particle_type=False):
+    def field_values_test(self, ds, field, obj_type=None, particle_type=False):
         """
         Tests that the average, minimum, and maximum values of a field
         remain unchanged.
@@ -277,11 +274,21 @@ class AnswerTest():
         # Put the dictionary into a hashable form
         s = b''
         for k, v in d.items():
-            s += bytes(k.encode('utf-8')) + bytes(v)
+            if isinstance(k, str):
+                s += bytes(k.encode('utf-8')) + bytes(v)
+            # Tuples can't be encoded, so the string entries are joined
+            # together as one string and then encoded
+            elif isinstance(k, tuple):
+                s += bytes(''.join(k[:]).encode('utf-8')) + bytes(v)
+            else:
+                err_msg = "Key isn't string or tuple in pixelized " + \
+                    "projection values test."
+                raise KeyError(err_msg)
         return s
 
     #-----
     # check_color
+    #-----
     def color_conservation_test(self, ds):
         """
         Parameters:
@@ -370,3 +377,135 @@ class AnswerTest():
         # Put in hashable form
         s = result[0].tostring() + result[1].tostring()
         return s
+
+    #-----
+    # small_patch_amr
+    #-----
+    def small_patch_amr(self, ds, fields, weights, axes, ds_objs):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        # Set up keys of test names
+        test_keys = ['grid_hierarchy',
+            'parentage_relationships',
+            'grid_values',
+            'projection_values',
+            'field_values'
+        ]
+        # Grid hierarchy test
+        gh_hd = self.grid_hierarchy_test(ds)
+        # Parentage relationships test
+        pr_hd = self.parentage_relationships_test(ds)
+        # Grid values, projection values, and field values tests
+        gv_hd = b''
+        pv_hd = b''
+        fv_hd = b''
+        for field in fields:
+            gv_hd += self.grid_values_test(ds, field)
+            for axis in axes:
+                for dobj_name in ds_objs:
+                    for weight_field in weights:
+                        pv_hd += self.projection_values_test(ds,
+                            axis,
+                            field,
+                            weight_field,
+                            dobj_name
+                        )
+                    fv_hd += self.field_values_test(ds,
+                        field,
+                        dobj_name
+                    )
+        # Hash the final byte arrays
+        hex_digests = [gh_hd, pr_hd, gv_hd, pv_hd, fv_hd]
+        hashes = [utils.generate_hash(hd) for hd in hex_digests]
+        hash_dict = {}
+        for key, value in zip(test_keys, hashes):
+            hash_dict[key] = value
+        return hash_dict
+
+    #-----
+    # big_patch_amr
+    #-----
+    def big_patch_amr(self, ds, fields, weights, axes, ds_objs):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        # Set up keys of test names
+        test_keys = ['grid_hierarchy',
+            'parentage_relationships',
+            'grid_values',
+            'pixelized_projection_values',
+        ]
+        # Grid hierarchy test
+        gh_hd = self.grid_hierarchy_test(ds)
+        # Parentage relationships test
+        pr_hd = self.parentage_relationships_test(ds)
+        # Grid values and pixelized projection values tests
+        # For these tests it might be possible for a frontend to not
+        # run them for every field, axis, or data source, so the tests
+        # are written to work with one instance of each of those. These
+        # loops therefore combine the results of each desired combo.
+        # This mirrors the way that it was done in the original test
+        gv_hd = b''
+        ppv_hd = b''
+        for field in fields:
+            gv_hd += self.grid_values_test(ds, field)
+            for axis in axes:
+                for dobj_name in ds_objs:
+                    for weight_field in weights:
+                        ppv_hd += self.pixelized_projection_values_test(ds,
+                            axis,
+                            field,
+                            weight_field,
+                            dobj_name
+                        )
+        # Hash the final byte arrays
+        hex_digests = [gh_hd, pr_hd, gv_hd, ppv_hd]
+        hashes = [utils.generate_hash(hd) for hd in hex_digests]
+        hash_dict = {}
+        for key, value in zip(test_keys, hashes):
+            hash_dict[key] = value
+        return hash_dict
+
+    #-----
+    # generic_array_test
+    #-----
+    def generic_array_test(self, ds_fn, func, args=None, kwargs=None):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        if args is None:
+            args = []
+        if kwargs is None:
+            kwargs = {}
+        return func(*args, **kwargs).tostring()
