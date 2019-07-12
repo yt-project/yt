@@ -6,12 +6,6 @@ from yt.units.yt_array import ustack
 from yt.fields.derived_field import \
     ValidateParameter
 
-from yt.funcs import \
-    iterable
-
-from .field_exceptions import \
-    NeedsParameter
-
 from .field_plugin_registry import \
     register_field_plugin
 
