@@ -220,7 +220,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         my_emissivity = np.power(10, em_0(dd))
         if metallicity is not None:
             if isinstance(metallicity, DerivedField):
-                my_Z = data[metallicity.name]
+                my_Z = data[metallicity.name].to("Zsun")
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, em_Z(dd))
@@ -250,7 +250,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         my_emissivity = np.power(10, emp_0(dd))
         if metallicity is not None:
             if isinstance(metallicity, DerivedField):
-                my_Z = data[metallicity.name]
+                my_Z = data[metallicity.name].to("Zsun")
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
