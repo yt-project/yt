@@ -315,11 +315,11 @@ class ExodusIIDataset(Dataset):
             if "coord" not in ds.variables:
                 coords = np.array([ds.variables["coord%s" % ax][:]
                                    for ax in coord_axes]
-                                  ).transpose().astype(np.float64)
+                                  ).transpose().astype("f8")
             else:
                 coords = np.array([coord for coord in
                                    ds.variables["coord"][:]]
-                                  ).transpose().astype(np.float64)
+                                  ).transpose().astype("f8")
             return coords
 
     def _apply_displacement(self, coords, mesh_id):
