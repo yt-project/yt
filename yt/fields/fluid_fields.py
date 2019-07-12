@@ -55,7 +55,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return data[ftype, "density"] * data[ftype, "cell_volume"]
 
     registry.add_field((ftype, "cell_mass"),
-                       sampling_type="local",
+                       sampling_type="cell",
                        function=_cell_mass,
                        units=unit_system["mass"])
     registry.alias((ftype, "mass"), (ftype, "cell_mass"))
@@ -108,7 +108,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return tr
 
     registry.add_field((ftype, "courant_time_step"),
-                       sampling_type="local",
+                       sampling_type="cell",
                        function=_courant_time_step,
                        units=unit_system["time"])
 
