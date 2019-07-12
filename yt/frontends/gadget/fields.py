@@ -60,7 +60,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         if (ptype, "ElectronAbundance") in self.ds.field_list:
             def _temperature(field, data):
                 # Assume cosmic abundances
-                x_H = 0.76
+                x_H = _primordial_mass_fraction["H"]
                 gamma = 5.0/3.0
                 a_e = data[ptype, 'ElectronAbundance']
                 mu = 4.0 / (3.0 * x_H + 1.0 + 4.0 * x_H * a_e)
@@ -69,17 +69,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         else:
             def _temperature(field, data):
                 gamma = 5.0/3.0
-                if self.ds.mean_molecular_weight is not None:
-                    mu = self.ds.mean_molecular_weight
-                elif data.has_field_parameter("mean_molecular_weight"):
-                    mu = data.get_field_parameter("mean_molecular_weight")
-                else:
-                    # Assume full ionization and cosmic abundances
-                    mu = ChemicalFormula("H").weight / \
-                         (2.0*_primordial_mass_fraction["H"])
-                    mu += ChemicalFormula("He").weight / \
-                          (3.0*_primordial_mass_fraction["He"])
-                ret = data[ptype, "InternalEnergy"]*(gamma-1)*mu*mp/kb
+                ret = data[ptype, "InternalEnergy"]*(gamma-1)*data.ds.mu*mp/kb
                 return ret.in_units(self.ds.unit_system["temperature"])
 
         self.add_field((ptype, "Temperature"),

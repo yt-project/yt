@@ -100,11 +100,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                            units=unit_system["specific_energy"])
         # Add temperature field
         def _temperature(field, data):
-            if data.has_field_parameter("mu"):
-                mu = data.get_field_parameter("mu")
-            else:
-                mu = 0.6
-            return mu*mh*data["gas","pressure"]/data["gas","density"]/kboltz
+            return data.ds.mu*mh*data["gas","pressure"]/data["gas","density"]/kboltz
         self.add_field(("gas","temperature"),
                        sampling_type="cell",
                        function=_temperature,
