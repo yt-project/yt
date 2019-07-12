@@ -16,6 +16,10 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import sys
+if sys.version_info[0] < 3:
+        raise Exception("Python 2 no longer supported.  Please install Python 3 for use with yt.")
+
 __version__ = "4.0.dev0"
 
 # First module imports
