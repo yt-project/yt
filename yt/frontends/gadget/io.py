@@ -66,9 +66,10 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 x = f["/%s/Coordinates" % ptype][si:ei, 0].astype("float64")
                 y = f["/%s/Coordinates" % ptype][si:ei, 1].astype("float64")
                 z = f["/%s/Coordinates" % ptype][si:ei, 2].astype("float64")
-                if ptype == self.ds._sph_ptype:
-                    hsml = f[
-                        "/%s/SmoothingLength" % ptype][si:ei].astype("float64")
+                if ptype == self.ds._sph_ptypes[0]:
+                    pdtype = f["/%s/Coordinates" % ptype].dtype
+                    pshape = f["/%s/Coordinates" % ptype].shape
+                    hsml = self._get_smoothing_length(data_file, pdtype, pshape)
                 else:
                     hsml = 0.0
                 yield ptype, (x, y, z), hsml
@@ -95,7 +96,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         f.close()
 
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
-        ptype = self.ds._sph_ptype
+        ptype = self.ds._sph_ptypes[0]
         ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
         with h5py.File(data_file.filename, "r") as f:
@@ -128,14 +129,20 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 g = f["/%s" % ptype]
                 if getattr(selector, 'is_all_data', False):
                     mask = slice(None, None, None)
+                    mask_sum = ei-si
+                    hsmls = None
                 else:
                     coords = g["Coordinates"][si:ei].astype("float64")
                     if ptype == 'PartType0':
-                        hsmls = g["SmoothingLength"][si:ei].astype("float64")
+                        hsmls = self._get_smoothing_length(data_file,
+                                                           g["Coordinates"].dtype,
+                                                           g["Coordinates"].shape).astype("float64")
                     else:
                         hsmls = 0.0
                     mask = selector.select_points(
                         coords[:,0], coords[:,1], coords[:,2], hsmls)
+                    if mask is not None:
+                        mask_sum = mask.sum()
                     del coords
                 if mask is None:
                     continue
@@ -143,10 +150,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
                     if field in ("Mass", "Masses") and \
                             ptype not in self.var_mass:
-                        data = np.empty(mask.sum(), dtype="float64")
+                        data = np.empty(mask_sum, dtype="float64")
                         ind = self._known_ptypes.index(ptype)
                         data[:] = self.ds["Massarr"][ind]
-
                     elif field in self._element_names:
                         rfield = 'ElementAbundance/' + field
                         data = g[rfield][si:ei][mask, ...]
@@ -156,6 +162,16 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     elif field.startswith("Chemistry_"):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["ChemistryAbundances"][si:ei, col][mask]
+                    elif field == "smoothing_length":
+                        # This is for frontends which do not store
+                        # the smoothing length on-disk, so we do not
+                        # attempt to read them, but instead assume
+                        # that they are calculated in _get_smoothing_length.
+                        if hsmls is None:
+                            hsmls = self._get_smoothing_length(data_file,
+                                                               g["Coordinates"].dtype,
+                                                               g["Coordinates"].shape).astype("float64")
+                        data = hsmls[mask]
                     else:
                         data = g[field][si:ei][mask, ...]
 
@@ -292,7 +308,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                 pos = self._read_field_from_file(
                     f, tp[ptype], "Coordinates")
-                if ptype == self.ds._sph_ptype:
+                if ptype == self.ds._sph_ptypes[0]:
                     f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
                     hsml = self._read_field_from_file(
                         f, tp[ptype], "SmoothingLength")
@@ -317,7 +333,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                     pos = self._read_field_from_file(
                         f, tp[ptype], "Coordinates")
-                    if ptype == self.ds._sph_ptype:
+                    if ptype == self.ds._sph_ptypes[0]:
                         f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
                         hsml = self._read_field_from_file(
                             f, tp[ptype], "SmoothingLength")

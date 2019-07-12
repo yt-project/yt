@@ -48,7 +48,7 @@ from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
 from yt.units.unit_object import define_unit
-from yt.units.yt_array import \
+from yt.units import \
     YTArray, \
     YTQuantity, \
     uconcatenate, \
@@ -135,5 +135,5 @@ from yt.testing import run_nose
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
 
-from yt.units.unit_systems import UnitSystem
-from yt.units.unit_object import unit_system_registry
+from yt.units.unit_systems import \
+    UnitSystem, unit_system_registry

@@ -63,7 +63,7 @@ def test_dimensionless_field_units():
 
     dd = ds.all_data()
 
-    assert_equal(Z.max(), dd["metallicity"].max())
+    assert_equal(Z.max(), float(dd["stream", "metallicity"].max()))
 
 def test_inconsistent_field_shape():
 

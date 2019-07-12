@@ -68,6 +68,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+            si, ei = data_file.start, data_file.end
             pcount = data_file.header['num_halos']
             if pcount == 0:
                 continue
@@ -81,7 +82,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
                     halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
                     if mask is None: continue
                     for field in field_list:
-                        data = halos[field][mask].astype("float64")
+                        data = halos[field][si:ei][mask].astype("float64")
                         yield (ptype, field), data
 
     def _yield_coordinates(self, data_file):

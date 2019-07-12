@@ -221,7 +221,7 @@ class GadgetDataset(SPHDataset):
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
-    _sph_ptype = 'Gas'
+    _sph_ptypes = ('Gas',)
     _suffix = ""
 
     def __init__(self, filename, dataset_type="gadget_binary",
@@ -534,7 +534,7 @@ class GadgetHDF5Dataset(GadgetDataset):
     _index_class = SPHParticleIndex
     _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Masses"
-    _sph_ptype = 'PartType0'
+    _sph_ptypes = ('PartType0',)
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="gadget_hdf5",

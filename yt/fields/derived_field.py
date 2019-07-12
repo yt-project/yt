@@ -186,13 +186,15 @@ class DerivedField(object):
 
     @property
     def is_sph_field(self):
+        if self.sampling_type == "cell":
+            return False
         is_sph_field = False
         if self.alias_field:
             name = self.alias_name
         else:
             name = self.name
-        if hasattr(self.ds, '_sph_ptype'):
-            is_sph_field |= name[0] in (self.ds._sph_ptype, 'gas')
+        if hasattr(self.ds, '_sph_ptypes'):
+            is_sph_field |= name[0] in (self.ds._sph_ptypes + ('gas',))
         return is_sph_field
 
     @property

@@ -284,6 +284,7 @@ cdef class CyOctree:
         temp.leaf = 1
         temp.depth = node.depth + 1
         temp.leaf_id = 0
+        temp.children = 0
 
         # Set up the values to be used to set the child boundaries
         dx = (node.right_edge[0] - node.left_edge[0]) / self._num_children_per_dim

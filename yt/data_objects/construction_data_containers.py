@@ -341,7 +341,8 @@ class YTProj(YTSelectionContainer2D):
                 # First time calling a units="auto" field, infer units and cache
                 # for future field accesses.
                 finfo.units = str(chunk[field].units)
-            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
+            field_unit = Unit(finfo.output_units,
+                              registry=self.ds.unit_registry)
             if self.method == "mip" or self._sum_only:
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
@@ -640,7 +641,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             edge_units.registry = self.ds.unit_registry
         else:
             edge_units = 'code_length'
-        return self.ds.arr(edge, edge_units)
+        return self.ds.arr(edge, edge_units, dtype='float64')
 
     def _reshape_vals(self, arr):
         if len(arr.shape) == 3: return arr
@@ -743,14 +744,17 @@ class YTCoveringGrid(YTSelectionContainer3D):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
 
-        ptype = self.ds._sph_ptype
         smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
         normalize = getattr(self.ds, 'use_sph_normalization', True)
 
         bounds, size = self._get_grid_bounds_size()
 
-        if(smoothing_style == "scatter"):
+        if smoothing_style == "scatter":
             for field in fields:
+                fi = self.ds._get_field_info(field)
+                ptype = fi.name[0]
+                if ptype not in self.ds._sph_ptypes:
+                    raise KeyError("%s is not a SPH particle type!" % ptype)
                 buff = np.zeros(size, dtype="float64")
                 if normalize:
                     buff_den = np.zeros(size, dtype="float64")
@@ -776,7 +780,6 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 if normalize:
                     normalization_3d_utility(buff, buff_den)
 
-                fi = self.ds._get_field_info(field)
                 self[field] = self.ds.arr(buff, fi.units)
                 pbar.close()
 
@@ -938,6 +941,29 @@ class YTCoveringGrid(YTSelectionContainer3D):
         size = np.ones(3, dtype=int) * 2**self.level
 
         return bounds, size
+
+    def to_fits_data(self, fields, length_unit=None):
+        r"""Export a set of gridded fields to a FITS file.
+
+        This will export a set of FITS images of either the fields specified
+        or all the fields already in the object.
+
+        Parameters
+        ----------
+        fields : list of strings
+            These fields will be pixelized and output. If "None", the keys of the
+            FRB will be used.
+        length_unit : string, optional
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
+        """
+        from yt.visualization.fits_image import FITSImageData
+        if length_unit is None:
+            length_unit = self.ds.length_unit
+        fields = ensure_list(fields)
+        fid = FITSImageData(self, fields, length_unit=length_unit)
+        return fid
+
 
 class YTArbitraryGrid(YTCoveringGrid):
     """A 3D region with arbitrary bounds and dimensions.
@@ -2181,8 +2207,8 @@ class YTOctree(YTSelectionContainer3D):
         YTSelectionContainer3D.__init__(self,
             center, ds, field_parameters)
 
-        self.left_edge = self._sanitize_edge(left_edge)
-        self.right_edge = self._sanitize_edge(right_edge)
+        self.left_edge = self._sanitize_edge(left_edge, ds.domain_left_edge)
+        self.right_edge = self._sanitize_edge(right_edge, ds.domain_right_edge)
         self.n_ref = n_ref
         self.density_factor = density_factor
         self.over_refine_factor = over_refine_factor
@@ -2280,7 +2306,9 @@ class YTOctree(YTSelectionContainer3D):
         self._data_source = self.ds.region(
             self.center, self.left_edge, self.right_edge)
 
-    def _sanitize_edge(self, edge):
+    def _sanitize_edge(self, edge, default):
+        if edge is None:
+            return default.copy()
         if not iterable(edge):
             edge = [edge]*len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
@@ -2303,8 +2331,8 @@ class YTOctree(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
 
-        sph_ptype = getattr(self.ds, '_sph_ptype', 'None')
-        if fields[0] == sph_ptype:
+        sph_ptypes = getattr(self.ds, '_sph_ptypes', 'None')
+        if fields[0] in sph_ptypes:
             smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
             normalize = getattr(self.ds, 'use_sph_normalization', True)
 

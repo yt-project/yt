@@ -25,9 +25,7 @@ from yt.utilities.math_utils import \
     get_cyl_z_component, \
     get_cyl_theta_component
 
-from yt.funcs import \
-    just_one, \
-    handle_mks_cgs
+from yt.funcs import just_one
 
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 
@@ -79,9 +77,8 @@ def create_relative_field(registry, basename, field_units, ftype='gas',
     def relative_vector(ax):
         def _relative_vector(field, data):
             iax = axis_order.index(ax)
-            d = handle_mks_cgs(data[field_components[iax]], field.units)
-            bulk = handle_mks_cgs(get_bulk(data, basename, d.unit_quantity),
-                                  field.units)
+            d = data[field_components[iax]]
+            bulk = get_bulk(data, basename, d.unit_quantity)
             return d - bulk[iax]
         return _relative_vector
 
@@ -269,7 +266,7 @@ def create_vector_fields(registry, basename, field_units,
         new_field = data.ds.arr(
             np.zeros(data[xn].shape, dtype=np.float64), f.units)
         new_field[1:-1,1:-1,1:-1] = f
-        return new_field
+        return new_field.to(field.units)
 
     def _divergence_abs(field, data):
         return np.abs(data[ftype, "%s_divergence" % basename])

@@ -36,6 +36,7 @@ from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
 from yt.units.yt_array import uconcatenate
 
+
 def _sample_ray(ray, npoints, field):
     """
     Private function that uses a ray object for calculating the field values
@@ -72,28 +73,28 @@ def _sample_ray(ray, npoints, field):
     return x, field_values
 
 def all_data(data, ptype, fields, kdtree=False):
-        field_data = {}
-        fields = set(fields)
+    field_data = {}
+    fields = set(fields)
+    for field in fields:
+        field_data[field] = []
+
+    for chunk in data.all_data().chunks([], "io"):
         for field in fields:
-            field_data[field] = []
+            field_data[field].append(chunk[ptype,
+                                           field].in_base("code"))
 
-        for chunk in data.all_data().chunks([], "io"):
-            for field in fields:
-                field_data[field].append(chunk[ptype,
-                                               field].in_base("code"))
+    for field in fields:
+        field_data[field] = uconcatenate(field_data[field])
 
+    if kdtree is True:
+        kdtree = data.index.kdtree
         for field in fields:
-            field_data[field] = uconcatenate(field_data[field])
+            if len(field_data[field].shape) == 1:
+                field_data[field] = field_data[field][kdtree.idx]
+            else:
+                field_data[field] = field_data[field][kdtree.idx, :]
 
-        if kdtree is True:
-            kdtree = data.index.kdtree
-            for field in fields:
-                if len(field_data[field].shape) == 1:
-                    field_data[field] = field_data[field][kdtree.idx]
-                else:
-                    field_data[field] = field_data[field][kdtree.idx, :]
-
-        return field_data
+    return field_data
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
@@ -291,14 +292,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
         elif isinstance(data_source.ds, particle_datasets) and is_sph_field:
             ptype = field[0]
             if ptype == 'gas':
-                ptype = data_source.ds._sph_ptype
+                ptype = data_source.ds._sph_ptypes[0]
+            px_name = self.axis_name[self.x_axis[dim]]
+            py_name = self.axis_name[self.y_axis[dim]]
             ounits = data_source.ds.field_info[field].output_units
-            px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
-            py_name = 'particle_position_%s' % self.axis_name[self.y_axis[dim]]
             if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
-                le = data_source.data_source.left_edge.in_units('code_length')
-                re = data_source.data_source.right_edge.in_units('code_length')
+                le, re = data_source.data_source.get_bbox()
                 le[self.x_axis[dim]] = bounds[0]
                 le[self.y_axis[dim]] = bounds[2]
                 re[self.x_axis[dim]] = bounds[1]
@@ -318,7 +318,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, px_name].in_units('cm'),
                             chunk[ptype, py_name].in_units('cm'),
                             chunk[ptype, 'smoothing_length'].in_units('cm'),
-                            chunk[ptype, 'particle_mass'].in_units('g'),
+                            chunk[ptype, 'mass'].in_units('g'),
                             chunk[ptype, 'density'].in_units('g/cm**3'),
                             chunk[field].in_units(ounits),
                             bnds)
@@ -336,7 +336,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, px_name].in_units('cm'),
                             chunk[ptype, py_name].in_units('cm'),
                             chunk[ptype, 'smoothing_length'].in_units('cm'),
-                            chunk[ptype, 'particle_mass'].in_units('g'),
+                            chunk[ptype, 'mass'].in_units('g'),
                             chunk[ptype, 'density'].in_units('g/cm**3'),
                             chunk[field].in_units(ounits),
                             bnds,
@@ -350,7 +350,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, px_name].in_units('cm'),
                             chunk[ptype, py_name].in_units('cm'),
                             chunk[ptype, 'smoothing_length'].in_units('cm'),
-                            chunk[ptype, 'particle_mass'].in_units('g'),
+                            chunk[ptype, 'mass'].in_units('g'),
                             chunk[ptype, 'density'].in_units('g/cm**3'),
                             chunk[weight].in_units(wounits),
                             bnds)
@@ -369,20 +369,20 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     for chunk in data_source.chunks([], 'io'):
                         pixelize_sph_kernel_slice(
                             buff,
-                            chunk[ptype, px_name],
-                            chunk[ptype, py_name],
-                            chunk[ptype, 'smoothing_length'],
-                            chunk[ptype, 'particle_mass'],
+                            chunk[ptype, px_name].to('code_length'),
+                            chunk[ptype, py_name].to('code_length'),
+                            chunk[ptype, 'smoothing_length'].to('code_length'),
+                            chunk[ptype, 'mass'],
                             chunk[ptype, 'density'],
                             chunk[field].in_units(ounits),
                             bounds)
                         if normalize:
                             pixelize_sph_kernel_slice(
                                 buff_den,
-                                chunk[ptype, px_name],
-                                chunk[ptype, py_name],
-                                chunk[ptype, 'smoothing_length'],
-                                chunk[ptype, 'particle_mass'],
+                                chunk[ptype, px_name].to('code_length'),
+                                chunk[ptype, py_name].to('code_length'),
+                                chunk[ptype, 'smoothing_length'].to('code_length'),
+                                chunk[ptype, 'mass'],
                                 chunk[ptype, 'density'],
                                 np.ones(chunk[ptype, 'density'].shape[0]),
                                 bounds)
@@ -412,7 +412,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     # then we do the interpolation
                     buff_temp = np.zeros(buff_size, dtype="float64")
 
-                    fields_to_get = ['particle_position', 'density', 'particle_mass',
+                    fields_to_get = ['particle_position', 'density', 'mass',
                                      'smoothing_length', field[1]]
                     all_fields = all_data(self.ds, ptype, fields_to_get, kdtree=True)
 
@@ -421,7 +421,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                                 all_fields['particle_position'],
                                                 buff_bounds,
                                                 all_fields['smoothing_length'],
-                                                all_fields['particle_mass'],
+                                                all_fields['mass'],
                                                 all_fields['density'],
                                                 all_fields[field[1]].in_units(ounits),
                                                 self.ds.index.kdtree,

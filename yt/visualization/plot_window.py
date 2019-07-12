@@ -58,8 +58,8 @@ from yt.utilities.exceptions import \
     YTPlotCallbackError, \
     YTDataTypeUnsupported, \
     YTInvalidFieldType, \
-    YTUnitNotRecognized, \
-    YTUnitConversionError
+    YTUnitNotRecognized
+from unyt.exceptions import UnitConversionError
 
 from .geo_plot_utils import get_mpl_transform
 
@@ -135,7 +135,7 @@ def validate_mesh_fields(data_source, fields):
     for field in canonical_fields:
         finfo = data_source.ds.field_info[field]
         if finfo.sampling_type == "particle":
-            if not hasattr(data_source.ds, '_sph_ptype'):
+            if not hasattr(data_source.ds, '_sph_ptypes'):
                 pass
             elif finfo.is_sph_field:
                 continue
@@ -747,7 +747,7 @@ class PlotWindow(ImagePlotContainer):
             for un in unit_name:
                 try:
                     self.ds.length_unit.in_units(un)
-                except (YTUnitConversionError, UnitParseError):
+                except (UnitConversionError, UnitParseError):
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
         return self
@@ -793,8 +793,8 @@ class PWViewerMPL(PlotWindow):
             xc = self.ds.quan(origin[0], 'code_length')
             yc = self.ds.quan(origin[1], 'code_length')
         elif 3 == len(origin) and isinstance(origin[0], tuple):
-            xc = YTQuantity(origin[0][0], origin[0][1])
-            yc = YTQuantity(origin[1][0], origin[0][1])
+            xc = self.ds.quan(origin[0][0], origin[0][1])
+            yc = self.ds.quan(origin[1][0], origin[0][1])
 
         assert origin[-1] in ['window', 'domain', 'native']
 
@@ -1360,6 +1360,10 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     data_source: YTSelectionContainer object
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
+    buff_size: length 2 sequence
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
+         used.  Effectively sets a resolution limit to the image if buff_size is 
+         smaller than the finest gridding.
 
     Examples
     --------
@@ -1377,7 +1381,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  origin='center-window', right_handed=True, fontsize=18, field_parameters=None,
-                 window_size=8.0, aspect=None, data_source=None):
+                 window_size=8.0, aspect=None, data_source=None, buff_size=(800,800)):
         # this will handle time series data and controllers
         axis = fix_axis(axis, ds)
         (bounds, center, display_center) = \
@@ -1403,7 +1407,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
                              window_size=window_size, aspect=aspect,
-                             right_handed=right_handed)
+                             right_handed=right_handed, buff_size=buff_size)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1539,6 +1543,10 @@ class ProjectionPlot(PWViewerMPL):
     data_source: YTSelectionContainer object
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
+    buff_size: length 2 sequence
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
+         used.  Effectively sets a resolution limit to the image if buff_size is 
+         smaller than the finest gridding.
 
     Examples
     --------
@@ -1557,8 +1565,8 @@ class ProjectionPlot(PWViewerMPL):
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
                  right_handed=True, fontsize=18, field_parameters=None, data_source=None,
-                 method = "integrate", proj_style = None, window_size=8.0,
-                 aspect=None):
+                 method = "integrate", proj_style = None, window_size=8.0, 
+                 buff_size=(800,800), aspect=None):
         axis = fix_axis(axis, ds)
         # proj_style is deprecated, but if someone specifies then it trumps
         # method.
@@ -1593,7 +1601,7 @@ class ProjectionPlot(PWViewerMPL):
                            max_level=max_level)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              right_handed=right_handed, fontsize=fontsize, window_size=window_size,
-                             aspect=aspect)
+                             aspect=aspect, buff_size=buff_size)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1668,6 +1676,10 @@ class OffAxisSlicePlot(PWViewerMPL):
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults ds.all_data(), a
          region covering the full domain.
+    buff_size: length 2 sequence
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
+         used.  Effectively sets a resolution limit to the image if buff_size is 
+         smaller than the finest gridding.
     """
 
     _plot_type = 'OffAxisSlice'
@@ -1675,7 +1687,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, normal, fields, center='c', width=None,
                  axes_unit=None, north_vector=None, right_handed=True, fontsize=18,
-                 field_parameters=None, data_source=None):
+                 field_parameters=None, data_source=None, buff_size=(800,800)):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,ds)
         if field_parameters is None:
             field_parameters = {}
@@ -1694,7 +1706,8 @@ class OffAxisSlicePlot(PWViewerMPL):
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
                              origin='center-window',periodic=False,
-                             right_handed=right_handed, oblique=True, fontsize=fontsize)
+                             right_handed=right_handed, oblique=True, 
+                             fontsize=fontsize, buff_size=buff_size)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1823,6 +1836,10 @@ class OffAxisProjectionPlot(PWViewerMPL):
     data_source: YTSelectionContainer object
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
+    buff_size: length 2 sequence
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
+         used.  Effectively sets a resolution limit to the image if buff_size is 
+         smaller than the finest gridding.         
     """
     _plot_type = 'OffAxisProjection'
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -1832,7 +1849,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
                  max_level=None, north_vector=None, right_handed=True,
                  volume=None, no_ghost=False, le=None, re=None,
                  interpolated=False, fontsize=18, method="integrate",
-                 data_source=None):
+                 data_source=None, buff_size=(800,800)):
         (bounds, center_rot) = \
           get_oblique_window_parameters(normal,center,width,ds,depth=depth)
         fields = ensure_list(fields)[:]
@@ -1860,7 +1877,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         PWViewerMPL.__init__(
             self, OffAxisProj, bounds, fields=fields, origin='center-window',
             periodic=False, oblique=True, right_handed=right_handed,
-            fontsize=fontsize)
+            fontsize=fontsize, buff_size=buff_size)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)

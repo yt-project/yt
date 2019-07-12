@@ -22,9 +22,6 @@ from .field_exceptions import \
 from .field_plugin_registry import \
     register_field_plugin
 
-from yt.utilities.physical_constants import \
-    speed_of_light_cgs
-
 @register_field_plugin
 def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
     unit_system = registry.ds.unit_system
@@ -132,6 +129,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
           not data.ds.cosmological_simulation:
             raise NeedsConfiguration("cosmological_simulation", 1)
         co = data.ds.cosmology
+        pc = data.ds.units.physical_constants
         observer_redshift = data.get_field_parameter('observer_redshift')
         source_redshift = data.get_field_parameter('source_redshift')
 
@@ -144,7 +142,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
 
         # removed the factor of 1 / a to account for the fact that we are projecting
         # with a proper distance.
-        return (1.5 * (co.hubble_constant / speed_of_light_cgs)**2 * (dl * dls / ds) * \
+        return (1.5 * (co.hubble_constant / pc.clight)**2 * (dl * dls / ds) * \
           data[ftype, "matter_overdensity"]).in_units("1/cm")
 
     registry.add_field((ftype, "weak_lensing_convergence"),

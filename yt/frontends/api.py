@@ -18,6 +18,7 @@ import sys, types, os, glob, time, importlib
 _frontends = [
     'ahf',
     'art',
+    'arepo',
     'artio',
     'athena',
     'athena_pp',

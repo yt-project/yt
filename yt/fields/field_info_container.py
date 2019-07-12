@@ -82,7 +82,7 @@ class FieldInfoContainer(dict):
                 self.alias((ftype, f), ("index", f))
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
-        skip_output_units = ("code_length")
+        skip_output_units = ("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
             output_units = units
@@ -143,9 +143,9 @@ class FieldInfoContainer(dict):
         for units, field in self.extra_union_fields:
             add_union_field(self, ptype, field, units)
 
-    def setup_smoothed_fields(self, ptype, num_neighbors = 64, ftype = "gas"):
+    def setup_smoothed_fields(self, ptype, num_neighbors=64, ftype="gas"):
         # We can in principle compute this, but it is not yet implemented.
-        if (ptype, "density") not in self or not hasattr(self.ds, '_sph_ptype'):
+        if (ptype, "density") not in self or not hasattr(self.ds, '_sph_ptypes'):
             return
         new_aliases = []
         for ptype2, alias_name in list(self):

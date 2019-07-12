@@ -43,7 +43,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     _ptypes = ("Gas",
                "DarkMatter",
                "Stars")
-    _chunksize = 64 * 64 * 64
+    _chunksize = CHUNKSIZE
 
     _aux_fields = None
     _fields = (("Gas", "Mass"),
@@ -78,6 +78,8 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     def _fill_fields(self, fields, vals, hsml, mask, data_file):
         if mask is None:
             size = 0
+        elif isinstance(mask, slice):
+            size = vals[fields[0]].size
         else:
             size = mask.sum()
         rv = {}
@@ -116,7 +118,9 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items(),
-                                            key=lambda a: poff[a[0]]):
+                                            key=lambda a: poff.get(a[0], -1)):
+                if data_file.total_particles[ptype] == 0:
+                    continue
                 f.seek(poff[ptype])
                 total = 0
                 while total < tp[ptype]:
@@ -126,7 +130,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                     d = [p["Coordinates"][ax].astype("float64")
                          for ax in 'xyz']
                     del p
-                    if ptype == self.ds._sph_ptype:
+                    if ptype == self.ds._sph_ptypes[0]:
                         hsml = self._read_smoothing_length(data_file, count)
                     else:
                         hsml = 0.0
@@ -147,7 +151,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         positions = []
         for data_file in data_files:
             for _, ppos in self._yield_coordinates(
-                    data_file, needed_ptype=self.ds._sph_ptype):
+                    data_file, needed_ptype=self.ds._sph_ptypes[0]):
                 positions.append(ppos)
         if positions == []:
             return
@@ -188,14 +192,14 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 aux_fh[afield] = open(data_file.filename + '.' + afield, 'rb')
 
             for ptype, field_list in sorted(ptf.items(),
-                                            key=lambda a: poff[a[0]]):
+                                            key=lambda a: poff.get(a[0], -1)):
+                if data_file.total_particles[ptype] == 0:
+                    continue
                 f.seek(poff[ptype])
                 afields = list(set(field_list).intersection(self._aux_fields))
                 count = min(self._chunksize, tp[ptype])
                 p = np.fromfile(f, self._pdtypes[ptype], count=count)
                 auxdata = []
-                if data_file.total_particles[ptype] == 0:
-                    continue
                 for afield in afields:
                     aux_fh[afield].seek(aux_fields_offsets[afield][ptype])
                     if isinstance(self._aux_pdtypes[afield], np.dtype):
@@ -220,18 +224,18 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                             auxdata.append(aux)
                 if afields:
                     p = append_fields(p, afields, auxdata)
+                if ptype == 'Gas':
+                    hsml = self._read_smoothing_length(data_file, count)
+                else:
+                    hsml = 0.
                 if getattr(selector, 'is_all_data', False):
                     mask = slice(None, None, None)
                 else:
                     x = p["Coordinates"]['x'].astype("float64")
                     y = p["Coordinates"]['y'].astype("float64")
                     z = p["Coordinates"]['z'].astype("float64")
-                    if ptype == 'Gas':
-                        hsml = self._read_smoothing_length(data_file, count)
-                    else:
-                        hsml = 0.
                     mask = selector.select_points(x, y, z, hsml)
-                    del x, y, z, hsml
+                    del x, y, z
                 if mask is None:
                     continue
                 tf = self._fill_fields(field_list, p, hsml, mask, data_file)
@@ -421,22 +425,36 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         return self._field_list, {}
 
     def _calculate_particle_offsets(self, data_file, pcounts):
+        # This computes the offsets for each particle type into a "data_file."  Note that 
+        # the term "data_file" here is a bit overloaded, and also refers to a
+        # "chunk" of particles inside a data file.
+        # data_file.start represents the *particle count* that we should start at.
+        #
+        # At this point, data_file will have the total number of particles
+        # that this chunk represents located in the property total_particles.
+        # Because in tipsy files the particles are stored sequentially, we can
+        # figure out where each one starts.
+        # We first figure out the global offsets, then offset them by the count
+        # and size of each individual particle type.
         field_offsets = {}
+        # Initialize pos to the point the first particle type would start
         pos = data_file.ds._header_offset
+        global_offsets = {}
+        field_offsets = {}
         for i, ptype in enumerate(self._ptypes):
             if ptype not in self._pdtypes:
+                # This means we don't have any, I think, and so we shouldn't
+                # stick it in the offsets.
                 continue
+            # Note that much of this will be computed redundantly; future
+            # refactorings could fix this.
+            global_offsets[ptype] = pos
             size = self._pdtypes[ptype].itemsize
-            field_offsets[ptype] = pos
-            params = self.ds.parameters
-            if params[npart_mapping[ptype]] > CHUNKSIZE:
-                 for j in range(i):
-                     npart = params[npart_mapping[self._ptypes[j]]]
-                     spart = self._pdtypes[self._ptypes[j]].itemsize
-                     if npart > CHUNKSIZE:
-                         field_offsets[ptype] += npart*spart
-                 field_offsets[ptype] += data_file.start*size
-            pos += data_file.total_particles[ptype] * size
+            npart = self.ds.parameters[npart_mapping[ptype]]
+            # Get the offset into just this particle type, and start at data_file.start
+            if npart > data_file.start:
+                field_offsets[ptype] = pos + size * data_file.start
+            pos += npart * size
         return field_offsets
 
     def _calculate_particle_offsets_aux(self, data_file):

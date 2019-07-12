@@ -22,8 +22,6 @@ from . import owls_ion_tables as oit
 from yt.funcs import \
     mylog, download_file
 from yt.config import ytcfg
-from yt.fields.particle_fields import \
-    add_volume_weighted_smoothed_field
 from yt.fields.species_fields import \
     add_species_field_by_fraction, \
     add_species_field_by_density
@@ -116,7 +114,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             #-----------------------------------------------
             for s in self._elements:
                 field_names = add_species_field_by_fraction(self, ptype, s)
-                if ptype == self.ds._sph_ptype:
+                if ptype == self.ds._sph_ptypes[0]:
                     for fn in field_names:
                         self.alias(("gas", fn[1]), fn)
 
@@ -173,7 +171,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                 add_species_field_by_density(self, ptype, yt_ion)
 
 
-            # add smoothed ion fields
+            # alias ion fields
             #-----------------------------------------------
             for ion in self._ions:
 
@@ -192,20 +190,9 @@ class OWLSFieldInfo(SPHFieldInfo):
                 pstr = "_p" + str(roman-1)
                 yt_ion = symbol + pstr
 
-                loaded = []
                 for sfx in smoothed_suffixes:
                     fname = yt_ion + sfx
-                    fn = add_volume_weighted_smoothed_field(
-                        ptype, "particle_position", "particle_mass",
-                        "smoothing_length", "density", fname, self,
-                        self._num_neighbors)
-                    loaded += fn
-
                     self.alias(("gas", fname), (ptype, fname))
-
-                self._show_field_errors += loaded
-                self.find_dependencies(loaded)
-
 
 
     def setup_gas_ion_particle_fields( self, ptype ):

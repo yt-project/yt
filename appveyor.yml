@@ -29,11 +29,10 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib mock pandas cartopy"
-    # HACK, FIXME BEFORE MERGING
-    - "pip install https://github.com/cykdtree/cykdtree/archive/master.zip"
+    - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython
+    Cython sympy fastcache h5py matplotlib mock pandas cartopy conda-build unyt"
     # install yt
-    - "pip install -e ."
+    - "conda develop -b ."
 
 # Not a .NET project
 build: false

@@ -61,7 +61,7 @@ def test_sph_interpolation_scatter():
 
     ds = fake_sph_grid_ds(hsml_factor=26.0)
     ds.use_sph_normalization = False
-    ds._sph_ptype = 'io'
+    ds._sph_ptypes = ('io',)
     octree = ds.octree(n_ref=5, over_refine_factor=0)
     density = octree[('io', 'density')]
     answers = np.array([1.00434706, 1.00434706, 1.00434706, 1.00434706,
@@ -81,7 +81,7 @@ def test_sph_interpolation_gather():
     ds.sph_smoothing_style = 'gather'
     ds.num_neighbors = 5
     ds.use_sph_normalization = False
-    ds._sph_ptype = 'io'
+    ds._sph_ptypes = ('io',)
     octree = ds.octree(n_ref=5, over_refine_factor=0)
     density = octree[('io', 'density')]
     answers = np.array([0.59240874, 0.59240874, 0.59240874, 0.59240874,

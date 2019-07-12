@@ -76,6 +76,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
                 data_files.update(obj.data_files)
         pn = "particle_position_%s"
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+            si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[pn % "x"], "units")
@@ -86,7 +87,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
                     del x, y, z
                     if mask is None: continue
                     for field in field_list:
-                        data = f[field][mask].astype("float64")
+                        data = f[field][si:ei][mask].astype("float64")
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
