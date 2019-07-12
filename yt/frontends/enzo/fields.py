@@ -276,8 +276,18 @@ class EnzoFieldInfo(FieldInfoContainer):
                 function=_tot_minus_kin,
                 units=unit_system["specific_energy"])
         if multi_species == 0 and 'Mu' in params:
+            def _mean_molecular_weight(field, data):
+                return params["Mu"]*data['index', 'ones']
+
+            self.add_field(
+                ("gas", "mean_molecular_weight"),
+                sampling_type="cell",
+                function=_mean_molecular_weight,
+                units=unit_system["number_density"])
+
             def _number_density(field, data):
                 return data['gas', 'density']/(mp*params['Mu'])
+
             self.add_field(
                 ("gas", "number_density"),
                 sampling_type="cell",
