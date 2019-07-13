@@ -1276,7 +1276,7 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     cycle = np.rollaxis(np.indices((nx-1,ny-1,nz-1)), 0, 4)
     cycle.shape = ((nx-1)*(ny-1)*(nz-1), 3)
     off = _cis + cycle[:, np.newaxis]
-    connectivity = ((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2]
+    connectivity = np.array(((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2], order='C')
     return coords, connectivity
 
 class StreamHexahedralMesh(SemiStructuredMesh):
