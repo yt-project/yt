@@ -21,7 +21,8 @@ import time
 import hashlib
 import contextlib
 import sys
-from yt.extern.six.moves import cPickle, urllib
+import pickle
+import urllib
 import shelve
 import zlib
 import tempfile
@@ -205,7 +206,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
                 # Raise error if all tries were unsuccessful
                 raise YTCloudError(url)
             # This is dangerous, but we have a controlled S3 environment
-            rv = cPickle.loads(data)
+            rv = pickle.loads(data)
         self.cache[ds_name] = rv
         return rv
 
@@ -224,7 +225,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         pb = get_pbar("Storing results ", len(result_storage))
         for i, ds_name in enumerate(result_storage):
             pb.update(i)
-            rs = cPickle.dumps(result_storage[ds_name])
+            rs = pickle.dumps(result_storage[ds_name])
             object_name = "%s_%s" % (self.answer_name, ds_name)
             if object_name in c.get_object_names():
                 obj = c.get_object(object_name)

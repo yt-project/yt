@@ -1,6 +1,5 @@
 import glob
 import os
-from yt.extern.six import add_metaclass
 from yt.convenience import \
     load
 from yt.funcs import \
@@ -16,8 +15,8 @@ from yt.data_objects.time_series import \
     RegisteredSimulationTimeSeries
 
 
-@add_metaclass(RegisteredSimulationTimeSeries)
-class ExodusIISimulation(DatasetSeries):
+
+class ExodusIISimulation(DatasetSeries, metaclass = RegisteredSimulationTimeSeries):
     r"""
     Initialize an ExodusII Simulation object.
 
@@ -36,7 +35,7 @@ class ExodusIISimulation(DatasetSeries):
     ...     print ds.current_time
 
     """
-    
+
     def __init__(self, simulation_directory, find_outputs=False):
         self.simulation_directory = simulation_directory
         fn_pattern = "%s/*" % self.simulation_directory

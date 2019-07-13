@@ -9,8 +9,6 @@ FITSImageData Class
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
-from yt.extern.six import string_types
 import numpy as np
 from itertools import count
 from yt.fields.derived_field import DerivedField
@@ -188,7 +186,7 @@ class FITSImageData(object):
 
         self.hdulist = _astropy.pyfits.HDUList()
 
-        if isinstance(fields, string_types):
+        if isinstance(fields, str):
             fields = [fields]
 
         if hasattr(data, 'keys'):
@@ -342,7 +340,7 @@ class FITSImageData(object):
             else:
                 u = unit
 
-            if isinstance(u, string_types):
+            if isinstance(u, str):
                 uq = YTQuantity(1.0, u)
             elif isinstance(u, numeric_type):
                 uq = YTQuantity(u, cgs_unit)

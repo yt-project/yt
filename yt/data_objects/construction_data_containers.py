@@ -65,7 +65,6 @@ from yt.fields.field_exceptions import \
 from yt.frontends.stream.api import load_uniform_grid
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
-import yt.extern.six as six
 from yt.utilities.lib.pixelization_routines import \
     pixelize_sph_kernel_arbitrary_grid, \
     interpolate_sph_grid_gather, \
@@ -1981,7 +1980,7 @@ class YTSurface(YTSelectionContainer3D):
         f.write(b"ply\n")
         f.write(b"format binary_little_endian 1.0\n")
         line = "element vertex %i\n" % (nv)
-        f.write(six.b(line))
+        f.write(line.encode("latin-1"))
         f.write(b"property float x\n")
         f.write(b"property float y\n")
         f.write(b"property float z\n")
@@ -1995,7 +1994,7 @@ class YTSurface(YTSelectionContainer3D):
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
         line = "element face %i\n" % (nv / 3)
-        f.write(six.b(line))
+        f.write(line.encode("latin-1"))
         f.write(b"property list uchar int vertex_indices\n")
         if color_field is not None and sample_type == "face":
             f.write(b"property uchar red\n")

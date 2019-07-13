@@ -15,8 +15,7 @@ from __future__ import print_function
 
 import hashlib
 import matplotlib
-from yt.extern.six import string_types
-from yt.extern.six.moves import cPickle
+import pickle
 import itertools as it
 import numpy as np
 import functools
@@ -656,7 +655,7 @@ def expand_keywords(keywords, full=False):
         # Determine the maximum number of values any of the keywords has
         num_lists = 0
         for val in keywords.values():
-            if isinstance(val, string_types):
+            if isinstance(val, str):
                 num_lists = max(1.0, num_lists)
             else:
                 num_lists = max(len(val), num_lists)
@@ -673,7 +672,7 @@ def expand_keywords(keywords, full=False):
             list_of_kwarg_dicts[i] = {}
             for key in keywords.keys():
                 # if it's a string, use it (there's only one)
-                if isinstance(keywords[key], string_types):
+                if isinstance(keywords[key], str):
                     list_of_kwarg_dicts[i][key] = keywords[key]
                 # if there are more options, use the i'th val
                 elif i < len(keywords[key]):
@@ -1014,7 +1013,7 @@ def check_results(func):
             ha = hashlib.md5(_rv.tostring()).hexdigest()
             fn = "func_results_ref_%s.cpkl" % (name)
             with open(fn, "wb") as f:
-                cPickle.dump( (mi, ma, st, su, si, ha), f)
+                pickle.dump( (mi, ma, st, su, si, ha), f)
             return rv
         return _func
     from yt.mods import unparsed_args
@@ -1041,7 +1040,7 @@ def check_results(func):
                 print("Answers need to be created with --answer-reference .")
                 return False
             with open(fn, "rb") as f:
-                ref = cPickle.load(f)
+                ref = pickle.load(f)
             print("Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4]))
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")

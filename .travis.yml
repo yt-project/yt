@@ -78,10 +78,6 @@ jobs:
       python: 3.7
       script: flake8 yt/
 
-    - stage: lint
-      python: 2.7
-      script: flake8 yt/
-
     - stage: tests
       name: "Minimal Dependency Version Unit Tests"
       python: 3.5

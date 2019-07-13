@@ -15,7 +15,7 @@ Geometry container base class.
 #-----------------------------------------------------------------------------
 
 import os
-from yt.extern.six.moves import cPickle
+import pickle
 import weakref
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
@@ -149,7 +149,7 @@ class Index(ParallelAnalysisInterface):
         Save an object (*obj*) to the data_file using the Pickle protocol,
         under the name *name* on the node /Objects.
         """
-        s = cPickle.dumps(obj, protocol=-1)
+        s = pickle.dumps(obj, protocol=-1)
         self.save_data(np.array(s, dtype='c'), "/Objects", name, force = True)
 
     def load_object(self, name):
@@ -160,7 +160,7 @@ class Index(ParallelAnalysisInterface):
         obj = self.get_data("/Objects", name)
         if obj is None:
             return
-        obj = cPickle.loads(obj.value)
+        obj = pickle.loads(obj.value)
         if iterable(obj) and len(obj) == 2:
             obj = obj[1] # Just the object, not the ds
         if hasattr(obj, '_fix_pickle'): obj._fix_pickle()

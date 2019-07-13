@@ -31,26 +31,19 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.geometry_handler import \
     YTDataChunk
-from yt.extern.six import PY2
 
 from .fields import AthenaFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
 
 def chk23(strin):
-    if PY2:
-        return strin
-    else:
-        return strin.encode('utf-8')
+    return strin.encode('utf-8')
 
 def str23(strin):
-    if PY2:
-        return strin
+    if isinstance(strin, list):
+        return [s.decode('utf-8') for s in strin]
     else:
-        if isinstance(strin, list):
-            return [s.decode('utf-8') for s in strin]
-        else:
-            return strin.decode('utf-8')
+        return strin.decode('utf-8')
 
 def check_readline(fl):
     line = fl.readline()

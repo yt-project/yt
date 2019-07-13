@@ -27,8 +27,8 @@ Example usage:
 """
 from __future__ import print_function
 
-import yt.extern.six.moves.http_client as http_client
-import yt.extern.six.moves.urllib as urllib
+import http.client as http_client
+import urllib
 import socket
 import sys
 

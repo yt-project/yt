@@ -12,10 +12,7 @@ A base class for "image" plots with colorbars.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from yt.extern.six.moves import builtins
-from yt.extern.six import  \
-    iteritems, \
-    string_types
+import builtins
 
 import base64
 import numpy as np
@@ -470,7 +467,7 @@ class PlotContainer(object):
         if suffix is None:
             suffix = get_image_suffix(name)
             if suffix != '':
-                for k, v in iteritems(self.plots):
+                for k, v in self.plots.items():
                     names.append(v.save(name, mpl_kwargs))
                 return names
         if hasattr(self.data_source, 'axis'):
@@ -486,7 +483,7 @@ class PlotContainer(object):
                 weight = weight[1].replace(' ', '_')
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
-        for k, v in iteritems(self.plots):
+        for k, v in self.plots.items():
             if isinstance(k, tuple):
                 k = k[1]
             if axis:
@@ -527,7 +524,7 @@ class PlotContainer(object):
         """
         interactivity = self.plots[list(self.plots.keys())[0]].interactivity
         if interactivity:
-            for k,v in sorted(iteritems(self.plots)):
+            for k,v in sorted(self.plots.items()):
                 v.show()
         else:
             if "__IPYTHON__" in dir(builtins):
@@ -707,7 +704,7 @@ class ImagePlotContainer(PlotContainer):
         actual_field = self.data_source._determine_fields(field)[0]
         if color is None:
             cmap = self._colormaps[actual_field]
-            if isinstance(cmap, string_types):
+            if isinstance(cmap, str):
                 try:
                     cmap = yt_colormaps[cmap]
                 except KeyError:

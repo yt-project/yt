@@ -16,8 +16,6 @@ YTData data-file handling function
 
 import numpy as np
 
-from yt.extern.six import \
-    u
 from yt.funcs import \
     mylog, \
     parse_h5_attr
@@ -46,7 +44,7 @@ class IOHandlerYTNonspatialhdf5(BaseIOHandler):
                 gf = self._cached_fields[g.id]
                 rv.update(gf)
             if len(rv) == len(fields): return rv
-            f = h5py.File(u(g.filename), "r")
+            f = h5py.File(g.filename, "r")
             for field in fields:
                 if field in rv:
                     self._hits += 1
@@ -81,7 +79,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 gf = self._cached_fields[g.id]
                 rv.update(gf)
             if len(rv) == len(fields): return rv
-            f = h5py.File(u(g.filename), "r")
+            f = h5py.File(g.filename, "r")
             gds = f[self.ds.default_fluid_type]
             for field in fields:
                 if field in rv:

@@ -18,7 +18,6 @@ from collections import OrderedDict
 from yt.config import \
     ytcfg
 from yt.funcs import mylog, get_image_suffix
-from yt.extern.six import iteritems, itervalues, string_types
 from yt.units.dimensions import \
     length
 from yt.units.unit_registry import \
@@ -38,7 +37,7 @@ from .render_source import \
     PointSource, \
     LineSource
 from .zbuffer_array import ZBuffer
-from yt.extern.six.moves import builtins
+import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
 
 class Scene(object):
@@ -100,7 +99,7 @@ class Scene(object):
 
     def get_source(self, source_num=0):
         """Returns the volume rendering source indexed by ``source_num``"""
-        return list(itervalues(self.sources))[source_num]
+        return list(self.sources.values())[source_num]
 
     def __getitem__(self, item):
         if item in self.sources:
@@ -113,7 +112,7 @@ class Scene(object):
         Iterate over opaque RenderSource objects,
         returning a tuple of (key, source)
         """
-        for k, source in iteritems(self.sources):
+        for k, source in self.sources.items():
             if isinstance(source, OpaqueSource) or \
                     issubclass(OpaqueSource, type(source)):
                 yield k, source
@@ -124,7 +123,7 @@ class Scene(object):
         Iterate over transparent RenderSource objects,
         returning a tuple of (key, source)
         """
-        for k, source in iteritems(self.sources):
+        for k, source in self.sources.items():
             if not isinstance(source, OpaqueSource):
                 yield k, source
 
@@ -282,13 +281,13 @@ class Scene(object):
 
         """
         if fname is None:
-            sources = list(itervalues(self.sources))
+            sources = list(self.sources.values())
             rensources = [s for s in sources if isinstance(s, RenderSource)]
             # if a volume source present, use its affiliated ds for fname
             if len(rensources) > 0:
                 rs = rensources[0]
                 basename = rs.data_source.ds.basename
-                if isinstance(rs.field, string_types):
+                if isinstance(rs.field, str):
                     field = rs.field
                 else:
                     field = rs.field[-1]
@@ -398,7 +397,7 @@ class Scene(object):
         """
         from yt.visualization._mpl_imports import \
             FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
-        sources = list(itervalues(self.sources))
+        sources = list(self.sources.values())
         rensources = [s for s in sources if isinstance(s, RenderSource)]
 
         if fname is None:
@@ -406,7 +405,7 @@ class Scene(object):
             if len(rensources) > 0:
                 rs = rensources[0]
                 basename = rs.data_source.ds.basename
-                if isinstance(rs.field, string_types):
+                if isinstance(rs.field, str):
                     field = rs.field
                 else:
                     field = rs.field[-1]
@@ -499,7 +498,7 @@ class Scene(object):
     def _validate(self):
         r"""Validate the current state of the scene."""
 
-        for k, source in iteritems(self.sources):
+        for k, source in self.sources.items():
             source._validate()
         return
 
@@ -932,7 +931,7 @@ class Scene(object):
     def __repr__(self):
         disp = "<Scene Object>:"
         disp += "\nSources: \n"
-        for k, v in iteritems(self.sources):
+        for k, v in self.sources.items():
             disp += "    %s: %s\n" % (k, v)
         disp += "Camera: \n"
         disp += "    %s" % self.camera

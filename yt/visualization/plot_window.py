@@ -16,7 +16,6 @@ from __future__ import print_function
 import numpy as np
 import matplotlib
 import types
-import six
 import sys
 
 from collections import defaultdict
@@ -39,7 +38,6 @@ from .base_plot_types import CallbackWrapper
 
 from yt.data_objects.image_array import \
     ImageArray
-from yt.extern.six import string_types
 from yt.frontends.ytdata.data_structures import \
     YTSpatialPlotDataset
 from yt.funcs import \
@@ -111,7 +109,7 @@ def get_axes_unit(width, ds):
     if ds.no_cgs_equiv_length:
         return ("code_length",)*2
     if iterable(width):
-        if isinstance(width[1], string_types):
+        if isinstance(width[1], str):
             axes_unit = (width[1], width[1])
         elif iterable(width[1]):
             axes_unit = (width[0][1], width[1][1])
@@ -744,7 +742,7 @@ class PlotWindow(ImagePlotContainer):
         """
         # blind except because it could be in conversion_factors or units
         if unit_name is not None:
-            if isinstance(unit_name, string_types):
+            if isinstance(unit_name, str):
                 unit_name = (unit_name, unit_name)
             for un in unit_name:
                 try:
@@ -782,7 +780,7 @@ class PWViewerMPL(PlotWindow):
         xc = None
         yc = None
 
-        if isinstance(origin, string_types):
+        if isinstance(origin, str):
             origin = tuple(origin.split('-'))[:3]
         if 1 == len(origin):
             origin = ('lower', 'left') + origin
@@ -1125,11 +1123,10 @@ class PWViewerMPL(PlotWindow):
                 try:
                     callback(cbw)
                 except YTDataTypeUnsupported as e:
-                    six.reraise(YTDataTypeUnsupported, e)
+                    raise e
                 except Exception as e:
-                    six.reraise(YTPlotCallbackError,
-                                YTPlotCallbackError(callback._type_name, e),
-                                sys.exc_info()[2])
+                    new_exc = YTPlotCallbackError(callback._type_name, e)
+                    raise new_exc.with_traceback(sys.exc_info()[2])
             for key in self.frb.keys():
                 if key not in keys:
                     del self.frb[key]
@@ -2088,7 +2085,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if iterable(normal) and not isinstance(normal, string_types):
+    if iterable(normal) and not isinstance(normal, str):
         if np.count_nonzero(normal) == 1:
             normal = ("x","y","z")[np.nonzero(normal)[0][0]]
         else:
@@ -2096,7 +2093,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal,normal), normal)
 
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if iterable(normal) and not isinstance(normal, string_types):
+    if iterable(normal) and not isinstance(normal, str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if 'origin' in kwargs:
             msg = "Ignoring 'origin' keyword as it is ill-defined for " \
@@ -2218,9 +2215,9 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
         axis = "theta"
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument
-    if not isinstance(center, string_types) and obj_length(center) == 2:
-        c0_string = isinstance(center[0], string_types)
-        c1_string = isinstance(center[1], string_types)
+    if not isinstance(center, str) and obj_length(center) == 2:
+        c0_string = isinstance(center[0], str)
+        c1_string = isinstance(center[1], str)
         if not c0_string and not c1_string:
             if obj_length(center[0]) == 2 and c1_string:
                 center = ds.arr(center[0], center[1])

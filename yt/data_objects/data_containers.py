@@ -68,7 +68,6 @@ from yt.fields.field_exceptions import \
 import yt.geometry.selection_routines
 from yt.geometry.selection_routines import \
     compose_selector
-from yt.extern.six import add_metaclass, string_types
 from yt.units.yt_array import uconcatenate
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
@@ -92,8 +91,7 @@ class RegisteredDataContainer(type):
         if hasattr(cls, "_type_name") and not cls._skip_add:
             data_object_registry[cls._type_name] = cls
 
-@add_metaclass(RegisteredDataContainer)
-class YTDataContainer(object):
+class YTDataContainer(metaclass = RegisteredDataContainer):
     """
     Generic YTDataContainer container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
@@ -196,7 +194,7 @@ class YTDataContainer(object):
                 self.center.convert_to_units('code_length')
             else:
                 self.center = self.ds.arr(center, 'code_length', dtype='float64')
-        elif isinstance(center, string_types):
+        elif isinstance(center, str):
             if center.lower() in ("c", "center"):
                 self.center = self.ds.domain_center
             # is this dangerous for race conditions?
@@ -733,7 +731,7 @@ class YTDataContainer(object):
         if axis is None:
             mv, pos0, pos1, pos2 = self.quantities.max_location(field)
             return pos0, pos1, pos2
-        if isinstance(axis, string_types):
+        if isinstance(axis, str):
             axis = [axis]
         rv = self.quantities.sample_at_max_field_values(field, axis)
         if len(rv) == 2:
@@ -1187,8 +1185,8 @@ class YTDataContainer(object):
                 continue
             if isinstance(field, tuple):
                 if len(field) != 2 or \
-                   not isinstance(field[0], string_types) or \
-                   not isinstance(field[1], string_types):
+                   not isinstance(field[0], str) or \
+                   not isinstance(field[1], str):
                     raise YTFieldNotParseable(field)
                 ftype, fname = field
                 finfo = self.ds._get_field_info(ftype, fname)

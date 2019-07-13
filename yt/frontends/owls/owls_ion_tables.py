@@ -17,7 +17,6 @@ OWLS photoionization equilibrium lookup tables.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.on_demand_imports import _h5py as h5py
-import yt.extern.six as six
 import numpy as np
 
 
@@ -29,7 +28,7 @@ def h5rd(fname, path, dtype=None):
     e.g. rd( fname, '/PartType0/Coordinates' ). """
 
     data = None
-    fid = h5py.h5f.open(six.b(fname), h5py.h5f.ACC_RDONLY)
+    fid = h5py.h5f.open(fname.encode('latin-1'), h5py.h5f.ACC_RDONLY)
     dg = h5py.h5d.open(fid, path.encode('ascii'))
     if dtype is None:
        dtype = dg.dtype

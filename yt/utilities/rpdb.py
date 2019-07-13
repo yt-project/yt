@@ -18,11 +18,11 @@ import cmd
 import pdb
 import socket
 import sys
-from yt.extern.six.moves import StringIO
+from io import StringIO
 import traceback
 import signal
-from yt.extern.six.moves.xmlrpc_server import SimpleXMLRPCServer
-from yt.extern.six.moves.xmlrpc_client import ServerProxy
+from xmlrpc.server import SimpleXMLRPCServer
+from xmlrpc.client import ServerProxy
 from yt.config import ytcfg
 
 class PdbXMLRPCServer(SimpleXMLRPCServer):

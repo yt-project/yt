@@ -17,7 +17,7 @@ from __future__ import print_function
 
 import os
 import warnings
-from yt.extern.six.moves import configparser
+import configparser
 
 ytcfg_defaults = dict(
     serialize = 'False',

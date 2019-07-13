@@ -38,7 +38,6 @@ from yt.funcs import \
     iterable, \
     mylog, \
     validate_width_tuple
-from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity, YTArray, uhstack
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
@@ -80,8 +79,7 @@ class RegisteredCallback(type):
         callback_registry[name] = cls
         cls.__call__ = _verify_geometry(cls.__call__)
 
-@add_metaclass(RegisteredCallback)
-class PlotCallback(object):
+class PlotCallback(metaclass = RegisteredCallback):
     # _supported_geometries is set by subclasses of PlotCallback to a tuple of
     # strings corresponding to the names of the geometries that a callback
     # supports.  By default it is None, which means it supports everything.

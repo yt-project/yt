@@ -119,7 +119,7 @@ The import hook provides a way to test whether we're using this
 importer, which can be used to disable rank-asymmetric behavior in a
 module import::
 
-    from yt.extern.six.moves import builtins
+    import builtins
     hasattr(builtins.__import__,"mpi_import")
 
 This evaluates to True only when we're in an ``mpi_import()`` context
@@ -141,7 +141,7 @@ Here is an example showing the use of this feature::
 
     # Either importer is None (standard import) or it's a reference to
     # the mpi_import object that owns the current importer.
-    from yt.extern.six.moves import builtins
+    import builtins
     importer = getattr(builtins.__import__,"mpi_import",None)
     if importer:
         importer.callAfterImport(f)
@@ -196,7 +196,7 @@ from __future__ import print_function
 import sys
 import imp
 import types
-from yt.extern.six.moves import builtins
+import builtins
 from mpi4py import MPI
 
 

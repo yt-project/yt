@@ -26,7 +26,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.physical_constants import \
     gravitational_constant_cgs
 from yt.utilities.physical_ratios import HUGE
-from yt.extern.six import add_metaclass
 from yt.utilities.exceptions import \
     YTParticleTypeNotFound
 
@@ -54,8 +53,7 @@ class RegisteredDerivedQuantity(type):
         if name != "DerivedQuantity":
             derived_quantity_registry[name] = cls
 
-@add_metaclass(RegisteredDerivedQuantity)
-class DerivedQuantity(ParallelAnalysisInterface):
+class DerivedQuantity(ParallelAnalysisInterface, metaclass = RegisteredDerivedQuantity):
     num_vals = -1
 
     def __init__(self, data_source):
