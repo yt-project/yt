@@ -75,8 +75,8 @@ class ImageArray(YTArray):
     Numpy ndarray documentation appended:
 
     """
-    def __new__(cls, input_array, units=None, input_units=None, registry=None, info=None,
-                bypass_validation=False):
+    def __new__(cls, input_array, units=None, registry=None, info=None,
+                bypass_validation=False, input_units=None):
         if input_units is not None:
             warnings.warn("'input_units' is deprecated. Please use 'units'.")
             units = input_units
