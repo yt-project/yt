@@ -2214,6 +2214,7 @@ class YTOctree(YTSelectionContainer3D):
         self.density_factor = density_factor
         self.over_refine_factor = over_refine_factor
         self.ptypes = self._sanitize_ptypes(ptypes)
+        self.force_build = force_build
 
         self._setup_data_source()
         self.tree
@@ -2266,9 +2267,7 @@ class YTOctree(YTSelectionContainer3D):
         else:
             fname = ds.tree_filename
 
-        if fname is None:
-            self._generate_tree(fname)
-        elif not os.path.exists(fname):
+        if (fname is None) or (not os.path.exists(name)) or (self.force_build):
             self._generate_tree(fname)
         else:
             self.loaded = True
