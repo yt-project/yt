@@ -2267,7 +2267,7 @@ class YTOctree(YTSelectionContainer3D):
         else:
             fname = ds.tree_filename
 
-        if (fname is None) or (not os.path.exists(name)) or (self.force_build):
+        if (fname is None) or (not os.path.exists(fname)) or (self.force_build):
             self._generate_tree(fname)
         else:
             self.loaded = True
