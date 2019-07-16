@@ -126,7 +126,7 @@ class GDFHierarchy(GridIndex):
                 self.dataset.domain_dimensions
             dx[active_dims] /= self.dataset.refine_by ** levels[i]
             dxs.append(dx.in_units("code_length"))
-        dx = self.dataset.arr(dxs, input_units="code_length")
+        dx = self.dataset.arr(dxs, units="code_length")
         self.grid_left_edge = self.dataset.domain_left_edge + dx * glis
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx * self.grid_dimensions

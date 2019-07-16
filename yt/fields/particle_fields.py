@@ -171,7 +171,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             top[bottom == 0] = 0.0
             bnz = bottom.nonzero()
             top[bnz] /= bottom[bnz]
-            d = data.ds.arr(top, input_units=units)
+            d = data.ds.arr(top, units=units)
             return d
         return _deposit_field
 

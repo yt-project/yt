@@ -809,7 +809,7 @@ class Communicator(object):
                     registry = UnitRegistry(lut=info[3], add_default_symbols=False)
                     if info[-1] == "ImageArray":
                         data = ImageArray(np.empty(info[0], dtype=info[1]),
-                                          input_units=info[2],
+                                          units=info[2],
                                           registry=registry)
                     else:
                         data = YTArray(np.empty(info[0], dtype=info[1]), 
@@ -1038,7 +1038,7 @@ class Communicator(object):
         if len(metadata) == 5:
             registry = UnitRegistry(lut=metadata[3], add_default_symbols=False)
             if metadata[-1] == "ImageArray":
-                arr = ImageArray(arr, input_units=metadata[2],
+                arr = ImageArray(arr, units=metadata[2],
                                  registry=registry)
             else:
                 arr = YTArray(arr, metadata[2], registry=registry)
@@ -1061,7 +1061,7 @@ class Communicator(object):
             # We assume send.units is consistent with the units
             # on the receiving end.
             if isinstance(send, ImageArray):
-                recv = ImageArray(recv, input_units=send.units)
+                recv = ImageArray(recv, units=send.units)
             else:
                 recv = YTArray(recv, send.units)
         recv[offset:offset+send.size] = send[:]

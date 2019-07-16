@@ -652,8 +652,8 @@ class GridBoundaryCallback(PlotCallback):
             block_ids.append(block.id)
         if len(GLE) == 0: return
         # Retain both units and registry
-        GLE = plot.ds.arr(GLE, input_units = GLE[0].units)
-        GRE = plot.ds.arr(GRE, input_units = GRE[0].units)
+        GLE = plot.ds.arr(GLE, units = GLE[0].units)
+        GRE = plot.ds.arr(GRE, units = GRE[0].units)
         levels = np.array(levels)
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
