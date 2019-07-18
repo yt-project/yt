@@ -101,8 +101,8 @@ class IOHandlerSDF(BaseIOHandler):
     def _count_particles(self, data_file):
         pcount = self._handle['x'].size
         if (pcount > 1e9):
-            mylog.warn("About to load %i particles into memory. " % (pcount) +
-                       "You may want to consider a midx-enabled load")
+            mylog.warning("About to load %i particles into memory. " % (pcount) +
+                          "You may want to consider a midx-enabled load")
         return {'dark_matter': pcount}
 
 

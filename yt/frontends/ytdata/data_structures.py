@@ -719,7 +719,7 @@ class YTNonspatialDataset(YTGridDataset):
                       "hubble_constant"]:
                 v = getattr(self, a)
                 if v is not None: mylog.info("Parameters: %-25s = %s", a, v)
-        mylog.warn("Geometric data selection not available for this dataset type.")
+        mylog.warning("Geometric data selection not available for this dataset type.")
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
