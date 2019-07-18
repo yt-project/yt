@@ -464,8 +464,11 @@ class FieldValuesTest(AnswerTestingTest):
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
         field = obj._determine_fields(self.field)[0]
+        fd = self.ds.field_info[field]
         if self.particle_type:
             weight_field = (field[0], "particle_ones")
+        elif fd.is_sph_field:
+            weight_field = (field[0], "ones")
         else:
             weight_field = ("index", "ones")
         avg = obj.quantities.weighted_average_quantity(
@@ -990,13 +993,9 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
     dd = ds.all_data()
     assert_equal(dd["particle_position"].shape, (ds_nparticles, 3))
     tot = sum(dd[ptype, "particle_position"].shape[0]
-              for ptype in ds.particle_types if ptype != "all")
+              for ptype in ds.particle_types_raw)
     assert_equal(tot, ds_nparticles)
     for dobj_name in dso:
-        dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
-        s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        assert_equal(s1, s2)
         for field, weight_field in fields.items():
             if field[0] in ds.particle_types:
                 particle_type = True
