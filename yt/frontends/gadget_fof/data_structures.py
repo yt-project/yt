@@ -317,7 +317,7 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
             ndoms = self.real_ds.file_count
             cls = self.real_ds._file_class
             self.data_files = \
-              [cls(self.dataset, self.io, template % {'num':i}, i)
+              [cls(self.dataset, self.io, template % {'num':i}, i, None)
                for i in range(ndoms)]
         else:
             self.data_files = self.real_ds.index.data_files
@@ -437,8 +437,10 @@ class GadgetFOFHaloDataset(ParticleDataset):
 
     def __init__(self, ds, dataset_type="gadget_fof_halo_hdf5"):
         self.real_ds = ds
-        self.particle_types_raw = self.real_ds.particle_types_raw
-        self.particle_types = self.particle_types_raw
+        for attr in ['filename_template', 'file_count',
+                     'particle_types_raw', 'particle_types',
+                     'periodicity']:
+            setattr(self, attr, getattr(self.real_ds, attr))
 
         super(GadgetFOFHaloDataset, self).__init__(
             self.real_ds.parameter_filename, dataset_type)
