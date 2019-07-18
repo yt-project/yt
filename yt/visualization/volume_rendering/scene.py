@@ -839,15 +839,16 @@ class Scene(object):
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
 
         The returned YTArray will be dimensionless by default, but can be
-        cast to arbitrary units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``units`` keyword argument.
 
         Parameters
         ----------
 
         input_array : Iterable
             A tuple, list, or array to attach units to
-        input_units : String unit specification, unit symbol object, or astropy
-                      units object
+        units: String unit specification, unit symbol object, or astropy
+            units object
+        input_units : deprecated in favor of 'units'
             The units of the array. Powers must be specified using python syntax
             (cm**3, not cm^3).
         dtype : string or NumPy dtype object
@@ -882,15 +883,16 @@ class Scene(object):
         """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
 
         The returned YTQuantity will be dimensionless by default, but can be
-        cast to arbitrary units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``units`` keyword argument.
 
         Parameters
         ----------
 
         input_scalar : an integer or floating point scalar
             The scalar to attach units to
-        input_units : String unit specification, unit symbol object, or astropy
-                      units
+        units : String unit specification, unit symbol object, or astropy
+            units
+        input_units : deprecated in favor of 'units'
             The units of the quantity. Powers must be specified using python
             syntax (cm**3, not cm^3).
         dtype : string or NumPy dtype object

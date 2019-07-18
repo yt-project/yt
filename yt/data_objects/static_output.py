@@ -1172,16 +1172,17 @@ class Dataset(metaclass = RegisteredDataset):
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
 
         The returned YTArray will be dimensionless by default, but can be
-        cast to arbitrary units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``units`` keyword argument.
 
         Parameters
         ----------
 
         input_array : Iterable
             A tuple, list, or array to attach units to
-        input_units : String unit specification, unit symbol or astropy object
+        units: String unit specification, unit symbol or astropy object
             The units of the array. Powers must be specified using python syntax
             (cm**3, not cm^3).
+        input_units : Deprecated in favor of 'units'
         dtype : string or NumPy dtype object
             The dtype of the returned array data
 
@@ -1218,16 +1219,17 @@ class Dataset(metaclass = RegisteredDataset):
         """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
 
         The returned YTQuantity will be dimensionless by default, but can be
-        cast to arbitrary units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``units`` keyword argument.
 
         Parameters
         ----------
 
         input_scalar : an integer or floating point scalar
             The scalar to attach units to
-        input_units : String unit specification, unit symbol or astropy object
+        units: String unit specification, unit symbol or astropy object
             The units of the quantity. Powers must be specified using python
             syntax (cm**3, not cm^3).
+        input_units : Deprecated in favor of 'units'
         dtype : string or NumPy dtype object
             The dtype of the array data.
 
@@ -1383,7 +1385,7 @@ class Dataset(metaclass = RegisteredDataset):
             fields = [np.ascontiguousarray(f) for f in fields]
             d = data.deposit(pos, fields, method=method,
                              kernel_name=kernel_name)
-            d = data.ds.arr(d, input_units=units)
+            d = data.ds.arr(d, units=units)
             if method == 'weighted_mean':
                 d[np.isnan(d)] = 0.0
             return d

@@ -179,7 +179,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             arr.units.registry = self.ds.unit_registry
             return arr.to(units)
         except AttributeError:
-            return self.ds.arr(arr, input_units=units)
+            return self.ds.arr(arr, units=units)
 
     def _set_center(self, center):
         if center is None:
@@ -1413,14 +1413,14 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         read_fluids, gen_fluids = self.index._read_fluid_fields(
                                         fluids, self, self._current_chunk)
         for f, v in read_fluids.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+            self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
             self.field_data[f].convert_to_units(finfos[f].output_units)
 
         read_particles, gen_particles = self.index._read_particle_fields(
                                         particles, self, self._current_chunk)
 
         for f, v in read_particles.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+            self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
             self.field_data[f].convert_to_units(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
@@ -1788,14 +1788,14 @@ class YTSelectionContainer2D(YTSelectionContainer):
             if isinstance(w, tuple) and isinstance(u, tuple):
                 height = u
                 w, u = w
-            width = self.ds.quan(w, input_units = u)
+            width = self.ds.quan(w, units = u)
         elif not isinstance(width, YTArray):
             width = self.ds.quan(width, 'code_length')
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
-            height = self.ds.quan(h, input_units = u)
+            height = self.ds.quan(h, units = u)
         elif not isinstance(height, YTArray):
             height = self.ds.quan(height, 'code_length')
         if not iterable(resolution):

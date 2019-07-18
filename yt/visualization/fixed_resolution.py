@@ -150,7 +150,7 @@ class FixedResolutionBuffer(object):
         except (KeyError, AttributeError):
             units = self.data_source[item].units
 
-        ia = ImageArray(buff, input_units=units, info=self._get_info(item))
+        ia = ImageArray(buff, units=units, info=self._get_info(item))
         self.data[item] = ia
         return self.data[item]
 
@@ -667,7 +667,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                                       splat_vals)
         # remove values in no-particle region
         buff[buff_mask==0] = np.nan
-        ia = ImageArray(buff, input_units=data.units,
+        ia = ImageArray(buff, units=data.units,
                         info=self._get_info(item))
 
         # divide by the weight_field, if needed
@@ -680,7 +680,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                                           py[mask],
                                           weight_data[mask])
             weight_array = ImageArray(weight_buff,
-                                      input_units=weight_data.units,
+                                      units=weight_data.units,
                                       info=self._get_info(item))
             # remove values in no-particle region
             weight_buff[weight_buff_mask==0] = np.nan

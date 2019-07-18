@@ -75,10 +75,13 @@ class ImageArray(YTArray):
     Numpy ndarray documentation appended:
 
     """
-    def __new__(cls, input_array, input_units=None, registry=None, info=None,
-                bypass_validation=False):
+    def __new__(cls, input_array, units=None, registry=None, info=None,
+                bypass_validation=False, input_units=None):
+        if input_units is not None:
+            warnings.warn("'input_units' is deprecated. Please use 'units'.")
+            units = input_units
         obj = super(ImageArray, cls).__new__(
-            cls, input_array, input_units, registry,
+            cls, input_array, units, registry,
             bypass_validation=bypass_validation)
         if info is None:
             info = {}

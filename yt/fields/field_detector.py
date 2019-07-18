@@ -200,7 +200,7 @@ class FieldDetector(defaultdict):
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
         return YTArray(defaultdict.__missing__(self, field_name),
-                       input_units=finfo.units,
+                       units=finfo.units,
                        registry=self.ds.unit_registry)
 
     def get_field_parameter(self, param, default = 0.0):
@@ -241,7 +241,7 @@ class FieldDetector(defaultdict):
     id = 1
 
     def apply_units(self, arr, units):
-        return self.ds.arr(arr, input_units = units)
+        return self.ds.arr(arr, units = units)
 
     def has_field_parameter(self, param):
         return param in self.field_parameters
@@ -255,14 +255,14 @@ class FieldDetector(defaultdict):
             fc.shape = (self.nd*self.nd*self.nd, 3)
         else:
             fc = fc.transpose()
-        return self.ds.arr(fc, input_units = "code_length")
+        return self.ds.arr(fc, units = "code_length")
 
     @property
     def fcoords_vertex(self):
         fc = np.random.random((self.nd, self.nd, self.nd, 8, 3))
         if self.flat:
             fc.shape = (self.nd*self.nd*self.nd, 8, 3)
-        return self.ds.arr(fc, input_units = "code_length")
+        return self.ds.arr(fc, units = "code_length")
 
     @property
     def icoords(self):
@@ -287,5 +287,5 @@ class FieldDetector(defaultdict):
         fw = np.ones((self.nd**3, 3), dtype="float64") / self.nd
         if not self.flat:
             fw.shape = (self.nd, self.nd, self.nd, 3)
-        return self.ds.arr(fw, input_units = "code_length")
+        return self.ds.arr(fw, units = "code_length")
 
