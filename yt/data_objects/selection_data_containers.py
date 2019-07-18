@@ -282,16 +282,16 @@ class YTRay(YTSelectionContainer1D):
             raise KeyError(field)
 
         length = unorm(self.vec)
-        pos = self[self.ds._sph_ptype, "particle_position"]
+        pos = self[self.ds._sph_ptypes[0], "particle_position"]
         r = pos - self.start_point
         l = udot(r, self.vec/length)
 
         if field == "t":
             return l / length
 
-        hsml = self[self.ds._sph_ptype, "smoothing_length"]
-        mass = self[self.ds._sph_ptype, "particle_mass"]
-        dens = self[self.ds._sph_ptype, "density"]
+        hsml = self[self.ds._sph_ptypes[0], "smoothing_length"]
+        mass = self[self.ds._sph_ptypes[0], "particle_mass"]
+        dens = self[self.ds._sph_ptypes[0], "density"]
         # impact parameter from particle to ray
         b = np.sqrt(np.sum(r**2, axis=1) - l**2)
 
@@ -729,15 +729,15 @@ class YTRegion(YTSelectionContainer3D):
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         if not isinstance(left_edge, YTArray):
-            self.left_edge = self.ds.arr(left_edge, 'code_length')
+            self.left_edge = self.ds.arr(left_edge, 'code_length', dtype='float64')
         else:
             # need to assign this dataset's unit registry to the YTArray
-            self.left_edge = self.ds.arr(left_edge.copy())
+            self.left_edge = self.ds.arr(left_edge.copy(), dtype='float64')
         if not isinstance(right_edge, YTArray):
-            self.right_edge = self.ds.arr(right_edge, 'code_length')
+            self.right_edge = self.ds.arr(right_edge, 'code_length', dtype='float64')
         else:
             # need to assign this dataset's unit registry to the YTArray
-            self.right_edge = self.ds.arr(right_edge.copy())
+            self.right_edge = self.ds.arr(right_edge.copy(), dtype='float64')
 
     def _get_bbox(self):
         """

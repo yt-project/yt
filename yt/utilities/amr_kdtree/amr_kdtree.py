@@ -105,8 +105,8 @@ class Tree(object):
             grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            nle = self.ds.arr(node.get_left_edge(), input_units="code_length")
-            nre = self.ds.arr(node.get_right_edge(), input_units="code_length")
+            nle = self.ds.arr(node.get_left_edge(), units="code_length")
+            nre = self.ds.arr(node.get_right_edge(), units="code_length")
             li = np.rint((nle-gle)/dds).astype('int32')
             ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
@@ -130,8 +130,8 @@ class Tree(object):
             grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            nle = self.ds.arr(node.get_left_edge(), input_units="code_length")
-            nre = self.ds.arr(node.get_right_edge(), input_units="code_length")
+            nle = self.ds.arr(node.get_left_edge(), units="code_length")
+            nre = self.ds.arr(node.get_right_edge(), units="code_length")
             li = np.rint((nle-gle)/dds).astype('int32')
             ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')

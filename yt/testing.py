@@ -38,7 +38,7 @@ from numpy.testing import assert_allclose, assert_raises  # NOQA
 from numpy.random import RandomState
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTUnitOperationError
+from unyt.exceptions import UnitOperationError
 
 ANSWER_TEST_TAG = "answer_test"
 # Expose assert_true and assert_less_equal from unittest.TestCase
@@ -1139,7 +1139,7 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     try:
         des = des.in_units(act.units)
-    except YTUnitOperationError:
+    except UnitOperationError:
         raise AssertionError("Units of actual (%s) and desired (%s) do not have "
                              "equivalent dimensions" % (act.units, des.units))
 
@@ -1153,7 +1153,7 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     try:
         at = at.in_units(act.units)
-    except YTUnitOperationError:
+    except UnitOperationError:
         raise AssertionError("Units of atol (%s) and actual (%s) do not have "
                              "equivalent dimensions" % (at.units, act.units))
 

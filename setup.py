@@ -15,8 +15,8 @@ from distutils.version import LooseVersion
 import pkg_resources
 
 
-if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 5):
-    print("yt currently supports Python 2.7 or versions newer than Python 3.5")
+if sys.version_info < (3, 5):
+    print("yt currently supports versions newer than Python 3.5")
     print("certain features may fail unexpectedly and silently with older "
           "versions.")
     sys.exit(1)
@@ -319,9 +319,9 @@ the appropriate package manager for your python environment.""")
 Cython %s is installed. Please update Cython using the appropriate
 package manager for your python environment.""" %
                 cython.__version__)
-        if LooseVersion(numpy.__version__) < LooseVersion('1.10.4'):
+        if LooseVersion(numpy.__version__) < LooseVersion('1.13.3'):
             raise RuntimeError(
-"""Building yt from source requires NumPy 1.10.4 or newer but
+"""Building yt from source requires NumPy 1.13.3 or newer but
 NumPy %s is installed. Please update NumPy using the appropriate
 package manager for your python environment.""" %
                 numpy.__version__)
@@ -368,11 +368,10 @@ setup(
                  "Operating System :: POSIX :: AIX",
                  "Operating System :: POSIX :: Linux",
                  "Programming Language :: C",
-                 "Programming Language :: Python :: 2",
-                 "Programming Language :: Python :: 2.7",
                  "Programming Language :: Python :: 3",
-                 "Programming Language :: Python :: 3.4",
                  "Programming Language :: Python :: 3.5",
+                 "Programming Language :: Python :: 3.6",
+                 "Programming Language :: Python :: 3.7",
                  "Topic :: Scientific/Engineering :: Astronomy",
                  "Topic :: Scientific/Engineering :: Physics",
                  "Topic :: Scientific/Engineering :: Visualization"],
@@ -390,9 +389,10 @@ setup(
     install_requires=[
         'matplotlib>=1.5.3',
         'setuptools>=19.6',
-        'sympy>=1.0',
+        'sympy>=1.2',
         'numpy>=1.10.4',
         'IPython>=1.0',
+        'unyt>=2.2.2',
     ],
     extras_require = {
         'hub':  ["girder_client"],

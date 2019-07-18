@@ -31,8 +31,6 @@ from yt.funcs import \
     iterable, \
     ensure_dir, \
     ensure_list
-from yt.units.unit_lookup_table import \
-    prefixable_units, latex_prefixes
 from yt.units.unit_object import \
     Unit
 from yt.utilities.definitions import \
@@ -639,12 +637,6 @@ class PlotContainer(object):
                         un = un + '\,h^{-1}'
                     if comoving:
                         un = un + '\,(1+z)^{-1}'
-                    pp = un[0]
-                    if pp in latex_prefixes:
-                        symbol_wo_prefix = un[1:]
-                        if symbol_wo_prefix in prefixable_units:
-                            un = un.replace(
-                                pp, "{"+latex_prefixes[pp]+"}", 1)
                 axes_unit_labels[i] = '\ \ ('+un+')'
         return axes_unit_labels
 

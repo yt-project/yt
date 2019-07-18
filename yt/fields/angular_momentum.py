@@ -38,7 +38,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         rv = obtain_position_vector(data)
         units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units=units)
+        rv = data.ds.arr(rv, units=units)
         return yv * rv[...,2] - zv * rv[...,1]
 
     def _specific_angular_momentum_y(field, data):
@@ -46,7 +46,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         rv = obtain_position_vector(data)
         units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units=units)
+        rv = data.ds.arr(rv, units=units)
         return - (xv * rv[...,2] - zv * rv[...,0])
 
     def _specific_angular_momentum_z(field, data):
@@ -54,7 +54,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         rv = obtain_position_vector(data)
         units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units=units)
+        rv = data.ds.arr(rv, units=units)
         return xv * rv[...,1] - yv * rv[...,0]
 
     registry.add_field((ftype, "specific_angular_momentum_x"),

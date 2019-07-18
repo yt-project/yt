@@ -16,10 +16,7 @@ Magnetic field ... er, fields.
 import numpy as np
 
 from yt.units import dimensions
-from yt.units.unit_object import Unit
 from yt.units.yt_array import ustack
-from yt.utilities.physical_constants import mu_0
-from yt.funcs import handle_mks_cgs
 
 from yt.fields.derived_field import \
     ValidateParameter
@@ -31,12 +28,11 @@ from yt.utilities.math_utils import \
     get_sph_theta_component, \
     get_sph_phi_component
 
-mag_factors = {dimensions.magnetic_field_cgs: 4.0*np.pi,
-               dimensions.magnetic_field_mks: mu_0}
-
 @register_field_plugin
 def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
-    unit_system = registry.ds.unit_system
+    ds = registry.ds
+    
+    unit_system = ds.unit_system
 
     axis_names = registry.ds.coordinates.axis_order
 
@@ -45,6 +41,12 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
     u = registry[ftype,"magnetic_field_%s" % axis_names[0]].units
 
+    def mag_factors(dims):
+        if dims == dimensions.magnetic_field_cgs:
+            return 4.0*np.pi
+        elif dims == dimensions.magnetic_field_mks:
+            return ds.units.physical_constants.mu_0
+
     def _magnetic_field_strength(field, data):
         xm = "relative_magnetic_field_%s" % axis_names[0]
         ym = "relative_magnetic_field_%s" % axis_names[1]
@@ -52,7 +54,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
         B2 = (data[ftype, xm])**2 + (data[ftype, ym])**2 + (data[ftype, zm])**2
 
-        return handle_mks_cgs(np.sqrt(B2), field.units)
+        return np.sqrt(B2)
 
     registry.add_field((ftype,"magnetic_field_strength"),
                        sampling_type="local",
@@ -62,7 +64,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
     def _magnetic_energy(field, data):
         B = data[ftype,"magnetic_field_strength"]
-        return 0.5*B*B/mag_factors[B.units.dimensions]
+        return 0.5*B*B/mag_factors(B.units.dimensions)
     registry.add_field((ftype, "magnetic_energy"),
                        sampling_type="local",
                        function=_magnetic_energy,
@@ -107,8 +109,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
     elif registry.ds.geometry == "cylindrical":
         def _magnetic_field_poloidal(field, data):
-            bm = handle_mks_cgs(
-                data.get_field_parameter("bulk_magnetic_field"), field.units)
+            bm = data.get_field_parameter("bulk_magnetic_field")
             r = data["index", "r"]
             z = data["index", "z"]
             d = np.sqrt(r*r+z*z)
@@ -119,21 +120,18 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
         def _magnetic_field_toroidal(field, data):
             ax = axis_names.find('theta')
-            bm = handle_mks_cgs(
-                data.get_field_parameter("bulk_magnetic_field"), field.units)
+            bm = data.get_field_parameter("bulk_magnetic_field")
             return data[ftype,"magnetic_field_theta"] - bm[ax]
 
     elif registry.ds.geometry == "spherical":
         def _magnetic_field_poloidal(field, data):
             ax = axis_names.find('theta')
-            bm = handle_mks_cgs(
-                data.get_field_parameter("bulk_magnetic_field"), field.units)
+            bm = data.get_field_parameter("bulk_magnetic_field")
             return data[ftype,"magnetic_field_theta"] - bm[ax]
 
         def _magnetic_field_toroidal(field, data):
             ax = axis_names.find('phi')
-            bm = handle_mks_cgs(
-                data.get_field_parameter("bulk_magnetic_field"), field.units)
+            bm = data.get_field_parameter("bulk_magnetic_field")
             return data[ftype,"magnetic_field_phi"] - bm[ax]
 
     else:
@@ -161,7 +159,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
     def _alfven_speed(field,data):
         B = data[ftype,'magnetic_field_strength']
-        return B/np.sqrt(mag_factors[B.units.dimensions]*data[ftype,'density'])
+        return B/np.sqrt(mag_factors(B.units.dimensions)*data[ftype,'density'])
 
     registry.add_field((ftype, "alfven_speed"),
                        sampling_type="local",
@@ -228,18 +226,10 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         return
 
     # Figure out the unit conversion to use
-    from_units = Unit(registry[ds_field].units,
-                      registry=registry.ds.unit_registry)
-    if dimensions.current_mks in unit_system.base_units:
+    if unit_system.base_units[dimensions.current_mks] is not None:
         to_units = unit_system["magnetic_field_mks"]
-        equiv = "SI"
     else:
         to_units = unit_system["magnetic_field_cgs"]
-        equiv = "CGS"
-    if from_units.dimensions == to_units.dimensions:
-        convert = lambda x: x.in_units(to_units)
-    else:
-        convert = lambda x: x.to_equivalent(to_units, equiv)
     units = unit_system[to_units.dimensions]
 
     # Add fields
@@ -247,7 +237,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         # Grid dataset case
         def mag_field(fd):
             def _mag_field(field, data):
-                return convert(data[fd])
+                return data[fd].to(field.units)
             return _mag_field
         for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields):
             registry.add_field((ftype,"magnetic_field_%s" % ax),
@@ -258,7 +248,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         # Particle dataset case
         def mag_field(ax):
             def _mag_field(field, data):
-                return convert(data[ds_field][:, 'xyz'.index(ax)])
+                return data[ds_field][:, 'xyz'.index(ax)]
             return _mag_field
         for ax in registry.ds.coordinates.axis_order:
             fname = "particle_magnetic_field_%s" % ax

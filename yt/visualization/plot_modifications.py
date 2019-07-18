@@ -343,7 +343,7 @@ class VelocityCallback(PlotCallback):
             if bv is not None:
                 bv_x = bv[xi]
                 bv_y = bv[yi]
-            else: bv_x = bv_y = YTQuantity(0, 'cm/s')
+            else: bv_x = bv_y = plot.ds.quan(0, 'cm/s')
 
             qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
                                  scale_units=self.scale_units,
@@ -652,8 +652,8 @@ class GridBoundaryCallback(PlotCallback):
             block_ids.append(block.id)
         if len(GLE) == 0: return
         # Retain both units and registry
-        GLE = YTArray(GLE, input_units = GLE[0].units)
-        GRE = YTArray(GRE, input_units = GRE[0].units)
+        GLE = plot.ds.arr(GLE, units = GLE[0].units)
+        GRE = plot.ds.arr(GRE, units = GRE[0].units)
         levels = np.array(levels)
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
@@ -2335,7 +2335,7 @@ class ScaleCallback(PlotCallback):
                 max_scale, return_quantity=True)
             self.coeff = max_scale.v
             self.unit = max_scale.units
-        self.scale = YTQuantity(self.coeff, self.unit)
+        self.scale = plot.ds.quan(self.coeff, self.unit)
         text = self.scale_text_format.format(scale=int(self.coeff),
                                              units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /

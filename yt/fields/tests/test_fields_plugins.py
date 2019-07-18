@@ -19,7 +19,7 @@ TEST_PLUGIN_FILE = '''
 def _myfunc(field, data):
     return np.random.random(data['density'].shape)
 add_field('random', dimensions='dimensionless',
-          function=_myfunc, units='auto', sampling_type='cell')
+          function=_myfunc, units='auto', sampling_type='local')
 constant = 3
 def myfunc():
     return constant*4
@@ -43,6 +43,8 @@ def setUpModule():
 
 
 def tearDownModule():
+    from yt.fields.my_plugin_fields import my_plugins_fields
+    my_plugins_fields.clear()
     my_plugin_name = ytcfg.get('yt', 'pluginfilename')
     plugin_file = os.path.join(CONFIG_DIR, my_plugin_name)
     os.remove(plugin_file)

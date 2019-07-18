@@ -325,17 +325,17 @@ class Camera(Orientation):
         focus = data_source.get_field_parameter('center')
 
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
-            width = data_source.ds.quan(width[0], input_units=width[1])
+            width = data_source.ds.quan(width[0], units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length")  # .value
         if not iterable(width):
             width = data_source.ds.arr([width, width, width],
-                                       input_units='code_length')
+                                       units='code_length')
             # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
-            width = data_source.ds.arr(width, input_units="code_length")
+            width = data_source.ds.arr(width, units="code_length")
         if not isinstance(focus, YTArray):
-            focus = data_source.ds.arr(focus, input_units="code_length")
+            focus = data_source.ds.arr(focus, units="code_length")
 
         # We can't use the property setters yet, since they rely on attributes
         # that will not be set up until the base class initializer is called.

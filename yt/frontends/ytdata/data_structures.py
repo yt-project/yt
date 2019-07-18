@@ -84,7 +84,11 @@ class SavedDataset(Dataset):
             for key in f.attrs.keys():
                 v = parse_h5_attr(f, key)
                 if key == "con_args":
-                    v = v.astype("str")
+                    try:
+                        v = eval(v)
+                    except ValueError:
+                        # support older ytdata outputs
+                        v = v.astype('str')
                 self.parameters[key] = v
             self._with_parameter_file_open(f)
 
@@ -619,7 +623,7 @@ class YTNonspatialGrid(AMRGridPatch):
                 else:
                     v = v.astype(np.float64)
             if convert:
-                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
                 self.field_data[f].convert_to_units(finfos[f].output_units)
 
         read_particles, gen_particles = self.index._read_fluid_fields(
@@ -633,7 +637,7 @@ class YTNonspatialGrid(AMRGridPatch):
                 else:
                     v = v.astype(np.float64)
             if convert:
-                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
                 self.field_data[f].convert_to_units(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles

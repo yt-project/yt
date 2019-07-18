@@ -32,14 +32,16 @@ from yt.funcs import \
     mylog, \
     ensure_list, \
     fix_axis, \
-    iterable, validate_width_tuple
-from yt.units.unit_object import UnitParseError
+    iterable, \
+    validate_width_tuple
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 import yt.units.dimensions as ytdims
+from unyt.exceptions import \
+    UnitConversionError, \
+    UnitParseError
 from yt.utilities.exceptions import \
-    YTUnitConversionError, \
     YTFieldUnitError, \
     YTFieldUnitParseError, \
     YTSpatialFieldUnitError, \
@@ -126,10 +128,14 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         self.ds.objects.append(weakref.proxy(self))
         mylog.debug("Appending object to %s (type: %s)", self.ds, type(self))
         self.field_data = YTFieldData()
+        if self.ds.unit_system.has_current_mks:
+            mag_unit = "T"
+        else:
+            mag_unit = "G"
         self._default_field_parameters = {
             'center': self.ds.arr(np.zeros(3, dtype='float64'), 'cm'),
             'bulk_velocity': self.ds.arr(np.zeros(3, dtype='float64'), 'cm/s'),
-            'bulk_magnetic_field': self.ds.arr(np.zeros(3, dtype='float64'), 'G'),
+            'bulk_magnetic_field': self.ds.arr(np.zeros(3, dtype='float64'), mag_unit),
             'normal': self.ds.arr([0.0, 0.0, 1.0], ''),
         }
         if field_parameters is None: field_parameters = {}
@@ -169,21 +175,25 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
           self.field_parameters[parameter]
 
     def apply_units(self, arr, units):
-        return self.ds.arr(arr, input_units = units)
+        try:
+            arr.units.registry = self.ds.unit_registry
+            return arr.to(units)
+        except AttributeError:
+            return self.ds.arr(arr, units=units)
 
     def _set_center(self, center):
         if center is None:
             self.center = None
             return
         elif isinstance(center, YTArray):
-            self.center = self.ds.arr(center.copy())
+            self.center = self.ds.arr(center.astype('float64'))
             self.center.convert_to_units('code_length')
         elif isinstance(center, (list, tuple, np.ndarray)):
             if isinstance(center[0], YTQuantity):
-                self.center = self.ds.arr([c.copy() for c in center])
+                self.center = self.ds.arr([c.copy() for c in center], dtype='float64')
                 self.center.convert_to_units('code_length')
             else:
-                self.center = self.ds.arr(center, 'code_length')
+                self.center = self.ds.arr(center, 'code_length', dtype='float64')
         elif isinstance(center, str):
             if center.lower() in ("c", "center"):
                 self.center = self.ds.domain_center
@@ -642,7 +652,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
 
         extra_attrs = dict([(arg, getattr(self, arg, None))
                             for arg in self._con_args + self._tds_attrs])
-        extra_attrs["con_args"] = self._con_args
+        extra_attrs["con_args"] = repr(self._con_args)
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
         extra_attrs["dimensionality"] = self._dimensionality
@@ -1188,11 +1198,11 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                 finfo = self.ds._get_field_info("unknown", fname)
                 if finfo.sampling_type == "particle":
                     ftype = self._current_particle_type
-                    if hasattr(self.ds, '_sph_ptype'):
-                        ptype = self.ds._sph_ptype
-                        if finfo.name[0] == ptype:
+                    if hasattr(self.ds, '_sph_ptypes'):
+                        ptypes = self.ds._sph_ptypes
+                        if finfo.name[0] in ptypes:
                             ftype = finfo.name[0]
-                        elif finfo.alias_field and finfo.alias_name[0] == ptype:
+                        elif finfo.alias_field and finfo.alias_name[0] in ptypes:
                             ftype = self._current_fluid_type
                 else:
                     ftype = self._current_fluid_type
@@ -1403,13 +1413,14 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         read_fluids, gen_fluids = self.index._read_fluid_fields(
                                         fluids, self, self._current_chunk)
         for f, v in read_fluids.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+            self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
             self.field_data[f].convert_to_units(finfos[f].output_units)
 
         read_particles, gen_particles = self.index._read_particle_fields(
                                         particles, self, self._current_chunk)
+
         for f, v in read_particles.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+            self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
             self.field_data[f].convert_to_units(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
@@ -1434,6 +1445,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 fi = self.ds._get_field_info(*field)
                 try:
                     fd = self._generate_field(field)
+                    if hasattr(fd, 'units'):
+                        fd.units.registry = self.ds.unit_registry
                     if fd is None:
                         raise RuntimeError
                     if fi.units is None:
@@ -1463,7 +1476,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         fd = self.ds.arr(fd, '')
                         if fi.units != '':
                             raise YTFieldUnitError(fi, fd.units)
-                    except YTUnitConversionError:
+                    except UnitConversionError:
                         raise YTFieldUnitError(fi, fd.units)
                     except UnitParseError:
                         raise YTFieldUnitParseError(fi)
@@ -1775,14 +1788,14 @@ class YTSelectionContainer2D(YTSelectionContainer):
             if isinstance(w, tuple) and isinstance(u, tuple):
                 height = u
                 w, u = w
-            width = self.ds.quan(w, input_units = u)
+            width = self.ds.quan(w, units = u)
         elif not isinstance(width, YTArray):
             width = self.ds.quan(width, 'code_length')
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
-            height = self.ds.quan(h, input_units = u)
+            height = self.ds.quan(h, units = u)
         elif not isinstance(height, YTArray):
             height = self.ds.quan(height, 'code_length')
         if not iterable(resolution):

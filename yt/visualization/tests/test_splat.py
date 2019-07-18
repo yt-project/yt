@@ -30,7 +30,6 @@ def setup():
 
 
 def test_splat():
-    """Tests functionality of off_axis_projection and write_projection."""
     # Perform I/O in safe place instead of yt main dir
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()

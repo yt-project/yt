@@ -184,7 +184,7 @@ class StreamParticleIOHandler(BaseIOHandler):
             yield ptype, pos
 
     def _get_smoothing_length(self, data_file, dtype, shape):
-        ptype = self.ds._sph_ptype
+        ptype = self.ds._sph_ptypes[0]
         return self.fields[data_file.filename][ptype, 'smoothing_length']
 
     def _count_particles(self, data_file):

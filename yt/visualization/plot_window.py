@@ -58,8 +58,8 @@ from yt.utilities.exceptions import \
     YTPlotCallbackError, \
     YTDataTypeUnsupported, \
     YTInvalidFieldType, \
-    YTUnitNotRecognized, \
-    YTUnitConversionError
+    YTUnitNotRecognized
+from unyt.exceptions import UnitConversionError
 
 from .geo_plot_utils import get_mpl_transform
 
@@ -135,7 +135,7 @@ def validate_mesh_fields(data_source, fields):
     for field in canonical_fields:
         finfo = data_source.ds.field_info[field]
         if finfo.sampling_type == "particle":
-            if not hasattr(data_source.ds, '_sph_ptype'):
+            if not hasattr(data_source.ds, '_sph_ptypes'):
                 pass
             elif finfo.is_sph_field:
                 continue
@@ -747,7 +747,7 @@ class PlotWindow(ImagePlotContainer):
             for un in unit_name:
                 try:
                     self.ds.length_unit.in_units(un)
-                except (YTUnitConversionError, UnitParseError):
+                except (UnitConversionError, UnitParseError):
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
         return self
@@ -793,8 +793,8 @@ class PWViewerMPL(PlotWindow):
             xc = self.ds.quan(origin[0], 'code_length')
             yc = self.ds.quan(origin[1], 'code_length')
         elif 3 == len(origin) and isinstance(origin[0], tuple):
-            xc = YTQuantity(origin[0][0], origin[0][1])
-            yc = YTQuantity(origin[1][0], origin[0][1])
+            xc = self.ds.quan(origin[0][0], origin[0][1])
+            yc = self.ds.quan(origin[1][0], origin[0][1])
 
         assert origin[-1] in ['window', 'domain', 'native']
 

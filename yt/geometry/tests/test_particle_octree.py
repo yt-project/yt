@@ -83,7 +83,8 @@ class FakeRegion:
         self.ds.domain_left_edge = YTArray([0.0, 0.0, 0.0], "code_length",
                                            registry=self.ds.unit_registry)
         self.ds.domain_right_edge = YTArray([nfiles, nfiles, nfiles], "code_length",
-                                            registry=self.ds.unit_registry)
+                                            registry=self.ds.unit_registry,
+                                            dtype='float64')
         self.ds.domain_width = self.ds.domain_right_edge - \
                                self.ds.domain_left_edge
         self.ds.periodicity = (periodic, periodic, periodic)

@@ -27,7 +27,7 @@ Example usage:
 """
 from __future__ import print_function
 
-import http_client
+import http.client as http_client
 import urllib
 import socket
 import sys

@@ -173,15 +173,15 @@ class Camera(ParallelAnalysisInterface):
         self.sub_samples = sub_samples
         self.rotation_vector = north_vector
         if iterable(width) and len(width) > 1 and isinstance(width[1], str):
-            width = self.ds.quan(width[0], input_units=width[1])
+            width = self.ds.quan(width[0], units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length").value
         if not iterable(width):
             width = (width, width, width) # left/right, top/bottom, front/back 
         if not isinstance(width, YTArray):
-            width = self.ds.arr(width, input_units="code_length")
+            width = self.ds.arr(width, units="code_length")
         if not isinstance(center, YTArray):
-            center = self.ds.arr(center, input_units="code_length")
+            center = self.ds.arr(center, units="code_length")
         # Ensure that width and center are in the same units
         # Cf. https://bitbucket.org/yt_analysis/yt/issue/1080
         width.convert_to_units("code_length")
@@ -925,13 +925,13 @@ class Camera(ParallelAnalysisInterface):
         """
         dW = None
         if not isinstance(final, YTArray):
-            final = self.ds.arr(final, input_units = "code_length")
+            final = self.ds.arr(final, units = "code_length")
         if exponential:
             if final_width is not None:
                 if not iterable(final_width):
                     final_width = [final_width, final_width, final_width] 
                 if not isinstance(final_width, YTArray):
-                    final_width = self.ds.arr(final_width, input_units="code_length")
+                    final_width = self.ds.arr(final_width, units="code_length")
                     # left/right, top/bottom, front/back 
                 if (self.center == 0.0).all():
                     self.center += (final - self.center) / (10. * n_steps)
@@ -946,7 +946,7 @@ class Camera(ParallelAnalysisInterface):
                 if not iterable(final_width):
                     final_width = [final_width, final_width, final_width] 
                 if not isinstance(final_width, YTArray):
-                    final_width = self.ds.arr(final_width, input_units="code_length")
+                    final_width = self.ds.arr(final_width, units="code_length")
                     # left/right, top/bottom, front/back
                 dW = (1.0*final_width-self.width)/n_steps
             else:
@@ -1250,7 +1250,7 @@ class PerspectiveCamera(Camera):
         positions[:,:,1] = self.center[1]
         positions[:,:,2] = self.center[2]
 
-        positions = self.ds.arr(positions, input_units="code_length")
+        positions = self.ds.arr(positions, units="code_length")
 
         dummy = np.ones(3, dtype='float64')
         image.shape = (self.resolution[0], self.resolution[1],4)
@@ -1297,7 +1297,7 @@ class PerspectiveCamera(Camera):
         for i in range(0, sight_vector.shape[0]):
             sight_vector_norm = np.sqrt(np.dot(sight_vector[i], sight_vector[i]))
             sight_vector[i] = sight_vector[i]/sight_vector_norm
-        sight_vector = self.ds.arr(sight_vector.value, input_units='dimensionless')
+        sight_vector = self.ds.arr(sight_vector.value, units='dimensionless')
         sight_center = self.center + self.width[2] * self.orienter.unit_vectors[2]
 
         for i in range(0, sight_vector.shape[0]):
@@ -2040,8 +2040,8 @@ class StereoSphericalCamera(Camera):
     def __init__(self, *args, **kwargs):
         self.disparity = kwargs.pop('disparity', 0.)
         Camera.__init__(self, *args, **kwargs)
-        self.disparity = self.ds.arr(self.disparity, input_units="code_length")
-        self.disparity_s = self.ds.arr(0., input_units="code_length")
+        self.disparity = self.ds.arr(self.disparity, units="code_length")
+        self.disparity_s = self.ds.arr(0., units="code_length")
         if(self.resolution[0]/self.resolution[1] != 2):
             mylog.info('Warning: It\'s recommended to set the aspect ratio to be 2:1')
         self.resolution = np.asarray(self.resolution) + 2

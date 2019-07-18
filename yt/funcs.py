@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import errno
 import builtins
+import copy
 import time
 import inspect
 import traceback
@@ -39,11 +40,9 @@ from numbers import Number as numeric_type
 import urllib
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.lru_cache import lru_cache
-from yt.utilities.exceptions import \
-    YTInvalidWidthError, \
-    YTEquivalentDimsError
+from yt.utilities.exceptions import YTInvalidWidthError
 from yt.extern.tqdm import tqdm
-from yt.units.yt_array import YTArray, YTQuantity
+from yt.units import YTArray, YTQuantity
 from functools import wraps
 
 # Some functions for handling sequences and other types
@@ -1186,12 +1185,24 @@ def obj_length(v):
         # to signify zero length (aka a scalar).
         return 0
 
-def handle_mks_cgs(values, field_units):
-    try:
-        values = values.to(field_units)
-    except YTEquivalentDimsError as e:
-        values = values.to_equivalent(e.new_units, e.base)
-    return values
+def array_like_field(data, x, field):
+    field = data._determine_fields(field)[0]
+    if isinstance(field, tuple):
+        finfo = data.ds._get_field_info(field[0],field[1])
+    else:
+        finfo = data.ds._get_field_info(field)
+    if finfo.sampling_type == 'particle':
+        units = finfo.output_units
+    else:
+        units = finfo.units
+    if isinstance(x, YTArray):
+        arr = copy.deepcopy(x)
+        arr.convert_to_units(units)
+        return arr
+    if isinstance(x, np.ndarray):
+        return data.ds.arr(x, units)
+    else:
+        return data.ds.quan(x, units)
 
 def validate_3d_array(obj):
     if not iterable(obj) or len(obj) != 3:

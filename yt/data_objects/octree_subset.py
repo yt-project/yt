@@ -186,8 +186,8 @@ class OctreeSubset(YTSelectionContainer):
         op.initialize()
         mylog.debug("Depositing %s (%s^3) particles into %s Octs",
             positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
-        pos = np.asarray(positions.convert_to_units("code_length"),
-                         dtype="float64")
+        positions.convert_to_units("code_length")
+        pos = positions.d
         # We should not need the following if we know in advance all our fields
         # need no casting.
         fields = [np.ascontiguousarray(f, dtype="float64") for f in fields]
