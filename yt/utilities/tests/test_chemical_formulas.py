@@ -1,5 +1,5 @@
-from yt.testing import assert_equal
-from yt.utilities.chemical_formulas import ChemicalFormula
+from yt.testing import assert_equal, assert_allclose
+from yt.utilities.chemical_formulas import ChemicalFormula, default_mu
 from yt.utilities.periodic_table import periodic_table
 
 _molecules = (
@@ -21,3 +21,7 @@ def test_formulas():
         for (n, c1), (e, c2) in zip(components, f.elements):
             assert_equal(n, e.symbol)
             assert_equal(c1, c2)
+
+
+def test_default_mu():
+    assert_allclose(default_mu, 0.5924489101195808)
