@@ -322,7 +322,7 @@ class AthenaPPDataset(Dataset):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
             self.parameters["Gamma"] = 5./3.
-        self.parameters["mu"] = self.specified_parameters.get("mu", default_mu)
+        self.mu = self.specified_parameters.get("mu", default_mu)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
