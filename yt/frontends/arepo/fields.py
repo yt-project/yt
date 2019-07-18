@@ -1,11 +1,3 @@
-#-----------------------------------------------------------------------------
-# Copyright (c) yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.frontends.gadget.api import GadgetFieldInfo
 from yt.fields.magnetic_field import \
     setup_magnetic_field_aliases

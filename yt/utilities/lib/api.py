@@ -1,19 +1,3 @@
-import os
-"""
-Compatibility module
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from .grid_traversal import *
 from .particle_mesh_operations import *
 from .depth_first_octree import *

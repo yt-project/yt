@@ -1,19 +1,3 @@
-"""
-Create smooth camera paths from keyframes.
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import random
 import numpy as np
 from yt.visualization.volume_rendering.create_spline import create_spline

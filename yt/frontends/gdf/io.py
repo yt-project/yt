@@ -1,18 +1,3 @@
-"""
-The data-file handling functions
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.funcs import \

@@ -1,18 +1,3 @@
-"""
-Lens Classes
-
-
-
-"""
-
-# ----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# ----------------------------------------------------------------------------
-
 from __future__ import division
 from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \

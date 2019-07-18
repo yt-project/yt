@@ -1,18 +1,3 @@
-"""
-Fixed resolution buffer support, along with a primitive image analysis tool.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \

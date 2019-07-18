@@ -1,21 +1,3 @@
-"""
-yt is a toolkit for analyzing and visualizing volumetric data.
-
-* Website: http://yt-project.org
-* Documentation: http://yt-project.org/doc
-* Data hub: http://hub.yt
-* Contribute: http://github.com/yt-project/yt
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import sys
 if sys.version_info[0] < 3:
     raise Exception("Python 2 no longer supported.  Please install Python 3 for use with yt.")

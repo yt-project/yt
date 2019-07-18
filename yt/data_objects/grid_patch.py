@@ -1,18 +1,3 @@
-"""
-Python-based grid handler, not to be confused with the SWIG-handler
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import warnings
 import weakref
 import numpy as np

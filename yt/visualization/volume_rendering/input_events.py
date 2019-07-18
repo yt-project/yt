@@ -1,17 +1,3 @@
-# encoding: utf-8
-"""
-Input event handlers for Interactive Data Visualization
-
-"""
-
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# ----------------------------------------------------------------------------
-
 # This is a part of the experimental Interactive Data Visualization
 
 from collections import defaultdict, namedtuple
