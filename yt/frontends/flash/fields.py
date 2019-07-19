@@ -89,7 +89,7 @@ class FLASHFieldInfo(FieldInfoContainer):
         for i in range(1, 1000):
             self.add_output_field(("flash", "r{0:03}".format(i)),
                                   sampling_type="cell",
-                                  units = "",
+                                  units="",
                                   display_name="Energy Group {0}".format(i))
         # Add energy fields
         def ekin(data):
@@ -162,40 +162,35 @@ class FLASHFieldInfo(FieldInfoContainer):
                        units="code_length**-3")
 
         if ("flash", "abar") in self.field_list:
-            self.add_output_field(("flash", "abar"),
-                                  sampling_type="cell",
-                                  units="")
+            self.alias(("gas", "mean_molecular_weight"), ("flash", "abar"))
         elif ("flash", "sumy") in self.field_list:
             def _abar(field, data):
                 return 1.0 / data["flash","sumy"]
-            self.add_field(("flash","abar"),
+            self.add_field(("gas", "mean_molecular_weight"),
                            sampling_type="cell",
                            function=_abar,
                            units="")
         elif "eos_singlespeciesa" in self.ds.parameters:
             def _abar(field, data):
                 return data.ds.parameters["eos_singlespeciesa"]*data["index", "ones"]
-            self.add_field(("flash","abar"),
+            self.add_field(("gas", "mean_molecular_weight"),
                            sampling_type="cell",
                            function=_abar,
                            units="")
 
-        if ("flash", "abar") in self:
-
-            self.alias(("gas", "mean_molecular_weight"), ("flash", "abar"))
-
+        if ("flash", "nele") in self.field_list and ("flash", "nion") in self.field_list:
             def _number_density(field, data):
-                Na_code = data.ds.quan(Na, '1/code_mass')
-                return data["flash", "dens"]*Na_code/data["flash", "abar"]
+                return data["flash", "nele"]+data["flash","nion"]
 
             self.add_field(("gas", "number_density"),
                            sampling_type="cell",
                            function=_number_density,
                            units=unit_system["number_density"])
 
-        if "ye" in self.field_list:
+        else:
             def _number_density(field, data):
-                return data["nele"]+data["nion"]
+                Na_code = data.ds.quan(Na, '1/code_mass')
+                return data["flash", "dens"]*Na_code/data["gas", "mean_molecular_weight"]
 
             self.add_field(("gas", "number_density"),
                            sampling_type="cell",
