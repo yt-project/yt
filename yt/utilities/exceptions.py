@@ -17,6 +17,8 @@ This is a library of yt-defined exceptions
 # We don't need to import 'exceptions'
 import os.path
 
+from unyt.exceptions import UnitOperationError
+
 class YTException(Exception):
     def __init__(self, message = None, ds = None):
         Exception.__init__(self, message)
@@ -167,86 +169,15 @@ class YTCoordinateNotImplemented(YTException):
     def __str__(self):
         return "This coordinate is not implemented for this geometry type."
 
+# define for back compat reasons for code written before yt 4.0
+YTUnitOperationError = UnitOperationError
+    
 class YTUnitNotRecognized(YTException):
     def __init__(self, unit):
         self.unit = unit
 
     def __str__(self):
         return "This dataset doesn't recognize %s" % self.unit
-
-class YTUnitOperationError(YTException, ValueError):
-    def __init__(self, operation, unit1, unit2=None):
-        self.operation = operation
-        self.unit1 = unit1
-        self.unit2 = unit2
-        YTException.__init__(self)
-
-    def __str__(self):
-        err = "The %s operator for YTArrays with units (%s) " % (self.operation, self.unit1, )
-        if self.unit2 is not None:
-            err += "and (%s) " % self.unit2
-        err += "is not well defined."
-        return err
-
-class YTUnitConversionError(YTException):
-    def __init__(self, unit1, dimension1, unit2, dimension2):
-        self.unit1 = unit1
-        self.unit2 = unit2
-        self.dimension1 = dimension1
-        self.dimension2 = dimension2
-        YTException.__init__(self)
-
-    def __str__(self):
-        err = "Unit dimensionalities do not match. Tried to convert between " \
-          "%s (dim %s) and %s (dim %s)." \
-          % (self.unit1, self.dimension1, self.unit2, self.dimension2)
-        return err
-
-class YTUnitsNotReducible(YTException):
-    def __init__(self, unit, units_base):
-        self.unit = unit
-        self.units_base = units_base
-        YTException.__init__(self)
-
-    def __str__(self):
-        err = "The unit '%s' cannot be reduced to a single expression within " \
-          "the %s base system of units." % (self.unit, self.units_base)
-        return err
-
-class YTEquivalentDimsError(YTUnitOperationError):
-    def __init__(self, old_units, new_units, base):
-        self.old_units = old_units
-        self.new_units = new_units
-        self.base = base
-
-    def __str__(self):
-        err = "It looks like you're trying to convert between '%s' and '%s'. Try " \
-          "using \"to_equivalent('%s', '%s')\" instead." % (self.old_units, self.new_units,
-                                                            self.new_units, self.base)
-        return err
-
-class YTUfuncUnitError(YTException):
-    def __init__(self, ufunc, unit1, unit2):
-        self.ufunc = ufunc
-        self.unit1 = unit1
-        self.unit2 = unit2
-        YTException.__init__(self)
-
-    def __str__(self):
-        err = "The NumPy %s operation is only allowed on objects with " \
-              "identical units. Convert one of the arrays to the other\'s " \
-              "units first. Received units (%s) and (%s)." % \
-              (self.ufunc, self.unit1, self.unit2)
-        return err
-
-class YTIterableUnitCoercionError(YTException):
-    def __init__(self, quantity_list):
-        self.quantity_list = quantity_list
-
-    def __str__(self):
-        err = "Received a list or tuple of quantities with nonuniform units: " \
-              "%s" % self.quantity_list
-        return err
 
 class YTFieldUnitError(YTException):
     def __init__(self, field_info, returned_units):

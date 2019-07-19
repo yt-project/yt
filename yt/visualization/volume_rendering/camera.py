@@ -17,7 +17,6 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 from yt.utilities.math_utils import get_rotation_matrix
-from yt.extern.six import string_types
 from .utils import data_source_or_all
 from .lens import \
     lenses, \
@@ -33,12 +32,12 @@ def _sanitize_camera_property_units(value, scene):
         elif isinstance(value, YTArray) and len(value) == 3:
             return scene.arr(value).in_units('unitary')
         elif (len(value) == 2 and isinstance(value[0], numeric_type)
-              and isinstance(value[1], string_types)):
+              and isinstance(value[1], str)):
             return scene.arr([scene.arr(value[0], value[1]).in_units('unitary')]*3)
         if len(value) == 3:
             if all([iterable(v) for v in value]):
                 if all([isinstance(v[0], numeric_type) and
-                        isinstance(v[1], string_types) for v in value]):
+                        isinstance(v[1], str) for v in value]):
                     return scene.arr(
                         [scene.arr(v[0], v[1]) for v in value])
                 else:
@@ -325,18 +324,18 @@ class Camera(Orientation):
                         (zma - zmi) ** 2)
         focus = data_source.get_field_parameter('center')
 
-        if iterable(width) and len(width) > 1 and isinstance(width[1], string_types):
-            width = data_source.ds.quan(width[0], input_units=width[1])
+        if iterable(width) and len(width) > 1 and isinstance(width[1], str):
+            width = data_source.ds.quan(width[0], units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length")  # .value
         if not iterable(width):
             width = data_source.ds.arr([width, width, width],
-                                       input_units='code_length')
+                                       units='code_length')
             # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
-            width = data_source.ds.arr(width, input_units="code_length")
+            width = data_source.ds.arr(width, units="code_length")
         if not isinstance(focus, YTArray):
-            focus = data_source.ds.arr(focus, input_units="code_length")
+            focus = data_source.ds.arr(focus, units="code_length")
 
         # We can't use the property setters yet, since they rely on attributes
         # that will not be set up until the base class initializer is called.

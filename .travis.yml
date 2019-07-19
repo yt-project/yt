@@ -56,7 +56,7 @@ install:
       if [[ $MINIMAL == 1 ]]; then
         # Ensure numpy and cython are installed so dependencies that need to be built
         # don't error out
-        $PIP install numpy==1.10.4 cython==0.26.1
+        $PIP install numpy==1.13.3 cython==0.26.1
         $PIP install -r tests/test_minimal_requirements.txt
       else
         # Getting cartopy installed requires getting cython and numpy installed
@@ -76,10 +76,6 @@ jobs:
   include:
     - stage: lint
       python: 3.7
-      script: flake8 yt/
-
-    - stage: lint
-      python: 2.7
       script: flake8 yt/
 
     - stage: tests

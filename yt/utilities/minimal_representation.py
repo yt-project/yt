@@ -20,13 +20,12 @@ import sys
 from yt.utilities.on_demand_imports import _h5py as h5
 import os
 from uuid import uuid4
-from yt.extern.six.moves import urllib
-from yt.extern.six.moves import cPickle as pickle
+import urllib
+import pickle
 from tempfile import TemporaryFile
 from yt.config import ytcfg
 from yt.funcs import \
     iterable, get_pbar, compare_dicts
-from yt.extern.six import add_metaclass, string_types, b
 from yt.utilities.exceptions import \
     YTHubRegisterError
 from yt.utilities.logger import ytLogger as mylog
@@ -47,10 +46,10 @@ else:
 def _sanitize_list(flist):
     temp = []
     for item in flist:
-        if isinstance(item, string_types):
-            temp.append(b(item))
+        if isinstance(item, str):
+            temp.append(item.encode("latin-1"))
         elif isinstance(item, tuple) and \
-                all(isinstance(i, string_types) for i in item):
+                all(isinstance(i, str) for i in item):
             temp.append(tuple(_sanitize_list(list(item))))
         else:
             temp.append(item)
@@ -69,7 +68,7 @@ def _serialize_to_h5(g, cdict):
         elif isinstance(cdict[item], list):
             g[item] = _sanitize_list(cdict[item])
         elif isinstance(cdict[item], tuple) and \
-                all(isinstance(i, string_types) for i in cdict[item]):
+                all(isinstance(i, str) for i in cdict[item]):
             g[item] = tuple(_sanitize_list(cdict[item]))
         else:
             g[item] = cdict[item]
@@ -116,9 +115,7 @@ class ContainerClass(object):
     pass
 
 
-@add_metaclass(abc.ABCMeta)
-class MinimalRepresentation(object):
-
+class MinimalRepresentation(metaclass = abc.ABCMeta):
     def _update_attrs(self, obj, attr_list):
         for attr in attr_list:
             setattr(self, attr, getattr(obj, attr, None))

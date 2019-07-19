@@ -60,7 +60,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
             for ptype in sorted(ptypes):
                 pcount = data_file.total_particles[ptype]
                 if pcount == 0: continue
-                coords = f[ptype]["%sPos" % ptype].value.astype("float64")
+                coords = f[ptype]["%sPos" % ptype][()].astype("float64")
                 coords = np.resize(coords, (pcount, 3))
                 yield ptype, coords
 

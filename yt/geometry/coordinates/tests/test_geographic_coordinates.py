@@ -18,7 +18,7 @@ def test_geographic_coordinates():
     # means our volume will be that of a shell 1000 wide, starting at r of
     # whatever our surface_height is set to.
     ds = fake_amr_ds(geometry="geographic")
-    ds.surface_height = ds.quan(5000, "code_length")
+    ds.surface_height = ds.quan(5000., "code_length")
     axes = ["latitude", "longitude", "altitude"]
     for i, axis in enumerate(axes):
         dd = ds.all_data()
@@ -35,7 +35,7 @@ def test_geographic_coordinates():
     assert_equal(dd["index","dphi"], dd["index","dlongitude"]*np.pi/180.0)
     # Note our terrible agreement here.
     assert_rel_equal(dd["cell_volume"].sum(dtype="float64"),
-                     (4.0/3.0) * np.pi * (outer_r**3 - inner_r**3), 3)
+                     (4.0/3.0) * np.pi * (outer_r**3 - inner_r**3), 10)
     assert_equal(dd["index", "path_element_altitude"], dd["index", "daltitude"])
     assert_equal(dd["index", "path_element_altitude"], dd["index", "dr"])
     # Note that latitude corresponds to theta, longitude to phi
@@ -55,7 +55,7 @@ def test_internal_geographic_coordinates():
     # means our volume will be that of a shell 1000 wide, starting at r of
     # outer_radius - 1000.
     ds = fake_amr_ds(geometry="internal_geographic")
-    ds.outer_radius = ds.quan(5000, "code_length")
+    ds.outer_radius = ds.quan(5000., "code_length")
     axes = ["latitude", "longitude", "depth"]
     for i, axis in enumerate(axes):
         dd = ds.all_data()

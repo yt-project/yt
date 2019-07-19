@@ -17,7 +17,6 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import weakref
 import os
-from yt.extern.six import string_types
 from yt.funcs import \
     ensure_tuple, \
     just_one, \
@@ -127,7 +126,7 @@ class GDFHierarchy(GridIndex):
                 self.dataset.domain_dimensions
             dx[active_dims] /= self.dataset.refine_by ** levels[i]
             dxs.append(dx.in_units("code_length"))
-        dx = self.dataset.arr(dxs, input_units="code_length")
+        dx = self.dataset.arr(dxs, units="code_length")
         self.grid_left_edge = self.dataset.domain_left_edge + dx * glis
         self.grid_dimensions = gdims.astype("int32")
         self.grid_right_edge = self.grid_left_edge + dx * self.grid_dimensions
@@ -204,7 +203,7 @@ class GDFDataset(Dataset):
                 self.field_units[field_name] = just_one(field_conv)
             elif 'field_units' in current_field.attrs:
                 field_units = current_field.attrs['field_units']
-                if isinstance(field_units, string_types):
+                if isinstance(field_units, str):
                     current_field_units = current_field.attrs['field_units']
                 else:
                     current_field_units = \

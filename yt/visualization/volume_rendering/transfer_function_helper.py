@@ -23,7 +23,7 @@ from yt.funcs import mylog
 from yt.data_objects.profiles import create_profile
 from yt.visualization.volume_rendering.transfer_functions import \
     ColorTransferFunction
-from yt.extern.six import BytesIO
+from io import BytesIO
 
 
 class TransferFunctionHelper(object):

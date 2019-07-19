@@ -25,9 +25,7 @@ from yt.utilities.math_utils import \
     get_cyl_z_component, \
     get_cyl_theta_component
 
-from yt.funcs import \
-    just_one, \
-    handle_mks_cgs
+from yt.funcs import just_one
 
 from yt.geometry.geometry_handler import \
     is_curvilinear
@@ -82,9 +80,8 @@ def create_relative_field(registry, basename, field_units, ftype='gas',
     def relative_vector(ax):
         def _relative_vector(field, data):
             iax = axis_order.index(ax)
-            d = handle_mks_cgs(data[field_components[iax]], field.units)
-            bulk = handle_mks_cgs(get_bulk(data, basename, d.unit_quantity),
-                                  field.units)
+            d = data[field_components[iax]]
+            bulk = get_bulk(data, basename, d.unit_quantity)
             return d - bulk[iax]
         return _relative_vector
 

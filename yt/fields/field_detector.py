@@ -19,6 +19,22 @@ from yt.units.yt_array import YTArray
 from .field_exceptions import \
     NeedsGridType
 
+fp_units = {
+    'bulk_velocity' : 'cm/s',
+    'center' : 'cm',
+    'normal' : '',
+    'cp_x_vec': '',
+    'cp_y_vec': '',
+    'cp_z_vec': '',
+    'x_hat': '',
+    'y_hat': '',
+    'z_hat': '',
+    'omega_baryon': '',
+    'virial_radius': 'cm',
+    'observer_redshift': '',
+    'source_redshift': '',
+}
+
 class FieldDetector(defaultdict):
     Level = 1
     NumberOfParticles = 1
@@ -184,45 +200,34 @@ class FieldDetector(defaultdict):
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
         return YTArray(defaultdict.__missing__(self, field_name),
-                       input_units=finfo.units,
+                       units=finfo.units,
                        registry=self.ds.unit_registry)
-
-    fp_units = {
-        'bulk_velocity' : 'cm/s',
-        'bulk_magnetic_field': 'G',
-        'center' : 'cm',
-        'normal' : '',
-        'cp_x_vec': '',
-        'cp_y_vec': '',
-        'cp_z_vec': '',
-        'x_hat': '',
-        'y_hat': '',
-        'z_hat': '',
-        'omega_baryon': '',
-        'virial_radius': 'cm',
-        'observer_redshift': '',
-        'source_redshift': '',
-        }
 
     def get_field_parameter(self, param, default = 0.0):
         if self.field_parameters and param in self.field_parameters:
             return self.field_parameters[param]
         self.requested_parameters.append(param)
         if param in ['center', 'normal'] or param.startswith('bulk'):
-            return self.ds.arr(
-                np.random.random(3) * 1e-2, self.fp_units[param])
+            if param == 'bulk_magnetic_field':
+                if self.ds.unit_system.has_current_mks:
+                    unit = "T"
+                else:
+                    unit = "G"
+            else:
+                unit = fp_units[param]
+            return self.ds.arr(np.random.random(3) * 1e-2, unit)
         elif param in ['surface_height']:
             return self.ds.quan(0.0, 'code_length')
         elif param in ['axis']:
             return 0
         elif param.startswith("cp_"):
             ax = param[3]
-            rv = self.ds.arr((0.0, 0.0, 0.0), self.fp_units[param])
+            rv = self.ds.arr((0.0, 0.0, 0.0), fp_units[param])
             rv['xyz'.index(ax)] = 1.0
             return rv
         elif param.endswith("_hat"):
             ax = param[0]
-            rv = YTArray((0.0, 0.0, 0.0), self.fp_units[param])
+            rv = YTArray((0.0, 0.0, 0.0), fp_units[param])
             rv['xyz'.index(ax)] = 1.0
             return rv
         elif param == "fof_groups":
@@ -236,7 +241,7 @@ class FieldDetector(defaultdict):
     id = 1
 
     def apply_units(self, arr, units):
-        return self.ds.arr(arr, input_units = units)
+        return self.ds.arr(arr, units = units)
 
     def has_field_parameter(self, param):
         return param in self.field_parameters
@@ -250,14 +255,14 @@ class FieldDetector(defaultdict):
             fc.shape = (self.nd*self.nd*self.nd, 3)
         else:
             fc = fc.transpose()
-        return self.ds.arr(fc, input_units = "code_length")
+        return self.ds.arr(fc, units = "code_length")
 
     @property
     def fcoords_vertex(self):
         fc = np.random.random((self.nd, self.nd, self.nd, 8, 3))
         if self.flat:
             fc.shape = (self.nd*self.nd*self.nd, 8, 3)
-        return self.ds.arr(fc, input_units = "code_length")
+        return self.ds.arr(fc, units = "code_length")
 
     @property
     def icoords(self):
@@ -282,5 +287,5 @@ class FieldDetector(defaultdict):
         fw = np.ones((self.nd**3, 3), dtype="float64") / self.nd
         if not self.flat:
             fw.shape = (self.nd, self.nd, self.nd, 3)
-        return self.ds.arr(fw, input_units = "code_length")
+        return self.ds.arr(fw, units = "code_length")
 

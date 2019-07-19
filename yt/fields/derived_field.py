@@ -16,7 +16,6 @@ import inspect
 import re
 import warnings
 
-from yt.extern.six import string_types, PY2
 from yt.funcs import \
     ensure_list, \
     VisibleDeprecationWarning
@@ -141,7 +140,7 @@ class DerivedField(object):
         # handle units
         if units is None:
             self.units = ''
-        elif isinstance(units, string_types):
+        elif isinstance(units, str):
             if units.lower() == 'auto':
                 if dimensions is None:
                     raise RuntimeError("To set units='auto', please specify the dimensions "
@@ -161,7 +160,7 @@ class DerivedField(object):
             output_units = self.units
         self.output_units = output_units
 
-        if isinstance(dimensions, string_types):
+        if isinstance(dimensions, str):
             dimensions = getattr(ytdims, dimensions)
         self.dimensions = dimensions
 
@@ -187,13 +186,15 @@ class DerivedField(object):
 
     @property
     def is_sph_field(self):
+        if self.sampling_type == "cell":
+            return False
         is_sph_field = False
         if self.alias_field:
             name = self.alias_name
         else:
             name = self.name
-        if hasattr(self.ds, '_sph_ptype'):
-            is_sph_field |= name[0] in (self.ds._sph_ptype, 'gas')
+        if hasattr(self.ds, '_sph_ptypes'):
+            is_sph_field |= name[0] in (self.ds._sph_ptypes + ('gas',))
         return is_sph_field
 
     @property
@@ -312,10 +313,7 @@ class DerivedField(object):
 
     @property
     def alias_field(self):
-        if PY2:
-            func_name = self._function.func_name
-        else:
-            func_name = self._function.__name__
+        func_name = self._function.__name__
         if func_name == "_TranslationFunc":
             return True
         return False
@@ -327,10 +325,7 @@ class DerivedField(object):
         return None
 
     def __repr__(self):
-        if PY2:
-            func_name = self._function.func_name
-        else:
-            func_name = self._function.__name__
+        func_name = self._function.__name__
         if self._function == NullFunc:
             s = "On-Disk Field "
         elif func_name == "_TranslationFunc":

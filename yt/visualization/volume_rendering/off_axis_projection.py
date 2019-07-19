@@ -129,11 +129,11 @@ def off_axis_projection(data_source, center, normal_vector,
     if not hasattr(width, "units"):
         width = data_source.ds.arr(width, 'code_length')
 
-    if hasattr(data_source.ds, '_sph_ptype'):
+    if hasattr(data_source.ds, '_sph_ptypes'):
         if method != 'integrate':
             raise NotImplementedError("SPH Only allows 'integrate' method")
 
-        ptype = data_source.ds._sph_ptype
+        sph_ptypes = data_source.ds._sph_ptypes
         fi = data_source.ds.field_info[item]
 
         raise_error = False
@@ -142,13 +142,17 @@ def off_axis_projection(data_source, center, normal_vector,
         # has a field type as the SPH particle type or if the field is an 
         # alias to an SPH field or is a 'gas' field
         if fi.alias_field:
-            if fi.alias_name[0] != ptype:
+            if fi.alias_name[0] not in sph_ptypes:
                 raise_error = True
             elif item[0] != 'gas':
                 ptype = item[0]
+            else:
+                ptype = fi.alias_name[0]
         else:
-            if fi.name[0] != ptype and fi.name[0] != 'gas':
+            if fi.name[0] not in sph_ptypes and fi.name[0] != 'gas':
                 raise_error = True
+            else:
+                ptype = fi.name[0]
 
         if raise_error:
             raise RuntimeError(
@@ -281,7 +285,7 @@ def off_axis_projection(data_source, center, normal_vector,
         def _make_wf(f, w):
             def temp_weightfield(a, b):
                 tr = b[f].astype("float64") * b[w]
-                return b.apply_units(tr, a.units)
+                return tr.d
             return temp_weightfield
         data_source.ds.field_info.add_field(weightfield,
                                             sampling_type="cell",

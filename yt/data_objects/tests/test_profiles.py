@@ -28,16 +28,15 @@ def test_profiles():
     ds = fake_random_ds(64, nprocs = 8, fields = _fields, units = _units)
     nv = ds.domain_dimensions.prod()
     dd = ds.all_data()
-    (rmi, rma), (tmi, tma), (dmi, dma) = dd.quantities["Extrema"](
-        ["density", "temperature", "dinosaurs"])
     rt, tt, dt = dd.quantities["TotalQuantity"](
         ["density", "temperature", "dinosaurs"])
 
     e1, e2 = 0.9, 1.1
     for nb in [8, 16, 32, 64]:
         for input_units in ['mks', 'cgs']:
-            for ex in [rmi, rma, tmi, tma, dmi, dma]:
-                getattr(ex, 'convert_to_%s' % input_units)()
+            (rmi, rma), (tmi, tma), (dmi, dma) = [
+                getattr(ex, 'in_%s' % input_units)() for ex in
+                 dd.quantities["Extrema"](["density", "temperature", "dinosaurs"])]
             # We log all the fields or don't log 'em all.  No need to do them
             # individually.
             for lf in [True, False]:

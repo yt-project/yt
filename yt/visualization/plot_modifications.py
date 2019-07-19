@@ -40,7 +40,6 @@ from yt.funcs import \
     validate_width_tuple
 from yt.geometry.geometry_handler import \
     is_curvilinear
-from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity, YTArray, uhstack
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
@@ -79,8 +78,7 @@ class RegisteredCallback(type):
         callback_registry[name] = cls
         cls.__call__ = _verify_geometry(cls.__call__)
 
-@add_metaclass(RegisteredCallback)
-class PlotCallback(object):
+class PlotCallback(metaclass = RegisteredCallback):
     # _supported_geometries is set by subclasses of PlotCallback to a tuple of
     # strings corresponding to the names of the geometries that a callback
     # supports.  By default it is None, which means it supports everything.
@@ -694,8 +692,8 @@ class GridBoundaryCallback(PlotCallback):
             block_ids.append(block.id)
         if len(GLE) == 0: return
         # Retain both units and registry
-        GLE = YTArray(GLE, input_units = GLE[0].units)
-        GRE = YTArray(GRE, input_units = GRE[0].units)
+        GLE = plot.ds.arr(GLE, units = GLE[0].units)
+        GRE = plot.ds.arr(GRE, units = GRE[0].units)
         levels = np.array(levels)
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
@@ -2382,7 +2380,7 @@ class ScaleCallback(PlotCallback):
                 max_scale, return_quantity=True)
             self.coeff = max_scale.v
             self.unit = max_scale.units
-        self.scale = YTQuantity(self.coeff, self.unit)
+        self.scale = plot.ds.quan(self.coeff, self.unit)
         text = self.scale_text_format.format(scale=int(self.coeff),
                                              units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /

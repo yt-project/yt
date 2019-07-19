@@ -26,7 +26,6 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.utilities.physical_constants import \
     gravitational_constant_cgs
 from yt.utilities.physical_ratios import HUGE
-from yt.extern.six import add_metaclass
 from yt.utilities.exceptions import \
     YTParticleTypeNotFound
 
@@ -54,8 +53,7 @@ class RegisteredDerivedQuantity(type):
         if name != "DerivedQuantity":
             derived_quantity_registry[name] = cls
 
-@add_metaclass(RegisteredDerivedQuantity)
-class DerivedQuantity(ParallelAnalysisInterface):
+class DerivedQuantity(ParallelAnalysisInterface, metaclass = RegisteredDerivedQuantity):
     num_vals = -1
 
     def __init__(self, data_source):
@@ -424,10 +422,10 @@ class WeightedVariance(DerivedQuantity):
             my_mean = values[i]
             my_var2 = values[i + int(len(values) / 2)]
             all_mean = (my_weight * my_mean).sum(dtype=np.float64) / all_weight
-            rvals.append(self.data_source.ds.arr([(np.sqrt((my_weight *
-                                                 (my_var2 + (my_mean -
-                                                  all_mean)**2)).sum(dtype=np.float64)
-                                                  / all_weight)), all_mean]))
+            ret = [(np.sqrt(
+                (my_weight * (my_var2 + (my_mean - all_mean)**2) / all_weight)
+                ).sum(dtype=np.float64)), all_mean]
+            rvals.append(self.data_source.ds.arr(ret))
         return rvals
 
 class AngularMomentumVector(DerivedQuantity):

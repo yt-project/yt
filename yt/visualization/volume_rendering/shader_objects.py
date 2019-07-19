@@ -17,7 +17,6 @@ in Interactive Data Visualization
 import os
 import OpenGL.GL as GL
 import contextlib
-from yt.extern.six import add_metaclass
 from collections import OrderedDict
 from yt.utilities.exceptions import \
     YTInvalidShaderType, \
@@ -144,8 +143,7 @@ class RegisteredShader(type):
         if getattr(cls, "_shader_name", None) is not None:
             known_shaders[cls._shader_name] = cls
 
-@add_metaclass(RegisteredShader)
-class Shader(object):
+class Shader(metaclass = RegisteredShader):
     '''
     Creates a shader from source
 

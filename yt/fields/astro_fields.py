@@ -22,17 +22,10 @@ from .field_exceptions import \
 from .field_plugin_registry import \
     register_field_plugin
 
-from yt.utilities.physical_constants import \
-    mh, \
-    me, \
-    sigma_thompson, \
-    clight, \
-    kboltz, \
-    G
-
 @register_field_plugin
 def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     unit_system = registry.ds.unit_system
+    pc = registry.ds.units.physical_constants
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
     # slice(None, -2, None)
@@ -50,7 +43,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         """
         sqrt(3 pi / (16 G rho))
         """
-        return np.sqrt(3.0 * np.pi / (16.0 * G * data[ftype, "density"]))
+        return np.sqrt(3.0 * np.pi / (16.0 * pc.G * data[ftype, "density"]))
 
     registry.add_field((ftype, "dynamical_time"),
                        sampling_type="local",
@@ -58,7 +51,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        units=unit_system["time"])
 
     def _jeans_mass(field, data):
-        MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
+        MJ_constant = (((5.0 * pc.kboltz) / (pc.G * pc.mh)) ** (1.5)) * \
           (3.0 / (4.0 * np.pi)) ** (0.5)
         u = (MJ_constant * \
              ((data[ftype, "temperature"] /
@@ -100,7 +93,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
             X_H = data.get_field_parameter("X_H")
         else:
             X_H = 0.76
-        nenh = data[ftype, "density"]/mh
+        nenh = data[ftype, "density"]/pc.mh
         nenh *= nenh
         nenh *= 0.5*(1.+X_H)*X_H*data["index", "cell_volume"]
         return nenh
@@ -124,7 +117,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     def _mazzotta_weighting(field, data):
         # Spectroscopic-like weighting field for galaxy clusters
         # Only useful as a weight_field for temperature, metallicity, velocity
-        ret = data[ftype, "density"]/mh
+        ret = data[ftype, "density"]/pc.mh
         ret *= ret*data[ftype, "kT"]**-0.75
         return ret
 
@@ -134,7 +127,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        units="keV**-0.75*cm**-6")
 
     def _sz_kinetic(field, data):
-        scale = 0.88 * sigma_thompson / mh / clight
+        scale = 0.88 * pc.sigma_thompson / pc.mh / pc.clight
         vel_axis = data.get_field_parameter("axis")
         if vel_axis > 2:
             raise NeedsParameter(["axis"])
@@ -151,7 +144,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                            ValidateParameter("axis", {'axis': [0, 1, 2]})])
 
     def _szy(field, data):
-        scale = 0.88 / mh * kboltz / (me * clight*clight) * sigma_thompson
+        scale = (0.88 / pc.mh * pc.kboltz / (pc.me * pc.clight**2) *
+                 pc.sigma_thompson)
         return scale * data[ftype, "density"] * data[ftype, "temperature"]
 
     registry.add_field((ftype, "szy"),

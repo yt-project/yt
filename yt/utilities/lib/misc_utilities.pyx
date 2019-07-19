@@ -22,7 +22,6 @@ cimport libc.math as math
 from libc.math cimport abs, sqrt
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max
 from yt.geometry.selection_routines cimport _ensure_code
-from yt.utilities.exceptions import YTEquivalentDimsError
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport strcmp
@@ -666,11 +665,7 @@ def obtain_relative_velocity_vector(
         if bulk_vector is None:
             bv[0] = bv[1] = bv[2] = 0.0
         else:
-            if hasattr(bulk_vector, 'in_units'):
-                try:
-                    bulk_vector = bulk_vector.in_units(vxg.units)
-                except YTEquivalentDimsError as e:
-                    bulk_vector = bulk_vector.to_equivalent(e.new_units, e.base)
+            bulk_vector = bulk_vector.in_units(vxg.units)
             bv[0] = bulk_vector[0]
             bv[1] = bulk_vector[1]
             bv[2] = bulk_vector[2]

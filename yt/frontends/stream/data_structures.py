@@ -80,7 +80,6 @@ from yt.utilities.flagging_methods import \
 from yt.data_objects.unstructured_mesh import \
     SemiStructuredMesh, \
     UnstructuredMesh
-from yt.extern.six import string_types
 from .fields import \
     StreamFieldInfo
 from yt.frontends.exodus_ii.util import \
@@ -339,7 +338,7 @@ class StreamDataset(Dataset):
         attrs = ('length_unit', 'mass_unit', 'time_unit', 'velocity_unit', 'magnetic_unit')
         cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
-            if isinstance(unit, string_types):
+            if isinstance(unit, str):
                 uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
@@ -513,11 +512,11 @@ def process_data(data, grid_dims=None):
         # val is a tuple of (data, units)
         elif isinstance(val, tuple) and len(val) == 2:
             try:
-                assert isinstance(field, (string_types, tuple)), \
+                assert isinstance(field, (str, tuple)), \
                   "Field name is not a string!"
                 assert isinstance(val[0], np.ndarray), \
                   "Field data is not an ndarray!"
-                assert isinstance(val[1], string_types), \
+                assert isinstance(val[1], str), \
                   "Unit specification is not a string!"
                 field_units[field] = val[1]
                 new_data[field] = val[0]
@@ -1137,7 +1136,7 @@ class StreamParticlesDataset(StreamDataset):
         # This is the current method of detecting SPH data.
         # This should be made more flexible in the future.
         if ('io', 'density') in fields and ('io', 'smoothing_length') in fields:
-            self._sph_ptype = 'io'
+            self._sph_ptypes = ('io',)
 
     def add_sph_fields(self, n_neighbors=32, kernel="cubic", sph_ptype="io"):
         """Add SPH fields for the specified particle type.
@@ -1214,7 +1213,7 @@ class StreamParticlesDataset(StreamDataset):
             data[(sph_ptype, "density")] = (dens, d_unit)
 
         # Add fields
-        self._sph_ptype = sph_ptype
+        self._sph_ptypes = (sph_ptype,)
         self.index.update_data(data)
 
 def load_particles(data, length_unit=None, bbox=None,
@@ -1308,7 +1307,7 @@ def load_particles(data, length_unit=None, bbox=None,
         if unit is None:
             unit = "code_" + dimension
             if data_source is not None:
-                unit = data_source.ds.quan(1, unit).in_cgs()
+                unit = getattr(data_source.ds, dimension + '_unit', unit)
         return unit
 
     length_unit = parse_unit(length_unit, "length")

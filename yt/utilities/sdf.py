@@ -1,5 +1,5 @@
 from __future__ import print_function
-from yt.extern.six.moves import cStringIO
+from io import StringIO
 import os
 import numpy as np
 
@@ -470,7 +470,7 @@ class HTTPSDFRead(SDFRead):
         # Pre-process
         ascfile = self.HTTPArray(self.header)
         max_header_size = 1024*1024
-        lines = cStringIO(ascfile[:max_header_size].data[:])
+        lines = StringIO(ascfile[:max_header_size].data[:])
         while True:
             l = lines.readline()
             if self._eof in l: break

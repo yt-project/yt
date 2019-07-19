@@ -19,7 +19,7 @@ def test_bad_disk_input():
     with assert_raises(TypeError) as ex:
         ds.disk(ds.domain_center, [0, 0, 1], ds.domain_center, (20, 'kpc'))
     desired = ("Expected a numeric value (or size-1 array),"
-               " received 'yt.units.yt_array.YTArray' of length 3")
+               " received 'unyt.array.unyt_array' of length 3")
     assert_equal(str(ex.exception), desired)
 
     # Test invalid float
@@ -34,7 +34,7 @@ def test_bad_disk_input():
         ds.disk(ds.domain_center, [0, 0, 1], (10, 'kpc'),
                 (20, 'kpc'), fields=YTQuantity(1, 'kpc'))
     desired = ("Expected an iterable object, received"
-               " 'yt.units.yt_array.YTQuantity'")
+               " 'unyt.array.unyt_quantity'")
     assert_equal(str(ex.exception), desired)
 
     # Test invalid object

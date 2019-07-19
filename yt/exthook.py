@@ -22,7 +22,6 @@
 # This source code was originally in flask/exthook.py
 import sys
 import os
-from .extern.six import reraise
 
 
 class ExtensionImporter(object):
@@ -79,7 +78,7 @@ class ExtensionImporter(object):
                 # we swallow it and try the next choice.  The skipped frame
                 # is the one from __import__ above which we don't care about
                 if self.is_important_traceback(realname, tb):
-                    reraise(exc_type, exc_value, tb.tb_next)
+                    raise exc_value.with_traceback(tb.tb_next)
                 continue
             module = sys.modules[fullname] = sys.modules[realname]
             if '.' not in modname:

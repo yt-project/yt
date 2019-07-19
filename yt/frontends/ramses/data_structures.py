@@ -22,7 +22,6 @@ import weakref
 from collections import defaultdict
 from glob import glob
 
-from yt.extern.six import string_types
 from yt.funcs import \
     mylog, \
     setdefaultattr
@@ -376,7 +375,7 @@ class RAMSESDataset(Dataset):
                  extra_particle_fields=None, cosmological=None,
                  bbox=None):
         # Here we want to initiate a traceback, if the reader is not built.
-        if isinstance(fields, string_types):
+        if isinstance(fields, str):
             fields = field_aliases[fields]
         '''
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file

@@ -9,7 +9,7 @@ cov = Coverage(config_file=".coveragerc", branch=True, auto_data=True,
                concurrency="multiprocessing")
 cov.start()
 
-from yt.extern.six import StringIO
+from io import StringIO
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
 import numpy

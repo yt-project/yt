@@ -12,7 +12,6 @@ Fixed resolution buffer filters.
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.extern.six import add_metaclass
 from functools import wraps
 
 filter_registry = {}
@@ -33,8 +32,7 @@ class RegisteredFilter(type):
         filter_registry[name] = cls
 
 
-@add_metaclass(RegisteredFilter)
-class FixedResolutionBufferFilter(object):
+class FixedResolutionBufferFilter(metaclass = RegisteredFilter):
 
     """
     This object allows to apply data transformation directly to

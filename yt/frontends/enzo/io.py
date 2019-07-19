@@ -16,7 +16,6 @@ Enzo-specific IO functions
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.extern.six import b, iteritems
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.geometry.selection_routines import GridSelector
 import numpy as np
@@ -42,7 +41,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         fields = []
         dtypes = set([])
         add_io = "io" in grid.ds.particle_types
-        for name, v in iteritems(group):
+        for name, v in group.items():
             # NOTE: This won't work with 1D datasets or references.
             # For all versions of Enzo I know about, we can assume all floats
             # are of the same size.  So, let's grab one.
@@ -127,7 +126,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     # problem, but one we can return to.
                     if fid is not None:
                         fid.close()
-                    fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
+                    fid = h5py.h5f.open(obj.filename.encode('latin-1'), h5py.h5f.ACC_RDONLY)
                     filename = obj.filename
                 for field in fields:
                     nodal_flag = self.ds.field_info[field].nodal_flag
@@ -143,7 +142,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         fid, data = fid_data
         if fid is None:
             close = True
-            fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
+            fid = h5py.h5f.open(obj.filename.encode("latin-1"), h5py.h5f.ACC_RDONLY)
         else:
             close = False
         if data is None:
@@ -152,7 +151,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         ftype, fname = field
         try:
             node = "/Grid%08i/%s" % (obj.id, fname)
-            dg = h5py.h5d.open(fid, b(node))
+            dg = h5py.h5d.open(fid, node.encode("latin-1"))
         except KeyError:
             if fname == "Dark_Matter_Density":
                 data[:] = 0

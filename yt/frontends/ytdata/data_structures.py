@@ -39,8 +39,6 @@ from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile, \
     validate_index_order
-from yt.extern.six import \
-    string_types
 from yt.funcs import \
     is_root, \
     parse_h5_attr
@@ -86,7 +84,11 @@ class SavedDataset(Dataset):
             for key in f.attrs.keys():
                 v = parse_h5_attr(f, key)
                 if key == "con_args":
-                    v = v.astype("str")
+                    try:
+                        v = eval(v)
+                    except ValueError:
+                        # support older ytdata outputs
+                        v = v.astype('str')
                 self.parameters[key] = v
             self._with_parameter_file_open(f)
 
@@ -163,7 +165,7 @@ class SavedDataset(Dataset):
                                self.parameters["%s_units" % attr])
                 del self.parameters[attr]
                 del self.parameters["%s_units" % attr]
-            elif isinstance(unit, string_types):
+            elif isinstance(unit, str):
                 uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
@@ -351,7 +353,7 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
     def _parse_parameter_file(self):
         super(YTSpatialPlotDataset, self)._parse_parameter_file()
         if self.parameters["container_type"] == "proj":
-            if isinstance(self.parameters["weight_field"], string_types) and \
+            if isinstance(self.parameters["weight_field"], str) and \
               self.parameters["weight_field"] == "None":
                 self.parameters["weight_field"] = None
             elif isinstance(self.parameters["weight_field"], np.ndarray):
@@ -621,7 +623,7 @@ class YTNonspatialGrid(AMRGridPatch):
                 else:
                     v = v.astype(np.float64)
             if convert:
-                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
                 self.field_data[f].convert_to_units(finfos[f].output_units)
 
         read_particles, gen_particles = self.index._read_fluid_fields(
@@ -635,7 +637,7 @@ class YTNonspatialGrid(AMRGridPatch):
                 else:
                     v = v.astype(np.float64)
             if convert:
-                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
                 self.field_data[f].convert_to_units(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
@@ -755,7 +757,7 @@ class YTProfileDataset(YTNonspatialDataset):
     def _parse_parameter_file(self):
         super(YTGridDataset, self)._parse_parameter_file()
 
-        if isinstance(self.parameters["weight_field"], string_types) and \
+        if isinstance(self.parameters["weight_field"], str) and \
           self.parameters["weight_field"] == "None":
             self.parameters["weight_field"] = None
         elif isinstance(self.parameters["weight_field"], np.ndarray):
@@ -788,7 +790,7 @@ class YTProfileDataset(YTNonspatialDataset):
             setattr(self, range_name, self.parameters[range_name])
 
             bin_field = "%s_field" % ax
-            if isinstance(self.parameters[bin_field], string_types) and \
+            if isinstance(self.parameters[bin_field], str) and \
               self.parameters[bin_field] == "None":
                 self.parameters[bin_field] = None
             elif isinstance(self.parameters[bin_field], np.ndarray):

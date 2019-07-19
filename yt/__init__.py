@@ -16,6 +16,10 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import sys
+if sys.version_info[0] < 3:
+    raise Exception("Python 2 no longer supported.  Please install Python 3 for use with yt.")
+
 __version__ = "4.0.dev0"
 
 # First module imports
@@ -44,7 +48,7 @@ from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
 from yt.units.unit_object import define_unit
-from yt.units.yt_array import \
+from yt.units import \
     YTArray, \
     YTQuantity, \
     uconcatenate, \
@@ -132,5 +136,5 @@ from yt.testing import run_nose
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
 
-from yt.units.unit_systems import UnitSystem
-from yt.units.unit_object import unit_system_registry
+from yt.units.unit_systems import \
+    UnitSystem, unit_system_registry

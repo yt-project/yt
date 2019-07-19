@@ -19,7 +19,6 @@ import numpy as np
 from numbers import Number as numeric_type
 import warnings
 
-from yt.extern.six import string_types
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import \
     is_curvilinear
@@ -89,7 +88,7 @@ class FieldInfoContainer(dict):
                 self.alias((ftype, f), ("index", f))
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64):
-        skip_output_units = ("code_length")
+        skip_output_units = ("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
             output_units = units
@@ -150,9 +149,9 @@ class FieldInfoContainer(dict):
         for units, field in self.extra_union_fields:
             add_union_field(self, ptype, field, units)
 
-    def setup_smoothed_fields(self, ptype, num_neighbors = 64, ftype = "gas"):
+    def setup_smoothed_fields(self, ptype, num_neighbors=64, ftype="gas"):
         # We can in principle compute this, but it is not yet implemented.
-        if (ptype, "density") not in self or not hasattr(self.ds, '_sph_ptype'):
+        if (ptype, "density") not in self or not hasattr(self.ds, '_sph_ptypes'):
             return
         new_aliases = []
         for ptype2, alias_name in list(self):
@@ -210,7 +209,7 @@ class FieldInfoContainer(dict):
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
-            if not isinstance(units, string_types) and args[0] != "":
+            if not isinstance(units, str) and args[0] != "":
                 units = "((%s)*%s)" % (args[0], units)
             if isinstance(units, (numeric_type, np.number, np.ndarray)) and \
                 args[0] == "" and units != 1.0:

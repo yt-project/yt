@@ -13,7 +13,6 @@ Data structures for Gadget frontend
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.extern.six import string_types
 from yt.funcs import only_on_root
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
@@ -41,7 +40,7 @@ from .fields import \
     GadgetFieldInfo
 
 def _fix_unit_ordering(unit):
-    if isinstance(unit[0], string_types):
+    if isinstance(unit[0], str):
         unit = unit[1], unit[0]
     return unit
 
@@ -61,7 +60,7 @@ class GadgetBinaryHeader(object):
 
     def __init__(self, filename, header_spec):
         self.filename = filename
-        if isinstance(header_spec, string_types):
+        if isinstance(header_spec, str):
             header_spec = [header_spec]
         self.spec = [GadgetDataset._setup_binary_spec(hs, gadget_header_specs)
                      for hs in header_spec]
@@ -222,7 +221,7 @@ class GadgetDataset(SPHDataset):
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
-    _sph_ptype = 'Gas'
+    _sph_ptypes = ('Gas',)
     _suffix = ""
 
     def __init__(self, filename, dataset_type="gadget_binary",
@@ -319,7 +318,7 @@ class GadgetDataset(SPHDataset):
 
     @classmethod
     def _setup_binary_spec(cls, spec, spec_dict):
-        if isinstance(spec, string_types):
+        if isinstance(spec, str):
             _hs = ()
             for hs in spec.split("+"):
                 _hs += spec_dict[hs]
@@ -535,7 +534,7 @@ class GadgetHDF5Dataset(GadgetDataset):
     _index_class = SPHParticleIndex
     _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Masses"
-    _sph_ptype = 'PartType0'
+    _sph_ptypes = ('PartType0',)
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="gadget_hdf5",

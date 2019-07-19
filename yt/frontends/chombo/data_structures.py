@@ -19,7 +19,6 @@ import os
 import weakref
 import numpy as np
 
-from six import string_types
 from stat import \
     ST_CTIME
 
@@ -28,7 +27,6 @@ from yt.funcs import \
     setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
-from yt.extern import six
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
@@ -374,7 +372,7 @@ class ChomboDataset(Dataset):
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], six.string_types): 
+        if isinstance(args[0], str): 
             dir_name = os.path.dirname(os.path.abspath(args[0]))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
@@ -534,7 +532,7 @@ class PlutoDataset(ChomboDataset):
 
         pluto_ini_file_exists = False
 
-        if isinstance(args[0], six.string_types):
+        if isinstance(args[0], str):
             dir_name = os.path.dirname(os.path.abspath(args[0]))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
@@ -680,7 +678,7 @@ class Orion2Dataset(ChomboDataset):
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], string_types):
+        if isinstance(args[0], str):
             dir_name = os.path.dirname(os.path.abspath(args[0]))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
@@ -739,7 +737,7 @@ class ChomboPICDataset(ChomboDataset):
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], six.string_types):
+        if isinstance(args[0], str):
             dir_name = os.path.dirname(os.path.abspath(args[0]))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")

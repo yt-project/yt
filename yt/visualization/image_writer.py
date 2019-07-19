@@ -27,8 +27,7 @@ from .color_maps import mcm
 from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
-from yt.extern.six.moves import builtins
-from yt.extern.six import string_types
+import builtins
 
 
 def scale_image(image, mi=None, ma=None):
@@ -299,7 +298,7 @@ def strip_colormap_data(fn = "color_map_data.py",
     f.write("color_map_luts = {}\n\n\n")
     if cmaps is None:
         cmaps = rcm.ColorMaps
-    if isinstance(cmaps, string_types):
+    if isinstance(cmaps, str):
         cmaps = [cmaps]
     for cmap_name in sorted(cmaps):
         vals = rcm._extract_lookup_table(cmap_name)

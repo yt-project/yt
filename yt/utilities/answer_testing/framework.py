@@ -21,7 +21,8 @@ import time
 import hashlib
 import contextlib
 import sys
-from yt.extern.six.moves import cPickle, urllib
+import pickle
+import urllib
 import shelve
 import zlib
 import tempfile
@@ -205,7 +206,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
                 # Raise error if all tries were unsuccessful
                 raise YTCloudError(url)
             # This is dangerous, but we have a controlled S3 environment
-            rv = cPickle.loads(data)
+            rv = pickle.loads(data)
         self.cache[ds_name] = rv
         return rv
 
@@ -224,7 +225,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         pb = get_pbar("Storing results ", len(result_storage))
         for i, ds_name in enumerate(result_storage):
             pb.update(i)
-            rs = cPickle.dumps(result_storage[ds_name])
+            rs = pickle.dumps(result_storage[ds_name])
             object_name = "%s_%s" % (self.answer_name, ds_name)
             if object_name in c.get_object_names():
                 obj = c.get_object(object_name)
@@ -463,8 +464,11 @@ class FieldValuesTest(AnswerTestingTest):
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
         field = obj._determine_fields(self.field)[0]
+        fd = self.ds.field_info[field]
         if self.particle_type:
             weight_field = (field[0], "particle_ones")
+        elif fd.is_sph_field:
+            weight_field = (field[0], "ones")
         else:
             weight_field = ("index", "ones")
         avg = obj.quantities.weighted_average_quantity(
@@ -989,13 +993,9 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
     dd = ds.all_data()
     assert_equal(dd["particle_position"].shape, (ds_nparticles, 3))
     tot = sum(dd[ptype, "particle_position"].shape[0]
-              for ptype in ds.particle_types if ptype != "all")
+              for ptype in ds.particle_types_raw)
     assert_equal(tot, ds_nparticles)
     for dobj_name in dso:
-        dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
-        s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        assert_equal(s1, s2)
         for field, weight_field in fields.items():
             if field[0] in ds.particle_types:
                 particle_type = True

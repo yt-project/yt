@@ -22,8 +22,8 @@ import yt.utilities.command_line
 import yt.config
 from yt.config import \
     CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE, CONFIG_DIR, YTConfigParser
-from yt.extern.six import StringIO
-from yt.extern.six.moves.configparser import NoOptionError
+from io import StringIO
+from configparser import NoOptionError
 from yt.fields.tests.test_fields_plugins import TEST_PLUGIN_FILE
 
 _TEST_PLUGIN = '_test_plugin.py'

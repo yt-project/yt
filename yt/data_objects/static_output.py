@@ -23,8 +23,7 @@ import weakref
 import warnings
 
 from collections import defaultdict
-from yt.extern.six import add_metaclass, string_types
-from six.moves import cPickle
+import pickle
 
 from yt.config import ytcfg
 from yt.fields.derived_field import \
@@ -51,9 +50,10 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
+from yt.units import UnitContainer
 from yt.units.dimensions import current_mks
-from yt.units.unit_object import Unit, unit_system_registry, \
-    _define_unit
+from yt.units.unit_object import Unit, define_unit
+from yt.units.unit_systems import unit_system_registry
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
     ValidateSpatial
@@ -73,9 +73,7 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity, \
     _wrap_display_ytarray
-from yt.units.unit_systems import \
-    create_code_unit_system, \
-    _make_unit_system_copy
+from yt.units.unit_systems import create_code_unit_system
 from yt.data_objects.region_expression import \
     RegionExpression
 from yt.geometry.coordinates.api import \
@@ -165,8 +163,7 @@ def requires_index(attr_name):
 
     return ireq
 
-@add_metaclass(RegisteredDataset)
-class Dataset(object):
+class Dataset(metaclass = RegisteredDataset):
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
@@ -188,7 +185,7 @@ class Dataset(object):
     _ionization_label_format = 'roman_numeral'
 
     def __new__(cls, filename=None, *args, **kwargs):
-        if not isinstance(filename, string_types):
+        if not isinstance(filename, str):
             obj = object.__new__(cls)
             # The Stream frontend uses a StreamHandler object to pass metadata
             # to __init__.
@@ -198,7 +195,7 @@ class Dataset(object):
                 obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
-        cache_key = (apath, cPickle.dumps(args), cPickle.dumps(kwargs))
+        cache_key = (apath, pickle.dumps(args), pickle.dumps(kwargs))
         if ytcfg.getboolean("yt","skip_dataset_cache"):
             obj = object.__new__(cls)
         elif cache_key not in _cached_datasets:
@@ -248,7 +245,15 @@ class Dataset(object):
         self.min_level = 0
         self.no_cgs_equiv_length = False
 
-        self._create_unit_registry()
+        if unit_system == 'code':
+            # create a fake MKS unit system which we will override later to
+            # avoid chicken/egg issue of the unit registry needing a unit system
+            # but code units need a unit registry to define the code units on
+            used_unit_system = 'mks'
+        else:
+            used_unit_system = unit_system
+
+        self._create_unit_registry(used_unit_system)
 
         self._parse_parameter_file()
         self.set_units()
@@ -513,8 +518,10 @@ class Dataset(object):
         if "nbody" not in self.particle_types:
             mylog.debug("Creating Particle Union 'nbody'")
             ptypes = list(self.particle_types_raw)
-            if hasattr(self, '_sph_ptype') and self._sph_ptype in ptypes:
-                ptypes.remove(self._sph_ptype)
+            if hasattr(self, '_sph_ptypes'):
+                for sph_ptype in self._sph_ptypes:
+                    if sph_ptype in ptypes:
+                        ptypes.remove(sph_ptype)
             if ptypes:
                 nbody_ptypes = []
                 for ptype in ptypes:
@@ -651,7 +658,7 @@ class Dataset(object):
         # concatenation fields.
         n = getattr(filter, "name", filter)
         self.known_filters[n] = None
-        if isinstance(filter, string_types):
+        if isinstance(filter, str):
             used = False
             f = filter_registry.get(filter, None)
             if f is None:
@@ -697,6 +704,13 @@ class Dataset(object):
                 self.particle_types += (filter.name,)
             if filter.name not in self.filtered_particle_types:
                 self.filtered_particle_types.append(filter.name)
+            if hasattr(self, '_sph_ptypes'):
+                if filter.filtered_type == self._sph_ptypes[0]:
+                    mylog.warning("It appears that you are filtering on an SPH field "
+                                  "type. It is recommended to use 'gas' as the "
+                                  "filtered particle type in this case instead.")
+                if filter.filtered_type in (self._sph_ptypes + ("gas",)):
+                    self._sph_ptypes = self._sph_ptypes + (filter.name,)
             new_fields = self._setup_particle_types([filter.name])
             deps, _ = self.field_info.check_derived_fields(new_fields)
             self.field_dependencies.update(deps)
@@ -878,9 +892,11 @@ class Dataset(object):
         # list or other non-array iterable before calculating
         # the center
         if not isinstance(left_edge, np.ndarray):
-            left_edge = np.array(left_edge, dtype='float64')
+            left_edge = np.array(left_edge)
         if not isinstance(right_edge, np.ndarray):
-            right_edge = np.array(right_edge, dtype='float64')
+            right_edge = np.array(right_edge)
+        left_edge = left_edge.astype('float64')
+        right_edge = right_edge.astype('float64')
         c = (left_edge + right_edge)/2.0
         return self.region(c, left_edge, right_edge, **kwargs)
 
@@ -929,44 +945,47 @@ class Dataset(object):
         return self.refine_by**(l1-l0)
 
     def _assign_unit_system(self, unit_system):
-        current_mks_unit = None
+        if unit_system == "cgs":
+            current_mks_unit = None
+        else:
+            current_mks_unit = 'A'
         magnetic_unit = getattr(self, 'magnetic_unit', None)
-        if magnetic_unit is not None:
+        if magnetic_unit is not None and unit_system == "cgs":
             # if the magnetic unit is in T, we need to create the code unit
             # system as an MKS-like system
             if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
-                if unit_system == "code":
-                    current_mks_unit = 'A'
-                elif unit_system == 'mks':
-                    pass
-                else:
-                    self.magnetic_unit = \
-                        self.magnetic_unit.to_equivalent('gauss', 'CGS')
+                    # this is perhaps a little funky
+                    self.magnetic_unit = self.magnetic_unit.to('T').to('gauss')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        create_code_unit_system(self.unit_registry, 
-                                current_mks_unit=current_mks_unit)
-        if unit_system == "code":
-            unit_system = unit_system_registry[self.unit_registry.unit_system_id]
-        else:
-            sys_name = str(unit_system).lower()
-            unit_system = _make_unit_system_copy(self.unit_registry, sys_name)
-        self.unit_system = unit_system
+        us = create_code_unit_system(
+            self.unit_registry, current_mks_unit=current_mks_unit)
+        if unit_system != "code":
+            us = unit_system_registry[str(unit_system).lower()]
+        self.unit_system = us
+        self.unit_registry.unit_system = self.unit_system
 
-    def _create_unit_registry(self):
-        self.unit_registry = UnitRegistry()
+    def _create_unit_registry(self, unit_system):
         import yt.units.dimensions as dimensions
-        self.unit_registry.add("code_length", 1.0, dimensions.length)
-        self.unit_registry.add("code_mass", 1.0, dimensions.mass)
-        self.unit_registry.add("code_density", 1.0, dimensions.density)
+        # yt assumes a CGS unit system by default (for back compat reasons).
+        # Since unyt is MKS by default we specify the MKS values of the base
+        # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
+        self.unit_registry = UnitRegistry(unit_system=unit_system)
+        self.unit_registry.add("code_length", .01, dimensions.length)
+        self.unit_registry.add("code_mass", .001, dimensions.mass)
+        self.unit_registry.add("code_density", 1000., dimensions.density)
         self.unit_registry.add("code_specific_energy", 1.0,
                                dimensions.energy / dimensions.mass)
         self.unit_registry.add("code_time", 1.0, dimensions.time)
-        self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
+        if unit_system == "cgs":
+            self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field_cgs)
+        else:
+            self.unit_registry.add("code_magnetic", .0001, dimensions.magnetic_field)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
-        self.unit_registry.add("code_pressure", 1.0, dimensions.pressure)
-        self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
+        self.unit_registry.add("code_pressure", 0.1, dimensions.pressure)
+        self.unit_registry.add("code_velocity", .01, dimensions.velocity)
         self.unit_registry.add("code_metallicity", 1.0,
                                dimensions.dimensionless)
+        self.unit_registry.add("h", 1.0, dimensions.dimensionless, r"h")
         self.unit_registry.add("a", 1.0, dimensions.dimensionless)
 
     def set_units(self):
@@ -981,9 +1000,10 @@ class Dataset(object):
             # Comoving lengths
             for my_unit in ["m", "pc", "AU", "au"]:
                 new_unit = "%scm" % my_unit
-                self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0] /
-                                       (1 + self.current_redshift),
-                                       length, "\\rm{%s}/(1+z)" % my_unit)
+                my_u = Unit(my_unit, registry=self.unit_registry)
+                self.unit_registry.add(
+                    new_unit, my_u.base_value / (1 + self.current_redshift),
+                    length, "\\rm{%s}/(1+z)" % my_unit, prefixable=True)
             self.unit_registry.modify('a', 1/(1+self.current_redshift))
 
         self.set_code_units()
@@ -1072,22 +1092,34 @@ class Dataset(object):
                 mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
                 setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
 
+    _units = None
+    _unit_system_id = None
+    @property
+    def units(self):
+        current_uid = self.unit_registry.unit_system_id
+        if self._units is not None and self._unit_system_id == current_uid:
+            return self._units
+        self._unit_system_id = current_uid
+        self._units = UnitContainer(self.unit_registry)
+        return self._units
+
     _arr = None
     @property
     def arr(self):
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
 
         The returned YTArray will be dimensionless by default, but can be
-        cast to arbitrary units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``units`` keyword argument.
 
         Parameters
         ----------
 
         input_array : Iterable
             A tuple, list, or array to attach units to
-        input_units : String unit specification, unit symbol or astropy object
+        units: String unit specification, unit symbol or astropy object
             The units of the array. Powers must be specified using python syntax
             (cm**3, not cm^3).
+        input_units : Deprecated in favor of 'units'
         dtype : string or NumPy dtype object
             The dtype of the returned array data
 
@@ -1124,16 +1156,17 @@ class Dataset(object):
         """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
 
         The returned YTQuantity will be dimensionless by default, but can be
-        cast to arbitrary units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``units`` keyword argument.
 
         Parameters
         ----------
 
         input_scalar : an integer or floating point scalar
             The scalar to attach units to
-        input_units : String unit specification, unit symbol or astropy object
+        units: String unit specification, unit symbol or astropy object
             The units of the quantity. Powers must be specified using python
             syntax (cm**3, not cm^3).
+        input_units : Deprecated in favor of 'units'
         dtype : string or NumPy dtype object
             The dtype of the array data.
 
@@ -1262,7 +1295,7 @@ class Dataset(object):
         else:
             raise RuntimeError
 
-        units = self.field_info[ptype, deposit_field].units
+        units = self.field_info[ptype, deposit_field].output_units
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
                     "nearest": "nn", "simple_smooth": "ss", "count": "count"}
@@ -1289,7 +1322,7 @@ class Dataset(object):
             fields = [np.ascontiguousarray(f) for f in fields]
             d = data.deposit(pos, fields, method=method,
                              kernel_name=kernel_name)
-            d = data.ds.arr(d, input_units=units)
+            d = data.ds.arr(d, units=units)
             if method == 'weighted_mean':
                 d[np.isnan(d)] = 0.0
             return d
@@ -1419,8 +1452,8 @@ class Dataset(object):
         >>> two_weeks = YTQuantity(14.0, "days")
         >>> ds.define_unit("fortnight", two_weeks)
         """
-        _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr, 
-                     offset=offset, prefixable=prefixable)
+        define_unit(symbol, value, tex_repr=tex_repr, offset=offset,
+                    prefixable=prefixable, registry=self.unit_registry)
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
