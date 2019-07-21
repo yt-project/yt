@@ -625,3 +625,23 @@ default this is 64, but it can be supplied as the final argument to
 This can then be used as input to the function
 ``add_volume_weighted_smoothed_field``, which can enable smoothing particle
 types that would normally not be smoothed.
+
+Commonly, not just the identity of the nearest particle is interesting, but the
+value of a given field associated with that particle.  yt provides a function
+that can do this, as well.  This deposits into the indexing octree the value
+from the nearest particle.
+
+.. code-block:: python
+
+   import yt
+   from yt.fields.particle_fields import \
+     add_nearest_neighbor_value_field
+
+   ds = yt.load("snapshot_033/snap_033.0.hdf5")
+   ds.index
+   fn, = add_nearest_neighbor_value_field("all", "particle_position",
+                "particle_velocity_magnitude", ds.field_info)
+
+   dd = ds.all_data()
+   print(dd[fn])
+
