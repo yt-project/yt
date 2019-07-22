@@ -18,8 +18,8 @@ import glob
 import os
 
 from unyt import \
-     dimensions, \
-     unyt_array
+    dimensions, \
+    unyt_array
 from unyt.unit_registry import \
     UnitRegistry
 
