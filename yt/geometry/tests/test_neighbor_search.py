@@ -73,6 +73,7 @@ def test_neighbor_value_search():
     values_out = dd[fn]
     for i in range(index_pos.shape[0]):
         r2 = particle_pos[:,0]*0
+        r2 = r2 * r2
         for j in range(3):
             DR = (index_pos[i,j] - particle_pos[:,j])
             DRo = DR.copy()
