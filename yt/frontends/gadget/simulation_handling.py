@@ -17,17 +17,18 @@ import numpy as np
 import glob
 import os
 
+from unyt import \
+    dimensions, \
+    unyt_array
+from unyt.unit_registry import \
+    UnitRegistry
+
 from yt.convenience import \
     load
 from yt.funcs import \
     only_on_root
 from yt.data_objects.time_series import \
     SimulationTimeSeries, DatasetSeries
-from yt.units import dimensions
-from yt.units.unit_registry import \
-    UnitRegistry
-from yt.units.yt_array import \
-    YTArray
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
@@ -87,14 +88,19 @@ class GadgetSimulation(SimulationTimeSeries):
                         omega_matter=self.omega_matter,
                         omega_lambda=self.omega_lambda,
                         unit_registry=self.unit_registry)
-            self.unit_registry.modify("h", self.hubble_constant)
+            if 'h' in self.unit_registry:
+                self.unit_registry.modify('h', self.hubble_constant)
+            else:
+                self.unit_registry.add('h', self.hubble_constant,
+                                       dimensions.dimensionless)
             # Comoving lengths
-            for my_unit in ["m", "pc", "AU", "au"]:
+            for my_unit in ["m", "pc", "AU"]:
                 new_unit = "%scm" % my_unit
                 # technically not true, but should be ok
                 self.unit_registry.add(
                     new_unit, self.unit_registry.lut[my_unit][0],
-                    dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
+                    dimensions.length, "\\rm{%s}/(1+z)" % my_unit,
+                    prefixable=True)
             self.length_unit = self.quan(self.unit_base["UnitLength_in_cm"],
                                          "cmcm / h", registry=self.unit_registry)
             self.mass_unit = self.quan(self.unit_base["UnitMass_in_g"],
@@ -236,7 +242,7 @@ class GadgetSimulation(SimulationTimeSeries):
                     initial_time = self.quan(initial_time, "code_time")
                 elif isinstance(initial_time, tuple) and len(initial_time) == 2:
                     initial_time = self.quan(*initial_time)
-                elif not isinstance(initial_time, YTArray):
+                elif not isinstance(initial_time, unyt_array):
                     raise RuntimeError(
                         "Error: initial_time must be given as a float or " +
                         "tuple of (value, units).")
@@ -250,7 +256,7 @@ class GadgetSimulation(SimulationTimeSeries):
                     final_time = self.quan(final_time, "code_time")
                 elif isinstance(final_time, tuple) and len(final_time) == 2:
                     final_time = self.quan(*final_time)
-                elif not isinstance(final_time, YTArray):
+                elif not isinstance(final_time, unyt_array):
                     raise RuntimeError(
                         "Error: final_time must be given as a float or " +
                         "tuple of (value, units).")
