@@ -81,5 +81,4 @@ cdef extern from "ewah.h":
 ctypedef EWAHBoolArray[uint64_t] ewah_bool_array
 ctypedef EWAHBoolArraySetBitForwardIterator[uint64_t] ewah_bool_iterator
 ctypedef vector[size_t] bitset_array
-ctypedef map[np.uint64_t, ewah_bool_array] ewah_map
 ctypedef stringstream sstream

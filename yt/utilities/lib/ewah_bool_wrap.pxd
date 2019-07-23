@@ -1,10 +1,29 @@
 cimport numpy as np
+from libcpp.map cimport map as cmap
+from libcpp.vector cimport vector
+from libcpp.pair cimport pair
+from libcpp.set cimport set as cset
+from libcpp.map cimport map
+from libcpp.algorithm cimport sort
+from libc.stdlib cimport malloc, free, qsort
+from yt.utilities.lib.ewah_bool_array cimport \
+    sstream, ewah_bool_array, ewah_bool_iterator
+
+#ctypedef np.uint8_t bitarrtype
+ctypedef bint bitarrtype
+
+ctypedef pair[np.uint64_t, np.uint64_t] ind_pair
+ctypedef cmap[np.uint64_t, ewah_bool_array] ewah_map
+ctypedef cmap[np.uint64_t, ewah_bool_array].iterator ewah_map_it
+ctypedef pair[np.uint64_t, ewah_bool_array] ewah_map_p
 
 cdef class FileBitmasks:
     cdef np.uint32_t nfiles
-    cdef void** ewah_coll
-    cdef void** ewah_keys
-    cdef void** ewah_refn
+    cdef vector[ewah_bool_array] ewah_keys
+    cdef vector[ewah_bool_array] ewah_refn
+    # this is a map, where the first key is file, second is the integer index
+    # (in refined space), and return is the boolean array
+    cdef cmap[np.uint64_t, ewah_map] ewah_coll 
 
     cdef void _reset(self)
     cdef bint _iseq(self, FileBitmasks solf)
@@ -43,10 +62,10 @@ cdef class FileBitmasks:
     cdef bint _check(self)
 
 cdef class BoolArrayCollection:
-    cdef void* ewah_coll
-    cdef void* ewah_keys
-    cdef void* ewah_refn
-    cdef void* ewah_coar
+    cdef ewah_map ewah_coll
+    cdef ewah_bool_array ewah_keys
+    cdef ewah_bool_array ewah_refn
+    cdef ewah_bool_array ewah_coar
 
     cdef void _reset(self)
     cdef int _richcmp(self, BoolArrayCollection solf, int op) except -1
@@ -85,9 +104,9 @@ cdef class BoolArrayCollection:
 cdef class BoolArrayCollectionUncompressed:
     cdef int nele1
     cdef int nele2
-    cdef void* ewah_coll
-    cdef void* ewah_keys
-    cdef void* ewah_refn
+    cdef ewah_map ewah_coll
+    cdef bitarrtype* ewah_keys
+    cdef bitarrtype* ewah_refn
 
     cdef void _set(self, np.uint64_t i1, np.uint64_t i2=*)
     cdef void _set_coarse(self, np.uint64_t i1)
