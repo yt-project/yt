@@ -84,7 +84,8 @@ class FLASHFieldInfo(FieldInfoContainer):
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
         unit_system = self.ds.unit_system
-        pc = self.ds.units.physical_constants
+        # Adopt FLASH 4.6 value for Na
+        Na = self.ds.quan(6.022140857e23, "g**-1")
         for i in range(1, 1000):
             self.add_output_field(("flash", "r{0:03}".format(i)),
                                   sampling_type="cell",
@@ -138,7 +139,7 @@ class FLASHFieldInfo(FieldInfoContainer):
         ## Derived FLASH Fields
 
         def _nele(field, data):
-            return data["flash","dens"]*data["flash","ye"]*pc.Na
+            return data["flash","dens"]*data["flash","ye"]*Na
 
         self.add_field(('gas','El_nuclei_density'),
                        sampling_type="cell",
@@ -146,7 +147,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                        units=unit_system["number_density"])
 
         def _nion(field, data):
-            return data["flash","dens"]*data["flash","sumy"]*pc.Na
+            return data["flash","dens"]*data["flash","sumy"]*Na
 
         self.add_field(('gas','ion_nuclei_density'),
                        sampling_type="cell",
@@ -175,7 +176,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 return data["gas","El_nuclel_density"]+data["gas","ion_nuclei_density"]
         else:
             def _number_density(field, data):
-                return data["flash", "dens"]*pc.Na/data["gas", "mean_molecular_weight"]
+                return data["flash", "dens"]*Na/data["gas", "mean_molecular_weight"]
 
         self.add_field(("gas", "number_density"),
                        sampling_type="cell",
