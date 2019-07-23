@@ -11,9 +11,9 @@ FITSImageData Class
 #-----------------------------------------------------------------------------
 from yt.extern.six import string_types
 import numpy as np
-from distutils.version import LooseVersion
 from yt.fields.derived_field import DerivedField
-from yt.funcs import mylog, iterable, fix_axis, ensure_list
+from yt.funcs import mylog, iterable, fix_axis, ensure_list, \
+    issue_deprecation_warning
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.utilities.on_demand_imports import _astropy
@@ -317,7 +317,7 @@ class FITSImageData(object):
             return results[2:]
 
     @parallel_root_only
-    def writeto(self, fileobj, fields=None, clobber=False, **kwargs):
+    def writeto(self, fileobj, fields=None, overwrite=False, **kwargs):
         r"""
         Write all of the fields or a subset of them to a FITS file. 
 
@@ -328,22 +328,26 @@ class FITSImageData(object):
         fields : list of strings, optional
             The fields to write to the file. If not specified
             all of the fields in the buffer will be written.
-        clobber : boolean, optional
+        clobber : overwrite, optional
             Whether or not to overwrite a previously existing file.
             Default: False
-        All other keyword arguments are passed to the `writeto`
-        method of `astropy.io.fits.HDUList`.
+
+        Additional keyword arguments are passed to
+        :meth:`~astropy.io.fits.HDUList.writeto`.
         """
+        if "clobber" in kwargs:
+            issue_deprecation_warning("The \"clobber\" keyword argument "
+                                      "is deprecated. Use the \"overwrite\" "
+                                      "argument, which has the same effect, "
+                                      "instead.")
+            overwrite = kwargs.pop("clobber")
         if fields is None:
             hdus = self.hdulist
         else:
             hdus = _astropy.pyfits.HDUList()
             for field in fields:
                 hdus.append(self.hdulist[field])
-        if LooseVersion(_astropy.__version__) < LooseVersion('2.0.0'):
-            hdus.writeto(fileobj, clobber=clobber, **kwargs)
-        else:
-            hdus.writeto(fileobj, overwrite=clobber, **kwargs)
+        hdus.writeto(fileobj, overwrite=overwrite, **kwargs)
 
     def to_glue(self, label="yt", data_collection=None):
         """
@@ -354,12 +358,15 @@ class FITSImageData(object):
         """
         from glue.core import DataCollection, Data
         from glue.core.coordinates import coordinates_from_header
-        from glue.qt.glue_application import GlueApplication
+        try:
+            from glue.app.qt.application import GlueApplication
+        except ImportError:
+            from glue.qt.glue_application import GlueApplication
 
         image = Data(label=label)
         image.coords = coordinates_from_header(self.wcs.to_header())
-        for k,f in self.hdulist.items():
-            image.add_component(f.data, k)
+        for k in self.fields:
+            image.add_component(self[k].data, k)
         if data_collection is None:
             dc = DataCollection([image])
             app = GlueApplication(dc)

@@ -78,25 +78,4 @@ cpdef friedman(double O_mat_0,double O_vac_0,double O_k_0):
     tau_out[n_out] = tau
 
     return tau_out,t_out,delta_tau,ntable,age_tot
-
-cpdef get_ramses_ages(np.ndarray[double,mode='c'] tf, 
-                     np.ndarray[double,mode='c'] tauf,  
-                     double dtau, 
-                     double tsim, 
-                     double t_scale, 
-                     np.ndarray[double,mode='c'] ages, 
-                     int nOver2, 
-                     int ntot):
-
-    cdef np.ndarray[double,mode='c'] t
-    cdef np.ndarray[double,mode='c'] dage
-    cdef np.ndarray[int,mode='c'] iage
-
-    dage = 1 + (10*ages/dtau)
-    dage = np.minimum(dage, nOver2 + (dage - nOver2)/10.)
-    iage = np.array(dage,dtype=np.int32)
-
-    t = (tf[iage]*(ages - tauf[iage - 1]) / (tauf[iage] - tauf[iage - 1]))
-    t = t + (tf[iage-1]*(ages-tauf[iage]) / (tauf[iage-1]-tauf[iage]))
-    return  (tsim - t)*t_scale
  

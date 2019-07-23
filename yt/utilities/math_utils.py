@@ -769,7 +769,7 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
             indexer[axis] = slice(index, index+1)
         # Use mean in odd and even case to coerce data type
         # and check, use out array.
-        result.append(np.mean(sorted[indexer], axis=axis, out=out))
+        result.append(np.mean(sorted[tuple(indexer)], axis=axis, out=out))
     return np.array(result)
 
 def get_perspective_matrix(fovy, aspect, z_near, z_far):
@@ -1188,13 +1188,6 @@ def rotation_matrix_to_quaternion(rot_matrix):
 
     return np.array([w, x, y, z])
 
-def get_ortho_basis(normal):
-    xprime = np.cross([0.0,1.0,0.0],normal)
-    if np.sum(xprime) == 0: xprime = np.array([0.0, 0.0, 1.0])
-    yprime = np.cross(normal,xprime)
-    zprime = normal
-    return (xprime, yprime, zprime)
-
 def get_sph_r(coords):
     # The spherical coordinates radius is simply the magnitude of the
     # coordinate vector.
@@ -1253,7 +1246,7 @@ def get_sph_phi(coords, normal):
     # vector.
 
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, coords)
     res_yprime = resize_vector(yprime, coords)
@@ -1302,7 +1295,7 @@ def get_cyl_r_component(vectors, theta, normal):
     # The r of a vector is the vector dotted with rhat
 
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
@@ -1318,7 +1311,7 @@ def get_cyl_r_component(vectors, theta, normal):
 def get_cyl_theta_component(vectors, theta, normal):
     # The theta component of a vector is the vector dotted with thetahat
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
@@ -1334,7 +1327,7 @@ def get_cyl_theta_component(vectors, theta, normal):
 def get_cyl_z_component(vectors, normal):
     # The z component of a vector is the vector dotted with zhat
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_zprime = resize_vector(zprime, vectors)
 
@@ -1346,7 +1339,7 @@ def get_cyl_z_component(vectors, normal):
 def get_sph_r_component(vectors, theta, phi, normal):
     # The r component of a vector is the vector dotted with rhat
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
@@ -1367,7 +1360,7 @@ def get_sph_r_component(vectors, theta, phi, normal):
 def get_sph_phi_component(vectors, phi, normal):
     # The phi component of a vector is the vector dotted with phihat
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)
@@ -1383,7 +1376,7 @@ def get_sph_phi_component(vectors, phi, normal):
 def get_sph_theta_component(vectors, theta, phi, normal):
     # The theta component of a vector is the vector dotted with thetahat
     normal = normalize_vector(normal)
-    (xprime, yprime, zprime) = get_ortho_basis(normal)
+    (zprime, xprime, yprime) = ortho_find(normal)
 
     res_xprime = resize_vector(xprime, vectors)
     res_yprime = resize_vector(yprime, vectors)

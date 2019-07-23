@@ -48,6 +48,16 @@ its attributes the fields themselves.  When one of these is printed, it returns
 information about the field and things like units and so on.  You can use this
 for tab-completing as well as easier access to information.
 
+Additionally, if you have `ipywidgets
+<https://ipywidgets.readthedocs.io/en/stable/`_ installed and are in a `Jupyter
+environment <https://jupyter.org/>`_, you can view the rich representation of
+the fields (including source code) by either typing `ds.fields` as the last
+item in a cell or by calling `display(ds.fields)`.  The resulting output will
+have tabs and source:
+
+.. image:: _images/fields_ipywidget.png
+   :scale: 50%
+
 As an example, you might browse the available fields like so:
 
 .. code-block:: python
@@ -320,6 +330,26 @@ The field plugins currently available include:
  * Species fields, such as for chemistry species (yt can recognize the entire
    periodic table in field names and construct ionization fields as need be)
 
+
+Field Labeling
+--------------
+
+By default yt formats field labels nicely for plots. To adjust the chosen
+format you can use the ``ds.set_field_label_format`` method like so:
+
+
+.. code-block:: python
+
+   ds = yt.load("my_data")
+   ds.set_field_label_format("ionization_label", "plus_minus")
+
+
+The first argument accepts a ``format_property``, or specific aspect of the labeling, and the
+second sets the corresponding ``value``. Currently available format properties are
+
+    * ``ionization_label``: sets how the ionization state of ions are labeled. Available
+            options are ``"plus_minus"`` and ``"roman_numeral"``
+
 .. _bfields:
 
 Magnetic Fields
@@ -471,6 +501,50 @@ available are:
 * ``smoothed`` - this is a special deposition type.  See discussion below for
   more information, in :ref:`sph-fields`.
 
+.. _mesh-sampling-particle-fields:
+
+Mesh Sampling Particle Fields
+-----------------------------
+
+In order to turn mesh fields into discrete particle field, yt provides
+a mechanism to do sample mesh fields at particle locations. This operation is
+the inverse operation of :ref:`deposited-particle-fields`: for each
+particle the cell containing the particle is found and the value of
+the field in the cell is assigned to the particle. This is for
+example useful when using tracer particles to have access to the
+Eulerian information for Lagrangian particles.
+
+The particle fields are named ``(ptype, cell_ftype_fname)`` where
+``ptype`` is the particle type onto which the deposition occurs,
+``ftype`` is the mesh field type (e.g. ``gas``) and ``fname`` is the
+field (e.g. ``temperature``, ``density``, ...). You can directly use
+the ``add_mesh_sampling_particle_field`` function defined on each dataset to
+impose a field onto the particles like so:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   ds.add_mesh_sampling_particle_field(('gas', 'temperature'), ptype='all')
+
+   print('The temperature at the location of the particles is')
+   print(ds.r['all', 'cell_gas_temperature'])
+
+For octree codes (e.g. RAMSES), you can trigger the build of an index so 
+that the next sampling operations will be mush faster
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   ds.add_mesh_sampling_particle_field(('gas', 'temperature'), ptype='all')
+
+   ad = ds.all_data()
+   ad['all', 'cell_index']            # Trigger the build of the index of the cell containing the particles
+   ad['all', 'cell_gas_temperature']  # This is now much faster
+
 .. _sph-fields:
 
 SPH Fields
@@ -551,3 +625,23 @@ default this is 64, but it can be supplied as the final argument to
 This can then be used as input to the function
 ``add_volume_weighted_smoothed_field``, which can enable smoothing particle
 types that would normally not be smoothed.
+
+Commonly, not just the identity of the nearest particle is interesting, but the
+value of a given field associated with that particle.  yt provides a function
+that can do this, as well.  This deposits into the indexing octree the value
+from the nearest particle.
+
+.. code-block:: python
+
+   import yt
+   from yt.fields.particle_fields import \
+     add_nearest_neighbor_value_field
+
+   ds = yt.load("snapshot_033/snap_033.0.hdf5")
+   ds.index
+   fn, = add_nearest_neighbor_value_field("all", "particle_position",
+                "particle_velocity_magnitude", ds.field_info)
+
+   dd = ds.all_data()
+   print(dd[fn])
+

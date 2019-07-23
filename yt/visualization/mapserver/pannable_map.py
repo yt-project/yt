@@ -40,23 +40,33 @@ def exc_writeout(f):
 
 class PannableMapServer(object):
     _widget_name = "pannable_map"
-    def __init__(self, data, field, takelog, route_prefix = ""):
+    def __init__(self, data, field, takelog, cmap, route_prefix = ""):
         self.data = data
         self.ds = data.ds
         self.field = field
+        self.cmap = cmap
 
         bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
         bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
         bottle.route("%s/" % route_prefix)(self.index)
+        bottle.route("%s/:field" % route_prefix)(self.index)
         bottle.route("%s/index.html" % route_prefix)(self.index)
         bottle.route("%s/list" % route_prefix, "GET")(self.list_fields)
         # This is a double-check, since we do not always mandate this for
         # slices:
         self.data[self.field] = self.data[self.field].astype("float64")
-        bottle.route(":path#.+#", "GET")(self.static)
+        bottle.route("%s/static/:path" % route_prefix, "GET")(self.static)
 
         self.takelog = takelog
         self._lock = False
+
+        for unit in ['Gpc', 'Mpc', 'kpc', 'pc']:
+            v = self.ds.domain_width[0].in_units(unit).value
+            if v > 1:
+                break
+        self.unit = unit
+        self.px2unit = self.ds.domain_width[0].in_units(unit).value / 256
+
 
     def lock(self):
         import time
@@ -70,6 +80,7 @@ class PannableMapServer(object):
     def map(self, field, L, x, y):
         if ',' in field:
             field = tuple(field.split(','))
+        cmap = self.cmap
         dd = 1.0 / (2.0**(int(L)))
         relx = int(x) * dd
         rely = int(y) * dd
@@ -80,8 +91,9 @@ class PannableMapServer(object):
         yr = yl + dd*DW[1]
         try:
             self.lock()
+            w = 256 # pixels
             data = self.data[field]
-            frb = FixedResolutionBuffer(self.data, (xl, xr, yl, yr), (256, 256))
+            frb = FixedResolutionBuffer(self.data, (xl, xr, yl, yr), (w, w))
             cmi, cma = get_color_bounds(self.data['px'], self.data['py'],
                                         self.data['pdx'], self.data['pdy'],
                                         data,
@@ -97,14 +109,18 @@ class PannableMapServer(object):
         if self.takelog:
             cmi = np.log10(cmi)
             cma = np.log10(cma)
-            to_plot = apply_colormap(np.log10(frb[field]), color_bounds = (cmi, cma))
+            to_plot = apply_colormap(np.log10(frb[field]), color_bounds = (cmi, cma),
+                                     cmap_name=cmap)
         else:
-            to_plot = apply_colormap(frb[field], color_bounds = (cmi, cma))
+            to_plot = apply_colormap(frb[field], color_bounds = (cmi, cma),
+                                     cmap_name=cmap)
 
         rv = write_png_to_string(to_plot)
         return rv
 
-    def index(self):
+    def index(self, field=None):
+        if field is not None:
+            self.field = field
         return bottle.static_file("map_index.html",
                     root=os.path.join(local_dir, "html"))
 
@@ -136,4 +152,5 @@ class PannableMapServer(object):
                 active = f[1] == self.field
                 d[ftype].append((f, active))
 
-        return dict(data=d, active=self.field)
+        print(self.px2unit, self.unit)
+        return dict(data=d, px2unit=self.px2unit, unit=self.unit, active=self.field)

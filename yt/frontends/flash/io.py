@@ -130,7 +130,7 @@ class IOHandlerFLASH(BaseIOHandler):
             data = ds[obj.id - obj._id_offset, :,:,:].transpose()
         else:
             data = ds[offset, :,:,:].transpose()
-        return data
+        return data.astype('=f8')
 
     def _read_chunk_data(self, chunk, fields):
         f = self._handle

@@ -20,18 +20,35 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
-import yt.utilities.fortran_utils as fpu
-from yt.utilities.lib.cosmology_time import \
-    get_ramses_ages
+from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTFileNotParseable
-from yt.extern.six import PY3
-import re
+from .definitions import VERSION_RE, VAR_DESC_RE
 
-if PY3:
-    from io import BytesIO as IO
-else:
-    from cStringIO import StringIO as IO
+def convert_ramses_ages(ds, conformal_ages):
+    tf = ds.t_frw
+    dtau = ds.dtau
+    tauf = ds.tau_frw
+    tsim = ds.time_simu
+    h100 = ds.hubble_constant
+    nOver2 = ds.n_frw/2
+    unit_t = ds.parameters['unit_t']
+    t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc) / unit_t
+
+    # calculate index into lookup table (n_frw elements in
+    # lookup table)
+    dage =  1 + (10*conformal_ages/dtau)
+    dage = np.minimum(dage, nOver2 + (dage - nOver2)/10.)
+    iage = np.array(dage, dtype=np.int32)
+
+    # linearly interpolate physical times from tf and tauf lookup
+    # tables.
+    t = ((tf[iage]*(conformal_ages - tauf[iage - 1]) /
+          (tauf[iage] - tauf[iage - 1])))
+    t = t + ((tf[iage-1]*(conformal_ages - tauf[iage]) /
+              (tauf[iage-1]-tauf[iage])))
+    return (tsim - t)*t_scale
+
 
 def _ramses_particle_file_handler(fname, foffsets, data_types,
                                   subset, fields, count):
@@ -53,7 +70,8 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
         The number of elements to count
     '''
     tr = {}
-    with open(fname, "rb") as f:
+    ds = subset.domain.ds
+    with FortranFile(fname) as fd:
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
         # positions into the same domain as the octs themselves.
@@ -61,73 +79,60 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
             if count == 0:
                 tr[field] = np.empty(0, dtype=data_types[field])
                 continue
-            f.seek(foffsets[field])
+            fd.seek(foffsets[field])
             dt = data_types[field]
-            tr[field] = fpu.read_vector(f, dt)
+            tr[field] = fd.read_vector(dt)
             if field[1].startswith("particle_position"):
-                np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
-            cosmo = subset.domain.ds.cosmological_simulation
-            if cosmo == 1 and field[1] == "particle_age":
-                tf = subset.domain.ds.t_frw
-                dtau = subset.domain.ds.dtau
-                tauf = subset.domain.ds.tau_frw
-                tsim = subset.domain.ds.time_simu
-                h100 = subset.domain.ds.hubble_constant
-                nOver2 = subset.domain.ds.n_frw/2
-                t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
-                ages = tr[field]
-                tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))
+                np.divide(tr[field], ds["boxlen"], tr[field])
+            if ds.cosmological_simulation and field[1] == "particle_birth_time":
+                conformal_age = tr[field]
+                tr[field] = convert_ramses_ages(ds, conformal_age)
+                # arbitrarily set particles with zero conformal_age to zero
+                # particle_age. This corresponds to DM particles.
+                tr[field][conformal_age == 0] = 0
     return tr
 
 
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"
 
-    def _generic_fluid_handler(self, chunks, selector, fields, size, ftype):
+    def _read_fluid_selection(self, chunks, selector, fields, size):
         tr = defaultdict(list)
 
+        # Set of field types
+        ftypes = set(f[0] for f in fields)
         for chunk in chunks:
-            for subset in chunk.objs:
-                fname = None
-                for fh in subset.domain.field_handlers:
-                    if fh.ftype == ftype:
-                        file_handler = fh
-                        fname = fh.fname
-                        break
+            # Gather fields by type to minimize i/o operations
+            for ft in ftypes:
+                # Get all the fields of the same type
+                field_subs = list(
+                    filter(lambda f: f[0]==ft, fields))
 
-                if fname is None:
-                    raise YTFieldTypeNotFound(ftype)
+                # Loop over subsets
+                for subset in chunk.objs:
+                    fname = None
+                    for fh in subset.domain.field_handlers:
+                        if fh.ftype == ft:
+                            file_handler = fh
+                            fname = fh.fname
+                            break
 
-                # Now we read the entire thing
-                with open(fname, "rb") as f:
-                    content = IO(f.read())
-                # This contains the boundary information, so we skim through
-                # and pick off the right vectors
-                rv = subset.fill(content, fields, selector, file_handler)
-                for ft, f in fields:
-                    d = rv.pop(f)
-                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
-                        f, d.size, d.min(), d.max(), d.size)
-                    tr[(ft, f)].append(d)
+                    if fname is None:
+                        raise YTFieldTypeNotFound(ft)
+
+                    # Now we read the entire thing
+                    with FortranFile(fname) as fd:
+                        # This contains the boundary information, so we skim through
+                        # and pick off the right vectors
+                        rv = subset.fill(fd, field_subs, selector, file_handler)
+                    for ft, f in field_subs:
+                        d = rv.pop(f)
+                        mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
+                            f, d.size, d.min(), d.max(), d.size)
+                        tr[(ft, f)].append(d)
         d = {}
         for field in fields:
             d[field] = np.concatenate(tr.pop(field))
-
-        return d
-
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        d = {}
-
-        # Group fields by field type
-        for ft in set(f[0] for f in fields):
-            # Select the fields for the current reader
-            fields_subs = list(
-                filter(lambda f: f[0]==ft,
-                       fields))
-
-            newd = self._generic_fluid_handler(chunks, selector, fields_subs, size,
-                                               ft)
-            d.update(newd)
 
         return d
 
@@ -189,6 +194,13 @@ class IOHandlerRAMSES(BaseIOHandler):
             if not ok:
                 raise YTFieldTypeNotFound(ptype)
 
+            cosmo = self.ds.cosmological_simulation
+            if (ptype, 'particle_birth_time') in foffsets and cosmo:
+                foffsets[ptype, 'conformal_birth_time'] = \
+                    foffsets[ptype, 'particle_birth_time']
+                data_types[ptype, 'conformal_birth_time'] = \
+                    data_types[ptype, 'particle_birth_time']
+
             tr.update(_ramses_particle_file_handler(
                 fname, foffsets, data_types, subset, subs_fields,
                 count=count
@@ -201,8 +213,6 @@ def _read_part_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile('# version: *(\d+)')
-    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping
     mapping = [
@@ -224,7 +234,7 @@ def _read_part_file_descriptor(fname):
     with open(fname, 'r') as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.info('Reading part file descriptor.')
+        mylog.debug('Reading part file descriptor %s.' % fname)
         if not tmp:
             raise YTParticleOutputFormatNotImplemented()
 
@@ -258,8 +268,6 @@ def _read_fluid_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile('# version: *(\d+)')
-    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping
     mapping = [
@@ -276,7 +284,7 @@ def _read_fluid_file_descriptor(fname):
     with open(fname, 'r') as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.info('Reading fluid file descriptor.')
+        mylog.debug('Reading fluid file descriptor %s.' % fname)
         if not tmp:
             return []
 
@@ -298,7 +306,7 @@ def _read_fluid_file_descriptor(fname):
                 if varname in mapping:
                     varname = mapping[varname]
                 else:
-                    varname = 'particle_%s' % varname
+                    varname = 'hydro_%s' % varname
 
                 fields.append((varname, dtype))
         else:

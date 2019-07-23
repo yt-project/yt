@@ -131,6 +131,7 @@ class HaloCatalog(ParallelAnalysisInterface):
                 data_source = data_ds.all_data()
         self.data_source = data_source
 
+        self.finder_method_name = finder_method
         if finder_kwargs is None:
             finder_kwargs = {}
         if finder_method is not None:
@@ -419,12 +420,19 @@ class HaloCatalog(ParallelAnalysisInterface):
             # Add all of the default quantities that all halos must have
             self.add_default_quantities('all')
 
-        my_index = np.argsort(self.data_source["all", "particle_identifier"])
-        nhalos = my_index.size
+        halo_index = np.argsort(self.data_source["all", "particle_identifier"])
+        # If we have just run hop or fof, halos are already divided amongst processors.
+        if self.finder_method_name in ["hop", "fof"]:
+            my_index = halo_index
+            nhalos = self.comm.mpi_allreduce(halo_index.size, op="sum")
+        else:
+            my_index = parallel_objects(halo_index, njobs=njobs, dynamic=dynamic)
+            nhalos = halo_index.size
+
         my_i = 0
         my_n = self.comm.size
         pbar = get_pbar("Creating catalog", nhalos, parallel=True)
-        for i in parallel_objects(my_index, njobs=njobs, dynamic=dynamic):
+        for i in my_index:
             my_i += min(my_n, nhalos - my_i)
             new_halo = Halo(self)
             halo_filter = True

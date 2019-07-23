@@ -229,9 +229,10 @@ Use of ``piter()``
 ^^^^^^^^^^^^^^^^^^
 
 If you use parallelism over objects or datasets, you will encounter
-the ``piter()`` function.  ``piter`` is a parallel iterator, which effectively
-doles out each item of a DatasetSeries object to a different processor.  In
-serial processing, you might iterate over a DatasetSeries by:
+the :func:`~yt.data_objects.time_series.DatasetSeries.piter` function.
+:func:`~yt.data_objects.time_series.DatasetSeries.piter` is a parallel iterator,
+which effectively doles out each item of a DatasetSeries object to a different
+processor.  In serial processing, you might iterate over a DatasetSeries by:
 
 .. code-block:: python
 
@@ -249,9 +250,11 @@ a different processor:
 
 In order to store information from the parallel processing step to
 a data structure that exists on all of the processors operating in parallel
-we offer the ``storage`` keyword in the ``piter`` function.
+we offer the ``storage`` keyword in the
+:func:`~yt.data_objects.time_series.DatasetSeries.piter` function.
 You may define an empty dictionary and include it as the keyword argument
-``storage`` to ``piter()``.  Then, during the processing step, you can access
+``storage`` to :func:`~yt.data_objects.time_series.DatasetSeries.piter`.
+Then, during the processing step, you can access
 this dictionary as the ``sto`` object.  After the
 loop is finished, the dictionary is re-aggregated from all of the processors,
 and you can access the contents:
@@ -266,6 +269,16 @@ and you can access the contents:
         sto.result_id = <some identifier for this dataset>
 
     print(my_dictionary)
+
+By default, the dataset series will be divided as equally as possible
+among the cores.  Often some datasets will require more work than
+others.  We offer the ``dynamic`` keyword in the
+:func:`~yt.data_objects.time_series.DatasetSeries.piter` function to
+enable dynamic load balancing with a task queue.  Dynamic load
+balancing works best with more cores and a variable workload.  Here
+one process will act as a server to assign the next available dataset
+to any free client.  For example, a 16 core job will have 15 cores
+analyzing the data with 1 core acting as the task manager.
 
 .. _parallelizing-your-analysis:
 
@@ -403,6 +416,68 @@ this will use all of the available processors to evaluate the requested
 operation on each simulation output.  Some care and possibly trial and error
 might be necessary to estimate the correct settings for your simulation
 outputs.
+
+Note, when iterating over several large datasets, running out of memory may
+become an issue as the internal data structures associated with each dataset
+may not be properly de-allocated at the end of an iteration. If memory use
+becomes a problem, it may be necessary to manually delete some of the larger
+data structures.
+
+.. code-block:: python
+
+   import yt
+   yt.enable_parallelism()
+
+   ts = yt.DatasetSeries("DD*/output_*", parallel = 4)
+
+   for ds in ts.piter():
+       # do analysis here
+
+       ds.index.clear_all_data()
+
+Multi-level Parallelism
+-----------------------
+
+By default, the
+:func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
+and :func:`~yt.data_objects.time_series.DatasetSeries.piter` functions will allocate a
+single processor to each iteration of the parallelized loop. However, there may be
+situations in which it is advantageous to have multiple processors working together
+on each loop iteration. Like with any traditional for loop, nested loops with multiple
+calls to :func:`~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism`
+can be used to parallelize the functionality within a given loop iteration.
+
+In the example below, we will create projections along the x, y, and z axis of the
+density and temperature fields. We will assume a total of 6 processors are available,
+allowing us to allocate to processors to each axis and project each field with a
+separate processor.
+
+.. code-block:: python
+
+   import yt
+   yt.enable_parallelism()
+
+   # assume 6 total cores
+   # allocate 3 work groups of 2 cores each
+   for ax in yt.parallel_objects('xyz', njobs=3):
+
+        # project each field with one of the two cores in the workgroup
+        for field in yt.parallel_objects(['density', 'temperature']):
+            p = yt.ProjectionPlot(ds, ax, field, weight_field='density')
+            p.save('figures/')
+
+Note, in the above example, if the inner
+:func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
+call were removed from the loop, the two-processor work group would work together to
+project each of the density and temperature fields. This is because the projection
+functionality itself is parallelized internally.
+
+The :func:`~yt.data_objects.time_series.DatasetSeries.piter` function can also be used
+in the above manner with nested
+:func:`~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects`
+loops to allocate multiple processors to work on each dataset. As discussed above in
+:ref:`parallel-time-series-analysis`, the ``parallel`` keyword is used to control
+the number of workgroups created for iterating over multiple datasets.
 
 Parallel Performance, Resources, and Tuning
 -------------------------------------------

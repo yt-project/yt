@@ -4,12 +4,12 @@ Idioms for Docstrings in yt
 For a full list of recognized constructs for marking up docstrings, see the
 Sphinx documentation:
 
-http://sphinx.pocoo.org/
+http://www.sphinx-doc.org/en/master/
 
 Specifically, this section:
 
-http://sphinx.pocoo.org/markup/index.html
-http://sphinx.pocoo.org/markup/inline.html#cross-referencing-python-objects
+http://www.sphinx-doc.org/en/master/usage/restructuredtext/
+http://www.sphinx-doc.org/en/master/usage/restructuredtext/roles.html#cross-referencing-syntax
 
 Variables in Examples
 ---------------------

@@ -447,3 +447,10 @@ class ChunkDataCache(object):
         g = self.queue.pop(0)
         g._initialize_cache(self.cache.pop(g.id, {}))
         return g
+
+def is_curvilinear(geo):
+    # tell geometry is curvilinear or not
+    if geo in ["polar", "cylindrical", "spherical"]:
+        return True
+    else:
+        return False

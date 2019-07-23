@@ -196,7 +196,7 @@ associated social events, and one-to-one interactions.
 
 The yt Community Code of Conduct was adapted from the
 `Astropy Community Code of Conduct
-<http://www.astropy.org/about.html#codeofconduct>`_,
+<http://www.astropy.org/code_of_conduct.html>`_,
 which was partially inspired by the PSF code of conduct.
 
 .. _contributing-code:
@@ -261,7 +261,7 @@ provide further assistance or guidance.
 Licensing
 +++++++++
 
-yt is `licensed <http://blog.yt-project.org/post/Relicensing.html>`_ under the
+yt is `licensed <http://blog.yt-project.org/post/Relicensing/>`_ under the
 BSD 3-clause license.  Versions previous to yt-2.6 were released under the GPLv3.
 
 All contributed code must be BSD-compatible.  If you'd rather not license in
@@ -650,7 +650,9 @@ straightforward.
    they should be made.
 #. Commit those changes to your local repository.
 #. Push the changes to your fork::
+
       git push origin my-first-pull-request
+
 #. Your pull request will be automatically updated.
 
 Once your pull request is merged, sync up with the main yt repository by pulling

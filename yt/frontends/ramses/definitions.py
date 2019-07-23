@@ -15,6 +15,9 @@ Definitions for RAMSES files
 #-----------------------------------------------------------------------------
 
 # These functions are RAMSES-specific
+from yt.config import ytcfg
+from yt.funcs import mylog
+import re
 
 def ramses_header(hvals):
     header = ( ('ncpu', 1, 'i'),
@@ -25,7 +28,7 @@ def ramses_header(hvals):
                ('nboundary', 1, 'i'),
                ('ngrid_current', 1, 'i'),
                ('boxlen', 1, 'd'),
-               ('nout', 3, 'I')
+               ('nout', 3, 'i')
               )
     yield header
     # TODO: REMOVE
@@ -39,7 +42,8 @@ def ramses_header(hvals):
                  ('stat', 3, 'd'),
                  ('cosm', 7, 'd'),
                  ('timing', 5, 'd'),
-                 ('mass_sph', 1, 'd') )
+                 ('mass_sph', 1, 'd', True)
+                 )
     yield next_set
 
 field_aliases = {
@@ -57,6 +61,14 @@ field_aliases = {
 
 }
 
+## Regular expressions used to parse file descriptors
+VERSION_RE = re.compile(r'# version: *(\d+)')
+# This will match comma-separated strings, discarding whitespaces
+# on the left hand side
+VAR_DESC_RE = re.compile(r'\s*([^\s]+),\s*([^\s]+),\s*([^\s]+)')
+
+
+## Configure family mapping
 particle_families = {
     'DM': 1,
     'star': 2,
@@ -67,3 +79,10 @@ particle_families = {
     'dust_tracer': -4,
     'gas_tracer': 0
 }
+
+if ytcfg.has_section('ramses-families'):
+    for key in particle_families.keys():
+        val = ytcfg.getint('ramses-families', key, fallback=None)
+        if val is not None:
+            mylog.info('Changing family %s from %s to %s' % (key, particle_families[key], val))
+            particle_families[key] = val

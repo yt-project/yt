@@ -77,6 +77,7 @@ default_unit_symbol_lut = {
     "min": (sec_per_min, dimensions.time, 0.0, r"\rm{min}"),
     "hr":  (sec_per_hr, dimensions.time, 0.0, r"\rm{hr}"),
     "day": (sec_per_day, dimensions.time, 0.0, r"\rm{d}"),
+    "d":   (sec_per_day, dimensions.time, 0.0, r"\rm{d}"),
     "yr":  (sec_per_year, dimensions.time, 0.0, r"\rm{yr}"),
 
     # Velocities
@@ -137,7 +138,6 @@ default_unit_symbol_lut = {
     "deg": (np.pi/180., dimensions.angle, 0.0, r"\rm{deg}"),
     "Fr":  (1.0, dimensions.charge_cgs, 0.0, r"\rm{Fr}"),
     "G": (1.0, dimensions.magnetic_field_cgs, 0.0, r"\rm{G}"),
-    "d": (1.0, dimensions.time, 0.0, r"\rm{d}"),
     "Angstrom": (cm_per_ang, dimensions.length, 0.0, r"\AA"),
     "statC": (1.0, dimensions.charge_cgs, 0.0, r"\rm{statC}"),
 

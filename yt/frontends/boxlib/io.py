@@ -34,7 +34,7 @@ class IOHandlerBoxlib(BaseIOHandler):
     _dataset_type = "boxlib_native"
 
     def __init__(self, ds, *args, **kwargs):
-        self.ds = ds
+        super(IOHandlerBoxlib, self).__init__(ds)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
@@ -63,7 +63,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                         ds = data[g.id].pop(field)
                     else:
                         ds = self._read_raw_field(g, field)
-                    nd = g.select(selector, ds, rv[field], ind) # caches
+                    nd = g.select(selector, ds, rv[field], ind)
                 ind += nd
                 data.pop(g.id)
         return rv
@@ -72,6 +72,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         field_name = field[1]
         base_dir = self.ds.index.raw_file
 
+        nghost = self.ds.index.raw_field_nghost[field_name]
         box_list = self.ds.index.raw_field_map[field_name][0]
         fn_list = self.ds.index.raw_field_map[field_name][1]
         offset_list = self.ds.index.raw_field_map[field_name][2]
@@ -80,16 +81,16 @@ class IOHandlerBoxlib(BaseIOHandler):
         filename = base_dir + "Level_%d/" % lev + fn_list[grid.id]
         offset = offset_list[grid.id]
         box = box_list[grid.id]
-        
-        lo = box[0]
-        hi = box[1]
+
+        lo = box[0] - nghost
+        hi = box[1] + nghost
         shape = hi - lo + 1
         with open(filename, "rb") as f:
             f.seek(offset)
             f.readline()  # always skip the first line
             arr = np.fromfile(f, 'float64', np.product(shape))
             arr = arr.reshape(shape, order='F')
-        return arr
+        return arr[[slice(nghost,-nghost) for _ in range(self.ds.dimensionality)]]
 
     def _read_chunk_data(self, chunk, fields):
         data = {}
@@ -122,92 +123,62 @@ class IOHandlerBoxlib(BaseIOHandler):
                         local_offset += size
         return data
 
-    def _read_particle_selection(self, chunks, selector, fields):
-        rv = {}
-        chunks = list(chunks)
-        unions = self.ds.particle_unions
+    def _read_particle_coords(self, chunks, ptf):
+        for rv in self._read_particle_fields(chunks, ptf, None):
+            yield rv
 
-        rv = {f: np.array([]) for f in fields}
-        for chunk in chunks:
-            for grid in chunk.objs:
-                for ftype, fname in fields:
-                    if ftype in unions:
-                        for subtype in unions[ftype]:
-                            data = self._read_particles(grid, selector,
-                                                        subtype, fname)
-                            rv[ftype, fname] = np.concatenate((data,
-                                                               rv[ftype, fname]))
-                    else:
-                        data = self._read_particles(grid, selector,
-                                                    ftype, fname)
-                        rv[ftype, fname] = np.concatenate((data,
-                                                           rv[ftype, fname]))
-        return rv
+    def _read_particle_fields(self, chunks, ptf, selector):
+        for chunk in chunks: # These should be organized by grid filename
+            for g in chunk.objs:
+                for ptype, field_list in sorted(ptf.items()):
+                    npart = g._pdata[ptype]["NumberOfParticles"]
+                    if npart == 0:
+                        continue
 
-    def _read_particles(self, grid, selector, ftype, name):
+                    fn = g._pdata[ptype]["particle_filename"]
+                    offset = g._pdata[ptype]["offset"]
+                    pheader = self.ds.index.particle_headers[ptype]
 
-        npart = grid._pdata[ftype]["NumberOfParticles"]
-        if npart == 0:
-            return np.array([])
+                    with open(fn, "rb") as f:
+                        # read in the position fields for selection
+                        f.seek(offset + 
+                               pheader.particle_int_dtype.itemsize * npart)
+                        rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
+                        x = np.asarray(rdata[0::pheader.num_real], dtype=np.float64)
+                        y = np.asarray(rdata[1::pheader.num_real], dtype=np.float64)
+                        if (g.ds.dimensionality == 2):
+                            z = np.ones_like(y)
+                            z *= 0.5*(g.LeftEdge[2] + g.RightEdge[2])
+                        else:
+                            z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
 
-        fn = grid._pdata[ftype]["particle_filename"]
-        offset = grid._pdata[ftype]["offset"]
-        pheader = self.ds.index.particle_headers[ftype]
-        
-        # handle the case that this is an integer field
-        int_fnames = [fname for _, fname in pheader.known_int_fields]
-        if name in int_fnames:
-            ind = int_fnames.index(name)
-            fn = grid._pdata[ftype]["particle_filename"]
-            with open(fn, "rb") as f:
+                        if selector is None:
+                            # This only ever happens if the call is made from
+                            # _read_particle_coords.
+                            yield ptype, (x, y, z)
+                            continue
+                        mask = selector.select_points(x, y, z, 0.0)
+                        if mask is None:
+                            continue
+                        for field in field_list:
+                            # handle the case that this is an integer field
+                            int_fnames = [fname for _, fname in pheader.known_int_fields]
+                            if field in int_fnames:
+                                ind = int_fnames.index(field)
+                                f.seek(offset)
+                                idata = np.fromfile(f, pheader.int_type,
+                                                    pheader.num_int * npart)
+                                data = np.asarray(idata[ind::pheader.num_int],
+                                                  dtype=np.float64)
+                                yield (ptype, field), data[mask].flatten()
 
-                # read in the position fields for selection
-                f.seek(offset + 
-                       pheader.particle_int_dtype.itemsize * npart)
-                rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
-                x = np.asarray(rdata[0::pheader.num_real], dtype=np.float64)
-                y = np.asarray(rdata[1::pheader.num_real], dtype=np.float64)
-                if (grid.ds.dimensionality == 2):
-                    z = np.ones_like(y)
-                    z *= 0.5*(grid.LeftEdge[2] + grid.RightEdge[2])
-                else:
-                    z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
-                mask = selector.select_points(x, y, z, 0.0)
-
-                if mask is None:
-                    return np.array([])
-                
-                # read in the data we want
-                f.seek(offset)
-                idata = np.fromfile(f, pheader.int_type, pheader.num_int * npart)
-                data = np.asarray(idata[ind::pheader.num_int], dtype=np.float64)
-                return data[mask].flatten()
-
-        # handle case that this is a real field
-        real_fnames = [fname for _, fname in pheader.known_real_fields]
-        if name in real_fnames:
-            ind = real_fnames.index(name)
-            with open(fn, "rb") as f:
-
-                # read in the position fields for selection
-                f.seek(offset + 
-                       pheader.particle_int_dtype.itemsize * npart)
-                rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
-                x = np.asarray(rdata[0::pheader.num_real], dtype=np.float64)
-                y = np.asarray(rdata[1::pheader.num_real], dtype=np.float64)
-                if (grid.ds.dimensionality == 2):
-                    z = np.ones_like(y)
-                    z *= 0.5*(grid.LeftEdge[2] + grid.RightEdge[2])
-                else:
-                    z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
-                mask = selector.select_points(x, y, z, 0.0)
-
-                if mask is None:
-                    return np.array([])
-
-                data = np.asarray(rdata[ind::pheader.num_real], dtype=np.float64)
-                return data[mask].flatten()
-
+                            # handle case that this is a real field
+                            real_fnames = [fname for _, fname in pheader.known_real_fields]
+                            if field in real_fnames:
+                                ind = real_fnames.index(field)                            
+                                data = np.asarray(rdata[ind::pheader.num_real],
+                                                  dtype=np.float64)
+                                yield (ptype, field), data[mask].flatten()
 
 class IOHandlerOrion(IOHandlerBoxlib):
     _dataset_type = "orion_native"

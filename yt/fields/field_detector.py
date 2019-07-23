@@ -17,8 +17,7 @@ import numpy as np
 from collections import defaultdict
 from yt.units.yt_array import YTArray
 from .field_exceptions import \
-    NeedsGridType, \
-    NeedsParameterValue
+    NeedsGridType
 
 class FieldDetector(defaultdict):
     Level = 1
@@ -37,7 +36,10 @@ class FieldDetector(defaultdict):
         self.LeftEdge = [0.0, 0.0, 0.0]
         self.RightEdge = [1.0, 1.0, 1.0]
         self.dds = np.ones(3, "float64")
-        self.field_parameters = field_parameters
+        if field_parameters is None:
+            self.field_parameters = {}
+        else:
+            self.field_parameters = field_parameters
         class fake_dataset(defaultdict):
             pass
 
@@ -87,6 +89,8 @@ class FieldDetector(defaultdict):
         else:
             field = item
         finfo = self.ds._get_field_info(*field)
+        params, permute_params = finfo._get_needed_parameters(self)
+        self.field_parameters.update(params)
         # For those cases where we are guessing the field type, we will
         # need to re-update -- otherwise, our item will always not have the
         # field type.  This can lead to, for instance, "unknown" particle
@@ -96,10 +100,17 @@ class FieldDetector(defaultdict):
         item = self.ds._last_freq
         if finfo is not None and finfo._function.__name__ != 'NullFunc':
             try:
-                vv = finfo(self)
+                for param, param_v in permute_params.items():
+                    for v in param_v:
+                        self.field_parameters[param] = v
+                        vv = finfo(self)
+                if not permute_params:
+                    vv = finfo(self)
             except NeedsGridType as exc:
                 ngz = exc.ghost_zones
-                nfd = FieldDetector(self.nd + ngz * 2, ds = self.ds)
+                nfd = FieldDetector(
+                    self.nd + ngz * 2, ds = self.ds,
+                    field_parameters=self.field_parameters.copy())
                 nfd._num_ghost_zones = ngz
                 vv = finfo(nfd)
                 if ngz > 0: vv = vv[ngz:-ngz, ngz:-ngz, ngz:-ngz]
@@ -108,32 +119,6 @@ class FieldDetector(defaultdict):
                 for i in nfd.requested_parameters:
                     if i not in self.requested_parameters:
                         self.requested_parameters.append(i)
-            except NeedsParameterValue as npv:
-                # redo field detection with a new FieldDetector, ensuring
-                # all needed field parameter values are set
-                for param in npv.parameter_values:
-                    # temporarily remove any ValidateParameter instances for
-                    # this field to avoid infinitely re-raising
-                    # NeedsParameterValue exceptions
-                    saved_validators = []
-                    for i, validator in enumerate(finfo.validators):
-                        params = getattr(validator, 'parameters', [])
-                        if param in params:
-                            saved_validators.append(validator)
-                            del finfo.validators[i]
-
-                    for pv in npv.parameter_values[param]:
-                        nfd = FieldDetector(self.nd, ds=self.ds,
-                                            field_parameters={param: pv})
-                        vv = finfo(nfd)
-                        for i in nfd.requested:
-                            if i not in self.requested:
-                                self.requested.append(i)
-                        for i in nfd.requested_parameters:
-                            if i not in self.requested_parameters:
-                                self.requested_parameters.append(i)
-
-                    finfo.validators.extend(saved_validators)
             if vv is not None:
                 if not self.flat: self[item] = vv
                 else: self[item] = vv.ravel()
@@ -141,9 +126,11 @@ class FieldDetector(defaultdict):
         elif finfo is not None and finfo.particle_type:
             if "particle_position" in (item, item[1]) or \
                "particle_velocity" in (item, item[1]) or \
+               "particle_magnetic_field" in (item, item[1]) or \
                "Velocity" in (item, item[1]) or \
                "Velocities" in (item, item[1]) or \
-               "Coordinates" in (item, item[1]):
+               "Coordinates" in (item, item[1]) or \
+               "MagneticField" in (item, item[1]):
                 # A vector
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 3)),
@@ -152,12 +139,16 @@ class FieldDetector(defaultdict):
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 4)),
                           finfo.units, registry=self.ds.unit_registry)
-
             else:
                 # Not a vector
                 self[item] = \
                   YTArray(np.ones(self.NumberOfParticles),
                           finfo.units, registry=self.ds.unit_registry)
+            if item == ('STAR', 'BIRTH_TIME'):
+                # hack for the artio frontend so we pass valid times to
+                # the artio functions for calculating physical times
+                # from internal times
+                self[item] *= -0.1
             self.requested.append(item)
             return self[item]
         self.requested.append(item)
@@ -172,10 +163,16 @@ class FieldDetector(defaultdict):
     def deposit(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
 
+    def mesh_sampling_particle_field(self, *args, **kwargs):
+        pos = args[0]
+        npart = len(pos)
+        return np.random.rand(npart)
+
     def smooth(self, *args, **kwargs):
         tr = np.random.random((self.nd, self.nd, self.nd))
         if kwargs['method'] == "volume_weighted":
             return [tr]
+
         return tr
 
     def particle_operation(self, *args, **kwargs):
@@ -202,6 +199,10 @@ class FieldDetector(defaultdict):
         'x_hat': '',
         'y_hat': '',
         'z_hat': '',
+        'omega_baryon': '',
+        'virial_radius': 'cm',
+        'observer_redshift': '',
+        'source_redshift': '',
         }
 
     def get_field_parameter(self, param, default = 0.0):
@@ -239,7 +240,7 @@ class FieldDetector(defaultdict):
         return self.ds.arr(arr, input_units = units)
 
     def has_field_parameter(self, param):
-        return True
+        return param in self.field_parameters
 
     @property
     def fcoords(self):

@@ -600,6 +600,7 @@ two element tuples.
 
 Flipping the plot view axes
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 By default, all :class:`~yt.visualization.plot_window.PlotWindow` objects plot
 with the assumption that the eastern direction on the plot forms a right handed
 coordinate system with the ``normal`` and ``north_vector`` for the system, whether
@@ -1096,8 +1097,85 @@ function of radius. The xlabel is set to "Radius", for all plots, and the ylabel
    plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
                     weight_field=None)
    plot.set_xlabel("Radius")
-   plot.set_ylabel("x-velocity", "velocity in x direction")
+   plot.set_ylabel("velocity_x", "velocity in x direction")
    plot.save()
+
+Adding plot title
+~~~~~~~~~~~~~~~~~
+
+Plot title can be set via the
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_title` function.
+It accepts a string argument which is the plot title and an optional ``field`` parameter which specifies
+the field for which plot title should be added. ``field`` could be a string or a list of string.
+If ``field`` is not passed, plot title will be added for the fields.
+
+In the following example we create a plot and set the plot title.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
+   plot = yt.ProfilePlot(ad, "density", ["temperature"], weight_field=None)
+   plot.annotate_title("Temperature vs Density Plot")
+   plot.save()
+
+Another example where we create plots from profile. By specifying the fields we can add plot title to a
+specific plot.
+
+.. python-script::
+
+   import yt
+   ds = yt.load('enzo_tiny_cosmology/DD0046/DD0046')
+   sphere = ds.sphere("max", (1.0, "Mpc"))
+   profiles = []
+   profiles.append(yt.create_profile(sphere, ["radius"], fields=["density"],n_bins=64))
+   profiles.append(yt.create_profile(sphere, ["radius"], fields=["dark_matter_density"],n_bins=64))
+   plot = yt.ProfilePlot.from_profiles(profiles)
+   plot.annotate_title("Plot Title: Density", "density")
+   plot.annotate_title("Plot Title: Dark Matter Density", "dark_matter_density")
+   plot.save()
+
+Here, ``plot.annotate_title("Plot Title: Density", "density")`` will only set the plot title for the ``"density"``
+field. Thus, allowing us the option to have different plot titles for different fields.
+
+
+Annotating plot with text
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Plots can be annotated at a desired (x,y) co-ordinate using :meth:`~yt.visualization.profile_plotter.ProfilePlot.annotate_text` function.
+This function accepts the x-position, y-position, a text string to
+be annotated in the plot area, and an optional list of fields for annotating plots with the specified field.
+Furthermore, any keyword argument accepted by the matplotlib ``axes.text`` function could also be passed which will can be useful to change fontsize, text-alignment, text-color or other such properties of annotated text.
+
+In the following example we create a plot and add a simple annotation.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+   ad = ds.all_data()
+   plot = yt.ProfilePlot(ad, "density", ["temperature"], weight_field=None)
+   plot.annotate_text(1e-30, 1e7,"Annotated Text")
+   plot.save()
+
+To add annotations to a particular set of fields we need to pass in the list of fields as follows:
+
+.. code-block:: python
+
+   plot.annotate_text(1e-30, 1e7,"Annotation", ["field1", "field2"])
+
+
+To change the text annotated text properties, we need to pass the matplotlib ``axes.text`` arguments as follows:
+
+.. code-block:: python
+
+  plot.annotate_text(1e-30, 1e7,"Annotation", fontsize=20, bbox=dict(facecolor='red', alpha=0.5),
+                      horizontalalignment='center', verticalalignment='center')
+
+The above example will set the fontsize of annotation to 20, add a bounding box of red color and center align
+horizontally and vertically. The is just an example to modify the text properties, for further options please check
+`matplotlib.axes.Axes.text <https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.text.html>`_.
 
 Altering Line Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1242,7 +1320,10 @@ Customizing Phase Plots
 Similarly to 1D profile plots, :class:`~yt.visualization.profile_plotter.PhasePlot`
 can be customized via ``set_unit``,
 ``set_xlim``, ``set_ylim``, and ``set_zlim``.  The following example illustrates
-how to manipulate these functions.
+how to manipulate these functions. :class:`~yt.visualization.profile_plotter.PhasePlot`
+can also be customized in a similar manner as 
+:class:`~yt.visualization.plot_window.SlicePlot`, such as with ``hide_colorbar``
+and ``show_colorbar``.
 
 .. python-script::
 
@@ -1326,6 +1407,12 @@ plot that shows the x and y positions of all the particles in ``ds`` and save th
 result to a file on the disk. The type of plot returned depends on the fields you
 pass in; in this case, ``p`` will be an :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`,
 because the fields are aligned to the coordinate system of the simulation.
+The above example is equivalent to the following:
+
+.. code-block:: python
+
+   p = yt.ParticleProjectionPlot(ds, 'z')
+   p.save()
 
 Most of the callbacks the work for slice and projection plots also work for
 :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`.
@@ -1360,21 +1447,40 @@ Here is a full example that shows the simplest way to use
    p.save()
 
 In the above examples, we are simply splatting particle x and y positions onto
-a plot using some color. We can also supply an additional particle field, and map
-that to a colorbar. For instance:
+a plot using some color. Colors can be applied to the plotted particles by
+providing a ``z_field``, which will be summed along the line of sight in a manner
+similar to a projection.
 
-.. code-block:: python
+.. python-script::
 
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
    p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y',
-                           'particle_mass', width=(0.5, 0.5))
+                       'particle_mass')
    p.set_unit('particle_mass', 'Msun')
+   p.zoom(32)
    p.save()
 
-will create a plot with the particle mass used to set the colorbar.
-Specifically, :class:`~yt.visualization.particle_plots.ParticlePlot`
-shows the total ``z_field`` for all the particles in each pixel on the
-colorbar axis; to plot average quantities instead, one can supply a
-``weight_field`` argument.
+Additionally, a ``weight_field`` can be given such that the value in each
+pixel is the weighted average along the line of sight.
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y',
+                       'particle_mass', weight_field='particle_ones')
+   p.set_unit('particle_mass', 'Msun')
+   p.zoom(32)
+   p.save()
+
+Note the difference in the above two plots. The first shows the
+total mass along the line of sight. The density is higher in the
+inner regions, and hence there are more particles and more mass along
+the line of sight. The second plot shows the average mass per particle
+along the line of sight. The inner region is dominated by low mass
+star particles, whereas the outer region is comprised of higher mass
+dark matter particles.
 
 Here is a complete example that uses the ``particle_mass`` field
 to set the colorbar and shows off some of the modification functions for

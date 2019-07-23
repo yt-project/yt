@@ -44,14 +44,58 @@ class HaloCatalogParticleIndex(ParticleIndex):
               [cls(self.dataset, self.io,
                    self.dataset.parameter_filename, 0)]
 
-class HaloCatalogHDF5File(ParticleFile):
+class HaloCatalogFile(ParticleFile):
+    def __init__(self, ds, io, filename, file_id):
+        super(HaloCatalogFile, self).__init__(
+            ds, io, filename, file_id)
+
+    def _read_particle_positions(self, ptype, f=None):
+        raise NotImplementedError
+
+    def _get_particle_positions(self, ptype, f=None):
+        pcount = self.total_particles[ptype]
+        if pcount == 0:
+            return None
+
+        # Correct for periodicity.
+        dle = self.ds.domain_left_edge.to('code_length').v
+        dw = self.ds.domain_width.to('code_length').v
+        pos = self._read_particle_positions(ptype, f=f)
+        np.subtract(pos, dle, out=pos)
+        np.mod(pos, dw, out=pos)
+        np.add(pos, dle, out=pos)
+
+        return pos
+
+class HaloCatalogHDF5File(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
             self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
+        super(HaloCatalogHDF5File, self).__init__(
+            ds, io, filename, file_id)
 
-        super(HaloCatalogHDF5File, self).__init__(ds, io, filename, file_id)
-    
+    def _read_particle_positions(self, ptype, f=None):
+        """
+        Read all particle positions in this file.
+        """
+
+        if f is None:
+            close = True
+            f = h5py.File(self.filename, "r")
+        else:
+            close = False
+
+        pcount = self.header["num_halos"]
+        pos = np.empty((pcount, 3), dtype="float64")
+        for i, ax in enumerate('xyz'):
+            pos[:, i] = f["particle_position_%s" % ax][()]
+
+        if close:
+            f.close()
+
+        return pos
+
 class HaloCatalogDataset(SavedDataset):
     _index_class = ParticleIndex
     _file_class = HaloCatalogHDF5File

@@ -70,7 +70,7 @@ class ARTIndex(OctreeIndex):
         """
         # Overloaded
         ds = self.dataset
-        return (1.0/ds.domain_dimensions.astype('f8') /
+        return (ds.domain_width /ds.domain_dimensions /
                 (2**self.max_level)).min()
 
     def _initialize_oct_handler(self):
@@ -201,9 +201,6 @@ class ARTDataset(Dataset):
             match = None
             for possible in possibles:
                 if possible.endswith(numericstr+suffix):
-                    if os.path.basename(possible).startswith(prefix):
-                        match = possible
-                elif possible.endswith(suffix):
                     if os.path.basename(possible).startswith(prefix):
                         match = possible
             if match is not None:

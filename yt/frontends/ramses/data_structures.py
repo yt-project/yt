@@ -19,6 +19,8 @@ import os
 import numpy as np
 import stat
 import weakref
+from collections import defaultdict
+from glob import glob
 
 from yt.extern.six import string_types
 from yt.funcs import \
@@ -41,13 +43,15 @@ from .fields import \
 from .hilbert import get_cpu_list
 from .particle_handlers import get_particle_handlers
 from .field_handlers import get_field_handlers
-import yt.utilities.fortran_utils as fpu
+from yt.utilities.cython_fortran_utils import FortranFile as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
 from yt.arraytypes import blankRecordArray
 
 from yt.utilities.lib.cosmology_time import \
     friedman
+
+from .io_utils import read_amr, fill_hydro
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -59,16 +63,23 @@ class RAMSESDomainFile(object):
 
         num = os.path.basename(ds.parameter_filename).split("."
                 )[0].split("_")[1]
+        rootdir = ds.root_folder
         basedir = os.path.abspath(
             os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (
             basedir, num, domain_id)
         part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
+        if ds.num_groups > 0:
+            igroup = ((domain_id-1) // ds.group_size) + 1
+            basename = "%s/group_%05i/%%s_%s.out%05i" % (
+                rootdir, igroup, num, domain_id)
+        else:
+            basename = "%s/%%s_%s.out%05i" % (
+                basedir, num, domain_id)
         for t in ['grav', 'amr']:
             setattr(self, "%s_fn" % t, basename % t)
         self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
-        # self._read_hydro_header()
 
         # Autodetect field files
         field_handlers = [FH(self)
@@ -81,7 +92,7 @@ class RAMSESDomainFile(object):
             # self._add_ftype(fh.ftype)
 
         # Autodetect particle files
-        particle_handlers = [PH(ds, domain_id)
+        particle_handlers = [PH(ds, self)
                              for PH in get_particle_handlers()
                              if PH.any_exist(ds)]
         self.particle_handlers = particle_handlers
@@ -116,7 +127,7 @@ class RAMSESDomainFile(object):
             self._amr_file.seek(0)
             return self._amr_file
 
-        f = open(self.amr_fn, "rb")
+        f = fpu(self.amr_fn)
         self._amr_file = f
         f.seek(0)
         return f
@@ -124,27 +135,26 @@ class RAMSESDomainFile(object):
     def _read_amr_header(self):
         hvals = {}
         f = self.amr_file
-
         f.seek(0)
 
         for header in ramses_header(hvals):
-            hvals.update(fpu.read_attrs(f, header))
+            hvals.update(f.read_attrs(header))
         # For speedup, skip reading of 'headl' and 'taill'
-        fpu.skip(f, 2)
-        hvals['numbl'] = fpu.read_vector(f, 'i')
+        f.skip(2)
+        hvals['numbl'] = f.read_vector('i')
 
         # That's the header, now we skip a few.
         hvals['numbl'] = np.array(hvals['numbl']).reshape(
             (hvals['nlevelmax'], hvals['ncpu']))
-        fpu.skip(f)
+        f.skip()
         if hvals['nboundary'] > 0:
-            fpu.skip(f, 2)
-            self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
+            f.skip(2)
+            self.ngridbound = f.read_vector('i').astype("int64")
         else:
             self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
-        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )  # NOQA
-        ordering = fpu.read_vector(f, 'c')  # NOQA
-        fpu.skip(f, 4)
+        free_mem = f.read_attrs((('free_mem', 5, 'i'), ) )  # NOQA
+        ordering = f.read_vector('c')  # NOQA
+        f.skip(4)
         # Now we're at the tree itself
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals
@@ -167,89 +177,16 @@ class RAMSESDomainFile(object):
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
 
         f = self.amr_file
-
         f.seek(self.amr_offset)
 
-        def _ng(c, l):
-            if c < self.amr_header['ncpu']:
-                ng = self.amr_header['numbl'][l, c]
-            else:
-                ng = self.ngridbound[c - self.amr_header['ncpu'] +
-                                self.amr_header['nboundary']*l]
-            return ng
         min_level = self.ds.min_level
-        # yt max level is not the same as the RAMSES one.
-        # yt max level is the maximum number of additional refinement levels
-        # so for a uni grid run with no refinement, it would be 0.
-        # So we initially assume that.
-        max_level = 0
-        nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
-        for level in range(self.amr_header['nlevelmax']):
-            # Easier if do this 1-indexed
-            for cpu in range(self.amr_header['nboundary'] + self.amr_header['ncpu']):
-                #ng is the number of octs on this level on this domain
-                ng = _ng(cpu, level)
-                if ng == 0: continue
-                ind = fpu.read_vector(f, "I").astype("int64")  # NOQA
-                fpu.skip(f, 2)
-                pos = np.empty((ng, 3), dtype='float64')
-                pos[:,0] = fpu.read_vector(f, "d") - nx
-                pos[:,1] = fpu.read_vector(f, "d") - ny
-                pos[:,2] = fpu.read_vector(f, "d") - nz
-                #pos *= self.ds.domain_width
-                #pos += self.dataset.domain_left_edge
-                fpu.skip(f, 31)
-                #parents = fpu.read_vector(f, "I")
-                #fpu.skip(f, 6)
-                #children = np.empty((ng, 8), dtype='int64')
-                #for i in range(8):
-                #    children[:,i] = fpu.read_vector(f, "I")
-                #cpu_map = np.empty((ng, 8), dtype="int64")
-                #for i in range(8):
-                #    cpu_map[:,i] = fpu.read_vector(f, "I")
-                #rmap = np.empty((ng, 8), dtype="int64")
-                #for i in range(8):
-                #    rmap[:,i] = fpu.read_vector(f, "I")
-                # We don't want duplicate grids.
-                # Note that we're adding *grids*, not individual cells.
-                if level >= min_level:
-                    assert(pos.shape[0] == ng)
-                    n = self.oct_handler.add(cpu + 1, level - min_level, pos,
-                                count_boundary = 1)
-                    self._error_check(cpu, level, pos, n, ng, (nx, ny, nz))
-                    if n > 0: max_level = max(level - min_level, max_level)
+        max_level = read_amr(f, self.amr_header, self.ngridbound, min_level, self.oct_handler)
+
         self.max_level = max_level
         self.oct_handler.finalize()
 
         # Close AMR file
         f.close()
-
-    def _error_check(self, cpu, level, pos, n, ng, nn):
-        # NOTE: We have the second conditional here because internally, it will
-        # not add any octs in that case.
-        if n == ng or cpu + 1 > self.oct_handler.num_domains:
-            return
-        # This is where we now check for issues with creating the new octs, and
-        # we attempt to determine what precisely is going wrong.
-        # These are all print statements.
-        print("We have detected an error with the construction of the Octree.")
-        print("  The number of Octs to be added :  %s" % ng)
-        print("  The number of Octs added       :  %s" % n)
-        print("  Level                          :  %s" % level)
-        print("  CPU Number (0-indexed)         :  %s" % cpu)
-        for i, ax in enumerate('xyz'):
-            print("  extent [%s]                     :  %s %s" % \
-            (ax, pos[:,i].min(), pos[:,i].max()))
-        print("  domain left                    :  %s" % \
-            (self.ds.domain_left_edge,))
-        print("  domain right                   :  %s" % \
-            (self.ds.domain_right_edge,))
-        print("  offset applied                 :  %s %s %s" % \
-            (nn[0], nn[1], nn[2]))
-        print("AMR Header:")
-        for key in sorted(self.amr_header):
-            print("   %-30s: %s" % (key, self.amr_header[key]))
-        raise RuntimeError
 
     def included(self, selector):
         if getattr(selector, "domain_id", None) is not None:
@@ -262,7 +199,8 @@ class RAMSESDomainSubset(OctreeSubset):
     _domain_offset = 1
     _block_reorder = "F"
 
-    def fill(self, content, fields, selector, file_handler):
+    def fill(self, fd, fields, selector, file_handler):
+        ndim = self.ds.dimensionality
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
@@ -270,30 +208,18 @@ class RAMSESDomainSubset(OctreeSubset):
         fields = [f for ft, f in fields]
         tr = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
+
         levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
             selector, self.domain_id, cell_count)
+
         # Initializing data container
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
 
-        # Loop over levels
-        for level, offset in enumerate(file_handler.offset):
-            if offset == -1: continue
-            content.seek(offset)
-            nc = file_handler.level_count[level]
-            tmp = {}
-            # Initalize temporary data container for io
-            for field in all_fields:
-                tmp[field] = np.empty((nc, 8), dtype="float64")
-            for i in range(8):
-                # Read the selected fields
-                for field in all_fields:
-                    if field not in fields:
-                        fpu.skip(content)
-                    else:
-                        tmp[field][:,i] = fpu.read_vector(content, 'd') # i-th cell
-
-            oct_handler.fill_level(level, levels, cell_inds, file_inds, tr, tmp)
+        fill_hydro(fd, file_handler.offset,
+                   file_handler.level_count, levels, cell_inds,
+                   file_inds, ndim, all_fields, fields, tr,
+                   oct_handler)
         return tr
 
 class RAMSESIndex(OctreeIndex):
@@ -331,6 +257,11 @@ class RAMSESIndex(OctreeIndex):
                 dsl.update(set(ph.field_offsets.keys()))
 
         self.particle_field_list = list(dsl)
+        cosmo = self.ds.cosmological_simulation
+        for f in self.particle_field_list[:]:
+            if f[1] == 'particle_birth_time' and cosmo:
+                self.particle_field_list.append(
+                    (f[0], 'conformal_birth_time'))
 
         # Get the detected fields
         dsl = set([])
@@ -454,16 +385,47 @@ class RAMSESDataset(Dataset):
         cosmological: If set to None, automatically detect cosmological simulation. If a boolean, force
                       its value.
         '''
+
         self._fields_in_file = fields
+        # By default, extra fields have not triggered a warning
+        self._warned_extra_fields = defaultdict(lambda: False)
         self._extra_particle_fields = extra_particle_fields
-        self._warn_extra_fields = False
         self.force_cosmological = cosmological
         self._bbox = bbox
+
+        # Infer if the output is organized in groups
+        root_folder, group_folder = os.path.split(os.path.split(filename)[0])
+
+        if group_folder == 'group_00001':
+            # Count the number of groups
+            # note: we exclude the unlikely event that one of the group is actually a file
+            # instad of a folder
+            self.num_groups = len(
+                [_ for _ in glob(os.path.join(root_folder, 'group_?????'))
+                 if os.path.isdir(_)])
+            self.root_folder = root_folder
+        else:
+            self.root_folder = os.path.split(filename)[0]
+            self.num_groups = 0
+
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
+
+        # Add the particle types
+        ptypes = []
+        for PH in get_particle_handlers():
+            if PH.any_exist(self):
+                ptypes.append(PH.ptype)
+
+        ptypes = tuple(ptypes)
+        self.particle_types = self.particle_types_raw = ptypes
+
+        # Add the fluid types
         for FH in get_field_handlers():
+            FH.purge_detected_fields(self)
             if FH.any_exist(self):
                 self.fluid_types += (FH.ftype, )
+
         self.storage_filename = storage_filename
 
 
@@ -540,31 +502,35 @@ class RAMSESDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # We now execute the same logic Oliver's code does
         rheader = {}
-        f = open(self.parameter_filename)
-        def read_rhs(cast):
+
+        def read_rhs(f, cast):
             line = f.readline().replace('\n', '')
             p, v = line.split("=")
             rheader[p.strip()] = cast(v.strip())
-        for i in range(6): read_rhs(int)
-        f.readline()
-        for i in range(11): read_rhs(float)
-        f.readline()
-        read_rhs(str)
-        # This next line deserves some comment.  We specify a min_level that
-        # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
-        # one-indexed, but it also does refer to the *oct* dimensions -- so
-        # this means that a levelmin of 1 would have *1* oct in it.  So a
-        # levelmin of 2 would have 8 octs at the root mesh level.
-        self.min_level = rheader['levelmin'] - 1
-        # Now we read the hilbert indices
-        self.hilbert_indices = {}
-        if rheader['ordering type'] == "hilbert":
-            f.readline() # header
-            for n in range(rheader['ncpu']):
-                dom, mi, ma = f.readline().split()
-                self.hilbert_indices[int(dom)] = (float(mi), float(ma))
 
-        if rheader['ordering type'] != 'hilbert' and self.bbox:
+        with open(self.parameter_filename) as f:
+            for i in range(6):
+                read_rhs(f, int)
+            f.readline()
+            for i in range(11):
+                read_rhs(f, float)
+            f.readline()
+            read_rhs(f, str)
+            # This next line deserves some comment.  We specify a min_level that
+            # corresponds to the minimum level in the RAMSES simulation.  RAMSES is
+            # one-indexed, but it also does refer to the *oct* dimensions -- so
+            # this means that a levelmin of 1 would have *1* oct in it.  So a
+            # levelmin of 2 would have 8 octs at the root mesh level.
+            self.min_level = rheader['levelmin'] - 1
+            # Now we read the hilbert indices
+            self.hilbert_indices = {}
+            if rheader['ordering type'] == "hilbert":
+                f.readline() # header
+                for n in range(rheader['ncpu']):
+                    dom, mi, ma = f.readline().split()
+                    self.hilbert_indices[int(dom)] = (float(mi), float(ma))
+
+        if rheader['ordering type'] != 'hilbert' and self._bbox is not None:
             raise NotImplementedError(
                 'The ordering %s is not compatible with the `bbox` argument.'
                 % rheader['ordering type'])
@@ -597,8 +563,6 @@ class RAMSESDataset(Dataset):
             self.omega_matter = rheader["omega_m"]
             self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level - 1
-        f.close()
-
 
         if self.cosmological_simulation == 0:
             self.current_time = self.parameters['time']
@@ -615,16 +579,8 @@ class RAMSESDataset(Dataset):
 
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
 
-        # Add the particle types
-        ptypes = []
-        for PH in get_particle_handlers():
-            if PH.any_exist(self):
-                ptypes.append(PH.ptype)
-
-        ptypes = tuple(ptypes)
-        self.particle_types = self.particle_types_raw = ptypes
-
-
+        if self.num_groups > 0:
+            self.group_size = rheader['ncpu'] // self.num_groups
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

@@ -25,8 +25,11 @@ from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     create_obj
 from yt.frontends.ramses.api import RAMSESDataset
+from yt.config import ytcfg
+from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 import os
 import yt
+import numpy as np
 
 _fields = ("temperature", "density", "velocity_magnitude",
            ("deposit", "all_density"), ("deposit", "all_count"))
@@ -61,24 +64,23 @@ def test_units_override():
     units_override_check(output_00080)
 
 
-ramsesNonCosmo = 'DICEGalaxyDisk_nonCosmological/output_00002'
+ramsesNonCosmo = 'DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt'
 @requires_file(ramsesNonCosmo)
 def test_non_cosmo_detection():
-    path = os.path.join(ramsesNonCosmo, 'info_00002.txt')
-    ds = yt.load(path, cosmological=False)
+    ds = yt.load(ramsesNonCosmo, cosmological=False)
     assert_equal(ds.cosmological_simulation, 0)
 
-    ds = yt.load(path, cosmological=None)
+    ds = yt.load(ramsesNonCosmo, cosmological=None)
     assert_equal(ds.cosmological_simulation, 0)
 
-    ds = yt.load(path)
+    ds = yt.load(ramsesNonCosmo)
     assert_equal(ds.cosmological_simulation, 0)
 
 
 @requires_file(ramsesNonCosmo)
 def test_unit_non_cosmo():
     for force_cosmo in [False, None]:
-        ds = yt.load(os.path.join(ramsesNonCosmo, 'info_00002.txt'), cosmological=force_cosmo)
+        ds = yt.load(ramsesNonCosmo, cosmological=force_cosmo)
 
         expected_raw_time = 0.0299468077820411 # in ramses unit
         assert_equal(ds.current_time.value, expected_raw_time)
@@ -177,7 +179,7 @@ def test_ramses_sink():
                        "BH_efficiency", "BH_esave",
                        "BH_real_accretion", "BH_spin", "BH_spin_x",
                        "BH_spin_y", "BH_spin_z", "gas_spin_x",
-                       "gas_spin_y", "gas_spin_z", "particle_age",
+                       "gas_spin_y", "gas_spin_z", "particle_birth_time",
                        "particle_identifier", "particle_mass",
                        "particle_position_x", "particle_position_y",
                        "particle_position_z", "particle_prop_0_0",
@@ -241,3 +243,198 @@ def test_ramses_part_count():
 
     assert_equal(pcount['io'], 17132, err_msg='Got wrong number of io particle')
     assert_equal(pcount['sink'], 8, err_msg='Got wrong number of sink particle')
+
+@requires_file(ramsesCosmo)
+def test_custom_particle_def():
+    ytcfg.add_section('ramses-particles')
+    ytcfg['ramses-particles', 'fields'] = '''particle_position_x, d
+         particle_position_y, d
+         particle_position_z, d
+         particle_velocity_x, d
+         particle_velocity_y, d
+         particle_velocity_z, d
+         particle_mass, d
+         particle_identifier, i
+         particle_refinement_level, I
+         particle_birth_time, d
+         particle_foobar, d
+    '''
+    ds = yt.load(ramsesCosmo)
+
+    def check_unit(array, unit):
+        assert str(array.in_cgs().units) == unit
+
+    try:
+        assert ('io', 'particle_birth_time') in ds.derived_field_list
+        assert ('io', 'particle_foobar') in ds.derived_field_list
+
+        check_unit(ds.r['io', 'particle_birth_time'], 's')
+        check_unit(ds.r['io', 'particle_foobar'], 'dimensionless')
+    finally:
+        ytcfg.remove_section('ramses-particles')
+
+@requires_file(ramsesCosmo)
+def test_custom_hydro_def():
+    ytcfg.add_section('ramses-hydro')
+    ytcfg['ramses-hydro', 'fields'] = '''
+    Density
+    x-velocity
+    y-velocity
+    z-velocity
+    Foo
+    Bar
+    '''
+    ds = yt.load(ramsesCosmo)
+
+    def check_unit(array, unit):
+        assert str(array.in_cgs().units) == unit
+
+    try:
+        assert ('ramses', 'Foo') in ds.derived_field_list
+        assert ('ramses', 'Bar') in ds.derived_field_list
+
+        check_unit(ds.r['ramses', 'Foo'], 'dimensionless')
+        check_unit(ds.r['ramses', 'Bar'], 'dimensionless')
+    finally:
+        ytcfg.remove_section('ramses-hydro')
+
+@requires_file(output_00080)
+def test_grav_detection():
+    ds = yt.load(output_00080)
+
+    # Test detection
+    for k in 'xyz':
+        assert ('gravity', '%s-acceleration' % k) in ds.field_list
+        assert ('gas', 'acceleration_%s' % k) in ds.derived_field_list
+
+    # Test access
+    for k in 'xyz':
+        ds.r['gas', 'acceleration_%s' % k]
+
+@requires_file(ramses_sink)
+@requires_file(output_00080)
+def test_ramses_field_detection():
+    ds1 = yt.load(ramses_rt)
+
+    assert 'ramses' not in DETECTED_FIELDS
+
+    # Now they are detected !
+    ds1.index
+    P1 = HydroFieldFileHandler.parameters
+    assert DETECTED_FIELDS[ds1.unique_identifier]['ramses'] is not None
+    fields_1 = set(DETECTED_FIELDS[ds1.unique_identifier]['ramses'])
+
+    # Check the right number of variables has been loaded
+    assert P1['nvar'] == 10
+    assert len(fields_1) == P1['nvar']
+
+    # Now load another dataset
+    ds2 = yt.load(output_00080)
+    ds2.index
+    P2 = HydroFieldFileHandler.parameters
+    fields_2 = set(DETECTED_FIELDS[ds2.unique_identifier]['ramses'])
+
+    # Check the right number of variables has been loaded
+    assert P2['nvar'] == 6
+    assert len(fields_2) == P2['nvar']
+
+@requires_file(ramses_new_format)
+@requires_file(ramsesCosmo)
+@requires_file(ramsesNonCosmo)
+def test_formation_time():
+    extra_particle_fields = [('particle_birth_time', 'd'),
+                             ('particle_metallicity', 'd')]
+
+    # test semantics for cosmological dataset
+    ds = yt.load(ramsesCosmo, extra_particle_fields=extra_particle_fields)
+    assert ('io', 'particle_birth_time') in ds.field_list
+    assert ('io', 'conformal_birth_time') in ds.field_list
+    assert ('io', 'particle_metallicity') in ds.field_list
+
+    ad = ds.all_data()
+    whstars = ad['conformal_birth_time'] != 0
+    assert np.all(ad['star_age'][whstars] > 0)
+
+    # test semantics for non-cosmological new-style output format
+    ds = yt.load(ramses_new_format)
+    ad = ds.all_data()
+    assert ('io', 'particle_birth_time') in ds.field_list
+    assert np.all(ad['particle_birth_time'] > 0)
+
+    # test semantics for non-cosmological old-style output format
+    ds = yt.load(ramsesNonCosmo, extra_particle_fields=extra_particle_fields)
+    ad = ds.all_data()
+    assert ('io', 'particle_birth_time') in ds.field_list
+    # the dataset only includes particles with arbitrarily old ages
+    # and particles that formed in the very first timestep
+    assert np.all(ad['particle_birth_time'] <= 0)
+    whdynstars = ad['particle_birth_time'] == 0
+    assert np.all(ad['star_age'][whdynstars] == ds.current_time)
+
+@requires_file(ramses_new_format)
+def test_cooling_fields():
+
+    #Test the field is being loaded correctly
+    ds=yt.load(ramses_new_format)
+
+    #Derived cooling fields
+    assert ('gas','cooling_net') in ds.derived_field_list
+    assert ('gas','cooling_total') in ds.derived_field_list
+    assert ('gas','heating_total') in ds.derived_field_list
+    assert ('gas','number_density') in ds.derived_field_list
+
+    #Original cooling fields
+    assert ('gas','cooling_primordial') in ds.derived_field_list
+    assert ('gas','cooling_compton') in ds.derived_field_list
+    assert ('gas','cooling_metal') in ds.derived_field_list
+    assert ('gas','heating_primordial') in ds.derived_field_list
+    assert ('gas','heating_compton') in ds.derived_field_list
+    assert ('gas','cooling_primordial_prime') in ds.derived_field_list
+    assert ('gas','cooling_compton_prime') in ds.derived_field_list
+    assert ('gas','cooling_metal_prime') in ds.derived_field_list
+    assert ('gas','heating_primordial_prime') in ds.derived_field_list
+    assert ('gas','heating_compton_prime') in ds.derived_field_list
+    assert ('gas','mu') in ds.derived_field_list
+
+    #Abundances
+    assert ('gas','Electron_number_density') in ds.derived_field_list
+    assert ('gas','HI_number_density') in ds.derived_field_list
+    assert ('gas','HII_number_density') in ds.derived_field_list
+    assert ('gas','HeI_number_density') in ds.derived_field_list
+    assert ('gas','HeII_number_density') in ds.derived_field_list
+    assert ('gas','HeIII_number_density') in ds.derived_field_list
+
+    def check_unit(array, unit):
+        assert str(array.in_cgs().units) == unit
+
+    check_unit(ds.r[('gas','cooling_total')],'cm**5*g/s**3')
+    check_unit(ds.r[('gas','cooling_primordial_prime')],'cm**5*g/(K*s**3)')
+    check_unit(ds.r[('gas','number_density')],'cm**(-3)')
+    check_unit(ds.r[('gas','mu')],'dimensionless')
+    check_unit(ds.r[('gas','Electron_number_density')],'cm**(-3)')
+
+
+ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
+@requires_file(ramses_rt)
+def test_ramses_mixed_files():
+    # Test that one can use derived fields that depend on different
+    # files (here hydro and rt files)
+    ds = yt.load(ramses_rt)
+    def _mixed_field(field, data):
+        return data['rt', 'photon_density_1'] / data['gas', 'H_nuclei_density']
+    ds.add_field(('gas', 'mixed_files'), function=_mixed_field, sampling_type='cell')
+
+    # Access the field
+    ds.r[('gas', 'mixed_files')]
+
+ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
+@requires_file(ramses_empty_record)
+def test_ramses_empty_record():
+    # Test that yt can load datasets with empty records
+    ds = yt.load(ramses_empty_record)
+
+    # This should not fail
+    ds.index
+
+    # Access some field
+    ds.r[('gas', 'density')]

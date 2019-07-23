@@ -719,7 +719,7 @@ class YTNonspatialDataset(YTGridDataset):
                       "hubble_constant"]:
                 v = getattr(self, a)
                 if v is not None: mylog.info("Parameters: %-25s = %s", a, v)
-        mylog.warn("Geometric data selection not available for this dataset type.")
+        mylog.warning("Geometric data selection not available for this dataset type.")
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -732,19 +732,25 @@ class YTNonspatialDataset(YTGridDataset):
 
 class YTProfileDataset(YTNonspatialDataset):
     """Dataset for saved profile objects."""
+    fluid_types = ("data", "gas", "standard_deviation")
     def __init__(self, filename, unit_system="cgs"):
         super(YTProfileDataset, self).__init__(filename,
                                                unit_system=unit_system)
 
+    _profile = None
     @property
     def profile(self):
+        if self._profile is not None:
+            return self._profile
         if self.dimensionality == 1:
-            return Profile1DFromDataset(self)
-        if self.dimensionality == 2:
-            return Profile2DFromDataset(self)
-        if self.dimensionality == 3:
-            return Profile3DFromDataset(self)
-        return None
+            self._profile = Profile1DFromDataset(self)
+        elif self.dimensionality == 2:
+            self._profile = Profile2DFromDataset(self)
+        elif self.dimensionality == 3:
+            self._profile = Profile3DFromDataset(self)
+        else:
+            self._profile = None
+        return self._profile
 
     def _parse_parameter_file(self):
         super(YTGridDataset, self)._parse_parameter_file()
@@ -787,7 +793,7 @@ class YTProfileDataset(YTNonspatialDataset):
                 self.parameters[bin_field] = None
             elif isinstance(self.parameters[bin_field], np.ndarray):
                 self.parameters[bin_field] = \
-                  tuple(self.parameters[bin_field].astype(str))
+                  tuple(["data", self.parameters[bin_field].astype(str)[1]])
             setattr(self, bin_field, self.parameters[bin_field])
         self.domain_left_edge = domain_left_edge
         self.domain_right_edge = domain_right_edge

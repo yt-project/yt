@@ -44,7 +44,7 @@ def read_attrs(f, attrs,endian='='):
     f : File object
         An open file object.  Should have been opened in mode rb.
     attrs : iterable of iterables
-        This object should be an iterable of one of the formats: 
+        This object should be an iterable of one of the formats:
         [ (attr_name, count, struct type), ... ].
         [ ((name1,name2,name3),count, vector type]
         [ ((name1,name2,name3),count, 'type type type']
@@ -76,18 +76,27 @@ def read_attrs(f, attrs,endian='='):
     for a, n, t in attrs:
         for end in '@=<>':
             t = t.replace(end,'')
-        if type(a)==tuple:
+        if type(a) == tuple:
             n = len(a)
         s1 = vals.pop(0)
         v = [vals.pop(0) for i in range(n)]
         s2 = vals.pop(0)
         if s1 != s2:
             size = struct.calcsize(endian + "I" + "".join(n*[t]) + "I")
-        assert(s1 == s2)
-        if n == 1: v = v[0]
+            raise IOError(
+                'An error occured while reading a Fortran record. '
+                'Got a different size at the beginning and at the '
+                'end of the record: %s %s', s1, s2)
+        if n == 1:
+            v = v[0]
         if type(a)==tuple:
-            assert len(a) == len(v)
-            for k,val in zip(a,v):
+            if len(a) != len(v):
+                raise IOError(
+                    'An error occured while reading a Fortran '
+                    'record. Record length is not equal to expected '
+                    'length: %s %s',
+                    len(a), len(v))
+            for k, val in zip(a,v):
                 vv[k]=val
         else:
             vv[a] = v
@@ -107,7 +116,7 @@ def read_cattrs(f, attrs, endian='='):
     f : File object
         An open file object.  Should have been opened in mode rb.
     attrs : iterable of iterables
-        This object should be an iterable of one of the formats: 
+        This object should be an iterable of one of the formats:
         [ (attr_name, count, struct type), ... ].
         [ ((name1,name2,name3),count, vector type]
         [ ((name1,name2,name3),count, 'type type type']
@@ -144,7 +153,13 @@ def read_cattrs(f, attrs, endian='='):
         v = [vals.pop(0) for i in range(n)]
         if n == 1: v = v[0]
         if type(a)==tuple:
-            assert len(a) == len(v)
+            if len(a) != len(v):
+                raise IOError(
+                    'An error occured while reading a Fortran '
+                    'record. Record length is not equal to expected '
+                    'length: %s %s',
+                    len(a), len(v))
+
             for k,val in zip(a,v):
                 vv[k]=val
         else:
@@ -181,21 +196,26 @@ def read_vector(f, d, endian='='):
     vec_fmt = "%s%s" % (endian, d)
     vec_size = struct.calcsize(vec_fmt)
     if vec_len % vec_size != 0:
-        print("fmt = '%s' ; length = %s ; size= %s"
-              % (vec_fmt, vec_len, vec_size))
-        raise RuntimeError
+            raise IOError(
+                'An error occured while reading a Fortran record. '
+                'Vector length is not compatible with data type: %s %s',
+                vec_len, vec_size)
     vec_num = int(vec_len / vec_size)
     if isinstance(f, file): # Needs to be explicitly a file
         tr = np.fromfile(f, vec_fmt, count=vec_num)
     else:
         tr = np.fromstring(f.read(vec_len), vec_fmt, count=vec_num)
     vec_len2 = struct.unpack(pad_fmt,f.read(pad_size))[0]
-    assert(vec_len == vec_len2)
+    if vec_len != vec_len2:
+        raise IOError(
+            'An error occured while reading a Fortran record. '
+            'Got a different size at the beginning and at the '
+            'end of the record: %s %s', vec_len, vec_len2)
     return tr
 
 def skip(f, n=1, endian='='):
     r"""This function accepts a file pointer and skips a Fortran unformatted
-    record. Optionally check that the skip was done correctly by checking 
+    record. Optionally check that the skip was done correctly by checking
     the pad bytes.
 
     Parameters
@@ -204,8 +224,6 @@ def skip(f, n=1, endian='='):
         An open file object.  Should have been opened in mode rb.
     n : int
         Number of records to skip.
-    check : bool
-        Assert that the pad bytes are equal
     endian : str
         '=' is native, '>' is big, '<' is little endian
 
@@ -219,15 +237,21 @@ def skip(f, n=1, endian='='):
     >>> f = open("fort.3", "rb")
     >>> skip(f, 3)
     """
-    skipped = []
+    skipped = np.zeros(n, dtype=np.int32)
+    fmt = endian+"I"
+    fmt_size = struct.calcsize(fmt)
     for i in range(n):
-        fmt = endian+"I"
-        size = f.read(struct.calcsize(fmt))
-        s1= struct.unpack(fmt, size)[0]
-        f.seek(s1+ struct.calcsize(fmt), os.SEEK_CUR)
-        s2= struct.unpack(fmt, size)[0]
-        assert s1==s2 
-        skipped.append(s1/struct.calcsize(fmt))
+        size = f.read(fmt_size)
+        s1 = struct.unpack(fmt, size)[0]
+        f.seek(s1 + fmt_size, os.SEEK_CUR)
+        s2 = struct.unpack(fmt, size)[0]
+        if s1 != s2:
+            raise IOError(
+                'An error occured while reading a Fortran record. '
+                'Got a different size at the beginning and at the '
+                'end of the record: %s %s', s1, s2)
+
+        skipped[i] = s1/fmt_size
     return skipped
 
 def peek_record_size(f,endian='='):
@@ -292,11 +316,12 @@ def read_record(f, rspec, endian='='):
     vals = list(struct.unpack(net_format, f.read(size)))
     s1, s2 = vals.pop(0), vals.pop(-1)
     if s1 != s2:
-        print("S1 = %s ; S2 = %s ; SIZE = %s")
-        raise RuntimeError
+        raise IOError(
+            'An error occured while reading a Fortran record. Got '
+            'a different size at the beginning and at the end of '
+            'the record: %s %s', s1, s2)
     pos = 0
     for a, n, t in rspec:
         vv[a] = vals[pos:pos+n]
         pos += n
     return vv
-

@@ -96,7 +96,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                  units = "code_length")
 
     def pixelize(self, dimension, data_source, field, bounds, size,
-                 antialias = True, periodic = True):
+                 antialias = True, periodic = False):
+        # Note that above, we set periodic by default to be *false*.  This is
+        # because our pixelizers, at present, do not handle periodicity
+        # correctly, and if you change the "width" of a cylindrical plot, it
+        # double-counts in the edge buffers.  See, for instance, issue 1669.
         ax_name = self.axis_name[dimension]
         if ax_name in ('r', 'theta'):
             return self._ortho_pixelize(data_source, field, bounds, size,
@@ -207,7 +211,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             width = [2.0 * np.pi * self.ds.domain_width.uq,
                      self.ds.domain_width[z_ax]]
         elif name == "theta":
-            width = [self.ds.domain_right_edge[r_ax],
+            width = [self.ds.domain_width[r_ax],
                      self.ds.domain_width[z_ax]]
         elif name == "z":
             width = [2.0*self.ds.domain_right_edge[r_ax],

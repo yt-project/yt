@@ -15,8 +15,8 @@ General field-related functions.
 
 import numpy as np
 
-from yt.utilities.lib.geometry_utils import \
-    obtain_rvec
+from yt.utilities.lib.misc_utilities import \
+    obtain_position_vector
 
 def get_radius(data, field_prefix, ftype):
     unit_system = data.ds.unit_system
@@ -24,7 +24,7 @@ def get_radius(data, field_prefix, ftype):
     DW = (data.ds.domain_right_edge - data.ds.domain_left_edge).in_base(unit_system.name)
     # This is in cm**2 so it can be the destination for our r later.
     radius2 = data.ds.arr(np.zeros(data[ftype, field_prefix+"x"].shape,
-                         dtype='float64'), 'cm**2')
+                          dtype='float64'), 'cm**2')
     r = radius2.copy()
     if any(data.ds.periodicity):
         rdw = radius2.copy()
@@ -49,7 +49,7 @@ def get_radius(data, field_prefix, ftype):
     return radius
 
 def get_periodic_rvec(data):
-    coords = obtain_rvec(data)
+    coords = obtain_position_vector(data).d
     if sum(data.ds.periodicity) == 0: return coords
     le = data.ds.domain_left_edge.in_units("code_length").d
     dw = data.ds.domain_width.in_units("code_length").d

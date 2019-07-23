@@ -47,18 +47,17 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         # Only support halo reading for now.
         assert(len(ptf) == 1)
         assert(list(ptf.keys())[0] == "halos")
+        ptype = 'halos'
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files,key=attrgetter("filename")):
             pcount = data_file.header['num_halos']
+            if pcount == 0:
+                continue
             with open(data_file.filename, "rb") as f:
-                f.seek(data_file._position_offset, os.SEEK_SET)
-                halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
-                x = halos['particle_position_x'].astype("float64")
-                y = halos['particle_position_y'].astype("float64")
-                z = halos['particle_position_z'].astype("float64")
-                yield "halos", (x, y, z)
+                pos = data_file._get_particle_positions(ptype, f=f)
+                yield "halos", (pos[:, i] for i in range(3))
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
@@ -72,15 +71,16 @@ class IOHandlerRockstarBinary(BaseIOHandler):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files,key=attrgetter("filename")):
             pcount = data_file.header['num_halos']
+            if pcount == 0:
+                continue
             with open(data_file.filename, "rb") as f:
                 for ptype, field_list in sorted(ptf.items()):
-                    f.seek(data_file._position_offset, os.SEEK_SET)
-                    halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
-                    x = halos['particle_position_x'].astype("float64")
-                    y = halos['particle_position_y'].astype("float64")
-                    z = halos['particle_position_z'].astype("float64")
+                    pos = data_file._get_particle_positions(ptype, f=f)
+                    x, y, z = (pos[:, i] for i in range(3))
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
+                    f.seek(data_file._position_offset, os.SEEK_SET)
+                    halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
                     if mask is None: continue
                     for field in field_list:
                         data = halos[field][mask].astype("float64")
@@ -91,27 +91,13 @@ class IOHandlerRockstarBinary(BaseIOHandler):
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
-        if pcount == 0: return morton
+        if pcount == 0:
+            return morton
         ind = 0
+        ptype = 'halos'
         with open(data_file.filename, "rb") as f:
-            f.seek(data_file._position_offset, os.SEEK_SET)
-            halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
-            pos = np.empty((halos.size, 3), dtype="float64")
-            # These positions are in Mpc, *not* "code" units
+            pos = data_file._get_particle_positions(ptype, f=f)
             pos = data_file.ds.arr(pos, "code_length")
-            eps = np.finfo(halos['particle_position_x'].dtype).eps
-            # Make sure eps is not larger than the domain itself
-            eps = eps*self.ds.domain_right_edge
-            dx = np.abs(eps).max()
-            pos[:,0] = halos["particle_position_x"]
-            pos[:,1] = halos["particle_position_y"]
-            pos[:,2] = halos["particle_position_z"]
-            # These are 32 bit numbers, so we give a little lee-way.
-            # Otherwise, for big sets of particles, we often will bump into the
-            # domain edges.  This helps alleviate that.
-            np.clip(pos, self.ds.domain_left_edge + dx,
-                         self.ds.domain_right_edge - dx, pos)
-            del halos
             if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
                np.any(pos.max(axis=0) > self.ds.domain_right_edge):
                 raise YTDomainOverflow(pos.min(axis=0),

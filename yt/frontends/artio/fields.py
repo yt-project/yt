@@ -16,8 +16,6 @@ ARTIO-specific fields
 
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.fields.field_detector import \
-    FieldDetector
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.physical_constants import \
@@ -47,6 +45,11 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("HVAR_METAL_DENSITY_II", (rho_units, ["metal_ii_density"], None)),
         ("VAR_POTENTIAL", ("", ["potential"], None)),
         ("VAR_POTENTIAL_HYDRO", ("", ["gas_potential"], None)),
+        ("RT_HVAR_HI", (rho_units, ["HI density"], None)),
+        ("RT_HVAR_HII", (rho_units, ["HII density"], None)),
+        ("RT_HVAR_HeI", (rho_units, ["HeI density"], None)),
+        ("RT_HVAR_HeII", (rho_units, ["HeII density"], None)),
+        ("RT_HVAR_HeIII", (rho_units, ["HeIII density"], None)),
     )
 
     known_particle_fields = (
@@ -125,16 +128,9 @@ class ARTIOFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         if ptype == "STAR":
             def _creation_time(field,data):
-                # this test is necessary to avoid passing invalid tcode values
-                # to the function tphys_from_tcode during field detection
-                # (1.0 is not a valid tcode value)
-                if isinstance(data, FieldDetector):
-                    return data["STAR","BIRTH_TIME"]
                 return YTArray(data.ds._handle.tphys_from_tcode_array(data["STAR","BIRTH_TIME"]),"yr")
 
             def _age(field, data):
-                if isinstance(data, FieldDetector):
-                    return data["STAR","creation_time"]
                 return data.ds.current_time - data["STAR","creation_time"]
 
             self.add_field((ptype, "creation_time"), sampling_type="particle",  function=_creation_time, units="yr")
@@ -142,11 +138,6 @@ class ARTIOFieldInfo(FieldInfoContainer):
 
             if self.ds.cosmological_simulation:
                 def _creation_redshift(field,data):
-                    # this test is necessary to avoid passing invalid tcode values
-                    # to the function auni_from_tcode during field detection
-                    # (1.0 is not a valid tcode value)
-                    if isinstance(data, FieldDetector):
-                        return data["STAR","BIRTH_TIME"]
                     return 1.0/data.ds._handle.auni_from_tcode_array(data["STAR","BIRTH_TIME"]) - 1.0
 
                 self.add_field((ptype, "creation_redshift"), sampling_type="particle",  function=_creation_redshift)

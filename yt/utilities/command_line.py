@@ -130,7 +130,7 @@ def _print_installation_information(path):
         print("Changeset = %s" % vstring.strip())
     print("---")
     return vstring
-    
+
 
 def _get_girder_client():
     try:
@@ -192,7 +192,7 @@ class YTCommandSubtype(type):
                     title=cls.subparser, dest=cls.subparser)
             sp = _subparsers[cls.subparser]
             for name in names:
-                sc = sp.add_parser(name, description=cls.description, 
+                sc = sp.add_parser(name, description=cls.description,
                                    help=cls.description)
                 sc.set_defaults(func=cls.run)
                 for arg in cls.args:
@@ -637,7 +637,7 @@ class YTHubRegisterCmd(YTCommand):
                     password=password1, lastName=last_name, admin=False)
         hub_url = ytcfg.get("yt", "hub_url")
         req = requests.post(hub_url + "/user", data=data)
-      
+
         if req.ok:
             headers = {'Girder-Token': req.json()['authToken']['token']}
         else:
@@ -653,7 +653,7 @@ class YTHubRegisterCmd(YTCommand):
 
         print("Storing API key in configuration file")
         set_config("yt", "hub_api_key", apiKey)
-        
+
         print()
         print("SUCCESS!")
         print()
@@ -725,7 +725,7 @@ class YTLoadCmd(YTCommand):
         IPython.embed(config=cfg,user_ns=local_ns)
 
 class YTMapserverCmd(YTCommand):
-    args = ("proj", "field", "weight", "linear", "center", "width",
+    args = ("proj", "field", "weight", "linear", "center", "width", "cmap",
             dict(short="-a", longname="--axis", action="store", type=int,
                  dest="axis", default=0, help="Axis"),
             dict(short ="-o", longname="--host", action="store", type=str,
@@ -768,13 +768,13 @@ class YTMapserverCmd(YTCommand):
         if args.projection:
             p = ProjectionPlot(ds, args.axis, args.field, weight_field=args.weight, data_source=ad,
                                center=center, width=width)
-            p.set_log(args.field, args.takelog)
         else:
             p = SlicePlot(ds, args.axis, args.field, data_source=ad,
                                center=center, width=width)
-            p.set_log(args.field, args.takelog)
+        p.set_log('all', args.takelog)
+        p.set_cmap('all', args.cmap)
 
-        PannableMapServer(p.data_source, args.field, args.takelog)
+        PannableMapServer(p.data_source, args.field, args.takelog, args.cmap)
         try:
             import bottle
         except ImportError:
@@ -847,7 +847,7 @@ class YTPastebinGrabCmd(YTCommand):
 class YTHubStartNotebook(YTCommand):
     args = (
         dict(dest="folderId", default=ytcfg.get("yt", "hub_sandbox"),
-             nargs="?", 
+             nargs="?",
              help="(Optional) Hub folder to mount inside the Notebook"),
     )
     description = \
@@ -1012,17 +1012,13 @@ class YTNotebookCmd(YTCommand):
             )
     description = \
         """
-        Start the Jupyter Notebook locally. 
+        Start the Jupyter Notebook locally.
         """
     def __call__(self, args):
         kwargs = {}
-        try:
-            # IPython 1.0+
-            from IPython.html.notebookapp import NotebookApp
-        except ImportError:
-            # pre-IPython v1.0
-            from IPython.frontend.html.notebook.notebookapp import NotebookApp
-        print("You must choose a password so that others cannot connect to " \
+        from notebook.notebookapp import NotebookApp
+
+        print("You must choose a password so that others cannot connect to "
               "your notebook.")
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:
@@ -1334,7 +1330,7 @@ class YTDownloadData(YTCommand):
     args = (
         dict(short="filename", action="store", type=str,
              help="The name of the file to download", nargs='?',
-             default=''), 
+             default=''),
         dict(short="location", action="store", type=str, nargs='?',
              help="The location in which to place the file, can be "
                   "\"supp_data_dir\", \"test_data_dir\", or any valid "
@@ -1348,8 +1344,8 @@ class YTDownloadData(YTCommand):
     )
     description = \
         """
-        Download a file from http://yt-project.org/data and save it to a 
-        particular location. Files can be saved to the locations provided 
+        Download a file from http://yt-project.org/data and save it to a
+        particular location. Files can be saved to the locations provided
         by the "test_data_dir" or "supp_data_dir" configuration entries, or
         any valid path to a location on disk.
         """

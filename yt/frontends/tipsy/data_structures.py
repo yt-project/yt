@@ -267,9 +267,10 @@ class TipsyDataset(SPHDataset):
 
         # Finally, set the dependent units
         if self.cosmological_simulation:
-            cosmo = Cosmology(self.hubble_constant,
-                              self.omega_matter, self.omega_lambda)
-            self.current_time = cosmo.hubble_time(self.current_redshift)
+            cosmo = Cosmology(hubble_constant=self.hubble_constant,
+                              omega_matter=self.omega_matter,
+                              omega_lambda=self.omega_lambda)
+            self.current_time = cosmo.lookback_time(self.current_redshift, 1e6)
             # mass units are rho_crit(z=0) * domain volume
             mu = cosmo.critical_density(0.0) * \
               (1 + self.current_redshift)**3 * self.length_unit**3

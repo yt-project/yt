@@ -1,14 +1,11 @@
-from yt.utilities.answer_testing.level_sets_tests import \
-    ExtractConnectedSetsTest
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load
+from yt.testing import fake_random_ds
+from yt.utilities.answer_testing.level_sets_tests import ExtractConnectedSetsTest
 
-g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
-@requires_ds(g30, big_data=True)
 def test_connected_sets():
-    ds = data_dir_load(g30)
-    data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
-                          (8, 'kpc'), (1, 'kpc'))
-    yield ExtractConnectedSetsTest(g30, data_source, ("gas", "density"),
-                                   5, 1e-24, 8e-24)
+    ds = fake_random_ds(16, nprocs=8, particles=16**3)
+    data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.], (8, 'kpc'), (1, 'kpc'))
+    field = ("gas", "density")
+    min_val, max_val = data_source[field].min()/2, data_source[field].max()/2
+    data_source.extract_connected_sets(field, 5, min_val, max_val,
+                                       log_space=True, cumulative=True)
+    yield ExtractConnectedSetsTest(ds, data_source, field, 5, min_val, max_val)

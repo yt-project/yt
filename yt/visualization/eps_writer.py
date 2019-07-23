@@ -799,7 +799,8 @@ class DualEPS(object):
 
     def arrow(self, size=0.2, label="", loc=(0.05,0.08), labelloc="top",
               color=pyx.color.cmyk.white,
-              linewidth=pyx.style.linewidth.normal):
+              linewidth=pyx.style.linewidth.normal,
+              rotation=0.0):
         r"""Draws an arrow in the current figure
 
         Parameters
@@ -811,6 +812,8 @@ class DualEPS(object):
         loc : tuple of floats
             Location of the left hand side of the arrow in units of
             the figure size.
+        rotation : float
+            Orientation angle of the arrow in units of degrees
         labelloc : string
             Location of the label with respect to the line.  Can be
             "top" or "bottom"
@@ -829,8 +832,8 @@ class DualEPS(object):
         """
         line = pyx.path.line(self.figsize[0]*loc[0],
                              self.figsize[1]*loc[1],
-                             self.figsize[0]*(loc[0]+size),
-                             self.figsize[1]*loc[1])
+                             self.figsize[0]*(loc[0]+size*np.cos(np.pi*rotation/180)),
+                             self.figsize[1]*(loc[1]+size*np.sin(np.pi*rotation/180)))
         self.canvas.stroke(line, [linewidth, color, pyx.deco.earrow()])
        
 

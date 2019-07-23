@@ -165,7 +165,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         self.known_other_fields += ((ytname, (unit, aliases, None)),)
             for i in self.known_other_fields:
                 mylog.debug("open_pmd - known_other_fields - {}".format(i))
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             pass
 
         try:
@@ -196,7 +196,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                             mylog.info("open_pmd - {}_{} does not seem to have unitDimension".format(pname, recname))
             for i in self.known_particle_fields:
                 mylog.debug("open_pmd - known_particle_fields - {}".format(i))
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             pass
 
         super(OpenPMDFieldInfo, self).__init__(ds, field_list)

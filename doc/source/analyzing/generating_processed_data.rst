@@ -175,6 +175,19 @@ whether to use a log or linear scale, and whether or not to do accumulation to
 create a cumulative distribution function.  For more information, see the API
 documentation on the :func:`~yt.data_objects.profiles.create_profile` function.
 
+For custom bins the other keyword arguments can be overriden using the
+``override_bins`` keyword argument. This accepts a dictionary with an array
+for each bin field or ``None`` to use the default settings. 
+
+.. code-block:: python
+
+    custom_bins = np.array([1e-27, 1e-25, 2e-25, 5e-25, 1e-23])
+    profile2d = source.profile([("gas", "density"), ("gas", "temperature")],
+                                [("gas", "cell_mass")], 
+                                override_bins = {("gas", "density"):custom_bins,
+                                                 ("gas", "temperature"):None}) 
+
+
 .. _generating-line-queries:
 
 Line Queries and Planar Integrals
@@ -193,13 +206,17 @@ along that ray:
    ray = ds.ray((0.3, 0.5, 0.9), (0.1, 0.8, 0.5))
    print(ray["density"])
 
-The points are ordered, but the ray is also traversing cells of varying length,
-as well as taking a varying distance to cross each cell.  To determine the
-distance traveled by the ray within each cell (for instance, for integration)
-the field ``dt`` is available; this field will sum to 1.0, as the ray's path
-will be normalized to 1.0, independent of how far it travels through the domain.
-To determine the value of ``t`` at which the ray enters each cell, the field
-``t`` is available.  For instance:
+The points are not ordered, so you may need to sort the data (see the
+example in the
+:class:`~yt.data_objects.selection_data_containers.YTRay` docs).  Also
+note, the ray is traversing cells of varying length, as well as
+taking a varying distance to cross each cell.  To determine the
+distance traveled by the ray within each cell (for instance, for
+integration) the field ``dt`` is available; this field will sum to
+1.0, as the ray's path will be normalized to 1.0, independent of how
+far it travels through the domain.  To determine the value of ``t`` at
+which the ray enters each cell, the field ``t`` is available.  For
+instance:
 
 .. code-block:: python
 
