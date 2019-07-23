@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.frontends.stream.data_structures import load_particles
 from yt.testing import fake_random_ds, assert_equal, assert_almost_equal, \
-    fake_octree_ds, requires_file
+    fake_octree_ds, requires_file, requires_module
 from yt.convenience import load
 
 # cylindrical data for covering_grid test
@@ -81,6 +81,41 @@ def test_covering_grid():
                        data_source=upper_ad)
         sp.quantities.total_mass()
 
+@requires_module('xarray')
+def test_xarray_export():
+    def _run_tests(cg):
+        xarr = cg.to_xarray(fields = ["density", "temperature"])
+        assert "density" in xarr.variables
+        assert "temperature" in xarr.variables
+        assert "thermal_energy" not in xarr.variables
+        assert "x" in xarr.coords
+        assert "y" in xarr.coords
+        assert "z" in xarr.coords
+        assert xarr.dims['x'] == dn * ds.domain_dimensions[0]
+        assert xarr.dims['y'] == dn * ds.domain_dimensions[1]
+        assert xarr.dims['z'] == dn * ds.domain_dimensions[2]
+        assert_equal(xarr.x, cg["x"][:,0,0])
+        assert_equal(xarr.y, cg["y"][0,:,0])
+        assert_equal(xarr.z, cg["z"][0,0,:])
+    for level in [0, 1, 2]:
+        ds = fake_random_ds(16, fields=["density", "temperature",
+                                        "thermal_energy"])
+        dn = ds.refine_by**level 
+        rcg = ds.covering_grid(level, [0.0, 0.0, 0.0],
+                dn * ds.domain_dimensions)
+        _run_tests(rcg)
+        scg = ds.smoothed_covering_grid(level, [0.0, 0.0, 0.0],
+                dn * ds.domain_dimensions)
+        _run_tests(scg)
+        ag1 = ds.arbitrary_grid([0.0, 0.0, 0.0],
+                                [1.0, 1.0, 1.0],
+                dn * ds.domain_dimensions)
+        _run_tests(ag1)
+        ag2 = ds.arbitrary_grid([0.1, 0.3, 0.2],
+                                [0.4, 1.0, 0.9],
+                dn * ds.domain_dimensions)
+        _run_tests(ag2)
+
 def test_smoothed_covering_grid():
     # We decompose in different ways
     for level in [0, 1, 2]:
@@ -101,7 +136,6 @@ def test_smoothed_covering_grid():
                                       dn*di[1]+i:dn*(di[1]+dd[1])+i:dn,
                                       dn*di[2]+i:dn*(di[2]+dd[2])+i:dn]
                     assert_equal(f, g["density"])
-
 
 def test_arbitrary_grid():
     for ncells in [32, 64]:

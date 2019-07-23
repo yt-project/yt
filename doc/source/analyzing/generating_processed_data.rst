@@ -230,3 +230,23 @@ The volume rendering functionality in yt can also be used to calculate
 off-axis plane integrals, using the
 :class:`~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction`
 in a manner similar to that described in :ref:`volume_rendering`.
+
+.. _generating-xarray:
+
+Regular Grids to xarray
+-----------------------
+
+Objects that subclass from
+:class:`~yt.data_objects.construction_data_containers.YTCoveringGrid` are able
+to export to `xarray <https://xarray.pydata.org/>`_.  This enables
+interoperability with anything that can take xarray data.  The classes that can do this are
+:class:`~yt.data_objects.construction_data_containers.YTCoveringGrid`,
+:class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid`, and
+:class:`~yt.data_objects.construction_data_containers.YTSmoothedCoveringGrid`.  For example, you can:
+
+.. code-block:: python
+
+   grid = ds.r[::256j, ::256j, ::256j]
+   obj = grid.to_xarray(fields = ["density", "temperature"])
+
+The returned object, `obj`, will now have the correct labeled axes and so forth.
