@@ -42,7 +42,7 @@ class FLASHFieldInfo(FieldInfoContainer):
         ("eion", (erg_units, [], "Ion Internal Energy")),
         ("eele", (erg_units, [], "Electron Internal Energy")),
         ("erad", (erg_units, [], "Radiation Internal Energy")),
-        ("pden", (rho_units, [], None)),
+        ("pden", (rho_units, [], "Particle Mass Density")),
         ("depo", ("code_length**2/code_time**2", [], None)),
         ("ye", ("", [], "Y_e")),
         ("magp", (pres_units, [], None)),
