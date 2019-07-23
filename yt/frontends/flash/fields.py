@@ -1,7 +1,5 @@
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.utilities.physical_constants import \
-    Na
 
 # Common fields in FLASH: (Thanks to John ZuHone for this list)
 #
@@ -86,6 +84,7 @@ class FLASHFieldInfo(FieldInfoContainer):
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
         unit_system = self.ds.unit_system
+        pc = self.ds.units.physical_constants
         for i in range(1, 1000):
             self.add_output_field(("flash", "r{0:03}".format(i)),
                                   sampling_type="cell",
@@ -139,27 +138,20 @@ class FLASHFieldInfo(FieldInfoContainer):
         ## Derived FLASH Fields
 
         def _nele(field, data):
-            Na_code = data.ds.quan(Na, '1/code_mass')
-            return data["flash","dens"]*data["flash","ye"]*Na_code
+            return data["flash","dens"]*data["flash","ye"]*pc.Na
 
-        self.add_field(('flash','nele'),
+        self.add_field(('gas','El_nuclei_density'),
                        sampling_type="cell",
                        function=_nele,
-                       units="code_length**-3")
-
-        self.add_field(('flash','edens'),
-                       sampling_type="cell",
-                       function=_nele,
-                       units="code_length**-3")
+                       units=unit_system["number_density"])
 
         def _nion(field, data):
-            Na_code = data.ds.quan(Na, '1/code_mass')
-            return data["flash","dens"]*data["flash","sumy"]*Na_code
+            return data["flash","dens"]*data["flash","sumy"]*pc.Na
 
-        self.add_field(('flash','nion'),
+        self.add_field(('gas','ion_nuclei_density'),
                        sampling_type="cell",
                        function=_nion,
-                       units="code_length**-3")
+                       units=unit_system["number_density"])
 
         if ("flash", "abar") in self.field_list:
             self.alias(("gas", "mean_molecular_weight"), ("flash", "abar"))
@@ -178,24 +170,17 @@ class FLASHFieldInfo(FieldInfoContainer):
                            function=_abar,
                            units="")
 
-        if ("flash", "nele") in self.field_list and ("flash", "nion") in self.field_list:
+        if ("flash", "sumy") in self.field_list:
             def _number_density(field, data):
-                return data["flash", "nele"]+data["flash","nion"]
-
-            self.add_field(("gas", "number_density"),
-                           sampling_type="cell",
-                           function=_number_density,
-                           units=unit_system["number_density"])
-
+                return data["gas","El_nuclel_density"]+data["gas","ion_nuclei_density"]
         else:
             def _number_density(field, data):
-                Na_code = data.ds.quan(Na, '1/code_mass')
-                return data["flash", "dens"]*Na_code/data["gas", "mean_molecular_weight"]
+                return data["flash", "dens"]*pc.Na/data["gas", "mean_molecular_weight"]
 
-            self.add_field(("gas", "number_density"),
-                           sampling_type="cell",
-                           function=_number_density,
-                           units=unit_system["number_density"])
+        self.add_field(("gas", "number_density"),
+                       sampling_type="cell",
+                       function=_number_density,
+                       units=unit_system["number_density"])
 
         setup_magnetic_field_aliases(
             self, "flash", ["mag%s" % ax for ax in "xyz"])
