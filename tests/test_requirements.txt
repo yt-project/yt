@@ -25,5 +25,5 @@ cartopy==0.17.0
 pyaml==17.10.0
 mpi4py==3.0.0
 pyyaml>=4.2b1
-xarray==0.12.3
+xarray==0.12.3 ; python_version >= '3.0'
 firefly_api>=0.0.2
