@@ -722,6 +722,7 @@ Source code style guide
 
  * In general, follow PEP-8 guidelines.
    http://www.python.org/dev/peps/pep-0008/
+ * We no longer have a copyright blurb in every source file.
  * Classes are ``ConjoinedCapitals``, methods and functions are
    ``lowercase_with_underscores``.
  * Use 4 spaces, not tabs, to represent indentation.
@@ -744,7 +745,7 @@ Source code style guide
    that occur on an object.  See :ref:`docstrings` below for a fiducial example
    of a docstring.
  * Use only one top-level import per line. Unless there is a good reason not to,
-   imports should happen at the top of the file, after the copyright blurb.
+   imports should happen at the top of the file.
  * Never compare with ``True`` or ``False`` using ``==`` or ``!=``, always use
    ``is`` or ``is not``.
  * If you are comparing with a numpy boolean array, just refer to the array.
