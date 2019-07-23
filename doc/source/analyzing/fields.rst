@@ -501,6 +501,50 @@ available are:
 * ``smoothed`` - this is a special deposition type.  See discussion below for
   more information, in :ref:`sph-fields`.
 
+.. _mesh-sampling-particle-fields:
+
+Mesh Sampling Particle Fields
+-----------------------------
+
+In order to turn mesh fields into discrete particle field, yt provides
+a mechanism to do sample mesh fields at particle locations. This operation is
+the inverse operation of :ref:`deposited-particle-fields`: for each
+particle the cell containing the particle is found and the value of
+the field in the cell is assigned to the particle. This is for
+example useful when using tracer particles to have access to the
+Eulerian information for Lagrangian particles.
+
+The particle fields are named ``(ptype, cell_ftype_fname)`` where
+``ptype`` is the particle type onto which the deposition occurs,
+``ftype`` is the mesh field type (e.g. ``gas``) and ``fname`` is the
+field (e.g. ``temperature``, ``density``, ...). You can directly use
+the ``add_mesh_sampling_particle_field`` function defined on each dataset to
+impose a field onto the particles like so:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   ds.add_mesh_sampling_particle_field(('gas', 'temperature'), ptype='all')
+
+   print('The temperature at the location of the particles is')
+   print(ds.r['all', 'cell_gas_temperature'])
+
+For octree codes (e.g. RAMSES), you can trigger the build of an index so 
+that the next sampling operations will be mush faster
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   ds.add_mesh_sampling_particle_field(('gas', 'temperature'), ptype='all')
+
+   ad = ds.all_data()
+   ad['all', 'cell_index']            # Trigger the build of the index of the cell containing the particles
+   ad['all', 'cell_gas_temperature']  # This is now much faster
+
 .. _sph-fields:
 
 SPH Fields
@@ -581,3 +625,23 @@ default this is 64, but it can be supplied as the final argument to
 This can then be used as input to the function
 ``add_volume_weighted_smoothed_field``, which can enable smoothing particle
 types that would normally not be smoothed.
+
+Commonly, not just the identity of the nearest particle is interesting, but the
+value of a given field associated with that particle.  yt provides a function
+that can do this, as well.  This deposits into the indexing octree the value
+from the nearest particle.
+
+.. code-block:: python
+
+   import yt
+   from yt.fields.particle_fields import \
+     add_nearest_neighbor_value_field
+
+   ds = yt.load("snapshot_033/snap_033.0.hdf5")
+   ds.index
+   fn, = add_nearest_neighbor_value_field("all", "particle_position",
+                "particle_velocity_magnitude", ds.field_info)
+
+   dd = ds.all_data()
+   print(dd[fn])
+

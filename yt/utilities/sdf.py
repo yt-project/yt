@@ -820,7 +820,7 @@ class SDFIndex(object):
         ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
         if np.any(iright-ileft) > self.domain_dims:
-            mylog.warn("Attempting to get data from bounding box larger than the domain. You may want to check your units.")
+            mylog.warning("Attempting to get data from bounding box larger than the domain. You may want to check your units.")
         #iright[iright <= ileft+1] += 1
 
         return self.get_ibbox(ileft, iright)

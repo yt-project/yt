@@ -650,7 +650,7 @@ class Dataset(object):
         return True
 
     def _setup_filtered_type(self, filter):
-        # Check if the filtered_type of this filter is known, 
+        # Check if the filtered_type of this filter is known,
         # otherwise add it first if it is in the filter_registry
         if filter.filtered_type not in self.known_filters.keys():
             if filter.filtered_type in filter_registry:
@@ -913,7 +913,7 @@ class Dataset(object):
                     self.magnetic_unit = \
                         self.magnetic_unit.to_equivalent('gauss', 'CGS')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        create_code_unit_system(self.unit_registry, 
+        create_code_unit_system(self.unit_registry,
                                 current_mks_unit=current_mks_unit)
         if unit_system == "code":
             unit_system = unit_system_registry[self.unit_registry.unit_system_id]
@@ -1194,6 +1194,50 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
+    def add_mesh_sampling_particle_field(self, sample_field, ptype='all'):
+        """Add a new mesh sampling particle field
+
+        Creates a new particle field which has the value of the
+        *deposit_field* at the location of each particle of type
+        *ptype*.
+
+        Parameters
+        ----------
+
+        sample_field : tuple
+           The field name tuple of the mesh field to be deposited onto
+           the particles. This must be a field name tuple so yt can
+           appropriately infer the correct particle type.
+        ptype : string, default 'all'
+           The particle type onto which the deposition will occur.
+
+        Returns
+        -------
+
+        The field name tuple for the newly created field.
+
+        Examples
+        --------
+        >>> ds = yt.load('output_00080/info_00080.txt')
+        ... ds.add_mesh_sampling_particle_field(('gas', 'density'), ptype='all')
+
+        >>> print('The density at the location of the particle is:')
+        ... print(ds.r['all', 'cell_gas_density'])
+        The density at the location of the particle is:
+        [9.33886124e-30 1.22174333e-28 1.20402333e-28 ... 2.77410331e-30
+         8.79467609e-31 3.50665136e-30] g/cm**3
+
+        >>> len(ds.r['all', 'cell_gas_density']) == len(ds.r['all', 'particle_ones'])
+        True
+
+        """
+        if isinstance(sample_field, tuple):
+            ftype, sample_field = sample_field[0], sample_field[1]
+        else:
+            raise RuntimeError
+
+        return self.index._add_mesh_sampling_particle_field(sample_field, ftype, ptype)
+
     def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
                                      weight_field='particle_mass'):
         """Add a new deposited particle field
@@ -1394,7 +1438,7 @@ class Dataset(object):
             The symbol for the new unit.
         value : tuple or ~yt.units.yt_array.YTQuantity
             The definition of the new unit in terms of some other units. For example,
-            one would define a new "mph" unit with (1.0, "mile/hr") 
+            one would define a new "mph" unit with (1.0, "mile/hr")
         tex_repr : string, optional
             The LaTeX representation of the new unit. If one is not supplied, it will
             be generated automatically based on the symbol string.
@@ -1409,7 +1453,7 @@ class Dataset(object):
         >>> two_weeks = YTQuantity(14.0, "days")
         >>> ds.define_unit("fortnight", two_weeks)
         """
-        _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr, 
+        _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr,
                      offset=offset, prefixable=prefixable)
 
 def _reconstruct_ds(*args, **kwargs):

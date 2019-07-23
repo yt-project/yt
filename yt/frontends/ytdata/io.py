@@ -150,7 +150,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                        for ax in "xyz")
                     for field in field_list:
                         if np.asarray(f[ptype][field]).ndim > 1:
-                            self._array_fields[field] = f[ptype][field].shape
+                            self._array_fields[field] = f[ptype][field].shape[1:]
                     yield ptype, (x, y, z)
             if f: f.close()
 

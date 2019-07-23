@@ -1,9 +1,13 @@
 import numpy as np
 
+from yt.fields.derived_field import \
+    ValidateParameter
 from yt.frontends.stream.data_structures import load_particles
 from yt.testing import fake_random_ds, assert_equal, assert_almost_equal, \
     fake_octree_ds, requires_file, requires_module
 from yt.convenience import load
+from yt.testing import \
+    assert_array_equal
 
 # cylindrical data for covering_grid test
 cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
@@ -208,11 +212,26 @@ def test_arbitrary_grid_derived_field():
         return data['Metal_Density']/data['gas', 'density']
 
     ds.add_field(("gas", "tracerf"), function=_tracerf, units="dimensionless",
-                 take_log=False)
+                 sampling_type='cell', take_log=False)
 
     galgas = ds.arbitrary_grid([0.4, 0.4, 0.4], [0.99, 0.99, 0.99],
                                dims=[32, 32, 32])
     galgas['tracerf']
+
+def test_arbitrary_field_parameters():
+    def _test_field(field, data):
+        par = data.get_field_parameter('test_parameter')
+        return par * data['all', 'particle_mass']
+
+    ds = fake_random_ds(64, nprocs=8, particles=16**2)
+    ds.add_field(('all', 'test_field'), units='g',
+                 function=_test_field, sampling_type='particle',
+                validators=[ValidateParameter('test_parameter')])
+
+    agrid = ds.arbitrary_grid([0.4, 0.4, 0.4], [0.99, 0.99, 0.99],
+                              dims=[32, 32, 32])
+    agrid.set_field_parameter('test_parameter', 2)
+    assert_array_equal(2*agrid['all', 'particle_mass'], agrid['all', 'test_field'])
 
 def test_arbitrary_grid_edge():
     # Tests bug fix for issue #2087

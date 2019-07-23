@@ -131,11 +131,14 @@ def test_grid_datacontainer_data():
     ds = data_dir_load(enzotiny)
 
     cg = ds.covering_grid(level=0, left_edge=[0.25]*3, dims=[16]*3)
-    fn = cg.save_as_dataset(fields=["density", "particle_mass"])
+    fn = cg.save_as_dataset(fields=["density", "particle_mass",
+                                    "particle_position"])
     full_fn = os.path.join(tmpdir, fn)
     cg_ds = load(full_fn)
     compare_unit_attributes(ds, cg_ds)
     assert isinstance(cg_ds, YTGridDataset)
+    assert cg['all', 'particle_position'].shape == \
+      cg_ds.r['all', 'particle_position'].shape
     yield YTDataFieldTest(full_fn, ("grid", "density"))
     yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
 

@@ -626,6 +626,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         tr *= self.level
         return tr
 
+    def set_field_parameter(self, name, val):
+        super(YTCoveringGrid, self).set_field_parameter(name, val)
+        if self._data_source is not None:
+            self._data_source.set_field_parameter(name, val)
+
     def _sanitize_dims(self, dims):
         if not iterable(dims):
             dims = [dims]*len(self.ds.domain_left_edge)
