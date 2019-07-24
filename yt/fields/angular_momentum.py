@@ -1,20 +1,3 @@
-"""
-The basic field info container resides here.  These classes, code specific and
-universal, are the means by which we access fields across YT, both derived and
-native.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
 from .derived_field import \

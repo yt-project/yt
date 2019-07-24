@@ -1,22 +1,3 @@
-"""
-We want to have flexible arrays, so we do it all in here, and then import from
-this module.
-
-This is all probably overly-complicated, and should be removed at first
-opportunity to ditch numarray.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import numpy.core.records as rec
 

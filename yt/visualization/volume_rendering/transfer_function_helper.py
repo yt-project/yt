@@ -1,19 +1,3 @@
-"""
-A helper class to build, display, and modify transfer functions for volume
-rendering.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import matplotlib
 import numpy as np
 

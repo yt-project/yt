@@ -1,16 +1,3 @@
-"""
-Tests for YTOctree
-
-
-"""
-
-# ----------------------------------------------------------------------------
-# Copyright (c) 2018, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# ----------------------------------------------------------------------------
 from yt.testing import \
     fake_sph_grid_ds, assert_almost_equal
 from yt.data_objects.construction_data_containers import YTOctree

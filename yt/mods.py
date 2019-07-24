@@ -1,19 +1,3 @@
-"""
-Very simple convenience function for importing all the modules, setting up
-the namespace and getting the last argument on the command line.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from __future__ import absolute_import
 
 #

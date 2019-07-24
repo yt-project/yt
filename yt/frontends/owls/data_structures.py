@@ -1,20 +1,3 @@
-"""
-Data structures for OWLS frontend
-
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
 
 from yt.utilities.on_demand_imports import _h5py as h5py

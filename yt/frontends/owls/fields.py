@@ -1,20 +1,3 @@
-"""
-OWLS fields
-
-
-
-
-"""
-from __future__ import absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
 import numpy as np
 from . import owls_ion_tables as oit

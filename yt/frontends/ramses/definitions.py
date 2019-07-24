@@ -1,19 +1,3 @@
-"""
-Definitions for RAMSES files
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 # These functions are RAMSES-specific
 from yt.config import ytcfg
 from yt.funcs import mylog

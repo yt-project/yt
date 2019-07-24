@@ -1,18 +1,3 @@
-"""
-Unit test the ARMKDTree in yt.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.utilities.amr_kdtree.api import AMRKDTree
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
