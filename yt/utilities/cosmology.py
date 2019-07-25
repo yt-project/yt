@@ -1,18 +1,3 @@
-"""
-Cosmology calculator.
-Cosmology calculator based originally on http://www.kempner.net/cosmic.php 
-and featuring time and redshift conversion functions from Enzo.
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) yt Development Team. All rights reserved.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import functools
 import numpy as np
 

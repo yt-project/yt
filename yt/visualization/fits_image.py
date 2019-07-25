@@ -1,14 +1,3 @@
-"""
-FITSImageData Class
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import numpy as np
 from itertools import count
 from yt.fields.derived_field import DerivedField

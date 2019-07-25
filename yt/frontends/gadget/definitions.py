@@ -1,19 +1,3 @@
-"""
-Gadget definitions
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 gadget_header_specs = dict(
     default      = (('Npart', 6, 'i'),
                     ('Massarr', 6, 'd'),

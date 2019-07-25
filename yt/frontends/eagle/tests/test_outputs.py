@@ -1,19 +1,3 @@
-"""
-Eagle frontend tests using the snapshot_028_z000p000 dataset
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.testing import \
     requires_file
 from yt.utilities.answer_testing.framework import \

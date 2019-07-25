@@ -1,17 +1,3 @@
-# encoding: utf-8
-"""
-Interactive Data Visualization classes for Scene, Camera and BlockCollection
-
-"""
-
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# ----------------------------------------------------------------------------
-
 # This is a part of the experimental Interactive Data Visualization
 
 import OpenGL.GL as GL

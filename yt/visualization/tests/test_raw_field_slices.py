@@ -1,16 +1,3 @@
-"""
-Tests for making slices through raw fields
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2017, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import yt
 from yt.utilities.answer_testing.framework import \
     requires_ds, \

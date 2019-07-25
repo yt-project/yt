@@ -1,19 +1,3 @@
-"""
-EAGLE definitions
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 eaglenetwork_ions = \
     ('electron', 'H1', 'H2', 'H_m', 'He1', 'He2','He3', 'C1',\
      'C2', 'C3', 'C4', 'C5', 'C6', 'C7', 'C_m', 'N1', 'N2', \

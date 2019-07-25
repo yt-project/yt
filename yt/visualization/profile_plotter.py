@@ -1,19 +1,3 @@
-"""
-This is a simple mechanism for interfacing with Profile and Phase plots
-
-
-
-"""
-from __future__ import absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import builtins
 from collections import OrderedDict
 from distutils.version import LooseVersion

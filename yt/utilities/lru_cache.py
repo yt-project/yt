@@ -1,21 +1,3 @@
-"""
-
-lru_cache compatible with py2.6->py3.2 copied directly from
-http://code.activestate.com/
-recipes/578078-py26-and-py30-backport-of-python-33s-lru-cache/
-
-adapted from sympy by Nathan Goldbaum
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import sys
 
 from collections import namedtuple
