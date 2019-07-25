@@ -62,14 +62,14 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     def _mazzotta_weighting(field, data):
         # Spectroscopic-like weighting field for galaxy clusters
         # Only useful as a weight_field for temperature, metallicity, velocity
-        ret = data[ftype, "density"]/pc.mh
-        ret *= ret*data[ftype, "kT"]**-0.75
+        ret = data[ftype, "El_nuclei_density"].d
+        ret *= ret*data[ftype, "kT"].d**-0.75
         return ret
 
     registry.add_field((ftype,"mazzotta_weighting"),
                        sampling_type="local",
                        function=_mazzotta_weighting,
-                       units="keV**-0.75*cm**-6")
+                       units="")
 
     def _optical_depth(field, data):
         return data[ftype, "El_nuclei_density"]*pc.sigma_thompson
