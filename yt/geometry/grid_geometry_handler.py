@@ -22,6 +22,8 @@ from collections import defaultdict
 
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
+from yt.fields.derived_field import ValidateSpatial
+from yt.fields.field_detector import FieldDetector
 from yt.funcs import \
     ensure_list, ensure_numpy_array
 from yt.geometry.geometry_handler import \
@@ -387,6 +389,30 @@ class GridIndex(Index):
                 with self.io.preload(dc, preload_fields, 
                             4.0 * size):
                     yield dc
+
+    def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):
+        units = self.ds.field_info[ftype, deposit_field].units
+        take_log = self.ds.field_info[ftype, deposit_field].take_log
+        field_name = "cell_%s_%s" % (ftype, deposit_field)
+
+        def _mesh_sampling_particle_field(field, data):
+            pos = data[ptype, "particle_position"]
+            field_values = data[ftype, deposit_field]
+
+            if isinstance(data, FieldDetector):
+                return np.zeros(pos.shape[0])
+
+            i, j, k = np.floor((pos - data.LeftEdge)/data.dds).astype('int64').T
+
+            return field_values[i, j, k]
+
+        self.ds.add_field(
+            (ptype, field_name),
+            function=_mesh_sampling_particle_field,
+            sampling_type="particle",
+            units=units,
+            take_log=take_log,
+            validators=[ValidateSpatial()])
 
 
 def _grid_sort_id(g):

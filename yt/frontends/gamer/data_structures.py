@@ -292,8 +292,13 @@ class GAMERDataset(Dataset):
         self.domain_dimensions = parameters['NX0'].astype('int64')
 
         # periodicity
-        periodic         = parameters['Opt__BC_Flu'][0] == 0
-        self.periodicity = (periodic,periodic,periodic)
+        if parameters['FormatVersion'] >= 2106:
+            periodic_bc = 1
+        else:
+            periodic_bc = 0
+        self.periodicity = ( parameters['Opt__BC_Flu'][0]==periodic_bc,
+                             parameters['Opt__BC_Flu'][2]==periodic_bc,
+                             parameters['Opt__BC_Flu'][4]==periodic_bc )
 
         # cosmological parameters
         if parameters['Comoving']:
