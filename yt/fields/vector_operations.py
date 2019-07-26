@@ -78,28 +78,28 @@ def create_relative_field(registry, basename, field_units, ftype='gas',
                            validators=validators)
 
 def create_los_field(registry, basename, field_units, 
-                     ftype='gas', slice_info=None,
-                     validators=None):
+                     ftype='gas', slice_info=None):
     axis_order = registry.ds.coordinates.axis_order
 
+    validators = [ValidateParameter('bulk_%s' % basename),
+                  ValidateParameter("axis", {'axis': [0, 1, 2]})]
+
     field_comps = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
-    field_comps_rel = [(ftype, "relative_%s_%s" % (basename, ax)) 
-                       for ax in axis_order]
 
     def _los_field(field, data):
-        axis = data.get_field_parameter("axis")
         if data.has_field_parameter('bulk_%s' % basename):
-            fns = field_comps_rel
+            fns = [(fc[0], "relative_%s" % fc[1]) for fc in field_comps]
         else:
             fns = field_comps
-        if iterable(axis):
-            ret = data[fns[0]]*axis[0] + \
-                  data[fns[1]]*axis[1] + \
-                  data[fns[2]]*axis[2]
-        elif axis > 2:
-            raise NeedsParameter(["axis"])
+        ax = data.get_field_parameter("axis")
+        if iterable(ax):
+            ret = data[fns[0]]*ax[0] + \
+                  data[fns[1]]*ax[1] + \
+                  data[fns[2]]*ax[2]
+        elif ax in [0, 1, 2]:
+            ret = data[fns[ax]]
         else:
-            ret = data[fns[axis]]
+            raise NeedsParameter(["axis"])
         return ret
 
     registry.add_field((ftype, "%s_los" % basename),
@@ -165,9 +165,7 @@ def create_vector_fields(registry, basename, field_units,
         validators=[ValidateParameter('bulk_%s' % basename)])
 
     create_los_field(
-        registry, basename, field_units, ftype=ftype, slice_info=slice_info,
-        validators=[ValidateParameter('bulk_%s' % basename),
-                    ValidateParameter('axis')])
+        registry, basename, field_units, ftype=ftype, slice_info=slice_info)
 
     def _spherical_radius_component(field, data):
         """The spherical radius component of the vector field
