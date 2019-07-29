@@ -277,7 +277,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                     cosmology = Cosmology()
             D_L = cosmology.luminosity_distance(0.0, redshift)
             angular_scale = 1.0/cosmology.angular_scale(0.0, redshift)
-            dist_fac = 1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale)
+            dist_fac = ds.quan(1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale).v, "rad**-2")
         else:
             redshift = 0.0  # Only for local sources!
             if not isinstance(dist, YTQuantity):
@@ -289,7 +289,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
             else:
                 dist = ds.quan(dist.value, dist.units)
             angular_scale = dist/ds.quan(1.0, "radian")
-            dist_fac = 1.0/(4.0*np.pi*dist*dist*angular_scale*angular_scale)
+            dist_fac = ds.quan(1.0/(4.0*np.pi*dist*dist*angular_scale*angular_scale).v, "rad**-2")
 
         ei_name = (ftype, "xray_intensity_%s_%s_keV" % (e_min, e_max))
         def _intensity_field(field, data):
