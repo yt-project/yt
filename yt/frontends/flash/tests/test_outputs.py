@@ -42,6 +42,13 @@ def test_FLASHDataset():
 def test_units_override():
     units_override_check(sloshing)
 
+@requires_file(sloshing)
+def test_mu():
+    ds = data_dir_load(sloshing)
+    sp = ds.sphere("c", (0.1, "unitary"))
+    assert np.all(sp["gas","mean_molecular_weight"] == 
+                  ds.parameters["eos_singlespeciesa"])
+
 fid_1to3_b1 = "fiducial_1to3_b1/fiducial_1to3_b1_hdf5_part_0080"
 
 fid_1to3_b1_fields = OrderedDict(
