@@ -283,7 +283,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("gas", "mean_molecular_weight"),
                 sampling_type="cell",
                 function=_mean_molecular_weight,
-                units=unit_system["number_density"])
+                units="")
 
             def _number_density(field, data):
                 return data['gas', 'density']/(mp*params['Mu'])
