@@ -93,6 +93,8 @@ def create_los_field(registry, basename, field_units,
             fns = field_comps
         ax = data.get_field_parameter("axis")
         if iterable(ax):
+            # Make sure this is a unit vector
+            ax /= np.sqrt(np.dot(ax, ax))
             ret = data[fns[0]]*ax[0] + \
                   data[fns[1]]*ax[1] + \
                   data[fns[2]]*ax[2]
