@@ -203,6 +203,8 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
             raise RuntimeError("Your dataset does not have a {} field! ".format(metallicity) +
                                "Perhaps you should specify a constant metallicity instead?")
 
+    H_field = "H_nuclei_density" if table_type == "cloudy" else "H_p1_number_density"
+
     my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, 
                                      redshift=redshift)
 
@@ -214,7 +216,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
     def _emissivity_field(field, data):
         with np.errstate(all='ignore'):
-            dd = {"log_nH": np.log10(data[ftype, "H_nuclei_density"]),
+            dd = {"log_nH": np.log10(data[ftype, H_field]),
                   "log_T": np.log10(data[ftype, "temperature"])}
 
         my_emissivity = np.power(10, em_0(dd))
@@ -227,7 +229,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
         my_emissivity[np.isnan(my_emissivity)] = 0
 
-        return data[ftype, "H_nuclei_density"]**2 * \
+        return data[ftype, H_field]**2 * \
             YTArray(my_emissivity, "erg*cm**3/s")
 
     emiss_name = (ftype, "xray_emissivity_%s_%s_keV" % (e_min, e_max))
@@ -244,7 +246,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                  sampling_type="local", units="erg/s")
 
     def _photon_emissivity_field(field, data):
-        dd = {"log_nH": np.log10(data[ftype, "H_nuclei_density"]),
+        dd = {"log_nH": np.log10(data[ftype, H_field]),
               "log_T": np.log10(data[ftype, "temperature"])}
 
         my_emissivity = np.power(10, emp_0(dd))
@@ -255,7 +257,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
 
-        return data[ftype, "H_nuclei_density"]**2 * \
+        return data[ftype, H_field]**2 * \
             YTArray(my_emissivity, "photons*cm**3/s")
 
     phot_name = (ftype, "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max))
