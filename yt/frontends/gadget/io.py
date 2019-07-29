@@ -142,6 +142,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     elif field.startswith("Metallicity_"):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["Metallicity"][si:ei, col][mask]
+                    elif field.startswith("GFM_Metals_"):
+                        col = int(field.rsplit("_", 1)[-1])
+                        data = g["GFM_Metals"][si:ei, col][mask]
                     elif field.startswith("Chemistry_"):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["ChemistryAbundances"][si:ei, col][mask]
@@ -206,10 +209,10 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     for j in gp.keys():
                         kk = j
                         fields.append((ptype, str(kk)))
-                elif k == 'Metallicity' and len(g[k].shape) > 1:
+                elif k in ['Metallicity', 'GFM_Metals'] and len(g[k].shape) > 1:
                     # Vector of metallicity
                     for i in range(g[k].shape[1]):
-                        fields.append((ptype, "Metallicity_%02i" % i))
+                        fields.append((ptype, "%s_%02i" % (k, i)))
                 elif k == "ChemistryAbundances" and len(g[k].shape) > 1:
                     for i in range(g[k].shape[1]):
                         fields.append((ptype, "Chemistry_%03i" % i))
