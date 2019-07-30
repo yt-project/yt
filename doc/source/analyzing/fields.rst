@@ -371,6 +371,61 @@ different magnetic field units in the different :ref:`unit systems <unit_systems
 determine how to set up special magnetic field handling when designing a new frontend, check out
 :ref:`bfields-frontend`.
 
+Species Fields
+--------------
+
+For many types of data, yt is able to detect different chemical elements and molecules
+within the dataset, as well as their abundances and ionization states. Examples include:
+
+* CO (Carbon monoxide)
+* Co (Cobalt)
+* OVI (Oxygen ionized five times)
+* H:math:`^{2+}` (Molecular Hydrogen ionized once)
+* H:math:`^{-}` (Hydrogen atom with an additional electron)
+
+The naming scheme for the fields starts with prefixes in the form ``MM[_[mp][NN]]``. ``MM``
+is the molecule, defined as a concatenation of atomic symbols and numbers, with no spaces or
+underscores. The second sequence is only required if the ionization state is not neutral,
+and is of the form ``p`` and ``m`` to indicate "plus" or "minus" respectively, followed by
+the number. For the examples above, the prefixes would be:
+
+* ``CO``
+* ``Co``
+* ``O_p5``
+* ``H2_p1``
+* ``H_m1``
+
+The name ``El`` is used for electron fields, as it is unambiguous and will not be
+utilized elsewhere. Neutral ionic species (e.g. H I, O I) are represented as ``MM_p0``.
+Additionally, the isotope of :math:`^2`H will be included as ``D``.
+
+Finally, in those frontends which are single-fluid, these fields for each species are
+defined:
+
+* ``MM[_[mp][NN]]_fraction``
+* ``MM[_[mp][NN]]_number_density``
+* ``MM[_[mp][NN]]_density``
+* ``MM[_[mp][NN]]_mass``
+
+To refer to the number density of the entirety of a single atom or molecule (regardless
+of its ionization state), please use the ``MM_nuclei_density`` fields, as opposed to
+``MM_number_density`` fields.
+
+Finally, if the abundances of hydrogen and helium are not defined, it is assumed that
+assumed that these elements are fully ionized with primordial abundances In this case,
+the following fields are defined:
+
+* ``H_p1_number_density``
+* ``H_nuclei_density``
+* ``He_p2_number_density``
+* ``He_nuclei_density``
+* ``El_number_density``
+
+The ``mean_molecular_weight`` field will be constructed from the abundances of the elements
+in the dataset. If no element or molecule fields are defined, the above fields for the ionized
+primordial H/He plasma are defined, and the ``mean_molecular_weight`` field is correspondingly set
+to :math:`\mu \approx 0.6`.
+
 Particle Fields
 ---------------
 
