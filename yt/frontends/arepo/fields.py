@@ -58,10 +58,10 @@ class ArepoFieldInfo(GadgetFieldInfo):
             add_species_field_by_fraction(self, ptype, "H_p1")
 
         if (ptype, "ElectronAbundance") in self.field_list:
-            def _el_nuclei_density(field, data):
+            def _el_number_density(field, data):
                 return data[ptype, "ElectronAbundance"] * \
                        data[ptype, "H_number_density"]
-            self.add_field((ptype, "El_nuclei_density"),
+            self.add_field((ptype, "El_number_density"),
                            sampling_type="particle",
-                           function=_el_nuclei_density,
+                           function=_el_number_density,
                            units=self.ds.unit_system["number_density"])

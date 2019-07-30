@@ -26,7 +26,7 @@ def test_default_species_fields():
     muainv =  _primordial_mass_fraction["He"] / \
               ChemicalFormula("He").weight
     muainv *= sp["index","ones"]
-    mueinv2 = sp["gas","El_nuclei_density"]*amu_cgs/sp["gas","density"]
+    mueinv2 = sp["gas","El_number_density"]*amu_cgs/sp["gas","density"]
     mupinv2 = sp["gas","H_p1_number_density"]*amu_cgs/sp["gas","density"]
     muainv2 = sp["gas","He_p2_number_density"]*amu_cgs/sp["gas","density"]
 

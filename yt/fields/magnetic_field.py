@@ -170,7 +170,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     rm_units = registry.ds.quan(1.0, "rad/m**2").units/unit_system["length"]
 
     def _rotation_measure(field, data):
-        return rm_scale*data[ftype, "magnetic_field_los"]*data[ftype, "El_nuclei_density"]
+        return rm_scale*data[ftype, "magnetic_field_los"]*data[ftype, "El_number_density"]
 
     registry.add_field((ftype, "rotation_measure"), sampling_type="local",
                        function=_rotation_measure, units=rm_units,

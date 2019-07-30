@@ -148,8 +148,11 @@ def add_nuclei_density_fields(registry, ftype):
     for element in ["H", "He", "El"]:
         if element in elements:
             continue
-        registry.add_field((ftype, "%s_nuclei_density" % element),
-                           sampling_type="local",
+        if element == "El":
+            fname = (ftype, "%s_number_density" % element)
+        else:
+            fname = (ftype, "%s_nuclei_density" % element)
+        registry.add_field(fname, sampling_type="local",
                            function=_default_nuclei_density,
                            units=unit_system["number_density"])
         if element == "H":

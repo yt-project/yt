@@ -51,7 +51,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     def _emission_measure(field, data):
         dV = data[ftype, "mass"]/data[ftype, "density"]
         nenhdV = data[ftype, "H_p1_number_density"]*dV
-        nenhdV *= data[ftype, "El_nuclei_density"]
+        nenhdV *= data[ftype, "El_number_density"]
         return nenhdV
 
     registry.add_field((ftype, "emission_measure"),
@@ -62,7 +62,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     def _mazzotta_weighting(field, data):
         # Spectroscopic-like weighting field for galaxy clusters
         # Only useful as a weight_field for temperature, metallicity, velocity
-        ret = data[ftype, "El_nuclei_density"].d**2
+        ret = data[ftype, "El_number_density"].d**2
         ret *= data[ftype, "kT"].d**-0.75
         return ret
 
@@ -72,7 +72,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                        units="")
 
     def _optical_depth(field, data):
-        return data[ftype, "El_nuclei_density"]*pc.sigma_thompson
+        return data[ftype, "El_number_density"]*pc.sigma_thompson
 
     registry.add_field((ftype, "optical_depth"), sampling_type="local",
                        function=_optical_depth, units=unit_system["length"]**-1)
@@ -100,7 +100,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     def _entropy(field, data):
         mgammam1 = -2./3.
-        tr = data[ftype, "kT"] * data[ftype, "El_nuclei_density"]**mgammam1
+        tr = data[ftype, "kT"] * data[ftype, "El_number_density"]**mgammam1
         return data.apply_units(tr, field.units)
 
     registry.add_field((ftype, "entropy"),

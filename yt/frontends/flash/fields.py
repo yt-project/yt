@@ -159,7 +159,7 @@ class FLASHFieldInfo(FieldInfoContainer):
             def _nele(field, data):
                 return data["flash", "dens"] * data["flash", "ye"] * Na
 
-            self.add_field(('gas', 'El_nuclei_density'),
+            self.add_field(('gas', 'El_number_density'),
                            sampling_type="cell",
                            function=_nele,
                            units=unit_system["number_density"])
@@ -167,13 +167,13 @@ class FLASHFieldInfo(FieldInfoContainer):
             def _nion(field, data):
                 return data["flash", "dens"] * data["flash", "sumy"] * Na
 
-            self.add_field(('gas', 'ion_nuclei_density'),
+            self.add_field(('gas', 'ion_number_density'),
                            sampling_type="cell",
                            function=_nion,
                            units=unit_system["number_density"])
 
             def _number_density(field, data):
-                return data["gas","El_nuclel_density"]+data["gas","ion_nuclei_density"]
+                return data["gas","El_number_density"]+data["gas","ion_number_density"]
         else:
             def _number_density(field, data):
                 return data["flash", "dens"]*Na/data["gas", "mean_molecular_weight"]
