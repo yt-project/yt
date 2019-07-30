@@ -150,6 +150,10 @@ def off_axis_projection(data_source, center, normal_vector,
         normal = np.array(normal_vector)
         normal = normal / np.linalg.norm(normal)
 
+        # Add the normal as a field parameter to the data source
+        # so line of sight fields can use it
+        data_source.set_field_parameter("axis", normal)
+
         # If north_vector is None, we set the default here.
         # This is chosen so that if normal_vector is one of the
         # cartesian coordinate axes, the projection will match
