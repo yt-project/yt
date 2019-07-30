@@ -426,6 +426,8 @@ Within a field function, these can then be retrieved and used in the same way.
 
 For a practical application of this, see :ref:`cookbook-radial-velocity`.
 
+.. _gradient_fields:
+
 Gradient Fields
 ---------------
 
@@ -448,6 +450,54 @@ of how to create and use these fields, see :ref:`cookbook-complicated-derived-fi
 .. note::
 
     ``add_gradient_fields`` currently only supports Cartesian geometries!
+
+.. _los_fields:
+
+Line of Sight Fields
+--------------------
+
+In astrophysics applications, one often wants to know the component of a vector 
+field along a given line of sight. If you are doing a projection of a vector 
+field along an axis, or just want to obtain the values of a vector field 
+component along an axis, you can use a line-of-sight field. For projections, 
+this will be handled automatically:
+
+.. code-block:: python
+
+    prj = yt.ProjectionPlot(ds, "z", ("gas","velocity_los"), 
+                            weight_field=("gas","density"))
+
+Which, because the axis is ``"z"``, will give you the same result if you had
+projected the `"velocity_z"`` field. This also works for off-axis projections:
+
+.. code-block:: python
+
+    prj = yt.OffAxisProjectionPlot(ds, [0.1, -0.2, 0.3], ("gas","velocity_los"), 
+                                   weight_field=("gas","density"))
+
+
+This shows that the projection axis can be along a principle axis of the domain 
+or an arbitrary off-axis 3-vector (which will be automatically normalized). If 
+you want to examine a line-of-sight vector within a 3-D data object, set the 
+``"axis"`` field parameter:
+
+.. code-block:: python
+
+    dd = ds.all_data()
+    # Set to one of [0, 1, 2] for ["x", "y", "z"] axes
+    dd.set_field_parameter("axis", 1)
+    print(dd["gas","magnetic_field_los"])
+    # Set to a three-vector for an off-axis component
+    dd.set_field_parameter("axis", [0.3, 0.4, -0.7])
+    print(dd["gas","velocity_los"])
+
+At this time, this functionality is enabled for the velocity and magnetic vector
+fields, ``("gas","velocity_los")`` and ``("gas","magnetic_field_los")``. The 
+following fields built into yt make use of these line-of-sight fields:
+
+* ``("gas","sz_kinetic")`` uses ``("gas","velocity_los")``
+* ``("gas","rotation_measure")`` uses ``("gas","magnetic_field_los")``
+
 
 General Particle Fields
 -----------------------
