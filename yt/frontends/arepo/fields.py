@@ -1,8 +1,11 @@
+from yt.fields.field_info_container import \
+    FieldInfoContainer
 from yt.frontends.gadget.api import GadgetFieldInfo
 from yt.fields.magnetic_field import \
     setup_magnetic_field_aliases
 from yt.fields.species_fields import \
-    add_species_field_by_fraction
+    add_species_field_by_fraction, \
+    setup_species_fields
 
 metal_elements = ["He", "C", "N", "O", "Ne",
                   "Mg", "Si", "Fe"]
@@ -23,6 +26,12 @@ class ArepoFieldInfo(GadgetFieldInfo):
                              ("GFM_Metals_07", ("", ["Si_fraction"], None)),
                              ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
                              )
+
+    def setup_particle_fields(self, ptype):
+        FieldInfoContainer.setup_particle_fields(self, ptype)
+        if ptype == "PartType0":
+            self.setup_gas_particle_fields(ptype)
+            setup_species_fields(self, ptype)
 
     def setup_gas_particle_fields(self, ptype):
         super(ArepoFieldInfo, self).setup_gas_particle_fields(ptype)
@@ -60,6 +69,13 @@ class ArepoFieldInfo(GadgetFieldInfo):
             add_species_field_by_fraction(self, ptype, "H_p0")
             add_species_field_by_fraction(self, ptype, "H_p1")
 
+            for species in ['H', 'H_p0', 'H_p1']:
+                for suf in ["_density", "_number_density"]:
+                    field = "%s%s" % (species, suf)
+                    self.alias(("gas", field), (ptype, field))
+
+            self.alias(("gas", "H_nuclei_density"), ("gas", "H_number_density"))
+
         if (ptype, "ElectronAbundance") in self.field_list:
             def _el_number_density(field, data):
                 return data[ptype, "ElectronAbundance"] * \
@@ -68,3 +84,4 @@ class ArepoFieldInfo(GadgetFieldInfo):
                            sampling_type="particle",
                            function=_el_number_density,
                            units=self.ds.unit_system["number_density"])
+            self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
