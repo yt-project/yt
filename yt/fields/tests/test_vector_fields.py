@@ -75,6 +75,10 @@ def compare_vector_conversions(data_source):
             assert_allclose_units(data_source["velocity_los"], 
                                   data_source["relative_velocity_%s" % ax])
 
+        for i, ax in enumerate("xyz"):
+            prj = data_source.ds.proj("velocity_los", i, weight_field="density")
+            assert_allclose_units(prj["velocity_los"], prj["velocity_%s" % ax])
+
         data_source.clear_data()
         ax = [0.1, 0.2, -0.3]
         data_source.set_field_parameter("axis", ax)
