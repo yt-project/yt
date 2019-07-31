@@ -424,7 +424,9 @@ the following fields are defined:
 The ``mean_molecular_weight`` field will be constructed from the abundances of the elements
 in the dataset. If no element or molecule fields are defined, the above fields for the ionized
 primordial H/He plasma are defined, and the ``mean_molecular_weight`` field is correspondingly set
-to :math:`\mu \approx 0.6`.
+to :math:`\mu \approx 0.6`. Some frontends do not directly store the gas temperature in their
+datasets, in which case it must be computed from the pressure and/or thermal energy as well
+as the mean molecular weight, so check this carefully!
 
 Particle Fields
 ---------------
