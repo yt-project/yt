@@ -145,14 +145,11 @@ def add_nuclei_density_fields(registry, ftype):
 
     # Here, we add default nuclei and number density fields for H and
     # He if they are not defined above. This assumes full ionization!
-    for element in ["H", "He", "El"]:
+    for element in ["H", "He"]:
         if element in elements:
             continue
-        if element == "El":
-            fname = (ftype, "%s_number_density" % element)
-        else:
-            fname = (ftype, "%s_nuclei_density" % element)
-        registry.add_field(fname, sampling_type="local",
+        registry.add_field((ftype, "%s_nuclei_density" % element), 
+                           sampling_type="local",
                            function=_default_nuclei_density,
                            units=unit_system["number_density"])
         if element == "H":
@@ -162,6 +159,13 @@ def add_nuclei_density_fields(registry, ftype):
         if element == "He":
             registry.alias((ftype, "He_p2_number_density"),
                            (ftype, "He_nuclei_density"))
+
+    if (ftype, "El_number_density") not in registry:
+        registry.add_field((ftype, "El_number_density"),
+                           sampling_type="local",
+                           function=_default_nuclei_density,
+                           units=unit_system["number_density"])
+
 
 def _default_nuclei_density(field, data):
     ftype = field.name[0]
