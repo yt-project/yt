@@ -1,11 +1,11 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
 from yt.frontends.gadget.api import GadgetFieldInfo
 from yt.fields.magnetic_field import \
     setup_magnetic_field_aliases
 from yt.fields.species_fields import \
     add_species_field_by_fraction, \
     setup_species_fields
+from yt.fields.field_info_container import \
+    FieldInfoContainer
 
 metal_elements = ["He", "C", "N", "O", "Ne",
                   "Mg", "Si", "Fe"]
