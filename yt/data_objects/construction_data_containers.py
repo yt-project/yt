@@ -180,6 +180,7 @@ class YTProj(YTSelectionContainer2D):
         self._set_center(center)
         self._projected_units = {}
         if data_source is None: data_source = self.ds.all_data()
+        data_source.set_field_parameter("axis", self.axis)
         if max_level is not None:
             data_source.max_level = max_level
         for k, v in data_source.field_parameters.items():
