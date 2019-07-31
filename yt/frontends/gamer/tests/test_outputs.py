@@ -64,6 +64,18 @@ def test_plummer():
         yield test
 
 
+mhdvortex         = "MHDOrszagTangVortex/Data_000018"
+_fields_mhdvortex = ( ("gamer","CCMagX"), ("gamer","CCMagY"), ("gas","magnetic_energy") )
+
+@requires_ds(mhdvortex, big_data=True)
+def test_mhdvortex():
+    ds = data_dir_load(mhdvortex)
+    assert_equal(str(ds), "Data_000018")
+    for test in small_patch_amr(ds, _fields_mhdvortex):
+        test_mhdvortex.__name__ = test.description
+        yield test
+
+
 @requires_file(psiDM)
 def test_GAMERDataset():
     assert isinstance(data_dir_load(psiDM), GAMERDataset)
