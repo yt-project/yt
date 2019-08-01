@@ -129,12 +129,16 @@ def off_axis_projection(data_source, center, normal_vector,
         raise_error = False
 
         ptype = sph_ptypes[0]
+        ppos = ["particle_position_%s" % ax for ax in "xyz"]
         # Assure that the field we're trying to off-axis project 
         # has a field type as the SPH particle type or if the field is an 
         # alias to an SPH field or is a 'gas' field
         if item[0] in data_source.ds.known_filters:
             if item[0] not in sph_ptypes:
                 raise_error = True
+            else:
+                ptype = item[0]
+                ppos = ["x", "y", "z"]
         elif fi.alias_field:
             if fi.alias_name[0] not in sph_ptypes:
                 raise_error = True
@@ -184,10 +188,10 @@ def off_axis_projection(data_source, center, normal_vector,
         if weight is None:
             for chunk in data_source.chunks([], 'io'):
                 off_axis_projection_SPH(
-                    chunk[ptype, "particle_position_x"].to('code_length').d,
-                    chunk[ptype, "particle_position_y"].to('code_length').d,
-                    chunk[ptype, "particle_position_z"].to('code_length').d,
-                    chunk[ptype, "particle_mass"].to('code_mass').d,
+                    chunk[ptype, ppos[0]].to('code_length').d,
+                    chunk[ptype, ppos[1]].to('code_length').d,
+                    chunk[ptype, ppos[2]].to('code_length').d,
+                    chunk[ptype, "mass"].to('code_mass').d,
                     chunk[ptype, "density"].to('code_density').d,
                     chunk[ptype, "smoothing_length"].to('code_length').d,
                     bounds,
@@ -216,10 +220,10 @@ def off_axis_projection(data_source, center, normal_vector,
 
             for chunk in data_source.chunks([], 'io'):
                 off_axis_projection_SPH(
-                    chunk[ptype, "particle_position_x"].to('code_length').d,
-                    chunk[ptype, "particle_position_y"].to('code_length').d,
-                    chunk[ptype, "particle_position_z"].to('code_length').d,
-                    chunk[ptype, "particle_mass"].to('code_mass').d,
+                    chunk[ptype, ppos[0]].to('code_length').d,
+                    chunk[ptype, ppos[1]].to('code_length').d,
+                    chunk[ptype, ppos[2]].to('code_length').d,
+                    chunk[ptype, "mass"].to('code_mass').d,
                     chunk[ptype, "density"].to('code_density').d,
                     chunk[ptype, "smoothing_length"].to('code_length').d,
                     bounds,
@@ -233,10 +237,10 @@ def off_axis_projection(data_source, center, normal_vector,
 
             for chunk in data_source.chunks([], 'io'):
                 off_axis_projection_SPH(
-                    chunk[ptype, "particle_position_x"].to('code_length').d,
-                    chunk[ptype, "particle_position_y"].to('code_length').d,
-                    chunk[ptype, "particle_position_z"].to('code_length').d,
-                    chunk[ptype, "particle_mass"].to('code_mass').d,
+                    chunk[ptype, ppos[0]].to('code_length').d,
+                    chunk[ptype, ppos[1]].to('code_length').d,
+                    chunk[ptype, ppos[2]].to('code_length').d,
+                    chunk[ptype, "mass"].to('code_mass').d,
                     chunk[ptype, "density"].to('code_density').d,
                     chunk[ptype, "smoothing_length"].to('code_length').d,
                     bounds,
