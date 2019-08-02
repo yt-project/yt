@@ -548,6 +548,12 @@ you want to examine a line-of-sight vector within a 3-D data object, set the
     dd.set_field_parameter("axis", [0.3, 0.4, -0.7])
     print(dd["gas","velocity_los"])
 
+.. warning::
+
+    If you need to change the axis of the line of sight on the *same* data container
+    (sphere, box, cylinder, or whatever), you will need to delete the field using
+    ``del dd["velocity_los"]`` and re-generate it. 
+
 At this time, this functionality is enabled for the velocity and magnetic vector
 fields, ``("gas","velocity_los")`` and ``("gas","magnetic_field_los")``. The 
 following fields built into yt make use of these line-of-sight fields:
