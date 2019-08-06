@@ -100,6 +100,7 @@ class DerivedField(object):
        that the field defined at the centers of the 4 edges that are normal to the
        x axis, while nodal_flag = [1, 1, 1] would be defined at the 8 cell corners.
     """
+    _inherited_particle_filter = False
     def __init__(self, name, sampling_type, function, units=None,
                  take_log=True, validators=None,
                  particle_type=None, vector_field=False, display_field=True,
@@ -118,6 +119,11 @@ class DerivedField(object):
         self.sampling_type = sampling_type
         self.vector_field = vector_field
         self.ds = ds
+
+        if self.ds is not None:
+            self._ionization_label_format = self.ds._ionization_label_format
+        else:
+            self._ionization_label_format = "roman_numeral"
 
         if nodal_flag is None:
             self.nodal_flag = [0, 0, 0]
@@ -316,25 +322,60 @@ class DerivedField(object):
         return result
 
     def _ion_to_label(self):
+        #check to see if the output format has changed
+        if self.ds is not None:
+            self._ionization_label_format = self.ds._ionization_label_format
+
         pnum2rom = {
             "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
             "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
             "10":"XI", "11":"XII", "12":"XIII", "13":"XIV", "14":"XV",
             "15":"XVI", "16":"XVII", "17":"XVIII", "18":"XIX", "19":"XX"}
 
+        # first look for charge to decide if it is an ion
         p = re.compile("_p[0-9]+_")
         m = p.search(self.name[1])
         if m is not None:
+
+            # Find the ionization state
             pstr = m.string[m.start()+1:m.end()-1]
             segments = self.name[1].split("_")
+
+            # find the ionization index
             for i,s in enumerate(segments):
+                if s == pstr: ipstr = i
+
+            
+            for i,s in enumerate(segments):
+                #If its the species we don't want to change the capitalization
+                if i == ipstr -1: continue
                 segments[i] = s.capitalize()
-                if s == pstr:
-                    ipstr = i
-            element = segments[ipstr-1]
-            roman = pnum2rom[pstr[1:]]
-            label = element + '\ ' + roman + '\ ' + \
-                '\ '.join(segments[ipstr+1:])
+
+            species = segments[ipstr-1]
+
+            #If there is a number in the species part of the label
+            #that indicates part of a molecule
+            symbols = []
+            for symb in species:
+                # can't just use underscore b/c gets replaced later with space
+                if symb.isdigit(): symbols.append("latexsub{"+symb+'}')
+                else: symbols.append(symb)
+            species_label =  "".join(symbols)
+
+
+            # Use roman numerals for ionization
+
+            if self._ionization_label_format == "roman_numeral":
+                roman = pnum2rom[pstr[1:]]
+                label = species_label + '\ ' + roman + '\ ' + \
+                    '\ '.join(segments[ipstr+1:])
+
+            # use +/- for ionization
+            else: 
+                sign = '+'*int(pstr[1:])
+                label ='{' +species_label+ '}'+ '^{'+sign+'}' + '\ ' + \
+                    '\ '.join(segments[ipstr+1:])
+
         else:
             label = self.name[1]
         return label
@@ -345,6 +386,7 @@ class DerivedField(object):
             if self._is_ion():
                 fname = self._ion_to_label()
                 label = r'$\rm{'+fname.replace('_','\ ')+r'}$'
+                label = label.replace('latexsub', '_')
             else:
                 label = r'$\rm{'+self.name[1].replace('_','\ ').title()+r'}$'
         elif label.find('$') == -1:

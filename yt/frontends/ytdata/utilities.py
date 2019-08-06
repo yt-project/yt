@@ -112,7 +112,7 @@ def save_as_dataset(ds, filename, data, field_types=None,
 
     if hasattr(ds, "unit_system"):
         _yt_array_hdf5_attr(fh, "unit_system_name",
-                            ds.unit_system.name)
+                            ds.unit_system.name.split("_")[0])
 
     for attr in base_attrs:
         if isinstance(ds, dict):
@@ -181,7 +181,7 @@ def _hdf5_yt_array(fh, field, ds=None):
     if "units" in fh[field].attrs:
         units = fh[field].attrs["units"]
     if units == "dimensionless": units = ""
-    return new_arr(fh[field].value, units)
+    return new_arr(fh[field][()], units)
 
 def _yt_array_hdf5(fh, field, data):
     r"""Save a YTArray to an open hdf5 file or group.

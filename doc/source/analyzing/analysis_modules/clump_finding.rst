@@ -19,13 +19,13 @@ Setting up the Clump Finder
 The clump finder requires a data object (see :ref:`data-objects`) and a field
 over which the contouring is to be performed.  The data object is then used
 to create the initial
-:class:`~yt.analysis_modules.level_sets.clump_handling.Clump` object that
+:class:`~yt.data_objects.level_sets.clump_handling.Clump` object that
 acts as the base for clump finding.
 
 .. code:: python
 
    import yt
-   from yt.analysis_modules.level_sets.api import *
+   from yt.data_objects.level_sets.api import *
 
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
@@ -41,7 +41,7 @@ At this point, every isolated contour will be considered a clump,
 whether this is physical or not.  Validator functions can be added to
 determine if an individual contour should be considered a real clump.
 These functions are specified with the
-:func:`~yt.analysis_modules.level_sets.clump_handling.Clump.add_validator`
+:func:`~yt.data_objects.level_sets.clump_handling.Clump.add_validator`
 function.  Current, two validators exist: a minimum number of cells and gravitational
 boundedness.
 
@@ -62,7 +62,7 @@ and either return True or False.
        return (clump["gas", "cell_mass"].sum() >= min_mass)
    add_validator("minimum_gas_mass", _minimum_gas_mass)
 
-The :func:`~yt.analysis_modules.level_sets.clump_validators.add_validator`
+The :func:`~yt.data_objects.level_sets.clump_validators.add_validator`
 function adds the validator to a registry that can
 be accessed by the clump finder.  Then, the validator can be added to the
 clump finding just like the others.
@@ -75,9 +75,9 @@ Running the Clump Finder
 ------------------------
 
 Clump finding then proceeds by calling the
-:func:`~yt.analysis_modules.level_sets.clump_handling.find_clumps` function.
+:func:`~yt.data_objects.level_sets.clump_handling.find_clumps` function.
 This function accepts the
-:class:`~yt.analysis_modules.level_sets.clump_handling.Clump` object, the initial
+:class:`~yt.data_objects.level_sets.clump_handling.Clump` object, the initial
 minimum and maximum of the contouring field, and the step size.  The lower value
 of the contour finder will be continually multiplied by the step size.
 
@@ -96,7 +96,7 @@ clump finding process has finished.  The default quantities are: ``total_cells``
 ``cell_mass``, ``mass_weighted_jeans_mass``, ``volume_weighted_jeans_mass``,
 ``max_grid_level``, ``min_number_density``, and ``max_number_density``.
 Additional items can be added with the
-:func:`~yt.analysis_modules.level_sets.clump_handling.Clump.add_info_item`
+:func:`~yt.data_objects.level_sets.clump_handling.Clump.add_info_item`
 function.
 
 .. code:: python
@@ -105,10 +105,10 @@ function.
 
 Just like the validators, custom info items can be added by defining functions
 that minimally accept a
-:class:`~yt.analysis_modules.level_sets.clump_handling.Clump` object and return
+:class:`~yt.data_objects.level_sets.clump_handling.Clump` object and return
 a format string to be printed and the value.  These are then added to the list
 of available info items by calling
-:func:`~yt.analysis_modules.level_sets.clump_info_items.add_clump_info`:
+:func:`~yt.data_objects.level_sets.clump_info_items.add_clump_info`:
 
 .. code:: python
 
@@ -124,7 +124,15 @@ Then, add it to the list:
 
    master_clump.add_info_item("mass_weighted_jeans_mass")
 
-Beside the quantities calculated by default, the following are available:
+Once you have run the clump finder, you should be able to access the data for
+the info item you have defined via the ``info`` attribute of a ``Clump`` object:
+
+.. code:: python
+
+   clump = leaf_clumps[0]
+   print(clump.info['mass_weighted_jeans_mass'])
+   
+Besides the quantities calculated by default, the following are available:
 ``center_of_mass`` and ``distance_to_main_clump``.
 
 Working with Clumps
@@ -132,9 +140,9 @@ Working with Clumps
 
 After the clump finding has finished, the master clump will represent the top
 of a hierarchy of clumps.  The ``children`` attribute within a
-:class:`~yt.analysis_modules.level_sets.clump_handling.Clump` object
+:class:`~yt.data_objects.level_sets.clump_handling.Clump` object
 contains a list of all sub-clumps.  Each sub-clump is also a
-:class:`~yt.analysis_modules.level_sets.clump_handling.Clump` object
+:class:`~yt.data_objects.level_sets.clump_handling.Clump` object
 with its own ``children`` attribute, and so on.
 
 .. code:: python
@@ -150,14 +158,13 @@ The entire clump tree can traversed with a loop syntax:
    for clump in master_clump:
        print(clump.clump_id)
 
-The :func:`~yt.analysis_modules.level_sets.clump_handling.get_lowest_clumps`
-function will return a list of the individual clumps that have no children
-of their own (the leaf clumps).
+The ``leaves`` attribute of a ``Clump`` object will return a list of the
+individual clumps that have no children of their own (the leaf clumps).
 
 .. code:: python
 
    # Get a list of just the leaf nodes.
-   leaf_clumps = get_lowest_clumps(master_clump)
+   leaf_clumps = master_clump.leaves
 
    print(leaf_clumps[0]["gas", "density"])
    print(leaf_clumps[0]["all", "particle_mass"])
@@ -179,7 +186,7 @@ Saving and Reloading Clump Data
 -------------------------------
 
 The clump tree can be saved as a reloadable dataset with the
-:func:`~yt.analysis_modules.level_sets.clump_handling.Clump.save_as_dataset`
+:func:`~yt.data_objects.level_sets.clump_handling.Clump.save_as_dataset`
 function.  This will save all info items that have been calculated as well as
 any field values specified with the *fields* keyword.  This function
 can be called for any clump in the tree, saving that clump and all those

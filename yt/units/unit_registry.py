@@ -67,7 +67,7 @@ class UnitRegistry:
             for k, v in self.lut.items():
                 hash_data.extend(k.encode('ascii'))
                 hash_data.extend(repr(v).encode('ascii'))
-            self._unit_system_id = "code_%d" % fnv_hash(hash_data)
+            self._unit_system_id = "us_%d" % fnv_hash(hash_data)
         return self._unit_system_id
 
     def add(self, symbol, base_value, dimensions, tex_repr=None, offset=None):

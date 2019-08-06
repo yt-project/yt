@@ -20,6 +20,12 @@ from yt.fields.derived_field import \
     ValidateParameter, \
     ValidateSpatial
 
+from yt.fields.field_detector import \
+    FieldDetector
+
+from yt.funcs import \
+    issue_deprecation_warning
+
 from yt.units.yt_array import \
     uconcatenate, \
     ucross
@@ -297,7 +303,7 @@ def standard_particle_fields(registry, ptype,
         # adding in the unit registry allows us to have a reference to the
         # dataset and thus we will always get the correct units after applying
         # the cross product.
-        return -ucross(r_vec, v_vec, registry=data.ds.unit_registry)
+        return ucross(r_vec, v_vec, registry=data.ds.unit_registry)
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
@@ -358,7 +364,7 @@ def standard_particle_fields(registry, ptype,
         units=unit_system["length"],
         validators=[ValidateParameter("center")])
 
-    def _particle_position_relative(field, data):
+    def _relative_particle_position(field, data):
         """The cartesian particle positions in a rotated reference frame
 
         Relative to the coordinate system defined by the *normal* vector and
@@ -372,18 +378,28 @@ def standard_particle_fields(registry, ptype,
         L, pos = modify_reference_frame(center, normal, P=pos)
         return pos
 
-    for name in ["particle_position_relative", "relative_particle_position"]:
-        # TODO mark "particle_position_relative" as deprecated in a way
-        # that's visible to users
+    def _particle_position_relative(field, data):
+        if not isinstance(data, FieldDetector):
+            issue_deprecation_warning(
+                "The 'particle_position_relative' field has been deprecated in " +
+                "favor of 'relative_particle_position'.")
+        if isinstance(field.name, tuple):
+            return data[field.name[0], 'relative_particle_position']
+        else:
+            return data['relative_particle_position']
+
+    for name, func in zip(
+            ["particle_position_relative", "relative_particle_position"],
+            [_particle_position_relative,  _relative_particle_position]):
         registry.add_field(
             (ptype, name),
             sampling_type="particle",
-            function=_particle_position_relative,
+            function=func,
             units=unit_system["length"],
             validators=[ValidateParameter("normal"),
                         ValidateParameter("center")])
 
-    def _particle_velocity_relative(field, data):
+    def _relative_particle_velocity(field, data):
         """The vector particle velocities in an arbitrary coordinate system
 
         Relative to the coordinate system defined by the *normal* vector,
@@ -400,13 +416,23 @@ def standard_particle_fields(registry, ptype,
         L, vel = modify_reference_frame(center, normal, V=vel)
         return vel
 
-    for name in ["particle_velocity_relative", "relative_particle_velocity"]:
-        # TODO mark "particle_velocity_relative" as deprecated in a way
-        # that's visible to users
+    def _particle_velocity_relative(field, data):
+        if not isinstance(data, FieldDetector):
+            issue_deprecation_warning(
+                "The 'particle_velocity_relative' field has been deprecated in " +
+                "favor of 'relative_particle_velocity'.")
+        if isinstance(field.name, tuple):
+            return data[field.name[0], 'relative_particle_velocity']
+        else:
+            return data['relative_particle_velocity']
+
+    for name, func in zip(
+            ["particle_velocity_relative", "relative_particle_velocity"],
+            [_particle_velocity_relative,  _relative_particle_velocity]):
         registry.add_field(
             (ptype, name),
             sampling_type="particle",
-            function=_particle_velocity_relative,
+            function=func,
             units=unit_system["velocity"],
             validators=[ValidateParameter("normal"),
                         ValidateParameter("center")])
@@ -414,9 +440,9 @@ def standard_particle_fields(registry, ptype,
 
     def _get_coord_funcs_relative(axi, _ptype):
         def _particle_pos_rel(field, data):
-            return data[_ptype, "particle_position_relative"][:, axi]
+            return data[_ptype, "relative_particle_position"][:, axi]
         def _particle_vel_rel(field, data):
-            return data[_ptype, "particle_velocity_relative"][:, axi]
+            return data[_ptype, "relative_particle_velocity"][:, axi]
         return _particle_vel_rel, _particle_pos_rel
     for axi, ax in enumerate("xyz"):
         v, p = _get_coord_funcs_relative(axi, ptype)
@@ -831,6 +857,30 @@ def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
                        function = _nth_neighbor,
                        validators = [ValidateSpatial(0)],
                        units = "code_length")
+    return [field_name]
+
+def add_nearest_neighbor_value_field(ptype, coord_name, sampled_field, registry):
+    """
+    This adds a nearest-neighbor field, where values on the mesh are assigned
+    based on the nearest particle value found.  This is useful, for instance,
+    with voronoi-tesselations.
+    """
+    field_name = ("deposit", "%s_nearest_%s" % (ptype, sampled_field))
+    field_units = registry[ptype, sampled_field].units
+    unit_system = registry.ds.unit_system
+    def _nearest_value(field, data):
+        pos = data[ptype, coord_name]
+        pos = pos.convert_to_units("code_length")
+        value = data[ptype, sampled_field].in_base(unit_system.name)
+        rv = data.smooth(pos, [value],
+                         method="nearest",
+                         create_octree=True,
+                         nneighbors=1)
+        rv = data.apply_units(rv, field_units)
+        return rv
+    registry.add_field(field_name, sampling_type="cell",
+            function=_nearest_value, validators=[ValidateSpatial(0)],
+            units=field_units)
     return [field_name]
 
 def add_union_field(registry, ptype, field_name, units):

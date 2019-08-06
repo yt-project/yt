@@ -112,6 +112,28 @@ class CoordinateHandler(object):
     def convert_from_spherical(self, coord):
         raise NotImplementedError
 
+    _data_projection = None
+    @property
+    def data_projection(self):
+        if self._data_projection is not None:
+            return self._data_projection
+        dpj = {}
+        for ax in self.axis_order:
+            dpj[ax] = None
+        self._data_projection = dpj
+        return dpj
+
+    _data_transform = None
+    @property
+    def data_transform(self):
+        if self._data_transform is not None:
+            return self._data_transform
+        dtx = {}
+        for ax in self.axis_order:
+            dtx[ax] = None
+        self._data_transform = dtx
+        return dtx
+
     _axis_name = None
     @property
     def axis_name(self):
@@ -197,12 +219,12 @@ class CoordinateHandler(object):
             if not iterable(axis):
                 xax = self.x_axis[axis]
                 yax = self.y_axis[axis]
-                w = self.ds.domain_width[[xax, yax]]
+                w = self.ds.domain_width[np.array([xax, yax])]
             else:
                 # axis is actually the normal vector
                 # for an off-axis data object.
                 mi = np.argmin(self.ds.domain_width)
-                w = self.ds.domain_width[[mi,mi]]
+                w = self.ds.domain_width[np.array((mi, mi))]
             width = (w[0], w[1])
         elif iterable(width):
             width = validate_iterable_width(width, self.ds)

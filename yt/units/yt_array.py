@@ -46,7 +46,8 @@ from yt.units.dimensions import \
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
-    YTInvalidUnitEquivalence, YTEquivalentDimsError
+    YTInvalidUnitEquivalence, YTEquivalentDimsError, \
+    YTArrayTooLargeToDisplay
 from yt.utilities.lru_cache import lru_cache
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
@@ -531,6 +532,10 @@ class YTArray(np.ndarray):
         """
         return str(self.view(np.ndarray)) + ' ' + str(self.units)
 
+    def __format__(self, format_spec):
+        ret = super(YTArray, self).__format__(format_spec)
+        return ret + ' {}'.format(self.units)
+
     #
     # Start unit conversion methods
     #
@@ -788,6 +793,24 @@ class YTArray(np.ndarray):
 
         """
         return np.array(self)
+
+    def argsort(self, axis=-1, kind='quicksort', order=None):
+        """
+        Returns the indices that would sort the array.
+
+        See the documentation of ndarray.argsort for details about the keyword
+        arguments.
+
+        Example
+        -------
+        >>> from yt.units import km
+        >>> data = [3, 8, 7]*km
+        >>> np.argsort(data)
+        array([0, 2, 1])
+        >>> data.argsort()
+        array([0, 2, 1])
+        """
+        return self.view(np.ndarray).argsort(axis, kind, order)
 
     @classmethod
     def from_astropy(cls, arr, unit_registry=None):
@@ -1671,16 +1694,20 @@ def ustack(arrs, axis=0):
     This is a wrapper around np.stack that preserves units.
 
     """
-    v = np.stack(arrs)
+    v = np.stack(arrs, axis=axis)
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
     if isinstance(field, tuple):
-        units = data.ds._get_field_info(field[0],field[1]).output_units
+        finfo = data.ds._get_field_info(field[0],field[1])
     else:
-        units = data.ds._get_field_info(field).output_units
+        finfo = data.ds._get_field_info(field)
+    if finfo.sampling_type == 'particle':
+        units = finfo.output_units
+    else:
+        units = finfo.units
     if isinstance(x, YTArray):
         arr = copy.deepcopy(x)
         arr.convert_to_units(units)
@@ -1818,3 +1845,48 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
     np.savetxt(fname, np.transpose(arrays), header=header,
                fmt=fmt, delimiter=delimiter, footer=footer,
                newline='\n', comments=comments)
+
+def display_ytarray(arr):
+    r"""
+    Display a YTArray in a Jupyter widget that enables unit switching.
+
+    The array returned by this function is read-only, and only works with
+    arrays of size 3 or lower.
+
+    Parameters
+    ----------
+    arr : YTArray
+        The Array to display; must be of size 3 or lower.
+
+    Examples
+    --------
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> display_ytarray(ds.domain_width)
+    """
+    if arr.size > 3:
+        raise YTArrayTooLargeToDisplay(arr.size, 3)
+    import ipywidgets
+    unit_registry = arr.units.registry 
+    equiv = unit_registry.list_same_dimensions(arr.units)
+    dropdown = ipywidgets.Dropdown(options = sorted(equiv), value = str(arr.units))
+    def arr_updater(arr, texts):
+        def _value_updater(change):
+            arr2 = arr.in_units(change['new'])
+            if arr2.shape == ():
+                arr2 = [arr2]
+            for v, t in zip(arr2, texts):
+                t.value = str(v.value)
+        return _value_updater
+    if arr.shape == ():
+        arr_iter = [arr]
+    else:
+        arr_iter = arr
+    texts = [ipywidgets.Text(value = str(_.value), disabled = True)
+             for _ in arr_iter]
+    dropdown.observe(arr_updater(arr, texts), names="value")
+    return ipywidgets.HBox(texts + [dropdown])
+
+def _wrap_display_ytarray(arr):
+    from IPython.core.display import display
+    display(display_ytarray(arr))
+

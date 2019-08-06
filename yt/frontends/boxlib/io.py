@@ -63,7 +63,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                         ds = data[g.id].pop(field)
                     else:
                         ds = self._read_raw_field(g, field)
-                    nd = g.select(selector, ds, rv[field], ind) # caches
+                    nd = g.select(selector, ds, rv[field], ind)
                 ind += nd
                 data.pop(g.id)
         return rv
@@ -72,6 +72,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         field_name = field[1]
         base_dir = self.ds.index.raw_file
 
+        nghost = self.ds.index.raw_field_nghost[field_name]
         box_list = self.ds.index.raw_field_map[field_name][0]
         fn_list = self.ds.index.raw_field_map[field_name][1]
         offset_list = self.ds.index.raw_field_map[field_name][2]
@@ -80,16 +81,16 @@ class IOHandlerBoxlib(BaseIOHandler):
         filename = base_dir + "Level_%d/" % lev + fn_list[grid.id]
         offset = offset_list[grid.id]
         box = box_list[grid.id]
-        
-        lo = box[0]
-        hi = box[1]
+
+        lo = box[0] - nghost
+        hi = box[1] + nghost
         shape = hi - lo + 1
         with open(filename, "rb") as f:
             f.seek(offset)
             f.readline()  # always skip the first line
             arr = np.fromfile(f, 'float64', np.product(shape))
             arr = arr.reshape(shape, order='F')
-        return arr
+        return arr[[slice(nghost,-nghost) for _ in range(self.ds.dimensionality)]]
 
     def _read_chunk_data(self, chunk, fields):
         data = {}

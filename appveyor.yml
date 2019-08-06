@@ -18,6 +18,7 @@ install:
     - "echo [yt] > %userprofile%\\.config\\yt\\ytrc"
     - "echo suppressStreamLogging = True >> %userprofile%\\.config\\yt\\ytrc"
     - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
+    - "copy tests\\matplotlibrc ."
 
     # Install the build and runtime dependencies of the project.
     # Create a conda environment
@@ -29,8 +30,8 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib flake8 mock"
-    - "pip install -e ."
+    - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib mock pandas cartopy conda-build"
+    - "conda develop -b ."
 
 # Not a .NET project
 build: false

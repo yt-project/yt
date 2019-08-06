@@ -16,6 +16,7 @@ Various non-grid data containers.
 import itertools
 import uuid
 
+import os
 import numpy as np
 import weakref
 import shelve
@@ -23,7 +24,6 @@ import shelve
 from collections import defaultdict
 from contextlib import contextmanager
 
-from yt.data_objects.particle_io import particle_handler_registry
 from yt.fields.derived_field import \
     DerivedField
 from yt.frontends.ytdata.utilities import \
@@ -33,7 +33,7 @@ from yt.funcs import \
     mylog, \
     ensure_list, \
     fix_axis, \
-    iterable
+    iterable, validate_width_tuple
 from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import \
     YTArray, \
@@ -51,7 +51,7 @@ from yt.utilities.exceptions import \
     YTDataSelectorNotImplemented, \
     YTDimensionalityError, \
     YTBooleanObjectError, \
-    YTBooleanObjectsWrongDataset
+    YTBooleanObjectsWrongDataset, YTException
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -71,29 +71,6 @@ from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 
 data_object_registry = {}
-
-def force_array(item, shape):
-    try:
-        return item.copy()
-    except AttributeError:
-        if item:
-            return np.ones(shape, dtype='bool')
-        else:
-            return np.zeros(shape, dtype='bool')
-
-def restore_field_information_state(func):
-    """
-    A decorator that takes a function with the API of (self, grid, field)
-    and ensures that after the function is called, the field_parameters will
-    be returned to normal.
-    """
-    def save_state(self, grid, field=None, *args, **kwargs):
-        old_params = grid.field_parameters
-        grid.field_parameters = self.field_parameters
-        tr = func(self, grid, field, *args, **kwargs)
-        grid.field_parameters = old_params
-        return tr
-    return save_state
 
 def sanitize_weight_field(ds, field, weight):
     field_object = ds._get_field_info(field)
@@ -216,6 +193,10 @@ class YTDataContainer(object):
                 self.center = self.ds.find_max(("gas", "density"))[1]
             elif center.startswith("max_"):
                 self.center = self.ds.find_max(center[4:])[1]
+            elif center.lower() == "min":
+                self.center = self.ds.find_min(("gas", "density"))[1]
+            elif center.startswith("min_"):
+                self.center = self.ds.find_min(center[4:])[1]
         else:
             self.center = self.ds.arr(center, 'code_length', dtype='float64')
         self.set_field_parameter('center', self.center)
@@ -242,13 +223,6 @@ class YTDataContainer(object):
         Checks if a field parameter is set.
         """
         return name in self.field_parameters
-
-    def convert(self, datatype):
-        """
-        This will attempt to convert a given unit to cgs from code units.
-        It either returns the multiplicative factor or throws a KeyError.
-        """
-        return self.ds[datatype]
 
     def clear_data(self):
         """
@@ -428,20 +402,72 @@ class YTDataContainer(object):
 
     _key_fields = None
     def write_out(self, filename, fields=None, format="%0.16e"):
-        if fields is None: fields=sorted(self.field_data.keys())
-        if self._key_fields is None: raise ValueError
-        field_order = self._key_fields[:]
-        for field in field_order: self[field]
-        field_order += [field for field in fields if field not in field_order]
-        fid = open(filename,"w")
-        fid.write("\t".join(["#"] + field_order + ["\n"]))
-        field_data = np.array([self.field_data[field] for field in field_order])
-        for line in range(field_data.shape[1]):
-            field_data[:,line].tofile(fid, sep="\t", format=format)
-            fid.write("\n")
-        fid.close()
+        """Write out the YTDataContainer object in a text file.
 
-    def save_object(self, name, filename = None):
+        This function will take a data object and produce a tab delimited text
+        file containing the fields presently existing and the fields given in
+        the ``fields`` list.
+
+        Parameters
+        ----------
+        filename : String
+            The name of the file to write to.
+
+        fields : List of string, Default = None
+            If this is supplied, these fields will be added to the list of
+            fields to be saved to disk. If not supplied, whatever fields
+            presently exist will be used.
+
+        format : String, Default = "%0.16e"
+            Format of numbers to be written in the file.
+
+        Raises
+        ------
+        ValueError
+            Raised when there is no existing field.
+
+        YTException
+            Raised when field_type of supplied fields is inconsistent with the
+            field_type of existing fields.
+
+        Examples
+        --------
+        >>> ds = fake_particle_ds()
+        >>> sp = ds.sphere(ds.domain_center, 0.25)
+        >>> sp.write_out("sphere_1.txt")
+        >>> sp.write_out("sphere_2.txt", fields=["cell_volume"])
+        """
+        if fields is None:
+            fields = sorted(self.field_data.keys())
+
+        if self._key_fields is None:
+            raise ValueError
+
+        field_order = self._key_fields
+        diff_fields = [field for field in fields if field not in field_order]
+        field_order += diff_fields
+        field_order = sorted(self._determine_fields(field_order))
+        field_types = {u for u, v in field_order}
+
+        if len(field_types) != 1:
+            diff_fields = self._determine_fields(diff_fields)
+            req_ftype = self._determine_fields(self._key_fields[0])[0][0]
+            f_type = {f for f in diff_fields if f[0] != req_ftype }
+            msg = ("Field type %s of the supplied field %s is inconsistent"
+                   " with field type '%s'." %
+                   ([f[0] for f in f_type], [f[1] for f in f_type], req_ftype))
+            raise YTException(msg)
+
+        for field in field_order: self[field]
+        with open(filename, "w") as fid:
+            field_header = [str(f) for f in field_order]
+            fid.write("\t".join(["#"] + field_header + ["\n"]))
+            field_data = np.array([self.field_data[field] for field in field_order])
+            for line in range(field_data.shape[1]):
+                field_data[:, line].tofile(fid, sep="\t", format=format)
+                fid.write("\n")
+
+    def save_object(self, name, filename=None):
         """
         Save an object.  If *filename* is supplied, it will be stored in
         a :mod:`shelve` file of that name.  Otherwise, it will be stored via
@@ -456,7 +482,7 @@ class YTDataContainer(object):
         else:
             self.index.save_object(self, name)
 
-    def to_dataframe(self, fields = None):
+    def to_dataframe(self, fields=None):
         r"""Export a data object to a pandas DataFrame.
 
         This function will take a data object and construct from it and
@@ -546,7 +572,7 @@ class YTDataContainer(object):
         else:
             data.update(self.field_data)
         # get the extra fields needed to reconstruct the container
-        tds_fields = tuple(self._determine_fields(list(self._tds_fields)))
+        tds_fields = tuple([('index', t) for t in self._tds_fields])
         for f in [f for f in self._container_fields + tds_fields \
                   if f not in data]:
             data[f] = self[f]
@@ -612,9 +638,16 @@ class YTDataContainer(object):
         the Glue environment, you can pass a *data_collection* object,
         otherwise Glue will be started.
         """
+        from yt.config import ytcfg
         from glue.core import DataCollection, Data
-        from glue.qt.glue_application import GlueApplication
-
+        if ytcfg.getboolean("yt", "__withintesting"):
+            from glue.core.application_base import \
+                Application as GlueApplication
+        else:
+            try:
+                from glue.app.qt.application import GlueApplication
+            except ImportError:
+                from glue.qt.glue_application import GlueApplication
         gdata = Data(label=label)
         for component_name in fields:
             gdata.add_component(self[component_name], component_name)
@@ -622,9 +655,189 @@ class YTDataContainer(object):
         if data_collection is None:
             dc = DataCollection([gdata])
             app = GlueApplication(dc)
-            app.start()
+            try:
+                app.start()
+            except AttributeError:
+                # In testing we're using a dummy glue application object
+                # that doesn't have a start method
+                pass
         else:
             data_collection.append(gdata)
+    
+    def create_firefly_object(
+        self,
+        path_to_firefly,
+        fields_to_include = None,
+        fields_units = None,
+        default_decimation_factor = 100,
+        velocity_units = 'km/s',
+        coordinate_units = 'kpc',
+        show_unused_fields = 0,
+        dataset_name = 'yt'):
+        r"""This function links a region of data stored in a yt dataset
+            to the Python frontend API for [Firefly](github.com/ageller/Firefly),
+             a browser-based particle visualization platform. 
+
+            Parameters
+            ----------
+            path_to_firefly : string
+                The (ideally) absolute path to the direction containing the index.html
+                file of Firefly. 
+
+            fields_to_include : array_like of strings
+                A list of fields that you want to include in your 
+                Firefly visualization for on-the-fly filtering and
+                colormapping. 
+            
+            default_decimation_factor : integer
+                The factor by which you want to decimate each particle group
+                by (e.g. if there are 1e7 total particles in your simulation
+                you might want to set this to 100 at first). Randomly samples
+                your data like `shuffled_data[::decimation_factor]` so as to 
+                not overtax a system. This is adjustable on a per particle group
+                basis by changing the returned reader's 
+                `reader.particleGroup[i].decimation_factor` before calling 
+                `reader.dumpToJSON()`.
+            
+            velocity_units : string
+                The units that the velocity should be converted to in order to 
+                show streamlines in Firefly. Defaults to km/s. 
+            
+            coordinate_units: string
+                The units that the coordinates should be converted to. Defaults to 
+                kpc. 
+            
+            show_unused_fields: boolean
+                A flag to optionally print the fields that are available, in the 
+                dataset but were not explicitly requested to be tracked.
+
+            dataset_name: string
+                The name of the subdirectory the JSON files will be stored in 
+                (and the name that will appear in startup.json and in the dropdown
+                menu at startup). e.g. `yt` -> json files will appear in 
+                `Firefly/data/yt`.
+
+            Returns
+            -------
+            reader : firefly_api.reader.Reader object
+                A reader object from the firefly_api, configured 
+                to output
+
+            Examples
+            --------
+
+                >>> ramses_ds = yt.load(
+                ...     "/Users/agurvich/Desktop/yt_workshop/"+
+                ...     "DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt")
+
+                >>> region = ramses_ds.sphere(ramses_ds.domain_center,(1000,'kpc'))
+
+                >>> reader = region.create_firefly_object(
+                ...     path_to_firefly="/Users/agurvich/research/repos/Firefly",
+                ...     fields_to_include=[
+                ...     'particle_extra_field_1',
+                ...     'particle_extra_field_2'],
+                ...     fields_units = ['dimensionless','dimensionless'],
+                ...     dataset_name = 'IsoGalaxyRamses')
+
+                >>> reader.options['color']['io']=[1,1,0,1]
+                >>> reader.particleGroups[0].decimation_factor=100
+                >>> reader.dumpToJSON()
+            """ 
+        
+        ## attempt to import firefly_api
+        try:
+            from firefly_api.reader import Reader
+            from firefly_api.particlegroup import ParticleGroup
+        except ImportError:
+            raise ImportError("Can't find firefly_api, ensure it"+
+                "is in your python path or install it with"+
+                "'$ pip install firefly_api'. It is also available"+
+                "on github at github.com/agurvich/firefly_api")
+
+        ## handle default arguments
+        fields_to_include = [] if fields_to_include is None else fields_to_include
+        fields_units = [] if fields_units is None else fields_units
+
+        ## handle input validation, if any
+        if len(fields_units) != len(fields_to_include):
+            raise RuntimeError("Each requested field must have units.")
+        
+        ## for safety, in case someone passes a float just cast it
+        default_decimation_factor = int(default_decimation_factor)
+        
+        ## initialize a firefly reader instance
+        reader = Reader(
+            JSONdir=os.path.join(path_to_firefly,'data',dataset_name),
+            prefix='ytData',
+            clean_JSONdir=True,
+            )
+
+        ## create a ParticleGroup object that contains *every* field
+        for ptype in sorted(self.ds.particle_types_raw):
+            ## skip this particle type if it has no particles in this dataset 
+            if self[ptype,'relative_particle_position'].shape[0]==0:
+                continue
+            
+            ## loop through the fields and print them to the screen
+            if show_unused_fields:
+                ## read the available extra fields from yt
+                this_ptype_fields = self.ds.particle_fields_by_type[ptype]
+
+                ## load the extra fields and print them
+                for field in this_ptype_fields:
+                    if field not in fields_to_include:
+                        mylog.warning('detected (but did not request) {} {}'.format(ptype,field))
+
+            ## you must have velocities (and they must be named "Velocities")
+            tracked_arrays = [
+                self[ptype,'relative_particle_velocity'].convert_to_units(velocity_units)]
+            tracked_names = ['Velocities']
+
+            ## explicitly go after the fields we want
+            for field,units in zip(fields_to_include,fields_units):
+                ## determine if you want to take the log of the field for Firefly
+                log_flag = 'log(' in units 
+
+                ## read the field array from the dataset
+                this_field_array = self[ptype,field]
+
+                ## fix the units string and prepend 'log' to the field for
+                ##  the UI name
+                if log_flag:
+                    units = units[len('log('):-1]
+                    field = 'log{}'.format(field)
+
+                ## perform the unit conversion and take the log if 
+                ##  necessary.
+                this_field_array.convert_to_units(units)
+                if log_flag:
+                    this_field_array = np.log10(this_field_array)
+
+                ## add this array to the tracked arrays
+                tracked_arrays += [this_field_array]
+                tracked_names = np.append(tracked_names,[field],axis=0)
+            
+            ## flag whether we want to filter and/or color by these fields
+            ##  we'll assume yes for both cases, this can be changed after
+            ##  the reader object is returned to the user.
+            tracked_filter_flags = np.ones(len(tracked_names))
+            tracked_colormap_flags = np.ones(len(tracked_names))
+
+            ## create a firefly ParticleGroup for this particle type
+            pg = ParticleGroup(
+                UIname =  ptype,
+                coordinates=self[ptype,'relative_particle_position'].convert_to_units(coordinate_units),
+                tracked_arrays=tracked_arrays,
+                tracked_names=tracked_names,
+                tracked_filter_flags=tracked_filter_flags,
+                tracked_colormap_flags=tracked_colormap_flags,
+                decimation_factor=default_decimation_factor)
+            
+            ## bind this particle group to the firefly reader object
+            reader.addParticleGroup(pg)
+
+        return reader
 
     # Numpy-like Operations
     def argmax(self, field, axis=None):
@@ -1262,7 +1475,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             requested = self._determine_fields(list(set(fd.requested)))
             deps = [d for d in requested if d not in fields_to_get]
             fields_to_get += deps
-        return fields_to_get
+        return sorted(fields_to_get)
 
     def get_data(self, fields=None):
         if self._current_chunk is None:
@@ -1271,7 +1484,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         nfields = []
         apply_fields = defaultdict(list)
         for field in self._determine_fields(fields):
-            if field[0] in self.ds.filtered_particle_types:
+            # We need to create the field on the raw particle types
+            # for particles types (when the field is not directly
+            # defined for the derived particle type only)
+            finfo = self.ds.field_info[field]
+
+            if field[0] in self.ds.filtered_particle_types and finfo._inherited_particle_filter:
                 f = self.ds.known_filters[field[0]]
                 apply_fields[field[0]].append(
                     (f.filtered_type, field[1]))
@@ -1377,7 +1595,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         self.field_data[field] = self.ds.arr(fd, units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")
-                        mylog.warn(msg % (fi.name, units))
+                        mylog.warning(msg % (fi.name, units))
                     try:
                         fd.convert_to_units(fi.units)
                     except AttributeError:
@@ -1441,9 +1659,41 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self._locked = False
 
     @contextmanager
+    def _ds_hold(self, new_ds):
+        """
+        This contextmanager is used to take a data object and preserve its
+        attributes but allow the dataset that underlies it to be swapped out.
+        This is typically only used internally, and differences in unit systems
+        may present interesting possibilities.
+        """
+        old_ds = self.ds
+        old_index = self._index
+        self.ds = new_ds
+        self._index = new_ds.index
+        old_chunk_info = self._chunk_info
+        old_chunk = self._current_chunk
+        old_size = self.size
+        self._chunk_info = None
+        self._current_chunk = None
+        self.size = None
+        self._index._identify_base_chunk(self)
+        with self._chunked_read(None):
+            yield
+        self._index = old_index
+        self.ds = old_ds
+        self._chunk_info = old_chunk_info
+        self._current_chunk = old_chunk
+        self.size = old_size
+
+    @contextmanager
     def _chunked_read(self, chunk):
         # There are several items that need to be swapped out
         # field_data, size, shape
+        obj_field_data = []
+        if hasattr(chunk, 'objs'):
+            for obj in chunk.objs:
+                obj_field_data.append(obj.field_data)
+                obj.field_data = YTFieldData()
         old_field_data, self.field_data = self.field_data, YTFieldData()
         old_chunk, self._current_chunk = self._current_chunk, chunk
         old_locked, self._locked = self._locked, False
@@ -1451,6 +1701,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self.field_data = old_field_data
         self._current_chunk = old_chunk
         self._locked = old_locked
+        if hasattr(chunk, 'objs'):
+            for obj in chunk.objs:
+                obj.field_data = obj_field_data.pop(0)
 
     @contextmanager
     def _activate_cache(self):
@@ -1647,12 +1900,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
                     "Currently we only support images centered at R=0. " +
                     "We plan to generalize this in the near future")
             from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
-            if iterable(width):
-                radius = max(width)
-            else:
-                radius = width
+            validate_width_tuple(width)
             if iterable(resolution): resolution = max(resolution)
-            frb = CylindricalFixedResolutionBuffer(self, radius, resolution)
+            frb = CylindricalFixedResolutionBuffer(self, width, resolution)
             return frb
 
         if center is None:
@@ -1703,7 +1953,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self._set_center(center)
         self.coords = None
         self._grids = None
-
+   
     def cut_region(self, field_cuts, field_parameters=None):
         """
         Return a YTCutRegion, where the a cell is identified as being inside
@@ -1736,7 +1986,422 @@ class YTSelectionContainer3D(YTSelectionContainer):
         cr = self.ds.cut_region(self, field_cuts,
                                 field_parameters=field_parameters)
         return cr
+   
+    def exclude_above(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field is above a given value are masked.
 
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field above the given value masked.
+
+        Example
+        -------
+        
+        To find the total mass of hot gas with temperature colder than 10^6 K
+        in your volume:
+
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_above('temperature', 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        
+        """
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] <= ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units +
+                '") <= ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def include_above(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field is above a given value are included.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field above the given value masked.
+        
+        Example
+        -------
+        
+        To find the total mass of hot gas with temperature warmer than 10^6 K
+        in your volume:
+
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.include_above('temperature', 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] > ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units +
+                '") > ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def exclude_equal(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field are equal to given value are masked.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field equal to the given value masked.
+
+        Example
+        -------
+
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_equal('temperature', 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] != ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units +
+                '") != ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def include_equal(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field are equal to given value are included.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field equal to the given value included.
+        
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.include_equal('temperature', 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] == ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units +
+                '") == ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def exclude_inside(self, field, min_value, max_value, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field are inside the interval from min_value to max_value.
+        
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        min_value : float
+            The minimum value inside the interval to be excluded.
+        max_value : float
+            The maximum value inside the interval to be excluded.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+        
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field inside the given interval excluded.
+        
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_inside('temperature', 1e5, 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('(obj["' + field + '"] <= ' + str(min_value) + 
+                          ') | (obj["' + field + '"] >= ' + str(max_value) + 
+                          ')')
+        else:
+            field_cuts = ('(obj["' + field + '"].in_units("' + units + 
+                          '") <= ' + str(min_value) + ') | (obj["' + field + 
+                          '"].in_units("' + units + '") >= ' + str(max_value) +
+                          ')')
+        cr = self.cut_region(field_cuts)        
+        return cr
+    
+    def include_inside(self, field, min_value, max_value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field are inside the interval from min_value to max_value are
+        included.
+        
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        min_value : float
+            The minimum value inside the interval to be excluded.
+        max_value : float
+            The maximum value inside the interval to be excluded.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+        
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field inside the given interval excluded.
+
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.include_inside('temperature', 1e5, 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('(obj["' + field + '"] > ' + str(min_value) + 
+                          ') & (obj["' + field + '"] < ' + str(max_value) + 
+                          ')')
+        else:
+            field_cuts = ('(obj["' + field + '"].in_units("' + units + 
+                          '") > ' + str(min_value) + ') & (obj["' + field + 
+                          '"].in_units("' + units + '") < ' + str(max_value) +
+                          ')')
+        cr = self.cut_region(field_cuts)        
+        return cr
+    
+    def exclude_outside(self, field, min_value, max_value, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field are outside the interval from min_value to max_value.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        min_value : float
+            The minimum value inside the interval to be excluded.
+        max_value : float
+            The maximum value inside the interval to be excluded.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field outside the given interval excluded.
+        
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_outside('temperature', 1e5, 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        cr = self.exclude_below(field, min_value, units)
+        cr = cr.exclude_above(field, max_value, units)
+        return cr
+
+    def include_outside(self, field, min_value, max_value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field are outside the interval from min_value to max_value are
+        included.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        min_value : float
+            The minimum value inside the interval to be excluded.
+        max_value : float
+            The maximum value inside the interval to be excluded.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field outside the given interval excluded.
+    
+        Example
+        -------        
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_outside('temperature', 1e5, 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        cr = self.exclude_inside(field, min_value, max_value, units)
+        return cr
+    
+    def exclude_below(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field is below a given value are masked.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the field below the given value masked.
+        
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_below('temperature', 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun') 
+        """
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] >= ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units + 
+                '") >= ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def exclude_nan(self, field, units=None):
+        """
+        This function will return a YTCutRegion where all of the regions
+        whose field is NaN are masked.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with the NaN entries of the field masked.
+        
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.exclude_nan('temperature')
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('~np.isnan(obj["' + field + '"])')
+        else:
+            field_cuts = ('~np.isnan(obj["' + field + '"].in_units("' + units + 
+                '"))')
+        cr = self.cut_region(field_cuts)
+        return cr
+
+    def include_below(self, field, value, units=None):
+        """
+        This function will return a YTCutRegion where only the regions
+        whose field is below a given value are included.
+
+        Parameters
+        ----------
+        field : string
+            The field in which the conditional will be applied.
+        value : float
+            The minimum value that will not be masked in the output
+            YTCutRegion.
+        units : string or None
+            The units of the value threshold. None will use the default units
+            given in the field.
+
+        Returns
+        -------
+        cut_region : YTCutRegion
+            The YTCutRegion with only regions with the field below the given 
+            value included.
+
+        Example
+        -------
+        >>> ds = yt.load("RedshiftOutput0005")
+        >>> ad = ds.all_data()
+        >>> cr = ad.include_below('temperature', 1e5, 1e6)
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        """
+        if(units is None):
+            field_cuts = ('obj["' + field + '"] < ' + str(value))
+        else:
+            field_cuts = ('obj["' + field + '"].in_units("' + units + 
+                '") < ' + str(value))
+        cr = self.cut_region(field_cuts)
+        return cr
+    
     def extract_isocontours(self, field, value, filename = None,
                             rescale = False, sample_values = None):
         r"""This identifies isocontours on a cell-by-cell basis, with no
@@ -1814,7 +2479,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             else: f = open(filename, "w")
             for v1 in verts:
                 f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
-            for i in range(len(verts)/3):
+            for i in range(len(verts)//3):
                 f.write("f %s %s %s\n" % (i*3+1, i*3+2, i*3+3))
             if not hasattr(filename, "write"): f.close()
         if sample_values is not None:
@@ -1945,8 +2610,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
                 mv = max_val
             else:
                 mv = cons[level+1]
-            from yt.analysis_modules.level_sets.api import identify_contours
-            from yt.analysis_modules.level_sets.clump_handling import \
+            from yt.data_objects.level_sets.api import identify_contours
+            from yt.data_objects.level_sets.clump_handling import \
                 add_contour_field
             nj, cids = identify_contours(self, field, cons[level], mv)
             unique_contours = set([])
@@ -1964,29 +2629,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
                     {'contour_slices_%s' % contour_key: cids})
         return cons, contours
 
-    def paint_grids(self, field, value, default_value=None):
-        """
-        This function paints every cell in our dataset with a given *value*.
-        If default_value is given, the other values for the given in every grid
-        are discarded and replaced with *default_value*.  Otherwise, the field is
-        mandated to 'know how to exist' in the grid.
-
-        Note that this only paints the cells *in the dataset*, so cells in grids
-        with child cells are left untouched.
-        """
-        for grid in self._grids:
-            if default_value is not None:
-                grid[field] = np.ones(grid.ActiveDimensions)*default_value
-            grid[field][self._get_point_indices(grid)] = value
-
-    _particle_handler = None
-
-    @property
-    def particles(self):
-        if self._particle_handler is None:
-            self._particle_handler = \
-                particle_handler_registry[self._type_name](self.ds, self)
-        return self._particle_handler
 
 
     def volume(self):

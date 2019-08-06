@@ -25,13 +25,14 @@ import weakref
 from yt.data_objects.data_containers import \
     YTSelectionContainer
 from yt.data_objects.static_output import \
-    Dataset, \
-    ParticleFile
+    Dataset
 from yt.frontends.gadget.data_structures import \
     _fix_unit_ordering
 from yt.frontends.gadget_fof.fields import \
     GadgetFOFFieldInfo, \
     GadgetFOFHaloFieldInfo
+from yt.frontends.halo_catalog.data_structures import \
+    HaloCatalogFile
 from yt.funcs import \
     only_on_root, \
     setdefaultattr
@@ -115,22 +116,40 @@ class GadgetFOFParticleIndex(ParticleIndex):
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
 
-class GadgetFOFHDF5File(ParticleFile):
+class GadgetFOFHDF5File(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
             self.header = \
               dict((str(field), val)
                    for field, val in f["Header"].attrs.items())
-            self.group_length_sum = f["Group/GroupLen"].value.sum() \
+            self.group_length_sum = f["Group/GroupLen"][()].sum() \
               if "Group/GroupLen" in f else 0
-            self.group_subs_sum = f["Group/GroupNsubs"].value.sum() \
+            self.group_subs_sum = f["Group/GroupNsubs"][()].sum() \
               if "Group/GroupNsubs" in f else 0
         self.total_ids = self.header["Nids_ThisFile"]
         self.total_particles = \
           {"Group": self.header["Ngroups_ThisFile"],
            "Subhalo": self.header["Nsubgroups_ThisFile"]}
-        self.total_offset = 0 # I think this is no longer needed
+        self.total_offset = 0
         super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
+
+    def _read_particle_positions(self, ptype, f=None):
+        """
+        Read all particle positions in this file.
+        """
+
+        if f is None:
+            close = True
+            f = h5py.File(self.filename, "r")
+        else:
+            close = False
+
+        pos = f[ptype]["%sPos" % ptype][()].astype("float64")
+
+        if close:
+            f.close()
+
+        return pos
 
 class GadgetFOFDataset(Dataset):
     _index_class = GadgetFOFParticleIndex
@@ -245,7 +264,7 @@ class GadgetFOFDataset(Dataset):
             if self.cosmological_simulation == 0:
                 velocity_unit = (1e5, "cm/s")
             else:
-                velocity_unit = (1e5, "cmcm/s")
+                velocity_unit = (1e5, "cm/s * sqrt(a)")
         velocity_unit = _fix_unit_ordering(velocity_unit)
         setdefaultattr(self, 'velocity_unit',
                        self.quan(velocity_unit[0], velocity_unit[1]))
@@ -270,7 +289,8 @@ class GadgetFOFDataset(Dataset):
         elif "UnitTime_in_s" in unit_base:
             time_unit = (unit_base["UnitTime_in_s"], "s")
         else:
-            time_unit = (1., "s")        
+            tu = (self.length_unit / self.velocity_unit).to("yr/h")
+            time_unit = (tu.d, tu.units)
         setdefaultattr(self, 'time_unit', self.quan(time_unit[0], time_unit[1]))
 
     def __repr__(self):
@@ -411,7 +431,7 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
 
             for field in fields:
                 data[field][target] = \
-                  my_f[os.path.join(ptype, field)].value[scalar_indices[target]]
+                  my_f[os.path.join(ptype, field)][()][scalar_indices[target]]
 
             if self.data_files[i_scalar].filename != filename: my_f.close()
 

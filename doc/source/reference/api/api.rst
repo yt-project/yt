@@ -172,6 +172,7 @@ These classes and functions enable yt's symbolic unit handling system.
    ~yt.units.yt_array.uvstack
    ~yt.units.yt_array.uhstack
    ~yt.units.yt_array.ustack
+   ~yt.units.yt_array.display_ytarray
 
 Frontends
 ---------
@@ -304,7 +305,7 @@ Halo Catalogs
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHDF5
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHaloHDF5
    ~yt.frontends.gadget_fof.fields.GadgetFOFFieldInfo
-   ~yt.frontends.gadget_fof.fields.GadgetFIFHaloFieldInfo
+   ~yt.frontends.gadget_fof.fields.GadgetFOFHaloFieldInfo
    ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
    ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
    ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo
@@ -438,6 +439,7 @@ Loading Data
    ~yt.frontends.stream.data_structures.load_uniform_grid
    ~yt.frontends.stream.data_structures.load_amr_grids
    ~yt.frontends.stream.data_structures.load_particles
+   ~yt.frontends.stream.data_structures.load_octree
    ~yt.frontends.stream.data_structures.load_hexahedral_mesh
    ~yt.frontends.stream.data_structures.load_unstructured_mesh
 
@@ -472,14 +474,13 @@ of topologically disconnected structures, i.e., clump finding.
 
 .. autosummary::
 
-   ~yt.analysis_modules.level_sets.clump_handling.Clump
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.add_info_item
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.add_validator
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.save_as_dataset
-   ~yt.analysis_modules.level_sets.clump_handling.find_clumps
-   ~yt.analysis_modules.level_sets.clump_handling.get_lowest_clumps
-   ~yt.analysis_modules.level_sets.clump_info_items.add_clump_info
-   ~yt.analysis_modules.level_sets.clump_validators.add_validator
+   ~yt.data_objects.level_sets.clump_handling.Clump
+   ~yt.data_objects.level_sets.clump_handling.Clump.add_info_item
+   ~yt.data_objects.level_sets.clump_handling.Clump.add_validator
+   ~yt.data_objects.level_sets.clump_handling.Clump.save_as_dataset
+   ~yt.data_objects.level_sets.clump_handling.find_clumps
+   ~yt.data_objects.level_sets.clump_info_items.add_clump_info
+   ~yt.data_objects.level_sets.clump_validators.add_validator
 
 .. _halo_analysis_ref:
 
@@ -820,7 +821,7 @@ Function List
    ~yt.funcs.print_tb
    ~yt.funcs.rootonly
    ~yt.funcs.time_execution
-   ~yt.analysis_modules.level_sets.contour_finder.identify_contours
+   ~yt.data_objects.level_sets.contour_finder.identify_contours
    ~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_blocking_call
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects
@@ -848,7 +849,6 @@ Math Utilities
    ~yt.utilities.math_utils.ortho_find
    ~yt.utilities.math_utils.quartiles
    ~yt.utilities.math_utils.get_rotation_matrix
-   ~yt.utilities.math_utils.get_ortho_basis
    ~yt.utilities.math_utils.get_sph_r
    ~yt.utilities.math_utils.resize_vector
    ~yt.utilities.math_utils.get_sph_theta

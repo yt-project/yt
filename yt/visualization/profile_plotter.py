@@ -18,6 +18,7 @@ from yt.extern.six.moves import builtins
 from yt.extern.six.moves import zip as izip
 from yt.extern.six import string_types, iteritems
 from collections import OrderedDict
+from distutils.version import LooseVersion
 import base64
 import os
 from functools import wraps
@@ -47,6 +48,8 @@ from yt.funcs import \
     get_image_suffix, \
     matplotlib_style_context, \
     iterable
+
+MPL_VERSION = LooseVersion(matplotlib.__version__)
 
 def get_canvas(name):
     from . import _mpl_imports as mpl
@@ -1016,6 +1019,10 @@ class PhasePlot(ImagePlotContainer):
             self._recreate_profile()
         return self._profile
 
+    @property
+    def fields(self):
+        return list(self.plots.keys())
+
     def _setup_plots(self):
         if self._plot_valid:
             return
@@ -1086,6 +1093,13 @@ class PhasePlot(ImagePlotContainer):
             self.plots[f].axes.set_xlim(xlim)
             self.plots[f].axes.set_ylim(ylim)
 
+            color = self._background_color[f]
+
+            if MPL_VERSION < LooseVersion("2.0.0"):
+                self.plots[f].axes.set_axis_bgcolor(color)
+            else:
+                self.plots[f].axes.set_facecolor(color)
+
             if f in self._plot_text:
                 self.plots[f].axes.text(self._text_xpos[f], self._text_ypos[f],
                                         self._plot_text[f],
@@ -1109,10 +1123,16 @@ class PhasePlot(ImagePlotContainer):
             if self._cbar_minorticks[f] is True:
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
-                else:
-                    vmin = np.float64( self.plots[f].cb.norm.vmin )
-                    vmax = np.float64( self.plots[f].cb.norm.vmax )
-                    mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
+                elif MPL_VERSION < LooseVersion("3.0.0"):
+                    # before matplotlib 3 log-scaled colorbars internally used
+                    # a linear scale going from zero to one and did not draw
+                    # minor ticks. Since we want minor ticks, calculate
+                    # where the minor ticks should go in this linear scale
+                    # and add them manually.
+                    vmin = np.float64(self.plots[f].cb.norm.vmin)
+                    vmax = np.float64(self.plots[f].cb.norm.vmax)
+                    mticks = self.plots[f].image.norm(
+                        get_log_minorticks(vmin, vmax))
                     self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
             else:
                 self.plots[f].cax.minorticks_off()
@@ -1381,14 +1401,15 @@ class PhasePlot(ImagePlotContainer):
                 self.z_log[field] = log
             self._profile_valid = False
         else:
-            if field == p.x_field[1]:
+            field, = self.profile.data_source._determine_fields([field])
+            if field == p.x_field:
                 self.x_log = log
                 self._profile_valid = False
-            elif field == p.y_field[1]:
+            elif field == p.y_field:
                 self.y_log = log
                 self._profile_valid = False
-            elif field in p.field_map:
-                self.z_log[p.field_map[field]] = log
+            elif field in p.field_data:
+                self.z_log[field] = log
             else:
                 raise KeyError("Field %s not in phase plot!" % (field))
         return self

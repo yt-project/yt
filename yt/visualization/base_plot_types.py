@@ -93,7 +93,7 @@ class PlotMPL(object):
             figure.set_size_inches(fsize)
             self.figure = figure
         if axes is None:
-            self.axes = self.figure.add_axes(axrect)
+            self._create_axes(axrect)
         else:
             axes.cla()
             axes.set_position(axrect)
@@ -107,6 +107,9 @@ class PlotMPL(object):
                 self.axes.tick_params(
                     which=which, axis=axis, direction='in', top=True, right=True
                 )
+
+    def _create_axes(self, axrect):
+        self.axes = self.figure.add_axes(axrect)
 
     def _set_canvas(self):
         self.interactivity = get_interactivity()
@@ -210,19 +213,46 @@ class ImagePlotMPL(PlotMPL):
             norm = matplotlib.colors.Normalize()
         elif (cbnorm == 'symlog'):
             if cblinthresh is None:
-                cblinthresh = (data.max()-data.min())/10.
+                cblinthresh = float((np.nanmax(data)-np.nanmin(data))/10.)
             norm = matplotlib.colors.SymLogNorm(
-                cblinthresh, vmin=float(data.min()), vmax=float(data.max()))
+                cblinthresh, vmin=float(np.nanmin(data)),
+                vmax=float(np.nanmax(data)))
         extent = [float(e) for e in extent]
         # tuple colormaps are from palettable (or brewer2mpl)
         if isinstance(cmap, tuple):
             cmap = get_brewer_cmap(cmap)
         vmin = float(self.zmin) if self.zmax is not None else None
         vmax = float(self.zmax) if self.zmax is not None else None
+        if self._transform is None:
+            # sets the transform to be an ax.TransData object, where the
+            # coordiante system of the data is controlled by the xlim and ylim
+            # of the data.
+            transform = self.axes.transData
+        else:
+            transform = self._transform
+        if hasattr(self.axes, "set_extent"):
+            # CartoPy hangs if we do not set_extent before imshow if we are
+            # displaying a small subset of the globe.  What I believe happens is
+            # that the transform for the points on the outside results in
+            # infinities, and then the scipy.spatial cKDTree hangs trying to
+            # identify nearest points.
+            #
+            # Also, set_extent is defined by cartopy, so not all axes will have
+            # it as a method.
+            # 
+            # A potential downside is that other images may change, but I believe
+            # the result of imshow is to set_extent *regardless*.  This just
+            # changes the order in which it happens.
+            # 
+            # NOTE: This is currently commented out because it breaks in some
+            # instances.  It is left as a historical note because we will
+            # eventually need some form of it.
+            # self.axes.set_extent(extent)
+            pass
         self.image = self.axes.imshow(
             data.to_ndarray(), origin='lower', extent=extent, norm=norm,
             vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
-            interpolation='nearest')
+            interpolation='nearest', transform=transform)
         if (cbnorm == 'symlog'):
             if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
                 formatter_kwargs = {}
@@ -232,23 +262,23 @@ class ImagePlotMPL(PlotMPL):
                 **formatter_kwargs)
             self.cb = self.figure.colorbar(
                 self.image, self.cax, format=formatter)
-            if data.min() >= 0.0:
-                yticks = [data.min().v] + list(
+            if np.nanmin(data) >= 0.0:
+                yticks = [np.nanmin(data).v] + list(
                     10**np.arange(np.rint(np.log10(cblinthresh)),
-                                  np.ceil(np.log10(data.max())) + 1))
-            elif data.max() <= 0.0:
+                                  np.ceil(np.log10(np.nanmax(data))) + 1))
+            elif np.nanmax(data) <= 0.0:
                 yticks = list(
                     -10**np.arange(
-                        np.floor(np.log10(-data.min())),
+                        np.floor(np.log10(-np.nanmin(data))),
                         np.rint(np.log10(cblinthresh)) - 1, -1)) + \
-                    [data.max().v]
+                    [np.nanmax(data).v]
             else:
                 yticks = list(
-                    -10**np.arange(np.floor(np.log10(-data.min())),
+                    -10**np.arange(np.floor(np.log10(-np.nanmin(data))),
                                    np.rint(np.log10(cblinthresh))-1, -1)) + \
                     [0] + \
                     list(10**np.arange(np.rint(np.log10(cblinthresh)),
-                                       np.ceil(np.log10(data.max()))+1))
+                                       np.ceil(np.log10(np.nanmax(data)))+1))
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
@@ -338,6 +368,10 @@ class ImagePlotMPL(PlotMPL):
             draw_frame = choice
         self._draw_axes = choice
         self._draw_frame = draw_frame
+        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+            fc = self.axes.get_axis_bgcolor()
+        else:
+            fc = self.axes.get_facecolor()
         self.axes.set_frame_on(draw_frame)
         self.axes.get_xaxis().set_visible(choice)
         self.axes.get_yaxis().set_visible(choice)
@@ -345,6 +379,10 @@ class ImagePlotMPL(PlotMPL):
         self.axes.set_position(axrect)
         self.cax.set_position(caxrect)
         self.figure.set_size_inches(*size)
+        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+            self.axes.set_axis_bgcolor(fc)
+        else:
+            self.axes.set_facecolor(fc)
 
     def _toggle_colorbar(self, choice):
         """

@@ -582,6 +582,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         tr *= self.level
         return tr
 
+    def set_field_parameter(self, name, val):
+        super(YTCoveringGrid, self).set_field_parameter(name, val)
+        if self._data_source is not None:
+            self._data_source.set_field_parameter(name, val)
+
     def _sanitize_dims(self, dims):
         if not iterable(dims):
             dims = [dims]*len(self.ds.domain_left_edge)
@@ -598,7 +603,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 "Length of edges must match the dimensionality of the "
                 "dataset")
         if hasattr(edge, 'units'):
-            edge_units = edge.units
+            edge_units = edge.units.copy()
+            edge_units.registry = self.ds.unit_registry
         else:
             edge_units = 'code_length'
         return self.ds.arr(edge, edge_units)
@@ -711,23 +717,24 @@ class YTCoveringGrid(YTSelectionContainer3D):
     def _generate_container_field(self, field):
         rv = self.ds.arr(np.ones(self.ActiveDimensions, dtype="float64"),
                              "")
-        if field == ("index", "dx"):
+        axis_name = self.ds.coordinates.axis_name
+        if field == ("index", "d%s" % axis_name[0]):
             np.multiply(rv, self.dds[0], rv)
-        elif field == ("index", "dy"):
+        elif field == ("index", "d%s" % axis_name[1]):
             np.multiply(rv, self.dds[1], rv)
-        elif field == ("index", "dz"):
+        elif field == ("index", "d%s" % axis_name[2]):
             np.multiply(rv, self.dds[2], rv)
-        elif field == ("index", "x"):
+        elif field == ("index", axis_name[0]):
             x = np.mgrid[self.left_edge[0] + 0.5*self.dds[0]:
                          self.right_edge[0] - 0.5*self.dds[0]:
                          self.ActiveDimensions[0] * 1j]
             np.multiply(rv, x[:,None,None], rv)
-        elif field == ("index", "y"):
+        elif field == ("index", axis_name[1]):
             y = np.mgrid[self.left_edge[1] + 0.5*self.dds[1]:
                          self.right_edge[1] - 0.5*self.dds[1]:
                          self.ActiveDimensions[1] * 1j]
             np.multiply(rv, y[None,:,None], rv)
-        elif field == ("index", "z"):
+        elif field == ("index", axis_name[2]):
             z = np.mgrid[self.left_edge[2] + 0.5*self.dds[2]:
                          self.right_edge[2] - 0.5*self.dds[2]:
                          self.ActiveDimensions[2] * 1j]
@@ -749,15 +756,20 @@ class YTCoveringGrid(YTSelectionContainer3D):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs. Everything inside
-        # this is fortran ordered because of the ordering in the octree deposit
-        # routines, so we reverse it here to match the convention there
-        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
+        # We allocate number of zones, not number of octs. Everything
+        # inside this is Fortran ordered because of the ordering in the
+        # octree deposit routines, so we reverse it here to match the
+        # convention there
+        nvals = tuple(self.ActiveDimensions[::-1])
+        # append a dummy dimension because we are only depositing onto
+        # one grid
+        op = cls(nvals + (1,), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
-        vals = op.finalize()
         # Fortran-ordered, so transpose.
-        return vals.transpose()
+        vals = op.finalize().transpose()
+        # squeeze dummy dimension we appended above
+        return np.squeeze(vals, axis=0)
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):
@@ -922,7 +934,9 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         self._final_start_index = self.global_startindex
 
     def _setup_data_source(self, level_state = None):
-        if level_state is None: return
+        if level_state is None:
+            super(YTSmoothedCoveringGrid, self)._setup_data_source()
+            return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
         level_state.data_source = self.ds.region(

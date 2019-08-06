@@ -29,9 +29,12 @@ from six.moves import cPickle
 from yt.config import ytcfg
 from yt.fields.derived_field import \
     DerivedField
+from yt.fields.field_type_container import \
+    FieldTypeContainer
 from yt.funcs import \
     mylog, \
     set_intersection, \
+    setdefaultattr, \
     ensure_list
 from yt.utilities.cosmology import \
     Cosmology
@@ -66,8 +69,11 @@ from yt.utilities.minimal_representation import \
     MinimalDataset
 from yt.units.yt_array import \
     YTArray, \
-    YTQuantity
-from yt.units.unit_systems import create_code_unit_system
+    YTQuantity, \
+    _wrap_display_ytarray
+from yt.units.unit_systems import \
+    create_code_unit_system, \
+    _make_unit_system_copy
 from yt.data_objects.region_expression import \
     RegionExpression
 from yt.geometry.coordinates.api import \
@@ -98,80 +104,6 @@ class RegisteredDataset(type):
         output_type_registry[name] = cls
         mylog.debug("Registering: %s as %s", name, cls)
 
-class FieldTypeContainer(object):
-    def __init__(self, ds):
-        self.ds = weakref.proxy(ds)
-
-    def __getattr__(self, attr):
-        ds = self.__getattribute__('ds')
-        fnc = FieldNameContainer(ds, attr)
-        if len(dir(fnc)) == 0:
-            return self.__getattribute__(attr)
-        return fnc
-
-    _field_types = None
-    @property
-    def field_types(self):
-        if self._field_types is None:
-            self._field_types = set(t for t, n in self.ds.field_info)
-        return self._field_types
-
-    def __dir__(self):
-        return list(self.field_types)
-
-    def __iter__(self):
-        for ft in self.field_types:
-            fnc = FieldNameContainer(self.ds, ft)
-            if len(dir(fnc)) == 0:
-                yield self.__getattribute__(ft)
-            else:
-                yield fnc
-
-    def __contains__(self, obj):
-        ob = None
-        if isinstance(obj, FieldNameContainer):
-            ob = obj.field_type
-        elif isinstance(obj, string_types):
-            ob = obj
-
-        return ob in self.field_types
-
-class FieldNameContainer(object):
-    def __init__(self, ds, field_type):
-        self.ds = ds
-        self.field_type = field_type
-
-    def __getattr__(self, attr):
-        ft = self.__getattribute__("field_type")
-        ds = self.__getattribute__("ds")
-        if (ft, attr) not in ds.field_info:
-            return self.__getattribute__(attr)
-        return ds.field_info[ft, attr]
-
-    def __dir__(self):
-        return [n for t, n in self.ds.field_info
-                if t == self.field_type]
-
-    def __iter__(self):
-        for t, n in self.ds.field_info:
-            if t == self.field_type:
-                yield self.ds.field_info[t, n]
-
-    def __contains__(self, obj):
-        if isinstance(obj, DerivedField):
-            if self.field_type == obj.name[0] and obj.name in self.ds.field_info:
-                # e.g. from a completely different dataset
-                if self.ds.field_info[obj.name] is not obj:
-                    return False
-                return True
-        elif isinstance(obj, tuple):
-            if self.field_type == obj[0] and obj in self.ds.field_info:
-                return True
-        elif isinstance(obj, string_types):
-            if (self.field_type, obj) in self.ds.field_info:
-                return True
-        return False
-
 class IndexProxy(object):
     # This is a simple proxy for Index objects.  It enables backwards
     # compatibility so that operations like .h.sphere, .h.print_stats and
@@ -192,8 +124,9 @@ class IndexProxy(object):
 
 class MutableAttribute(object):
     """A descriptor for mutable data"""
-    def __init__(self):
+    def __init__(self, display_array = False):
         self.data = weakref.WeakKeyDictionary()
+        self.display_array = display_array
 
     def __get__(self, instance, owner):
         if not instance:
@@ -203,6 +136,14 @@ class MutableAttribute(object):
             ret = ret.copy()
         except AttributeError:
             pass
+        if self.display_array:
+            try:
+                setattr(ret, "_ipython_display_",
+                        functools.partial(_wrap_display_ytarray, ret))
+            # This will error out if the items have yet to be turned into
+            # YTArrays, in which case we just let it go.
+            except AttributeError:
+                pass
         return ret
 
     def __set__(self, instance, value):
@@ -241,6 +182,7 @@ class Dataset(object):
     fields = requires_index("fields")
     _instantiated = False
     _particle_type_counts = None
+    _ionization_label_format = 'roman_numeral'
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, string_types):
@@ -335,6 +277,8 @@ class Dataset(object):
             n = "domain_%s" % attr
             v = getattr(self, n)
             if not isinstance(v, YTArray):
+                # Note that we don't add on _ipython_display_ here because
+                # everything is stored inside a MutableAttribute.
                 v = self.arr(v, "code_length")
                 setattr(self, n, v)
 
@@ -397,11 +341,11 @@ class Dataset(object):
             self._checksum = m
         return self._checksum
 
-    domain_left_edge = MutableAttribute()
-    domain_right_edge = MutableAttribute()
-    domain_width = MutableAttribute()
-    domain_dimensions = MutableAttribute()
-    domain_center = MutableAttribute()
+    domain_left_edge = MutableAttribute(True)
+    domain_right_edge = MutableAttribute(True)
+    domain_width = MutableAttribute(True)
+    domain_dimensions = MutableAttribute(False)
+    domain_center = MutableAttribute(True)
 
     @property
     def _mrep(self):
@@ -532,7 +476,7 @@ class Dataset(object):
         if hasattr(self, "cosmological_simulation") and \
            getattr(self, "cosmological_simulation"):
             for a in ["current_redshift", "omega_lambda", "omega_matter",
-                      "hubble_constant"]:
+                      "omega_radiation", "hubble_constant"]:
                 if not hasattr(self, a):
                     mylog.error("Missing %s in parameter file definition!", a)
                     continue
@@ -571,6 +515,28 @@ class Dataset(object):
         self.fields = FieldTypeContainer(self)
         self.index.field_list = sorted(self.field_list)
         self._last_freq = (None, None)
+
+    def set_field_label_format(self, format_property, value):
+        """
+        Set format properties for how fields will be written
+        out. Accepts 
+
+        format_property : string indicating what property to set
+        value: the value to set for that format_property
+        """
+        available_formats = {"ionization_label":("plus_minus", "roman_numeral")}
+        if format_property in available_formats:
+            if value in available_formats[format_property]:
+                setattr(self, "_%s_format" % format_property, value)
+            else:
+                raise ValueError("{0} not an acceptable value for format_property "
+                        "{1}. Choices are {2}.".format(value, format_property,
+                            available_formats[format_property]))
+        else:
+            raise ValueError("{0} not a recognized format_property. Available"
+                             "properties are: {1}".format(format_property,
+                                                         list(available_formats.keys())))
+
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -684,7 +650,7 @@ class Dataset(object):
         return True
 
     def _setup_filtered_type(self, filter):
-        # Check if the filtered_type of this filter is known, 
+        # Check if the filtered_type of this filter is known,
         # otherwise add it first if it is in the filter_registry
         if filter.filtered_type not in self.known_filters.keys():
             if filter.filtered_type in filter_registry:
@@ -799,9 +765,10 @@ class Dataset(object):
         source = self.all_data()
         max_val, mx, my, mz = \
             source.quantities.max_location(field)
+        center = self.arr([mx, my, mz], dtype="float64").to('code_length')
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
-              max_val, mx, my, mz)
-        return max_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+              max_val, center[0], center[1], center[2])
+        return max_val, center
 
     def find_min(self, field):
         """
@@ -811,9 +778,10 @@ class Dataset(object):
         source = self.all_data()
         min_val, mx, my, mz = \
             source.quantities.min_location(field)
+        center = self.arr([mx, my, mz], dtype="float64").to('code_length')
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
-              min_val, mx, my, mz)
-        return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+              min_val, center[0], center[1], center[2])
+        return min_val, center
 
     def find_field_values_at_point(self, fields, coords):
         """
@@ -945,13 +913,14 @@ class Dataset(object):
                     self.magnetic_unit = \
                         self.magnetic_unit.to_equivalent('gauss', 'CGS')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        create_code_unit_system(self.unit_registry, 
+        create_code_unit_system(self.unit_registry,
                                 current_mks_unit=current_mks_unit)
         if unit_system == "code":
-            unit_system = self.unit_registry.unit_system_id
+            unit_system = unit_system_registry[self.unit_registry.unit_system_id]
         else:
-            unit_system = str(unit_system).lower()
-        self.unit_system = unit_system_registry[unit_system]
+            sys_name = str(unit_system).lower()
+            unit_system = _make_unit_system_copy(self.unit_registry, sys_name)
+        self.unit_system = unit_system
 
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()
@@ -997,10 +966,14 @@ class Dataset(object):
             w_0 = getattr(self, 'w_0', -1.0)
             w_a = getattr(self, 'w_a', 0.0)
 
+            # many frontends do not set this
+            setdefaultattr(self, "omega_radiation", 0.0)
+
             self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
                               omega_lambda=self.omega_lambda,
+                              omega_radiation=self.omega_radiation,
                               use_dark_factor = use_dark_factor,
                               w_0 = w_0, w_a = w_a)
             self.critical_density = \
@@ -1221,6 +1194,50 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
+    def add_mesh_sampling_particle_field(self, sample_field, ptype='all'):
+        """Add a new mesh sampling particle field
+
+        Creates a new particle field which has the value of the
+        *deposit_field* at the location of each particle of type
+        *ptype*.
+
+        Parameters
+        ----------
+
+        sample_field : tuple
+           The field name tuple of the mesh field to be deposited onto
+           the particles. This must be a field name tuple so yt can
+           appropriately infer the correct particle type.
+        ptype : string, default 'all'
+           The particle type onto which the deposition will occur.
+
+        Returns
+        -------
+
+        The field name tuple for the newly created field.
+
+        Examples
+        --------
+        >>> ds = yt.load('output_00080/info_00080.txt')
+        ... ds.add_mesh_sampling_particle_field(('gas', 'density'), ptype='all')
+
+        >>> print('The density at the location of the particle is:')
+        ... print(ds.r['all', 'cell_gas_density'])
+        The density at the location of the particle is:
+        [9.33886124e-30 1.22174333e-28 1.20402333e-28 ... 2.77410331e-30
+         8.79467609e-31 3.50665136e-30] g/cm**3
+
+        >>> len(ds.r['all', 'cell_gas_density']) == len(ds.r['all', 'particle_ones'])
+        True
+
+        """
+        if isinstance(sample_field, tuple):
+            ftype, sample_field = sample_field[0], sample_field[1]
+        else:
+            raise RuntimeError
+
+        return self.index._add_mesh_sampling_particle_field(sample_field, ftype, ptype)
+
     def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
                                      weight_field='particle_mass'):
         """Add a new deposited particle field
@@ -1421,7 +1438,7 @@ class Dataset(object):
             The symbol for the new unit.
         value : tuple or ~yt.units.yt_array.YTQuantity
             The definition of the new unit in terms of some other units. For example,
-            one would define a new "mph" unit with (1.0, "mile/hr") 
+            one would define a new "mph" unit with (1.0, "mile/hr")
         tex_repr : string, optional
             The LaTeX representation of the new unit. If one is not supplied, it will
             be generated automatically based on the symbol string.
@@ -1436,7 +1453,7 @@ class Dataset(object):
         >>> two_weeks = YTQuantity(14.0, "days")
         >>> ds.define_unit("fortnight", two_weeks)
         """
-        _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr, 
+        _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr,
                      offset=offset, prefixable=prefixable)
 
 def _reconstruct_ds(*args, **kwargs):

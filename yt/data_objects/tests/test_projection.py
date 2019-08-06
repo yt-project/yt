@@ -108,8 +108,8 @@ def test_projection():
             # wf == None
             assert_equal(wf, None)
             v1 = proj["density"].sum()
-            v2 = (LENGTH_UNIT * dd["density"] * dd["d%s" % an]).sum()
-            assert_rel_equal(v1, v2, 10)
+            v2 = (dd["density"] * dd["d%s" % an]).sum()
+            assert_rel_equal(v1, v2.in_units(v1.units), 10)
     teardown_func(fns)
 
 

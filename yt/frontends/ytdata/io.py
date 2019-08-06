@@ -51,7 +51,7 @@ class IOHandlerYTNonspatialhdf5(BaseIOHandler):
                     continue
                 self._misses += 1
                 ftype, fname = field
-                rv[(ftype, fname)] = f[ftype][fname].value
+                rv[(ftype, fname)] = f[ftype][fname][()]
             if self._cache_on:
                 for gid in rv:
                     self._cached_fields.setdefault(gid, {})
@@ -87,7 +87,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                     continue
                 self._misses += 1
                 ftype, fname = field
-                rv[(ftype, fname)] = gds[fname].value
+                rv[(ftype, fname)] = gds[fname][()]
             if self._cache_on:
                 for gid in rv:
                     self._cached_fields.setdefault(gid, {})
@@ -121,7 +121,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                     self._misses += 1
                     ftype, fname = field
                     # add extra dimensions to make data 3D
-                    data = f[ftype][fname].value.astype(self._field_dtype)
+                    data = f[ftype][fname][()].astype(self._field_dtype)
                     for dim in range(len(data.shape), 3):
                         data = np.expand_dims(data, dim)
                     if self._cache_on:
@@ -146,11 +146,11 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[ptype][pn % "x"], "units")
                     x, y, z = \
-                      (self.ds.arr(f[ptype][pn % ax].value.astype("float64"), units)
+                      (self.ds.arr(f[ptype][pn % ax][()].astype("float64"), units)
                        for ax in "xyz")
                     for field in field_list:
                         if np.asarray(f[ptype][field]).ndim > 1:
-                            self._array_fields[field] = f[ptype][field].shape
+                            self._array_fields[field] = f[ptype][field].shape[1:]
                     yield ptype, (x, y, z)
             if f: f.close()
 
@@ -168,12 +168,12 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[ptype][pn % "x"], "units")
                     x, y, z = \
-                      (self.ds.arr(f[ptype][pn % ax].value.astype("float64"), units)
+                      (self.ds.arr(f[ptype][pn % ax][()].astype("float64"), units)
                        for ax in "xyz")
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
-                        data = np.asarray(f[ptype][field].value, "=f8")
+                        data = np.asarray(f[ptype][field][()], "=f8")
                         yield (ptype, field), data[mask]
             if f: f.close()
 
@@ -235,7 +235,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 pos = np.empty((all_count[ptype], 3), dtype="float64")
                 units = _get_position_array_units(ptype, f, "x")
                 if ptype == "grid":
-                    dx = f["grid"]["dx"].value.min()
+                    dx = f["grid"]["dx"][()].min()
                     dx = self.ds.quan(
                         dx, parse_h5_attr(f["grid"]["dx"], "units")).to("code_length")
                 else:
@@ -333,7 +333,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                 pos = np.empty((all_count[ptype], 3), dtype="float64")
                 pos = self.ds.arr(pos, "code_length")
                 if ptype == "grid":
-                    dx = f["grid"]["pdx"].value.min()
+                    dx = f["grid"]["pdx"][()].min()
                     dx = self.ds.quan(
                         dx, parse_h5_attr(f["grid"]["pdx"], "units")).to("code_length")
                 else:
@@ -365,7 +365,7 @@ def _get_position_array(ptype, f, ax):
         pos_name = ""
     else:
         pos_name = "particle_position_"
-    return f[ptype][pos_name + ax].value.astype("float64")
+    return f[ptype][pos_name + ax][()].astype("float64")
 
 def _get_position_array_units(ptype, f, ax):
     if ptype == "grid":

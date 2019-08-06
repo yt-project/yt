@@ -30,7 +30,9 @@ from yt.units.yt_array import \
 from yt.units.unit_object import Unit
 from yt.data_objects.field_data import YTFieldData
 from yt.utilities.exceptions import \
-    YTIllDefinedProfile
+    YTIllDefinedProfile, \
+    YTIllDefinedBounds, \
+    YTProfileDataShape
 from yt.utilities.lib.misc_utilities import \
     new_bin_profile1d, \
     new_bin_profile2d, \
@@ -235,47 +237,66 @@ been deprecated, use profile.standard_deviation instead."""
     def _filter(self, bin_fields):
         # cut_points is set to be everything initially, but
         # we also want to apply a filtering based on min/max
-        filter = np.ones(bin_fields[0].shape, dtype='bool')
+        pfilter = np.ones(bin_fields[0].shape, dtype='bool')
         for (mi, ma), data in zip(self.bounds, bin_fields):
-            filter &= (data > mi)
-            filter &= (data < ma)
-        return filter, [data[filter] for data in bin_fields]
+            pfilter &= (data > mi)
+            pfilter &= (data < ma)
+        return pfilter, [data[pfilter] for data in bin_fields]
 
     def _get_data(self, chunk, fields):
         # We are using chunks now, which will manage the field parameters and
         # the like.
         bin_fields = [chunk[bf] for bf in self.bin_fields]
+        for i in range(1, len(bin_fields)):
+            if bin_fields[0].shape != bin_fields[i].shape:
+                    raise YTProfileDataShape(
+                        self.bin_fields[0], bin_fields[0].shape,
+                        self.bin_fields[i], bin_fields[i].shape)
         # We want to make sure that our fields are within the bounds of the
         # binning
-        filter, bin_fields = self._filter(bin_fields)
-        if not np.any(filter): return None
+        pfilter, bin_fields = self._filter(bin_fields)
+        if not np.any(pfilter): return None
         arr = np.zeros((bin_fields[0].size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
+            if pfilter.shape != chunk[field].shape:
+                raise YTProfileDataShape(
+                    self.bin_fields[0], bin_fields[0].shape,
+                    field, chunk[field].shape)
             units = chunk.ds.field_info[field].output_units
-            arr[:,i] = chunk[field][filter].in_units(units)
+            arr[:,i] = chunk[field][pfilter].in_units(units)
         if self.weight_field is not None:
+            if pfilter.shape != chunk[self.weight_field].shape:
+                raise YTProfileDataShape(
+                    self.bin_fields[0], bin_fields[0].shape,
+                    self.weight_field, chunk[self.weight_field].shape)
             units = chunk.ds.field_info[self.weight_field].output_units
             weight_data = chunk[self.weight_field].in_units(units)
         else:
-            weight_data = np.ones(filter.shape, dtype="float64")
-        weight_data = weight_data[filter]
+            weight_data = np.ones(pfilter.shape, dtype="float64")
+        weight_data = weight_data[pfilter]
         # So that we can pass these into
         return arr, weight_data, bin_fields
 
     def __getitem__(self, field):
-        fname = self.field_map.get(field, None)
-        if fname is None:
+        if field in self.field_data:
+            fname = field
+        else:
+            # deal with string vs tuple field names and attempt to guess which field
+            # we are supposed to be talking about
+            fname = self.field_map.get(field, None)
             if isinstance(field, tuple):
                 fname = self.field_map.get(field[1], None)
+                if fname != field:
+                    raise KeyError("Asked for field '{}' but only have data for "
+                                   "field '{}'".format(field, fname))
             elif isinstance(field, DerivedField):
                 fname = self.field_map.get(field.name[1], None)
-        if fname is None:
-            raise KeyError(field)
+            if fname is None:
+                raise KeyError(field)
+        if getattr(self, 'fractional', False):
+            return self.field_data[fname]
         else:
-            if getattr(self, 'fractional', False):
-                return self.field_data[fname]
-            else:
-                return self.field_data[fname].in_units(self.field_units[fname])
+            return self.field_data[fname].in_units(self.field_units[fname])
 
     def items(self):
         return [(k,self[k]) for k in self.field_data.keys()]
@@ -353,6 +374,12 @@ been deprecated, use profile.standard_deviation instead."""
         data.update(self.field_data)
         data["weight"] = self.weight
         data["used"] = self.used.astype("float64")
+        std = "standard_deviation"
+        if self.weight_field is not None:
+            std_data = getattr(self, std)
+            data.update(dict(
+                ((std, field[1]), std_data[field])
+                for field in self.field_data))
 
         dimensionality = 0
         bin_data = []
@@ -374,7 +401,10 @@ been deprecated, use profile.standard_deviation instead."""
             data[getattr(self, "%s_field" % ax)] = bin_fields[i]
 
         extra_attrs["dimensionality"] = dimensionality
-        ftypes = dict([(field, "data") for field in data])
+        ftypes = dict([(field, "data") for field in data if field[0] != std])
+        if self.weight_field is not None:
+            ftypes.update(dict(((std, field[1]), std)
+                               for field in self.field_data))
         save_as_dataset(self.ds, filename, data, field_types=ftypes,
                         extra_attrs=extra_attrs)
 
@@ -401,12 +431,16 @@ class ProfileNDFromDataset(ProfileND):
         self.weight = ds.data["weight"]
         self.used = ds.data["used"].d.astype(bool)
         profile_fields = [f for f in ds.field_list
-                          if f[1] not in exclude_fields]
+                          if f[1] not in exclude_fields and
+                             f[0] != "standard_deviation"]
         for field in profile_fields:
             self.field_map[field[1]] = field
             self.field_data[field] = ds.data[field]
             self.field_info[field] = ds.field_info[field]
             self.field_units[field] = ds.data[field].units
+            if ("standard_deviation", field[1]) in ds.field_list:
+                self.standard_deviation[field] = \
+                  ds.data["standard_deviation", field[1]]
 
 class Profile1D(ProfileND):
     """An object that represents a 1D profile.
@@ -431,10 +465,12 @@ class Profile1D(ProfileND):
         spaced in linear (False) or log (True) space.
     weight_field : string field name
         The field to weight the profiled fields by.
+    override_bins_x : array
+        Array to set as xbins and ignore other parameters if set
 
     """
     def __init__(self, data_source, x_field, x_n, x_min, x_max, x_log,
-                 weight_field = None):
+                 weight_field = None, override_bins_x=None):
         super(Profile1D, self).__init__(data_source, weight_field)
         self.x_field = data_source._determine_fields(x_field)[0]
         self.field_info[self.x_field] = \
@@ -445,6 +481,11 @@ class Profile1D(ProfileND):
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
+
+        if override_bins_x is not None:
+            self.x_bins = array_like_field(data_source, override_bins_x,
+                                           self.x_field)
+
         self.size = (self.x_bins.size - 1,)
         self.bin_fields = (self.x_field,)
         self.x = 0.5*(self.x_bins[1:]+self.x_bins[:-1])
@@ -529,12 +570,17 @@ class Profile2D(ProfileND):
         spaced in linear (False) or log (True) space.
     weight_field : string field name
         The field to weight the profiled fields by.
+    override_bins_x : array
+        Array to set as xbins and ignore other parameters if set
+    override_bins_y : array
+        Array to set as ybins and ignore other parameters if set
 
     """
     def __init__(self, data_source,
                  x_field, x_n, x_min, x_max, x_log,
                  y_field, y_n, y_min, y_max, y_log,
-                 weight_field = None):
+                 weight_field = None,
+                 override_bins_x = None, override_bins_y = None):
         super(Profile2D, self).__init__(data_source, weight_field)
         # X
         self.x_field = data_source._determine_fields(x_field)[0]
@@ -546,6 +592,11 @@ class Profile2D(ProfileND):
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
+        if override_bins_x is not None:
+            self.x_bins = array_like_field(data_source, override_bins_x,
+                                           self.x_field)
+
+
         # Y
         self.y_field = data_source._determine_fields(y_field)[0]
         self.y_log = y_log
@@ -556,6 +607,9 @@ class Profile2D(ProfileND):
         self.y_bins = array_like_field(data_source,
                                        self._get_bins(y_min, y_max, y_n, y_log),
                                        self.y_field)
+        if override_bins_y is not None:
+            self.y_bins = array_like_field(data_source, override_bins_y,
+                                           self.y_field)
 
         self.size = (self.x_bins.size - 1, self.y_bins.size - 1)
 
@@ -774,13 +828,20 @@ class Profile3D(ProfileND):
         spaced in linear (False) or log (True) space.
     weight_field : string field name
         The field to weight the profiled fields by.
+    override_bins_x : array
+        Array to set as xbins and ignore other parameters if set
+    override_bins_y : array
+        Array to set as xbins and ignore other parameters if set
+    override_bins_z : array
+        Array to set as xbins and ignore other parameters if set
 
     """
     def __init__(self, data_source,
                  x_field, x_n, x_min, x_max, x_log,
                  y_field, y_n, y_min, y_max, y_log,
                  z_field, z_n, z_min, z_max, z_log,
-                 weight_field = None):
+                 weight_field = None, override_bins_x=None,
+                 override_bins_y=None,override_bins_z=None):
         super(Profile3D, self).__init__(data_source, weight_field)
         # X
         self.x_field = data_source._determine_fields(x_field)[0]
@@ -792,6 +853,9 @@ class Profile3D(ProfileND):
         self.x_bins = array_like_field(data_source,
                                        self._get_bins(x_min, x_max, x_n, x_log),
                                        self.x_field)
+        if override_bins_x is not None:
+            self.x_bins = array_like_field(data_source, override_bins_x,
+                                           self.x_field)
         # Y
         self.y_field = data_source._determine_fields(y_field)[0]
         self.y_log = y_log
@@ -802,6 +866,9 @@ class Profile3D(ProfileND):
         self.y_bins = array_like_field(data_source,
                                        self._get_bins(y_min, y_max, y_n, y_log),
                                        self.y_field)
+        if override_bins_y is not None:
+            self.y_bins = array_like_field(data_source, override_bins_y,
+                                           self.y_field)
         # Z
         self.z_field = data_source._determine_fields(z_field)[0]
         self.z_log = z_log
@@ -812,6 +879,9 @@ class Profile3D(ProfileND):
         self.z_bins = array_like_field(data_source,
                                        self._get_bins(z_min, z_max, z_n, z_log),
                                        self.z_field)
+        if override_bins_z is not None:
+            self.z_bins = array_like_field(data_source, override_bins_z,
+                                           self.z_field)
 
         self.size = (self.x_bins.size - 1,
                      self.y_bins.size - 1,
@@ -899,7 +969,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                    extrema=None, logs=None, units=None,
                    weight_field="cell_mass",
                    accumulation=False, fractional=False,
-                   deposition='ngp'):
+                   deposition='ngp', override_bins=None):
     r"""
     Create a 1, 2, or 3D profile object.
 
@@ -948,6 +1018,10 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         Controls the type of deposition used for ParticlePhasePlots.
         Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
         ignored the if the input fields are not of particle type.
+    override_bins : dict of bins to profile plot with
+        If set, ignores n_bins and extrema settings and uses the
+        supplied bins to profile the field. If a units dict is provided,
+        bins are understood to be in the units specified in the dictionary.
 
 
     Examples
@@ -983,6 +1057,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     units = sanitize_field_tuple_keys(units, data_source)
     extrema = sanitize_field_tuple_keys(extrema, data_source)
     logs = sanitize_field_tuple_keys(logs, data_source)
+    override_bins = sanitize_field_tuple_keys(override_bins, data_source)
 
     if any(is_pfield) and not all(is_pfield):
         raise YTIllDefinedProfile(
@@ -1044,7 +1119,11 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             try:
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError:
-                field_ex = list(extrema[bin_field])
+                try:
+                    field_ex = list(extrema[bin_field])
+                except KeyError:
+                    raise RuntimeError("Could not find field {0} or {1} in extrema".format(bin_field[-1], bin_field))
+
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
             if any([exi is None for exi in field_ex]):
@@ -1082,12 +1161,45 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
+
+    if override_bins is not None:
+        o_bins = []
+        for bin_field in bin_fields:
+            bf_units = data_source.ds.field_info[bin_field].output_units
+            try:
+                field_obin = override_bins[bin_field[-1]]
+            except KeyError:
+                field_obin = override_bins[bin_field]
+
+            if field_obin is None:
+                o_bins.append(None)
+                continue
+
+            if isinstance(field_obin, tuple):
+                field_obin = data_source.ds.arr(*field_obin)
+
+            if units is not None and bin_field in units:
+                fe = data_source.ds.arr(field_obin, units[bin_field])
+            else:
+                if hasattr(field_obin, 'units'):
+                    fe = field_obin.to(bf_units)
+                else:
+                    fe = data_source.ds.arr(field_obin, bf_units)
+            fe.convert_to_units(bf_units)
+            field_obin = fe.d
+            o_bins.append(field_obin)
+
     args = [data_source]
     for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
+        if mi <= 0 and l:
+            raise YTIllDefinedBounds(mi, ma)
         args += [f, n, mi, ma, l]
     kwargs = dict(weight_field=weight_field)
     if cls is ParticleProfile:
         kwargs['deposition'] = deposition
+    if override_bins is not None:
+        for o_bin, ax in zip(o_bins, ['x','y','z']):
+            kwargs["override_bins_{0}".format(ax)] = o_bin
     obj = cls(*args, **kwargs)
     setattr(obj, "accumulation", accumulation)
     setattr(obj, "fractional", fractional)

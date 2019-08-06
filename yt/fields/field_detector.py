@@ -139,12 +139,16 @@ class FieldDetector(defaultdict):
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 4)),
                           finfo.units, registry=self.ds.unit_registry)
-
             else:
                 # Not a vector
                 self[item] = \
                   YTArray(np.ones(self.NumberOfParticles),
                           finfo.units, registry=self.ds.unit_registry)
+            if item == ('STAR', 'BIRTH_TIME'):
+                # hack for the artio frontend so we pass valid times to
+                # the artio functions for calculating physical times
+                # from internal times
+                self[item] *= -0.1
             self.requested.append(item)
             return self[item]
         self.requested.append(item)
@@ -159,10 +163,16 @@ class FieldDetector(defaultdict):
     def deposit(self, *args, **kwargs):
         return np.random.random((self.nd, self.nd, self.nd))
 
+    def mesh_sampling_particle_field(self, *args, **kwargs):
+        pos = args[0]
+        npart = len(pos)
+        return np.random.rand(npart)
+
     def smooth(self, *args, **kwargs):
         tr = np.random.random((self.nd, self.nd, self.nd))
         if kwargs['method'] == "volume_weighted":
             return [tr]
+
         return tr
 
     def particle_operation(self, *args, **kwargs):

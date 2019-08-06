@@ -89,6 +89,7 @@ class EnzoSimulation(SimulationTimeSeries):
               EnzoCosmology(self.parameters['CosmologyHubbleConstantNow'],
                             self.parameters['CosmologyOmegaMatterNow'],
                             self.parameters['CosmologyOmegaLambdaNow'],
+                            self.parameters.get('CosmologyOmegaRadiationNow', 0.0),
                             0.0, self.parameters['CosmologyInitialRedshift'],
                             unit_registry=self.unit_registry)
 
@@ -379,6 +380,7 @@ class EnzoSimulation(SimulationTimeSeries):
             cosmo_attr = {'box_size': 'CosmologyComovingBoxSize',
                           'omega_lambda': 'CosmologyOmegaLambdaNow',
                           'omega_matter': 'CosmologyOmegaMatterNow',
+                          'omega_radiation': 'CosmologyOmegaRadiationNow',
                           'hubble_constant': 'CosmologyHubbleConstantNow',
                           'initial_redshift': 'CosmologyInitialRedshift',
                           'final_redshift': 'CosmologyFinalRedshift'}
@@ -437,7 +439,7 @@ class EnzoSimulation(SimulationTimeSeries):
         Calculate cycle outputs.
         """
 
-        mylog.warn('Calculating cycle outputs.  Dataset times will be unavailable.')
+        mylog.warning('Calculating cycle outputs.  Dataset times will be unavailable.')
 
         if self.stop_cycle is None or \
             'CycleSkipDataDump' not in self.parameters or \
@@ -520,7 +522,7 @@ class EnzoSimulation(SimulationTimeSeries):
                     'StopCycle' in self.parameters):
                 raise NoStoppingCondition(self.parameter_filename)
             if self.final_time is None:
-                mylog.warn(
+                mylog.warning(
                     "Simulation %s has no stop time set, stopping condition " +
                     "will be based only on cycles.",
                     self.parameter_filename)
@@ -545,6 +547,7 @@ class EnzoSimulation(SimulationTimeSeries):
         self.parameters['CycleSkipDataDump'] = 0.
         self.parameters['LengthUnits'] = 1.
         self.parameters['TimeUnits'] = 1.
+        self.parameters['CosmologyOmegaRadiationNow'] = 0.
 
     def _find_outputs(self):
         """
@@ -635,11 +638,13 @@ class EnzoSimulation(SimulationTimeSeries):
 
 class EnzoCosmology(Cosmology):
     def __init__(self, hubble_constant, omega_matter, omega_lambda,
-                 omega_curvature, initial_redshift, unit_registry = None):
+                 omega_radiation, omega_curvature, initial_redshift,
+                 unit_registry = None):
         Cosmology.__init__(self,
                            hubble_constant=hubble_constant,
                            omega_matter=omega_matter,
                            omega_lambda=omega_lambda,
+                           omega_radiation=omega_radiation,
                            omega_curvature=omega_curvature,
                            unit_registry=unit_registry)
         self.initial_redshift = initial_redshift

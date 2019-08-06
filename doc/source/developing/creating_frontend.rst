@@ -91,19 +91,26 @@ your code. Here is a snippet from the base BoxLib field container:
 	    ("particle_mdot", ("code_mass/code_time", [], None)),
 	)
 
-The tuples, ``known_other_fields`` and ``known_particle_fields``
-contain entries, which are tuples of the form ``("name", ("units",
-["fields", "to", "alias"], "display_name"))``.  ``"name"`` is the name
-of a field stored on-disk in the dataset. ``"units"`` corresponds to
-the units of that field.  The list ``["fields", "to", "alias"]``
-allows you to specify additional aliases to this particular field; for
-example, if your on-disk field for the x-direction velocity were
-``"x-direction-velocity"``, maybe you'd prefer to alias to the more
-terse name of ``"xvel"``.  ``"display_name"`` is an optional parameter
-that can be used to specify how you want the field to be displayed on
-a plot; this can be LaTeX code, for example the density field could
-have a display name of ``r"\rho"``.  Omitting the ``"display_name"``
-will result in using a capitalized version of the ``"name"``.
+The tuples, ``known_other_fields`` and ``known_particle_fields`` contain
+entries, which are tuples of the form ``("name", ("units", ["fields", "to",
+"alias"], "display_name"))``.  ``"name"`` is the name of a field stored on-disk
+in the dataset. ``"units"`` corresponds to the units of that field.  The list
+``["fields", "to", "alias"]`` allows you to specify additional aliases to this
+particular field; for example, if your on-disk field for the x-direction
+velocity were ``"x-direction-velocity"``, maybe you'd prefer to alias to the
+more terse name of ``"xvel"``.  By convention in yt we use a set of "universal"
+fields. Currently these fields are enumerated in the stream frontend. If you
+take a look at ``yt/frontends/stream/fields.py``, you will see a listing of
+fields following the format described above with field names that will be
+recognized by the rest of the built-in yt field system. In the example from the
+boxlib frontend above many of the fields in the ``known_other_fields`` tuple
+follow this convention. If you would like your frontend to mesh nicely with the
+rest of yt's built-in fields, it is probably a good idea to alias your
+frontend's field names to the yt "universal" field names. Finally,
+"display_name"`` is an optional parameter that can be used to specify how you
+want the field to be displayed on a plot; this can be LaTeX code, for example
+the density field could have a display name of ``r"\rho"``.  Omitting the
+``"display_name"`` will result in using a capitalized version of the ``"name"``.
 
 .. _bfields-frontend:
 
@@ -219,10 +226,10 @@ that is needed:
     class ChomboGrid(AMRGridPatch):
         _id_offset = 0
         __slots__ = ["_level_id"]
-        def __init__(self, id, index, level = -1):
-            AMRGridPatch.__init__(self, id, filename = index.index_filename,
-                                  index = index)
-            self.Parent = []
+        def __init__(self, id, index, level=-1):
+            AMRGridPatch.__init__(self, id, filename=index.index_filename,
+                                  index=index)
+            self.Parent = None
             self.Children = []
             self.Level = level
 

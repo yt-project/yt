@@ -1621,7 +1621,7 @@ cdef class ARTIORootMeshContainer:
             # Check that we found the oct ...
             for j in range(3):
                 left_edge[j] = coords[j] * self.dds[j] + self.DLE[j]
-            pdeposit.process(dims, left_edge, self.dds,
+            pdeposit.process(dims, i, left_edge, self.dds,
                          offset, pos, field_vals, sfc)
             if pdeposit.update_values == 1:
                 for j in range(nf):

@@ -461,7 +461,7 @@ def assign_particle_data(ds, pdata, bbox):
                     [min(bbox[1, 0], s[1, 0]), max(bbox[1, 1], s[1, 1])],
                     [min(bbox[2, 0], s[2, 0]), max(bbox[2, 1], s[2, 1])]]
                 m += ("Set bbox=%s to avoid this in the future.")
-                mylog.warn(m % (num_unassigned, num_particles, sug_bbox))
+                mylog.warning(m % (num_unassigned, num_particles, sug_bbox))
                 particle_grid_inds = particle_grid_inds[assigned_particles]
                 x = x[assigned_particles]
                 y = y[assigned_particles]
@@ -645,25 +645,13 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
 
     >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> arr = np.random.random((128, 128, 128))
-
     >>> data = dict(density=arr)
     >>> ds = load_uniform_grid(data, arr.shape, length_unit='cm',
     ...                        bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
     >>> dd['density']
-
     YTArray([ 0.87568064,  0.33686453,  0.70467189, ...,  0.70439916,
             0.97506269,  0.03047113]) g/cm**3
-
-    >>> data = dict(density=(arr, 'kg/m**3'))
-    >>> ds = load_uniform_grid(data, arr.shape, length_unit=3.03e24,
-    ...                        bbox=bbox, nprocs=12)
-    >>> dd = ds.all_data()
-    >>> dd['density']
-
-    YTArray([  8.75680644e-04,   3.36864527e-04,   7.04671886e-04, ...,
-             7.04399160e-04,   9.75062693e-04,   3.04711295e-05]) g/cm**3
-
     """
 
     domain_dimensions = np.array(domain_dimensions)
@@ -1288,7 +1276,7 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     cycle = np.rollaxis(np.indices((nx-1,ny-1,nz-1)), 0, 4)
     cycle.shape = ((nx-1)*(ny-1)*(nz-1), 3)
     off = _cis + cycle[:, np.newaxis]
-    connectivity = ((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2]
+    connectivity = np.array(((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2], order='C')
     return coords, connectivity
 
 class StreamHexahedralMesh(SemiStructuredMesh):

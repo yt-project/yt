@@ -13,7 +13,10 @@ Data structures for Enzo
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from __future__ import absolute_import
+
 from yt.utilities.on_demand_imports import _h5py as h5py
+import io
 import weakref
 import numpy as np
 import os
@@ -22,9 +25,13 @@ import string
 import time
 import re
 
+from yt.utilities.on_demand_imports import \
+    _libconf as libconf
 from collections import defaultdict
 from yt.extern.six.moves import zip as izip
 
+from yt.frontends.enzo.misc import \
+    cosmology_get_units
 from yt.funcs import \
     ensure_list, \
     ensure_tuple, \
@@ -40,10 +47,7 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.fields.field_info_container import \
     NullFunc
-from yt.utilities.physical_ratios import \
-    rho_crit_g_cm3_h2, cm_per_mpc
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.pyparselibconfig import libconfig
 
 from .fields import \
     EnzoFieldInfo
@@ -147,17 +151,19 @@ class EnzoGridGZ(EnzoGrid):
             end_zone = None
         else:
             end_zone = -(NGZ - n_zones)
-        sl = [slice(start_zone, end_zone) for i in range(3)]
+        sl = tuple([slice(start_zone, end_zone) for i in range(3)])
         if fields is None: return cube
         for field in ensure_list(fields):
             if field in self.field_list:
                 conv_factor = 1.0
                 if field in self.ds.field_info:
-                    conv_factor = self.ds.field_info[field]._convert_function(self)
+                    conv_factor = self.ds.field_info[field]._convert_function(
+                        self)
                 if self.ds.field_info[field].particle_type: continue
                 temp = self.index.io._read_raw_data_set(self, field)
                 temp = temp.swapaxes(0, 2)
-                cube.field_data[field] = np.multiply(temp, conv_factor, temp)[sl]
+                cube.field_data[field] = np.multiply(
+                    temp, conv_factor, temp)[sl]
         return cube
 
 class EnzoHierarchy(GridIndex):
@@ -737,7 +743,7 @@ class EnzoDataset(Dataset):
         dictionaries.
         """
         # Let's read the file
-        with open(self.parameter_filename, "r") as f:
+        with io.open(self.parameter_filename, "r") as f:
             line = f.readline().strip()
             f.seek(0)
             if line == "Internal:":
@@ -746,7 +752,7 @@ class EnzoDataset(Dataset):
                 self._parse_enzo2_parameter_file(f)
 
     def _parse_enzo3_parameter_file(self, f):
-        self.parameters = p = libconfig(f)
+        self.parameters = p = libconf.load(f)
         sim = p["SimulationControl"]
         internal = p["Internal"]
         phys = p["Physics"]
@@ -855,6 +861,8 @@ class EnzoDataset(Dataset):
             self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
             self.omega_lambda = self.parameters["CosmologyOmegaLambdaNow"]
             self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
+            self.omega_radiation = \
+              self.parameters.get("CosmologyOmegaRadiationNow", 0.0)
             self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
@@ -884,12 +892,13 @@ class EnzoDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         if self.cosmological_simulation:
-            k = self.cosmology_get_units()
+            k = cosmology_get_units(
+                self.hubble_constant, self.omega_matter,
+                self.parameters["CosmologyComovingBoxSize"],
+                self.parameters["CosmologyInitialRedshift"],
+                self.current_redshift)
             # Now some CGS values
-            box_size = self.parameters.get("CosmologyComovingBoxSize", None)
-            if box_size is None:
-                box_size = self.parameters["Physics"]["Cosmology"]\
-                    ["CosmologyComovingBoxSize"]
+            box_size = self.parameters["CosmologyComovingBoxSize"]
             setdefaultattr(self, 'length_unit', self.quan(box_size, "Mpccm/h"))
             setdefaultattr(
                 self, 'mass_unit',
@@ -917,38 +926,10 @@ class EnzoDataset(Dataset):
             setdefaultattr(
                 self, 'velocity_unit', self.length_unit / self.time_unit)
 
-        magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
-                                (self.time_unit**2 * self.length_unit))
+        density_unit = self.mass_unit / self.length_unit**3
+        magnetic_unit = np.sqrt(4*np.pi * density_unit) * self.velocity_unit
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
         setdefaultattr(self, 'magnetic_unit', self.quan(magnetic_unit, "gauss"))
-
-    def cosmology_get_units(self):
-        """
-        Return an Enzo-fortran style dictionary of units to feed into custom
-        routines.  This is typically only necessary if you are interacting
-        with fortran code.
-        """
-        k = {}
-        k["utim"] = 2.52e17/np.sqrt(self.omega_matter)\
-                       / self.hubble_constant \
-                       / (1+self.parameters["CosmologyInitialRedshift"])**1.5
-        k["urho"] = rho_crit_g_cm3_h2 * self.omega_matter \
-                        * self.hubble_constant**2 \
-                        * (1.0 + self.current_redshift)**3
-        k["uxyz"] = cm_per_mpc * \
-               self.parameters["CosmologyComovingBoxSize"] / \
-               self.hubble_constant / \
-               (1.0 + self.current_redshift)
-        k["uaye"] = 1.0/(1.0 + self.parameters["CosmologyInitialRedshift"])
-        k["uvel"] = 1.225e7*self.parameters["CosmologyComovingBoxSize"] \
-                      *np.sqrt(self.omega_matter) \
-                      *np.sqrt(1+ self.parameters["CosmologyInitialRedshift"])
-        k["utem"] = 1.88e6 * (self.parameters["CosmologyComovingBoxSize"]**2) \
-                      * self.omega_matter \
-                      * (1.0 + self.parameters["CosmologyInitialRedshift"])
-        k["aye"]  = (1.0 + self.parameters["CosmologyInitialRedshift"]) / \
-               (1.0 + self.current_redshift)
-        return k
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

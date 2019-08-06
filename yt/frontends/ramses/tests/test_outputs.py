@@ -371,3 +371,70 @@ def test_formation_time():
     whdynstars = ad['particle_birth_time'] == 0
     assert np.all(ad['star_age'][whdynstars] == ds.current_time)
 
+@requires_file(ramses_new_format)
+def test_cooling_fields():
+
+    #Test the field is being loaded correctly
+    ds=yt.load(ramses_new_format)
+
+    #Derived cooling fields
+    assert ('gas','cooling_net') in ds.derived_field_list
+    assert ('gas','cooling_total') in ds.derived_field_list
+    assert ('gas','heating_total') in ds.derived_field_list
+    assert ('gas','number_density') in ds.derived_field_list
+
+    #Original cooling fields
+    assert ('gas','cooling_primordial') in ds.derived_field_list
+    assert ('gas','cooling_compton') in ds.derived_field_list
+    assert ('gas','cooling_metal') in ds.derived_field_list
+    assert ('gas','heating_primordial') in ds.derived_field_list
+    assert ('gas','heating_compton') in ds.derived_field_list
+    assert ('gas','cooling_primordial_prime') in ds.derived_field_list
+    assert ('gas','cooling_compton_prime') in ds.derived_field_list
+    assert ('gas','cooling_metal_prime') in ds.derived_field_list
+    assert ('gas','heating_primordial_prime') in ds.derived_field_list
+    assert ('gas','heating_compton_prime') in ds.derived_field_list
+    assert ('gas','mu') in ds.derived_field_list
+
+    #Abundances
+    assert ('gas','Electron_number_density') in ds.derived_field_list
+    assert ('gas','HI_number_density') in ds.derived_field_list
+    assert ('gas','HII_number_density') in ds.derived_field_list
+    assert ('gas','HeI_number_density') in ds.derived_field_list
+    assert ('gas','HeII_number_density') in ds.derived_field_list
+    assert ('gas','HeIII_number_density') in ds.derived_field_list
+
+    def check_unit(array, unit):
+        assert str(array.in_cgs().units) == unit
+
+    check_unit(ds.r[('gas','cooling_total')],'cm**5*g/s**3')
+    check_unit(ds.r[('gas','cooling_primordial_prime')],'cm**5*g/(K*s**3)')
+    check_unit(ds.r[('gas','number_density')],'cm**(-3)')
+    check_unit(ds.r[('gas','mu')],'dimensionless')
+    check_unit(ds.r[('gas','Electron_number_density')],'cm**(-3)')
+
+
+ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
+@requires_file(ramses_rt)
+def test_ramses_mixed_files():
+    # Test that one can use derived fields that depend on different
+    # files (here hydro and rt files)
+    ds = yt.load(ramses_rt)
+    def _mixed_field(field, data):
+        return data['rt', 'photon_density_1'] / data['gas', 'H_nuclei_density']
+    ds.add_field(('gas', 'mixed_files'), function=_mixed_field, sampling_type='cell')
+
+    # Access the field
+    ds.r[('gas', 'mixed_files')]
+
+ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
+@requires_file(ramses_empty_record)
+def test_ramses_empty_record():
+    # Test that yt can load datasets with empty records
+    ds = yt.load(ramses_empty_record)
+
+    # This should not fail
+    ds.index
+
+    # Access some field
+    ds.r[('gas', 'density')]

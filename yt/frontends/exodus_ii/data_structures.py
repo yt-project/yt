@@ -314,10 +314,12 @@ class ExodusIIDataset(Dataset):
         with self._handle.open_ds() as ds:
             if "coord" not in ds.variables:
                 coords = np.array([ds.variables["coord%s" % ax][:]
-                                   for ax in coord_axes]).transpose().copy()
+                                   for ax in coord_axes]
+                                  ).transpose().astype("f8")
             else:
                 coords = np.array([coord for coord in
-                                   ds.variables["coord"][:]]).transpose().copy()
+                                   ds.variables["coord"][:]]
+                                  ).transpose().astype("f8")
             return coords
 
     def _apply_displacement(self, coords, mesh_id):
@@ -392,7 +394,9 @@ class ExodusIIDataset(Dataset):
         try:
             from netCDF4 import Dataset
             filename = args[0]
-            with Dataset(filename) as f:
+            # We use keepweakref here to avoid holding onto the file handle
+            # which can interfere with other is_valid calls.
+            with Dataset(filename, keepweakref=True) as f:
                 f.variables['connect1']
             return True
         except:

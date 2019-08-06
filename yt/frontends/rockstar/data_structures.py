@@ -23,8 +23,9 @@ from .fields import \
     RockstarFieldInfo
 
 from yt.data_objects.static_output import \
-    Dataset, \
-    ParticleFile
+    Dataset
+from yt.frontends.halo_catalog.data_structures import \
+    HaloCatalogFile
 from yt.funcs import \
     setdefaultattr
 from yt.geometry.particle_geometry_handler import \
@@ -35,7 +36,7 @@ import yt.utilities.fortran_utils as fpu
 from .definitions import \
     header_dt
 
-class RockstarBinaryFile(ParticleFile):
+class RockstarBinaryFile(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
         with open(filename, "rb") as f:
             self.header = fpu.read_cattrs(f, header_dt, "=")
@@ -44,6 +45,29 @@ class RockstarBinaryFile(ParticleFile):
             self._file_size = f.tell()
 
         super(RockstarBinaryFile, self).__init__(ds, io, filename, file_id)
+
+    def _read_particle_positions(self, ptype, f=None):
+        """
+        Read all particle positions in this file.
+        """
+
+        if f is None:
+            close = True
+            f = open(self.filename, "rb")
+        else:
+            close = False
+
+        pcount = self.header["num_halos"]
+        pos = np.empty((pcount, 3), dtype="float64")
+        f.seek(self._position_offset, os.SEEK_SET)
+        halos = np.fromfile(f, dtype=self.io._halo_dt, count=pcount)
+        for i, ax in enumerate('xyz'):
+            pos[:, i] = halos["particle_position_%s" % ax].astype("float64")
+
+        if close:
+            f.close()
+
+        return pos
 
 class RockstarDataset(Dataset):
     _index_class = ParticleIndex
@@ -78,9 +102,11 @@ class RockstarDataset(Dataset):
         self.hubble_constant = hvals['h0']
         self.omega_lambda = hvals['Ol']
         self.omega_matter = hvals['Om']
-        cosmo = Cosmology(self.hubble_constant,
-                          self.omega_matter, self.omega_lambda)
-        self.current_time = cosmo.hubble_time(self.current_redshift).in_units("s")
+        cosmo = Cosmology(hubble_constant=self.hubble_constant,
+                          omega_matter=self.omega_matter,
+                          omega_lambda=self.omega_lambda)
+        self.current_time = cosmo.lookback_time(
+            self.current_redshift, 1e6).in_units("s")
         self.periodicity = (True, True, True)
         self.particle_types = ("halos")
         self.particle_types_raw = ("halos")

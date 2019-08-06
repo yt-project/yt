@@ -272,8 +272,8 @@ class GadgetSimulation(SimulationTimeSeries):
             if os.path.exists(output["filename"]):
                 init_outputs.append(output["filename"])
         if len(init_outputs) == 0 and len(my_outputs) > 0:
-            mylog.warn("Could not find any datasets.  " +
-                       "Check the value of OutputDir in your parameter file.")
+            mylog.warning("Could not find any datasets.  " +
+                          "Check the value of OutputDir in your parameter file.")
             
         DatasetSeries.__init__(self, outputs=init_outputs, parallel=parallel,
                                 setup_function=setup_function,

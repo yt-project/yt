@@ -554,7 +554,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
 
-    def vert_cbar(self, resolution, log_scale, ax=None, label=None, 
+    def vert_cbar(self, resolution, log_scale, ax, label=None, 
                   label_fmt=None):
         r"""Display an image of the transfer function
 
@@ -570,11 +570,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> tf.add_gaussian(-9.0, 0.01, 1.0)
         >>> tf.show()
         """
-        from matplotlib import pyplot
         from matplotlib.ticker import FuncFormatter
-        #pyplot.clf()
-        if ax is None:
-            ax = pyplot.axes()
         if label is None:
             label = ''
         alpha = self.alpha.y 
@@ -583,6 +579,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         i_data[:,:,0] = np.outer(self.funcs[0].y, np.ones(self.alpha.x.size))
         i_data[:,:,1] = np.outer(self.funcs[1].y, np.ones(self.alpha.x.size))
         i_data[:,:,2] = np.outer(self.funcs[2].y, np.ones(self.alpha.x.size))
+
         ax.imshow(i_data, origin='lower', aspect='auto')
         ax.plot(alpha, np.arange(self.alpha.y.size), 'w')
 

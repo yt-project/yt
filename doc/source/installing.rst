@@ -125,7 +125,9 @@ In addition, you can tell the install script to download and install some
 additional packages --- currently these include
 `PyX <http://pyx.sourceforge.net/>`_, the `Rockstar halo
 finder <http://arxiv.org/abs/1110.4372>`_, `SciPy <https://www.scipy.org/>`_,
-`Astropy <http://www.astropy.org/>`_, and the necessary dependencies for
+`Astropy <http://www.astropy.org/>`_, 
+`Cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_, 
+and the necessary dependencies for
 :ref:`unstructured mesh rendering <unstructured_mesh_rendering>`. The script has
 all of the options for installing optional packages near the top of the
 file. You should be able to open it and edit it without any knowledge of bash
@@ -245,7 +247,7 @@ it from our custom anaconda channel:
 
 .. code-block:: bash
 
-  $ conda install -c http://use.yt/with_conda/ -c conda-forge yt
+  $ conda install -c yt-project/label/dev -c conda-forge yt
 
 New packages for development branch are built after every pull request is
 merged. In order to make sure you are running latest version, it's recommended
@@ -253,7 +255,7 @@ to update frequently:
 
 .. code-block:: bash
 
-  $ conda update -c http://use.yt/with_conda/ -c conda-forge yt
+  $ conda update -c yt-project/label/dev -c conda-forge yt
 
 We recommend trying to install dependencies from conda-forge as indicated above
 since focused individual communities stand a better chance of successfully
@@ -285,9 +287,9 @@ Clone the yt repository with:
 
   $ git clone https://github.com/yt-project/yt
 
-Once inside the yt directory, update to the appropriate branch and
-run ``pip install -e .``. For example, the following commands will allow you
-to see the tip of the development branch.
+Once inside the yt directory, update to the appropriate branch and run
+``pip install -e .``. For example, the following commands will allow
+you to see the tip of the development branch.
 
 .. code-block:: bash
 
@@ -296,6 +298,11 @@ to see the tip of the development branch.
 
 This will make sure you are running a version of yt corresponding to the
 most up-to-date source code.
+
+.. note::
+
+  Alternatively, you can replace ``pip install -e .`` with ``conda develop -b .``.
+
 
 Installing Support for the Rockstar Halo Finder
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -385,7 +392,7 @@ source include:
 
 - ``git``
 - A C compiler such as ``gcc`` or ``clang``
-- ``Python 2.7``, ``Python 3.4``, or ``Python 3.5``
+- ``Python 2.7``, ``Python 3.5``, or ``Python 3.6``
 
 In addition, building yt from source requires ``numpy`` and ``cython``
 which can be installed with ``pip``:
@@ -395,8 +402,8 @@ which can be installed with ``pip``:
   $ pip install numpy cython
 
 You may also want to install some of yt's optional dependencies, including
-``jupyter``, ``h5py`` (which in turn depends on the HDF5 library), ``scipy``, or
-``astropy``,
+``jupyter``, ``h5py`` (which in turn depends on the HDF5 library), ``scipy``,
+``astropy``, or ``cartopy``.
 
 The source code for yt may be found on GitHub. If you prefer to install the
 development version of yt instead of the latest stable release, you will need

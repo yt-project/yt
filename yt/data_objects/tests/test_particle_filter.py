@@ -1,6 +1,11 @@
 from __future__ import print_function
-from yt.testing import assert_equal, fake_random_ds
+
+from nose.tools import assert_raises
+
 from yt.data_objects.particle_filters import add_particle_filter, particle_filter
+from yt.testing import assert_equal, fake_random_ds
+from yt.utilities.exceptions import YTIllDefinedFilter, \
+    YTIllDefinedParticleFilter
 
 
 def test_add_particle_filter():
@@ -16,12 +21,27 @@ def test_add_particle_filter():
         filter_field = (pfilter.filtered_type, "particle_mass")
         return data[filter_field] > 0.5
 
-    add_particle_filter("stars", function=stars, filtered_type='all',
+    add_particle_filter("stars1", function=stars, filtered_type='all',
                         requires=["particle_mass"])
     ds = fake_random_ds(16, nprocs=8, particles=16)
-    ds.add_particle_filter('stars')
-    assert ('deposit', 'stars_cic') in ds.derived_field_list
+    ds.add_particle_filter('stars1')
+    assert ('deposit', 'stars1_cic') in ds.derived_field_list
 
+    # Test without requires field
+    add_particle_filter("stars2", function=stars)
+    ds = fake_random_ds(16, nprocs=8, particles=16)
+    ds.add_particle_filter('stars2')
+    assert ('deposit', 'stars2_cic') in ds.derived_field_list
+
+    # Test adding filter with fields not defined on the ds
+    with assert_raises(YTIllDefinedParticleFilter) as ex:
+        add_particle_filter("bad_stars", function=stars,
+                            filtered_type='all', requires=["wrong_field"])
+        ds.add_particle_filter('bad_stars')
+    actual = str(ex.exception)
+    desired = '\nThe fields\n\t(\'all\', \'wrong_field\'),\nrequired by the' \
+              ' "bad_stars" particle filter, are not defined for this dataset.'
+    assert_equal(actual, desired)
 
 def test_add_particle_filter_overriding():
     """Test the add_particle_filter overriding"""
@@ -65,7 +85,7 @@ def test_add_particle_filter_overriding():
     # Restore the original warning function
     mylog.warning = warning
 
-def test_particle_filter():
+def test_particle_filter_decorator():
     """Test the particle_filter decorator"""
 
     @particle_filter(filtered_type='all', requires=['particle_mass'])
@@ -77,6 +97,39 @@ def test_particle_filter():
     ds.add_particle_filter('heavy_stars')
     assert 'heavy_stars' in ds.particle_types
     assert ('deposit', 'heavy_stars_cic') in ds.derived_field_list
+
+    # Test name of particle filter
+    @particle_filter(name="my_stars", filtered_type='all',
+                     requires=['particle_mass'])
+    def custom_stars(pfilter, data):
+        filter_field = (pfilter.filtered_type, "particle_mass")
+        return data[filter_field] == 0.5
+
+    ds = fake_random_ds(16, nprocs=8, particles=16)
+    ds.add_particle_filter('my_stars')
+    assert 'my_stars' in ds.particle_types
+    assert ('deposit', 'my_stars_cic') in ds.derived_field_list
+
+def test_particle_filter_exceptions():
+    @particle_filter(filtered_type='all', requires=['particle_mass'])
+    def filter1(pfilter, data):
+        return data
+
+    ds = fake_random_ds(16, nprocs=8, particles=16)
+    ds.add_particle_filter('filter1')
+
+    ad = ds.all_data()
+    with assert_raises(YTIllDefinedFilter):
+        ad['filter1', 'particle_mass'].shape[0]
+
+    @particle_filter(filtered_type='all', requires=['particle_mass'])
+    def filter2(pfilter, data):
+        filter_field = ('io', "particle_mass")
+        return data[filter_field] > 0.5
+
+    ds.add_particle_filter('filter2')
+    ad = ds.all_data()
+    ad['filter2', 'particle_mass'].min()
 
 def test_particle_filter_dependency():
     """

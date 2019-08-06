@@ -18,15 +18,12 @@ import numpy as np
 
 from yt.data_objects.data_containers import \
     YTSelectionContainer0D, YTSelectionContainer1D, \
-    YTSelectionContainer2D, YTSelectionContainer3D
-from yt.funcs import \
-    ensure_list, \
-    iterable, \
-    validate_width_tuple, \
-    fix_length, \
-    fix_axis
-from yt.geometry.selection_routines import \
-    points_in_cells
+    YTSelectionContainer2D, YTSelectionContainer3D, YTSelectionContainer
+from yt.data_objects.static_output import Dataset
+from yt.extern.six import string_types
+from yt.funcs import ensure_list, iterable, validate_width_tuple, \
+    fix_length, fix_axis, validate_3d_array, validate_float, \
+    validate_iterable, validate_object, validate_axis, validate_center
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
@@ -38,6 +35,8 @@ from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
+from yt.geometry.selection_routines import points_in_cells
+from yt.utilities.on_demand_imports import _scipy
 
 
 class YTPoint(YTSelectionContainer0D):
@@ -71,6 +70,10 @@ class YTPoint(YTSelectionContainer0D):
     _type_name = "point"
     _con_args = ('p',)
     def __init__(self, p, ds=None, field_parameters=None, data_source=None):
+        validate_3d_array(p)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         super(YTPoint, self).__init__(ds, field_parameters, data_source)
         if isinstance(p, YTArray):
             # we pass p through ds.arr to ensure code units are attached
@@ -130,6 +133,13 @@ class YTOrthoRay(YTSelectionContainer1D):
     _con_args = ('axis', 'coords')
     def __init__(self, axis, coords, ds=None, 
                  field_parameters=None, data_source=None):
+        validate_axis(ds, axis)
+        validate_iterable(coords)
+        for c in coords:
+            validate_float(c)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         super(YTOrthoRay, self).__init__(ds, field_parameters, data_source)
         self.axis = fix_axis(axis, self.ds)
         xax = self.ds.coordinates.x_axis[self.axis]
@@ -206,6 +216,11 @@ class YTRay(YTSelectionContainer1D):
     _container_fields = ("t", "dts")
     def __init__(self, start_point, end_point, ds=None,
                  field_parameters=None, data_source=None):
+        validate_3d_array(start_point)
+        validate_3d_array(end_point)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         super(YTRay, self).__init__(ds, field_parameters, data_source)
         if isinstance(start_point, YTArray):
             self.start_point = \
@@ -281,6 +296,14 @@ class YTSlice(YTSelectionContainer2D):
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, axis, coord, center=None, ds=None,
                  field_parameters=None, data_source=None):
+        validate_axis(ds, axis)
+        validate_float(coord)
+        # center is an optional parameter
+        if center is not None:
+            validate_center(center)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer2D.__init__(self, axis, ds,
                                         field_parameters, data_source)
         self._set_center(center)
@@ -400,6 +423,13 @@ class YTCuttingPlane(YTSelectionContainer2D):
     _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, normal, center, north_vector=None,
                  ds=None, field_parameters=None, data_source=None):
+        validate_3d_array(normal)
+        validate_center(center)
+        if north_vector is not None:
+            validate_3d_array(north_vector)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer2D.__init__(self, 4, ds,
                                         field_parameters, data_source)
         self._set_center(center)
@@ -587,6 +617,14 @@ class YTDisk(YTSelectionContainer3D):
     _con_args = ('center', '_norm_vec', 'radius', 'height')
     def __init__(self, center, normal, radius, height, fields=None,
                  ds=None, field_parameters=None, data_source=None):
+        validate_center(center)
+        validate_3d_array(normal)
+        validate_float(radius)
+        validate_float(height)
+        validate_iterable(fields)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         self._norm_vec = np.array(normal)/np.sqrt(np.dot(normal,normal))
@@ -618,6 +656,14 @@ class YTRegion(YTSelectionContainer3D):
     _con_args = ('center', 'left_edge', 'right_edge')
     def __init__(self, center, left_edge, right_edge, fields=None,
                  ds=None, field_parameters=None, data_source=None):
+        if center is not None:
+            validate_center(center)
+        validate_3d_array(left_edge)
+        validate_3d_array(right_edge)
+        validate_iterable(fields)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         if not isinstance(left_edge, YTArray):
@@ -640,6 +686,12 @@ class YTDataCollection(YTSelectionContainer3D):
     _con_args = ("_obj_list",)
     def __init__(self, obj_list, ds=None, field_parameters=None,
                  data_source=None, center=None):
+        validate_iterable(obj_list)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
+        if center is not None:
+            validate_center(center)
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],
@@ -672,6 +724,11 @@ class YTSphere(YTSelectionContainer3D):
     _con_args = ('center', 'radius')
     def __init__(self, center, radius, ds=None,
                  field_parameters=None, data_source=None):
+        validate_center(center)
+        validate_float(radius)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         super(YTSphere, self).__init__(center, ds,
                                            field_parameters, data_source)
         # Unpack the radius, if necessary
@@ -679,7 +736,7 @@ class YTSphere(YTSelectionContainer3D):
         if radius < self.index.get_smallest_dx():
             raise YTSphereTooSmall(ds, radius.in_units("code_length"),
                                    self.index.get_smallest_dx().in_units("code_length"))
-        self.set_field_parameter('radius',radius)
+        self.set_field_parameter('radius', radius)
         self.set_field_parameter("center", self.center)
         self.radius = radius
 
@@ -719,6 +776,16 @@ class YTEllipsoid(YTSelectionContainer3D):
     _con_args = ('center', '_A', '_B', '_C', '_e0', '_tilt')
     def __init__(self, center, A, B, C, e0, tilt, fields=None,
                  ds=None, field_parameters=None, data_source=None):
+        validate_center(center)
+        validate_float(A)
+        validate_float(B)
+        validate_float(C)
+        validate_3d_array(e0)
+        validate_float(tilt)
+        validate_iterable(fields)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         # make sure the magnitudes of semi-major axes are in order
@@ -790,6 +857,13 @@ class YTCutRegion(YTSelectionContainer3D):
     _con_args = ("base_object", "conditionals")
     def __init__(self, data_source, conditionals, ds=None,
                  field_parameters=None, base_object=None):
+        validate_object(data_source, YTSelectionContainer)
+        validate_iterable(conditionals)
+        for condition in conditionals:
+            validate_object(condition, string_types)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(base_object, YTSelectionContainer)
         if base_object is not None:
             # passing base_object explicitly has been deprecated,
             # but we handle it here for backward compatibility
@@ -797,12 +871,20 @@ class YTCutRegion(YTSelectionContainer3D):
                 raise RuntimeError(
                     "Cannot use both base_object and data_source")
             data_source=base_object
+
+        self.conditionals = ensure_list(conditionals)
+        if isinstance(data_source, YTCutRegion):
+            # If the source is also a cut region, add its conditionals
+            # and set the source to be its source.
+            # Preserve order of conditionals.
+            self.conditionals = data_source.conditionals + \
+              self.conditionals
+            data_source = data_source.base_object
+
         super(YTCutRegion, self).__init__(
             data_source.center, ds, field_parameters, data_source=data_source)
-        self.conditionals = ensure_list(conditionals)
         self.base_object = data_source
         self._selector = None
-        self._particle_mask = {}
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
 
@@ -856,22 +938,76 @@ class YTCutRegion(YTSelectionContainer3D):
                 np.logical_and(res, ind, ind)
         return ind
 
+    def _part_ind_KDTree(self, ptype):
+        '''Find the particles in cells using a KDTree approach.'''
+        parent = getattr(self, "parent", self.base_object)
+        units = "code_length"
+
+        pos = np.stack([self[("index", 'x')].to(units),
+                        self[("index", 'y')].to(units),
+                        self[("index", 'z')].to(units)], axis=1).value
+        dx = np.stack([self[("index", "dx")].to(units),
+                       self[("index", "dy")].to(units),
+                       self[("index", "dz")].to(units)], axis=1).value
+        ppos = np.stack([parent[(ptype, "particle_position_x")],
+                         parent[(ptype, "particle_position_y")],
+                         parent[(ptype, "particle_position_z")]], axis=1).value
+        levels = self[("index", "grid_level")].astype('int32').value
+        levelmin = levels.min()
+        levelmax = levels.max()
+
+        mask = np.zeros(ppos.shape[0], dtype=bool)
+
+        for lvl in range(levelmax, levelmin-1, -1):
+            # Filter out cells not in the current level
+            lvl_mask = (levels == lvl)
+            dx_loc = dx[lvl_mask]
+            pos_loc = pos[lvl_mask]
+
+            grid_tree = _scipy.spatial.cKDTree(pos_loc, boxsize=1)
+
+            # Compute closest cell for all remaining particles
+            dist, icell = grid_tree.query(ppos[~mask], distance_upper_bound=dx_loc.max(),
+                                          p=np.inf)
+            mask_loc = np.isfinite(dist[:])
+
+            # Check that particles within dx of a cell are in it
+            i = icell[mask_loc]
+            dist = np.abs(ppos[~mask][mask_loc, :] - pos_loc[i])
+            tmp_mask = np.all(dist <= (dx_loc[i] / 2), axis=1)
+
+            mask_loc[mask_loc] = tmp_mask
+
+            # Update the particle mask with particles found at this level
+            mask[~mask] |= mask_loc
+
+        return mask
+
+    def _part_ind_brute_force(self, ptype):
+        parent = getattr(self, "parent", self.base_object)
+        units = "code_length"
+        mask = points_in_cells(
+            self[("index", "x")].to(units),
+            self[("index", "y")].to(units),
+            self[("index", "z")].to(units),
+            self[("index", "dx")].to(units),
+            self[("index", "dy")].to(units),
+            self[("index", "dz")].to(units),
+            parent[(ptype, "particle_position_x")].to(units),
+            parent[(ptype, "particle_position_y")].to(units),
+            parent[(ptype, "particle_position_z")].to(units))
+
+        return mask
+
     def _part_ind(self, ptype):
-        if self._particle_mask.get(ptype) is None:
-            parent = getattr(self, "parent", self.base_object)
-            units = "code_length"
-            mask = points_in_cells(
-                self[("index", "x")].to(units),
-                self[("index", "y")].to(units),
-                self[("index", "z")].to(units),
-                self[("index", "dx")].to(units),
-                self[("index", "dy")].to(units),
-                self[("index", "dz")].to(units),
-                parent[(ptype, "particle_position_x")].to(units),
-                parent[(ptype, "particle_position_y")].to(units),
-                parent[(ptype, "particle_position_z")].to(units))
-            self._particle_mask[ptype] = mask
-        return self._particle_mask[ptype]
+        # If scipy is installed, use the fast KD tree
+        # implementation. Else, fall back onto the direct
+        # brute-force algorithm.
+        try:
+            _scipy.spatial.KDTree
+            return self._part_ind_KDTree(ptype)
+        except ImportError:
+            return self._part_ind_brute_force(ptype)
 
     @property
     def icoords(self):
@@ -900,7 +1036,7 @@ class YTIntersectionContainer3D(YTSelectionContainer3D):
 
     Parameters
     ----------
-    data_objects : Iterable of YTSelectionContainer3D
+    data_objects : Iterable of YTSelectionContainer
         The data objects to intersect
 
     Examples
@@ -918,6 +1054,12 @@ class YTIntersectionContainer3D(YTSelectionContainer3D):
     _con_args = ("data_objects",)
     def __init__(self, data_objects, ds = None, field_parameters = None,
                  data_source = None):
+        validate_iterable(data_objects)
+        for obj in data_objects:
+            validate_object(obj, YTSelectionContainer)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
                 data_source)
         # ensure_list doesn't check for tuples
@@ -936,7 +1078,7 @@ class YTDataObjectUnion(YTSelectionContainer3D):
 
     Parameters
     ----------
-    data_objects : Iterable of YTSelectionContainer3D
+    data_objects : Iterable of YTSelectionContainer
         The data objects to union
 
     Examples
@@ -954,6 +1096,12 @@ class YTDataObjectUnion(YTSelectionContainer3D):
     _con_args = ("data_objects",)
     def __init__(self, data_objects, ds = None, field_parameters = None,
                  data_source = None):
+        validate_iterable(data_objects)
+        for obj in data_objects:
+            validate_object(obj, YTSelectionContainer)
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
                 data_source)
         # ensure_list doesn't check for tuples
