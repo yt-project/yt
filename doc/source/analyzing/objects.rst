@@ -405,6 +405,11 @@ for the grid cell to be incorporated.
     | Usage: ``sphere(center, radius, ds=None, field_parameters=None, data_source=None)``
     | A sphere defined by a central coordinate and a radius.
 
+**Minimal Bounding Sphere**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTMinimalSphere`
+    | Usage: ``minimal_sphere(points, ds=None, field_parameters=None, data_source=None)``
+    | A sphere that contains all the points passed as argument.
+
 .. _collection-objects:
 
 Filtering and Collection Objects

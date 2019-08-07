@@ -807,7 +807,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
 
     Parameters
     ----------
-    points : array or YTArray
+    points : YTArray
         The points that the sphere will contain.
 
     Examples
@@ -826,6 +826,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
+        validate_object(points, YTArray)
 
         points = fix_length(points, ds)
         if len(points) < 2:
