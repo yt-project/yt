@@ -475,6 +475,14 @@ class yaml_imports(object):
 
 _yaml = yaml_imports()
 
+class NotMiniball(NotAModule):
+    def __init__(self, pkg_name):
+        super(NotMiniball, self).__init__(pkg_name)
+        str = ("This functionality requires the %s package to be installed. "
+               "Installation instructions can be found at "
+               "https://github.com/weddige/miniball.")
+        self.error = ImportError(str % self.pkg_name)
+
 class miniball_imports(object):
     _name = 'miniball'
     _Miniball = None
@@ -485,7 +493,7 @@ class miniball_imports(object):
             try:
                 from miniball import Miniball
             except ImportError:
-                Miniball = NotAModule(self._name)
+                Miniball = NotMiniball(self._name)
             self._Miniball = Miniball
         return self._Miniball
 
