@@ -480,7 +480,8 @@ class NotMiniball(NotAModule):
         super(NotMiniball, self).__init__(pkg_name)
         str = ("This functionality requires the %s package to be installed. "
                "Installation instructions can be found at "
-               "https://github.com/weddige/miniball.")
+               "https://github.com/weddige/miniball or alternatively you can "
+               "install via `pip install MiniballCpp`.")
         self.error = ImportError(str % self.pkg_name)
 
 class miniball_imports(object):
