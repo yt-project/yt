@@ -395,9 +395,9 @@ for the grid cell to be incorporated.
 **Ellipsoid**
     | Class :class:`~yt.data_objects.selection_data_containers.YTEllipsoid`
     | Usage: ``ellipsoid(center, semi_major_axis_length, semi_medium_axis_length, semi_minor_axis_length, semi_major_vector, tilt, fields=None, ds=None, field_parameters=None, data_source=None)``
-    | An ellipsoid with axis magnitudes set by semi_major_axis_length,
-     semi_medium_axis_length, and semi_minor_axis_length.  semi_major_vector
-     sets the direction of the semi_major_axis.  tilt defines the orientation
+    | An ellipsoid with axis magnitudes set by ``semi_major_axis_length``,
+     ``semi_medium_axis_length``, and ``semi_minor_axis_length``.  ``semi_major_vector``
+     sets the direction of the ``semi_major_axis``.  ``tilt`` defines the orientation
      of the semi-medium and semi_minor axes.
 
 **Sphere**
