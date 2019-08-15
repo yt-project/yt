@@ -1,32 +1,29 @@
 """
-OWLS frontend tests using the snapshot_033 dataset
-
-
-
-
+Title: test_owls.py
+Purpose: OWLS frontend tests using the snapshot_033 dataset
+Notes:
+    Copyright (c) 2013, yt Development Team.
+    Distributed under the terms of the Modified BSD License.
+    The full license is in the file COPYING.txt, distributed with this
+    software.
 """
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from collections import OrderedDict
 
-from yt.testing import \
-    requires_file
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    sph_answer
+import pytest
+
+from yt.testing import requires_file
 from yt.frontends.owls.api import OWLSDataset
 from yt.data_objects.particle_filters import add_particle_filter
 
+import framework as fw
+import utils
+
+
+# Test data
 os33 = "snapshot_033/snap_033.0.hdf5"
 
+
+# Globals
 # This maps from field names to weight field names to use for projections
 _fields = OrderedDict(
     [
@@ -44,30 +41,91 @@ _fields = OrderedDict(
 )
 
 
-@requires_ds(os33, big_data=True)
-def test_snapshot_033():
-    ds = data_dir_load(os33)
-    for test in sph_answer(ds, 'snap_033', 2*128**3, _fields):
-        test_snapshot_033.__name__ = test.description
-        yield test
+#============================================
+#                 TestOwls
+#============================================
+class TestOwls(fw.AnswerTest):
+    """
+    Container for the owls frontend answer tests.
 
+    Attributes:
+    -----------
+        pass
 
-@requires_file(os33)
-def test_OWLSDataset():
-    assert isinstance(data_dir_load(os33), OWLSDataset)
+    Methods:
+    --------
+        pass
+    """
+    #-----
+    # test_snapshot_033
+    #-----
+    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+        reason="Skipping test_jet because --answer-big-data was not set."
+    )
+    @utils.requires_ds(os33)
+    def test_snapshot_033(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        ds = utils.data_dir_load(os33)
+        hashes = self.sph_answer(ds, 'snap_033', 2*128**3, _fields)
+        utils.handle_hashes(self.save_dir, 'owls-test-snapshot-033', hashes, self.answer_store)
+
+    #-----
+    # test_OWLSDataset
+    #-----
+    @requires_file(os33)
+    def test_OWLSDataset(self):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        assert isinstance(utils.data_dir_load(os33), OWLSDataset)
     
-    
-@requires_ds(os33)
-def test_OWLS_particlefilter():
-    ds = data_dir_load(os33)
-    ad = ds.all_data()
-    def cold_gas(pfilter, data):
-        temperature = data[pfilter.filtered_type, "Temperature"]
-        filter = (temperature.in_units('K') <= 1e5)
-        return filter
-    add_particle_filter("gas_cold", function=cold_gas, filtered_type='PartType0', requires=["Temperature"])
-    ds.add_particle_filter('gas_cold')
+    #-----
+    # test_OWLS_particlefilter
+    #----- 
+    @utils.requires_ds(os33)
+    def test_OWLS_particlefilter(self):
+        """
+        Parameters:
+        -----------
+            pass
 
-    mask = (ad['PartType0','Temperature'] <= 1e5)
-    assert ad['PartType0','Temperature'][mask].shape == ad['gas_cold','Temperature'].shape
+        Raises:
+        -------
+            pass
 
+        Returns:
+        --------
+            pass
+        """
+        ds = utils.data_dir_load(os33)
+        ad = ds.all_data()
+        def cold_gas(pfilter, data):
+            temperature = data[pfilter.filtered_type, "Temperature"]
+            filter = (temperature.in_units('K') <= 1e5)
+            return filter
+        add_particle_filter("gas_cold", function=cold_gas, filtered_type='PartType0', requires=["Temperature"])
+        ds.add_particle_filter('gas_cold')
+        mask = (ad['PartType0','Temperature'] <= 1e5)
+        assert ad['PartType0','Temperature'][mask].shape == ad['gas_cold','Temperature'].shape

@@ -12,9 +12,9 @@ from yt.testing import \
     assert_allclose_units, \
     units_override_check
 from yt.frontends.artio.api import ARTIODataset
-from yt.utilities.answer_testing import \
-    framework as fw, \
-    utils
+
+import framework as fw
+import utils
 
 # Data file
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/"
@@ -85,7 +85,7 @@ class TestArtIo(fw.AnswerTest):
         hashes = {}
         hashes['pixelized_projection_values'] = utils.generate_hash(ppv_hd)
         hashes['field_values'] = utils.generate_hash(fv_hd)
-        utils.handle_hashes('artio', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'artio', hashes, self.answer_store)
 
     #-----
     # test_ARTIODataset

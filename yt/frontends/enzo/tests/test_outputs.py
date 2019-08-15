@@ -8,14 +8,16 @@ Notes:
     software.
 """
 import numpy as np
+
 import yt
 from yt.frontends.enzo.api import EnzoDataset
 from yt.frontends.enzo.fields import NODAL_FLAGS
 from yt.testing import assert_allclose_units
-from yt.utilities.answer_testing import \
-    framework as fw, \
-    utils
 from yt.visualization.plot_window import SlicePlot
+
+import framework as fw
+import utils
+
 
 # Files containing data to be used in tests. Paths are relative to
 # yt test_data_dir
@@ -64,7 +66,7 @@ class TestEnzo(fw.AnswerTest):
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare answer
-        utils.handle_hashes('toro1d', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'toro1d', hashes, self.answer_store)
 
     #-----
     # test_kh2d
@@ -83,7 +85,7 @@ class TestEnzo(fw.AnswerTest):
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare answer
-        utils.handle_hashes('kh2d', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'kh2d', hashes, self.answer_store)
 
     #-----
     # test_moving7
@@ -104,7 +106,7 @@ class TestEnzo(fw.AnswerTest):
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare answer
-        utils.handle_hashes('moving7', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'moving7', hashes, self.answer_store)
 
     #-----
     # test_galaxy0030
@@ -140,7 +142,7 @@ class TestEnzo(fw.AnswerTest):
         # Run the big patch amr test suite
         hashes = self.big_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare answer
-        utils.handle_hashes('galaxy0030', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'galaxy0030', hashes, self.answer_store)
 
     #-----
     # test_simulated_halo_mass_function
@@ -168,7 +170,7 @@ class TestEnzo(fw.AnswerTest):
             shmf_hd += self.simulated_halo_mass_function_test(ds, finder)
         hashes = {}
         hashes['simulated_halo_mass_function'] = utils.generate_hash(shmf_hd)
-        utils.handle_hashes('shmf-enzotiny', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'shmf-enzotiny', hashes, self.answer_store)
 
     #-----
     # test_analytic_halo_mass_function
@@ -196,7 +198,7 @@ class TestEnzo(fw.AnswerTest):
             ahmf_hd += self.analytic_halo_mass_function_test(ds, fit)
         hashes = {}
         hashes['analytic_halo_mass_function'] = utils.generate_hash(ahmf_hd)
-        utils.handle_hashes('ahmf-enzotiny', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'ahmf-enzotiny', hashes, self.answer_store)
 
     #-----
     # test_ecp

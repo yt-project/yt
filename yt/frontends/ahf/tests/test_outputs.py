@@ -10,9 +10,9 @@ Notes:
 import os.path
 
 from yt.frontends.ahf.api import AHFHalosDataset
-from yt.utilities.answer_testing import \
-    framework as fw, \
-    utils
+
+import framework as fw
+import utils
 
 # Test data
 ahf_halos = 'ahf_halos/snap_N64L16_135.parameter'
@@ -84,4 +84,4 @@ class TestAHF(fw.AnswerTest):
         # Hash the hex digest
         hashes = {'field_values' : utils.generate_hash(fv_hd)}
         # Save or compare answers
-        utils.handle_hashes('ahf', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'ahf', hashes, self.answer_store)

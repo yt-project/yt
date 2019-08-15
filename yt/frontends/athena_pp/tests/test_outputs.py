@@ -14,9 +14,9 @@ from yt.frontends.athena_pp.api import AthenaPPDataset
 from yt.testing import \
     units_override_check, \
     assert_allclose
-from yt.utilities.answer_testing import \
-    framework as fw, \
-    utils
+
+import framework as fw
+import utils
 
 
 # Test data
@@ -71,7 +71,7 @@ class TestAthenaPP(fw.AnswerTest):
             ga_hd += self.generic_array_test(ds, field_func, args=[field])
         hashes = {}
         hashes['generic_array'] = utils.generate_hash(ga_hd)
-        utils.handle_hashes('athenapp_disk', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'athenapp_disk', hashes, self.answer_store)
 
     #-----
     # test_AM06
@@ -105,7 +105,7 @@ class TestAthenaPP(fw.AnswerTest):
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare answer
-        utils.handle_hashes('athenapp_AM06', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'athenapp_AM06', hashes, self.answer_store)
 
     #-----
     # test_AM06_override
