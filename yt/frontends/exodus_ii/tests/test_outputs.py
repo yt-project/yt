@@ -6,6 +6,10 @@ Purpose: Exodus II frontend tests
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from yt.testing import \
+    assert_array_equal, \
+    assert_equal, \
+    requires_file 
 import framework as fw
 import utils
 
@@ -34,6 +38,7 @@ class TestExodusII(fw.AnswerTest):
     #-----
     # test_out
     #-----
+    @requires_file(out)
     def test_out(self):
         """
         Parameters:
@@ -61,16 +66,17 @@ class TestExodusII(fw.AnswerTest):
                       ('connect2', 'conv_marker'),
                       ('connect2', 'convected'),
                       ('connect2', 'diffused')]
-        assert str(ds) == "out.e"
-        assert ds.dimensionality == 3
-        assert ds.current_time == 0.0
-        assert ds.parameters['nod_names'] == ['convected', 'diffused']
-        assert ds.parameters['num_meshes'] == 2
-        assert ds.field_list == field_list
+        assert_equal(str(ds), "out.e")
+        assert_equal(ds.dimensionality, 3)
+        assert_equal(ds.current_time, 0.0)
+        assert_array_equal(ds.parameters['nod_names'], ['convected', 'diffused'])
+        assert_equal(ds.parameters['num_meshes'], 2)
+        assert_array_equal(ds.field_list, field_list)
 
     #-----
     # test_out002
     #-----
+    @requires_file(out_s002)
     def test_out002(self):
         """
         Parameters:
@@ -98,14 +104,15 @@ class TestExodusII(fw.AnswerTest):
                       ('connect2', 'conv_marker'),
                       ('connect2', 'convected'),
                       ('connect2', 'diffused')]
-        assert str(ds) == "out.e-s002"
-        assert ds.dimensionality == 3
-        assert ds.current_time == 2.0
-        assert ds.field_list == field_list
+        assert_equal(str(ds),  "out.e-s002")
+        assert_equal(ds.dimensionality, 3)
+        assert_equal(ds.current_time, 2.0)
+        assert_array_equal(ds.field_list, field_list)
 
     #-----
     # test_gold
     #-----
+    @requires_file(gold)
     def test_gold(self):
         """
         Parameters:
@@ -122,12 +129,13 @@ class TestExodusII(fw.AnswerTest):
         """
         ds = utils.data_dir_load(gold)
         field_list = [('all', 'forced'), ('connect1', 'forced')]
-        assert str(ds) == "gold.e"
-        assert ds.field_list == field_list
+        assert_equal(str(ds), "gold.e")
+        assert_array_equal(ds.field_list, field_list)
 
     #-----
     # test_displacement_fields
     #-----
+    @utils.requires_ds(big_data)
     def test_displacement_fields(self):
         """
         Parameters:

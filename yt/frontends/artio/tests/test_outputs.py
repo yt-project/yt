@@ -8,10 +8,12 @@ Notes:
     software.
 """
 from yt.convenience import load
+from yt.frontends.artio.api import ARTIODataset
 from yt.testing import \
     assert_allclose_units, \
+    assert_equal, \
+    requires_file, \
     units_override_check
-from yt.frontends.artio.api import ARTIODataset
 
 import framework as fw
 import utils
@@ -39,6 +41,7 @@ class TestArtIo(fw.AnswerTest):
     #-----
     # test_sizmbhloz
     #-----
+    @utils.requires_ds(sizmbhloz)
     def test_sizmbhloz(self):
         """
         Parameters:
@@ -56,7 +59,7 @@ class TestArtIo(fw.AnswerTest):
         # Load data
         ds = utils.data_dir_load(sizmbhloz)
         ds.max_range = 1024*1024
-        assert str(ds) == "sizmbhloz-clref04SNth-rs9_a0.9011.art"
+        assert_equal(str(ds), "sizmbhloz-clref04SNth-rs9_a0.9011.art")
         # Set up test parameters
         dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
         axes = [0, 1, 2]
@@ -79,8 +82,8 @@ class TestArtIo(fw.AnswerTest):
             dobj = utils.create_obj(ds, dobj_name)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
-            assert s1 == s2
-        assert ds.particle_type_counts == {'N-BODY': 100000, 'STAR': 110650}
+            assert_equal(s1, s2)
+        assert_equal(ds.particle_type_counts, {'N-BODY': 100000, 'STAR': 110650})
         # Save or compare hashes
         hashes = {}
         hashes['pixelized_projection_values'] = utils.generate_hash(ppv_hd)
@@ -90,6 +93,7 @@ class TestArtIo(fw.AnswerTest):
     #-----
     # test_ARTIODataset
     #-----
+    @requires_file(sizmbhloz)
     def test_ARTIODataset(self):
         """
         Makes sure the loaded data is the proper type.
@@ -111,6 +115,7 @@ class TestArtIo(fw.AnswerTest):
     #-----
     # test_units_override
     #-----
+    @requires_file(sizmbhloz)
     def test_units_override(self):
         """
         Performs the units override test.
@@ -132,6 +137,7 @@ class TestArtIo(fw.AnswerTest):
     #-----
     # test_particle_derived_field
     #-----
+    @requires_file(sizmbhloz)
     def test_particle_derived_field(self):
         """
         Defines a derived field and makes sure that it works.

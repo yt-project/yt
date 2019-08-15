@@ -7,12 +7,16 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-import numpy as np
+import pytest
 
-import yt
 from yt.frontends.enzo.api import EnzoDataset
 from yt.frontends.enzo.fields import NODAL_FLAGS
-from yt.testing import assert_allclose_units
+from yt.testing import \
+    assert_allclose_units, \
+    assert_almost_equal, \
+    assert_equal, \
+    requires_file, \
+    units_override_check
 from yt.visualization.plot_window import SlicePlot
 
 import framework as fw
@@ -52,11 +56,12 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_toro1d
     #-----
+    @utils.requires_ds(toro1d)
     def test_toro1d(self):
         # Load data
         ds = utils.data_dir_load(toro1d)
         # Make sure we have the right data file
-        assert str(ds) == 'data0001'
+        assert_equal(str(ds), 'data0001')
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -71,11 +76,12 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_kh2d
     #-----
+    @utils.requires_ds(kh2d)
     def test_kh2d(self):
         # Load data
         ds = utils.data_dir_load(kh2d)
         # Make sure we're dealing with the right file
-        assert str(ds) == 'DD0011'
+        assert_equal(str(ds), 'DD0011')
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -90,11 +96,12 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_moving7
     #-----
+    @utils.requires_ds(m7)
     def test_moving7(self):
         # Load data
         ds = utils.data_dir_load(m7)
         # Make sure we have the right data file
-        assert str(ds) == 'moving7_0010'
+        assert_equal(str(ds), 'moving7_0010')
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -111,6 +118,10 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_galaxy0030
     #-----
+    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+        reason="Skipping test_jet because --answer-big-data was not set."
+    )
+    @utils.requires_ds(g30)
     def test_galaxy0030(self):
         """
         Tests the galaxy_0030 big data simulation.
@@ -129,7 +140,7 @@ class TestEnzo(fw.AnswerTest):
         """
         ds = utils.data_dir_load(g30)
         # Make sure we have the right data file
-        assert str(ds) == 'galaxy0030'
+        assert_equal(str(ds), 'galaxy0030')
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -147,6 +158,7 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_simulated_halo_mass_function
     #-----
+    @utils.requires_ds(enzotiny)
     def test_simulated_halo_mass_function(self):
         """
         Parameters:
@@ -175,6 +187,7 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_analytic_halo_mass_function
     #-----
+    @utils.requires_ds(enzotiny)
     def test_analytic_halo_mass_function(self):
         """
         Parameters:
@@ -203,6 +216,10 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_ecp
     #-----
+    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+        reason="Skipping test_jet because --answer-big-data was not set."
+    )
+    @utils.requires_ds(ecp)
     def test_ecp(self):
         """
         Parameters:
@@ -223,6 +240,7 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_units_override
     #-----
+    @requires_file(enzotiny)
     def test_units_override(self):
         """
         Parameters:
@@ -237,11 +255,15 @@ class TestEnzo(fw.AnswerTest):
         --------
             pass
         """
-        yt.testing.units_override_check(enzotiny)
+        units_override_check(enzotiny)
 
     #-----
     # test_nuclei_density_fields
     #-----
+    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+        reason="Skipping test_jet because --answer-big-data was not set."
+    )
+    @utils.requires_ds(ecp)
     def test_nuclei_density_fields(self):
         ds = utils.data_dir_load(ecp)
         ad = ds.all_data()
@@ -258,9 +280,10 @@ class TestEnzo(fw.AnswerTest):
         assert hd1 == hd2
 
     #-----
-    # test_enzo_dataset
+    # test_EnzoDataset
     #-----
-    def test_enzo_dataset(self):
+    @requires_file(enzotiny)
+    def test_EnzoDataset(self):
         """
         Parameters:
         -----------
@@ -279,6 +302,8 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_active_particle_dataset
     #-----
+    @requires_file(two_sphere_test)
+    @requires_file(active_particle_cosmology)
     def test_active_particle_datasets(self):
         """
         Parameters:
@@ -314,16 +339,17 @@ class TestEnzo(fw.AnswerTest):
         assert 'AccretingParticle' in two_sph.particle_types_raw
         assert 'io' not in two_sph.particle_types_raw
         assert 'all' in two_sph.particle_types
-        assert len(two_sph.particle_unions) ==  1
-        assert acc_part_fields == real_acc_part_fields
-        assert ['CenOstriker', 'DarkMatter'] == apcos.particle_types_raw
+        assert_equal(len(two_sph.particle_unions), 1)
+        assert_equal(acc_part_fields, real_acc_part_fields)
+        assert_equal(['CenOstriker', 'DarkMatter'], apcos.particle_types_raw)
         assert 'all' in apcos.particle_unions
-        assert apcos_fields == real_apcos_fields
-        assert apcos.particle_type_counts == apcos_pcounts
+        assert_equal(apcos_fields, real_apcos_fields)
+        assert_equal(apcos.particle_type_counts, apcos_pcounts)
 
     #-----
     # test_face_centered_mhdct_fields
     #-----
+    @requires_file(mhdctot)
     def test_face_centered_mhdct_fields(self):
         """
         Parameters:
@@ -344,8 +370,8 @@ class TestEnzo(fw.AnswerTest):
         dims = ds.domain_dimensions
         dims_prod = dims.prod()
         for field, flag in NODAL_FLAGS.items():
-            assert ad[field].shape == (dims_prod, 2*sum(flag))
-            assert grid[field].shape == tuple(dims) + (2*sum(flag),)
+            assert_equal(ad[field].shape, (dims_prod, 2*sum(flag)))
+            assert_equal(grid[field].shape == tuple(dims) + (2*sum(flag),))
         # Average of face-centered fields should be the same as
         # cell-centered field
         assert (ad['BxF'].sum(axis=-1)/2 == ad['Bx']).all()
@@ -355,6 +381,7 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_deeply_nested_zoom
     #-----
+    @requires_ds(dnz)
     def test_deeply_nested_zoom(self):
         """
         Parameters:
@@ -383,11 +410,12 @@ class TestEnzo(fw.AnswerTest):
         c_actual = [0.49150732540021, 0.505260532936791, 0.49058055816398]
         c_actual = ds.arr(c_actual, 'code_length')
         assert_allclose_units(c, c_actual)
-        assert max([g['density'].max() for g in ds.index.grids]) == v
+        assert_equal(max([g['density'].max() for g in ds.index.grids]), v)
 
     #-----
     # test_2d_grid_shape
     #-----
+    @requires_file(kh2d)
     def test_2d_grid_shape(self):
         """
         See issue #1601: we want to make sure that accessing data on
@@ -412,6 +440,7 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_nonzero_omega_radiation
     #-----
+    @requires_file(p3mini)
     def test_nonzero_omega_radiation(self):
         """
         Test support for non-zero omega_radiation cosmologies.
@@ -432,5 +461,5 @@ class TestEnzo(fw.AnswerTest):
         err_msg = "Simulation time not consistent with cosmology calculator."
         t_from_z = ds.cosmology.t_from_z(ds.current_redshift)
         tratio = ds.current_time / t_from_z
-        assert ds.omega_radiation == ds.cosmology.omega_radiation
-        np.testing.assert_almost_equal(tratio, 1, 4, err_msg=err_msg)
+        assert_equal(ds.omega_radiation, ds.cosmology.omega_radiation)
+        assert_almost_equal(tratio, 1, 4, err_msg=err_msg)

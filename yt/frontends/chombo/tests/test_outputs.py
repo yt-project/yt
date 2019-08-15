@@ -7,11 +7,14 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-from yt.testing import units_override_check
 from yt.frontends.chombo.api import \
     ChomboDataset, \
     Orion2Dataset, \
     PlutoDataset
+from yt.testing import \
+    assert_equal, \
+    requires_file, \
+    units_override_check
 
 import framework as fw
 import utils
@@ -42,6 +45,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_gc
     #-----
+    @utils.requires_ds(gc)
     def test_gc(self):
         """
         Parameters:
@@ -63,7 +67,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         ds = utils.data_dir_load(gc)
-        assert str(ds) ==  "data.0077.3d.hdf5"
+        assert_equal(str(ds),  "data.0077.3d.hdf5")
         # Run small patch amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare hashes
@@ -72,6 +76,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_tb
     #-----
+    @utils.requires_ds(tb)
     def test_tb(self):
         """
         Parameters:
@@ -93,7 +98,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         ds = utils.data_dir_load(tb)
-        assert str(ds) == "data.0005.3d.hdf5"
+        assert_equal(str(ds), "data.0005.3d.hdf5")
         # Run small patch amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare hashes
@@ -102,6 +107,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_iso
     #-----
+    @utils.requires_ds(iso)
     def test_iso(self):
         """
         Parameters:
@@ -123,7 +129,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         ds = utils.data_dir_load(iso)
-        assert str(ds) == "data.0000.3d.hdf5"
+        assert_equal(str(ds), "data.0000.3d.hdf5")
         # Run small patch amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare hashes
@@ -132,6 +138,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_zp
     #-----
+    @utils.requires_ds(zp)
     def test_zp(self):
         """
         Parameters:
@@ -153,7 +160,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("rhs", "phi")
         ds = utils.data_dir_load(zp)
-        assert str(ds) == "plt32.2d.hdf5"
+        assert_equal(str(ds), "plt32.2d.hdf5")
         # Run small patch amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare hashes
@@ -162,6 +169,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_kho
     #-----
+    @utils.requires_ds(kho)
     def test_kho(self):
         """
         Parameters:
@@ -183,7 +191,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         ds = utils.data_dir_load(kho)
-        assert str(ds) == "data.0004.hdf5"
+        assert_equal(str(ds), "data.0004.hdf5")
         # Run small patch amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare hashes
@@ -192,6 +200,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_ChomboDataset
     #-----
+    @requires_file(zp)
     def test_ChomboDataset(self):
         """
         Parameters:
@@ -211,6 +220,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_Orion2Dataset
     #-----
+    @requires_file(gc)
     def test_Orion2Dataset(self):
         """
         Parameters:
@@ -230,6 +240,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_PlutoDataset
     #-----
+    @requires_file(kho)
     def test_PlutoDataset(self):
         """
         Parameters:
@@ -249,6 +260,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_units_override_zp
     #-----
+    @requires_file(zp)
     def test_units_override_zp(self):
         """
         Parameters:
@@ -268,6 +280,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_units_override_gc
     #-----
+    @requires_file(gc)
     def test_units_override_gc(self):
         """
         Parameters:
@@ -287,6 +300,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_units_override_kho
     #-----
+    @requires_file(kho)
     def test_units_override_kho(self):
         """
         Parameters:

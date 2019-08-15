@@ -10,6 +10,10 @@ Notes:
 import numpy as np
 
 from yt.frontends.gadget_fof.api import GadgetFOFDataset
+from yt.testing import \
+    assert_array_equal, \
+    assert_equal, \
+    requires_file
 
 import framework as fw
 import utils
@@ -40,6 +44,7 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     # test_fields_g5
     #-----
+    @utils.requires_file(g5)
     def test_fields_g5(self):
         """
         Parameters:
@@ -68,6 +73,7 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     # test_fields_g42
     #-----
+    @utils.requires_ds(g42)
     def test_fields_g42(self):
         """
         Parameters:
@@ -96,6 +102,7 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     # test_GadgetFOFDataset
     #-----
+    @requires_file(g42)
     def test_GadgetFOFDataset(self):
         """
         Parameters:
@@ -115,6 +122,7 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     # test_subhalos
     #-----
+    @requires_file(g298)
     def test_subhalos(self):
         """
         Parameters:
@@ -139,11 +147,12 @@ class TestGadgetFOF(fw.AnswerTest):
                 my_s = ds.halo("Subhalo", (my_h.particle_identifier, sid))
                 total_sub += my_s["ID"].size
                 total_int += np.intersect1d(h_ids, my_s["ID"]).size
-        assert total_sub == total_int
+        assert_equal(total_sub, total_int)
 
     #-----
     # test_halo_masses
     #-----
+    @requires_file(g298)
     def test_halo_masses(self):
         """
         Parameters:
@@ -166,11 +175,12 @@ class TestGadgetFOF(fw.AnswerTest):
             for i in range(nhalos):
                 halo = ds.halo(ptype, i)
                 mass[i] = halo.mass
-            np.testing.assert_array_equal(ad[ptype, "particle_mass"], mass)
+            assert_array_equal(ad[ptype, "particle_mass"], mass)
 
     #-----
     # test_unbalanced_dataset
     #-----
+    @requires_file(g56)
     def test_unbalanced_dataset(self):
         """
         Parameters:
@@ -193,6 +203,7 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     # test_3file_halo
     #-----
+    @requires_file(g76)
     def test_3file_halo(self):
         """
         Parameters:

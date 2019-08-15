@@ -13,6 +13,9 @@ import pytest
 from yt.convenience import load
 from yt.frontends.halo_catalog.data_structures import HaloCatalogDataset
 from yt.frontends.ytdata.utilities import save_as_dataset
+from yt.testing import \
+    assert_array_equal, \
+    requires_module
 from yt.units.yt_array import YTArray, YTQuantity
 
 import framework as fw
@@ -39,6 +42,7 @@ class TestHaloCatalog(fw.AnswerTest):
     #-----
     # test_halo_caatalog
     #-----
+    @requires_module('h5py')
     def test_halo_catalog(self):
         """
         Parameters:
@@ -68,11 +72,12 @@ class TestHaloCatalog(fw.AnswerTest):
             f1.sort()
             f2 = ds.r[field].in_base()
             f2.sort()
-            np.testing.assert_array_equal(f1, f2)
+            assert_array_equal(f1, f2)
 
     #-----
     # test_halo_catalog_boundary_particles
     #-----
+    @requires_module('h5py')
     def test_halo_catalog_boundary_particles(self):
         """
         Parameters:
@@ -108,4 +113,4 @@ class TestHaloCatalog(fw.AnswerTest):
             f1.sort()
             f2 = ds.r[field].in_base()
             f2.sort()
-            np.testing.assert_array_equal(f1, f2)
+            assert_array_equal(f1, f2)

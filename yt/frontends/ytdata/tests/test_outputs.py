@@ -66,6 +66,7 @@ class TestYTData(fw.AnswerTest):
     #-----
     # test_datacontainer_data
     #-----
+    @utils.requires_ds(enzotiny)
     def test_datacontainer_data(self):
         """
         Parameters:
@@ -102,6 +103,7 @@ class TestYTData(fw.AnswerTest):
     #-----
     # test_grid_datacontainer_data
     #-----
+    @utils.requires_ds(enzotiny)
     def test_grid_datacontainer_data(self):
         """
         Parameters:
@@ -153,6 +155,7 @@ class TestYTData(fw.AnswerTest):
     #-----
     # test_spatial_data
     #-----
+    @utils.requires_ds(enzotiny)
     def test_spatial_data(self):
         """
         Parameters:
@@ -181,6 +184,7 @@ class TestYTData(fw.AnswerTest):
     #-----
     # test_profile_data
     #-----
+    @rutils.requires_ds(enzotiny)
     def test_profile_data(self):
         """
         Parameters:
@@ -236,6 +240,7 @@ class TestYTData(fw.AnswerTest):
     #-----
     # test_nonspatial_data
     #-----
+    @rutils.requires_ds(enzotiny)
     def test_nonspatial_data(self):
         """
         Parameters:

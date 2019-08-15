@@ -7,8 +7,11 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-from yt.testing import units_override_check
 from yt.frontends.gdf.api import GDFDataset
+from yt.testing import \
+    assert_equal, \
+    requires_file, \
+    units_override_check
 
 import framework as fw
 import utils
@@ -35,6 +38,7 @@ class TestGDF(fw.AnswerTest):
     #-----
     # test_sedov_tunnel
     #-----
+    @utils.requires_file(sedov)
     def test_sedov_tunnel(self):
         """
         Parameters:
@@ -50,7 +54,7 @@ class TestGDF(fw.AnswerTest):
             pass
         """
         ds = utils.data_dir_load(sedov)
-        assert str(ds) == "sedov_tst_0004"
+        assert_equal(str(ds) == "sedov_tst_0004")
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -65,11 +69,13 @@ class TestGDF(fw.AnswerTest):
     #-----
     # test_GDFDataset
     #-----
+    @requires_file(sedov)
     def test_GDFDataset(self):
         assert isinstance(utils.data_dir_load(sedov), GDFDataset)
 
     #-----
     # test_units_override
     #-----
+    @requires_file(sedov)
     def test_units_override(self):
         units_override_check(sedov)

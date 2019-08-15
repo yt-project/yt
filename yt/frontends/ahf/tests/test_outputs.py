@@ -10,6 +10,9 @@ Notes:
 import os.path
 
 from yt.frontends.ahf.api import AHFHalosDataset
+from yt.testing import \
+    assert_equal, \
+    requires_file
 
 import framework as fw
 import utils
@@ -36,6 +39,7 @@ class TestAHF(fw.AnswerTest):
     #-----
     # test_AHFHalosDataset
     #-----
+    @requires_file(ahf_halos)
     def test_AHFHalosDataset(self):
         """
         Makes sure the dataset is loaded correctly.
@@ -58,6 +62,7 @@ class TestAHF(fw.AnswerTest):
     #-----
     # test_fields_ahf_halos
     #-----
+    @utils.requires_ds(ahf_halos)
     def test_fields_ahf_halos(self):
         """
         Runs the field_values_test on AHF fields.
@@ -78,7 +83,7 @@ class TestAHF(fw.AnswerTest):
                    'particle_position_z', 'particle_mass')
         fv_hd = b''
         ds = utils.data_dir_load(ahf_halos, kwargs={'hubble_constant' : 0.7})
-        assert str(ds) == os.path.basename(ahf_halos)
+        assert_equal(str(ds), os.path.basename(ahf_halos))
         for field in fields:
             fv_hd += self.field_values_test(ds, field, particle_type=True)
         # Hash the hex digest

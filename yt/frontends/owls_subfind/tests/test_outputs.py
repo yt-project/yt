@@ -10,6 +10,9 @@ Notes:
 import os.path
 
 from yt.frontends.owls_subfind.api import OWLSSubfindDataset
+from yt.testing import \
+    assert_equal, \
+    requires_file
 
 import framework as fw
 import utils
@@ -37,6 +40,7 @@ class TestOwlsSubfind(fw.AnswerTest):
     #-----
     # test_fields_g8
     #-----
+    @utils.requires_ds(g8)
     def test_fields_g8(self):
         """
         Parameters:
@@ -54,7 +58,7 @@ class TestOwlsSubfind(fw.AnswerTest):
         fields = ("particle_position_x", "particle_position_y",
                    "particle_position_z", "particle_mass")
         ds = utils.data_dir_load(g8)
-        assert str(ds) == os.path.basename(g8)
+        assert_equal(str(ds), os.path.basename(g8))
         for field in fields:
             fv_hd += self.field_values_test(ds, field, particle_type=True)
         hashes = {'field_values' : utils.generate_hash(fv_hd)}
@@ -63,6 +67,7 @@ class TestOwlsSubfind(fw.AnswerTest):
     #-----
     # test_fields_g1
     #-----
+    @rutils.requires_ds(g1)
     def test_fields_g1(self):
         """
         Parameters:
@@ -80,7 +85,7 @@ class TestOwlsSubfind(fw.AnswerTest):
         fields = ("particle_position_x", "particle_position_y",
                    "particle_position_z", "particle_mass")
         ds = utils.data_dir_load(g1)
-        assert str(ds) == os.path.basename(g1)
+        assert_equal(str(ds), os.path.basename(g1))
         for field in fields:
             fv_hd += self.field_values_test(ds, field, particle_type=True)
         hashes = {'field_values' : utils.generate_hash(fv_hd)}
@@ -89,7 +94,8 @@ class TestOwlsSubfind(fw.AnswerTest):
     #-----
     # test_OWLSSubfindDataset
     #-----
-    def test_OWLSSubfindDataset():
+    @requires_file(g1)
+    def test_OWLSSubfindDataset(self):
         """
         Parameters:
         -----------

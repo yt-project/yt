@@ -11,10 +11,12 @@ import socket
 
 import numpy as np
 
-from yt.frontends.sdf.api import SDFDataset
-from yt.testing import requires_module
-from yt.visualization.api import ProjectionPlot
 from yt.extern.six.moves import urllib
+from yt.frontends.sdf.api import SDFDataset
+from yt.testing import \
+    assert_equal, \
+    requires_module
+from yt.visualization.api import ProjectionPlot
 
 import framework as fw
 import utils
@@ -76,7 +78,7 @@ class TestSDF(fw.AnswerTest):
         if not internet_on():
             return
         ds = SDFDataset(scivis_data)
-        assert str(ds) == "ds14_scivis_0128_e4_dt04_1.0000"
+        assert_equal(str(ds), "ds14_scivis_0128_e4_dt04_1.0000")
         ad = ds.all_data()
         assert np.unique(ad['particle_position_x']).size > 1
         ProjectionPlot(ds, "z", _fields)

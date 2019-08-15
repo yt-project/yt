@@ -8,11 +8,14 @@ Notes:
     software.
 """
 import numpy as np
+
+from yt.convenience import load
 from yt.frontends.open_pmd.data_structures import OpenPMDDataset
 from yt.testing import \
     assert_almost_equal, \
-    assert_array_equal
-from yt.convenience import load
+    assert_array_equal, \
+    assert_equal, \
+    requires_file
 
 import framework as fw
 import utils
@@ -43,6 +46,7 @@ class TestOpenPMD(fw.AnswerTest):
     #-----
     # test_3d_out
     #-----
+    @requires_file(threeD)
     def test_3d_out(self):
         """
         Parameters:
@@ -90,20 +94,21 @@ class TestOpenPMD(fw.AnswerTest):
         domain_width = [2.08e-05, 2.08e-05, 2.01e-05] * \
             np.ones_like(ds.domain_left_edge)
         assert isinstance(ds, OpenPMDDataset)
-        assert str(ds) == "data00000100.h5"
-        assert ds.dimensionality == 3
-        assert ds.particle_types_raw == ('io',)
+        assert_equal(str(ds), "data00000100.h5")
+        assert_equal(ds.dimensionality, 3)
+        assert_equal(ds.particle_types_raw, ('io',))
         assert "all" in ds.particle_unions
-        np.testing.assert_array_equal(ds.field_list, field_list)
-        np.testing.assert_array_equal(ds.domain_dimensions, domain_dimensions)
-        np.testing.assert_almost_equal(ds.current_time,
+        assert_array_equal(ds.field_list, field_list)
+        assert_array_equal(ds.domain_dimensions, domain_dimensions)
+        assert_almost_equal(ds.current_time,
             3.28471214521e-14 * np.ones_like(ds.current_time))
-        np.testing.assert_almost_equal(ds.domain_right_edge - \
+        assert_almost_equal(ds.domain_right_edge - \
             ds.domain_left_edge, domain_width)
 
     #-----
     # test_2d_out
     #-----
+    @requires_file(twoD)
     def test_2d_out(self):
         """
         Parameters:
@@ -169,20 +174,21 @@ class TestOpenPMD(fw.AnswerTest):
         domain_width = [3.06e-05, 2.01e-05, 1e+0] * \
             np.ones_like(ds.domain_left_edge)
         assert isinstance(ds, OpenPMDDataset)
-        assert str(ds) == "data00000100.h5"
-        assert ds.dimensionality == 2
-        assert ds.particle_types_raw == ('Hydrogen1+', 'electrons')
+        assert_equal(str(ds), "data00000100.h5")
+        assert_equal(ds.dimensionality, 2)
+        assert_equal(ds.particle_types_raw, ('Hydrogen1+', 'electrons'))
         assert "all" in ds.particle_unions
-        np.testing.assert_array_equal(ds.field_list, field_list)
-        np.testing.assert_array_equal(ds.domain_dimensions, domain_dimensions)
-        np.testing.assert_almost_equal(ds.current_time,
+        assert_array_equal(ds.field_list, field_list)
+        assert_array_equal(ds.domain_dimensions, domain_dimensions)
+        assert_almost_equal(ds.current_time,
             3.29025596712e-14 * np.ones_like(ds.current_time))
-        np.testing.assert_almost_equal(ds.domain_right_edge - \
+        assert_almost_equal(ds.domain_right_edge - \
             ds.domain_left_edge, domain_width)
 
     #-----
     # test_no_fields_out
     #-----
+    @requires_file(noFields)
     def test_no_fields_out(self):
         """
         Parameters:
@@ -227,20 +233,21 @@ class TestOpenPMD(fw.AnswerTest):
         domain_dimensions = [1, 1, 1] * np.ones_like(ds.domain_dimensions)
         domain_width = [1, 1, 1] * np.ones_like(ds.domain_left_edge)
         assert isinstance(ds, OpenPMDDataset)
-        assert str(ds) == "data00000400.h5"
-        assert ds.dimensionality == 3
-        assert ds.particle_types_raw == ('io', )
+        assert_equal(str(ds), "data00000400.h5")
+        assert_equal(ds.dimensionality, 3)
+        assert_equal(ds.particle_types_raw, ('io', ))
         assert "all" in ds.particle_unions
-        np.testing.assert_array_equal(ds.field_list, field_list)
-        np.testing.assert_array_equal(ds.domain_dimensions, domain_dimensions)
-        np.testing.assert_almost_equal(ds.current_time,
+        assert_array_equal(ds.field_list, field_list)
+        assert_array_equal(ds.domain_dimensions, domain_dimensions)
+        assert_almost_equal(ds.current_time,
             1.3161023868481013e-13 * np.ones_like(ds.current_time))
-        np.testing.assert_almost_equal(ds.domain_right_edge - \
+        assert_almost_equal(ds.domain_right_edge - \
             ds.domain_left_edge, domain_width)
 
     #-----
     # test_no_particles_out
     #-----
+    @requires_file(noParticles)
     def test_no_particles_out(self):
         """
         Parameters:
@@ -264,20 +271,21 @@ class TestOpenPMD(fw.AnswerTest):
         domain_width = [3.06e-05, 2.01e-05, 1e+0] * \
             np.ones_like(ds.domain_left_edge)
         assert isinstance(ds, OpenPMDDataset)
-        assert str(ds), "data00000400.h5"
-        assert ds.dimensionality, 2
-        assert ds.particle_types_raw, ('io', )
+        assert_equal(str(ds), "data00000400.h5")
+        assert_equal(ds.dimensionality, 2)
+        assert_equal(ds.particle_types_raw, ('io', ))
         assert "all" not in ds.particle_unions
-        np.testing.assert_array_equal(ds.field_list, field_list)
-        np.testing.assert_array_equal(ds.domain_dimensions, domain_dimensions)
-        np.testing.assert_almost_equal(ds.current_time,
+        assert_array_equal(ds.field_list, field_list)
+        assert_array_equal(ds.domain_dimensions, domain_dimensions)
+        assert_almost_equal(ds.current_time,
             1.3161023868481013e-13 * np.ones_like(ds.current_time))
-        np.testing.assert_almost_equal(ds.domain_right_edge - \
+        assert_almost_equal(ds.domain_right_edge - \
             ds.domain_left_edge, domain_width)
 
     #-----
     # test_groupBased_out
     #-----
+    @requires_file(groupBased)
     def test_groupBased_out(self):
         """
         Parameters:
@@ -325,16 +333,16 @@ class TestOpenPMD(fw.AnswerTest):
             np.ones_like(dss[0].domain_dimensions)
         domain_width = [0.0002752, 0.0005504, 0.0005504] * \
             np.ones_like(dss[0].domain_left_edge)
-        assert len(dss) == 101
+        assert_equal(len(dss), 101)
         for ds in dss:
-            assert str(ds) == "simData.h5"
-            assert ds.dimensionality == 3
-            assert ds.particle_types_raw == ('io', )
-            np.testing.assert_array_equal(ds.field_list, field_list)
-            np.testing.assert_array_equal(ds.domain_dimensions,
+            assert_equal(str(ds), "simData.h5")
+            assert_equal(ds.dimensionality, 3)
+            assert_equal(ds.particle_types_raw, ('io', ))
+            assert_array_equal(ds.field_list, field_list)
+            assert_array_equal(ds.domain_dimensions,
                 domain_dimensions)
             assert ds.current_time >= np.zeros_like(ds.current_time)
             assert ds.current_time <= 1.6499999999999998e-12 * \
                 np.ones_like(ds.current_time)
-            np.testing.assert_almost_equal(ds.domain_right_edge - \
+            assert_almost_equal(ds.domain_right_edge - \
                 ds.domain_left_edge, domain_width)

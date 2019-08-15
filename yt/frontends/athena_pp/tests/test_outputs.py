@@ -12,8 +12,10 @@ import numpy as np
 from yt.convenience import load
 from yt.frontends.athena_pp.api import AthenaPPDataset
 from yt.testing import \
-    units_override_check, \
-    assert_allclose
+    assert_allclose, \
+    assert_equal, \
+    requires_file, \
+    units_override_check
 
 import framework as fw
 import utils
@@ -42,6 +44,7 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     # test_disk
     #-----
+    @utils.requires_ds(disk)
     def test_disk(self):
         """
         Parameters:
@@ -58,7 +61,7 @@ class TestAthenaPP(fw.AnswerTest):
         """
         fields = ("density", "velocity_r")
         ds = utils.data_dir_load(disk)
-        assert str(ds) == "disk.out1.00000"
+        assert_equal(str(ds), "disk.out1.00000")
         dd = ds.all_data()
         vol = (ds.domain_right_edge[0]**3-ds.domain_left_edge[0]**3)/3.0
         vol *= np.cos(ds.domain_left_edge[1])-np.cos(ds.domain_right_edge[1])
@@ -76,6 +79,7 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     # test_AM06
     #-----
+    @utils.requires_ds(AM06)
     def test_AM06(self):
         """
         Parameters:
@@ -101,7 +105,7 @@ class TestAthenaPP(fw.AnswerTest):
             "magnetic_field_x"
         )
         ds = utils.data_dir_load(AM06)
-        assert str(ds) == "AM06.out1.00400"
+        assert_equal(str(ds), "AM06.out1.00400")
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare answer
@@ -110,6 +114,7 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     # test_AM06_override
     #-----
+    @requires_file(AM06)
     def test_AM06_override(self):
         """
         Verify that overriding units causes derived unit values to be
@@ -133,11 +138,12 @@ class TestAthenaPP(fw.AnswerTest):
             'time_unit': (1.0, 'Myr'),
         }
         ds = load(AM06, units_override=uo_AM06)
-        assert float(ds.magnetic_unit.in_units('gauss')) == 9.01735778342523e-08
+        assert_equal(float(ds.magnetic_unit.in_units('gauss')), 9.01735778342523e-08)
 
     #-----
     # test_units_override
     #-----
+    @requires_file(AM06)
     def test_units_override(self):
         """
         Parameters:
@@ -157,6 +163,7 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     # test_AthenaPPDataset
     #-----
+    @requires_file(AM06)
     def test_AthenaPPDataset(self):
         """
         Parameters:

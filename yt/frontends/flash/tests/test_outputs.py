@@ -11,11 +11,15 @@ from collections import OrderedDict
 
 import numpy as np
 
-import framework as fw
-import utils
 from yt.frontends.flash.api import FLASHDataset, \
     FLASHParticleDataset
-from yt.testing import units_override_check
+from yt.testing import \
+    assert_equal, \
+    requires_file, \
+    units_override_check
+
+import framework as fw
+import utils
 
 # Test data
 sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
@@ -42,6 +46,10 @@ class TestFlash(fw.AnswerTest):
     #-----
     # test_sloshing
     #-----
+    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+        reason="Skipping test_jet because --answer-big-data was not set."
+    )
+    @utils.requires_ds(sloshing)
     def test_sloshing(self):
         """
         Parameters:
@@ -63,7 +71,7 @@ class TestFlash(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("temperature", "density", "velocity_magnitude")
         ds = utils.data_dir_load(sloshing)
-        assert str(ds) == "sloshing_low_res_hdf5_plt_cnt_0300"
+        assert_equal(str(ds) == "sloshing_low_res_hdf5_plt_cnt_0300")
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare answer
@@ -72,6 +80,7 @@ class TestFlash(fw.AnswerTest):
     #-----
     # test_wind_tunnel
     #-----
+    @utils.requires_ds(wt)
     def test_wind_tunnel(self):
         """
         Parameters:
@@ -93,7 +102,7 @@ class TestFlash(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("temperature", "density")
         ds = utils.data_dir_load(wt)
-        assert str(ds) == "windtunnel_4lev_hdf5_plt_cnt_0030"
+        assert_equal(str(ds) == "windtunnel_4lev_hdf5_plt_cnt_0030")
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
         # Save or compare answer
@@ -102,6 +111,7 @@ class TestFlash(fw.AnswerTest):
     #-----
     # test_FLASHDataset
     #-----
+    @requires_file(wt)
     def test_FLASHDataset(self):
         """
         Parameters:
@@ -121,6 +131,7 @@ class TestFlash(fw.AnswerTest):
     #-----
     # test_units_override
     #-----
+    @requires_file(sloshing)
     def test_units_override(self):
         """
         Parameters:
@@ -140,6 +151,7 @@ class TestFlash(fw.AnswerTest):
     #-----
     # test_FLASHParticleDataset
     #-----
+    @requires_file(fid_1to3_b1)
     def test_FLASHParticleDataset(self):
         """
         Parameters:
@@ -160,6 +172,7 @@ class TestFlash(fw.AnswerTest):
     #-----
     # test_Flash25_dataset
     #-----
+    @requires_file(dens_turb_mag)
     def test_FLASH25_dataset(self):
         """
         Parameters:
@@ -175,17 +188,21 @@ class TestFlash(fw.AnswerTest):
             pass
         """
         ds = utils.data_dir_load(dens_turb_mag)
-        assert ds.parameters['time'] == 751000000000.0
-        np.testing.assert_array_equal(ds.domain_dimensions, np.array([8, 8, 8]))
-        np.testing.assert_array_equal(ds.domain_left_edge,
+        assert_equal(ds.parameters['time'], 751000000000.0)
+        assert_equal(ds.domain_dimensions, np.array([8, 8, 8]))
+        assert_equal(ds.domain_left_edge,
             ds.arr([-2e18, -2e18, -2e18], 'code_length'))
-        assert ds.index.num_grids == 73
+        assert_equal(ds.index.num_grids, 73)
         dd = ds.all_data()
         dd['density']
 
     #-----
     # test_fid_1to3_b1
     #-----
+    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+        reason="Skipping test_jet because --answer-big-data was not set."
+    )
+    @utils.requires_ds(fid_1to3_b1)
     def test_fid_1to3_b1(self):
         """
         Parameters:
