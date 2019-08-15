@@ -1,11 +1,19 @@
 """
 Title:   conftest.py
-Author:  Jared Coughlin
-Date:    6/21/19
 Purpose: Contains hooks and fixtures for yt testing
-Notes:   https://docs.pytest.org/en/latest/example/simple.html
+Notes:
+    1.) https://docs.pytest.org/en/latest/example/simple.html
+    2.) https://docs.pytest.org/en/latest/historical-notes.html#string-conditions
+    3.) https://docs.pytest.org/en/latest/skipping.html#skipif
+    4.) https://docs.pytest.org/en/latest/reference.html
 """
+import os
+import shutil
+import tempfile
+
 import pytest
+
+from yt.config import ytcfg
 
 
 #============================================
@@ -42,4 +50,37 @@ def cli_testing_opts(request):
     # self.answer_store from the class using this fixture
     if request.cls is not None:
         request.cls.answer_store = request.config.getoption("--answer-store")
-        request.cls.run_big_data = request.config.getoption("--answer-big-data")
+
+
+#============================================
+#                   temp_dir
+#============================================
+@pytest.fixture(scope='function')
+def temp_dir():
+    """
+    Creates a temporary directory needed by certain tests.
+    """
+    curdir = os.getcwd()
+    if int(os.environ.get('GENERATE_YTDATA', 0)):
+        tmpdir = os.getcwd()
+    else:
+        tmpdir = tempfile.mkdtemp()
+    os.chdir(tmpdir)
+    yield tmpdir
+    os.chdir(curdir)
+    if tmpdir != curdir:
+        shutil.rmtree(tmpdir)
+
+
+#============================================
+#              answer_store_dir
+#============================================
+@pytest.fixture(scope='class')
+def answer_store_dir(request):
+    """
+    Retrieves the directory where the results of answer tests should be
+    saved.
+    """
+    if request.cls is not None:
+        test_dir = ytcfg.get('yt', 'test_data_dir')
+        request.cls.save_dir = os.path.join(test_dir, 'answers')
