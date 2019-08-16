@@ -65,6 +65,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_radavect
     #-----
+    @utils.requires_ds(radadvect)
     def test_radadvect(self):
         """
         Parameters:
@@ -94,6 +95,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_radtube
     #-----
+    @utils.requires_ds(rt)
     def test_radtube(self):
         """
         Parameters:
@@ -123,6 +125,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_star
     #-----
+    @utils.requires_ds(star)
     def test_star(self):
         """
         Parameters:
@@ -152,6 +155,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_LyA
     #-----
+    @utils.requires_ds(LyA)
     def test_LyA(self):
         """
         Parameters:
@@ -181,6 +185,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_nyx_particle_io
     #-----
+    @requires_file(LyA)
     def test_nyx_particle_io(self):
         """
         Parameters:
@@ -221,6 +226,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_RT_particles
     #-----
+    @utils.requires_ds(RT_particles)
     def test_RT_particles(self):
         """
         Parameters:
@@ -250,6 +256,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_castro_particle_io
     #-----
+    @requires_file(RT_particles)
     def test_castro_particle_io(self):
         """
         Parameters:
@@ -287,6 +294,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_langmuir
     #-----
+    @utils.requires_ds(langmuir)
     def test_langmuir(self):
         """
         Parameters:
@@ -316,6 +324,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_plasma
     #-----
+    @utils.requires_ds(plasma)
     def test_plasma(self):
         """
         Parameters:
@@ -345,6 +354,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_beam
     #-----
+    @utils.requires_ds(beam)
     def test_beam(self):
         """
         Parameters:
@@ -374,6 +384,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_warpx_particle_io
     #-----
+    @requires_file(plasma)
     def test_warpx_particle_io(self):
         """
         Parameters:
@@ -419,6 +430,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_raw_fields
     #-----
+    @utils.requires_ds(raw_fields)
     def test_raw_fields(self):
         """
         Parameters:
@@ -443,6 +455,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_OrionDataset
     #-----
+    @requires_file(rt)
     def test_OrionDataset(self):
         """
         Parameters:
@@ -462,6 +475,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # teset_NyxDataset
     #-----
+    @requires_file(LyA)
     def test_NyxDataset(self):
         """
         Parameters:
@@ -481,6 +495,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_CastroDataset
     #-----
+    @requires_file(RT_particles)
     def test_CastroDataset(self):
         """
         Parameters:
@@ -500,6 +515,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_WarpXDataset
     #-----
+    @requires_file(plasma)
     def test_WarpXDataset(self):
         """
         Parameters:
@@ -519,6 +535,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_units_override
     #-----
+    @requires_file(rt)
     def test_units_override(self):
         """
         Parameters:
@@ -538,6 +555,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_nyx_no_part
     #-----
+    @requires_file(nyx_no_particles)
     def test_nyx_no_part(self):
         """
         Parameters:
@@ -572,6 +590,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_maestro_parameters
     #-----
+    @requires_file(msubch)
     def test_maestro_parameters(self):
         """
         Parameters:

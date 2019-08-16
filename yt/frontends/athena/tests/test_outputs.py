@@ -8,9 +8,10 @@ Notes:
     software.
 """
 from yt.testing import \
-    assert_equal, \
     assert_allclose_units, \
-    disable_dataset_cache
+    assert_equal, \
+    disable_dataset_cache, \
+    requires_file
 from yt.frontends.athena.api import AthenaDataset
 from yt.convenience import load
 import yt.units as u
@@ -61,6 +62,7 @@ class TestAthena(fw.AnswerTest):
     #-----
     # test_cloud
     #-----
+    @utils.requires_ds(cloud)
     def test_cloud(self):
         """
         Parameters:
@@ -81,7 +83,7 @@ class TestAthena(fw.AnswerTest):
         center = "max"
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
-        assert str(ds) == "Cloud.0050"
+        assert_equal(str(ds), "Cloud.0050")
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _fields_cloud, weights, axes, ds_objs)
         # Save or compare answer
@@ -90,6 +92,7 @@ class TestAthena(fw.AnswerTest):
     #-----
     # test_blast
     #-----
+    @utils.requires_ds(blast)
     def test_blast(self):
         """
         Parameters:
@@ -110,7 +113,7 @@ class TestAthena(fw.AnswerTest):
         center = "max"
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
-        assert str(ds) == "Blast.0100"
+        assert_equal(str(ds), "Blast.0100")
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _fields_blast, weights, axes, ds_objs)
         # Save or compare answer
@@ -119,6 +122,7 @@ class TestAthena(fw.AnswerTest):
     #-----
     # test_blast_override
     #-----
+    @requires_file(blast)
     def test_blast_override(self):
         """
         Parameters:
@@ -136,11 +140,15 @@ class TestAthena(fw.AnswerTest):
         # verify that overriding units causes derived unit values to be updated.
         # see issue #1259
         ds = load(blast, units_override=uo_blast)
-        assert float(ds.magnetic_unit.in_units('gauss')) == 5.478674679698131e-07
+        assert_equal(float(ds.magnetic_unit.in_units('gauss')), 5.478674679698131e-07)
 
     #-----
     # test_stripping
     #-----
+    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+        reason="Skipping test_jet because --answer-big-data was not set."
+    )
+    @utils.requires_ds(stripping)
     def test_stripping(self):
         """
         Parameters:
@@ -161,7 +169,7 @@ class TestAthena(fw.AnswerTest):
         center = "max"
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
-        assert str(ds) == "rps.0062"
+        assert_equal(str(ds), "rps.0062")
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _fields_stripping, weights, axes, ds_objs)
         # Save or compare answer
@@ -170,6 +178,7 @@ class TestAthena(fw.AnswerTest):
     #-----
     # test_nprocs
     #-----
+    @requires_file(sloshing)
     @disable_dataset_cache
     def test_nprocs(self):
         """
@@ -192,9 +201,9 @@ class TestAthena(fw.AnswerTest):
         sp2 = ds2.sphere("c", (100.,"kpc"))
         prj2 = ds1.proj("density",0)
         ds3 = load(sloshing, parameters=uo_sloshing)
-        assert ds3.length_unit == u.Mpc
-        assert ds3.time_unit == u.Myr
-        assert ds3.mass_unit == 1e14*u.Msun
+        assert_equal(ds3.length_unit, u.Mpc)
+        assert_equal(ds3.time_unit, u.Myr)
+        assert_equal(ds3.mass_unit, 1e14*u.Msun)
         assert_equal(sp1.quantities.extrema("pressure"),
                      sp2.quantities.extrema("pressure"))
         assert_allclose_units(sp1.quantities.total_quantity("pressure"),
@@ -209,6 +218,7 @@ class TestAthena(fw.AnswerTest):
     #-----
     # test_AthenaDataset
     #-----
+    @requires_file(cloud)
     def test_AthenaDataset(self):
         """
         Parameters:
@@ -223,4 +233,4 @@ class TestAthena(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(data_dir_load(cloud), AthenaDataset)
+        assert isinstance(utils.data_dir_load(cloud), AthenaDataset)

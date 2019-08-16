@@ -6,12 +6,16 @@ Notes:
     Distributed under the terms of the Modified BSD License.
     The full license is in the file COPYING.txt, distributed with this software.
 """
+import pytest
+
+from yt.frontends.art.api import ARTDataset
 from yt.testing import \
-    units_override_check, \
-    assert_almost_equal
+    assert_almost_equal, \
+    assert_equal, \
+    requires_file, \
+    units_override_check
 from yt.units.yt_array import \
     YTQuantity
-from yt.frontends.art.api import ARTDataset
 
 import framework as fw
 import utils
@@ -39,6 +43,10 @@ class TestArt(fw.AnswerTest):
     #-----
     # test_d9p
     #-----
+    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+        reason="Skipping test_jet because --answer-big-data was not set."
+    )
+    @utils.requires_ds(d9p)
     def test_d9p(self):
         """
         Parameters:
@@ -63,7 +71,7 @@ class TestArt(fw.AnswerTest):
         fv_hd = b''
         ds = utils.data_dir_load(d9p)
         ds.index
-        assert str(ds) == "10MpcBox_HartGal_csf_a0.500.d"
+        assert_equal(str(ds), "10MpcBox_HartGal_csf_a0.500.d")
         dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
         for field in fields:
             for axis in [0, 1, 2]:
@@ -81,24 +89,24 @@ class TestArt(fw.AnswerTest):
         ad = ds.all_data()
         # 'Ana' variable values output from the ART Fortran 'ANA' analysis code
         AnaNStars = 6255
-        assert ad[('stars', 'particle_type')].size == AnaNStars
-        assert ad[('specie4', 'particle_type')].size == AnaNStars
+        assert_equal(ad[('stars', 'particle_type')].size, AnaNStars)
+        assert_equal(ad[('specie4', 'particle_type')].size, AnaNStars)
         # The *real* asnwer is 2833405, but yt misses one particle since it lives
         # on a domain boundary. See issue 814. When that is fixed, this test
         # will need to be updated
         AnaNDM = 2833404
-        assert ad[('darkmatter', 'particle_type')].size == AnaNDM
-        assert (ad[('specie0', 'particle_type')].size +\
+        assert_equal(ad[('darkmatter', 'particle_type')].size, AnaNDM)
+        assert_equal((ad[('specie0', 'particle_type')].size +\
                   ad[('specie1', 'particle_type')].size +\
                   ad[('specie2', 'particle_type')].size +\
-                  ad[('specie3', 'particle_type')].size) == AnaNDM
+                  ad[('specie3', 'particle_type')].size), AnaNDM)
         for spnum in range(5):
             npart_read = ad['specie%s' % spnum, 'particle_type'].size
             npart_header = ds.particle_type_counts['specie%s' % spnum]
             if spnum == 3:
                 # see issue 814
                 npart_read += 1
-            assert npart_read == npart_header
+            assert_equal(npart_read, npart_header)
         AnaBoxSize = YTQuantity(7.1442196564, 'Mpc')
         AnaVolume = YTQuantity(364.640074656, 'Mpc**3')
         Volume = 1
@@ -107,7 +115,7 @@ class TestArt(fw.AnswerTest):
             Volume *= i
         assert_almost_equal(Volume, AnaVolume)
         AnaNCells = 4087490
-        assert len(ad[('index', 'cell_volume')]) == AnaNCells
+        assert_equal(len(ad[('index', 'cell_volume')]), AnaNCells)
         AnaTotDMMass = YTQuantity(1.01191786808255e+14, 'Msun')
         assert_almost_equal(
             ad[('darkmatter', 'particle_mass')].sum().in_units('Msun'),
@@ -123,7 +131,7 @@ class TestArt(fw.AnswerTest):
         assert_almost_equal(ad[('gas', 'cell_mass')].sum().in_units('Msun'),
                             AnaTotGasMass)
         AnaTotTemp = YTQuantity(150219844793.39072, 'K')  # just leaves
-        assert ad[('gas', 'temperature')].sum() == AnaTotTemp
+        assert_equal(ad[('gas', 'temperature')].sum(), AnaTotTemp)
         hashes = {'pixelized_projection_values' : utils.generate_hash(ppv_hd),
             'field_values' : utils.generate_hash(fv_hd)
         }
@@ -132,6 +140,7 @@ class TestArt(fw.AnswerTest):
     #-----
     # test_ARTDataset
     #-----
+    @requires_file(d9p)
     def test_ARTDataset(self):
         """
         Parameters:
@@ -151,6 +160,7 @@ class TestArt(fw.AnswerTest):
     #-----
     # test_units_override
     #-----
+    @requires_file(d9p)
     def test_units_override(self):
         """
         Parameters:
