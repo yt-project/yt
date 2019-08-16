@@ -196,7 +196,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             particle_mass=None, min_halo_size=25):
         if is_root():
             mylog.info("The citation for the Rockstar halo finder can be found at")
-            mylog.info("http://adsabs.harvard.edu/abs/2013ApJ...762..109B")
+            mylog.info("https://ui.adsabs.harvard.edu/abs/2013ApJ...762..109B")
         ParallelAnalysisInterface.__init__(self)
         # Decide how we're working.
         if ytcfg.getboolean("yt", "inline") is True:

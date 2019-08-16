@@ -29,10 +29,10 @@ The algorithm is based off of that implemented in
 by Veronica Biffi and Klaus Dolag. There are two relevant papers:
 
 `Biffi, V., Dolag, K., Bohringer, H., & Lemson, G. 2012, MNRAS, 420,
-3545 <http://adsabs.harvard.edu/abs/2012MNRAS.420.3545B>`_
+3545 <https://ui.adsabs.harvard.edu/abs/2012MNRAS.420.3545B>`_
 
 `Biffi, V., Dolag, K., Bohringer, H. 2013, MNRAS, 428,
-1395 <http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B>`_
+1395 <https://ui.adsabs.harvard.edu/abs/2013MNRAS.428.1395B>`_
 
 The basic procedure is as follows:
 

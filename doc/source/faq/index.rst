@@ -469,7 +469,7 @@ How do I cite yt?
 
 If you use yt in a publication, we'd very much appreciate a citation!  You
 should feel free to cite the `ApJS paper
-<http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_ with the following BibTeX
+<https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T>`_ with the following BibTeX
 entry: ::
 
    @ARTICLE{2011ApJS..192....9T,
@@ -487,6 +487,6 @@ entry: ::
          eid = {9},
        pages = {9},
          doi = {10.1088/0067-0049/192/1/9},
-      adsurl = {http://adsabs.harvard.edu/abs/2011ApJS..192....9T},
+      adsurl = {https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T},
      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
    }

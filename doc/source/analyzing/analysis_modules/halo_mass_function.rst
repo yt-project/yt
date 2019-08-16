@@ -43,11 +43,11 @@ Analytical Fits
 
 There are five analytical fits to choose from.
 
-  1. `Press-Schechter (1974) <http://adsabs.harvard.edu/abs/1974ApJ...187..425P>`_
-  2. `Jenkins (2001) <http://adsabs.harvard.edu/abs/2001MNRAS.321..372J>`_
-  3. `Sheth-Tormen (2002) <http://adsabs.harvard.edu/abs/2002MNRAS.329...61S>`_
-  4. `Warren (2006) <http://adsabs.harvard.edu/abs/2006ApJ...646..881W>`_
-  5. `Tinker (2008) <http://adsabs.harvard.edu/abs/2008ApJ...688..709T>`_
+  1. `Press-Schechter (1974) <https://ui.adsabs.harvard.edu/abs/1974ApJ...187..425P>`_
+  2. `Jenkins (2001) <https://ui.adsabs.harvard.edu/abs/2001MNRAS.321..372J>`_
+  3. `Sheth-Tormen (2002) <https://ui.adsabs.harvard.edu/abs/2002MNRAS.329...61S>`_
+  4. `Warren (2006) <https://ui.adsabs.harvard.edu/abs/2006ApJ...646..881W>`_
+  5. `Tinker (2008) <https://ui.adsabs.harvard.edu/abs/2008ApJ...688..709T>`_
 
 We encourage reading each of the primary sources.
 In general, we recommend the Warren fitting function because it matches

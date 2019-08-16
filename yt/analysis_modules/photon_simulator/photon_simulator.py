@@ -11,10 +11,10 @@ developed by Veronica Biffi and Klaus Dolag. References for
 PHOX may be found at:
 
 Biffi, V., Dolag, K., Bohringer, H., & Lemson, G. 2012, MNRAS, 420, 3545
-http://adsabs.harvard.edu/abs/2012MNRAS.420.3545B
+https://ui.adsabs.harvard.edu/abs/2012MNRAS.420.3545B
 
 Biffi, V., Dolag, K., Bohringer, H. 2013, MNRAS, 428, 1395
-http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
+https://ui.adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 """
 
 #-----------------------------------------------------------------------------

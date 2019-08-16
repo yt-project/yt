@@ -23,12 +23,12 @@ perform further analysis, skip to :ref:`halo_catalog_analysis`.
 Three halo finding methods exist within yt.  These are:
 
 * :ref:`fof_finding`: a basic friend-of-friends algorithm (e.g. `Efstathiou et al. (1985)
-  <http://adsabs.harvard.edu/abs/1985ApJS...57..241E>`_)
+  <https://ui.adsabs.harvard.edu/abs/1985ApJS...57..241E>`_)
 * :ref:`hop_finding`: `Eisenstein and Hut (1998)
-  <http://adsabs.harvard.edu/abs/1998ApJ...498..137E>`_.
+  <https://ui.adsabs.harvard.edu/abs/1998ApJ...498..137E>`_.
 * :ref:`rockstar_finding`: a 6D phase-space halo finder developed by Peter Behroozi that
   scales well and does substructure finding (`Behroozi et al.
-  2011 <http://adsabs.harvard.edu/abs/2011arXiv1110.4372B>`_)
+  2011 <https://ui.adsabs.harvard.edu/abs/2013ApJ...762..109B>`_)
 
 Halo finding is performed through the creation of a
 :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
@@ -76,7 +76,7 @@ FOF
 
 This is a basic friends-of-friends algorithm.  See
 `Efstathiou et al. (1985)
-<http://adsabs.harvard.edu/abs/1985ApJS...57..241E>`_ for more
+<https://ui.adsabs.harvard.edu/abs/1985ApJS...57..241E>`_ for more
 details as well as
 :class:`~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder`.
 
@@ -107,7 +107,7 @@ groups in this fashion:
    threshold parameter. The default is 160.0.
 
 See the `HOP method paper
-<http://adsabs.harvard.edu/abs/1998ApJ...498..137E>`_ for
+<https://ui.adsabs.harvard.edu/abs/1998ApJ...498..137E>`_ for
 full details as well as
 :class:`~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder`.
 
@@ -122,7 +122,7 @@ allows for robust (grid-independent, shape-independent, and noise-
 resilient) tracking of substructure. The code is prepackaged with yt,
 but also `separately available <https://bitbucket.org/gfcstanford/rockstar>`_. The lead
 developer is Peter Behroozi, and the methods are described in
-`Behroozi et al. 2011 <http://adsabs.harvard.edu/abs/2011arXiv1110.4372B>`_.
+`Behroozi et al. 2011 <https://ui.adsabs.harvard.edu/abs/2013ApJ...762..109B>`_.
 In order to run the Rockstar halo finder in yt, make sure you've
 :ref:`installed it so that it can integrate with yt <rockstar-installation>`.
 

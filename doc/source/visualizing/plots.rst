@@ -9,7 +9,7 @@ of simulation data, derived fields, and the data produced by yt
 analysis objects.  For details about the data extraction and
 algorithms used to produce the image and analysis data, please see the
 yt `method paper
-<http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_.  There are also
+<https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T>`_.  There are also
 many example scripts in :ref:`cookbook`.
 
 The :class:`~yt.visualization.plot_window.PlotWindow` interface is useful for

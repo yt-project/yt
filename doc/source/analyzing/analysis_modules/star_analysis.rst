@@ -129,7 +129,7 @@ Synthetic Spectrum Generator
 Based on code generously provided by Kentaro Nagamine <kn@physics.unlv.edu>,
 this will generate a synthetic spectrum for the stars using the publicly-available
 tables of Bruzual & Charlot (hereafter B&C). Please see their `2003 paper
-<http://adsabs.harvard.edu/abs/2003MNRAS.344.1000B>`_ for more information
+<https://ui.adsabs.harvard.edu/abs/2003MNRAS.344.1000B>`_ for more information
 and the `main data
 distribution page <http://www.bruzual.org/bc03/>`_ for the original data.
 Based on the mass, age and metallicity of each star, a cumulative spectrum is

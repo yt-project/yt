@@ -100,7 +100,7 @@ Word of Mouth
 
 If you're using yt and it has increased your productivity, please feel
 encouraged to share that information.  Cite our `paper
-<http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_, tell your colleagues,
+<https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T>`_, tell your colleagues,
 and just spread word of mouth.  By telling people about your successes, you'll
 help bring more eyes and hands to the table -- in this manner, by increasing
 participation, collaboration, and simply spreading the limits of what the code

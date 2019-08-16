@@ -21,7 +21,7 @@ oceanography. Composed of a friendly community of users and developers, we want
 to make it easy to use and develop - we'd love it if you got involved!
 
 We've written a [method
-paper](http://adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
+paper](https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
 in; if you use yt in the preparation of a publication, please consider citing
 it.
 
