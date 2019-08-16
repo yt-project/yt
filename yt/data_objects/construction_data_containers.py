@@ -554,6 +554,50 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self._setup_data_source()
         self.get_data(fields)
 
+    def to_xarray(self, fields = None):
+        r"""Export this fixed-resolution object to an xarray Dataset
+
+        This function will take a regularized grid and optionally a list of
+        fields and return an xarray Dataset object.  If xarray is not
+        importable, this will raise ImportError.
+
+        Parameters
+        ----------
+        fields : list of strings or tuple field names, default None
+            If this is supplied, it is the list of fields to be exported into
+            the data frame.  If not supplied, whatever fields presently exist
+            will be used.
+
+        Returns
+        -------
+        arr : Dataset
+            The data contained in the object.
+
+        Examples
+        --------
+
+        >>> dd = ds.r[::256j, ::256j, ::256j]
+        >>> xf1 = dd.to_xarray(["density", "temperature"])
+        >>> dd["velocity_magnitude"]
+        >>> xf2 = dd.to_xarray()
+        """
+        import xarray as xr
+        data = {}
+        coords = {}
+        for f in fields or self.field_data.keys():
+            data[f] = {'dims': ('x','y','z',), 'data': self[f],
+                       'attrs': {'units': str(self[f].uq)}}
+        # We have our data, so now we generate both our coordinates and our metadata.
+        LE = self.LeftEdge + self.dds/2.0
+        RE = self.RightEdge - self.dds/2.0
+        N = self.ActiveDimensions
+        u = str(LE.uq)
+        for i, ax in enumerate('xyz'):
+            coords[ax] = {'dims': (ax,),
+                          'data': np.mgrid[LE[i]:RE[i]:N[i]*1j],
+                          'attrs': {'units': u}}
+        return xr.Dataset.from_dict( {'data_vars': data, 'coords': coords} )
+
     @property
     def icoords(self):
         ic = np.indices(self.ActiveDimensions).astype("int64")
