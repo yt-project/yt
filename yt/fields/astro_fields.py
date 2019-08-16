@@ -80,7 +80,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     def _sz_kinetic(field, data):
         # minus sign is because radial velocity is WRT viewer
         # See issue #1225
-        return -data[ftype, "velocity_los"]*data[ftype, "tau"]/pc.clight
+        return -data[ftype, "velocity_los"]*data[ftype, "optical_depth"]/pc.clight
 
     registry.add_field((ftype, "sz_kinetic"),
                        sampling_type="local",
