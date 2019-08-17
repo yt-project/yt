@@ -246,11 +246,11 @@ man_pages = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None,
-                       'http://ipython.readthedocs.io/en/stable/': None,
-                       'http://docs.scipy.org/doc/numpy/': None,
-                       'http://matplotlib.org/': None,
-                       'http://docs.astropy.org/en/stable': None,
+intersphinx_mapping = {'https://docs.python.org/3/': None,
+                       'https://ipython.readthedocs.io/en/stable/': None,
+                       'https://docs.scipy.org/doc/numpy/': None,
+                       'https://matplotlib.org/': None,
+                       'https://docs.astropy.org/en/stable': None,
                        }
 
 if not on_rtd:
