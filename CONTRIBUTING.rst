@@ -1,5 +1,5 @@
 .. This document is rendered in HTML with cross-reference links filled in at
-   http://yt-project.org/doc/developing/
+   https://yt-project.org/doc/developing/developing.html
 
 .. _getting-involved:
 
@@ -20,16 +20,16 @@ There are five main communication channels for yt:
 
  * We have an IRC channel, on ``irc.freenode.net`` in ``#yt``.
    You can connect through our web
-   gateway without any special client, at http://yt-project.org/irc.html .
+   gateway without any special client, at https://yt-project.org/irc.html .
    *IRC is the first stop for conversation!*
  * Many yt developers participate in the yt Slack community. Slack is a free
    chat service that many teams use to organize their work. You can get an
    invite to yt's Slack organization by clicking the "Join us @ Slack" button
-   on this page: http://yt-project.org/community.html
- * `yt-users <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_
+   on this page: https://yt-project.org/community.html
+ * `yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_
    is a relatively high-traffic mailing list where people are encouraged to ask
    questions about the code, figure things out and so on.
- * `yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_ is
+ * `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_ is
    a much lower-traffic mailing list designed to focus on discussions of
    improvements to the code, ideas about planning, development issues, and so
    on.
@@ -62,9 +62,9 @@ Gallery Images and Videos
 
 If you have an image or video you'd like to display in the image or video
 galleries, getting it included it easy!  You can either fork the `yt homepage
-repository <http://github.com/yt-project/website>`_ and add it there, or
+repository <https://github.com/yt-project/website>`_ and add it there, or
 email it to us and we'll add it to the `Gallery
-<http://yt-project.org/gallery.html>`_.
+<https://yt-project.org/gallery.html>`_.
 
 We're eager to show off the images and movies you make with yt, so please feel
 free to drop `us <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_
@@ -107,8 +107,8 @@ participation, collaboration, and simply spreading the limits of what the code
 is asked to do, we hope to help scale the utility and capability of yt with the
 community size.
 
-Feel free to `blog <http://blog.yt-project.org/>`_ about, `tweet
-<http://twitter.com/yt_astro>`_ about and talk about what you are up to!
+Feel free to `blog <https://blog.yt-project.org/>`_ about, `tweet
+<https://twitter.com/yt_astro>`_ about and talk about what you are up to!
 
 Long-Term Projects
 ------------------
@@ -196,7 +196,7 @@ associated social events, and one-to-one interactions.
 
 The yt Community Code of Conduct was adapted from the
 `Astropy Community Code of Conduct
-<http://www.astropy.org/code_of_conduct.html>`_,
+<https://www.astropy.org/code_of_conduct.html>`_,
 which was partially inspired by the PSF code of conduct.
 
 .. _contributing-code:
@@ -252,7 +252,7 @@ Submitting Changes
 ------------------
 
 We provide a brief introduction to submitting changes here.  yt thrives on the
-strength of its communities (http://arxiv.org/abs/1301.7064 has further
+strength of its communities (https://arxiv.org/abs/1301.7064 has further
 discussion) and we encourage contributions from any user.  While we do not
 discuss version control, git, or the advanced usage of GitHub in detail
 here, we do provide an outline of how to submit changes and we are happy to
@@ -261,7 +261,7 @@ provide further assistance or guidance.
 Licensing
 +++++++++
 
-yt is `licensed <http://blog.yt-project.org/post/Relicensing/>`_ under the
+yt is `licensed <https://blog.yt-project.org/post/Relicensing/>`_ under the
 BSD 3-clause license.  Versions previous to yt-2.6 were released under the GPLv3.
 
 All contributed code must be BSD-compatible.  If you'd rather not license in
@@ -721,7 +721,7 @@ triggers. The errors will be in your newly added code because we have already
 cleaned up the rest of the yt codebase of the errors and warnings detected by
 the `flake8` tool. Note that this will only trigger a subset of the `full flake8
 error and warning list
-<http://flake8.readthedocs.io/en/latest/user/error-codes.html>`_, since we explicitly
+<https://flake8.readthedocs.io/en/latest/user/error-codes.html>`_, since we explicitly
 blacklist a large number of the full list of rules that are checked by
 ``flake8`` by default.
 
@@ -729,7 +729,7 @@ Source code style guide
 -----------------------
 
  * In general, follow PEP-8 guidelines.
-   http://www.python.org/dev/peps/pep-0008/
+   https://www.python.org/dev/peps/pep-0008/
  * Classes are ``ConjoinedCapitals``, methods and functions are
    ``lowercase_with_underscores``.
  * Use 4 spaces, not tabs, to represent indentation.
@@ -805,7 +805,8 @@ Docstrings
 The following is an example docstring. You can use it as a template for
 docstrings in your code and as a guide for how we expect docstrings to look and
 the level of detail we are looking for. Note that we use NumPy style docstrings
-written in `Sphinx restructured text format <http://sphinx-doc.org/rest.html>`_.
+written in `Sphinx restructured text format
+<http://www.sphinx-doc.org/es/master/usage/restructuredtext/>`_.
 
 .. code-block:: rest
 
