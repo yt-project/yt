@@ -1,7 +1,7 @@
 # The yt Project
 
-[![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
-[![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-dev@python.org//)
+[![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-users@python.org//)
+[![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-dev@python.org//)
 [![Build Status](https://img.shields.io/travis/yt-project/yt.svg?branch=master)](https://travis-ci.org/yt-project/yt)
 [![codecov](https://codecov.io/gh/yt-project/yt/branch/master/graph/badge.svg)](https://codecov.io/gh/yt-project/yt)
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
@@ -34,7 +34,7 @@ guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-co
 ## Installation
 
 You can install the most recent stable version of yt either with conda from
-[conda-forge](http://conda-forge.github.io/):
+[conda-forge](https://conda-forge.org/):
 
 ```
 conda install -c conda-forge yt
@@ -154,10 +154,10 @@ We have some community and documentation resources available.
  * Our latest documentation is always at http://yt-project.org/docs/dev/ and it
    includes recipes, tutorials, and API documentation
  * The [discussion mailing
-   list](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
+   list](https://mail.python.org/archives/list/yt-users@python.org//)
    should be your first stop for general questions
  * The [development mailing
-   list](https://mail.python.org/mm3/archives/list/yt-dev@python.org//) is
+   list](https://mail.python.org/archives/list/yt-dev@python.org//) is
    better suited for more development issues
  * You can also join us on Slack at yt-project.slack.com ([request an
-   invite](http://yt-project.org/slack.html))
+   invite](https://yt-project.org/slack.html))
