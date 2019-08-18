@@ -203,8 +203,8 @@ Ask the mailing list
 
 If you still haven't yet found a solution, feel free to
 write to the mailing list regarding your problems.  There are two mailing lists,
-`yt-users <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_ and
-`yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_.  The
+`yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_ and
+`yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_.  The
 first should be used for asking for help, suggesting features and so on, and
 the latter has more chatter about the way the code is developed and discussions
 of changes and feature improvements.

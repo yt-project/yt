@@ -57,7 +57,7 @@ How do I contact yt?
 --------------------
 
 If you have any questions about the code, please contact the `yt users email
-list <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_.  If
+list <https://mail.python.org/archives/list/yt-users@python.org/>`_.  If
 you're having other problems, please follow the steps in
 :ref:`asking-for-help`.
 

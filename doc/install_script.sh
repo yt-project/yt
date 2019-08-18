@@ -678,7 +678,7 @@ echo "    http://yt-project.org/"
 echo "    http://yt-project.org/data/      (Sample data)"
 echo "    http://yt-project.org/doc/       (Docs)"
 echo
-echo "    https://mail.python.org/mm3/archives/list/yt-users@python.org/"
+echo "    https://mail.python.org/archives/list/yt-users@python.org/"
 echo
 echo "You must now prepend the following folder to your PATH environment variable:"
 echo 
