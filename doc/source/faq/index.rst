@@ -370,7 +370,7 @@ Miscellaneous
 How can I get some sample data for yt?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Many different sample datasets can be found at http://yt-project.org/data/ .
+Many different sample datasets can be found at https://yt-project.org/data/ .
 These can be downloaded, unarchived, and they will each create their own
 directory.  It is generally straight forward to load these datasets, but if
 you have any questions about loading data from a code with which you are

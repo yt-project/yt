@@ -140,7 +140,7 @@ This analysis toolkit reads in the B&C data from HDF5 files that have been
 converted from the original ASCII files (available at the link above). The
 HDF5 files are one-quarter the size of the ASCII files, and greatly reduce
 the time required to read the data off disk. The HDF5 files are available from
-the main yt website `here <http://yt-project.org/data/bc03.tar.gz>`_.
+the main yt website `here <https://yt-project.org/data/bc03.tar.gz>`_.
 Both the Salpeter and Chabrier models have been converted,
 and it is simplest to download all the files to the same location.
 Please read the original B&C sources for information on the differences between

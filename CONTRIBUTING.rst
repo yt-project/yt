@@ -462,7 +462,7 @@ which have different requirements for acceptance into the code base.  These
 requirements are in place for a few reasons -- to make sure that the code is
 maintainable, testable, and that we can easily include information about
 changes in changelogs during the release procedure.  (See `YTEP-0008
-<https://ytep.readthedocs.org/en/latest/YTEPs/YTEP-0008.html>`_ for more
+<https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0008.html>`_ for more
 detail.)
 
 * New Features
@@ -636,7 +636,7 @@ Here's a more detailed flowchart of how to submit changes.
      For consistency, all commands we list in this document will use the HTTPS
      protocol.
 
-     .. _SSH key: https://help.github.com/articles/connecting-to-github-with-ssh/
+     .. _SSH key: https://help.github.com/en/articles/connecting-to-github-with-ssh/
 #. Issue a pull request at https://github.com/yt-project/yt/pull/new/master A
    pull request is essentially just asking people to review and accept the
    modifications you have made to your personal version of the code.

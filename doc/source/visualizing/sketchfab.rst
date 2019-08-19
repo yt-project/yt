@@ -216,7 +216,7 @@ Importing to MeshLab and Blender
 --------------------------------
 
 The new OBJ formatting will produce multi-colored surfaces in both
-`MeshLab <http://meshlab.sourceforge.net/>`__ and `Blender <http://www.blender.org/>`__,
+`MeshLab <https://meshlab.sourceforge.net/>`__ and `Blender <https://www.blender.org/>`__,
 a feature not possible with the
 `previous PLY exporter <http://blog.yt-project.org/post/3DSurfacesAndSketchFab.html>`__.
 To see colors in MeshLab go to the "Render" tab and
@@ -281,7 +281,7 @@ in the function "create_materials" with:
    # ...
 
 To use this in Blender, you might create a
-`Blender script <http://cgcookie.com/blender/2011/08/26/introduction-to-scripting-with-python-in-blender/>`__
+`Blender script <https://docs.blender.org/manual/en/latest/advanced/scripting/introduction.html>`__
 like the following:
 
 .. code-block:: python

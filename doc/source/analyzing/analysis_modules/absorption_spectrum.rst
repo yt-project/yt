@@ -160,7 +160,7 @@ hdf5, and ascii.  The file format used is based on the extension provided
 in the ``output_file`` keyword: ``.fits`` for a fits file,
 ``.h5`` for an hdf5 file, and anything else for an ascii file.
 
-.. note:: To write out a fits file, you must install the `astropy <http://www.astropy.org>`_ python library in order to access the astropy.io.fits module.  You can usually do this by simply running `pip install astropy` at the command line.
+.. note:: To write out a fits file, you must install the `astropy <https://www.astropy.org>`_ python library in order to access the astropy.io.fits module.  You can usually do this by simply running `pip install astropy` at the command line.
 
 Generating Spectra in Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -181,7 +181,7 @@ Fitting Absorption Spectra
 This tool can be used to fit absorption spectra, particularly those
 generated using the (``AbsorptionSpectrum``) tool. For more details
 on its uses and implementation please see (`Egan et al. (2013)
-<http://arxiv.org/abs/1307.2244>`_). If you find this tool useful we
+<https://arxiv.org/abs/1307.2244>`_). If you find this tool useful we
 encourage you to cite accordingly.
 
 Loading an Absorption Spectrum

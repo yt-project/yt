@@ -38,7 +38,7 @@ by default:
 Next, load up a dataset and instantiate the :class:`~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DWriter`.
 For this example, we'll use the "StarParticle" dataset,
 available `here
-<http://yt-project.org/data/>`_.
+<https://yt-project.org/data/>`_.
 
 .. code-block:: python
 

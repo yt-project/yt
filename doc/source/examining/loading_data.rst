@@ -688,7 +688,7 @@ FITS Data
 ---------
 
 FITS data is *mostly* supported and cared for by John ZuHone. In order to
-read FITS data, `AstroPy <http://www.astropy.org>`_ must be installed. FITS
+read FITS data, `AstroPy <https://www.astropy.org>`_ must be installed. FITS
 data cubes can be loaded in the same way by yt as other datasets. yt
 can read FITS image files that have the following (case-insensitive) suffixes:
 
@@ -962,7 +962,7 @@ improves it will be utilized more here.
 .. note::
 
   The following functionality requires the
-  `spectral-cube <http://spectral-cube.readthedocs.org>`_ library to be
+  `spectral-cube <https://spectral-cube.readthedocs.org>`_ library to be
   installed.
 
 If you have a spectral intensity dataset of some sort, and would like to
@@ -1931,7 +1931,7 @@ available here are similar to other catalogs.  Any addition
 openPMD Data
 ------------
 
-`openPMD <http://www.openpmd.org>`_ is an open source meta-standard and naming
+`openPMD <https://www.openpmd.org>`_ is an open source meta-standard and naming
 scheme for mesh based data and particle data. It does not actually define a file
 format.
 

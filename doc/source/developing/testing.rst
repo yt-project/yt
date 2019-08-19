@@ -32,7 +32,7 @@ What do Unit Tests Do
 
 Unit tests are tests that operate on some small set of machinery, and verify
 that the machinery works.  yt uses the `Nose
-<http://nose.readthedocs.org/en/latest/>`_ framework for running unit tests.  In
+<https://nose.readthedocs.io/en/latest/>`_ framework for running unit tests.  In
 practice, what this means is that we write scripts that assert statements, and
 Nose identifies those scripts, runs them, and verifies that the assertions are
 true and the code runs without crashing.
@@ -218,7 +218,7 @@ directory with the test data you want to test with, e.g.:
 
 We use a number of real-world datasets for the tests that must be downloaded and
 unzipped in the ``test_data_dir`` path you have set. The test datasets, can be
-downloaded from http://yt-project.org/data/. We do not explicitly list the
+downloaded from https://yt-project.org/data/. We do not explicitly list the
 datasets we use in the tests here because the list of necessary datasets changes
 regularly, instead you should take a look at the tests you would like to run and
 make sure that the necessary data files are downloaded before running the tests.
@@ -415,7 +415,7 @@ Enabling Answer Tests on Jenkins
 Before any code is added to or modified in the yt codebase, each incoming
 changeset is run against all available unit and answer tests on our `continuous
 integration server <https://tests.yt-project.org>`_. While unit tests are
-autodiscovered by `nose <http://nose.readthedocs.org/en/latest/>`_ itself,
+autodiscovered by `nose <https://nose.readthedocs.io/en/latest/>`_ itself,
 answer tests require definition of which set of tests constitute to a given
 answer. Configuration for the integration server is stored in
 *tests/tests.yaml* in the main yt repository:
