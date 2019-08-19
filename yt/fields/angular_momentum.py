@@ -65,18 +65,18 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
                            unit_system["specific_angular_momentum"], ftype=ftype)
 
     def _angular_momentum_x(field, data):
-        return data[ftype, "cell_mass"] \
+        return data[ftype, "mass"] \
              * data[ftype, "specific_angular_momentum_x"]
 
     registry.add_field((ftype, "angular_momentum_x"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_angular_momentum_x,
                        units=unit_system["angular_momentum"],
                        validators=[ValidateParameter('center'),
                                    ValidateParameter("bulk_velocity")])
 
     def _angular_momentum_y(field, data):
-        return data[ftype, "cell_mass"] \
+        return data[ftype, "mass"] \
              * data[ftype, "specific_angular_momentum_y"]
 
     registry.add_field((ftype, "angular_momentum_y"),
@@ -87,7 +87,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
                                    ValidateParameter("bulk_velocity")])
 
     def _angular_momentum_z(field, data):
-        return data[ftype, "cell_mass"] \
+        return data[ftype, "mass"] \
              * data[ftype, "specific_angular_momentum_z"]
 
     registry.add_field((ftype, "angular_momentum_z"),

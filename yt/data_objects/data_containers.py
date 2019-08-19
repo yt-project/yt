@@ -63,7 +63,11 @@ def sanitize_weight_field(ds, field, weight):
     field_object = ds._get_field_info(field)
     if weight is None:
         if field_object.sampling_type == "particle":
-            weight_field = (field_object.name[0], 'particle_ones')
+            if field_object.name[0] == "gas":
+                ptype = ds._sph_ptypes[0]
+            else:
+                ptype = field_object.name[0]
+            weight_field = (ptype, 'particle_ones')
         else:
             weight_field = ('index', 'ones')
     else:

@@ -1,5 +1,7 @@
 import re
 from .periodic_table import periodic_table
+from .physical_ratios import _primordial_mass_fraction
+
 
 class ChemicalFormula:
     def __init__(self, formula_string):
@@ -28,3 +30,15 @@ class ChemicalFormula:
 
     def __repr__(self):
         return self.formula_string
+
+
+def compute_mu():
+    # Assume full ionization and cosmic abundances
+    # This assumes full ionization!
+    muinv = 2.0 * _primordial_mass_fraction["H"] / \
+        ChemicalFormula("H").weight
+    muinv += 3.0 * _primordial_mass_fraction["He"] / \
+        ChemicalFormula("He").weight
+    return 1.0/muinv
+
+default_mu = compute_mu()

@@ -1,5 +1,8 @@
 from yt.frontends.sph.fields import SPHFieldInfo
 from yt.utilities.physical_constants import mp, kb
+from yt.utilities.physical_ratios import \
+    _primordial_mass_fraction
+
 
 class GadgetFieldInfo(SPHFieldInfo):
 
@@ -55,7 +58,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         if (ptype, "ElectronAbundance") in self.ds.field_list:
             def _temperature(field, data):
                 # Assume cosmic abundances
-                x_H = 0.76
+                x_H = _primordial_mass_fraction["H"]
                 gamma = 5.0/3.0
                 a_e = data[ptype, 'ElectronAbundance']
                 mu = 4.0 / (3.0 * x_H + 1.0 + 4.0 * x_H * a_e)
@@ -63,15 +66,8 @@ class GadgetFieldInfo(SPHFieldInfo):
                 return ret.in_units(self.ds.unit_system["temperature"])
         else:
             def _temperature(field, data):
-                # Assume cosmic abundances
-                x_H = 0.76
                 gamma = 5.0/3.0
-                if data.has_field_parameter("mean_molecular_weight"):
-                    mu = data.get_field_parameter("mean_molecular_weight")
-                else:
-                    # Assume zero ionization
-                    mu = 4.0 / (3.0 * x_H + 1.0)
-                ret = data[ptype, "InternalEnergy"]*(gamma-1)*mu*mp/kb
+                ret = data[ptype, "InternalEnergy"]*(gamma-1)*data.ds.mu*mp/kb
                 return ret.in_units(self.ds.unit_system["temperature"])
 
         self.add_field((ptype, "Temperature"),
@@ -80,6 +76,6 @@ class GadgetFieldInfo(SPHFieldInfo):
                        units=self.ds.unit_system["temperature"])
         self.alias((ptype, 'temperature'), (ptype, 'Temperature'))
         # need to do this manually since that automatic aliasing that happens
-        # in the FieldInfoContainer base class has already hapenned at this
+        # in the FieldInfoContainer base class has already happened at this
         # point
         self.alias(('gas', 'temperature'), (ptype, 'Temperature'))
