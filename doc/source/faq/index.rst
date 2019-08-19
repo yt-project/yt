@@ -20,7 +20,7 @@ How can I tell what version of yt I'm using?
 If you run into problems with yt and you're writing to the mailing list
 or contacting developers on IRC, they will likely want to know what version of
 yt you're using.  Oftentimes, you'll want to know both the yt version,
-as well as the last changeset that was comitted to the branch you're using.
+as well as the last changeset that was committed to the branch you're using.
 To reveal this, go to a command line and type:
 
 .. code-block:: bash

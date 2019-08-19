@@ -432,7 +432,7 @@ the ``setuptools`` documentation for the additional options.
 
 If you are unable to locate the ``yt`` executable (i.e. executing ``yt version``
 at the bash command line fails), then you likely need to add the
-``$HOME/.local/bin`` (or the equivalent on your OS) to your PATH. Some linux
+``$HOME/.local/bin`` (or the equivalent on your OS) to your PATH. Some Linux
 distributions do not include this directory in the default search path.
 
 If you choose this installation method, you do not need to run any activation

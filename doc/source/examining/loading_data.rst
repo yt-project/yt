@@ -552,7 +552,7 @@ file:
    ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
 
 Because Exodus II datasets can have multiple steps (which can correspond to time steps,
-picard iterations, non-linear solve iterations, etc...), you can also specify a step
+Picard iterations, non-linear solve iterations, etc...), you can also specify a step
 argument when you load an Exodus II data that defines the index at which to look when
 you read data from the file. Omitting this argument is the same as passing in 0, and
 setting ``step=-1`` selects the last time output in the file.
@@ -838,7 +838,7 @@ The third way is if auxiliary files are included along with the main file, like 
 The image blocks in each of these files will be loaded as a separate field,
 provided they have the same dimensions as the image blocks in the main file.
 
-Additionally, fields corresponding to the WCS coordinates will be generated.
+Additionally, fields corresponding to the WCS coordinates will be generated
 based on the corresponding ``CTYPEx`` keywords. When queried, these fields
 will be generated from the pixel coordinates in the file using the WCS
 transformations provided by AstroPy.
@@ -2215,7 +2215,7 @@ There are three way to make yt detect all the particle fields. For example, if y
 Customizing the particle type association
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In verions of RAMSES more recent than December 2017, particles carry
+In versions of RAMSES more recent than December 2017, particles carry
 along a ``family`` array. The value of this array gives the kind of
 the particle, e.g. 1 for dark matter. It is possible to customize the
 association between particle type and family by customizing the yt

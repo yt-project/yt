@@ -181,7 +181,7 @@ The file format required for line emission is slightly different. The
 following script will generate two files, one called "numderdens_co.inp",
 which contains the number density of CO molecules for every cell in the index,
 and another called "gas-velocity.inp", which is useful if you want to include
-doppler broadening.
+Doppler broadening.
 
 .. code-block:: python
 
