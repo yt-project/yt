@@ -24,7 +24,7 @@ will work best for you depends on your precise situation:
   `conda <https://conda.io/en/latest/>`_ package manager inside of a single
   folder in your home directory. See :ref:`install-script` for more details.
 
-* If you use the `Anaconda <https://store.continuum.io/cshop/anaconda/>`_ python
+* If you use the `Anaconda <https://www.anaconda.com/distribution/>`_ python
   distribution and already have ``conda`` installed, see
   :ref:`anaconda-installation` for details on how to install yt using the
   ``conda`` package manager. Note that this is currently the only supported

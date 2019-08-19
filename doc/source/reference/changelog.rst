@@ -210,7 +210,7 @@ Additional Improvements
   incorrect answer. See `PR 1856
   <https://github.com/yt-project/yt/pull/1856>`__.
 - Systematically added validation for inputs to data object initializers. See
-  `PR 1871 <https://github.com/yt-project/yt/pull>`__.
+  `PR 1871 <https://github.com/yt-project/yt/pull/1871>`__.
 - It is now possible to select only a specific particle type in the particle
   trajectories analysis module. See `PR 1887
   <https://github.com/yt-project/yt/pull/1887>`__.

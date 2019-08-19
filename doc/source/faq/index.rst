@@ -124,7 +124,7 @@ cc is the mpi-enabled C compiler (and it is in my path), so I run:
 And voila!  It installs!  If this *still* fails for you, then you can
 build and install from source and specify the mpi-enabled c and c++
 compilers in the mpi.cfg file.  See the
-`mpi4py installation page <http://mpi4py.scipy.org/docs/usrman/install.html>`_
+`mpi4py installation page <https://mpi4py.readthedocs.io/en/stable/install.html>`_
 for details.
 
 

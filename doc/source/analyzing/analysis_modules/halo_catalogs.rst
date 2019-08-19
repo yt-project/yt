@@ -87,7 +87,7 @@ HOP
 
 The version of HOP used in yt is an upgraded version of the
 `publicly available HOP code
-<http://cmb.as.arizona.edu/~eisenste/hop/hop.html>`_. Support
+<https://www.cfa.harvard.edu/~deisenst/hop/>`_. Support
 for 64-bit floats and integers has been added, as well as
 parallel analysis through spatial decomposition. HOP builds
 groups in this fashion:

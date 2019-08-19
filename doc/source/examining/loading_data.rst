@@ -1985,7 +1985,7 @@ PyNE Data
 `PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit
 maintained by the PyNE development team (pyne-dev@googlegroups.com).
 PyNE meshes utilize the Mesh-Oriented datABase
-`(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ and can be
+`(MOAB) <https://press3.mcs.anl.gov/sigma/moab-library/>`_ and can be
 Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne
 Material objects which provide a rich set of capabilities for nuclear
 engineering tasks. PyNE Cartesian (Hex8) meshes are supported by yt.
