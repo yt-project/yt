@@ -54,8 +54,10 @@ ds.cosmology = Cosmology(hubble_constant=ds.hubble_constant,
                          unit_registry=ds.unit_registry)
 for my_unit in ["m", "pc", "AU", "au"]:
     new_unit = "%scm" % my_unit
-    ds.unit_registry.add(new_unit, base_ds.unit_registry.lut[my_unit][0],
-                         dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
+    my_u = Unit(my_unit, registry=ds.unit_registry)
+    ds.unit_registry.add(new_unit, my_u.base_value,
+                         dimensions.length, "\\rm{%s}/(1+z)" % my_unit,
+                         prefixable=True)
 
 
 
