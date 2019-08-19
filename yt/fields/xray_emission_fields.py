@@ -203,7 +203,12 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
             raise RuntimeError("Your dataset does not have a {} field! ".format(metallicity) +
                                "Perhaps you should specify a constant metallicity instead?")
 
-    H_field = "H_nuclei_density" if table_type == "cloudy" else "H_p1_number_density"
+    if table_type == "cloudy":
+        # Cloudy wants to know the total number density of hydrogen
+        H_field = "H_nuclei_density"
+    else:
+        # APEC only wants the free proton density
+        H_field = "H_p1_number_density"
 
     my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, 
                                      redshift=redshift)
