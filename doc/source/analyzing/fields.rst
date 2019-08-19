@@ -385,9 +385,12 @@ within the dataset, as well as their abundances and ionization states. Examples 
 
 The naming scheme for the fields starts with prefixes in the form ``MM[_[mp][NN]]``. ``MM``
 is the molecule, defined as a concatenation of atomic symbols and numbers, with no spaces or
-underscores. The second sequence is only required if the ionization state is not neutral,
-and is of the form ``p`` and ``m`` to indicate "plus" or "minus" respectively, followed by
-the number. For the examples above, the prefixes would be:
+underscores. The second sequence is only required if ionization states are present in the
+dataset, and is of the form ``p`` and ``m`` to indicate "plus" or "minus" respectively, 
+followed by the number. If a given species has no ionization states given, the prefix is
+simply ``MM``. 
+
+For the examples above, the prefixes would be:
 
 * ``CO``
 * ``Co``
@@ -408,8 +411,7 @@ defined:
 * ``MM[_[mp][NN]]_mass``
 
 To refer to the number density of the entirety of a single atom or molecule (regardless
-of its ionization state), please use the ``MM_nuclei_density`` fields, as opposed to
-``MM_number_density`` fields.
+of its ionization state), please use the ``MM_nuclei_density`` fields.
 
 Finally, if the abundances of hydrogen and helium are not defined, it is assumed that
 assumed that these elements are fully ionized with primordial abundances In this case,

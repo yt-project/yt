@@ -1066,9 +1066,12 @@ present, Then the mean molecular weight is the inverse of ``"sumy"``, and the fi
 defined using the following mathematical definitions:
 
 * ``"El_number_density"`` :math:`n_e = N_AY_e\rho`
-* ``"ion_number_density"`` :math:`n_i = N_A\Sigma{Y}\rho`
+* ``"ion_number_density"`` :math:`n_i = N_A\rho/\bar{A}`
 * ``"number_density"`` :math:`n = n_e + n_i`
 
+where :math:`n_e` and :math:`n_i` are the electron and ion number densities, 
+:math:`\rho` is the mass density, :math:`Y_e` is the electron number per baryon,
+:math:`\bar{A}` is the mean molecular weight, and :math:`N_A` is Avogadro's number.
 
 .. rubric:: Caveats
 
@@ -1374,7 +1377,8 @@ value can be changed when loading an Arepo dataset by setting the
 
 Currently, only Arepo HDF5 snapshots are supported. If the "GFM" metal fields are
 present in your dataset, they will be loaded in and aliased to the appropriate 
-species fields. 
+species fields in the `"GFM_Metals"` field on-disk. For more information, see
+the `Illustris TNG documentation <http://www.tng-project.org/data/docs/specifications/#sec1b>`_.
 
 .. _loading-gamer-data:
 
