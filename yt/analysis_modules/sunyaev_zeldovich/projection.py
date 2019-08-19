@@ -2,7 +2,7 @@
 Projection class for the Sunyaev-Zeldovich effect. Requires SZpack (at least
 version 1.1.1) to be downloaded and installed:
 
-http://www.chluba.de/SZpack/
+http://www.jb.man.ac.uk/~jchluba/Science/SZpack/SZpack.html
 
 For details on the computations involved please refer to the following references:
 
