@@ -39,7 +39,7 @@ You will have to figure out where your new/modified doc fits into this, but
 browsing through the existing documentation is a good way to sort that out.
 
 All the source for the documentation is written in
-`Sphinx <http://sphinx-doc.org/en/master/>`_, which uses ReST for markup.  ReST is very
+`Sphinx <http://www.sphinx-doc.org/en/master/>`_, which uses ReST for markup.  ReST is very
 straightforward to markup in a text editor, and if you are new to it, we
 recommend just using other .rst files in the existing yt documentation as
 templates or checking out the
@@ -171,10 +171,10 @@ used to generate the yt documentation during the release of yt 3.2 in 2015.
 * ffmpeg_ 2.7.1 (compiled with libvpx support)
 * Astropy_ 0.4.4
 
-.. _SZpack: http://www.cita.utoronto.ca/~jchluba/Science_Jens/SZpack/SZpack.html
-.. _Astropy: https://astropy.org/
-.. _Sphinx: http://sphinx-doc.org/en/master/
-.. _pandoc: http://pandoc.org/
+.. _SZpack: http://www.jb.man.ac.uk/~jchluba/Science/SZpack/SZpack.html
+.. _Astropy: https://www.astropy.org/
+.. _Sphinx: http://www.sphinx-doc.org/en/master/
+.. _pandoc: https://pandoc.org/
 .. _ffmpeg: http://www.ffmpeg.org/
 .. _IPython: https://ipython.org/
 

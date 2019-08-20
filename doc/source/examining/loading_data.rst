@@ -962,7 +962,7 @@ improves it will be utilized more here.
 .. note::
 
   The following functionality requires the
-  `spectral-cube <https://spectral-cube.readthedocs.org>`_ library to be
+  `spectral-cube <https://spectral-cube.readthedocs.io/en/latest/>`_ library to be
   installed.
 
 If you have a spectral intensity dataset of some sort, and would like to

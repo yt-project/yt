@@ -25,7 +25,7 @@ For detailed information about the design of the algorithm in yt, check
 out `the SciPy 2014 Proceedings. <http://conference.scipy.org/proceedings/scipy2014/zuhone.html>`_.
 
 The algorithm is based off of that implemented in
-`PHOX <https://www.mpa-garching.mpg.de/~kdolag/Phox/>`_ for SPH datasets
+`PHOX <https://wwwmpa.mpa-garching.mpg.de/~kdolag/Phox/>`_ for SPH datasets
 by Veronica Biffi and Klaus Dolag. There are two relevant papers:
 
 `Biffi, V., Dolag, K., Bohringer, H., & Lemson, G. 2012, MNRAS, 420,
@@ -466,7 +466,7 @@ created using different data sources:
 
 Finally, a new ``EventList`` can be created from a subset of an existing ``EventList``,
 defined by a ds9 region (this functionality requires the
-`pyregion <https://pyregion.readthedocs.org>`_ package to be installed):
+`pyregion <https://pyregion.readthedocs.io/en/latest/>`_ package to be installed):
 
 .. code:: python
 
