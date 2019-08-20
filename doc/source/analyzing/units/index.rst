@@ -39,7 +39,7 @@ Here are the notebooks, which have been filled in for inspection:
 .. note::
 
    The notebooks use sample datasets that are available for download at
-   http://yt-project.org/data.  See :ref:`quickstart-introduction` for more
+   https://yt-project.org/data.  See :ref:`quickstart-introduction` for more
    details.
 
 Let us know if you would like to contribute other example notebooks, or have

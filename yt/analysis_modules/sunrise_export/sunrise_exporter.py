@@ -37,7 +37,7 @@ def export_to_sunrise(ds, fn, star_particle_type, fc, fwidth, ncells_wide=None,
     file.  This octree will be written to a FITS file.  It will probably be
     quite big, so use this function with caution!  Sunrise is a tool for
     generating synthetic spectra, available at
-    http://sunrise.googlecode.com/ .
+    https://bitbucket.org/lutorm/sunrise/ .
 
     Parameters
     ----------
@@ -58,7 +58,7 @@ def export_to_sunrise(ds, fn, star_particle_type, fc, fwidth, ncells_wide=None,
 
     Note that the process of generating simulated images from Sunrise will
     require substantial user input; see the Sunrise wiki at
-    http://sunrise.googlecode.com/ for more information.
+    https://bitbucket.org/lutorm/sunrise/ for more information.
 
     """
     fc = np.array(fc)

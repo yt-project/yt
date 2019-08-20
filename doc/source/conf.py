@@ -61,7 +61,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'The yt Project'
-copyright = u'2013-2018, the yt Project'
+copyright = u'2013-2019, the yt Project'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -246,11 +246,11 @@ man_pages = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'http://docs.python.org/': None,
-                       'http://ipython.readthedocs.io/en/stable/': None,
-                       'http://docs.scipy.org/doc/numpy/': None,
-                       'http://matplotlib.org/': None,
-                       'http://docs.astropy.org/en/stable': None,
+intersphinx_mapping = {'https://docs.python.org/3/': None,
+                       'https://ipython.readthedocs.io/en/stable/': None,
+                       'https://docs.scipy.org/doc/numpy/': None,
+                       'https://matplotlib.org/': None,
+                       'https://docs.astropy.org/en/stable': None,
                        }
 
 if not on_rtd:

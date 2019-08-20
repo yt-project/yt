@@ -552,7 +552,7 @@ file:
    ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
 
 Because Exodus II datasets can have multiple steps (which can correspond to time steps,
-picard iterations, non-linear solve iterations, etc...), you can also specify a step
+Picard iterations, non-linear solve iterations, etc...), you can also specify a step
 argument when you load an Exodus II data that defines the index at which to look when
 you read data from the file. Omitting this argument is the same as passing in 0, and
 setting ``step=-1`` selects the last time output in the file.
@@ -688,7 +688,7 @@ FITS Data
 ---------
 
 FITS data is *mostly* supported and cared for by John ZuHone. In order to
-read FITS data, `AstroPy <http://www.astropy.org>`_ must be installed. FITS
+read FITS data, `AstroPy <https://www.astropy.org>`_ must be installed. FITS
 data cubes can be loaded in the same way by yt as other datasets. yt
 can read FITS image files that have the following (case-insensitive) suffixes:
 
@@ -838,7 +838,7 @@ The third way is if auxiliary files are included along with the main file, like 
 The image blocks in each of these files will be loaded as a separate field,
 provided they have the same dimensions as the image blocks in the main file.
 
-Additionally, fields corresponding to the WCS coordinates will be generated.
+Additionally, fields corresponding to the WCS coordinates will be generated
 based on the corresponding ``CTYPEx`` keywords. When queried, these fields
 will be generated from the pixel coordinates in the file using the WCS
 transformations provided by AstroPy.
@@ -962,7 +962,7 @@ improves it will be utilized more here.
 .. note::
 
   The following functionality requires the
-  `spectral-cube <http://spectral-cube.readthedocs.org>`_ library to be
+  `spectral-cube <https://spectral-cube.readthedocs.io/en/latest/>`_ library to be
   installed.
 
 If you have a spectral intensity dataset of some sort, and would like to
@@ -1931,7 +1931,7 @@ available here are similar to other catalogs.  Any addition
 openPMD Data
 ------------
 
-`openPMD <http://www.openpmd.org>`_ is an open source meta-standard and naming
+`openPMD <https://www.openpmd.org>`_ is an open source meta-standard and naming
 scheme for mesh based data and particle data. It does not actually define a file
 format.
 
@@ -1985,7 +1985,7 @@ PyNE Data
 `PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit
 maintained by the PyNE development team (pyne-dev@googlegroups.com).
 PyNE meshes utilize the Mesh-Oriented datABase
-`(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ and can be
+`(MOAB) <https://press3.mcs.anl.gov/sigma/moab-library/>`_ and can be
 Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne
 Material objects which provide a rich set of capabilities for nuclear
 engineering tasks. PyNE Cartesian (Hex8) meshes are supported by yt.
@@ -2215,7 +2215,7 @@ There are three way to make yt detect all the particle fields. For example, if y
 Customizing the particle type association
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In verions of RAMSES more recent than December 2017, particles carry
+In versions of RAMSES more recent than December 2017, particles carry
 along a ``family`` array. The value of this array gives the kind of
 the particle, e.g. 1 for dark matter. It is possible to customize the
 association between particle type and family by customizing the yt
@@ -2263,7 +2263,7 @@ of the various particle formation time and age fields:
 
 +------------------+--------------------------+--------------------------------+
 | Simulation type  | Field name               | Description                    |
-|==================+==========================+================================+
++==================+==========================+================================+
 | cosmological     | ``conformal_birth_time`` | Formation time in conformal    |
 |                  |                          | units (dimensionless)          |
 +------------------+--------------------------+--------------------------------+

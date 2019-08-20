@@ -2,16 +2,16 @@
 
 Visualizing Particle Datasets with Firefly
 ==========================================
-`Firefly <https://www.github.com/ageller/Firefly>`_
+`Firefly <https://github.com/ageller/Firefly>`_
 is an interactive, browser-based,
 particle visualization platform that allows you to filter, colormap, and fly 
 through their data. The user interface can be entirely customized through the
-`python api <https:/www.github.com/agurvich/firefly_api>`_
+`python api <https://github.com/agurvich/firefly_api>`_
 yt offers to ability
 to export your data to Firefly's JSON format through the  
 :meth:`~yt.data_objects.data_containers.YTDataContainer.create_firefly_object`
 method. You will still need to clone the
-`repository <https://www.github.com/ageller/Firefly>`_
+`repository <https://github.com/ageller/Firefly>`_
 and ensure these data files are stored in the ``Firefly/data`` directory,
 this is easily done using the 
 ``path_to_firefly`` argument of 
