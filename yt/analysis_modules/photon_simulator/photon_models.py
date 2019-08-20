@@ -2,7 +2,7 @@
 Classes for specific photon models
 
 The algorithms used here are based off of the method used by the
-PHOX code (http://www.mpa-garching.mpg.de/~kdolag/Phox/),
+PHOX code (https://wwwmpa.mpa-garching.mpg.de/~kdolag/Phox/),
 developed by Veronica Biffi and Klaus Dolag. References for
 PHOX may be found at:
 

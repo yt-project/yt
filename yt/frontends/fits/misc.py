@@ -81,7 +81,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
     slabs as separate yt fields. Useful for extracting individual 
     lines from a spectral cube and separating them out as different fields. 
 
-    Requires the SpectralCube (http://spectral-cube.readthedocs.org)
+    Requires the SpectralCube (https://spectral-cube.readthedocs.io/en/latest/)
     library.
 
     All keyword arguments will be passed on to the `FITSDataset` constructor.
@@ -140,7 +140,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
 def ds9_region(ds, reg, obj=None, field_parameters=None):
     r"""
     Create a data container from a ds9 region file. Requires the pyregion
-    package (http://leejjoon.github.io/pyregion/) to be installed.
+    package (https://pyregion.readthedocs.io/en/latest/) to be installed.
 
     Parameters
     ----------

@@ -6,7 +6,7 @@ The SciPy Proceeding that describes this module in detail may be found at:
 http://conference.scipy.org/proceedings/scipy2014/zuhone.html
 
 The algorithms used here are based off of the method used by the
-PHOX code (http://www.mpa-garching.mpg.de/~kdolag/Phox/),
+PHOX code (https://wwwmpa.mpa-garching.mpg.de/~kdolag/Phox/),
 developed by Veronica Biffi and Klaus Dolag. References for
 PHOX may be found at:
 
