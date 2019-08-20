@@ -850,7 +850,7 @@ objects.  We can access these matplotlib primitives via attributes of
 
 These are the
 `figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
-and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
 objects that control the actual drawing of the plot.  Arbitrary plot
 customizations are possible by manipulating these objects.  See
 :ref:`matplotlib-primitives` for an example.

@@ -735,7 +735,7 @@ perspective and interactively.
 
 Python and Related References
 +++++++++++++++++++++++++++++
-    * `Python quickstart <https://docs.python.org/tutorial/>`_
+    * `Python quickstart <https://docs.python.org/3/tutorial/>`_
     * `Learn Python the Hard Way <https://learnpythonthehardway.org/book/>`_
     * `Byte of Python <https://python.swaroopch.com/>`_
     * `Dive Into Python <http://diveintopython.org>`_

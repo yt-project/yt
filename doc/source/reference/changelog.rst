@@ -309,8 +309,8 @@ Minor Enhancements and Bugfixes
 - Correct typo in WarpX field definitions. See `PR 1583
   <https://github.com/yt-project/yt/pull/1583>`__.
 - Avoid crashing when loading an Enzo dataset with a parameter file that has
-  commented out parameters. See `PR 1584
-  <https://github.com/yt-project/yt/pull/1584>`__.
+  commented out parameters. See `PR 1586
+  <https://github.com/yt-project/yt/pull/1586>`__.
 - Fix a corner case in the clump finding machinery where the reference to the
   parent clump is invalid after pruning a child clump that has no siblings. See
   `PR 1587 <https://github.com/yt-project/yt/pull/1587>`__.
@@ -334,7 +334,7 @@ Minor Enhancements and Bugfixes
 - Added a cookbook example for a multipanel phase plot. See `PR 1605
   <https://github.com/yt-project/yt/pull/1605>`__.
 - Boolean simulation parameters in the Boxlib frontend will now be interpreted
-  correctly. See `PR 1618 <https://github.com/yt-project/yt/pull/1618>`__.
+  correctly. See `PR 1619 <https://github.com/yt-project/yt/pull/1619>`__.
 - The ``ds.particle_type_counts`` attribute will now be populated correctly for
   AMReX data.
 - The ``"rad"`` unit (added for compatibility with astropy) now has the correct
@@ -617,7 +617,7 @@ pull requests from 44 contributors including 18 new contributors.
    ``OffAxisProjectionPlot``. See `Bitbucket PR
    2490 <https://bitbucket.org/yt_analysis/yt/pull-requests/2490>`__.
 -  Added a ``yt download`` command-line helper to download test data
-   from http://yt-project.org/data. For more information see
+   from https://yt-project.org/data. For more information see
    ``yt download --help`` at the bash command line. See `Bitbucket PR
    2495 <https://bitbucket.org/yt_analysis/yt/pull-requests/2495>`__ and
    `Bitbucket PR
@@ -627,7 +627,7 @@ pull requests from 44 contributors including 18 new contributors.
    command line. See `Github PR
    1471 <https://github.com/yt-project/yt/pull/1471>`__.
 -  If it's installed, colormaps from the `cmocean
-   package <http://matplotlib.org/cmocean/>`__ will be made available as
+   package <https://matplotlib.org/cmocean/>`__ will be made available as
    yt colormaps. See `Bitbucket PR
    2439 <https://bitbucket.org/yt_analysis/yt/pull-requests/2439>`__.
 -  It is now possible to visualize unstructured mesh fields defined on
@@ -1798,7 +1798,7 @@ Version 1.6
 Version 1.6 is a point release, primarily notable for the new parallel halo
 finder (see :ref:`halo-analysis`)
 
- * (New) Parallel HOP ( http://arxiv.org/abs/1001.3411 , :ref:`halo-analysis` )
+ * (New) Parallel HOP ( https://arxiv.org/abs/1001.3411 , :ref:`halo-analysis` )
  * (Beta) Software ray casting and volume rendering
    (see :ref:`volume_rendering`)
  * Rewritten, faster and better contouring engine for clump identification
