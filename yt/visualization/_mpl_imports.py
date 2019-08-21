@@ -9,3 +9,6 @@ from matplotlib.backends.backend_pdf import \
 
 from matplotlib.backends.backend_ps import \
     FigureCanvasPS
+
+from matplotlib.backends.backend_svg import \
+    FigureCanvasSVG
