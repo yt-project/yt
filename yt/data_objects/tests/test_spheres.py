@@ -2,7 +2,8 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from yt.data_objects.profiles import create_profile
-from yt.testing import fake_random_ds, assert_equal, periodicity_cases, assert_raises
+from yt.testing import fake_random_ds, assert_equal, periodicity_cases, \
+    assert_raises, requires_module
 
 from yt.utilities.exceptions import YTException
 
@@ -80,6 +81,7 @@ def test_sphere_center():
     sp2 = ds.sphere("min_density", (0.25, 'unitary'))
     assert_array_equal(sp1.center, sp2.center)
 
+@requires_module("MiniballCpp")
 def test_minimal_sphere():
     ds = fake_random_ds(16, nprocs=8, particles=100)
 
@@ -97,6 +99,7 @@ def test_minimal_sphere():
     N2 = len(sp2['particle_ones'])
     assert N2 < N0
 
+@requires_module("MiniballCpp")
 def test_minimal_sphere_bad_inputs():
     ds = fake_random_ds(16, nprocs=8, particles=100)
     pos = ds.r['particle_position']
