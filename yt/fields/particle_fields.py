@@ -839,6 +839,30 @@ def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
                        units = "code_length")
     return [field_name]
 
+def add_nearest_neighbor_value_field(ptype, coord_name, sampled_field, registry):
+    """
+    This adds a nearest-neighbor field, where values on the mesh are assigned
+    based on the nearest particle value found.  This is useful, for instance,
+    with voronoi-tesselations.
+    """
+    field_name = ("deposit", "%s_nearest_%s" % (ptype, sampled_field))
+    field_units = registry[ptype, sampled_field].units
+    unit_system = registry.ds.unit_system
+    def _nearest_value(field, data):
+        pos = data[ptype, coord_name]
+        pos = pos.convert_to_units("code_length")
+        value = data[ptype, sampled_field].in_base(unit_system.name)
+        rv = data.smooth(pos, [value],
+                         method="nearest",
+                         create_octree=True,
+                         nneighbors=1)
+        rv = data.apply_units(rv, field_units)
+        return rv
+    registry.add_field(field_name, sampling_type="cell",
+            function=_nearest_value, validators=[ValidateSpatial(0)],
+            units=field_units)
+    return [field_name]
+
 def add_union_field(registry, ptype, field_name, units):
     """
     Create a field that is the concatenation of multiple particle types.

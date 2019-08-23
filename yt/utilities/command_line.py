@@ -490,7 +490,7 @@ class YTBugreportCmd(YTCommand):
         print("simply be a misunderstanding that could be cleared up by")
         print("visiting the yt irc channel or getting advice on the email list:")
         print("   http://yt-project.org/irc.html")
-        print("   https://mail.python.org/mm3/archives/list/yt-users@python.org/")
+        print("   https://mail.python.org/archives/list/yt-users@python.org/")
         print()
         summary = input("Press <enter> if you remain firm in your conviction to continue.")
         print()

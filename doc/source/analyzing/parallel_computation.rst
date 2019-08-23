@@ -221,7 +221,7 @@ Parallelization over Multiple Objects and Datasets
 
 If you have a set of computational steps that need to apply identically and
 independently to several different objects or datasets, a so-called
-`embarrassingly parallel <http://en.wikipedia.org/wiki/Embarrassingly_parallel>`_
+`embarrassingly parallel <https://en.wikipedia.org/wiki/Embarrassingly_parallel>`_
 task, yt can do that easily.  See the sections below on
 :ref:`parallelizing-your-analysis` and :ref:`parallel-time-series-analysis`.
 
@@ -649,7 +649,7 @@ Additional Tips
 * Remember that if the script handles disk IO explicitly, and does not use
   a built-in yt function to write data to disk,
   care must be taken to
-  avoid `race-conditions <http://en.wikipedia.org/wiki/Race_conditions>`_.
+  avoid `race-conditions <https://en.wikipedia.org/wiki/Race_conditions>`_.
   Be explicit about which MPI task writes to disk using a construction
   something like this:
 

@@ -9,7 +9,7 @@ of simulation data, derived fields, and the data produced by yt
 analysis objects.  For details about the data extraction and
 algorithms used to produce the image and analysis data, please see the
 yt `method paper
-<http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_.  There are also
+<https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T>`_.  There are also
 many example scripts in :ref:`cookbook`.
 
 The :class:`~yt.visualization.plot_window.PlotWindow` interface is useful for
@@ -61,8 +61,8 @@ of fixed size. This is accomplished behind the scenes using
 
 The :class:`~yt.visualization.plot_window.PlotWindow` class exposes the
 underlying matplotlib
-`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
-and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
 objects, making it easy to customize your plots and
 add new annotations.  See :ref:`matplotlib-customization` for more information.
 
@@ -849,8 +849,8 @@ accessed via the ``plots`` dictionary attached to each
 In this example ``dens_plot`` is an instance of
 :class:`~yt.visualization.plot_window.WindowPlotMPL`, an object that wraps the
 matplotlib
-`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
-and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
 objects.  We can access these matplotlib primitives via attributes of
 ``dens_plot``.
 
@@ -861,8 +861,8 @@ objects.  We can access these matplotlib primitives via attributes of
     colorbar_axes = dens_plot.cax
 
 These are the
-`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
-and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
 objects that control the actual drawing of the plot.  Arbitrary plot
 customizations are possible by manipulating these objects.  See
 :ref:`matplotlib-primitives` for an example.
@@ -1807,7 +1807,7 @@ visualize your data, publishers often require figures to be in PDF or
 EPS format.  While the matplotlib supports vector graphics and image
 compression in PDF formats, it does not support compression in EPS
 formats.  The :class:`~yt.visualization.eps_writer.DualEPS` module
-provides an interface with the `PyX <http://pyx.sourceforge.net/>`_,
+provides an interface with the `PyX <https://pyx-project.org/>`_,
 which is a Python abstraction of the PostScript drawing model with a
 LaTeX interface.  It is optimal for publications to provide figures
 with vector graphics to avoid rasterization of the lines and text,
@@ -1835,7 +1835,7 @@ EPS or PDF figure.  For example,
 
 The ``eps_fig`` object exposes all of the low-level functionality of
 ``PyX`` for further customization (see the `PyX documentation
-<http://pyx.sourceforge.net/manual/index.html>`_).  There are a few
+<https://pyx-project.org/manual/>`_).  There are a few
 convenience routines in ``eps_writer``, such as drawing a circle,
 
 .. code-block:: python

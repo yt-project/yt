@@ -1035,7 +1035,7 @@ def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
     """Generate file hash without reading in the entire file at once.
 
     Original code licensed under MIT.  Source:
-    http://pythoncentral.io/hashing-files-with-python/
+    https://www.pythoncentral.io/hashing-files-with-python/
 
     Parameters
     ----------

@@ -1302,7 +1302,7 @@ class PhasePlot(ImagePlotContainer):
               demi, bold, heavy, extra bold, or black
 
             See the matplotlib font manager API documentation for more details.
-            http://matplotlib.org/api/font_manager_api.html
+            https://matplotlib.org/api/font_manager_api.html
 
         Notes
         -----
