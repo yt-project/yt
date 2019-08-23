@@ -71,7 +71,8 @@ from yt.utilities.minimal_representation import \
     MinimalDataset
 from yt.units.yt_array import \
     YTArray, \
-    YTQuantity, \
+    YTQuantity
+from yt.units import \
     _wrap_display_ytarray
 from yt.units.unit_systems import create_code_unit_system
 from yt.data_objects.region_expression import \
