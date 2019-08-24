@@ -35,10 +35,7 @@ class AMRVACIOHandler(BaseIOHandler):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
-        print("==========================================")
-        print("NOT IMPLEMENTED: io/_read_particle_coords")
-        print("==========================================")
-        pass
+        raise NotImplementedError
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # This gets called after the arrays have been allocated.  It needs to
@@ -46,10 +43,7 @@ class AMRVACIOHandler(BaseIOHandler):
         # reading ptype, field and applying the selector to the data read in.
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
-        print("==========================================")
-        print("NOT IMPLEMENTED: io/_read_particle_fields")
-        print("==========================================")
-        pass
+        raise NotImplementedError
 
     def _read_data(self, grid, field):
         # TODO This method should read the data itself from the .dat file, right?
@@ -152,7 +146,4 @@ class AMRVACIOHandler(BaseIOHandler):
         # and is only used for caching data that might be used by multiple
         # different selectors later. For instance, this can speed up ghost zone
         # computation.
-        print("==========================================")
-        print("NOT IMPLEMENTED: io/_read_chunk_data")
-        print("==========================================")
-        pass
+        raise NotImplementedError

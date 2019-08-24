@@ -45,8 +45,7 @@ class AMRVACGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level, block_idx):
-        super(AMRVACGrid, self).__init__(
-            id, filename=index.index_filename, index=index)
+        super(AMRVACGrid, self).__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -76,39 +75,26 @@ class AMRVACHierarchy(GridIndex):
 
         super(AMRVACHierarchy, self).__init__(ds, dataset_type)
 
-
     def _detect_output_fields(self):
-        # TODO (low priority): probably should distinguish gas and dust fields here
-        # through the "field type" tag, which here is using self.dataset_type
         self.field_list = [(self.dataset_type, f) for f in self.dataset.parameters["w_names"]]
 
     def _count_grids(self):
-        # AMRVAC data files only contain 'leaves', which
-        # are bottom (highest) level patches/grids.
-        # We need the complete hierarchy from top (level 1 = block) to bottom
-        # so we include "ghost" grids in the counting, i.e. intermediate level grids only
-        # represented by their respective subgrids.
-        header = self.dataset.parameters
-        with open(self.dataset.parameter_filename, 'rb') as df:
-            #TODO: rewrite this without get_block_data()
-            blocks = get_block_data(df)
-        self.num_grids = len(blocks)
-
+        """Set self.num_grids using datfile header"""
+        self.num_grids = self.dataset.parameters['nleafs']
 
     def _create_patch(self, current_grid):
-        # Current level of the block
-        current_level = current_grid["lvl"]
-        # Current index of the Morton Curve, see http://amrvac.org/md_doc_amrstructure.html
-        current_idx = current_grid["ix"]
+        # Niels note:
+        # current_grid["ix"] is the current index on a Morton Curve
+        # see http://amrvac.org/md_doc_amrstructure.html
 
-        grid_difference = 2**(self.dataset.parameters["levmax"] - current_level)
-        max_idx = current_idx * grid_difference
+        grid_difference = 2**(self.dataset.parameters["levmax"] - current_grid["lvl"])
+        max_idx = current_grid["ix"] * grid_difference
         min_idx = max_idx - grid_difference
 
-        # init indices of block
+        # inner indices of block
         idx0 = min_idx * self.dataset.parameters["block_nx"]
         # outer indices of block    TODO: these depend on AMR level, right?
-        if current_level == self.dataset.parameters["levmax"]:
+        if current_grid["lvl"] == self.dataset.parameters["levmax"]:
             idx1 = idx0 + self.dataset.parameters["block_nx"]
         else:
             idx1 = idx0 + (self.dataset.parameters["block_nx"] * grid_difference)
@@ -118,31 +104,27 @@ class AMRVACHierarchy(GridIndex):
         # Width of the domain, used to correctly calculate fractions
         domain_width   = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
 
-        # TODO @Niels
+        # TOREVIEW @Niels
         # So idx0 / domain_end_idx gives the "fraction" (between 0 and 1) of the current block
         # position. Multiply this by domain_width to take the width of the domain into account,
-        # as this can vary from one. Tested this in a separate file and seems to work. I hope this is
-        # meant by "patches" and "left_edge" and "right_edge"...
+        # as this can vary from one.
         patch = {
-            "left_edge" : (idx0 / domain_end_idx) * domain_width,
-            "right_edge": (idx1 / domain_end_idx) * domain_width,
-            #"width"     : ((idx1 - idx0) / domain_end_idx) * domain_width  # !! yields divide by zero
-            "width"     : self.dataset.parameters["block_nx"], # TODO then it should be this, as in "width of block"?
-            "block_idx" : current_idx
+            "left_edge":  idx0 / domain_end_idx * domain_width,
+            "right_edge": idx1 / domain_end_idx * domain_width,
+            # TOREVIEW: is this what "width" is supposed to represent ?
+            "width": self.dataset.parameters["block_nx"],
+            "block_idx": current_grid["ix"]
         }
-
         return patch
 
 
 
     def _add_patch(self, igrid, patch):
-        # TODO: @Niels: can this be done in a shorter and "nicer" way??
-        for idim, left_edge in enumerate(patch['left_edge']):
-            self.grid_left_edge[igrid, idim] = left_edge
-        for idim, right_edge in enumerate(patch['right_edge']):
-            self.grid_right_edge[igrid, idim] = right_edge
-        for idim, width in enumerate(patch['width']):
-            self.grid_dimensions[igrid, idim] = width
+        self.grid_left_edge[igrid, :] = patch["left_edge"]
+        self.grid_right_edge[igrid, :] = patch["right_edge"]
+        self.grid_dimensions[igrid, :] = patch["width"]
+
+        # TOREVIEW: is it intended that this attribute changes at each call ?
         self.grid_block_idx = patch["block_idx"]
 
 
@@ -151,18 +133,6 @@ class AMRVACHierarchy(GridIndex):
         with open(self.dataset.parameter_filename, 'rb') as df:
             #TODO: rewrite this without get_block_data()
             blocks = get_block_data(df)
-        header = self.dataset.parameters
-        ndim = self.dataset.dimensionality
-
-        #all of these are (ndim) arrays
-        #domain_width = header['xmax'] - header['xmin']
-        #nblocks = header['domain_nx'] / header['block_nx']
-        #block_width = domain_width / nblocks
-
-        # those are YTarray instances, already initialized with proper shape
-        #self.grid_left_edge[:]  = 0.0
-        #self.grid_right_edge[:] = 1.0
-
 
         igrid = 0
         while igrid < self.num_grids:
@@ -170,37 +140,6 @@ class AMRVACHierarchy(GridIndex):
             patch = self._create_patch(current_grid)
             self._add_patch(igrid, patch)
             igrid += 1
-
-
-        # wip
-        # --------------------------------------------
-        # expected_levels = [1] * nblocks
-        # ileaf = igrid = 0
-        # while igrid < self.num_grids:
-        #     leaf = leaves_dat[ileaf]
-        #     while leaf['lvl'] > expected_levels[-1]:
-        #         current_level = expected_levels.pop()
-        #         expected_levels += [current_level+1] * 2**ndim
-        #         patch = create_patch(level=current_level, bottom=leaf)
-        #         self._add_patch(patch)
-        #         igrid += 1
-        #     patch = create_patch(level=leaf['lvl'], bottom=leaf)
-        #     self._add_patch(patch)
-        #     ileaf += 1
-
-        # deprecated abstraction
-        # ---------------------------------------------
-        # for ip, patch in enumerate(leaves_dat):
-        #     patch_width = block_width / 2**(patch['lvl']-1)
-        #     patch_left_edge  = header['xmin'] + (patch['ix']-1) / 2**(patch['lvl']) * domain_width
-        #     patch_right_edge = header['xmin'] + (patch['ix'])   / 2**(patch['lvl']) * domain_width
-        #     for idim, ledge in enumerate(patch_left_edge):
-        #         # workaround the variable dimensionality of input data
-        #         # missing values are left to init values (0 ?)
-        #         self.grid_left_edge[ip,idim]  = patch_left_edge[idim]
-        #         self.grid_right_edge[ip,idim] = patch_right_edge[idim]
-        #         self.grid_dimensions[ip,idim] = patch['w'].shape[idim]
-        #     self.grids[ip] = self.grid(id=ip, index=self, level=patch['lvl'])
 
         # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
         levels = np.array([(block["lvl"] - 1) for block in blocks], dtype="int32")
@@ -212,9 +151,6 @@ class AMRVACHierarchy(GridIndex):
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels[i, 0], self.grid_block_idx)
-
-
-
 
 
     def _populate_grid_objects(self):
@@ -248,15 +184,13 @@ class AMRVACDataset(Dataset):
 
         # TODO @Niels: Default to cgs. This will be implemented in upcoming .dat file extensions.
 
-        if "unit_system" in self.parameters:
-            unit_system = self.parameters["unit_system"]
-        else:
-            unit_system = "cgs"
+        unit_system = self.parameters.get("unit_system", "cgs")
 
         # TODO @Niels: Units in AMRVAC are defined by specifying unit_numberdensity and unit_length, together with
         #              EITHER unit_temperature or unit_velocity. This will again be implemented in .dat file changes.
 
         # @Niels: can we use astropy here?
+        # @clm : no, but we *could* use unyt
         mp  = 1.672621777e-24    # cgs units (g)
         kB  = 1.3806488e-16      # cgs units (erg / K)
         mu0 = 4 * np.pi
@@ -265,30 +199,19 @@ class AMRVACDataset(Dataset):
         if unit_system == "cgs":
             pass
         elif unit_system == "si":
-            mp  = mp * 1e-3
-            kB  = kB * 1e-7
+            mp *= 1e-3
+            kB *= 1e-7
             mu0 = 1.2566370614e-6
         else:
             raise RuntimeError("AMRVAC data file contains an "
                                "unknown unit_system parameter {}".format(self.parameters["unit_system"]))
 
         # Obtain unit normalisations from .dat file
-        if "unit_length" in self.parameters:
-            unit_length = self.parameters["unit_length"]
-        else:
-            unit_length = 1         # code default
-        if "unit_numberdensity" in self.parameters:
-            unit_numberdensity = self.parameters["unit_numberdensity"]
-        else:
-            unit_numberdensity = 1  # code default
-        if "unit_velocity" in self.parameters:
-            unit_velocity = self.parameters["unit_velocity"]
-        else:
-            unit_velocity = 0
-        if "unit_temperature" in self.parameters:
-            unit_temperature = self.parameters["unit_temperature"]
-        else:
-            unit_temperature = 1
+        # default values mock AMRVAC itself
+        unit_length = self.parameters.get("unit_length", 1)
+        unit_numberdensity = self.parameters.get("unit_numberdensity", 1)
+        unit_velocity = self.parameters.get("unit_velocity", 0)
+        unit_temperature = self.parameters.get("unit_temperature", 1)
 
         unit_density = (1.0 + 4.0*He_abundance) * mp * unit_numberdensity
 
@@ -396,10 +319,6 @@ class AMRVACDataset(Dataset):
         validation = False
         try:
             with open(args[0], 'rb') as fi:
-                # TODO: better checks, use header info? Maybe add "amrvac" as additional header argument to keep
-                # TODO: backwards compatibility
-                # <<< clm : there is no need to change this admittedly heuristic line UNLESS it breaks other frontends.
-                # <<< so if nothing breaks when running nosetest at top level, resolve this (remove comments)
                 assert 'rho' in fi.readline().decode('latin-1')
             validation = True
         finally:
