@@ -213,3 +213,57 @@ def get_block_info(dat):
         [nleafs, header['ndim']])
 
     return block_lvls, block_ixs
+
+def get_block_byte_limits(dat):
+    h = get_header(dat)
+    nw = h['nw']
+    nleafs = h['nleafs']
+    block_nx = np.array(h['block_nx'])
+    bcfmt = align + h['ndim'] * 'i'
+    bcsize = struct.calcsize(bcfmt)
+
+    shapes = []
+    # toreview @niels: I think that shapes can always be deduced from refinement level + dimensionality; in which case, we store a lot of redundant data within this approach
+    limits = np.empty((nleafs, 2), dtype=int)
+    # devnote (clm): dtype could possibly cause bug for large datasets
+    # should switch to int64 ?
+
+    offset = h['offset_blocks']
+    dat.seek(offset)
+    for i in range(nleafs):
+        # Read number of ghost cells
+        gc_lo = np.array(struct.unpack(bcfmt, dat.read(bcsize)))
+        gc_hi = np.array(struct.unpack(bcfmt, dat.read(bcsize)))
+        # determine block shape
+        block_shape = np.append(gc_lo + block_nx + gc_hi, nw)
+        fmt = align + np.prod(block_shape) * 'd'
+        data_size = struct.calcsize(fmt)
+
+        # append to return arrays
+        limits[i] = offset, data_size
+        shapes.append(block_shape)
+
+        # advance buffer
+        dat.seek(data_size, 1)
+        offset = dat.tell()
+
+    # check that we reached eof exactly
+    dat.seek(0, 2)
+    buffer_size = dat.tell()
+    assert offset == buffer_size
+    return limits, shapes
+
+def get_single_block_data(dat, byte_offset, byte_size, block_shape):
+    h = get_header(dat)
+    block_nx = np.array(h['block_nx'])
+    nw = h['nw']
+    gcfmt = align + h['ndim'] * 'i'
+    gcsize = struct.calcsize(gcfmt)
+
+    dat.seek(byte_offset)
+
+    # Read actual data
+    fmt = align + np.prod(block_shape) * 'd'
+    d = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    w = np.reshape(d, block_shape, order='F') # Fortran ordering
+    return w

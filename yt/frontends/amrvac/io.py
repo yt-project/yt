@@ -18,7 +18,7 @@ from yt.utilities.io_handler import \
 from yt.geometry.selection_routines import \
     GridSelector
 import numpy as np
-from . import datreader
+from .datreader import get_block_info, get_block_data, get_single_block_data
 import sys
 
 
@@ -29,7 +29,7 @@ class AMRVACIOHandler(BaseIOHandler):
     def __init__(self, ds):
         BaseIOHandler.__init__(self, ds)
         self.ds = ds
-        self.file = open(ds.parameter_filename, "rb")
+        self.datfile = ds.parameter_filename
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
@@ -46,17 +46,34 @@ class AMRVACIOHandler(BaseIOHandler):
         raise NotImplementedError
 
     def _read_data(self, grid, field):
-        # TODO This method should read the data itself from the .dat file, right?
+        ileaf = grid.id
+        offset, data_size = grid._index.block_limits[ileaf]
+        block_shape = grid._index.block_shapes[ileaf]
+        with open(self.datfile, "rb") as istream:
+            block = get_single_block_data(istream, offset, data_size, block_shape)
+        dim = self.ds.dimensionality
+        field_idx = self.ds.parameters['w_names'].index(field)
 
+        # Always convert into 3D array, as grid.ActiveDimensions is always 3D
+        if dim == 1:
+            data = block[:, field_idx]
+            data = data[:, np.newaxis, np.newaxis]
+        elif dim == 2:
+            data = block[:, :, field_idx]
+            data = data[:, :, np.newaxis]
+        else:
+            data = block[:, :, :, field_idx]
+        return data
+
+    def _read_data_OLD(self, grid, field):
+        # TODO: remove this
         # For now, this loads in the blocks AND the data to RAM...
         # IDEA: define new method in datreader.py, where only block info is loaded.
         #       Use this to find the block index, and then read in that particular data.
         #       Think this should be possible, and prevents loading in the entire array in memory.
-        blocks = datreader.get_block_data(self.file)
-        dim = self.ds.dimensionality
-        w_names = self.ds.parameters['w_names']
-        field_idx = w_names.index(field)
-        shape = grid.ActiveDimensions
+
+        with open(self.datfile, "rb") as istream:
+            blocks = get_block_data(istream)
 
         # TODO: this is very slow, need to be re-implemented, see idea above
         block = None
@@ -66,6 +83,11 @@ class AMRVACIOHandler(BaseIOHandler):
                 break
         else: # if no break
             raise RuntimeError("Did not find specified grid index in .dat file...")
+
+        
+        dim = self.ds.dimensionality
+        w_names = self.ds.parameters['w_names']
+        field_idx = w_names.index(field)
 
         # Always convert into 3D array, as grid.ActiveDimensions is always 3D
         if dim == 1:
@@ -146,4 +168,5 @@ class AMRVACIOHandler(BaseIOHandler):
         # and is only used for caching data that might be used by multiple
         # different selectors later. For instance, this can speed up ghost zone
         # computation.
+        # it should be used by _read_fluid_selection instead of _read_data
         raise NotImplementedError
