@@ -37,7 +37,7 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 
 from .fields import AMRVACFieldInfo
-from .datreader import get_header, get_block_data, get_uniform_data
+from .datreader import get_header, get_block_data, get_uniform_data, get_block_info
 
 
 class AMRVACGrid(AMRGridPatch):
@@ -63,7 +63,7 @@ class AMRVACHierarchy(GridIndex):
     def __init__(self, ds, dataset_type="amrvac"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
-        # for now, the index file is the dataset!
+        # the index file *is* the datfile
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
@@ -82,19 +82,15 @@ class AMRVACHierarchy(GridIndex):
         """Set self.num_grids using datfile header"""
         self.num_grids = self.dataset.parameters['nleafs']
 
-    def _create_patch(self, current_grid):
-        # Niels note:
-        # current_grid["ix"] is the current index on a Morton Curve
-        # see http://amrvac.org/md_doc_amrstructure.html
-
-        grid_difference = 2**(self.dataset.parameters["levmax"] - current_grid["lvl"])
-        max_idx = current_grid["ix"] * grid_difference
+    def _create_patch(self, lvl, idx):
+        grid_difference = 2**(self.dataset.parameters["levmax"] - lvl)
+        max_idx = idx * grid_difference
         min_idx = max_idx - grid_difference
 
         # inner indices of block
         idx0 = min_idx * self.dataset.parameters["block_nx"]
         # outer indices of block    TODO: these depend on AMR level, right?
-        if current_grid["lvl"] == self.dataset.parameters["levmax"]:
+        if lvl == self.dataset.parameters["levmax"]:
             idx1 = idx0 + self.dataset.parameters["block_nx"]
         else:
             idx1 = idx0 + (self.dataset.parameters["block_nx"] * grid_difference)
@@ -113,11 +109,9 @@ class AMRVACHierarchy(GridIndex):
             "right_edge": idx1 / domain_end_idx * domain_width,
             # TOREVIEW: is this what "width" is supposed to represent ?
             "width": self.dataset.parameters["block_nx"],
-            "block_idx": current_grid["ix"]
+            "block_idx": idx
         }
         return patch
-
-
 
     def _add_patch(self, igrid, patch):
         self.grid_left_edge[igrid, :] = patch["left_edge"]
@@ -127,34 +121,29 @@ class AMRVACHierarchy(GridIndex):
         # TOREVIEW: is it intended that this attribute changes at each call ?
         self.grid_block_idx = patch["block_idx"]
 
-
-
     def _parse_index(self):
-        with open(self.dataset.parameter_filename, 'rb') as df:
-            #TODO: rewrite this without get_block_data()
-            blocks = get_block_data(df)
+        with open(self.index_filename, "rb") as istream:
+            lvls, idxs = get_block_info(istream)
+            assert len(lvls) == len(idxs) == self.num_grids
 
-        igrid = 0
-        while igrid < self.num_grids:
-            current_grid = blocks[igrid]
-            patch = self._create_patch(current_grid)
+        for igrid, (lvl, idx) in enumerate(zip(lvls, idxs)):
+            # devnote : idx is the index on the Morton Curve
+            # maybe it ought to be properly translated to yt indexing first...
+            patch = self._create_patch(lvl, idx)
             self._add_patch(igrid, patch)
-            igrid += 1
 
         # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
-        levels = np.array([(block["lvl"] - 1) for block in blocks], dtype="int32")
+        ytlevels = np.array(lvls, dtype="int32") - 1
 
-        self.grid_levels = levels.reshape(self.num_grids, 1)
+        self.grid_levels = ytlevels.reshape(self.num_grids, 1)
         self.max_level = self.dataset.parameters["levmax"] - 1
-        assert self.max_level == max(levels)
+        assert self.max_level == max(ytlevels)
 
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
             self.grids[i] = self.grid(i, self, self.grid_levels[i, 0], self.grid_block_idx)
 
-
     def _populate_grid_objects(self):
-       # lvls = self.grid_levels[:, 0]
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()

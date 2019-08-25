@@ -183,3 +183,33 @@ def get_uniform_data(dat):
     else:
         sys.exit('Data in .dat file is not uniformly refined')
         return None
+
+
+### The following is a refactoring of above functions by Clément Robert
+
+def get_block_info(dat):
+    """dat is assumed to be an open datfile
+
+    This is part of get_block_data(), but only returns block levels and indices.
+    This can be used as the "first pass" data reading required by YT's interface.
+    """
+    dat.seek(0)
+    header = get_header(dat)
+    nleafs = header['nleafs']
+    nparents = header['nparents']
+
+    # Read tree info. Skip 'leaf' array
+    dat.seek(header['offset_tree'] + (nleafs+nparents) * size_logical)
+
+    # Read block levels
+    fmt = align + nleafs * 'i'
+    block_lvls = np.array(
+        struct.unpack(fmt, dat.read(struct.calcsize(fmt))))
+
+    # Read block indices
+    fmt = align + nleafs * header['ndim'] * 'i'
+    block_ixs = np.reshape(
+        struct.unpack(fmt, dat.read(struct.calcsize(fmt))),
+        [nleafs, header['ndim']])
+
+    return block_lvls, block_ixs
