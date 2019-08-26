@@ -224,29 +224,29 @@ def get_block_byte_limits(dat):
     # should switch to int64 ?
     offsets = np.empty(nleafs, dtype=int)
 
-    offset = h['offset_blocks']
-    dat.seek(offset)
+    dat.seek(h['offset_blocks'])
     for i in range(nleafs):
         # Read number of ghost cells
         gc_lo = np.array(struct.unpack(bcfmt, dat.read(bcsize)))
         gc_hi = np.array(struct.unpack(bcfmt, dat.read(bcsize)))
+        offsets[i] = dat.tell()
+
         # determine block shape
         block_shape = np.append(gc_lo + block_nx + gc_hi, nw)
         fmt = align + np.prod(block_shape) * 'd'
         data_size = struct.calcsize(fmt)
 
         # append to return arrays
-        offsets[i] = offset
         shapes.append(block_shape)
 
         # advance buffer
         dat.seek(data_size, 1)
-        offset = dat.tell()
 
+    end_offset = dat.tell()
     # check that we reached eof exactly
     dat.seek(0, 2)
     buffer_size = dat.tell()
-    assert offset == buffer_size
+    assert end_offset == buffer_size
     return offsets, shapes
 
 def get_single_block_data(dat, byte_offset, block_shape):
