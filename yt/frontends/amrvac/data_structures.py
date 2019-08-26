@@ -144,8 +144,7 @@ class AMRVACHierarchy(GridIndex):
             self.grids[i] = self.grid(i, self, self.grid_levels[i, 0], self.grid_block_idx)
 
         with open(self.index_filename, "rb") as istream:
-            get_block_byte_limits(istream)
-            self.block_limits, self.block_shapes = get_block_byte_limits(istream)
+            self.block_offsets, self.block_shapes = get_block_byte_limits(istream)
 
     def _populate_grid_objects(self):
         for g in self.grids:

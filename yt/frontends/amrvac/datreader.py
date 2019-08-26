@@ -12,7 +12,6 @@ from __future__ import division
 from __future__ import print_function
 # from __future__ import unicode_literals
 
-import argparse
 import struct
 import numpy as np
 import sys
@@ -103,9 +102,6 @@ def get_block_data(dat):
     h = get_header(dat)
     nw = h['nw']
     block_nx = np.array(h['block_nx'])
-    domain_nx = np.array(h['domain_nx'])
-    xmax = np.array(h['xmax'])
-    xmin = np.array(h['xmin'])
     nleafs = h['nleafs']
     nparents = h['nparents']
 
@@ -122,9 +118,6 @@ def get_block_data(dat):
     block_ixs = np.reshape(
         struct.unpack(fmt, dat.read(struct.calcsize(fmt))),
         [nleafs, h['ndim']])
-
-    # Determine coarse grid spacing
-    dx0 = (xmax-xmin) / domain_nx
 
     ### Start reading data blocks
     dat.seek(h['offset_blocks'])
@@ -222,11 +215,14 @@ def get_block_byte_limits(dat):
     bcfmt = align + h['ndim'] * 'i'
     bcsize = struct.calcsize(bcfmt)
 
+    # toreview @niels: I think that shapes can always be deduced from
+    # refinement level + dimensionality; in which case, we store a lot
+    # of redundant data within this approach
     shapes = []
-    # toreview @niels: I think that shapes can always be deduced from refinement level + dimensionality; in which case, we store a lot of redundant data within this approach
-    limits = np.empty((nleafs, 2), dtype=int)
+
     # devnote (clm): dtype could possibly cause bug for large datasets
     # should switch to int64 ?
+    offsets = np.empty(nleafs, dtype=int)
 
     offset = h['offset_blocks']
     dat.seek(offset)
@@ -240,7 +236,7 @@ def get_block_byte_limits(dat):
         data_size = struct.calcsize(fmt)
 
         # append to return arrays
-        limits[i] = offset, data_size
+        offsets[i] = offset
         shapes.append(block_shape)
 
         # advance buffer
@@ -251,19 +247,13 @@ def get_block_byte_limits(dat):
     dat.seek(0, 2)
     buffer_size = dat.tell()
     assert offset == buffer_size
-    return limits, shapes
+    return offsets, shapes
 
-def get_single_block_data(dat, byte_offset, byte_size, block_shape):
-    h = get_header(dat)
-    block_nx = np.array(h['block_nx'])
-    nw = h['nw']
-    gcfmt = align + h['ndim'] * 'i'
-    gcsize = struct.calcsize(gcfmt)
-
+def get_single_block_data(dat, byte_offset, block_shape):
     dat.seek(byte_offset)
-
     # Read actual data
     fmt = align + np.prod(block_shape) * 'd'
     d = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
-    w = np.reshape(d, block_shape, order='F') # Fortran ordering
-    return w
+    # Fortran ordering
+    block_data = np.reshape(d, block_shape, order='F')
+    return block_data

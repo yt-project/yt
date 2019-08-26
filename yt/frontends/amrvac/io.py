@@ -18,8 +18,7 @@ from yt.utilities.io_handler import \
 from yt.geometry.selection_routines import \
     GridSelector
 import numpy as np
-from .datreader import get_block_info, get_block_data, get_single_block_data
-import sys
+from .datreader import get_block_info, get_single_block_data
 
 
 class AMRVACIOHandler(BaseIOHandler):
@@ -47,10 +46,10 @@ class AMRVACIOHandler(BaseIOHandler):
 
     def _read_data(self, grid, field):
         ileaf = grid.id
-        offset, data_size = grid._index.block_limits[ileaf]
+        offset = grid._index.block_offsets[ileaf]
         block_shape = grid._index.block_shapes[ileaf]
         with open(self.datfile, "rb") as istream:
-            block = get_single_block_data(istream, offset, data_size, block_shape)
+            block = get_single_block_data(istream, offset, block_shape)
         dim = self.ds.dimensionality
         field_idx = self.ds.parameters['w_names'].index(field)
 
