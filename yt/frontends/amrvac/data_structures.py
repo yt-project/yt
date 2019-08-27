@@ -104,16 +104,33 @@ class AMRVACHierarchy(GridIndex):
         # So idx0 / domain_end_idx gives the "fraction" (between 0 and 1) of the current block
         # position. Multiply this by domain_width to take the width of the domain into account,
         # as this can vary from one.
+        l_edge = idx0 / domain_end_idx * domain_width
+        r_edge = idx1 / domain_end_idx * domain_width
+        block_nx = self.dataset.parameters["block_nx"]
+        if self.dataset.dimensionality == 1:
+            l_edge = np.array([l_edge[0], 0, 0])
+            r_edge = np.array([r_edge[0], 1, 1])
+            block_nx = np.array([block_nx[0], 1, 1])
+        elif self.dataset.dimensionality == 2:
+            l_edge = np.array([l_edge[0], l_edge[1], 0])
+            r_edge = np.array([r_edge[0], r_edge[1], 1])
+            block_nx = np.array([block_nx[0], block_nx[1], 1])
         patch = {
-            "left_edge":  idx0 / domain_end_idx * domain_width,
-            "right_edge": idx1 / domain_end_idx * domain_width,
+            "left_edge":  l_edge,
+            "right_edge": r_edge,
             # TOREVIEW: is this what "width" is supposed to represent ?
-            "width": self.dataset.parameters["block_nx"],
+            "width": block_nx,
             "block_idx": idx
         }
         return patch
 
     def _add_patch(self, igrid, patch):
+        # for idim, left_edge in enumerate(patch['left_edge']):
+        #     self.grid_left_edge[igrid, idim] = left_edge
+        # for idim, right_edge in enumerate(patch['right_edge']):
+        #     self.grid_right_edge[igrid, idim] = right_edge
+        # for idim, width  in enumerate(patch['width']):
+        #     self.grid_dimensions[igrid, idim] = width
         self.grid_left_edge[igrid, :] = patch["left_edge"]
         self.grid_right_edge[igrid, :] = patch["right_edge"]
         self.grid_dimensions[igrid, :] = patch["width"]
