@@ -11,8 +11,17 @@ from yt.utilities.parameter_file_storage import output_type_registry
 from yt.extern.six.moves import builtins
 
 test_dir = pathlib.Path(__file__).parent.resolve()
-example_data_2D = str(test_dir / "data/blast_wave_Cartesian_3D/bw_3d0001.dat")
-ds = yt.load(example_data_2D)
+
+
+sample_datasets = [str(test_dir/"data"/s) for s in [
+    "blast_wave_Cartesian_3D/bw_3d0003.dat", # <- reference
+    #"misc/3d_k2pi_1MK0283.dat",
+    # 2D files
+    "blast_wave_Cartesian_2D/bw_2d0003.dat",
+    "misc/KH2proba0010.dat"
+]]
+
+ds = yt.load(sample_datasets[0])
 
 class amrvac_unit_tests(unittest.TestCase):
 
@@ -26,9 +35,10 @@ class amrvac_unit_tests(unittest.TestCase):
         self.assertTrue("AMRVACDataset" in keys)
 
     def test_is_amrvac_valid(self):
-        """Check that our format validation fonction works at least on example file"""
-        self.assertTrue(pathlib.Path(example_data_2D).is_file())
-        self.assertTrue(output_type_registry["AMRVACDataset"]._is_valid(example_data_2D))
+        """Check that our format validation fonction works at least on example files"""
+        for file in sample_datasets:
+            self.assertTrue(pathlib.Path(file).is_file())
+        self.assertTrue(output_type_registry["AMRVACDataset"]._is_valid(file))
 
     def test_load_amrvac(self):
         """Check that that data is amrvac-formated"""

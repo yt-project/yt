@@ -327,8 +327,8 @@ class AMRVACDataset(Dataset):
         # False depending on if the file is of the type requested.
         validation = False
         try:
-            with open(args[0], 'rb') as fi:
-                assert 'rho' in fi.readline().decode('latin-1')
+            with open(args[0], "rb") as istream:
+                h = get_header(istream)
             validation = True
         finally:
             return validation
