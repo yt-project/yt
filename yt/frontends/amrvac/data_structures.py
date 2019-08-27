@@ -107,14 +107,12 @@ class AMRVACHierarchy(GridIndex):
         l_edge = idx0 / domain_end_idx * domain_width
         r_edge = idx1 / domain_end_idx * domain_width
         block_nx = self.dataset.parameters["block_nx"]
-        if self.dataset.dimensionality == 1:
-            l_edge = np.array([l_edge[0], 0, 0])
-            r_edge = np.array([r_edge[0], 1, 1])
-            block_nx = np.array([block_nx[0], 1, 1])
-        elif self.dataset.dimensionality == 2:
-            l_edge = np.array([l_edge[0], l_edge[1], 0])
-            r_edge = np.array([r_edge[0], r_edge[1], 1])
-            block_nx = np.array([block_nx[0], block_nx[1], 1])
+        dim = self.dataset.dimensionality
+        if dim < 3:
+            d = 3-dim
+            l_edge = np.append(r_edge, [0]*d)
+            r_edge = np.append(r_edge, [1]*d)
+            block_nx = np.append(block_nx, [1]*d)
         patch = {
             "left_edge":  l_edge,
             "right_edge": r_edge,

@@ -64,43 +64,6 @@ class AMRVACIOHandler(BaseIOHandler):
             data = block[:, :, :, field_idx]
         return data
 
-    def _read_data_OLD(self, grid, field):
-        # TODO: remove this
-        # For now, this loads in the blocks AND the data to RAM...
-        # IDEA: define new method in datreader.py, where only block info is loaded.
-        #       Use this to find the block index, and then read in that particular data.
-        #       Think this should be possible, and prevents loading in the entire array in memory.
-
-        with open(self.datfile, "rb") as istream:
-            blocks = get_block_data(istream)
-
-        # TODO: this is very slow, need to be re-implemented, see idea above
-        block = None
-        for b in blocks:
-            if b['ix'].all() == grid.block_idx.all():
-                block = b
-                break
-        else: # if no break
-            raise RuntimeError("Did not find specified grid index in .dat file...")
-
-        
-        dim = self.ds.dimensionality
-        w_names = self.ds.parameters['w_names']
-        field_idx = w_names.index(field)
-
-        # Always convert into 3D array, as grid.ActiveDimensions is always 3D
-        if dim == 1:
-            data = block['w'][:, field_idx]
-            data = data[:, np.newaxis, np.newaxis]
-        elif dim == 2:
-            data = block['w'][:, :, field_idx]
-            data = data[:, :, np.newaxis]
-        else:
-            data = block['w'][:, :, :, field_idx]
-
-        return data
-
-
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # This needs to allocate a set of arrays inside a dictionary, where the
         # keys are the (ftype, fname) tuples and the values are arrays that
@@ -125,12 +88,6 @@ class AMRVACIOHandler(BaseIOHandler):
                 data_dict[ftype, fname] = self._read_data(grid, fname)
             return data_dict
 
-        # LEVEL         GRIDS           CELLS
-        #   1           56              448
-        #   2           64              512
-        #------------------------------------
-        #               120             960
-
         '''
         @Notes from Niels:
         The chunks list has YTDataChunk objects containing the different grids.
@@ -139,7 +96,6 @@ class AMRVACIOHandler(BaseIOHandler):
             (Level, ActiveDimensions, LeftEdge, etc.)
         '''
         
-        # TODO The 'size' argument is the amount of cells required (I think)
         if size is None:
             size = sum((g.count(selector) for chunk in chunks
                         for g in chunk.objs))
