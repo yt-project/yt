@@ -14,10 +14,10 @@ test_dir = pathlib.Path(__file__).parent.resolve()
 
 
 sample_datasets = [str(test_dir/"data"/s) for s in [
-    "blast_wave_Cartesian_3D/bw_3d0003.dat", # <- reference
+    "blast_wave_Cartesian_3D_MHD/bw_3d0003.dat", # <- reference
     #"misc/3d_k2pi_1MK0283.dat",
     # 2D files
-    "blast_wave_Cartesian_2D/bw_2d0003.dat",
+    "blast_wave_Cartesian_2D_HD/bw_2d0003.dat",
     "misc/KH2proba0010.dat"
 ]]
 
