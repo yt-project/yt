@@ -21,7 +21,7 @@ sample_datasets = [str(test_dir/"data"/s) for s in [
     "misc/KH2proba0010.dat"
 ]]
 
-ds = yt.load(sample_datasets[0])
+
 
 class amrvac_unit_tests(unittest.TestCase):
 
@@ -42,23 +42,73 @@ class amrvac_unit_tests(unittest.TestCase):
 
     def test_load_amrvac(self):
         """Check that that data is amrvac-formated"""
-        self.assertTrue(isinstance(ds, yt.frontends.amrvac.AMRVACDataset))
+        for file in sample_datasets:
+            ds = yt.load(file)
+            self.assertTrue(isinstance(ds, yt.frontends.amrvac.AMRVACDataset))
 
 
 
     # ========== TESTS FOR DATA LOADING AND INSPECTION ==========
     def test_print_stats(self):
         """Check that print_stats() executes normally"""
-        self.assertTrue(ds.print_stats() is None)
+        for file in sample_datasets:
+            ds = yt.load(file)
+            self.assertTrue(ds.print_stats() is None)
 
     def test_fields(self):
         """Check for fields in .dat file"""
-        field_labels = [f[1] for f in ds.field_list]
-        for f in ("rho", "m1", "m2", "m3", "e", "b1", "b2", "b3"):
-            self.assertTrue(f in field_labels)
+        for file in sample_datasets:
+            ds = yt.load(file)
+            field_labels = [f[1] for f in ds.field_list]
+            if "m1" in field_labels:
+                for n in range(2, ds.dimensionality):
+                    self.assertTrue("m%d" % n in field_labels)
+            if "b1" in field_labels:
+                for n in range(2, ds.dimensionality):
+                    self.assertTrue("b%d" % n in field_labels)
 
+    # ========== TEST FOR DATA READING ==========
+    def test_get_data(self):
+        for file in sample_datasets:
+            ds = yt.load(file)
+            ad = ds.all_data()
+            data = ad.get_data()
+
+    def test_grid_dataread(self):
+        for file in sample_datasets:
+            ds = yt.load(file)
+
+            grids = ds.index.grids
+            # select random grid
+            g = grids[0]
+            # read in density
+            rho = g["density"]
+            self.assertTrue(isinstance(rho, yt.units.yt_array.YTArray))
+
+    def test_dataread_all(self):
+        for file in sample_datasets:
+            ds = yt.load(file)
+
+            ad = ds.all_data()
+            self.assertTrue(isinstance(ad['rho'], yt.units.yt_array.YTArray))
+
+class PlotTests(unittest.TestCase):
+    def test_projection(self):
+        for file in sample_datasets:
+            ds = yt.load(file)
+            if ds.dimensionality == 3:
+                p = yt.ProjectionPlot(ds, 'x', 'density')
+
+    def test_slice(self):
+        ds = yt.load(sample_datasets[0]) # <- blastwave 3D snapshot
+        p = yt.SlicePlot(ds, 'x', 'density')
+
+
+
+ds = yt.load(sample_datasets[0]) # <- blastwave 3D snapshot
+class unit_tests_3Dblast(unittest.TestCase):
     def test_domain_size(self):
-        """Check for correct box size, see bw_2d.par"""
+        """Check for correct box size, see bw_3d.par"""
         for lb in ds.domain_left_edge:
             self.assertEqual(int(lb), 0)
         for rb in ds.domain_right_edge:
@@ -84,28 +134,6 @@ class amrvac_unit_tests(unittest.TestCase):
             self.assertTrue(type(g) == yt.frontends.amrvac.AMRVACGrid)
 
 
-    # ========== TEST FOR DATA READING ==========
-    def test_get_data(self):
-        ad = ds.all_data()
-        data = ad.get_data()
-
-    def test_grid_dataread(self):
-        grids = ds.index.grids
-        # select random grid
-        g = grids[0]
-        # read in density
-        rho = g["density"]
-        self.assertTrue(isinstance(rho, yt.units.yt_array.YTArray))
-
-    def test_dataread_all(self):
-        ad = ds.all_data()
-        self.assertTrue(isinstance(ad['rho'], yt.units.yt_array.YTArray))
-
-    @unittest.skipUnless("__IPYTHON__" in dir(builtins), "can not test outside Ipython notebook")
-    def test_plot(self):
-        ad = ds.all_data()
-        p = yt.ProjectionPlot(ds, 'x', 'density')
-        p.show()
 
 
 
