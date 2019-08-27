@@ -110,7 +110,7 @@ class AMRVACHierarchy(GridIndex):
         dim = self.dataset.dimensionality
         if dim < 3:
             d = 3-dim
-            l_edge = np.append(r_edge, [0]*d)
+            l_edge = np.append(l_edge, [0]*d)
             r_edge = np.append(r_edge, [1]*d)
             block_nx = np.append(block_nx, [1]*d)
         patch = {
