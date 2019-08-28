@@ -141,22 +141,21 @@ class AMRVACHierarchy(GridIndex):
             lvls, idxs = get_block_info(istream)
             assert len(lvls) == len(idxs) == self.num_grids
 
+        # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
+        ytlevels = np.array(lvls, dtype="int32") - 1
+        self.grid_levels = ytlevels.reshape(self.num_grids, 1)
+        self.max_level = self.dataset.parameters["levmax"] - 1
+        assert self.max_level == max(ytlevels)
+
+        self.grids = np.empty(self.num_grids, dtype='object')
+
         for igrid, (lvl, idx) in enumerate(zip(lvls, idxs)):
             # devnote : idx is the index on the Morton Curve
             # maybe it ought to be properly translated to yt indexing first...
             patch = self._create_patch(lvl, idx)
             self._add_patch(igrid, patch)
 
-        # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
-        ytlevels = np.array(lvls, dtype="int32") - 1
-
-        self.grid_levels = ytlevels.reshape(self.num_grids, 1)
-        self.max_level = self.dataset.parameters["levmax"] - 1
-        assert self.max_level == max(ytlevels)
-
-        self.grids = np.empty(self.num_grids, dtype='object')
-        for i in range(self.num_grids):
-            self.grids[i] = self.grid(i, self, self.grid_levels[i, 0], self.grid_block_idx)
+            self.grids[igrid] = self.grid(igrid, self, self.grid_levels[igrid, 0], self.grid_block_idx)
 
         with open(self.index_filename, "rb") as istream:
             self.block_offsets, self.block_shapes = get_block_byte_limits(istream)
