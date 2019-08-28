@@ -78,16 +78,6 @@ class AMRVACIOHandler(BaseIOHandler):
         # Fortran-like input array with the dimension (z,y,x), a matrix
         # transpose is required (e.g., using np_array.transpose() or
         # np_array.swapaxes(0,2)).
-        data_dict = {}
-        chunks = list(chunks)
-        if isinstance(selector, GridSelector):
-            if not (len(chunks) == len(chunks[0].objs) == 1):
-                raise RuntimeError
-            grid = chunks[0].objs[0]
-            for ftype, fname in fields:
-                data_dict[ftype, fname] = self._read_data(grid, fname)
-            return data_dict
-
         '''
         @Notes from Niels:
         The chunks list has YTDataChunk objects containing the different grids.
@@ -95,25 +85,33 @@ class AMRVACIOHandler(BaseIOHandler):
         Every element in "grids_list" is then an AMRVACGrid object, and has hence all attributes of a grid
             (Level, ActiveDimensions, LeftEdge, etc.)
         '''
-        
-        if size is None:
-            size = sum((g.count(selector) for chunk in chunks
-                        for g in chunk.objs))
+        chunks = list(chunks)
+        data_dict = {} # <- return variable
+        if isinstance(selector, GridSelector):
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+            grid = chunks[0].objs[0]
+            for ftype, fname in fields:
+                data_dict[ftype, fname] = self._read_data(grid, fname)
+        else:
+            if size is None:
+                size = sum((g.count(selector) for chunk in chunks
+                            for g in chunk.objs))
 
-        for field in fields:
-            data_dict[field] = np.empty(size, dtype='float64')
+            for field in fields:
+                data_dict[field] = np.empty(size, dtype='float64')
 
-        nb_grids = sum(len(chunk.objs) for chunk in chunks)
+            nb_grids = sum(len(chunk.objs) for chunk in chunks)
 
-        ind = 0
-        for chunk in chunks:
-            for grid in chunk.objs:
-                nd = 0
-                for field in fields:
-                    ftype, fname = field
-                    data = self._read_data(grid, fname)
-                    nd = grid.select(selector, data, data_dict[field], ind)
-                ind += nd
+            ind = 0
+            for chunk in chunks:
+                for grid in chunk.objs:
+                    nd = 0
+                    for field in fields:
+                        ftype, fname = field
+                        data = self._read_data(grid, fname)
+                        nd = grid.select(selector, data, data_dict[field], ind)
+                    ind += nd
 
         return data_dict
 
