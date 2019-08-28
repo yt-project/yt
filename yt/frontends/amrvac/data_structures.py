@@ -90,11 +90,8 @@ class AMRVACHierarchy(GridIndex):
 
         # inner indices of block
         idx0 = min_idx * block_nx
-        # outer indices of block    TODO: these depend on AMR level, right?
-        if lvl == self.dataset.parameters["levmax"]:
-            idx1 = idx0 + block_nx
-        else:
-            idx1 = idx0 + (block_nx * grid_difference)
+        # outer indices of block
+        idx1 = idx0 + block_nx * grid_difference
 
         # Outer index of domain, taking AMR into account
         domain_end_idx = block_nx * 2**self.dataset.parameters["levmax"]
@@ -124,7 +121,7 @@ class AMRVACHierarchy(GridIndex):
             r_edge = np.append(r_edge, [1]*d)
             block_nx = np.append(block_nx, [1]*d)
         patch = {
-            "left_edge":  l_edge,
+            "left_edge": l_edge,
             "right_edge": r_edge,
             "width": block_nx, # number of cells along an axis
         }
