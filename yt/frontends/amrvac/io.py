@@ -21,6 +21,8 @@ import numpy as np
 from .datreader import get_block_info, get_single_block_data
 
 
+import sys
+
 class AMRVACIOHandler(BaseIOHandler):
     _particle_reader = False
     _dataset_type = 'amrvac'
@@ -62,6 +64,9 @@ class AMRVACIOHandler(BaseIOHandler):
             data = data[:, :, np.newaxis]
         else:
             data = block[:, :, :, field_idx]
+        # if ileaf == 34:
+        #     print(block_shape)
+        #     print(grid.block_idx)
         return data
 
     def _read_fluid_selection(self, chunks, selector, fields, size):

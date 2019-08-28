@@ -29,7 +29,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
-        ("rho", (rho_units, ["density"], r"$\rho$")),
+        ("rho", (rho_units, ["rho", "to", "density"], r"$\rho$")),
         ("m1", (mom_units, ["momentum_1"], r"$m_1$")),
         ("m2", (mom_units, ["momentum_2"], r"$m_2$")),
         ("m3", (mom_units, ["momentum_3"], r"$m_3$")),
@@ -37,26 +37,34 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("b1", (b_units, [], r"$B_x$")),
         ("b2", (b_units, [], r"$B_y$")),
         ("b3", (b_units, [], r"$B_z$"))
-        #devnote : missing a way to handle an arbitrary number of dust fluids here
     )
 
-    known_particle_fields = (
-        # Identical form to above
-        # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
-    )
+    known_particle_fields = ()
 
     def __init__(self, ds, field_list):
         super(AMRVACFieldInfo, self).__init__(ds, field_list)
-        # If you want, you can check self.field_list
 
     def setup_fluid_fields(self):
-        # Here we do anything that might need info about the dataset.
-        # You can use self.alias, self.add_output_field (for on-disk fields)
-        # and self.add_field (for derived fields).
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
 
+        # Add pressure
+        # def _get_ekin(data):
+        #     ekin = 0.5 * data["amrvac", "m1"]**2 / data["amrvac", "rho"]
+        #     if self.ds.dimensionality > 1:
+        #         ekin = ekin + 0.5 * data["amrvac", "m2"] ** 2 / data["amrvac", "rho"]
+        #     if self.ds.dimensionality > 2:
+        #         ekin = ekin + 0.5 * data["amrvac", "m3"] ** 2 / data["amrvac", "rho"]
+        #     return ekin
+        # def _pressure(field, data):
+        #     return (self.ds.gamma - 1) * (data["amrvac", "e"] - _get_ekin(data))
+
+        # self.add_field(("amrvac", "pressure"), sampling_type="cell",
+        #                function=_pressure, units="code_pressure")
+        # self.alias(("amrvac", "rho"), ("amrvac", "p"), units="code_pressure")
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
+        # print(self[("amrvac", "rho")])
+        # print(self[("amrvac", "pressure")])
 
 
     def setup_particle_fields(self, ptype):

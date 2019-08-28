@@ -57,7 +57,6 @@ class AMRVACGrid(AMRGridPatch):
 
 class AMRVACHierarchy(GridIndex):
     grid = AMRVACGrid
-
     def __init__(self, ds, dataset_type="amrvac"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
@@ -81,31 +80,19 @@ class AMRVACHierarchy(GridIndex):
         self.num_grids = self.dataset.parameters['nleafs']
 
     def _create_patch(self, lvl, idx):
-        grid_difference = 2**(self.max_level - lvl)
-        max_idx = idx * grid_difference
-        min_idx = max_idx - grid_difference
-
-        # inner indices of block
-        idx0 = min_idx * self.dataset.parameters["block_nx"]
-        # outer indices of block    TODO: these depend on AMR level, right?
-        if lvl == self.dataset.parameters["levmax"]:
-            idx1 = idx0 + self.dataset.parameters["block_nx"]
-        else:
-            idx1 = idx0 + (self.dataset.parameters["block_nx"] * grid_difference)
-
-        # Outer index of domain, taking AMR into account
-        domain_end_idx = self.dataset.parameters["block_nx"] * 2**self.dataset.parameters["levmax"]
         # Width of the domain, used to correctly calculate fractions
         domain_width   = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
-
-        # TOREVIEW @Niels
-        # So idx0 / domain_end_idx gives the "fraction" (between 0 and 1) of the current block
-        # position. Multiply this by domain_width to take the width of the domain into account,
-        # as this can vary from one.
-        l_edge = idx0 / domain_end_idx * domain_width
-        r_edge = idx1 / domain_end_idx * domain_width
         block_nx = self.dataset.parameters["block_nx"]
         dim = self.dataset.dimensionality
+
+        # dx at coarsest grid level (YT level 0)
+        dx0 = domain_width / self.dataset.parameters["domain_nx"]
+        # dx at YT level 'lvl'
+        dx = dx0 * 0.5**lvl
+        l_edge = self.dataset.parameters["xmin"] + \
+                 (idx-1) * block_nx * dx
+        r_edge = l_edge + block_nx * dx
+
         if dim < 3:
             d = 3-dim
             l_edge = np.append(l_edge, [0]*d)
