@@ -83,6 +83,31 @@ class AMRVACHierarchy(GridIndex):
         # Width of the domain, used to correctly calculate fractions
         domain_width   = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
         block_nx = self.dataset.parameters["block_nx"]
+
+        grid_difference = 2**(self.max_level - lvl)
+        max_idx = idx * grid_difference
+        min_idx = max_idx - grid_difference
+
+        # inner indices of block
+        idx0 = min_idx * block_nx
+        # outer indices of block    TODO: these depend on AMR level, right?
+        if lvl == self.dataset.parameters["levmax"]:
+            idx1 = idx0 + block_nx
+        else:
+            idx1 = idx0 + (block_nx * grid_difference)
+
+        # Outer index of domain, taking AMR into account
+        domain_end_idx = block_nx * 2**self.dataset.parameters["levmax"]
+        # Width of the domain, used to correctly calculate fractions
+        domain_width   = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
+
+        # TOREVIEW @Niels
+        # So idx0 / domain_end_idx gives the "fraction" (between 0 and 1) of the current block
+        # position. Multiply this by domain_width to take the width of the domain into account,
+        # as this can vary from one.
+        l_edge = idx0 / domain_end_idx * domain_width
+        r_edge = idx1 / domain_end_idx * domain_width
+>>>>>>> cd0275932... alias (no change)
         dim = self.dataset.dimensionality
 
         # dx at coarsest grid level (YT level 0)
