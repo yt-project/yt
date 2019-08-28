@@ -80,29 +80,9 @@ class AMRVACHierarchy(GridIndex):
         self.num_grids = self.dataset.parameters['nleafs']
 
     def _create_patch(self, lvl, idx):
-        # idx is the Morton curve index
-        grid_difference = 2**(self.max_level - lvl)
-        max_idx = idx * grid_difference
-        min_idx = max_idx - grid_difference
-
-        # inner indices of block
-        idx0 = min_idx * block_nx
-        # outer indices of block
-        idx1 = idx0 + block_nx * grid_difference
-
-        # Outer index of domain, taking AMR into account
-        domain_end_idx = block_nx * 2**(self.max_level+1)
         # Width of the domain, used to correctly calculate fractions
         domain_width   = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
-
-        # TOREVIEW @Niels
-        # So idx0 / domain_end_idx gives the "fraction" (between 0 and 1) of the current block
-        # position. Multiply this by domain_width to take the width of the domain into account,
-        # as this can vary from one.
-        l_edge = idx0 / domain_end_idx * domain_width
-        r_edge = idx1 / domain_end_idx * domain_width
->>>>>>> cd0275932... alias (no change)
-        dim = self.dataset.dimensionality
+        block_nx = self.dataset.parameters["block_nx"]
 
         # dx at coarsest grid level (YT level 0)
         dx0 = domain_width / self.dataset.parameters["domain_nx"]
