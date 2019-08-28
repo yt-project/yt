@@ -80,10 +80,7 @@ class AMRVACHierarchy(GridIndex):
         self.num_grids = self.dataset.parameters['nleafs']
 
     def _create_patch(self, lvl, idx):
-        # Width of the domain, used to correctly calculate fractions
-        domain_width   = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
-        block_nx = self.dataset.parameters["block_nx"]
-
+        # idx is the Morton curve index
         grid_difference = 2**(self.max_level - lvl)
         max_idx = idx * grid_difference
         min_idx = max_idx - grid_difference
@@ -94,7 +91,7 @@ class AMRVACHierarchy(GridIndex):
         idx1 = idx0 + block_nx * grid_difference
 
         # Outer index of domain, taking AMR into account
-        domain_end_idx = block_nx * 2**self.dataset.parameters["levmax"]
+        domain_end_idx = block_nx * 2**(self.max_level+1)
         # Width of the domain, used to correctly calculate fractions
         domain_width   = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
 
