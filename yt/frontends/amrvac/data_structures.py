@@ -122,20 +122,6 @@ class AMRVACHierarchy(GridIndex):
         }
         return patch
 
-    def _add_patch(self, igrid, patch):
-        # for idim, left_edge in enumerate(patch['left_edge']):
-        #     self.grid_left_edge[igrid, idim] = left_edge
-        # for idim, right_edge in enumerate(patch['right_edge']):
-        #     self.grid_right_edge[igrid, idim] = right_edge
-        # for idim, width  in enumerate(patch['width']):
-        #     self.grid_dimensions[igrid, idim] = width
-        self.grid_left_edge[igrid, :] = patch["left_edge"]
-        self.grid_right_edge[igrid, :] = patch["right_edge"]
-        self.grid_dimensions[igrid, :] = patch["width"]
-
-        # TOREVIEW: is it intended that this attribute changes at each call ?
-        self.grid_block_idx = patch["block_idx"]
-
     def _parse_index(self):
         with open(self.index_filename, "rb") as istream:
             lvls, idxs = get_block_info(istream)
@@ -143,7 +129,7 @@ class AMRVACHierarchy(GridIndex):
 
         # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
         ytlevels = np.array(lvls, dtype="int32") - 1
-        self.grid_levels = ytlevels.reshape(self.num_grids, 1)
+        self.grid_levels.flat[:] = ytlevels
         self.max_level = self.dataset.parameters["levmax"] - 1
         assert self.max_level == max(ytlevels)
 
@@ -153,9 +139,10 @@ class AMRVACHierarchy(GridIndex):
             # devnote : idx is the index on the Morton Curve
             # maybe it ought to be properly translated to yt indexing first...
             patch = self._create_patch(lvl, idx)
-            self._add_patch(igrid, patch)
-
-            self.grids[igrid] = self.grid(igrid, self, self.grid_levels[igrid, 0], self.grid_block_idx)
+            self.grid_left_edge[igrid, :] = patch["left_edge"]
+            self.grid_right_edge[igrid, :] = patch["right_edge"]
+            self.grid_dimensions[igrid, :] = patch["width"]
+            self.grids[igrid] = self.grid(igrid, self, ytlevels[igrid], patch["block_idx"])
 
         with open(self.index_filename, "rb") as istream:
             self.block_offsets, self.block_shapes = get_block_byte_limits(istream)
