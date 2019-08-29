@@ -14,9 +14,9 @@ from yt.testing import \
     assert_equal, \
     requires_file, \
     units_override_check
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
-import framework as fw
-import utils
 
 # Data file
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/"
@@ -42,7 +42,7 @@ class TestArtIo(fw.AnswerTest):
     # test_sizmbhloz
     #-----
     @utils.requires_ds(sizmbhloz)
-    def test_sizmbhloz(self):
+    def test_sizmbhloz(self, ds_sizmbhloz):
         """
         Parameters:
         -----------
@@ -57,9 +57,7 @@ class TestArtIo(fw.AnswerTest):
             pass
         """
         # Load data
-        ds = utils.data_dir_load(sizmbhloz)
-        ds.max_range = 1024*1024
-        assert_equal(str(ds), "sizmbhloz-clref04SNth-rs9_a0.9011.art")
+        ds_sizmbhloz.max_range = 1024*1024
         # Set up test parameters
         dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
         axes = [0, 1, 2]
@@ -75,15 +73,15 @@ class TestArtIo(fw.AnswerTest):
                 for axis in axes:
                     for weight_field in weight_fields:
                         ppv_hd += self.pixelized_projection_values_test(
-                            ds, axis, field, weight_field,
+                            ds_sizmbhloz, axis, field, weight_field,
                             dobj_name
                         )
-                fv_hd += self.field_values_test(ds, field, dobj_name)
-            dobj = utils.create_obj(ds, dobj_name)
+                fv_hd += self.field_values_test(ds_sizmbhloz, field, dobj_name)
+            dobj = utils.create_obj(ds_sizmbhloz, dobj_name)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
-        assert_equal(ds.particle_type_counts, {'N-BODY': 100000, 'STAR': 110650})
+        assert_equal(ds_sizmbhloz.particle_type_counts, {'N-BODY': 100000, 'STAR': 110650})
         # Save or compare hashes
         hashes = {}
         hashes['pixelized_projection_values'] = utils.generate_hash(ppv_hd)
@@ -94,7 +92,7 @@ class TestArtIo(fw.AnswerTest):
     # test_ARTIODataset
     #-----
     @requires_file(sizmbhloz)
-    def test_ARTIODataset(self):
+    def test_ARTIODataset(self, ds_sizmbhloz):
         """
         Makes sure the loaded data is the proper type.
 
@@ -110,13 +108,13 @@ class TestArtIo(fw.AnswerTest):
         -------
             pass
         """
-        assert isinstance(utils.data_dir_load(sizmbhloz), ARTIODataset)
+        assert isinstance(ds_sizmbhloz, ARTIODataset)
 
     #-----
     # test_units_override
     #-----
     @requires_file(sizmbhloz)
-    def test_units_override(self):
+    def test_units_override(self, ds_sizmbhloz):
         """
         Performs the units override test.
 
@@ -132,13 +130,13 @@ class TestArtIo(fw.AnswerTest):
         --------
             pass
         """
-        units_override_check(sizmbhloz)
+        units_override_check(ds_sizmbhloz, sizmbhloz)
 
     #-----
     # test_particle_derived_field
     #-----
     @requires_file(sizmbhloz)
-    def test_particle_derived_field(self):
+    def test_particle_derived_field(self, ds_sizmbhloz):
         """
         Defines a derived field and makes sure that it works.
 
@@ -159,9 +157,8 @@ class TestArtIo(fw.AnswerTest):
             # during field detection
             return data['STAR', 'age'].in_units('Myr')
 
-        ds = load(sizmbhloz)
-        ds.add_field(("STAR", "new_field"), function=star_age_alias,
+        ds_sizmbhloz.add_field(("STAR", "new_field"), function=star_age_alias,
                      units='Myr', sampling_type="particle")
-        ad = ds.all_data()
+        ad = ds_sizmbhloz.all_data()
         assert_allclose_units(ad['STAR', 'age'].in_units("Myr"),
                               ad["STAR", "new_field"])

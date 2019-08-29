@@ -15,6 +15,7 @@ from __future__ import print_function
 
 import hashlib
 import matplotlib
+from yt.data_objects.static_output import Dataset
 from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it
@@ -651,10 +652,9 @@ def disable_dataset_cache(func):
     return newfunc
 
 @disable_dataset_cache
-def units_override_check(fn):
+def units_override_check(ds1, fn):
     units_list = ["length","time","mass","velocity",
                   "magnetic","temperature"]
-    ds1 = load(fn)
     units_override = {}
     attrs1 = []
     attrs2 = []

@@ -27,7 +27,7 @@ import utils
 #============================================
 #                 AnswerTest
 #============================================
-@pytest.mark.usefixtures("cli_testing_opts")
+@pytest.mark.usefixtures("cli_testing_opts", "answer_store_dir")
 class AnswerTest():
     """
     Contains the various answer tests.
@@ -508,4 +508,83 @@ class AnswerTest():
             args = []
         if kwargs is None:
             kwargs = {}
-        return func(*args, **kwargs).tostring()
+        return func(args, kwargs).tostring()
+
+    #-----
+    # sph_answer
+    #-----
+    def sph_answer(self, ds, ds_str_repr, ds_nparticles, fields):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        # Make sure we're dealing with the right dataset
+        assert str(ds) == ds_str_repr
+        # Set up keys of test names
+        test_keys = ['pixelized_projection_values', 'field_values']
+        # Set up by bytestrings for tests
+        ppv_hd = b''
+        fv_hd = b''
+        # Set up data objects to test with
+        dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
+        dd = ds.all_data()
+        assert dd["particle_position"].shape == (ds_nparticles, 3)
+        tot = sum(dd[ptype, "particle_position"].shape[0]
+                  for ptype in ds.particle_types if ptype != "all")
+        # Check
+        assert tot == ds_nparticles
+        for dobj_name in dso:
+            dobj = utils.create_obj(ds, dobj_name)
+            s1 = dobj["ones"].sum()
+            s2 = sum(mask.sum() for block, mask in dobj.blocks)
+            assert s1 == s2
+            for field, weight_field in fields.items():
+                if field[0] in ds.particle_types:
+                    particle_type = True
+                else:
+                    particle_type = False
+                for axis in [0, 1, 2]:
+                    if particle_type is False:
+                        ppv_hd += self.pixelized_projection_values_test(
+                            ds, axis, field, weight_field, dobj_name)
+                fv_hd += self.field_values_test(ds, field, dobj_name,
+                                      particle_type=particle_type)
+        # Hash the final byte arrays
+        hex_digests = [ppv_hd, fv_hd]
+        hashes = [utils.generate_hash(hd) for hd in hex_digests]
+        hash_dict = {}
+        for key, value in zip(test_keys, hashes):
+            hash_dict[key] = value
+        return hash_dict
+
+    #-----
+    # yt_field_test
+    #-----
+    def yt_field_test(self, ds, field, geometric):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        if geometric:
+            obj = ds.all_data()
+        else:
+            obj = ds.data
+        return np.array([obj[field].size, obj[field].mean()]).tostring()

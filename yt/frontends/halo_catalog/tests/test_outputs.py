@@ -17,9 +17,8 @@ from yt.testing import \
     assert_array_equal, \
     requires_module
 from yt.units.yt_array import YTArray, YTQuantity
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 #============================================

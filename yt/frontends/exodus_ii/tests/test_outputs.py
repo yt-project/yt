@@ -10,8 +10,8 @@ from yt.testing import \
     assert_array_equal, \
     assert_equal, \
     requires_file 
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 # Test data
 out = "ExodusII/out.e"
@@ -39,7 +39,7 @@ class TestExodusII(fw.AnswerTest):
     # test_out
     #-----
     @requires_file(out)
-    def test_out(self):
+    def test_out(self, ds_out):
         """
         Parameters:
         -----------
@@ -53,7 +53,6 @@ class TestExodusII(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(out)
         field_list = [('all', 'conv_indicator'),
                       ('all', 'conv_marker'),
                       ('all', 'convected'),
@@ -66,18 +65,17 @@ class TestExodusII(fw.AnswerTest):
                       ('connect2', 'conv_marker'),
                       ('connect2', 'convected'),
                       ('connect2', 'diffused')]
-        assert_equal(str(ds), "out.e")
-        assert_equal(ds.dimensionality, 3)
-        assert_equal(ds.current_time, 0.0)
-        assert_array_equal(ds.parameters['nod_names'], ['convected', 'diffused'])
-        assert_equal(ds.parameters['num_meshes'], 2)
-        assert_array_equal(ds.field_list, field_list)
+        assert_equal(ds_out.dimensionality, 3)
+        assert_equal(ds_out.current_time, 0.0)
+        assert_array_equal(ds_out.parameters['nod_names'], ['convected', 'diffused'])
+        assert_equal(ds_out.parameters['num_meshes'], 2)
+        assert_array_equal(ds_out.field_list, field_list)
 
     #-----
     # test_out002
     #-----
     @requires_file(out_s002)
-    def test_out002(self):
+    def test_out002(self, ds_out_s002):
         """
         Parameters:
         -----------
@@ -91,7 +89,6 @@ class TestExodusII(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(out_s002)
         field_list = [('all', 'conv_indicator'),
                       ('all', 'conv_marker'),
                       ('all', 'convected'),
@@ -104,16 +101,15 @@ class TestExodusII(fw.AnswerTest):
                       ('connect2', 'conv_marker'),
                       ('connect2', 'convected'),
                       ('connect2', 'diffused')]
-        assert_equal(str(ds),  "out.e-s002")
-        assert_equal(ds.dimensionality, 3)
-        assert_equal(ds.current_time, 2.0)
-        assert_array_equal(ds.field_list, field_list)
+        assert_equal(ds_out_s002.dimensionality, 3)
+        assert_equal(ds_out_s002.current_time, 2.0)
+        assert_array_equal(ds_out_s002.field_list, field_list)
 
     #-----
     # test_gold
     #-----
     @requires_file(gold)
-    def test_gold(self):
+    def test_gold(self, ds_gold):
         """
         Parameters:
         -----------
@@ -127,10 +123,8 @@ class TestExodusII(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(gold)
         field_list = [('all', 'forced'), ('connect1', 'forced')]
-        assert_equal(str(ds), "gold.e")
-        assert_array_equal(ds.field_list, field_list)
+        assert_array_equal(ds_gold.field_list, field_list)
 
     #-----
     # test_displacement_fields
@@ -155,9 +149,9 @@ class TestExodusII(fw.AnswerTest):
                               'connect2': (0.0, [0.0, 0.0, 0.0])}]
         ga_hd = b''
         for disp in displacement_dicts:
-            ds = utils.data_dir_load(big_data, displacements=disp)
+            ds = utils.data_dir_load(big_data, kwargs={'displacements':disp})
             for mesh in ds.index.meshes:
-                def array_func():
+                def array_func(*args, **kwargs):
                     return mesh.connectivity_coords
                 ga_hd += self.generic_array_test(ds, array_func, 12)
         hashes = {}

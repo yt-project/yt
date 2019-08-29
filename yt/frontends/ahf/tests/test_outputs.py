@@ -13,9 +13,9 @@ from yt.frontends.ahf.api import AHFHalosDataset
 from yt.testing import \
     assert_equal, \
     requires_file
-
-import framework as fw
-import utils
+from yt.utilities.answer_testing import \
+    framework as fw, \
+    utils
 
 # Test data
 ahf_halos = 'ahf_halos/snap_N64L16_135.parameter'
@@ -40,7 +40,7 @@ class TestAHF(fw.AnswerTest):
     # test_AHFHalosDataset
     #-----
     @requires_file(ahf_halos)
-    def test_AHFHalosDataset(self):
+    def test_AHFHalosDataset(self, ds_ahf_halos):
         """
         Makes sure the dataset is loaded correctly.
 
@@ -56,14 +56,13 @@ class TestAHF(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(ahf_halos, kwargs={'hubble_constant' : 0.7})
-        assert isinstance(ds, AHFHalosDataset)
+        assert isinstance(ds_ahf_halos, AHFHalosDataset)
 
     #-----
     # test_fields_ahf_halos
     #-----
     @utils.requires_ds(ahf_halos)
-    def test_fields_ahf_halos(self):
+    def test_fields_ahf_halos(self, ds_ahf_halos):
         """
         Runs the field_values_test on AHF fields.
 
@@ -82,10 +81,8 @@ class TestAHF(fw.AnswerTest):
         fields = ('particle_position_x', 'particle_position_y',
                    'particle_position_z', 'particle_mass')
         fv_hd = b''
-        ds = utils.data_dir_load(ahf_halos, kwargs={'hubble_constant' : 0.7})
-        assert_equal(str(ds), os.path.basename(ahf_halos))
         for field in fields:
-            fv_hd += self.field_values_test(ds, field, particle_type=True)
+            fv_hd += self.field_values_test(ds_ahf_halos, field, particle_type=True)
         # Hash the hex digest
         hashes = {'field_values' : utils.generate_hash(fv_hd)}
         # Save or compare answers

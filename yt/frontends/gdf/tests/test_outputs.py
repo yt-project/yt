@@ -12,9 +12,8 @@ from yt.testing import \
     assert_equal, \
     requires_file, \
     units_override_check
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 # Test data
 sedov = "sedov/sedov_tst_0004.h5"
@@ -38,8 +37,8 @@ class TestGDF(fw.AnswerTest):
     #-----
     # test_sedov_tunnel
     #-----
-    @utils.requires_file(sedov)
-    def test_sedov_tunnel(self):
+    @requires_file(sedov)
+    def test_sedov_tunnel(self, ds_sedov):
         """
         Parameters:
         -----------
@@ -53,8 +52,6 @@ class TestGDF(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(sedov)
-        assert_equal(str(ds) == "sedov_tst_0004")
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -62,7 +59,7 @@ class TestGDF(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_x")
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, fields, weights, axes, ds_objs)
+        hashes = self.small_patch_amr(ds_sedov, fields, weights, axes, ds_objs)
         # Save or compare answer
         utils.handle_hashes(self.save_dir, 'sedov', hashes, self.answer_store)
 
@@ -70,12 +67,12 @@ class TestGDF(fw.AnswerTest):
     # test_GDFDataset
     #-----
     @requires_file(sedov)
-    def test_GDFDataset(self):
-        assert isinstance(utils.data_dir_load(sedov), GDFDataset)
+    def test_GDFDataset(self, ds_sedov):
+        assert isinstance(ds_sedov, GDFDataset)
 
     #-----
     # test_units_override
     #-----
     @requires_file(sedov)
-    def test_units_override(self):
-        units_override_check(sedov)
+    def test_units_override(self, ds_sedov):
+        units_override_check(ds_sedov, sedov)

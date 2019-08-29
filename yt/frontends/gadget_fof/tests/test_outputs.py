@@ -14,9 +14,8 @@ from yt.testing import \
     assert_array_equal, \
     assert_equal, \
     requires_file
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 # Test data
 g5 = "gadget_fof_halos/groups_005/fof_subhalo_tab_005.0.hdf5"
@@ -44,8 +43,8 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     # test_fields_g5
     #-----
-    @utils.requires_file(g5)
-    def test_fields_g5(self):
+    @requires_file(g5)
+    def test_fields_g5(self, ds_g5):
         """
         Parameters:
         -----------
@@ -64,9 +63,8 @@ class TestGadgetFOF(fw.AnswerTest):
                    "particle_velocity_y", "particle_velocity_z",
                    "particle_mass", "particle_identifier")
         fv_hd = b''
-        ds = utils.data_dir_load(g5)
         for field in fields:
-            fv_hd += self.field_values_test(ds, field, particle_type=True)
+            fv_hd += self.field_values_test(ds_g5, field, particle_type=True)
         hashes = {'field_values' : utils.generate_hash(fv_hd)}
         utils.handle_hashes(self.save_dir, 'g5-fields', hashes, self.answer_store)
 
@@ -74,7 +72,7 @@ class TestGadgetFOF(fw.AnswerTest):
     # test_fields_g42
     #-----
     @utils.requires_ds(g42)
-    def test_fields_g42(self):
+    def test_fields_g42(self, ds_g42):
         """
         Parameters:
         -----------
@@ -93,9 +91,8 @@ class TestGadgetFOF(fw.AnswerTest):
                    "particle_velocity_y", "particle_velocity_z",
                    "particle_mass", "particle_identifier")
         fv_hd = b''
-        ds = utils.data_dir_load(g42)
         for field in fields:
-            fv_hd += self.field_values_test(ds, field, particle_type=True)
+            fv_hd += self.field_values_test(ds_g42, field, particle_type=True)
         hashes = {'field_values' : utils.generate_hash(fv_hd)}
         utils.handle_hashes(self.save_dir, 'g42-fields', hashes, self.answer_store)
 
@@ -103,7 +100,7 @@ class TestGadgetFOF(fw.AnswerTest):
     # test_GadgetFOFDataset
     #-----
     @requires_file(g42)
-    def test_GadgetFOFDataset(self):
+    def test_GadgetFOFDataset(self, ds_g42):
         """
         Parameters:
         -----------
@@ -117,13 +114,13 @@ class TestGadgetFOF(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(g42), GadgetFOFDataset)
+        assert isinstance(ds_g42, GadgetFOFDataset)
 
     #-----
     # test_subhalos
     #-----
     @requires_file(g298)
-    def test_subhalos(self):
+    def test_subhalos(self, ds_g298):
         """
         Parameters:
         -----------
@@ -137,14 +134,13 @@ class TestGadgetFOF(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(g298)
         total_sub = 0
         total_int = 0
-        for hid in range(0, ds.index.particle_count["Group"]):
-            my_h = ds.halo("Group", hid)
+        for hid in range(0, ds_g298.index.particle_count["Group"]):
+            my_h = ds_g298.halo("Group", hid)
             h_ids = my_h["ID"]
             for sid in range(int(my_h["subhalo_number"][0])):
-                my_s = ds.halo("Subhalo", (my_h.particle_identifier, sid))
+                my_s = ds_g298.halo("Subhalo", (my_h.particle_identifier, sid))
                 total_sub += my_s["ID"].size
                 total_int += np.intersect1d(h_ids, my_s["ID"]).size
         assert_equal(total_sub, total_int)
@@ -153,7 +149,7 @@ class TestGadgetFOF(fw.AnswerTest):
     # test_halo_masses
     #-----
     @requires_file(g298)
-    def test_halo_masses(self):
+    def test_halo_masses(self, ds_g298):
         """
         Parameters:
         -----------
@@ -167,13 +163,12 @@ class TestGadgetFOF(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(g298)
-        ad = ds.all_data()
+        ad = ds_g298.all_data()
         for ptype in ["Group", "Subhalo"]:
-            nhalos = ds.index.particle_count[ptype]
-            mass = ds.arr(np.zeros(nhalos), "code_mass")
+            nhalos = ds_g298.index.particle_count[ptype]
+            mass = ds_g298.arr(np.zeros(nhalos), "code_mass")
             for i in range(nhalos):
-                halo = ds.halo(ptype, i)
+                halo = ds_g298.halo(ptype, i)
                 mass[i] = halo.mass
             assert_array_equal(ad[ptype, "particle_mass"], mass)
 
@@ -181,7 +176,7 @@ class TestGadgetFOF(fw.AnswerTest):
     # test_unbalanced_dataset
     #-----
     @requires_file(g56)
-    def test_unbalanced_dataset(self):
+    def test_unbalanced_dataset(self, ds_g56):
         """
         Parameters:
         -----------
@@ -195,8 +190,7 @@ class TestGadgetFOF(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(g56)
-        halo = ds.halo("Group", 0)
+        halo = ds_g56.halo("Group", 0)
         halo["member_ids"]
         assert True
 
@@ -204,7 +198,7 @@ class TestGadgetFOF(fw.AnswerTest):
     # test_3file_halo
     #-----
     @requires_file(g76)
-    def test_3file_halo(self):
+    def test_3file_halo(self, ds_g76):
         """
         Parameters:
         -----------
@@ -218,9 +212,8 @@ class TestGadgetFOF(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(g76)
         # this halo's particles are distributed over 3 files with the
         # middle file being empty
-        halo = ds.halo("Group", 6)
+        halo = ds_g76.halo("Group", 6)
         halo["member_ids"]
         assert True

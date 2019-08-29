@@ -7,9 +7,16 @@ from collections import OrderedDict
 import hashlib
 import os
 
+import numpy as np
+import pytest
+
 from yt.config import ytcfg
 from yt.convenience import load
 from yt.data_objects.static_output import Dataset
+from yt.frontends.ytdata.api import save_as_dataset
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
 from yt.utilities.exceptions import \
     YTOutputNotIdentified
 
@@ -96,7 +103,7 @@ def load_hashes(ds_name):
 #============================================
 #               handle_hashes
 #============================================
-def handle_hashes(ds_name, hashes, answer_store):
+def handle_hashes(dir_name, ds_name, hashes, answer_store):
     """
     Either saves the answers for later comparison or loads in the saved
     answers and does the comparison.
@@ -113,6 +120,7 @@ def handle_hashes(ds_name, hashes, answer_store):
     --------
         pass
     """
+    ds_name = os.path.join(dir_name, ds_name)
     # Save answer
     if answer_store:
         store_hashes(ds_name, hashes)
@@ -152,6 +160,7 @@ def can_run_ds(ds_fn, file_check = False):
         return os.path.isfile(os.path.join(path, ds_fn))
     try:
         load(ds_fn)
+        return True
     except YTOutputNotIdentified:
         return False
 
@@ -190,7 +199,7 @@ def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
 #============================================-
 #                 requires_ds
 #============================================
-def requires_ds(ds_fn, big_data = False, file_check = False):
+def requires_ds(ds_fn, file_check = False):
     """
     Meta-wrapper for specifying required data for a test and
     checking if said data exists.
@@ -207,14 +216,11 @@ def requires_ds(ds_fn, big_data = False, file_check = False):
     --------
         pass
     """
-    run_big_data = False
     def ffalse(func):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data is False and big_data is True:
-        return ffalse
-    elif not can_run_ds(ds_fn, file_check):
+    if not can_run_ds(ds_fn, file_check):
         return ffalse
     else:
         return ftrue
@@ -330,3 +336,66 @@ def check_result_hashability(result):
             appendix = [-2 for i in range(diff)]
             sublist += appendix
     return result
+
+
+#============================================
+#          compare_unit_attributes
+#============================================
+def compare_unit_attributes(ds1, ds2):
+    """
+    Parameters:
+    -----------
+        pass
+
+    Raises:
+    -------
+        pass
+
+    Returns:
+    --------
+        pass
+    """
+    attrs = ('length_unit', 'mass_unit', 'time_unit',
+             'velocity_unit', 'magnetic_unit')
+    for attr in attrs:
+        u1 = getattr(ds1, attr, None)
+        u2 = getattr(ds2, attr, None)
+        assert u1 == u2
+
+
+#============================================
+#              fake_halo_catalog
+#============================================
+def fake_halo_catalog(data):
+    """
+    Helper function to create and save a mock halo catalog for use
+    in testing.
+
+    Parameters:
+    -----------
+        pass
+
+    Raises:
+    -------
+        pass
+
+    Returns:
+    --------
+        pass
+    """
+    filename = "catalog.0.h5"
+    ftypes = dict((field, '.') for field in data)
+    extra_attrs = {"data_type": "halo_catalog",
+                   "num_halos": data['particle_mass'].size}
+    ds = {'cosmological_simulation': 1,
+          'omega_lambda': 0.7,
+          'omega_matter': 0.3,
+          'hubble_constant': 0.7,
+          'current_redshift': 0,
+          'current_time': YTQuantity(1, 'yr'),
+          'domain_left_edge': YTArray(np.zeros(3), 'cm'),
+          'domain_right_edge': YTArray(np.ones(3), 'cm')}
+    save_as_dataset(ds, filename, data, field_types=ftypes,
+        extra_attrs=extra_attrs
+    )
+    return filename
