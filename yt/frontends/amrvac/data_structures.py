@@ -37,7 +37,7 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 
 from .fields import AMRVACFieldInfo
-from .datreader import get_header, get_block_info, get_block_byte_limits
+from .datreader import get_header, get_tree_info
 
 
 class AMRVACGrid(AMRGridPatch):
@@ -63,12 +63,7 @@ class AMRVACHierarchy(GridIndex):
         # the index file *is* the datfile
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-
-        # init everything to make it clear what's in there
-        self.field_list = []
-        self.num_grids = None
 
         super(AMRVACHierarchy, self).__init__(ds, dataset_type)
 
@@ -79,24 +74,24 @@ class AMRVACHierarchy(GridIndex):
         """Set self.num_grids using datfile header"""
         self.num_grids = self.dataset.parameters['nleafs']
 
-    def _create_patch(self, lvl, idx):
+    def _get_patch(self, ytlevel, morton_index):
         # Width of the domain, used to correctly calculate fractions
-        domain_width   = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
+        domain_width = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
         block_nx = self.dataset.parameters["block_nx"]
 
         # dx at coarsest grid level (YT level 0)
         dx0 = domain_width / self.dataset.parameters["domain_nx"]
-        # dx at YT level 'lvl'
-        dx = dx0 * 0.5**lvl
-        l_edge = self.dataset.parameters["xmin"] + \
-                 (idx-1) * block_nx * dx
+        # dx at ytlevel
+        dx = dx0 * (1./self.dataset.refine_by)**ytlevel
+        l_edge = self.dataset.parameters["xmin"] + (morton_index-1) * block_nx * dx
         r_edge = l_edge + block_nx * dx
 
-        if dim < 3:
-            d = 3-dim
-            l_edge = np.append(l_edge, [0]*d)
-            r_edge = np.append(r_edge, [1]*d)
-            block_nx = np.append(block_nx, [1]*d)
+        # force return arrays to 3D
+        missing_dim = 3 - self.dataset.dimensionality
+        l_edge = np.append(l_edge, [0]*missing_dim)
+        r_edge = np.append(r_edge, [1]*missing_dim)
+        block_nx = np.append(block_nx, [1]*missing_dim)
+
         patch = {
             "left_edge": l_edge,
             "right_edge": r_edge,
@@ -106,9 +101,10 @@ class AMRVACHierarchy(GridIndex):
 
     def _parse_index(self):
         with open(self.index_filename, "rb") as istream:
-            vaclevels, idxs = get_block_info(istream)
-            assert len(vaclevels) == len(idxs) == self.num_grids
+            vaclevels, idxs, block_offsets = get_tree_info(istream)
+            assert len(vaclevels) == len(idxs) == len(block_offsets) == self.num_grids
 
+        self.block_offsets = block_offsets
         # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
         ytlevels = np.array(vaclevels, dtype="int32") - 1
         self.grid_levels.flat[:] = ytlevels
@@ -120,15 +116,12 @@ class AMRVACHierarchy(GridIndex):
         for igrid, (lvl, idx) in enumerate(zip(ytlevels, idxs)):
             # devnote : idx is the index on the Morton Curve
             # maybe it ought to be properly translated to yt indexing first...
-            patch = self._create_patch(lvl, idx)
+            patch = self._get_patch(lvl, idx)
             self.grid_left_edge[igrid, :] = patch["left_edge"]
             self.grid_right_edge[igrid, :] = patch["right_edge"]
             self.grid_dimensions[igrid, :] = patch["width"]
 
             self.grids[igrid] = self.grid(igrid, self, ytlevels[igrid])
-
-        with open(self.index_filename, "rb") as istream:
-            self.block_offsets, self.block_shapes = get_block_byte_limits(istream)
 
     def _populate_grid_objects(self):
         for g in self.grids:
@@ -141,17 +134,54 @@ class AMRVACDataset(Dataset):
     _index_class = AMRVACHierarchy
     _field_info_class = AMRVACFieldInfo
 
-    def __init__(self, filename, dataset_type='amrvac',
-                 storage_filename=None,
-                 units_override=None,):
-        self.fluid_types += ('amrvac',) #devnote: input 'gas', 'dust' here ?
-        super(AMRVACDataset, self).__init__(filename, dataset_type,
-                         units_override=units_override)
-        self.storage_filename = storage_filename
+    def __init__(self, filename, dataset_type='amrvac', units_override=None):
+        super(AMRVACDataset, self).__init__(filename, dataset_type, units_override=units_override)
+        self.fluid_types += ('amrvac',)
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
-        self.cosmological_simulation = False
 
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        validation = False
+        try:
+            with open(args[0], "rb") as istream:
+                get_header(istream)
+            validation = True
+        finally:
+            return validation
+
+    def _parse_parameter_file(self):
+        self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
+        with open(self.parameter_filename, 'rb') as istream:
+            self.parameters.update(get_header(istream))
+
+        self.current_time = self.parameters['time']
+        self.dimensionality = self.parameters['ndim']
+        self.domain_dimensions = self.parameters['block_nx'] * 2**self.parameters['levmax']
+        self.gamma = self.parameters['gamma']
+        # current datfiles do not contain the following variables, so
+        # those need default values
+        self.geometry = self.parameters.get("geometry", "cartesian")
+        self.periodicity = self.parameters.get("periodicity", (False, False, False))
+
+        # parse domain edges
+        dle = np.zeros(3)
+        dre = np.ones(3)
+        dle[:self.dimensionality] = self.parameters['xmin']
+        dre[:self.dimensionality] = self.parameters['xmax']
+        self.domain_left_edge = dle
+        self.domain_right_edge = dre
+
+        # defaulting to non-cosmological
+        self.cosmological_simulation = 0
+        self.current_redshift        = 0.0
+        self.omega_matter            = 0.0
+        self.omega_lambda            = 0.0
+        self.hubble_constant         = 0.0
+
+    # units stuff
+    # devnote : this ought to be rewritten
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
         # on-disk units.  These are the currently available quantities which
@@ -228,74 +258,5 @@ class AMRVACDataset(Dataset):
             setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
 
 
-    # TODO: uncomment this when using "setdefaultattr" above, it overrides default yt code units (see flash)
     def set_code_units(self):
         super(AMRVACDataset, self).set_code_units()
-
-
-    def _parse_parameter_file(self):
-        # This needs to set up the following items.  Note that these are all
-        # assumed to be in code units; domain_left_edge and domain_right_edge
-        # will be converted to YTArray automatically at a later time.
-        # This includes the cosmological parameters.
-        #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
-        #   self.parameters             <= full of code-specific items of use
-        #   self.domain_left_edge       <= array of float64                         OK
-        #   self.domain_right_edge      <= array of float64                         OK
-        #   self.dimensionality         <= int                                      OK
-        #   self.domain_dimensions      <= array of int64                           OK
-        #   self.periodicity            <= three-element tuple of booleans          OK
-        #   self.current_time           <= simulation time in code units            OK
-        #
-        # We also set up cosmological information.  Set these to zero if
-        # non-cosmological.
-        #
-        #   self.cosmological_simulation    <= int, 0 or 1                          OK
-        #   self.current_redshift           <= float                                OK
-        #   self.omega_lambda               <= float                                OK
-        #   self.omega_matter               <= float                                OK
-        #   self.hubble_constant            <= float                                OK
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-
-        with open(self.parameter_filename, 'rb') as df:
-            self.parameters = get_header(df)
-
-        self.current_time      = self.parameters['time']
-        self.dimensionality    = self.parameters['ndim'] #devnote, warining : ndir != ndim
-        # for domain_dimensions, found similar thing in Flash frontend
-        self.domain_dimensions = self.parameters['block_nx'] * 2**self.parameters['levmax']
-        self.gamma             = self.parameters['gamma']
-
-        dle = np.zeros(3)
-        dre = np.ones(3)
-        for idim in range(self.dimensionality):
-            dle[idim] = self.parameters['xmin'][idim]
-            dre[idim] = self.parameters['xmax'][idim]
-
-        self.domain_left_edge = dle
-        self.domain_right_edge = dre
-
-        # TODO @Niels: this must also be included in .dat file.
-        self.periodicity = tuple([False, False, False])
-
-        #devnote: these could be made optional if needed
-        self.cosmological_simulation = 0
-        self.current_redshift        = 0.0
-        self.omega_matter            = 0.0
-        self.omega_lambda            = 0.0
-        self.hubble_constant         = 0.0
-
-    @classmethod
-    def _is_valid(self, *args, **kwargs):
-        # This accepts a filename or a set of arguments and returns True or
-        # False depending on if the file is of the type requested.
-        validation = False
-        try:
-            with open(args[0], "rb") as istream:
-                h = get_header(istream)
-            validation = True
-        finally:
-            return validation

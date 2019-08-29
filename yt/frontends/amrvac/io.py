@@ -12,13 +12,12 @@ AMRVAC-specific IO functions
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
+import numpy as np
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.geometry.selection_routines import \
     GridSelector
-import numpy as np
-from .datreader import get_block_info, get_single_block_data
+from .datreader import get_single_block_data
 
 
 import sys
@@ -31,6 +30,8 @@ class AMRVACIOHandler(BaseIOHandler):
         BaseIOHandler.__init__(self, ds)
         self.ds = ds
         self.datfile = ds.parameter_filename
+        header = self.ds.parameters
+        self.block_shape = np.append(header["block_nx"], header["nw"])
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
@@ -49,9 +50,8 @@ class AMRVACIOHandler(BaseIOHandler):
     def _read_data(self, grid, field):
         ileaf = grid.id
         offset = grid._index.block_offsets[ileaf]
-        block_shape = grid._index.block_shapes[ileaf]
         with open(self.datfile, "rb") as istream:
-            block = get_single_block_data(istream, offset, block_shape)
+            block = get_single_block_data(istream, offset, self.block_shape)
         dim = self.ds.dimensionality
         field_idx = self.ds.parameters['w_names'].index(field)
 
@@ -106,7 +106,7 @@ class AMRVACIOHandler(BaseIOHandler):
             for field in fields:
                 data_dict[field] = np.empty(size, dtype='float64')
 
-            nb_grids = sum(len(chunk.objs) for chunk in chunks)
+            #nb_grids = sum(len(chunk.objs) for chunk in chunks)
 
             ind = 0
             for chunk in chunks:

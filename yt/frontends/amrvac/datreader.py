@@ -180,80 +180,42 @@ def get_uniform_data(dat):
 
 ### The following is a refactoring of above functions by Clément Robert
 
-def get_block_info(dat):
-    """dat is assumed to be an open datfile
-
-    This is part of get_block_data(), but only returns block levels and indices.
+def get_tree_info(istream):
+    """
+    Read levels, morton-curve indices, and byte offsets for each block as stored in the datfile
+    istream is an open datfile buffer with 'rb' mode
     This can be used as the "first pass" data reading required by YT's interface.
     """
-    dat.seek(0)
-    header = get_header(dat)
+    istream.seek(0)
+    header = get_header(istream)
     nleafs = header['nleafs']
     nparents = header['nparents']
 
     # Read tree info. Skip 'leaf' array
-    dat.seek(header['offset_tree'] + (nleafs+nparents) * size_logical)
+    istream.seek(header['offset_tree'] + (nleafs+nparents) * size_logical)
 
     # Read block levels
     fmt = align + nleafs * 'i'
-    block_lvls = np.array(
-        struct.unpack(fmt, dat.read(struct.calcsize(fmt))))
+    block_lvls = np.array(struct.unpack(fmt, istream.read(struct.calcsize(fmt))))
 
     # Read block indices
     fmt = align + nleafs * header['ndim'] * 'i'
-    block_ixs = np.reshape(
-        struct.unpack(fmt, dat.read(struct.calcsize(fmt))),
-        [nleafs, header['ndim']])
+    block_ixs = np.reshape(struct.unpack(fmt, istream.read(struct.calcsize(fmt))),
+                           [nleafs, header['ndim']])
 
-    return block_lvls, block_ixs
+    # Read block offsets (skip ghost cells !)
+    bcfmt = align + header['ndim'] * 'i'
+    bcsize = struct.calcsize(bcfmt) * 2
 
-def get_block_byte_limits(dat):
-    h = get_header(dat)
-    nw = h['nw']
-    nleafs = h['nleafs']
-    block_nx = np.array(h['block_nx'])
-    bcfmt = align + h['ndim'] * 'i'
-    bcsize = struct.calcsize(bcfmt)
+    fmt = align + nleafs * 'q'
+    block_offsets = np.array(struct.unpack(fmt, istream.read(struct.calcsize(fmt)))) + bcsize
+    return block_lvls, block_ixs, block_offsets
 
-    # toreview @niels: I think that shapes can always be deduced from
-    # refinement level + dimensionality; in which case, we store a lot
-    # of redundant data within this approach
-    shapes = []
-
-    # devnote (clm): dtype could possibly cause bug for large datasets
-    # should switch to int64 ?
-    offsets = np.empty(nleafs, dtype=int)
-
-    dat.seek(h['offset_blocks'])
-    for i in range(nleafs):
-        # Read number of ghost cells
-        gc_lo = np.array(struct.unpack(bcfmt, dat.read(bcsize)))
-        gc_hi = np.array(struct.unpack(bcfmt, dat.read(bcsize)))
-        offsets[i] = dat.tell()
-
-        # determine block shape
-        block_shape = np.append(gc_lo + block_nx + gc_hi, nw)
-        fmt = align + np.prod(block_shape) * 'd'
-        data_size = struct.calcsize(fmt)
-
-        # append to return arrays
-        shapes.append(block_shape)
-
-        # advance buffer
-        dat.seek(data_size, 1)
-
-    end_offset = dat.tell()
-    # check that we reached eof exactly
-    dat.seek(0, 2)
-    buffer_size = dat.tell()
-    assert end_offset == buffer_size
-    return offsets, shapes
-
-def get_single_block_data(dat, byte_offset, block_shape):
-    dat.seek(byte_offset)
+def get_single_block_data(istream, byte_offset, block_shape):
+    istream.seek(byte_offset)
     # Read actual data
     fmt = align + np.prod(block_shape) * 'd'
-    d = struct.unpack(fmt, dat.read(struct.calcsize(fmt)))
+    d = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
     # Fortran ordering
     block_data = np.reshape(d, block_shape, order='F')
     return block_data
