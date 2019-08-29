@@ -19,10 +19,10 @@ def get_header(istream):
     h = {}
 
     fmt = ALIGN + 'i'
-    [h['version']] = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
+    [h['datfile_version']] = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
 
-    if h['version'] < 3:
-        raise IOError("Unsupported AMRVAC .dat file version: %d", h['version'])
+    if h['datfile_version'] < 3:
+        raise IOError("Unsupported AMRVAC .dat file version: %d", h['datfile_version'])
 
     # Read scalar data at beginning of file
     fmt = ALIGN + 9 * 'i' + 'd'

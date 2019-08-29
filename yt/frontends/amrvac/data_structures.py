@@ -140,6 +140,7 @@ class AMRVACDataset(Dataset):
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
 
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         validation = False
@@ -153,15 +154,20 @@ class AMRVACDataset(Dataset):
     def _parse_parameter_file(self):
         self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
+        # populate self.parameters with header data
         with open(self.parameter_filename, 'rb') as istream:
             self.parameters.update(get_header(istream))
 
         self.current_time = self.parameters['time']
         self.dimensionality = self.parameters['ndim']
         self.domain_dimensions = self.parameters['block_nx'] * 2**self.parameters['levmax']
-        self.gamma = self.parameters.get("gamma", 5.0/3.0)
+
         # current datfiles do not contain the following variables, so
         # those need default values
+        self.gamma = self.parameters.get("gamma", 5.0/3.0)
+        if self.parameters.datfile_version < 5:
+            mylog.warning("This data format does not contain geometry information."
+                          + "Defaulting to cartesian.")
         self.geometry = self.parameters.get("geometry", "cartesian")
         self.periodicity = self.parameters.get("periodicity", (False, False, False))
 
