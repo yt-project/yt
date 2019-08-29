@@ -254,6 +254,7 @@ class AMRVACDataset(Dataset):
             setdefaultattr(self, "temperature_unit", self.quan(unit_temperature, "K"))
             setdefaultattr(self, "density_unit", self.quan(unit_density, "kg*m**-3"))
             setdefaultattr(self, "pressure_unit", self.quan(unit_pressure, "pa"))
+            setdefaultattr(self, "magnetic_unit", self.quan(unit_magneticfield, "tesla"))
             setdefaultattr(self, "mass_unit", self.quan(unit_mass, "kg"))
             setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
 
