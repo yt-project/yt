@@ -159,7 +159,7 @@ class AMRVACDataset(Dataset):
         self.current_time = self.parameters['time']
         self.dimensionality = self.parameters['ndim']
         self.domain_dimensions = self.parameters['block_nx'] * 2**self.parameters['levmax']
-        self.gamma = self.parameters['gamma']
+        self.gamma = self.parameters.get("gamma", 5.0/3.0)
         # current datfiles do not contain the following variables, so
         # those need default values
         self.geometry = self.parameters.get("geometry", "cartesian")
