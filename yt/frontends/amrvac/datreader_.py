@@ -1,3 +1,4 @@
+### deprecated !
 # THOSE FUNCTIONS COME FROM $AMRVAC_DIR/tools/python/dat_reader.py
 # ================================================================
 

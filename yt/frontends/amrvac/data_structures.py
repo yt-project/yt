@@ -37,7 +37,7 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 
 from .fields import AMRVACFieldInfo
-from .datreader import get_header, get_tree_info
+from .datfile_utils import get_header, get_tree_info
 
 
 class AMRVACGrid(AMRGridPatch):

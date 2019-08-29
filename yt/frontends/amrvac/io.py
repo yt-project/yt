@@ -17,7 +17,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.geometry.selection_routines import \
     GridSelector
-from .datreader import get_single_block_data
+from .datfile_utils import get_single_block_data
 
 
 import sys
