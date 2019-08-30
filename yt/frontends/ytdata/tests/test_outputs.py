@@ -39,9 +39,8 @@ from yt.visualization.plot_window import \
 from yt.visualization.profile_plotter import \
     ProfilePlot, \
     PhasePlot
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 # Test data
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
@@ -67,7 +66,7 @@ class TestYTData(fw.AnswerTest):
     # test_datacontainer_data
     #-----
     @utils.requires_ds(enzotiny)
-    def test_datacontainer_data(self):
+    def test_datacontainer_data(self, ds_enzotiny):
         """
         Parameters:
         -----------
@@ -82,7 +81,7 @@ class TestYTData(fw.AnswerTest):
             pass
         """
         ytft_hd = b''
-        ds = utils.data_dir_load(enzotiny)
+        ds = ds_enzotiny
         sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
         fn = sphere.save_as_dataset(fields=["density", "particle_mass"])
         full_fn = os.path.join(os.getcwd(), fn)
@@ -104,7 +103,7 @@ class TestYTData(fw.AnswerTest):
     # test_grid_datacontainer_data
     #-----
     @utils.requires_ds(enzotiny)
-    def test_grid_datacontainer_data(self):
+    def test_grid_datacontainer_data(self, ds_enzotiny):
         """
         Parameters:
         -----------
@@ -120,7 +119,7 @@ class TestYTData(fw.AnswerTest):
         """
         ytft_hd = b''
         hd = {}
-        ds = utils.data_dir_load(enzotiny)
+        ds = ds_enzotiny
         cg = ds.covering_grid(level=0, left_edge=[0.25]*3, dims=[16]*3)
         fn = cg.save_as_dataset(fields=["density", "particle_mass"])
         full_fn = os.path.join(os.getcwd(), fn)
@@ -156,7 +155,7 @@ class TestYTData(fw.AnswerTest):
     # test_spatial_data
     #-----
     @utils.requires_ds(enzotiny)
-    def test_spatial_data(self):
+    def test_spatial_data(self, ds_enzotiny):
         """
         Parameters:
         -----------
@@ -170,7 +169,7 @@ class TestYTData(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(enzotiny)
+        ds = ds_enzotiny
         proj = ds.proj("density", "x", weight_field="density")
         fn = proj.save_as_dataset()
         full_fn = os.path.join(os.getcwd(), fn)
@@ -184,8 +183,8 @@ class TestYTData(fw.AnswerTest):
     #-----
     # test_profile_data
     #-----
-    @rutils.requires_ds(enzotiny)
-    def test_profile_data(self):
+    @utils.requires_ds(enzotiny)
+    def test_profile_data(self, ds_enzotiny):
         """
         Parameters:
         -----------
@@ -199,7 +198,7 @@ class TestYTData(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(enzotiny)
+        ds = ds_enzotiny
         ad = ds.all_data()
         profile_1d = create_profile(ad, "density", "temperature",
                                     weight_field="cell_mass")
@@ -240,8 +239,8 @@ class TestYTData(fw.AnswerTest):
     #-----
     # test_nonspatial_data
     #-----
-    @rutils.requires_ds(enzotiny)
-    def test_nonspatial_data(self):
+    @utils.requires_ds(enzotiny)
+    def test_nonspatial_data(self, ds_enzotiny):
         """
         Parameters:
         -----------
@@ -256,7 +255,7 @@ class TestYTData(fw.AnswerTest):
             pass
         """
         ytft_hd = b''
-        ds = utils.data_dir_load(enzotiny)
+        ds = ds_enzotiny
         region = ds.box([0.25]*3, [0.75]*3)
         sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
         my_data = {}

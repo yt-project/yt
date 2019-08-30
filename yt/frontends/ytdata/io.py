@@ -251,7 +251,8 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 # These are 32 bit numbers, so we give a little lee-way.
                 # Otherwise, for big sets of particles, we often will bump into the
                 # domain edges.  This helps alleviate that.
-                np.clip(pos, dle + dx, dre - dx, pos)
+                pos_clipped = np.clip(pos.v, (dle + dx).v, (dre - dx).v)
+                pos = self.ds.arr(pos_clipped, "code_length")
                 if np.any(pos.min(axis=0) < dle) or \
                    np.any(pos.max(axis=0) > dre):
                     raise YTDomainOverflow(pos.min(axis=0),
@@ -348,7 +349,10 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                 # These are 32 bit numbers, so we give a little lee-way.
                 # Otherwise, for big sets of particles, we often will bump into the
                 # domain edges.  This helps alleviate that.
-                np.clip(pos, dle + dx, dre - dx, pos)
+                # Clip doesn't work with YTArray, so remove units, clip, then
+                # re-add
+                pos_clipped = np.clip(pos.v, (dle + dx).v, (dre - dx).v)
+                pos = self.ds.arr(pos_clipped, "code_length")
                 if np.any(pos.min(axis=0) < dle) or \
                    np.any(pos.max(axis=0) > dre):
                     raise YTDomainOverflow(pos.min(axis=0),
