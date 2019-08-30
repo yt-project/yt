@@ -18,7 +18,7 @@ sample_datasets = [str(test_dir/"data"/s) for s in [
     #"misc/3d_k2pi_1MK0283.dat",
     # 2D files
     "blast_wave_Cartesian_2D_HD/bw_2d0003.dat",
-    "misc/KH2proba0010.dat"
+    "Kelvin_Helmoltz_2D/KH2proba0010.dat"
 ]]
 
 
