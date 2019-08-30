@@ -40,6 +40,7 @@ from .fields import AMRVACFieldInfo
 from .datfile_utils import get_header, get_tree_info
 
 
+
 class AMRVACGrid(AMRGridPatch):
     """devnote : a patch represent part of a block. The hierarchy/index is a collection of patches"""
     _id_offset = 0
@@ -53,6 +54,7 @@ class AMRVACGrid(AMRGridPatch):
 
     def __repr__(self):
         return "AMRVACGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+
 
 
 class AMRVACHierarchy(GridIndex):
@@ -140,7 +142,6 @@ class AMRVACDataset(Dataset):
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
 
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
         validation = False
@@ -165,7 +166,7 @@ class AMRVACDataset(Dataset):
         # current datfiles do not contain the following variables, so
         # those need default values
         self.gamma = self.parameters.get("gamma", 5.0/3.0)
-        if self.parameters.datfile_version < 5:
+        if self.parameters["datfile_version"] < 5:
             mylog.warning("This data format does not contain geometry information."
                           + "Defaulting to cartesian.")
         self.geometry = self.parameters.get("geometry", "cartesian")
@@ -186,37 +187,29 @@ class AMRVACDataset(Dataset):
         self.omega_lambda            = 0.0
         self.hubble_constant         = 0.0
 
-    # units stuff
-    # devnote : this ought to be rewritten
+    # units stuff ===============================================================================
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
         # on-disk units.  These are the currently available quantities which
         # should be set, along with examples of how to set them to standard
         # values.
 
-        # TODO @Niels: Default to cgs. This will be implemented in upcoming .dat file extensions.
-
-        unit_system = self.parameters.get("unit_system", "cgs")
-
-        # TODO @Niels: Units in AMRVAC are defined by specifying unit_numberdensity and unit_length, together with
-        #              EITHER unit_temperature or unit_velocity. This will again be implemented in .dat file changes.
-
-        # @Niels: can we use astropy here?
-        # @clm : no, but we *could* use unyt
+        # TODO : use unyt
         mp  = 1.672621777e-24    # cgs units (g)
         kB  = 1.3806488e-16      # cgs units (erg / K)
         mu0 = 4 * np.pi
         He_abundance = 0.1       # hardcoded in AMRVAC
 
-        if unit_system == "cgs":
-            pass
-        elif unit_system == "si":
+        unit_system = self.parameters.get("unit_system", "cgs")
+        if self.parameters["datfile_version"] < 5:
+            mylog.warning("This datfile format does not contain unit system. Defaulting to cgs.")
+        if unit_system not in ("cgs", "si"):
+            mylog.warning("Unknown unit_system parameter '%s'" % self.parameters["unit_system"])
+
+        if unit_system == "si":
             mp *= 1e-3
             kB *= 1e-7
             mu0 = 1.2566370614e-6
-        else:
-            raise RuntimeError("AMRVAC data file contains an "
-                               "unknown unit_system parameter {}".format(self.parameters["unit_system"]))
 
         # Obtain unit normalisations from .dat file
         # default values mock AMRVAC itself
@@ -239,6 +232,7 @@ class AMRVACDataset(Dataset):
         unit_magneticfield = np.sqrt(mu0 * unit_pressure)
         unit_time          = unit_length / unit_velocity
 
+        # TOREVIEW @Niels: this seems really off, I don't think density and numberdensity share a unit
         unit_mass          = unit_numberdensity * unit_length**3
 
 
@@ -253,17 +247,15 @@ class AMRVACDataset(Dataset):
             setdefaultattr(self, "magnetic_unit", self.quan(unit_magneticfield, "gauss"))
             setdefaultattr(self, "mass_unit", self.quan(unit_mass, "g"))
             setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
-        else:
+        elif unit_system == "si":
             setdefaultattr(self, "length_unit", self.quan(unit_length, "m"))
             setdefaultattr(self, "numberdensity_unit", self.quan(unit_numberdensity, "m**-3"))
             setdefaultattr(self, "velocity_unit", self.quan(unit_velocity, "m/s"))
             setdefaultattr(self, "temperature_unit", self.quan(unit_temperature, "K"))
             setdefaultattr(self, "density_unit", self.quan(unit_density, "kg*m**-3"))
             setdefaultattr(self, "pressure_unit", self.quan(unit_pressure, "pa"))
-            setdefaultattr(self, "magnetic_unit", self.quan(unit_magneticfield, "tesla"))
             setdefaultattr(self, "mass_unit", self.quan(unit_mass, "kg"))
             setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
 
-
-    def set_code_units(self):
+    def set_code_unit(self):
         super(AMRVACDataset, self).set_code_units()
