@@ -14,8 +14,8 @@ from yt.testing import \
     assert_equal, \
     requires_file
 
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 # Test data
 g1 = "owls_fof_halos/groups_001/group_001.0.hdf5"
@@ -41,7 +41,7 @@ class TestOwlsSubfind(fw.AnswerTest):
     # test_fields_g8
     #-----
     @utils.requires_ds(g8)
-    def test_fields_g8(self):
+    def test_fields_g8(self, ds_g8):
         """
         Parameters:
         -----------
@@ -57,18 +57,16 @@ class TestOwlsSubfind(fw.AnswerTest):
         fv_hd = b''
         fields = ("particle_position_x", "particle_position_y",
                    "particle_position_z", "particle_mass")
-        ds = utils.data_dir_load(g8)
-        assert_equal(str(ds), os.path.basename(g8))
         for field in fields:
-            fv_hd += self.field_values_test(ds, field, particle_type=True)
+            fv_hd += self.field_values_test(ds_g8, field, particle_type=True)
         hashes = {'field_values' : utils.generate_hash(fv_hd)}
         utils.handle_hashes(self.save_dir, 'owls-subfind-g8fields', hashes, self.answer_store)
 
     #-----
     # test_fields_g1
     #-----
-    @rutils.requires_ds(g1)
-    def test_fields_g1(self):
+    @utils.requires_ds(g1)
+    def test_fields_g1(self, ds_g1):
         """
         Parameters:
         -----------
@@ -84,10 +82,8 @@ class TestOwlsSubfind(fw.AnswerTest):
         fv_hd = b''
         fields = ("particle_position_x", "particle_position_y",
                    "particle_position_z", "particle_mass")
-        ds = utils.data_dir_load(g1)
-        assert_equal(str(ds), os.path.basename(g1))
         for field in fields:
-            fv_hd += self.field_values_test(ds, field, particle_type=True)
+            fv_hd += self.field_values_test(ds_g1, field, particle_type=True)
         hashes = {'field_values' : utils.generate_hash(fv_hd)}
         utils.handle_hashes(self.save_dir, 'owls-subfind-g1fields', hashes, self.answer_store)
 
@@ -95,7 +91,7 @@ class TestOwlsSubfind(fw.AnswerTest):
     # test_OWLSSubfindDataset
     #-----
     @requires_file(g1)
-    def test_OWLSSubfindDataset(self):
+    def test_OWLSSubfindDataset(self, ds_g1):
         """
         Parameters:
         -----------
@@ -108,4 +104,4 @@ class TestOwlsSubfind(fw.AnswerTest):
         Returns:
         --------
         """
-        assert isinstance(utils.data_dir_load(g1), OWLSSubfindDataset)
+        assert isinstance(ds_g1, OWLSSubfindDataset)
