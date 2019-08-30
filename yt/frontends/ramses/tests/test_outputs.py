@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+import os
+
 import numpy as np
 
 import yt
@@ -18,9 +20,8 @@ from yt.testing import \
     assert_equal, \
     requires_file, \
     units_override_check
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 # Test data
 output_00080 = "output_00080/info_00080.txt"
@@ -50,8 +51,8 @@ class TestRamses(fw.AnswerTest):
     #-----
     # test_output_00080
     #-----
-    @utils.requires_ds(00080)
-    def test_output_00080(self):
+    @utils.requires_ds(output_00080)
+    def test_output_00080(self, ds_output_00080):
         """
         Parameters:
         -----------
@@ -74,23 +75,20 @@ class TestRamses(fw.AnswerTest):
         weight_fields = [None, "density"]
         fields = ("temperature", "density", "velocity_magnitude",
                    ("deposit", "all_density"), ("deposit", "all_count"))
-        # Load data
-        ds = utils.data_dir_load(output_00080)
-        assert_equal(str(ds), "info_00080")
         # Do tests
         for dobj_name in dso:
             for field in fields:
                 for axis in axes:
                     for weight_field in weight_fields:
                         ppv_hd += self.pixelized_projection_values_test(
-                            ds, axis, field, weight_field,
+                            ds_output_00080, axis, field, weight_field,
                             dobj_name)
-                fv_hd += self.field_values_test(ds, field, dobj_name)
-            dobj = utils.create_obj(ds, dobj_name)
+                fv_hd += self.field_values_test(ds_output_00080, field, dobj_name)
+            dobj = utils.create_obj(ds_output_00080, dobj_name)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
-        assert_equal(ds.particle_type_counts, {'io': 1090895})
+        assert_equal(ds_output_00080.particle_type_counts, {'io': 1090895})
         # Save or compare hashes
         hashes = {}
         hashes['pixelized_projection_values'] = utils.generate_hash(ppv_hd)
@@ -100,8 +98,8 @@ class TestRamses(fw.AnswerTest):
     #-----
     # test_RAMSESDataset
     #-----
-    @requires_file(00080)
-    def test_RAMSESDataset(self):
+    @requires_file(output_00080)
+    def test_RAMSESDataset(self, ds_output_00080):
         """
         Parameters:
         -----------
@@ -115,13 +113,13 @@ class TestRamses(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(output_00080), RAMSESDataset)
+        assert isinstance(ds_output_00080, RAMSESDataset)
 
     #-----
     # test_units_override
     #-----
-    @requires_file(00080)
-    def test_units_override(self):
+    @requires_file(output_00080)
+    def test_units_override(self, ds_output_00080):
         """
         Parameters:
         -----------
@@ -135,7 +133,7 @@ class TestRamses(fw.AnswerTest):
         --------
             pass
         """
-        units_override_check(output_00080)
+        units_override_check(ds_output_00080, output_00080)
 
     #-----
     # test_non_cosmo_detection
@@ -300,7 +298,7 @@ class TestRamses(fw.AnswerTest):
     # test_ramses_rt
     #-----
     @requires_file(ramses_rt)
-    def test_ramses_rt(self):
+    def test_ramses_rt(self, ds_ramses_rt):
         """
         Parameters:
         -----------
@@ -314,13 +312,12 @@ class TestRamses(fw.AnswerTest):
         --------
             pass
         """
-        ds = yt.load(ramses_rt)
-        ad = ds.all_data()
+        ad = ds_ramses_rt.all_data()
         expected_fields = ["Density", "x-velocity", "y-velocity", "z-velocity",
                            "Pres_IR", "Pressure", "Metallicity", "HII", "HeII",
                            "HeIII"]
         for field in expected_fields:
-            assert ('ramses', field) in ds.field_list
+            assert ('ramses', field) in ds_ramses_rt.field_list
             # test that field access works
             ad['ramses', field]
         # test that special derived fields for RT datasets work
@@ -331,7 +328,7 @@ class TestRamses(fw.AnswerTest):
                 [('gas', specie+'_fraction'), ('gas', specie+'_density'),
                  ('gas', specie+'_mass')])
         for field in special_fields:
-            assert field in ds.derived_field_list
+            assert field in ds_ramses_rt.derived_field_list
             ad[field]
 
     #-----
@@ -339,7 +336,7 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramses_sink)
     @requires_file(output_00080)
-    def test_ramses_sink(self):
+    def test_ramses_sink(self, ds_ramses_sink, ds_output_00080):
         """
         Parameters:
         -----------
@@ -367,23 +364,21 @@ class TestRamses(fw.AnswerTest):
                            "particle_velocity_x", "particle_velocity_y",
                            "particle_velocity_z"]
         # Check that sinks are autodetected
-        ds = yt.load(ramses_sink)
-        ad = ds.all_data()
+        ad = ds_ramses_sink.all_data()
         for field in expected_fields:
-            assert ('sink', field) in ds.field_list
+            assert ('sink', field) in ds_ramses_sink.field_list
             # test that field access works
             ad['sink', field]
         # Checking that sinks are autodetected
-        ds = yt.load(output_00080)
-        ad = ds.all_data()
+        ad = ds_output_00080.all_data()
         for field in expected_fields:
-            assert ('sink', 'field') not in ds.field_list
+            assert ('sink', 'field') not in ds_output_00080.field_list
 
     #-----
     # test_new_format
     #-----
     @requires_file(ramses_new_format)
-    def test_new_format(self):
+    def test_new_format(self, ds_ramses_new_format):
         """
         Parameters:
         -----------
@@ -409,11 +404,10 @@ class TestRamses(fw.AnswerTest):
             ('star', 'particle_velocity_x'),
             ('star', 'particle_velocity_y'),
             ('star', 'particle_velocity_z')]
-        ds = yt.load(ramses_new_format)
-        ad = ds.all_data()
+        ad = ds_ramses_new_format.all_data()
         # Check all the expected fields exist and can be accessed
         for f in expected_particle_fields:
-            assert f in ds.derived_field_list
+            assert f in ds_ramses_new_format.derived_field_list
             ad[f]
         # Check there is only stars with tag 0 (it should be right)
         assert all(ad['star', 'particle_family'] == 2)
@@ -424,7 +418,7 @@ class TestRamses(fw.AnswerTest):
     # test_ramses_part_count
     #-----
     @requires_file(ramses_sink)
-    def test_ramses_part_count(self):
+    def test_ramses_part_count(self, ds_ramses_sink):
         """
         Parameters:
         -----------
@@ -438,8 +432,7 @@ class TestRamses(fw.AnswerTest):
         --------
             pass
         """
-        ds = yt.load(ramses_sink)
-        pcount = ds.particle_type_counts
+        pcount = ds_ramses_sink.particle_type_counts
         assert_equal(pcount['io'], 17132)
         assert_equal(pcount['sink'], 8)
 
@@ -527,7 +520,7 @@ class TestRamses(fw.AnswerTest):
     # test_grav_detection
     #-----
     @requires_file(output_00080)
-    def test_grav_detection(self):
+    def test_grav_detection(self, ds_output_00080):
         """
         Parameters:
         -----------
@@ -541,22 +534,24 @@ class TestRamses(fw.AnswerTest):
         --------
             pass
         """
-        ds = yt.load(output_00080)
         # Test detection
         for k in 'xyz':
-            assert ('gravity', '%s-acceleration' % k) in ds.field_list
-            assert ('gas', 'acceleration_%s' % k) in ds.derived_field_list
+            assert ('gravity', '%s-acceleration' % k) in ds_output_00080.field_list
+            assert ('gas', 'acceleration_%s' % k) in ds_output_00080.derived_field_list
         # Test access
         for k in 'xyz':
-            ds.r['gas', 'acceleration_%s' % k]
+            ds_output_00080.r['gas', 'acceleration_%s' % k]
 
     #-----
     # test_ramses_field_detection
     #-----
-    @requires_file(ramses_sink)
+    @requires_file(ramses_rt)
     @requires_file(output_00080)
     def test_ramses_field_detection(self):
         """
+        The decorator uses ramses_sink, but the function uses ramses_rt.
+        Not sure which is right.
+
         Parameters:
         -----------
             pass
@@ -580,7 +575,7 @@ class TestRamses(fw.AnswerTest):
         assert P1['nvar'] == 10
         assert len(fields_1) == P1['nvar']
         # Now load another dataset
-        ds2 = yt.load(output_00080)
+        ds2 = yt.load(output_00080) 
         ds2.index
         P2 = HydroFieldFileHandler.parameters
         fields_2 = set(DETECTED_FIELDS[ds2.unique_identifier]['ramses'])
@@ -592,9 +587,9 @@ class TestRamses(fw.AnswerTest):
     # test_formation_time
     #-----
     @requires_file(ramses_new_format)
-    @requires_file(output_0080)
+    @requires_file(output_00080)
     @requires_file(ramsesNonCosmo)
-    def test_formation_time(self):
+    def test_formation_time(self, ds_ramses_new_format):
         """
         Parameters:
         -----------
@@ -619,7 +614,7 @@ class TestRamses(fw.AnswerTest):
         whstars = ad['conformal_birth_time'] != 0
         assert np.all(ad['star_age'][whstars] > 0)
         # test semantics for non-cosmological new-style output format
-        ds = yt.load(ramses_new_format)
+        ds = ds_ramses_new_format
         ad = ds.all_data()
         assert ('io', 'particle_birth_time') in ds.field_list
         assert np.all(ad['particle_birth_time'] > 0)
@@ -637,7 +632,7 @@ class TestRamses(fw.AnswerTest):
     # test_cooling_fields
     #-----
     @requires_file(ramses_new_format)
-    def test_cooling_fields(self):
+    def test_cooling_fields(self, ds_ramses_new_format):
         """
         Parameters:
         -----------
@@ -652,7 +647,7 @@ class TestRamses(fw.AnswerTest):
             pass
         """
         # Test the field is being loaded correctly
-        ds=yt.load(ramses_new_format)
+        ds = ds_ramses_new_format
         # Derived cooling fields
         assert ('gas','cooling_net') in ds.derived_field_list
         assert ('gas','cooling_total') in ds.derived_field_list
@@ -689,7 +684,7 @@ class TestRamses(fw.AnswerTest):
     # test_ramses_mixed_files
     #-----
     @requires_file(ramses_rt)
-    def test_ramses_mixed_files(self):
+    def test_ramses_mixed_files(self, ds_ramses_rt):
         """
         Parameters:
         -----------
@@ -705,7 +700,7 @@ class TestRamses(fw.AnswerTest):
         """
         # Test that one can use derived fields that depend on different
         # files (here hydro and rt files)
-        ds = yt.load(ramses_rt)
+        ds = ds_ramses_rt
         def _mixed_field(field, data):
             return data['rt', 'photon_density_1'] / data['gas', 'H_nuclei_density']
         ds.add_field(('gas', 'mixed_files'), function=_mixed_field, sampling_type='cell')
