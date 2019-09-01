@@ -45,6 +45,22 @@ def get_header(istream):
     h['block_nx'] = np.array(
         struct.unpack(fmt, istream.read(struct.calcsize(fmt))))
 
+    if h['datfile_version'] >= 5:
+        # Read periodicity
+        fmt = ALIGN + h['ndim'] * 'i' # Fortran logical is 4 byte int
+        h['periodic'] = np.array(
+            struct.unpack(fmt, istream.read(struct.calcsize(fmt))), dtype=bool)
+
+        # Read geometry name
+        fmt = ALIGN + NAME_LEN * 'c'
+        hdr = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
+        h['geometry'] = b''.join(hdr).strip().decode()
+
+        # Read staggered flag
+        fmt = ALIGN + 'i' # Fortran logical is 4 byte int
+        h['staggered'] = bool(
+            struct.unpack(fmt, istream.read(struct.calcsize(fmt)))[0])
+
     # Read w_names
     w_names = []
     for i in range(h['nw']):
