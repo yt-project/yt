@@ -167,10 +167,9 @@ class AMRVACDataset(Dataset):
         # those need default values
         self.gamma = self.parameters.get("gamma", 5.0/3.0)
         if self.parameters["datfile_version"] < 5:
-            mylog.warning("This data format does not contain geometry information."
-                          + "Defaulting to cartesian.")
+            mylog.warning("This data format does not contain geometry or periodicity info")
         self.geometry = self.parameters.get("geometry", "cartesian")
-        self.periodicity = self.parameters.get("periodicity", (False, False, False))
+        self.periodicity = self.parameters.get("periodic", (False, False, False))
 
         # parse domain edges
         dle = np.zeros(3)
@@ -194,15 +193,16 @@ class AMRVACDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
 
-        # TODO : use unyt
         mp  = 1.672621777e-24    # cgs units (g)
         kB  = 1.3806488e-16      # cgs units (erg / K)
         mu0 = 4 * np.pi
         He_abundance = 0.1       # hardcoded in AMRVAC
 
         unit_system = self.parameters.get("unit_system", "cgs")
-        if self.parameters["datfile_version"] < 5:
-            mylog.warning("This datfile format does not contain unit system. Defaulting to cgs.")
+        # devnote : leaving this idle for now, waiting for datfile format 6 to be released
+        #if self.parameters["datfile_version"] < 6:
+        #    mylog.warning("This datfile format does not contain unit system. Defaulting to cgs.")
+
         if unit_system not in ("cgs", "si"):
             mylog.warning("Unknown unit_system parameter '%s'" % self.parameters["unit_system"])
 
