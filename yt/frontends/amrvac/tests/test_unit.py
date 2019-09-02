@@ -114,38 +114,24 @@ class TestPlot:
 
 
 ds = yt.load(sample_datasets["blastwave_cartesian_3D"])
-class unit_tests_3Dblast:
+class TestOutput:
     def test_domain_size(self):
         """Check for correct box size, see bw_3d.par"""
         for lb in ds.domain_left_edge:
-            self.assertEqual(int(lb), 0)
+            assert int(lb) == 0
         for rb in ds.domain_right_edge:
-            self.assertEqual(int(rb), 2)
+            assert int(rb) == 2
         for w in ds.domain_width:
-            self.assertEqual(int(w), 2)
+            assert int(w) == 2
 
     def test_grid_attributes(self):
         """Check various grid attributes"""
         grids = ds.index.grids
+        assert ds.index.max_level == 2
         for g in grids:
-            self.assertTrue(isinstance(g, yt.frontends.amrvac.AMRVACGrid))
-            self.assertTrue(isinstance(g.LeftEdge, yt.units.yt_array.YTArray))
-            self.assertTrue(isinstance(g.RightEdge, yt.units.yt_array.YTArray))
-            self.assertTrue(isinstance(g.ActiveDimensions, np.ndarray))
-            self.assertTrue(isinstance(g.Level, (np.int32, np.int64, int)))
-        self.assertEqual(ds.index.max_level, 2)
+            assert isinstance(g, yt.frontends.amrvac.AMRVACGrid)
+            assert isinstance(g.LeftEdge, yt.units.yt_array.YTArray)
+            assert isinstance(g.RightEdge, yt.units.yt_array.YTArray)
+            assert isinstance(g.ActiveDimensions, np.ndarray)
+            assert isinstance(g.Level, (np.int32, np.int64, int))
 
-    def test_grids(self):
-        """Check grid parents, children, etc."""
-        grids_maxlvl = ds.index.select_grids(ds.index.max_level)
-        for g in grids_maxlvl:
-            self.assertTrue(type(g) == yt.frontends.amrvac.AMRVACGrid)
-
-
-
-
-
-if __name__ == '__main__':
-    # Run this with blast_wave 3D (which is MHD)
-    # if MHD runs in 3D, then 2D and HD will also work.
-    unittest.main()
