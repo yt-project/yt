@@ -20,8 +20,6 @@ from yt.geometry.selection_routines import \
 from .datfile_utils import get_single_block_data
 
 
-import sys
-
 class AMRVACIOHandler(BaseIOHandler):
     _particle_reader = False
     _dataset_type = 'amrvac'

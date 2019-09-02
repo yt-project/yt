@@ -27,14 +27,6 @@ from yt.funcs import \
     setdefaultattr
 from yt.data_objects.static_output import \
    Dataset
-from yt.geometry.oct_geometry_handler import \
-    OctreeIndex
-from yt.geometry.geometry_handler import \
-    YTDataChunk
-from yt.data_objects.static_output import \
-    Dataset
-from yt.data_objects.octree_subset import \
-    OctreeSubset
 
 from .fields import AMRVACFieldInfo
 from .datfile_utils import get_header, get_tree_info
@@ -46,7 +38,7 @@ class AMRVACGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-    #note: the <level> here should use yt's convention (start from 0)
+        #note: the <level> here should use yt's convention (start from 0)
         super(AMRVACGrid, self).__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
