@@ -10,16 +10,12 @@ tmpdir = "data/"
 sample_datasets = dict(
     blastwave_cartesian_3D = tmpdir + "bw_3d0000.dat",
     blastwave_polar_2D = tmpdir + "bw_polar_2D0000.dat",
-    #blastwave_cylindrical_2D = tmpdir + "",
-    #blastwave_cylindrical_3D = tmpdir + "",
-    #kelvin_helmoltz_cartesian_2D = tmpdir + ""
-)
-correct_geometries = dict(
-    blastwave_cartesian_3D = "cartesian",
-    blastwave_polar_2D = "polar",
-    #blastwave_cylindrical_2D = "cylindrical",
-    #blastwave_cylindrical_3D = "cylindrical",
-    #kelvin_helmoltz_cartesian_2D = "cartesian"
+    blastwave_spherical_2D = tmpdir + "bw_2d0000.dat",
+    blastwave_cylindrical_3D = tmpdir + "bw_cylindrical_3D0000.dat",
+    khi_cartesian_2D = tmpdir + "kh_2D0000.dat",
+    khi_cartesian_3D = tmpdir + "kh_3D0000.dat",
+    jet_cylindrical_25D = tmpdir + "Jet0003.dat",
+    riemann_cartesian_175D = tmpdir + "R_1d0005.dat"
 )
 
 class TestParsing:
@@ -44,9 +40,10 @@ class TestParsing:
             assert isinstance(ds, yt.frontends.amrvac.AMRVACDataset)
 
     def test_geometry_parsing(self):
-        for simname in sample_datasets.keys():
-            ds = yt.load(sample_datasets[simname])
-            assert ds.geometry == correct_geometries[simname]
+        for simname, file in sample_datasets.items():
+            ds = yt.load(file)
+            correct_geom = simname.split("_")[1]
+            assert ds.geometry == correct_geom
 
 class AMRVAC_IO_Tests:
     def test_print_stats(self):
