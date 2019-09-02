@@ -2,9 +2,7 @@ import numpy as np
 
 import yt
 from yt.utilities.parameter_file_storage import output_type_registry
-#from yt.extern.six.moves import builtins
 
-# todo : add regression tests (see enzo)
 # todo : remove tmpdir
 tmpdir = "data/"
 sample_datasets = dict(
