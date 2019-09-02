@@ -95,18 +95,22 @@ class TestIO:
 
 
 
-class AMRVAC_Plot_Tests:
+class TestPlot:
     def test_projection(self):
         """"Check that no error is raised"""
         for file in sample_datasets.values():
             ds = yt.load(file)
             if ds.dimensionality == 3:
-                p = yt.ProjectionPlot(ds, 'x', 'density')
+                axis = {"cartesian": "x", "polar": "r", "cylindrical": "r", "spherical": "r"}[ds.geometry]
+                p = yt.ProjectionPlot(ds, axis, 'density')
 
     def test_slice(self):
         """"Check that no error is raised"""
-        ds = yt.load(sample_datasets["blastwave_cartesian_3D"])
-        p = yt.SlicePlot(ds, 'x', 'density')
+        for file in sample_datasets.values():
+            ds = yt.load(file)
+            if ds.dimensionality == 3:
+                axis = {"cartesian": "x", "polar": "r", "cylindrical": "r", "spherical": "r"}[ds.geometry]
+                p = yt.SlicePlot(ds, axis, 'density')
 
 
 ds = yt.load(sample_datasets["blastwave_cartesian_3D"])
