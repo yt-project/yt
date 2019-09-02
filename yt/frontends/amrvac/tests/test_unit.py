@@ -45,26 +45,32 @@ class TestParsing:
             correct_geom = simname.split("_")[1]
             assert ds.geometry == correct_geom
 
-class AMRVAC_IO_Tests:
+class TestIO:
     def test_print_stats(self):
         """Check that print_stats() executes normally"""
-        for file in sample_datasets:
+        for file in sample_datasets.values():
             ds = yt.load(file)
             ds.print_stats()
 
     def test_fields(self):
         """Check for fields in .dat file"""
-        for file in sample_datasets:
+        for simname, file in sample_datasets.items():
             ds = yt.load(file)
             field_labels = [f[1] for f in ds.field_list]
+            dims = int(simname.split("_")[2][:-1])
+            ndim = ds.dimensionality
+            ndir = ndim
+            if dims > 100:
+                ndir += 2
+            elif dims > 10:
+                ndir += 1
             if "m1" in field_labels:
-                for n in range(2, ds.dimensionality):
-                    self.assertTrue("m%d" % n in field_labels)
+                for n in range(2, ndir+1):
+                    assert "m%d" % n in field_labels
             if "b1" in field_labels:
-                for n in range(2, ds.dimensionality):
-                    self.assertTrue("b%d" % n in field_labels)
+                for n in range(2, ndir+1):
+                    assert "b%d" % n in field_labels
 
-    # data reading
     def test_get_data(self):
         for file in sample_datasets.values():
             ds = yt.load(file)
@@ -79,13 +85,13 @@ class AMRVAC_IO_Tests:
             g = grids[0]
             # read in density
             rho = g["density"]
-            self.assertTrue(isinstance(rho, yt.units.yt_array.YTArray))
+            assert isinstance(rho, yt.units.yt_array.YTArray)
 
     def test_dataread_all(self):
         for file in sample_datasets.values():
             ds = yt.load(file)
             ad = ds.all_data()
-            self.assertTrue(isinstance(ad['rho'], yt.units.yt_array.YTArray))
+            assert isinstance(ad['rho'], yt.units.yt_array.YTArray)
 
 
 
