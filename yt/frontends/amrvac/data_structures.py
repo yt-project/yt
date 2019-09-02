@@ -163,13 +163,24 @@ class AMRVACDataset(Dataset):
         self.dimensionality = self.parameters['ndim']
         self.domain_dimensions = self.parameters['block_nx'] * 2**self.parameters['levmax']
 
-        # current datfiles do not contain the following variables, so
-        # those need default values
-        self.gamma = self.parameters.get("gamma", 5.0/3.0)
+        # the following parameters may not be present in the datfile,
+        # dependending on format version
         if self.parameters["datfile_version"] < 5:
             mylog.warning("This data format does not contain geometry or periodicity info")
-        self.geometry = self.parameters.get("geometry", "cartesian")
-        self.periodicity = self.parameters.get("periodic", (False, False, False))
+
+        # parse geometry
+        amrvac_geom = self.parameters.get("geometry", "default")
+        if amrvac_geom.lower() == "default":
+            self.geometry = "cartesian"
+        else:
+            self.geometry = amrvac_geom.split("_")[0].lower()
+
+        # parse peridicity
+        per = self.parameters.get("periodic", np.array([False, False, False]))
+        missing_dim = 3 - len(per)
+        self.periodicity = np.append(per, [False]*missing_dim)
+
+        self.gamma = self.parameters.get("gamma", 5.0/3.0)
 
         # parse domain edges
         dle = np.zeros(3)
