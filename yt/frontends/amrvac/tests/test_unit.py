@@ -1,40 +1,52 @@
-import sys
 import numpy as np
 
 import yt
 from yt.utilities.parameter_file_storage import output_type_registry
-from yt.extern.six.moves import builtins
+#from yt.extern.six.moves import builtins
 
 # todo : add regression tests (see enzo)
-# todo : add file names
+# todo : remove tmpdir
+tmpdir = "data/"
 sample_datasets = dict(
-    blastwave_cartesian_3D = ...,
-    blastwave_polar_2D = ...,
-    blastwave_cylindrical_2D = ...,
-    blastwave_cylindrical_3D = ...,
-    kelvin_helmoltz_cartesian_2D = ...
-}
+    blastwave_cartesian_3D = tmpdir + "bw_3d0000.dat",
+    blastwave_polar_2D = tmpdir + "bw_polar_2D0000.dat",
+    #blastwave_cylindrical_2D = tmpdir + "",
+    #blastwave_cylindrical_3D = tmpdir + "",
+    #kelvin_helmoltz_cartesian_2D = tmpdir + ""
+)
+correct_geometries = dict(
+    blastwave_cartesian_3D = "cartesian",
+    blastwave_polar_2D = "polar",
+    #blastwave_cylindrical_2D = "cylindrical",
+    #blastwave_cylindrical_3D = "cylindrical",
+    #kelvin_helmoltz_cartesian_2D = "cartesian"
+)
 
-class AMRVAC_Frontend_Tests:
+class TestParsing:
     def test_frontends_contents(self):
         """Check that the frontend is correctly registered."""
-        self.assertTrue("amrvac" in dir(yt.frontends))
+        assert "amrvac" in dir(yt.frontends)
 
     def test_output_type_registry(self):
         """Check that the Dataset child class is part of classes tried for validation."""
         keys = list(output_type_registry.keys())
-        self.assertTrue("AMRVACDataset" in keys)
+        assert "AMRVACDataset" in keys
 
     def test_is_valid(self):
         """Check that validation fonction works at least on example files."""
         for file in sample_datasets.values():
-            self.assertTrue(output_type_registry["AMRVACDataset"]._is_valid(file))
+            assert output_type_registry["AMRVACDataset"]._is_valid(file)
 
     def test_load_amrvac(self):
         """Check that that data is marked amrvac-formated"""
         for file in sample_datasets.values():
             ds = yt.load(file)
-            self.assertTrue(isinstance(ds, yt.frontends.amrvac.AMRVACDataset))
+            assert isinstance(ds, yt.frontends.amrvac.AMRVACDataset)
+
+    def test_geometry_parsing(self):
+        for simname in sample_datasets.keys():
+            ds = yt.load(sample_datasets[simname])
+            assert ds.geometry == correct_geometries[simname]
 
 class AMRVAC_IO_Tests:
     def test_print_stats(self):
@@ -80,7 +92,7 @@ class AMRVAC_IO_Tests:
 
 
 
-class AMRVAC_Plot_Tests(unittest.TestCase):
+class AMRVAC_Plot_Tests:
     def test_projection(self):
         """"Check that no error is raised"""
         for file in sample_datasets.values():
@@ -95,7 +107,7 @@ class AMRVAC_Plot_Tests(unittest.TestCase):
 
 
 ds = yt.load(sample_datasets["blastwave_cartesian_3D"])
-class unit_tests_3Dblast(unittest.TestCase):
+class unit_tests_3Dblast:
     def test_domain_size(self):
         """Check for correct box size, see bw_3d.par"""
         for lb in ds.domain_left_edge:
