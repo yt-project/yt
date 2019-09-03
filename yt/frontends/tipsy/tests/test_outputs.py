@@ -15,9 +15,8 @@ from yt.testing import \
     assert_equal, \
     requires_file
 from yt.frontends.tipsy.api import TipsyDataset
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
@@ -65,7 +64,7 @@ class TestTipsy(fw.AnswerTest):
         reason="Skipping test_jet because --answer-big-data was not set."
     )
     @utils.requires_ds(pkdgrav, file_check = True)
-    def test_pkdgrav(self):
+    def test_pkdgrav(self, ds_pkdgrav):
         """
         Parameters:
         -----------
@@ -79,18 +78,9 @@ class TestTipsy(fw.AnswerTest):
         --------
             pass
         """
+        ds = ds_pkdgrav
         ppv_hd = b''
         fv_hd = b''
-        cosmology_parameters = dict(current_redshift = 0.0,
-                                    omega_lambda = 0.728,
-                                    omega_matter = 0.272,
-                                    hubble_constant = 0.702)
-        kwargs = dict(field_dtypes = {"Coordinates": "d"},
-                      cosmology_parameters = cosmology_parameters,
-                      unit_base = {'length': (60.0, "Mpccm/h")},
-                      n_ref = 64)
-        ds = utils.data_dir_load(pkdgrav, TipsyDataset, (), kwargs)
-        assert_equal(str(ds), "halo1e11_run1.00400")
         dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
         dd = ds.all_data()
         assert_equal(dd["Coordinates"].shape, (26847360, 3))
@@ -120,7 +110,7 @@ class TestTipsy(fw.AnswerTest):
         reason="Skipping test_jet because --answer-big-data was not set."
     )
     @utils.requires_ds(gasoline_dmonly, file_check = True)
-    def test_gasoline_dmonly(self):
+    def test_gasoline_dmonly(self, ds_gasoline_dmonly):
         """
         Parameters:
         -----------
@@ -134,17 +124,9 @@ class TestTipsy(fw.AnswerTest):
         --------
             pass
         """
+        ds = ds_gasoline_dmonly
         ppv_hd = b''
         fv_hd = b''
-        cosmology_parameters = dict(current_redshift = 0.0,
-                                    omega_lambda = 0.728,
-                                    omega_matter = 0.272,
-                                    hubble_constant = 0.702)
-        kwargs = dict(cosmology_parameters = cosmology_parameters,
-                      unit_base = {'length': (60.0, "Mpccm/h")},
-                      n_ref = 64)
-        ds = utils.data_dir_load(gasoline_dmonly, TipsyDataset, (), kwargs)
-        assert_equal(str(ds), "agora_1e11.00400")
         dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
         dd = ds.all_data()
         assert_equal(dd["Coordinates"].shape, (10550576, 3))
@@ -194,7 +176,7 @@ class TestTipsy(fw.AnswerTest):
     #-----
     @requires_file(gasoline_dmonly)
     @requires_file(pkdgrav)
-    def test_TipsyDataset(self):
+    def test_TipsyDataset(self, ds_gasoline_dmonly, ds_pkdgrav):
         """
         Parameters:
         -----------
@@ -208,5 +190,5 @@ class TestTipsy(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(pkdgrav), TipsyDataset)
-        assert isinstance(utils.data_dir_load(gasoline_dmonly), TipsyDataset)
+        assert isinstance(ds_pkdgrav, TipsyDataset)
+        assert isinstance(ds_gasoline_dmonly, TipsyDataset)
