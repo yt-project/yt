@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+import pytest
+
 from yt.testing import \
     assert_allclose_units, \
     assert_equal, \
@@ -15,9 +17,8 @@ from yt.testing import \
 from yt.frontends.athena.api import AthenaDataset
 from yt.convenience import load
 import yt.units as u
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
@@ -63,7 +64,7 @@ class TestAthena(fw.AnswerTest):
     # test_cloud
     #-----
     @utils.requires_ds(cloud)
-    def test_cloud(self):
+    def test_cloud(self, ds_cloud):
         """
         Parameters:
         -----------
@@ -77,7 +78,7 @@ class TestAthena(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(cloud)
+        ds = ds_cloud
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -107,7 +108,7 @@ class TestAthena(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(blast)
+        ds = utils.data_dir_load(blast) 
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -219,7 +220,7 @@ class TestAthena(fw.AnswerTest):
     # test_AthenaDataset
     #-----
     @requires_file(cloud)
-    def test_AthenaDataset(self):
+    def test_AthenaDataset(self, ds_cloud):
         """
         Parameters:
         -----------
@@ -233,4 +234,4 @@ class TestAthena(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(cloud), AthenaDataset)
+        assert isinstance(ds_cloud, AthenaDataset)
