@@ -2,10 +2,10 @@
 Title: test_gadget.py
 Purpose: Gadget frontend tests
 Notes:
-Copyright (c) 2015, yt Development Team.
-Distributed under the terms of the Modified BSD License.
-The full license is in the file COPYING.txt, distributed with this
-software.
+    Copyright (c) 2015, yt Development Team.
+    Distributed under the terms of the Modified BSD License.
+    The full license is in the file COPYING.txt, distributed with this
+    software.
 """
 from collections import OrderedDict
 from itertools import product
@@ -19,14 +19,12 @@ import yt
 from yt.testing import requires_file
 from yt.frontends.gadget.api import GadgetHDF5Dataset, GadgetDataset
 from yt.frontends.gadget.testing import fake_gadget_binary
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
-isothermal_bin = "IsothermalCollapse/snap_505"
 BE_Gadget = "BigEndianGadgetBinary/BigEndianGadgetBinary"
 LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
@@ -97,7 +95,7 @@ class TestGadget(fw.AnswerTest):
     # test_gadget_hdf5
     #-----
     @requires_file(isothermal_h5)
-    def test_gadget_hdf5(self):
+    def test_gadget_hdf5(self, ds_isothermal_h5):
         """
         Parameters:
         -----------
@@ -111,8 +109,7 @@ class TestGadget(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(isothermal_h5, kwargs=iso_kwargs),
-                          GadgetHDF5Dataset)
+        assert isinstance(ds_isothermal_h5, GadgetHDF5Dataset)
 
     #-----
     # test_non_cosmo_dataset
@@ -144,7 +141,7 @@ class TestGadget(fw.AnswerTest):
     # test_iso_collapse
     #-----
     @utils.requires_ds(isothermal_h5)
-    def test_iso_collapse(self):
+    def test_iso_collapse(self, ds_isothermal_h5):
         """
         Parameters:
         -----------
@@ -158,8 +155,7 @@ class TestGadget(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(isothermal_h5, kwargs=iso_kwargs)
-        hashes = self.sph_answer(ds, 'snap_505', 2**17, iso_fields)
+        hashes = self.sph_answer(ds_isothermal_h5, 'snap_505', 2**17, iso_fields)
         utils.handle_hashes(self.save_dir, 'gadget-test-iso-collapse', hashes, self.answer_store)
 
     #-----
