@@ -37,9 +37,8 @@ from yt.utilities.exceptions import \
     YTIntDomainOverflow
 import yt.utilities.flagging_methods as fm
 import yt.utilities.initial_conditions as ic
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Globals
