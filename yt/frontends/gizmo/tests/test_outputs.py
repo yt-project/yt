@@ -14,14 +14,10 @@ import pytest
 import yt
 from yt.testing import \
     requires_file
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    sph_answer
 from yt.frontends.gizmo.api import GizmoDataset
 from yt.frontends.gizmo.fields import metal_elements
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
@@ -43,7 +39,6 @@ fields = OrderedDict(
         (("deposit", "PartType0_density"), None),
     ]
 )
-gmhd_bbox = [[-400, 400]] * 3
 
 
 #============================================
@@ -91,7 +86,7 @@ class TestGizmo(fw.AnswerTest):
     # test_gizmo_mhd
     #-----
     @requires_file(gmhd)
-    def test_gizmo_mhd(self):
+    def test_gizmo_mhd(self, ds_gmhd):
         """
         Magnetic fields should be loaded correctly when they are present.
 
@@ -107,7 +102,7 @@ class TestGizmo(fw.AnswerTest):
         --------
             pass
         """
-        ds = yt.load(gmhd, bounding_box=gmhd_bbox, unit_system='code')
+        ds = ds_gmhd
         ad = ds.all_data()
         ptype = 'PartType0'
         # Test vector magnetic field
@@ -125,7 +120,7 @@ class TestGizmo(fw.AnswerTest):
     # test_gas_particle_fields
     #-----
     @requires_file(gmhd)
-    def test_gas_particle_fields(self):
+    def test_gas_particle_fields(self, ds_gmhd):
         """
         Test fields set up in GizmoFieldInfo.setup_gas_particle_fields.
 
@@ -141,7 +136,7 @@ class TestGizmo(fw.AnswerTest):
         --------
             pass
         """
-        ds = yt.load(gmhd, bounding_box=gmhd_bbox)
+        ds = ds_gmhd
         ptype = "PartType0"
         derived_fields = []
         # Add species fields
@@ -170,7 +165,7 @@ class TestGizmo(fw.AnswerTest):
     # test_star_particle_fields
     #-----
     @requires_file(gmhd)
-    def test_star_particle_fields(self):
+    def test_star_particle_fields(self, ds_gmhd):
         """
         Test fields set up in GizmoFieldInfo.setup_star_particle_fields.
 
@@ -186,7 +181,7 @@ class TestGizmo(fw.AnswerTest):
         --------
             pass
         """
-        ds = yt.load(gmhd, bounding_box=gmhd_bbox)
+        ds = ds_gmhd
         ptype = "PartType4"
         derived_fields =[
             "creation_time",
