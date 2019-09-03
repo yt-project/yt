@@ -16,9 +16,8 @@ from yt.testing import \
     units_override_check
 from yt.units.yt_array import \
     YTQuantity
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
@@ -47,7 +46,7 @@ class TestArt(fw.AnswerTest):
         reason="Skipping test_jet because --answer-big-data was not set."
     )
     @utils.requires_ds(d9p)
-    def test_d9p(self):
+    def test_d9p(self, ds_d9p):
         """
         Parameters:
         -----------
@@ -69,9 +68,8 @@ class TestArt(fw.AnswerTest):
         )
         ppv_hd = b''
         fv_hd = b''
-        ds = utils.data_dir_load(d9p)
+        ds = ds_d9p
         ds.index
-        assert_equal(str(ds), "10MpcBox_HartGal_csf_a0.500.d")
         dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
         for field in fields:
             for axis in [0, 1, 2]:
@@ -141,7 +139,7 @@ class TestArt(fw.AnswerTest):
     # test_ARTDataset
     #-----
     @requires_file(d9p)
-    def test_ARTDataset(self):
+    def test_ARTDataset(self, ds_d9p):
         """
         Parameters:
         -----------
@@ -155,13 +153,13 @@ class TestArt(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(d9p), ARTDataset)
+        assert isinstance(ds_d9p, ARTDataset)
 
     #-----
     # test_units_override
     #-----
     @requires_file(d9p)
-    def test_units_override(self):
+    def test_units_override(self, ds_d9p):
         """
         Parameters:
         -----------
@@ -175,4 +173,4 @@ class TestArt(fw.AnswerTest):
         --------
             pass
         """
-        units_override_check(d9p)
+        units_override_check(ds_d9p, d9p)
