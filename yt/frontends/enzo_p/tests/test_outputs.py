@@ -16,9 +16,8 @@ from yt.testing import \
     requires_file, \
     assert_array_equal
 from yt.frontends.enzo_p.api import EnzoPDataset
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
@@ -53,7 +52,7 @@ class TestEnzoP(fw.AnswerTest):
     # test_EnzoDataset
     #-----
     @requires_file(hello_world)
-    def test_EnzoPDataset(self):
+    def test_EnzoPDataset(self, ds_hello_world):
         """
         Parameters:
         -----------
@@ -67,7 +66,7 @@ class TestEnzoP(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(hello_world), EnzoPDataset)
+        assert isinstance(ds_hello_world, EnzoPDataset)
 
     #-----
     # test_hello_world
@@ -86,10 +85,10 @@ class TestEnzoP(fw.AnswerTest):
             pass
         """
     @utils.requires_ds(hello_world)
-    def test_hello_world(self):
+    def test_hello_world(self, ds_hello_world):
         ppv_hd = b''
         fv_hd = b''
-        ds = utils.data_dir_load(hello_world)
+        ds = ds_hello_world
         dso = [ None, ("sphere", ("max", (0.25, 'unitary')))]
         for dobj_name in dso:
             for field in _fields:
@@ -112,7 +111,7 @@ class TestEnzoP(fw.AnswerTest):
     # test_particle_fields
     #-----
     @utils.requires_ds(ep_cosmo)
-    def test_particle_fields(self):
+    def test_particle_fields(self, ds_ep_cosmo):
         """
         Parameters:
         -----------
@@ -127,7 +126,7 @@ class TestEnzoP(fw.AnswerTest):
             pass
         """
         fv_hd = b''
-        ds = utils.data_dir_load(ep_cosmo)
+        ds = ds_ep_cosmo
         dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
         for dobj_name in dso:
             for field in _pfields:
@@ -144,7 +143,7 @@ class TestEnzoP(fw.AnswerTest):
     # test_hierarchy
     #-----
     @requires_file(hello_world)
-    def test_hierarchy(self):
+    def test_hierarchy(self, ds_hello_world):
         """
         Parameters:
         -----------
@@ -158,7 +157,7 @@ class TestEnzoP(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(hello_world)
+        ds = ds_hello_world
         fh = h5py.File(ds.index.grids[0].filename, "r")
         for grid in ds.index.grids:
             assert_array_equal(
@@ -177,7 +176,7 @@ class TestEnzoP(fw.AnswerTest):
     # test_critical_density
     #-----
     @requires_file(ep_cosmo)
-    def test_critical_density(self):
+    def test_critical_density(self, ds_ep_cosmo):
         """
         Parameters:
         -----------
@@ -191,7 +190,7 @@ class TestEnzoP(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(ep_cosmo)
+        ds = ds_ep_cosmo
         c1 = (ds.r["dark", "particle_mass"].sum() +
               ds.r["gas", "cell_mass"].sum()) / \
               ds.domain_width.prod() / ds.critical_density
