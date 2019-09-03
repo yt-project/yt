@@ -14,9 +14,8 @@ import pytest
 from yt.testing import requires_file
 from yt.frontends.owls.api import OWLSDataset
 from yt.data_objects.particle_filters import add_particle_filter
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
@@ -63,7 +62,7 @@ class TestOwls(fw.AnswerTest):
         reason="Skipping test_jet because --answer-big-data was not set."
     )
     @utils.requires_ds(os33)
-    def test_snapshot_033(self):
+    def test_snapshot_033(self, ds_os33):
         """
         Parameters:
         -----------
@@ -77,15 +76,14 @@ class TestOwls(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(os33)
-        hashes = self.sph_answer(ds, 'snap_033', 2*128**3, _fields)
+        hashes = self.sph_answer(ds_os33, 'snap_033', 2*128**3, _fields)
         utils.handle_hashes(self.save_dir, 'owls-test-snapshot-033', hashes, self.answer_store)
 
     #-----
     # test_OWLSDataset
     #-----
     @requires_file(os33)
-    def test_OWLSDataset(self):
+    def test_OWLSDataset(self, ds_os33):
         """
         Parameters:
         -----------
@@ -99,13 +97,13 @@ class TestOwls(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(os33), OWLSDataset)
+        assert isinstance(ds_os33, OWLSDataset)
     
     #-----
     # test_OWLS_particlefilter
     #----- 
     @utils.requires_ds(os33)
-    def test_OWLS_particlefilter(self):
+    def test_OWLS_particlefilter(self, ds_os33):
         """
         Parameters:
         -----------
@@ -119,7 +117,7 @@ class TestOwls(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(os33)
+        ds = ds_os33
         ad = ds.all_data()
         def cold_gas(pfilter, data):
             temperature = data[pfilter.filtered_type, "Temperature"]
