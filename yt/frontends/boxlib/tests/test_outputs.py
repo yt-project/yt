@@ -20,8 +20,8 @@ from yt.frontends.boxlib.api import \
     CastroDataset, \
     MaestroDataset
 
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
@@ -96,7 +96,7 @@ class TestBoxLib(fw.AnswerTest):
     # test_radtube
     #-----
     @utils.requires_ds(rt)
-    def test_radtube(self):
+    def test_radtube(self, ds_rt):
         """
         Parameters:
         -----------
@@ -110,8 +110,7 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(rt)
-        assert_equal(str(ds), "plt00500")
+        ds = ds_rt
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -126,7 +125,7 @@ class TestBoxLib(fw.AnswerTest):
     # test_star
     #-----
     @utils.requires_ds(star)
-    def test_star(self):
+    def test_star(self, ds_star):
         """
         Parameters:
         -----------
@@ -140,8 +139,7 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(star)
-        assert_equal(str(ds), "plrd01000")
+        ds = ds_star
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -156,7 +154,7 @@ class TestBoxLib(fw.AnswerTest):
     # test_LyA
     #-----
     @utils.requires_ds(LyA)
-    def test_LyA(self):
+    def test_LyA(self, ds_LyA):
         """
         Parameters:
         -----------
@@ -170,8 +168,7 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(LyA)
-        assert_equal(str(ds), "plt00000")
+        ds = ds_LyA
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "c"
@@ -186,7 +183,7 @@ class TestBoxLib(fw.AnswerTest):
     # test_nyx_particle_io
     #-----
     @requires_file(LyA)
-    def test_nyx_particle_io(self):
+    def test_nyx_particle_io(self, ds_LyA):
         """
         Parameters:
         -----------
@@ -200,7 +197,7 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(LyA)
+        ds = ds_LyA
         grid = ds.index.grids[0]
         npart_grid_0 = 7908  # read directly from the header
         assert_equal(grid['particle_position_x'].size, npart_grid_0)
@@ -227,7 +224,7 @@ class TestBoxLib(fw.AnswerTest):
     # test_RT_particles
     #-----
     @utils.requires_ds(RT_particles)
-    def test_RT_particles(self):
+    def test_RT_particles(self, ds_RT_particles):
         """
         Parameters:
         -----------
@@ -241,8 +238,7 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(RT_particles)
-        assert_equal(str(ds), "plt00050")
+        ds = ds_RT_particles
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -257,7 +253,7 @@ class TestBoxLib(fw.AnswerTest):
     # test_castro_particle_io
     #-----
     @requires_file(RT_particles)
-    def test_castro_particle_io(self):
+    def test_castro_particle_io(self, ds_RT_particles):
         """
         Parameters:
         -----------
@@ -271,7 +267,7 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(RT_particles)
+        ds = ds_RT_particles
         grid = ds.index.grids[2]
         npart_grid_2 = 49  # read directly from the header
         assert_equal(grid['particle_position_x'].size, npart_grid_2)
@@ -325,7 +321,7 @@ class TestBoxLib(fw.AnswerTest):
     # test_plasma
     #-----
     @utils.requires_ds(plasma)
-    def test_plasma(self):
+    def test_plasma(self, ds_plasma):
         """
         Parameters:
         -----------
@@ -339,8 +335,7 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(plasma)
-        assert_equal(str(ds), "plt00030_v2")
+        ds = ds_plasma
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "c"
@@ -385,7 +380,7 @@ class TestBoxLib(fw.AnswerTest):
     # test_warpx_particle_io
     #-----
     @requires_file(plasma)
-    def test_warpx_particle_io(self):
+    def test_warpx_particle_io(self, ds_plasma):
         """
         Parameters:
         -----------
@@ -399,7 +394,7 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(plasma)
+        ds = ds_plasma
         grid = ds.index.grids[0]
         # read directly from the header
         npart0_grid_0 = 344  
@@ -456,7 +451,7 @@ class TestBoxLib(fw.AnswerTest):
     # test_OrionDataset
     #-----
     @requires_file(rt)
-    def test_OrionDataset(self):
+    def test_OrionDataset(self, ds_rt):
         """
         Parameters:
         -----------
@@ -470,13 +465,13 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(rt), OrionDataset)
+        assert isinstance(ds_rt, OrionDataset)
 
     #-----
     # teset_NyxDataset
     #-----
     @requires_file(LyA)
-    def test_NyxDataset(self):
+    def test_NyxDataset(self, ds_LyA):
         """
         Parameters:
         -----------
@@ -490,13 +485,13 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(LyA), NyxDataset)
+        assert isinstance(ds_LyA, NyxDataset)
 
     #-----
     # test_CastroDataset
     #-----
     @requires_file(RT_particles)
-    def test_CastroDataset(self):
+    def test_CastroDataset(self, ds_RT_particles):
         """
         Parameters:
         -----------
@@ -510,13 +505,13 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(RT_particles), CastroDataset)
+        assert isinstance(ds_RT_particles, CastroDataset)
 
     #-----
     # test_WarpXDataset
     #-----
     @requires_file(plasma)
-    def test_WarpXDataset(self):
+    def test_WarpXDataset(self, ds_plasma):
         """
         Parameters:
         -----------
@@ -530,13 +525,13 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(plasma), WarpXDataset)
+        assert isinstance(ds_plasma, WarpXDataset)
 
     #-----
     # test_units_override
     #-----
     @requires_file(rt)
-    def test_units_override(self):
+    def test_units_override(self, ds_rt):
         """
         Parameters:
         -----------
@@ -550,7 +545,7 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        units_override_check(rt)
+        units_override_check(ds_rt, rt)
 
     #-----
     # test_nyx_no_part
@@ -570,7 +565,8 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(nyx_no_particles), NyxDataset)
+        ds = utils.data_dir_load(nyx_no_particles)
+        assert isinstance(ds, NyxDataset)
         fields = sorted(
             [('boxlib', 'H'), ('boxlib', 'He'), ('boxlib', 'MachNumber'),
              ('boxlib', 'Ne'), ('boxlib', 'Rank'), ('boxlib', 'StateErr'),
@@ -584,7 +580,6 @@ class TestBoxLib(fw.AnswerTest):
              ('boxlib', 'soundspeed'), ('boxlib', 'x_velocity'), ('boxlib', 'xmom'),
              ('boxlib', 'y_velocity'), ('boxlib', 'ymom'), ('boxlib', 'z_velocity'),
              ('boxlib', 'zmom')])
-        ds = utils.data_dir_load(nyx_no_particles)
         assert_equal(sorted(ds.field_list), fields)
 
     #-----
@@ -605,8 +600,8 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(msubch), MaestroDataset)
         ds = utils.data_dir_load(msubch)
+        assert isinstance(ds, MaestroDataset)
         # Check a string parameter
         assert(ds.parameters['plot_base_name']=="subCh_hot_baserun_plt")
         assert(type(ds.parameters['plot_base_name']) is str)
