@@ -43,6 +43,8 @@ _fields = OrderedDict(
 #============================================
 #                 TestOwls
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestOwls(fw.AnswerTest):
     """
     Container for the owls frontend answer tests.

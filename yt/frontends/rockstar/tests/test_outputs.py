@@ -9,6 +9,8 @@ Notes:
 """
 import os.path
 
+import pytest
+
 from yt.testing import \
     assert_equal, \
     requires_file
@@ -30,6 +32,8 @@ _fields = ("particle_position_x", "particle_position_y",
 #============================================
 #               TestRockstar
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestRockstar(fw.AnswerTest):
     """
     Container for rockstar frontend answer tests.

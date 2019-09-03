@@ -49,6 +49,8 @@ enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
 #============================================
 #                TestYTData
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir')
 class TestYTData(fw.AnswerTest):
     """

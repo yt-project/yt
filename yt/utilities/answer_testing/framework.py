@@ -27,7 +27,7 @@ import utils
 #============================================
 #                 AnswerTest
 #============================================
-@pytest.mark.usefixtures("cli_testing_opts", "answer_store_dir")
+@pytest.mark.usefixtures("cli_testing_opts")
 class AnswerTest():
     """
     Contains the various answer tests.

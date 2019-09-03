@@ -31,6 +31,8 @@ dens_turb_mag = 'DensTurbMag/DensTurbMag_hdf5_plt_cnt_0015'
 #============================================
 #                 TestFlash
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestFlash(fw.AnswerTest):
     """
     Container for flash frontend answer tests.

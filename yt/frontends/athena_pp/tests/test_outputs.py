@@ -8,6 +8,7 @@ Notes:
     software.
 """
 import numpy as np
+import pytest
 
 from yt.convenience import load
 from yt.frontends.athena_pp.api import AthenaPPDataset
@@ -27,6 +28,8 @@ AM06 = "AM06/AM06.out1.00400.athdf"
 #============================================
 #                TestAthenaPP
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestAthenaPP(fw.AnswerTest):
     """
     Container for athena++ frontent tests.

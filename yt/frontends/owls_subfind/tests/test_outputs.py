@@ -9,11 +9,12 @@ Notes:
 """
 import os.path
 
+import pytest
+
 from yt.frontends.owls_subfind.api import OWLSSubfindDataset
 from yt.testing import \
     assert_equal, \
     requires_file
-
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 
@@ -25,6 +26,8 @@ g8 = "owls_fof_halos/groups_008/group_008.0.hdf5"
 #============================================
 #              TestOwlsSubfind
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestOwlsSubfind(fw.AnswerTest):
     """
     Container for Owls subfind answer tests.

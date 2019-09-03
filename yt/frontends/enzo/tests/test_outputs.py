@@ -40,6 +40,8 @@ p3mini = "PopIII_mini/DD0034/DD0034"
 #============================================
 #                 TestEnzo
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestEnzo(fw.AnswerTest):
     """
     Container for Enzo answer tests.

@@ -45,6 +45,8 @@ tg_fields = OrderedDict(
 #============================================
 #                 TestTipsy
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestTipsy(fw.AnswerTest):
     """
     Container for tipsy frontend answer tests.

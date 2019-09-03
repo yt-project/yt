@@ -8,6 +8,7 @@ Notes:
     software.
 """
 import numpy as np
+import pytest
 
 from yt.frontends.gadget_fof.api import GadgetFOFDataset
 from yt.testing import \
@@ -28,6 +29,8 @@ g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"
 #============================================
 #               TestGadgetFOF
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestGadgetFOF(fw.AnswerTest):
     """
     Container for gadget fof frontend tests.

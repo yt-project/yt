@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+import pytest
+
 from yt.convenience import load
 from yt.frontends.artio.api import ARTIODataset
 from yt.testing import \
@@ -26,6 +28,8 @@ sizmbhloz += "sizmbhloz-clref04SNth-rs9_a0.9011.art"
 #============================================
 #                 TestArtIo
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestArtIo(fw.AnswerTest):
     """
     Container for ARTIO answer tests.

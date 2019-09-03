@@ -7,6 +7,7 @@ Purpose: Enzo-P frontend tests
     software.
 """
 import numpy as np
+import pytest
 
 from yt.utilities.on_demand_imports import \
     _h5py as h5py
@@ -36,6 +37,8 @@ _pfields = ("particle_position_x", "particle_position_y",
 #============================================
 #                TestEnzoP
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestEnzoP(fw.AnswerTest):
     """
     Container for enzo_p frontend answer tests.

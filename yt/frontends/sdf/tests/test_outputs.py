@@ -10,6 +10,7 @@ Notes:
 import socket
 
 import numpy as np
+import pytest
 
 from yt.extern.six.moves import urllib
 from yt.frontends.sdf.api import SDFDataset
@@ -17,9 +18,8 @@ from yt.testing import \
     assert_equal, \
     requires_module
 from yt.visualization.api import ProjectionPlot
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 _fields = (('deposit', 'all_cic'))
 scivis_data = "http://darksky.slac.stanford.edu/scivis2015/data/ds14_scivis_0128/ds14_scivis_0128_e4_dt04_1.0000"
@@ -58,6 +58,8 @@ def internet_on():
 #============================================
 #                  TestSDF
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestSDF(fw.AnswerTest):
     """
     Container for SDF frontend answer tests.

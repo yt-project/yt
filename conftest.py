@@ -33,6 +33,16 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
     )
+    parser.addoption(
+        "--with-answer-testing",
+        action="store_true",
+        default=False,
+    )
+    parser.addoption(
+        "--with-unit-testing",
+        action="store_true",
+        default=False,
+    )
 
 
 #============================================
@@ -50,6 +60,8 @@ def cli_testing_opts(request):
     # self.answer_store from the class using this fixture
     if request.cls is not None:
         request.cls.answer_store = request.config.getoption("--answer-store")
+        test_dir = ytcfg.get('yt', 'test_data_dir')
+        request.cls.save_dir = os.path.join(test_dir, 'answers')
 
 
 #============================================
@@ -70,17 +82,3 @@ def temp_dir():
     os.chdir(curdir)
     if tmpdir != curdir:
         shutil.rmtree(tmpdir)
-
-
-#============================================
-#              answer_store_dir
-#============================================
-@pytest.fixture(scope='class')
-def answer_store_dir(request):
-    """
-    Retrieves the directory where the results of answer tests should be
-    saved.
-    """
-    if request.cls is not None:
-        test_dir = ytcfg.get('yt', 'test_data_dir')
-        request.cls.save_dir = os.path.join(test_dir, 'answers')

@@ -9,6 +9,8 @@ Notes:
 """
 import os.path
 
+import pytest
+
 from yt.frontends.ahf.api import AHFHalosDataset
 from yt.testing import \
     assert_equal, \
@@ -24,6 +26,8 @@ ahf_halos = 'ahf_halos/snap_N64L16_135.parameter'
 #============================================
 #                   TestAHF
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestAHF(fw.AnswerTest):
     """
     Container for AHF frontend answer tests.

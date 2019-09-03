@@ -6,6 +6,8 @@ Purpose: Exodus II frontend tests
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+import pytest
+
 from yt.testing import \
     assert_array_equal, \
     assert_equal, \
@@ -23,6 +25,8 @@ big_data = "MOOSE_sample_data/mps_out.e"
 #============================================
 #               TestExodusII
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestExodusII(fw.AnswerTest):
     """
     Container for exodus ii frontend answer tests.

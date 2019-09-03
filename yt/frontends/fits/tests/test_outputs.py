@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+import pytest
+
 from yt.testing import \
     assert_equal, \
     requires_file, \
@@ -36,6 +38,8 @@ _fields_A2052 = ("flux",)
 #============================================
 #                 TestFits
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason=("--with-answer-testing not set.")
 class TestFits(fw.AnswerTest):
     """
     Container for fits frontend answer tests.

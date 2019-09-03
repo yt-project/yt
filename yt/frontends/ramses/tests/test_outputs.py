@@ -10,6 +10,7 @@ Notes:
 import os
 
 import numpy as np
+import pytest
 
 import yt
 from yt.config import ytcfg
@@ -36,6 +37,8 @@ ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
 #============================================
 #                TestRamses
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestRamses(fw.AnswerTest):
     """
     Container for Ramses frontend answer tests.

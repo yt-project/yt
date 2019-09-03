@@ -8,6 +8,7 @@ Notes:
     software.
 """
 import numpy as np
+import pytest
 
 from yt.convenience import load
 from yt.frontends.open_pmd.data_structures import OpenPMDDataset
@@ -30,6 +31,8 @@ groupBased = "singleParticle/simData.h5"
 #============================================
 #                TestOpenPMD
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestOpenPMD(fw.AnswerTest):
     """
     Container for open_pmd answer tests.

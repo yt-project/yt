@@ -36,6 +36,8 @@ jet_units   = {"length_unit":(1.0,"kpc"),
 #============================================
 #                 TestGamer
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestGamer(fw.AnswerTest):
     """
     Container for gamer frontend answer tests.

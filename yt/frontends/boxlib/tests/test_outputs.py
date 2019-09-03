@@ -8,6 +8,7 @@ Notes:
     software.
 """
 import numpy as np
+import pytest
 
 from yt.testing import \
     assert_equal, \
@@ -50,6 +51,8 @@ _raw_fields = [('raw', 'Bx'), ('raw', 'Ey'), ('raw', 'jz')]
 #============================================
 #                TestBoxLib
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestBoxLib(fw.AnswerTest):
     """
     Container for boxlib frontend answer tests.

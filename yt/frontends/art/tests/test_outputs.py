@@ -27,6 +27,8 @@ d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 #============================================
 #                   TestArt
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestArt(fw.AnswerTest):
     """
     Container for art frontend answer tests.

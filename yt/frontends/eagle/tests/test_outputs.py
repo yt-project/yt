@@ -6,6 +6,8 @@ Purpose: Eagle frontend tests using the snapshot_028_z000p000 dataset
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+import pytest
+
 from yt.testing import requires_file
 from yt.frontends.eagle.api import EagleDataset
 import yt.utilities.answer_testing.framework as fw
@@ -20,6 +22,8 @@ s399 = "snipshot_399_z000p000/snip_399_z000p000.0.hdf5"
 #============================================
 #                 TestEagle
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestEagle(fw.AnswerTest):
     """
     Container for eagle frontend answer tests.

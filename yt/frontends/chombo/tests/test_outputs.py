@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+import pytest
+
 from yt.testing import \
     requires_file, \
     units_override_check
@@ -28,6 +30,8 @@ kho = "KelvinHelmholtz/data.0004.hdf5"
 #============================================
 #                 TestChombo
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestChombo(fw.AnswerTest):
     """
     Container for chombo frontend tests.

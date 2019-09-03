@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+import pytest
+
 from yt.frontends.gdf.api import GDFDataset
 from yt.testing import \
     assert_equal, \
@@ -22,6 +24,8 @@ sedov = "sedov/sedov_tst_0004.h5"
 #============================================
 #                  TestGDF
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestGDF(fw.AnswerTest):
     """
     Conainer for gdf frontend answer tests.

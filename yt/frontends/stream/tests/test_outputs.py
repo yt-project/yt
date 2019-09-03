@@ -51,6 +51,8 @@ OCT_MASK_LIST = [8, 0, 0, 0, 0, 8, 0, 0,
 #============================================
 #               TestStream
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestStream(fw.AnswerTest):
     """
     Container for stream frontend answer tests.

@@ -44,6 +44,8 @@ fields = OrderedDict(
 #============================================
 #                TestGizmo
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestGizmo(fw.AnswerTest):
     """
     Container for gizmo frontend answer tests.

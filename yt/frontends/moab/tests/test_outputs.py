@@ -8,6 +8,7 @@ Notes:
     software.
 """
 import numpy as np
+import pytest
 
 from yt.testing import \
     assert_equal, \
@@ -31,6 +32,8 @@ _fields = (("moab", "flux"),
 #============================================
 #                  TestMoab
 #============================================
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
 class TestMoab(fw.AnswerTest):
     """
     Container for moab frontend answer tests.
