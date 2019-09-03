@@ -15,9 +15,8 @@ from yt.testing import \
     requires_file, \
     units_override_check
 from yt.frontends.moab.api import MoabHex8Dataset
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
@@ -48,7 +47,7 @@ class TestMoab(fw.AnswerTest):
     # test_cantor_5
     #-----
     @utils.requires_ds(c5)
-    def test_cantor_5(self):
+    def test_cantor_5(self, ds_c5):
         """
         Parameters:
         -----------
@@ -62,10 +61,9 @@ class TestMoab(fw.AnswerTest):
         --------
             pass
         """
+        ds = ds_c5
         fv_hd = b''
         np.random.seed(0x4d3d3d3)
-        ds = utils.data_dir_load(c5)
-        assert_equal(str(ds), "c5")
         dso = [ None, ("sphere", ("c", (0.1, 'unitary'))),
                       ("sphere", ("c", (0.2, 'unitary')))]
         dd = ds.all_data()
@@ -95,7 +93,7 @@ class TestMoab(fw.AnswerTest):
     # test_MoabHex8Dataset
     #-----
     @requires_file(c5)
-    def test_MoabHex8Dataset(self):
+    def test_MoabHex8Dataset(self, ds_c5):
         """
         Parameters:
         -----------
@@ -109,13 +107,13 @@ class TestMoab(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(c5), MoabHex8Dataset)
+        assert isinstance(ds_c5, MoabHex8Dataset)
 
     #-----
     # test_units_override
     #-----
     @requires_file(c5)
-    def test_units_override(self):
+    def test_units_override(self, ds_c5):
         """
         Parameters:
         -----------
@@ -129,4 +127,4 @@ class TestMoab(fw.AnswerTest):
         --------
             pass
         """
-        units_override_check(c5)
+        units_override_check(ds_c5, c5)
