@@ -8,9 +8,8 @@ Purpose: Eagle frontend tests using the snapshot_028_z000p000 dataset
 """
 from yt.testing import requires_file
 from yt.frontends.eagle.api import EagleDataset
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
