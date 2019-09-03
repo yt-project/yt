@@ -46,7 +46,7 @@ class TestRockstar(fw.AnswerTest):
     # test_fields_r1
     #-----
     @utils.requires_ds(r1)
-    def test_fields_r1(self):
+    def test_fields_r1(self, ds_r1):
         """
         Parameters:
         -----------
@@ -61,10 +61,8 @@ class TestRockstar(fw.AnswerTest):
             pass
         """
         fv_hd = b''
-        ds = utils.data_dir_load(r1)
-        assert_equal(str(ds), os.path.basename(r1))
         for field in _fields:
-            fv_hd += self.field_values_test(ds, field, particle_type=True)
+            fv_hd += self.field_values_test(ds_r1, field, particle_type=True)
         hashes = {'field_values' : utils.generate_hash(fv_hd)}
         utils.handle_hashes(self.save_dir, 'rockstar-test-fields-r1', hashes, self.answer_store)
 
@@ -72,7 +70,7 @@ class TestRockstar(fw.AnswerTest):
     # test_RockstarDataset
     #-----
     @requires_file(r1)
-    def test_RockstarDataset(self):
+    def test_RockstarDataset(self, ds_r1):
         """
         Parameters:
         -----------
@@ -86,4 +84,4 @@ class TestRockstar(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(r1), RockstarDataset)
+        assert isinstance(ds_r1, RockstarDataset)
