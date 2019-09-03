@@ -14,9 +14,8 @@ from yt.testing import \
     requires_file, \
     units_override_check
 from yt.frontends.gamer.api import GAMERDataset
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
@@ -56,7 +55,7 @@ class TestGamer(fw.AnswerTest):
         reason="Skipping test_jet because --answer-big-data was not set."
     )
     @utils.requires_ds(jet)
-    def test_jet(self):
+    def test_jet(self, ds_jet):
         """
         Parameters:
         -----------
@@ -70,8 +69,7 @@ class TestGamer(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(jet, kwargs={"units_override":jet_units})
-        assert_equal(str(ds), "jet_000002")
+        ds = ds_jet
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -89,7 +87,7 @@ class TestGamer(fw.AnswerTest):
         reason="Skipping test_jet because --answer-big-data was not set."
     )
     @utils.requires_ds(psiDM)
-    def test_psiDM(self):
+    def test_psiDM(self, ds_psiDM):
         """
         Parameters:
         -----------
@@ -103,8 +101,7 @@ class TestGamer(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(psiDM)
-        assert_equal(str(ds), "psiDM_000020")
+        ds = ds_psiDM
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -152,7 +149,7 @@ class TestGamer(fw.AnswerTest):
     # test_GAMERDataset
     #-----
     @requires_file(psiDM)
-    def test_GAMERDataset(self):
+    def test_GAMERDataset(self, ds_psiDM):
         """
         Parameters:
         -----------
@@ -166,13 +163,13 @@ class TestGamer(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(psiDM), GAMERDataset)
+        assert isinstance(ds_psiDM, GAMERDataset)
 
     #-----
     # test_units_override
     #-----
     @requires_file(jet)
-    def test_units_override(self):
+    def test_units_override(self, ds_jet):
         """
         Parameters:
         -----------
@@ -186,4 +183,4 @@ class TestGamer(fw.AnswerTest):
         --------
             pass
         """
-        units_override_check(jet)
+        units_override_check(ds_jet, jet)
