@@ -15,9 +15,8 @@ from yt.frontends.fits.data_structures import FITSDataset, \
     SpectralCubeFITSDataset, \
     SkyDataFITSDataset, \
     EventsFITSDataset
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data
@@ -53,7 +52,7 @@ class TestFits(fw.AnswerTest):
     # test_grs
     #-----
     @utils.requires_ds(grs)
-    def test_grs(self):
+    def test_grs(self, ds_grs):
         """
         Parameters:
         -----------
@@ -67,8 +66,7 @@ class TestFits(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(grs, cls=SpectralCubeFITSDataset, kwargs={"nan_mask":0.0})
-        assert_equal(str(ds), "grs-50-cube.fits")
+        ds = ds_grs
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "c"
@@ -83,7 +81,7 @@ class TestFits(fw.AnswerTest):
     # test_velocity_field
     #-----
     @utils.requires_ds(vf)
-    def test_velocity_field(self):
+    def test_velocity_field(self, ds_vf):
         """
         Parameters:
         -----------
@@ -97,8 +95,7 @@ class TestFits(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(vf, cls=FITSDataset)
-        assert_equal(str(ds), "velocity_field_20.fits")
+        ds = ds_vf
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "c"
@@ -113,7 +110,7 @@ class TestFits(fw.AnswerTest):
     # test_acts
     #-----
     @utils.requires_ds(acis)
-    def test_acis(self):
+    def test_acis(self, ds_acis):
         """
         Parameters:
         -----------
@@ -128,7 +125,7 @@ class TestFits(fw.AnswerTest):
             pass
         """
         from yt.frontends.fits.misc import setup_counts_fields
-        ds = utils.data_dir_load(acis, cls=EventsFITSDataset)
+        ds = ds_acis
         ebounds = [(0.1, 2.0), (2.0, 5.0)]
         setup_counts_fields(ds, ebounds)
         assert_equal(str(ds), "acisf05356N003_evt2.fits")
@@ -146,7 +143,7 @@ class TestFits(fw.AnswerTest):
     # test_A2052
     #-----
     @utils.requires_ds(A2052)
-    def test_A2052(self):
+    def test_A2052(self, ds_A2052):
         """
         Parameters:
         -----------
@@ -160,8 +157,7 @@ class TestFits(fw.AnswerTest):
         --------
             pass
         """
-        ds = utils.data_dir_load(A2052, cls=SkyDataFITSDataset)
-        assert_equal(str(ds), "A2052_merged_0.3-2_match-core_tmap_bgecorr.fits")
+        ds = ds_A2052
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "c"
@@ -176,7 +172,7 @@ class TestFits(fw.AnswerTest):
     # test_units_override
     #-----
     @requires_file(vf)
-    def test_units_override(self):
+    def test_units_override(self, ds_vf):
         """
         Parameters:
         -----------
@@ -190,13 +186,13 @@ class TestFits(fw.AnswerTest):
         --------
             pass
         """
-        units_override_check(vf)
+        units_override_check(ds_vf, vf)
 
     #-----
     # test_FITSDataset
     #-----
     @requires_file(vf)
-    def test_FITSDataset(self):
+    def test_FITSDataset(self, ds_vf):
         """
         Parameters:
         -----------
@@ -210,13 +206,13 @@ class TestFits(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(vf), FITSDataset)
+        assert isinstance(ds_vf, FITSDataset)
 
     #-----
     # test_SpectralCubeFITSDataset
     #-----
     @requires_file(grs)
-    def test_SpectralCubeFITSDataset(self):
+    def test_SpectralCubeFITSDataset(self, ds_grs):
         """
         Parameters:
         -----------
@@ -230,13 +226,13 @@ class TestFits(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(grs), SpectralCubeFITSDataset)
+        assert isinstance(ds_grs, SpectralCubeFITSDataset)
 
     #-----
     # test_EventsFITSDataset
     #-----
     @requires_file(acis)
-    def test_EventsFITSDataset(self):
+    def test_EventsFITSDataset(self, ds_acis):
         """
         Parameters:
         -----------
@@ -250,13 +246,13 @@ class TestFits(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(acis), EventsFITSDataset)
+        assert isinstance(ds_acis, EventsFITSDataset)
 
     #-----
     # test_SkyDataFITSDataset
     #-----
     @requires_file(A2052)
-    def test_SkyDataFITSDataset(self):
+    def test_SkyDataFITSDataset(self, ds_A2052):
         """
         Parameters:
         -----------
@@ -270,4 +266,4 @@ class TestFits(fw.AnswerTest):
         --------
             pass
         """
-        assert isinstance(utils.data_dir_load(A2052), SkyDataFITSDataset)
+        assert isinstance(ds_A2052, SkyDataFITSDataset)
