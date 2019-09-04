@@ -225,6 +225,19 @@ def requires_ds(ds_fn, file_check = False):
     else:
         return ftrue
 
+#============================================
+# requires_sim
+#============================================
+def requires_sim(sim_fn, sim_type, file_check = False):
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    elif not can_run_sim(sim_fn, sim_type, file_check):
+        return ffalse
+    else:
+        return ftrue
+
 
 #============================================
 #                create_obj
