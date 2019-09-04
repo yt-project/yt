@@ -65,4 +65,4 @@ class TestXRayFields(fw.AnswerTest):
                 fv_hd += self.field_values_test(ds_fn, field, dobj_name)
         hashes = {'field_values' : utils.generate_hash(fv_hd),
             {'projection_values' : utils.generate_hash(pv_hd)}
-        utils.handle_hashes(self.save_dir, 'xray-sloshing-apec', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, 'xray-d9p-cloudy', hashes, self.answer_store)
