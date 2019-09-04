@@ -653,3 +653,10 @@ class AnswerTest():
         image = mpimg.imread(tmpname)
         os.remove(tmpname)
         return zlib.compress(image.dumps())
+
+    #-----
+    # generic_image_test
+    #-----
+    def generic_image_test(self, ds_fn, image_file):
+        img_data = mpimg.imread(img)
+        return zlib.compress(img_data.dumps())
