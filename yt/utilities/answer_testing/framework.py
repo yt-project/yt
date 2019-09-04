@@ -20,8 +20,7 @@ import numpy as np
 import pytest
 from yt.analysis_modules.halo_analysis.api import HaloCatalog
 from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
-
-import utils
+from . import utils
 
 
 #============================================
