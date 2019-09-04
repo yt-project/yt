@@ -13,10 +13,10 @@ HaloCatalog answer tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 import os
-import shutil
-import tempfile
+
+import numpy as np
+import pytest
 
 from yt.analysis_modules.halo_analysis.api import \
     HaloCatalog, \
@@ -25,32 +25,30 @@ from yt.convenience import \
     load
 from yt.testing import \
     assert_equal
-from yt.utilities.answer_testing.framework import \
-    AnswerTestingTest, \
-    data_dir_load, \
-    requires_ds
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
+
+rh0 = "rockstar_halos/halos_0.0.bin"
+e64 = "Enzo_64/DD0043/data0043"
 
 def _nstars(halo):
     sp = halo.data_object
     return (sp["all", "creation_time"] > 0).sum()
 add_quantity("nstars", _nstars)
 
-class HaloQuantityTest(AnswerTestingTest):
-    _type_name = "HaloQuantity"
-    _attrs = ()
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
+@utils.requires_ds(rh0)
+@utils.requires_ds(e64)
+class TestHaloQuantity(fw.AnswerTest):
+    @pytest.mark.usefixtures('temp_dir')
+    def test_halo_quantity(self):
+        data_ds_fn = e64
+        halos_ds_fn = rh0
+        ds = utils.data_dir_load(data_ds_fn)
 
-    def __init__(self, data_ds_fn, halos_ds_fn):
-        self.data_ds_fn = data_ds_fn
-        self.halos_ds_fn = halos_ds_fn
-        self.ds = data_dir_load(data_ds_fn)
-
-    def run(self):
-        curdir = os.getcwd()
-        tmpdir = tempfile.mkdtemp()
-        os.chdir(tmpdir)
-
-        dds = data_dir_load(self.data_ds_fn)
-        hds = data_dir_load(self.halos_ds_fn)
+        dds = utils.data_dir_load(self.data_ds_fn)
+        hds = utils.data_dir_load(self.halos_ds_fn)
         hc = HaloCatalog(
             data_ds=dds, halos_ds=hds,
             output_dir=os.path.join(tmpdir, str(dds)))
@@ -58,26 +56,10 @@ class HaloQuantityTest(AnswerTestingTest):
         hc.add_quantity("nstars")
         hc.create()
 
-        fn = os.path.join(tmpdir, str(dds),
+        fn = os.path.join(os.getcwd(), str(dds),
                           "%s.0.h5" % str(dds))
         ds = load(fn)
         ad = ds.all_data()
         mi, ma = ad.quantities.extrema("nstars")
         mean = ad.quantities.weighted_average_quantity(
             "nstars", "particle_ones")
-
-        os.chdir(curdir)
-        shutil.rmtree(tmpdir)
-    
-        return np.array([mean, mi, ma])
-
-    def compare(self, new_result, old_result):
-        assert_equal(new_result, old_result, verbose=True)
-
-rh0 = "rockstar_halos/halos_0.0.bin"
-e64 = "Enzo_64/DD0043/data0043"
-
-@requires_ds(rh0)
-@requires_ds(e64)
-def test_halo_quantity():
-    yield HaloQuantityTest(e64, rh0)

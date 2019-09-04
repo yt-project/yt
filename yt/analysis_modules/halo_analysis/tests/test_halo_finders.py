@@ -1,12 +1,13 @@
 import os
 import sys
 
+import pytest
+
 from yt.convenience import load
 from yt.frontends.halo_catalog.data_structures import \
     HaloCatalogDataset
-from yt.utilities.answer_testing.framework import \
-    FieldValuesTest, \
-    requires_ds
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 _fields = (("halos", "particle_position_x"),
            ("halos", "particle_position_y"),
@@ -17,22 +18,30 @@ methods = {"fof": 2, "hop": 2, "rockstar": 3}
 decimals = {"fof": 10, "hop": 10, "rockstar": 1}
 
 e64 = "Enzo_64/DD0043/data0043"
-@requires_ds(e64, big_data=True)
-def test_halo_finders():
-    from mpi4py import MPI
-    filename = os.path.join(os.path.dirname(__file__),
-                            "run_halo_finder.py")
-    for method in methods:
-        comm = MPI.COMM_SELF.Spawn(sys.executable,
-                                   args=[filename, method],
-                                   maxprocs=methods[method])
-        comm.Disconnect()
 
-        fn = os.path.join(os.path.dirname(__file__),
-                          "halo_catalogs", method,
-                          "%s.0.h5" % method)
-        ds = load(fn)
-        assert isinstance(ds, HaloCatalogDataset)
-        for field in _fields:
-            yield FieldValuesTest(ds, field, particle_type=True,
-                                  decimals=decimals[method])
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
+@pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+    reason="--answer-big-data not set.")
+class TestHaloFinders(fw.AnswerTest):
+    @utils.requires_ds(e64)
+    def test_halo_finders(self):
+        from mpi4py import MPI
+        filename = os.path.join(os.path.dirname(__file__),
+                                "run_halo_finder.py")
+        for method in methods:
+            comm = MPI.COMM_SELF.Spawn(sys.executable,
+                                       args=[filename, method],
+                                       maxprocs=methods[method])
+            comm.Disconnect()
+
+            fn = os.path.join(os.path.dirname(__file__),
+                              "halo_catalogs", method,
+                              "%s.0.h5" % method)
+            ds = load(fn)
+            assert isinstance(ds, HaloCatalogDataset)
+            fv_hd = b''
+            for field in _fields:
+                fv_hd += field_values_test(ds, field, particle_type=True)
+            hashes = {'field_values' : utils.generate_hash(fv_hd)}
+            utils.handle_hashes(self.save_dir, 'halo-finders', hashes, self.answer_store)
