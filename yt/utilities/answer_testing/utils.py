@@ -412,3 +412,31 @@ def fake_halo_catalog(data):
         extra_attrs=extra_attrs
     )
     return filename
+
+
+#============================================
+#                 create_plot
+#+===========================================
+def create_plot(self, ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
+    """
+    Parameters:
+    -----------
+        pass
+
+    Raises:
+    -------
+        pass
+
+    Returns:
+    --------
+        pass
+    """
+    # plot_type should be a string
+    # plot_kwargs should be a dict
+    if plot_type is None:
+        raise RuntimeError('Must explicitly request a plot type')
+    cls = getattr(pw, plot_type, None)
+    if cls is None:
+        cls = getattr(particle_plots, plot_type)
+    plot = cls(*(ds, plot_axis, plot_field), **plot_kwargs)
+    return plot

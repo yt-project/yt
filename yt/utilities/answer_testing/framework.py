@@ -14,10 +14,15 @@ Notes:
     to hash them separately.
 """
 from collections import OrderedDict
+import os
 import sys
+import tempfile
+import zlib
 
+import matplotlib.image as mpimg
 import numpy as np
 import pytest
+
 from yt.analysis_modules.halo_analysis.api import HaloCatalog
 from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
 from . import utils
@@ -587,3 +592,34 @@ class AnswerTest():
         else:
             obj = ds.data
         return np.array([obj[field].size, obj[field].mean()]).tostring()
+
+    #-----
+    # plot_window_attribute_test
+    #-----
+    def plot_window_attribute_test(self, ds, plot_field, plot_axis, attr_name,
+        attr_args, decimals, plot_type='SlicePlot', callback_id='',
+        callback_runners=[]):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        plot = utils.create_plot(ds, plot_type, plot_field, plot_axis, {})
+        for r in self.callback_runners:
+            r(plot_field, plot)
+        attr = getattr(plot, attr_name)
+        attr(*attr_args[0], **attr_args[1])
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        plot.save(name=tmpname)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
+        return zlib.compress(image.dumps())
