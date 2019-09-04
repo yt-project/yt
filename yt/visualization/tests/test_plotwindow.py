@@ -25,8 +25,8 @@ from nose.tools import assert_true
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
     assert_array_almost_equal, assert_raises, assert_fname
-from yt.utilities.answer_testing.framework import \
-    requires_ds, data_dir_load, PlotWindowAttributeTest
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 from yt.utilities.exceptions import \
     YTInvalidFieldType
 from yt.visualization.api import \
@@ -137,61 +137,57 @@ PROJECTION_METHODS = (
     'mip'
 )
 
-def simple_contour(test_obj, plot):
-    plot.annotate_contour(test_obj.plot_field)
+def simple_contour(plot_field, plot):
+    plot.annotate_contour(plot_field)
 
-def simple_velocity(test_obj, plot):
+def simple_velocity(plot_field, plot):
     plot.annotate_velocity()
 
-def simple_streamlines(test_obj, plot):
-    ax = test_obj.plot_axis
-    xax = test_obj.ds.coordinates.x_axis[ax]
-    yax = test_obj.ds.coordinates.y_axis[ax]
-    xn = test_obj.ds.coordinates.axis_name[xax]
-    yn = test_obj.ds.coordinates.axis_name[yax]
-    plot.annotate_streamlines("velocity_%s" % xn,
-                              "velocity_%s" % yn)
 
 CALLBACK_TESTS = (
     ("simple_contour", (simple_contour,)),
     ("simple_velocity", (simple_velocity,)),
-    #("simple_streamlines", (simple_streamlines,)),
-    #("simple_all", (simple_contour, simple_velocity, simple_streamlines)),
 )
 
-@requires_ds(M7)
-def test_attributes():
-    """Test plot member functions that aren't callbacks"""
-    plot_field = 'density'
-    decimals = 12
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
+class TestPlotWindowAnswer(fw.AnswerTest):
+    @utils.requires_ds(M7)
+    def test_attributes(self):
+        """Test plot member functions that aren't callbacks"""
+        plot_field = 'density'
+        decimals = 12
+        ds = utils.data_dir_load(M7)
+        pw_hd = b''
+        cb_hd = b''
+        for ax in 'xyz':
+            for attr_name in ATTR_ARGS.keys():
+                for args in ATTR_ARGS[attr_name]:
+                    pw_hd += self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
+                                                   args, decimals)
+                    for n, r in CALLBACK_TESTS:
+                        cb_hd += self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
+                            args, decimals, callback_id=n, callback_runners=r)
+        hashes = {'plot_window' : utils.generate_hash(pw_hd),
+            'callback_plot_window' : utils.generate_hash(cb_hd)}
+        utils.handle_hashes(self.save_dir, 'plot-window-m7', hashes, self.answer_store) 
 
-    ds = data_dir_load(M7)
-    for ax in 'xyz':
+    @utils.requires_ds(WT)
+    def test_attributes_wt(self):
+        plot_field = 'density'
+        decimals = 12
+        ds = utils.data_dir_load(WT)
+        ax = 'z'
         for attr_name in ATTR_ARGS.keys():
             for args in ATTR_ARGS[attr_name]:
-                test = PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
-                                               args, decimals)
-                test_attributes.__name__ = test.description
-                yield test
+                pw_hd += self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
+                                              args, decimals)
                 for n, r in CALLBACK_TESTS:
-                    yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
+                    cb_hd += self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
                         args, decimals, callback_id=n, callback_runners=r)
-
-
-@requires_ds(WT)
-def test_attributes_wt():
-    plot_field = 'density'
-    decimals = 12
-
-    ds = data_dir_load(WT)
-    ax = 'z'
-    for attr_name in ATTR_ARGS.keys():
-        for args in ATTR_ARGS[attr_name]:
-            yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
-                                          args, decimals)
-            for n, r in CALLBACK_TESTS:
-                yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name,
-                    args, decimals, callback_id=n, callback_runners=r)
+        hashes = {'plot_window' : utils.generate_hash(pw_hd),
+            'callback_plot_window' : utils.generate_hash(cb_hd)}
+        utils.handle_hashes(self.save_dir, 'plot-window-wt', hashes, self.answer_store) 
 
 class TestHideAxesColorbar(unittest.TestCase):
 
@@ -511,7 +507,7 @@ def test_set_unit():
 
 WD = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
 
-@requires_ds(WD)
+@utils.requires_ds(WD)
 def test_plot_2d():
     # Cartesian
     ds = fake_random_ds((32,32,1), fields=('temperature',), units=('K',))
@@ -524,7 +520,7 @@ def test_plot_2d():
     assert_array_equal(slc.frb['temperature'], slc2.frb['temperature'])
     assert_array_equal(slc.frb['temperature'], slc3.frb['temperature'])
     # Cylindrical
-    ds = data_dir_load(WD)
+    ds = utils.data_dir_load(WD)
     slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
     slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
     assert_array_equal(slc.frb['density'], slc2.frb['density'])
