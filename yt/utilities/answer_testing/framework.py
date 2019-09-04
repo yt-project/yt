@@ -623,3 +623,33 @@ class AnswerTest():
         image = mpimg.imread(tmpname)
         os.remove(tmpname)
         return zlib.compress(image.dumps())
+
+    #-----
+    # phase_plot_attribute_test
+    #-----
+    def phase_plot_attribute_test(self, ds_fn, x_field, y_field, z_field,
+                 attr_name, attr_args, decimals, plot_type='PhasePlot',
+                 plot_kwargs={}):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        plot = utils.create_plot2(ds_fn, x_field, y_field,
+                                z_field, plot_type, plot_kwargs)
+        attr = getattr(plot, attr_name)
+        attr(*attr_args[0], **attr_args[1])
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        plot.save(name=tmpname)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
+        return zlib.compress(image.dumps())

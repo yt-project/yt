@@ -19,6 +19,8 @@ from yt.units.yt_array import \
     YTQuantity
 from yt.utilities.exceptions import \
     YTOutputNotIdentified
+import yt.visualization.particle_plots as particle_plots
+import yt.visualization.profile_plotter as profile_plotter
 
 
 #============================================
@@ -439,4 +441,20 @@ def create_plot(self, ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
     if cls is None:
         cls = getattr(particle_plots, plot_type)
     plot = cls(*(ds, plot_axis, plot_field), **plot_kwargs)
+    return plot
+
+
+#============================================
+#               create_plot2
+#============================================
+def create_plot(data_source, x_field, y_field, z_field,
+                plot_type, plot_kwargs=None):
+    # plot_type should be a string
+    # plot_kwargs should be a dict
+    if plot_type is None:
+        raise RuntimeError('Must explicitly request a plot type')
+    cls = getattr(profile_plotter, plot_type, None)
+    if cls is None:
+        cls = getattr(particle_plots, plot_type)
+    plot = cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
     return plot
