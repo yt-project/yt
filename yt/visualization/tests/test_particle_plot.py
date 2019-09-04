@@ -18,6 +18,7 @@ import shutil
 import unittest
 
 import numpy as np
+import pytest
 
 from yt.data_objects.profiles import create_profile
 from yt.visualization.tests.test_plotwindow import \
@@ -30,11 +31,8 @@ from yt.testing import \
     requires_file, \
     assert_allclose, \
     assert_fname
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    PlotWindowAttributeTest, \
-    PhasePlotAttributeTest
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 from yt.visualization.api import \
     ParticlePlot, \
     ParticleProjectionPlot, \
@@ -89,88 +87,94 @@ PHASE_FIELDS = [('particle_velocity_x', 'particle_position_z', 'particle_mass'),
 
 
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
+@pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+    reason="--answer-big-data not set.")
+class TestParticlePlotAnswer(fw.AnswerTest):
+    @utils.requires_ds(g30)
+    def test_particle_projection_answers(self):
+        '''
 
-@requires_ds(g30, big_data=True)
-def test_particle_projection_answers():
-    '''
+        This iterates over the all the plot modification functions in 
+        PROJ_ATTR_ARGS. Each time, it compares the images produced by 
+        ParticleProjectionPlot to the gold standard.
+        
 
-    This iterates over the all the plot modification functions in 
-    PROJ_ATTR_ARGS. Each time, it compares the images produced by 
-    ParticleProjectionPlot to the gold standard.
-    
+        '''
 
-    '''
+        plot_field = 'particle_mass'
+        decimals = 12
+        ds = utils.data_dir_load(g30)
+        pw_hd = b''
+        for ax in 'xyz':
+            for attr_name in PROJ_ATTR_ARGS.keys():
+                for args in PROJ_ATTR_ARGS[attr_name]:
+                    pw_hd += self.plot_window_attribute_test(ds, plot_field, ax, 
+                                                   attr_name,
+                                                   args, decimals, 
+                                                   'ParticleProjectionPlot')
+        hashes = {'plot_window' : utils.generate_hash(pw_hd)}
+        utils.handle_hashes(self.save_dir, 'particle-projection-answers', hashes, self.answer_store) 
 
-    plot_field = 'particle_mass'
-    decimals = 12
-    ds = data_dir_load(g30)
-    for ax in 'xyz':
-        for attr_name in PROJ_ATTR_ARGS.keys():
+
+    @utils.requires_ds(g30)
+    def test_particle_projection_filter(self):
+        '''
+
+        This tests particle projection plots for filter fields.
+        
+
+        '''
+
+        def formed_star(pfilter, data):
+            filter = data["all", "creation_time"] > 0
+            return filter
+
+        add_particle_filter("formed_star", function=formed_star, filtered_type='all',
+                            requires=["creation_time"])
+
+        plot_field = ('formed_star', 'particle_mass')
+
+        decimals = 12
+        ds = utils.data_dir_load(g30)
+        ds.add_particle_filter('formed_star')
+        pw_hd = b''
+        for ax in 'xyz':
+            attr_name = "set_log"
             for args in PROJ_ATTR_ARGS[attr_name]:
-                test = PlotWindowAttributeTest(ds, plot_field, ax, 
+                fw_hd += self.plot_window_attribute_test(ds, plot_field, ax,
                                                attr_name,
-                                               args, decimals, 
+                                               args, decimals,
                                                'ParticleProjectionPlot')
-                test_particle_projection_answers.__name__ = test.description
-                yield test
+        hashes = {'plot_window' : utils.generate_hash(pw_hd)}
+        utils.handle_hashes(self.save_dir, 'particle-projection-filter', hashes, self.answer_store) 
 
 
-@requires_ds(g30, big_data=True)
-def test_particle_projection_filter():
-    '''
+    @utils.requires_ds(g30)
+    def test_particle_phase_answers(self):
+        '''
 
-    This tests particle projection plots for filter fields.
-    
+        This iterates over the all the plot modification functions in 
+        PHASE_ATTR_ARGS. Each time, it compares the images produced by 
+        ParticlePhasePlot to the gold standard.
 
-    '''
+        '''
 
-    def formed_star(pfilter, data):
-        filter = data["all", "creation_time"] > 0
-        return filter
+        decimals = 12
+        ds = utils.data_dir_load(g30)
 
-    add_particle_filter("formed_star", function=formed_star, filtered_type='all',
-                        requires=["creation_time"])
-
-    plot_field = ('formed_star', 'particle_mass')
-
-    decimals = 12
-    ds = data_dir_load(g30)
-    ds.add_particle_filter('formed_star')
-    for ax in 'xyz':
-        attr_name = "set_log"
-        for args in PROJ_ATTR_ARGS[attr_name]:
-            test = PlotWindowAttributeTest(ds, plot_field, ax,
-                                           attr_name,
-                                           args, decimals,
-                                           'ParticleProjectionPlot')
-            test_particle_projection_filter.__name__ = test.description
-            yield test
-
-
-@requires_ds(g30, big_data=True)
-def test_particle_phase_answers():
-    '''
-
-    This iterates over the all the plot modification functions in 
-    PHASE_ATTR_ARGS. Each time, it compares the images produced by 
-    ParticlePhasePlot to the gold standard.
-
-    '''
-
-    decimals = 12
-    ds = data_dir_load(g30)
-
-    x_field = 'particle_velocity_x'
-    y_field = 'particle_velocity_y'
-    z_field = 'particle_mass'
-    for attr_name in PHASE_ATTR_ARGS.keys():
-        for args in PHASE_ATTR_ARGS[attr_name]:
-            test = PhasePlotAttributeTest(ds, x_field, y_field, z_field,
-                                          attr_name, args, decimals,
-                                          'ParticlePhasePlot')
-                
-            test_particle_phase_answers.__name__ = test.description
-            yield test
+        x_field = 'particle_velocity_x'
+        y_field = 'particle_velocity_y'
+        z_field = 'particle_mass'
+        pp_hd = b''
+        for attr_name in PHASE_ATTR_ARGS.keys():
+            for args in PHASE_ATTR_ARGS[attr_name]:
+                pp_hd += self.phase_plot_attribute_test(ds, x_field, y_field, z_field,
+                                              attr_name, args, decimals,
+                                              'ParticlePhasePlot')
+        hashes = {'phase_plot' : utils.generate_hash(pw_hd)}
+        utils.handle_hashes(self.save_dir, 'particle-phase-answer', hashes, self.answer_store) 
 
 class TestParticlePhasePlotSave(unittest.TestCase):
 
