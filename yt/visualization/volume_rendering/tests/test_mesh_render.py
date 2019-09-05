@@ -26,6 +26,18 @@ from yt.visualization.volume_rendering.api import \
     create_scene
 
 
+hex8 = "MOOSE_sample_data/out.e-s010"
+hex8_fields = [('connect1', 'diffused'), ('connect2', 'convected')]
+tet4 = "MOOSE_sample_data/high_order_elems_tet4_refine_out.e"
+tet4_fields = [("connect1", "u")]
+hex20 = "MOOSE_sample_data/mps_out.e"
+hex20_fields = [('connect2', 'temp')]
+wedge6 = "MOOSE_sample_data/wedge_out.e"
+wedge6_fields = [('connect1', 'diffused')]
+tet10 = "SecondOrderTets/tet10_unstructured_out.e"
+tet10_fields = [('connect1', 'uz')]
+
+
 def compare(ds, im, test_prefix, test_name=None, decimals=12):
     def mesh_render_image_func(filename_prefix):
         return im.write_image(filename_prefix)
@@ -58,19 +70,6 @@ def surface_mesh_render():
         images.append(im)
     return images
 
-
-@requires_module("pyembree")
-def test_surface_mesh_render_pyembree():
-    ytcfg["yt", "ray_tracing_engine"] = "embree"
-    surface_mesh_render()
-
-
-def test_surface_mesh_render():
-    ytcfg["yt", "ray_tracing_engine"] = "yt"
-    surface_mesh_render()
-
-
-@attr(ANSWER_TEST_TAG)
 def test_fake_hexahedral_ds_render():
     ds = fake_hexahedral_ds()
     field_list = [('connect1', 'elem'), ('connect1', 'test')]
@@ -82,10 +81,6 @@ def test_fake_hexahedral_ds_render():
                       test_name="fake_hexahedral_ds_render")
 
 
-hex8 = "MOOSE_sample_data/out.e-s010"
-hex8_fields = [('connect1', 'diffused'), ('connect2', 'convected')]
-
-
 def hex8_render(engine, field):
     ytcfg["yt", "ray_tracing_engine"] = engine
     ds = data_dir_load(hex8, kwargs={'step':-1})
@@ -93,23 +88,6 @@ def hex8_render(engine, field):
     im = sc.render()
     return compare(ds, im, "%s_render_answers_hex8_%s_%s" %
                    (engine, field[0], field[1]))
-
-
-@requires_ds(hex8)
-@requires_module("pyembree")
-def test_hex8_render_pyembree():
-    for field in hex8_fields:
-        yield hex8_render("embree", field)
-
-
-@requires_ds(hex8)
-def test_hex8_render():
-    for field in hex8_fields:
-        yield hex8_render("yt", field)
-
-
-tet4 = "MOOSE_sample_data/high_order_elems_tet4_refine_out.e"
-tet4_fields = [("connect1", "u")]
 
 
 def tet4_render(engine, field):
@@ -121,23 +99,6 @@ def tet4_render(engine, field):
                    (engine, field[0], field[1]))
 
 
-@requires_ds(tet4)
-@requires_module("pyembree")
-def test_tet4_render_pyembree():
-    for field in tet4_fields:
-        yield tet4_render("embree", field)
-
-
-@requires_ds(tet4)
-def test_tet4_render():
-    for field in tet4_fields:
-        yield tet4_render("yt", field)
-
-
-hex20 = "MOOSE_sample_data/mps_out.e"
-hex20_fields = [('connect2', 'temp')]
-
-
 def hex20_render(engine, field):
     ytcfg["yt", "ray_tracing_engine"] = engine
     ds = data_dir_load(hex20, kwargs={'step':-1})
@@ -145,23 +106,6 @@ def hex20_render(engine, field):
     im = sc.render()
     return compare(ds, im, "%s_render_answers_hex20_%s_%s" %
                    (engine, field[0], field[1]))
-
-
-@requires_ds(hex20)
-@requires_module("pyembree")
-def test_hex20_render_pyembree():
-    for field in hex20_fields:
-        yield hex20_render("embree", field)
-
-
-@requires_ds(hex20)
-def test_hex20_render():
-    for field in hex20_fields:
-        yield hex20_render("yt", field)
-
-
-wedge6 = "MOOSE_sample_data/wedge_out.e"
-wedge6_fields = [('connect1', 'diffused')]
 
 
 def wedge6_render(engine, field):
@@ -173,23 +117,6 @@ def wedge6_render(engine, field):
                    (engine, field[0], field[1]))
 
 
-@requires_ds(wedge6)
-@requires_module("pyembree")
-def test_wedge6_render_pyembree():
-    for field in wedge6_fields:
-        yield wedge6_render("embree", field)
-
-
-@requires_ds(wedge6)
-def test_wedge6_render():
-    for field in wedge6_fields:
-        yield wedge6_render("yt", field)
-
-
-tet10 = "SecondOrderTets/tet10_unstructured_out.e"
-tet10_fields = [('connect1', 'uz')]
-
-
 def tet10_render(engine, field):
     ytcfg["yt", "ray_tracing_engine"] = engine
     ds = data_dir_load(tet10, kwargs={'step':-1})
@@ -199,19 +126,6 @@ def tet10_render(engine, field):
     im = sc.render()
     return compare(ds, im, "%s_render_answers_tet10_%s_%s" %
                    (engine, field[0], field[1]))
-
-
-@requires_ds(tet10)
-@requires_module("pyembree")
-def test_tet10_render_pyembree():
-    for field in tet10_fields:
-        yield tet10_render("embree", field)
-
-
-@requires_ds(tet10)
-def test_tet10_render():
-    for field in tet10_fields:
-        yield tet10_render("yt", field)
 
 
 def perspective_mesh_render(engine):
@@ -226,17 +140,6 @@ def perspective_mesh_render(engine):
     cam.resolution = (800, 800)
     im = sc.render()
     return compare(ds, im, "%s_perspective_mesh_render" % engine)
-
-
-@requires_ds(hex8)
-@requires_module("pyembree")
-def test_perspective_mesh_render_pyembree():
-    yield perspective_mesh_render("embree")
-
-
-@requires_ds(hex8)
-def test_perspective_mesh_render():
-    yield perspective_mesh_render("yt")
 
 
 def composite_mesh_render(engine):
@@ -257,12 +160,89 @@ def composite_mesh_render(engine):
     return compare(ds, im, "%s_composite_mesh_render" % engine)
 
 
-@requires_ds(hex8)
-@requires_module("pyembree")
-def test_composite_mesh_render_pyembree():
-    yield composite_mesh_render("embree")
+@pytest.mark.skipif(not pyteset.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
+class TestVolumeRenderMesh(fw.AnswerTest):
+    @utils.requires_ds(hex8)
+    @requires_module("pyembree")
+    def test_composite_mesh_render_pyembree():
+        yield composite_mesh_render("embree")
+
+    @utils.requires_ds(hex8)
+    def test_composite_mesh_render():
+        yield composite_mesh_render("yt")
+
+    @utils.requires_ds(hex20)
+    @requires_module("pyembree")
+    def test_hex20_render_pyembree():
+        for field in hex20_fields:
+            yield hex20_render("embree", field)
+
+    @utils.requires_ds(hex20)
+    def test_hex20_render():
+        for field in hex20_fields:
+            yield hex20_render("yt", field)
+
+    @utils.requires_ds(hex8)
+    @requires_module("pyembree")
+    def test_hex8_render_pyembree():
+        for field in hex8_fields:
+            yield hex8_render("embree", field)
 
 
-@requires_ds(hex8)
-def test_composite_mesh_render():
-    yield composite_mesh_render("yt")
+    @utils.requires_ds(hex8)
+    def test_hex8_render():
+        for field in hex8_fields:
+            yield hex8_render("yt", field)
+
+    @utils.requires_ds(hex8)
+    @requires_module("pyembree")
+    def test_perspective_mesh_render_pyembree():
+        yield perspective_mesh_render("embree")
+
+    @utils.requires_ds(hex8)
+    def test_perspective_mesh_render():
+        yield perspective_mesh_render("yt")
+
+    @requires_module("pyembree")
+    def test_surface_mesh_render_pyembree():
+        ytcfg["yt", "ray_tracing_engine"] = "embree"
+        surface_mesh_render()
+
+    def test_surface_mesh_render():
+        ytcfg["yt", "ray_tracing_engine"] = "yt"
+        surface_mesh_render()
+
+    @utils.requires_ds(tet10)
+    @requires_module("pyembree")
+    def test_tet10_render_pyembree():
+        for field in tet10_fields:
+            yield tet10_render("embree", field)
+
+    @utils.requires_ds(tet10)
+    def test_tet10_render():
+        for field in tet10_fields:
+            yield tet10_render("yt", field)
+
+    @utils.requires_ds(tet4)
+    @requires_module("pyembree")
+    def test_tet4_render_pyembree():
+        for field in tet4_fields:
+            yield tet4_render("embree", field)
+
+    @utils.requires_ds(tet4)
+    def test_tet4_render():
+        for field in tet4_fields:
+            yield tet4_render("yt", field)
+
+    @utils.requires_ds(wedge6)
+    @requires_module("pyembree")
+    def test_wedge6_render_pyembree():
+        for field in wedge6_fields:
+            yield wedge6_render("embree", field)
+
+    @utils.requires_ds(wedge6)
+    def test_wedge6_render():
+        for field in wedge6_fields:
+            yield wedge6_render("yt", field)
+
