@@ -23,8 +23,12 @@ import matplotlib.image as mpimg
 import numpy as np
 import pytest
 
+from yt.analysis_modules.cosmological_observation.api import \
+     LightCone
 from yt.analysis_modules.halo_analysis.api import HaloCatalog
 from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
+from yt.utilities.on_demand_imports import \
+    _h5py as h5py
 from . import utils
 import yt.visualization.plot_window as pw
 
@@ -697,3 +701,39 @@ class AnswerTest():
             pix_x
             pix_y
         return pix_x.tostring(), pix_y.tostring() 
+
+    #-----
+    # light_cone_projection_test
+    #-----
+    def light_cone_projection_test(self, parameter_file, simulation_type):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        ds = os.path.basename(parameter_file)
+        lc = LightCone(
+            parameter_file, simulation_type, 0., 0.1,
+            observer_redshift=0.0, time_data=False)
+        lc.calculate_light_cone_solution(
+            seed=123456789, filename="LC/solution.txt")
+        lc.project_light_cone(
+            (600.0, "arcmin"), (60.0, "arcsec"), "density",
+            weight_field=None, save_stack=True)
+        fh = h5py.File("LC/LightCone.h5")
+        data = fh["density_None"].value
+        units = fh["density_None"].attrs["units"]
+        assert units == "g/cm**2"
+        fh.close()
+        mean = data.mean()
+        mi = data[data.nonzero()].min()
+        ma = data.max()
+        return np.array([mean, mi, ma]).tostring()
