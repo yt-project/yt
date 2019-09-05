@@ -40,6 +40,6 @@ def test_raw_field_slices():
         sl = yt.SlicePlot(ds, 'z', field)
         sl.set_log('all', False)
         image_file = sl.save("slice_answers_raw_{}".format(field[1]))
-        gi_hd += self.generic_image_test(ds, image_file)
+        gi_hd += self.generic_image_test(image_file)
     hashes = {'raw-field-slices' : utils.generate_hash(gi_hd)}
     utils.handle_hashes(self.save_dir, 'raw-field_slices', hashes, self.answer_store) 

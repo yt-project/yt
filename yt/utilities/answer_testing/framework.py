@@ -657,6 +657,6 @@ class AnswerTest():
     #-----
     # generic_image_test
     #-----
-    def generic_image_test(self, ds_fn, image_file):
-        img_data = mpimg.imread(img)
+    def generic_image_test(self, img_fname):
+        img_data = mpimg.imread(img_fname)
         return zlib.compress(img_data.dumps())

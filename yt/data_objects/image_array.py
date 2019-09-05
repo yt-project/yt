@@ -238,7 +238,6 @@ class ImageArray(YTArray):
                 amax = self[:, :, 3].max()
             if amax > 0.0:
                 np.multiply(self[:, :, 3], 1.0/amax, out[:, :, 3])
-
         np.clip(out, 0.0, 1.0, out)
         return out
 
