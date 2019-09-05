@@ -38,10 +38,10 @@ add_quantity("nstars", _nstars)
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@utils.requires_ds(rh0)
-@utils.requires_ds(e64)
 class TestHaloQuantity(fw.AnswerTest):
     @pytest.mark.usefixtures('temp_dir')
+    @utils.requires_ds(rh0)
+    @utils.requires_ds(e64)
     def test_halo_quantity(self):
         data_ds_fn = e64
         halos_ds_fn = rh0

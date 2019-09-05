@@ -35,8 +35,8 @@ ISO_GALAXY = "IsolatedGalaxy/galaxy0030/galaxy0030"
 FIRE = "FIRE_M12i_ref11/snapshot_600.hdf5"
 
 
-@requires_file(FIRE)
 @pytest.mark.usefixtures('temp_dir')
+@requires_file(FIRE)
 def test_absorption_spectrum_with_zero_field():
     """
     This test generates an absorption spectrum with some 
@@ -99,9 +99,9 @@ def test_absorption_spectrum_with_zero_field():
         use_peculiar_velocity=True)
 
 
+@pytest.mark.usefixtures('temp_dir')
 @requires_file(COSMO_PLUS_SINGLE)
 @requires_module("astropy")
-@pytest.mark.usefixtures('temp_dir')
 def test_absorption_spectrum_fits():
     """
     This test generates an absorption spectrum and saves it as a fits file.
@@ -140,8 +140,8 @@ def test_voigt_profiles():
     assert_allclose_units(voigt_old(a, x), voigt_scipy(a, x), 1e-8)
 
 
-@requires_file(COSMO_PLUS_SINGLE)
 @pytest.mark.usefixtures('temp_dir')
+@requires_file(COSMO_PLUS_SINGLE)
 def test_equivalent_width_conserved():
     """
     This tests that the equivalent width of the optical depth is conserved 

@@ -12,9 +12,9 @@ _fields = (("halos", "particle_position_x"),
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+    reason="--answer-big-data not set.")
 class TestRockstarHaloFinder(fw.AnswerTest):
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="--answer-big-data not set.")
     @utils.requires_sim("Enzo_64/64.param", "Enzo")
     def test_rockstar(self):
         from mpi4py import MPI
