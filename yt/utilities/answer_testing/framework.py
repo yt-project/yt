@@ -512,7 +512,7 @@ class AnswerTest():
             args = []
         if kwargs is None:
             kwargs = {}
-        return func(args, kwargs).tostring()
+        return func(*args, **kwargs).tostring()
 
     #-----
     # sph_answer
