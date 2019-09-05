@@ -41,16 +41,6 @@ tet10 = "SecondOrderTets/tet10_unstructured_out.e"
 tet10_fields = [('connect1', 'uz')]
 
 
-def compare(ds, im, test_prefix, test_name=None, decimals=12):
-    def mesh_render_image_func(filename_prefix):
-        return im.write_image(filename_prefix)
-    mesh_render_image_func.__name__ = "func_{}".format(test_prefix)
-    test = GenericImageTest(ds, mesh_render_image_func, decimals)
-    test.prefix = test_prefix
-    test.answer_name = test_name
-    return test
-
-
 def surface_mesh_render():
     images = []
     ds = fake_tetrahedral_ds()
@@ -74,15 +64,6 @@ def surface_mesh_render():
     return images
 
 
-def test_fake_hexahedral_ds_render():
-    ds = fake_hexahedral_ds()
-    field_list = [('connect1', 'elem'), ('connect1', 'test')]
-    for field in field_list:
-        sc = create_scene(ds, field)
-        im = sc.render()
-        test_prefix = "yt_render_fake_hexahedral_%s_%s" % (field[0], field[1])
-        yield compare(ds, im, test_prefix=test_prefix,
-                      test_name="fake_hexahedral_ds_render")
 
 
 def hex8_render(engine, field):
@@ -173,6 +154,20 @@ def composite_mesh_render(engine):
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir')
 class TestVolumeRenderMesh(fw.AnswerTest):
+    def test_fake_hexahedral_ds_render():
+    ds = fake_hexahedral_ds()
+    field_list = [('connect1', 'elem'), ('connect1', 'test')]
+    gi_hd = b''
+    for field in field_list:
+        fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+        sc = create_scene(ds, field)
+        im = sc.render()
+        im.save(im_name)
+        gi_hd += self.generic_image_test(im_name)
+    hashes = {'generic_image' : utils.generate_hash(gi_hd)}
+    utils.handle_hashes(self.save_dir, 'fake_hexahedral_ds_render', hashes,
+        utils.answer_store)
+
     @utils.requires_ds(hex8)
     @requires_module("pyembree")
     def test_composite_mesh_render_pyembree(self):
