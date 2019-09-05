@@ -26,6 +26,7 @@ import pytest
 from yt.analysis_modules.halo_analysis.api import HaloCatalog
 from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
 from . import utils
+import yt.visualization.plot_window as pw
 
 
 #============================================
@@ -660,3 +661,39 @@ class AnswerTest():
     def generic_image_test(self, img_fname):
         img_data = mpimg.imread(img_fname)
         return zlib.compress(img_data.dumps())
+
+    #-----
+    # axial_pixelization_test
+    #-----
+    def axial_pixelization_test(self, ds):
+        """
+        This test is typically used once per geometry or coordinates type.
+        Feed it a dataset, and it checks that the results of basic pixelization
+        don't change.
+
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        for i, axis in enumerate(ds.coordinates.axis_order):
+            (bounds, center, display_center) = \
+                    pw.get_window_parameters(axis, ds.domain_center, None, ds)
+            slc = ds.slice(axis, center[i])
+            xax = ds.coordinates.axis_name[ds.coordinates.x_axis[axis]]
+            yax = ds.coordinates.axis_name[ds.coordinates.y_axis[axis]]
+            pix_x = ds.coordinates.pixelize(axis, slc, xax, bounds, (512, 512))
+            pix_y = ds.coordinates.pixelize(axis, slc, yax, bounds, (512, 512))
+            # Wipe out all NaNs
+            pix_x[np.isnan(pix_x)] = 0.0
+            pix_y[np.isnan(pix_y)] = 0.0
+            pix_x
+            pix_y
+        return pix_x.tostring(), pix_y.tostring() 
