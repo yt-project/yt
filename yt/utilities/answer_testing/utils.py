@@ -9,6 +9,7 @@ import os
 
 import numpy as np
 import pytest
+import yaml
 
 from yt.config import ytcfg
 from yt.convenience import load
@@ -48,64 +49,11 @@ def generate_hash(data):
     """
     return hashlib.md5(data).hexdigest()
 
-#============================================
-#               store_hashes
-#============================================
-def store_hashes(ds_name, hashes):
-    """
-    This writes the hashes for the data contained in the data file
-    and the hashes for the results of each test run on that data
-    file.
-
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
-    """
-    with open(ds_name + '-hashes.txt', 'w') as f:
-        # Write the hashes to the file
-        for key, value in hashes.items():
-            f.write(key + ' : ' + str(value) + '\n')
-
-#============================================
-#                load_hashes
-#============================================
-def load_hashes(ds_name):
-    """
-    Reads the hashes for each test related to a given data set and
-    returns them.
-
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
-    """
-    hashes = {}
-    with open(ds_name + '-hashes.txt', 'r') as f:
-        for line in f:
-            key, value = line.split(':')
-            hashes[key.strip()] = value.strip()
-    return hashes
-
 
 #============================================
 #               handle_hashes
 #============================================
-def handle_hashes(dir_name, ds_name, hashes, answer_store):
+def handle_hashes(save_dir_name, fname, hashes, answer_store):
     """
     Either saves the answers for later comparison or loads in the saved
     answers and does the comparison.
@@ -122,20 +70,16 @@ def handle_hashes(dir_name, ds_name, hashes, answer_store):
     --------
         pass
     """
-    ds_name = os.path.join(dir_name, ds_name)
+    fname = os.path.join(save_dir_name, fname)
     # Save answer
     if answer_store:
-        store_hashes(ds_name, hashes)
+        with open(fname, 'w') as f:
+            yaml.dump(hashes, f, default_flow_style=False)
     # Compare to already saved answer
     else:
-        saved_hashes = load_hashes(ds_name)
-        for key in hashes.keys():
-            try:
-                assert saved_hashes[key] == hashes[key]
-            except AssertionError:
-                print("Error, hashes for ds: %s test: %s don't match!" %
-                    (ds_name, key)
-                )
+        with open(fname, 'r') as f:
+            saved_hashes = yaml.load(fname)
+        assert hashes == saved_hashes
 
 
 #============================================
