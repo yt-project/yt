@@ -411,36 +411,40 @@ class AnswerTest():
             'projection_values',
             'field_values'
         ]
+        # Create nested dictionary for saving all test results in the
+        # same file
+        hex_digests = OrderedDict()
         # Grid hierarchy test
-        gh_hd = self.grid_hierarchy_test(ds)
+        gh_hd = utils.generate_hash(self.grid_hierarchy_test(ds))
+        hex_digests['grid_hierarchy'] = gh_hd
         # Parentage relationships test
-        pr_hd = self.parentage_relationships_test(ds)
+        pr_hd = utils.generate_hash(self.parentage_relationships_test(ds))
+        hex_digests['parentage_relationships'] = pr_hd
         # Grid values, projection values, and field values tests
-        gv_hd = b''
-        pv_hd = b''
-        fv_hd = b''
-        for field in fields:
-            gv_hd += self.grid_values_test(ds, field)
-            for axis in axes:
-                for dobj_name in ds_objs:
-                    for weight_field in weights:
-                        pv_hd += self.projection_values_test(ds,
-                            axis,
-                            field,
-                            weight_field,
-                            dobj_name
+        for t in test_keys[2:]:
+            hex_digests[t] = OrderedDict() 
+        for f in fields:
+            gv_hd = utils.generate_hash(self.grid_values_test(ds, f))
+            hex_digests['grid_values'][f] = gv_hd
+            hex_digests['field_values'][f] = OrderedDict()
+            hex_digests['projection_values'][f] = OrderedDict()
+            for dobj in ds_objs:
+                fv_hd = utils.generate_hash(self.field_values_test(ds,f,dobj))
+                hex_digests['field_values'][f][dobj] = fv_hd
+                hex_digests['projection_values'][f][dobj] = OrderedDict()
+                for a in axes:
+                    hex_digests['projection_values'][f][dobj][a] = OrderedDict()
+                    for w in weights:
+                        pv_hd = utils.generate_hash(
+                            self.projection_values_test(ds,
+                                a,
+                                f,
+                                w,
+                                dobj
+                            )
                         )
-                    fv_hd += self.field_values_test(ds,
-                        field,
-                        dobj_name
-                    )
-        # Hash the final byte arrays
-        hex_digests = [gh_hd, pr_hd, gv_hd, pv_hd, fv_hd]
-        hashes = [utils.generate_hash(hd) for hd in hex_digests]
-        hash_dict = {}
-        for key, value in zip(test_keys, hashes):
-            hash_dict[key] = value
-        return hash_dict
+                        hex_digests['projection_values'][f][dobj][a][w] = pv_hd
+        return hex_digests
 
     #-----
     # big_patch_amr
