@@ -7,6 +7,7 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict
 import os.path
 
 import pytest
@@ -21,6 +22,10 @@ from yt.utilities.answer_testing import \
 
 # Test data
 ahf_halos = 'ahf_halos/snap_N64L16_135.parameter'
+
+
+# Answer file
+answer_file = 'ahf_answers.yaml'
 
 
 #============================================
@@ -84,10 +89,14 @@ class TestAHF(fw.AnswerTest):
         """
         fields = ('particle_position_x', 'particle_position_y',
                    'particle_position_z', 'particle_mass')
-        fv_hd = b''
+        hashes = OrderedDict()
+        hashes['field_values'] = OrderedDict()
         for field in fields:
-            fv_hd += self.field_values_test(ds_ahf_halos, field, particle_type=True)
-        # Hash the hex digest
-        hashes = {'field_values' : utils.generate_hash(fv_hd)}
+            fv_hd = utils.generate_hash(
+                self.field_values_test(ds_ahf_halos, field, particle_type=True)
+            )
+            hashes['field_values'][field] = fv_hd
+        # Add function name to hashes
+        hashes = {'fields_ahf_halos' : hashes}
         # Save or compare answers
-        utils.handle_hashes(self.save_dir, 'ahf', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
