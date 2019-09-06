@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict
+
 import pytest
 
 from yt.convenience import load
@@ -23,6 +25,10 @@ from yt.utilities.answer_testing import utils
 # Data file
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/"
 sizmbhloz += "sizmbhloz-clref04SNth-rs9_a0.9011.art"
+
+
+# Answer file
+answer_file = 'artio_answers.yaml'
 
 
 #============================================
@@ -60,7 +66,6 @@ class TestArtIo(fw.AnswerTest):
         --------
             pass
         """
-        # Load data
         ds_sizmbhloz.max_range = 1024*1024
         # Set up test parameters
         dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
@@ -69,28 +74,34 @@ class TestArtIo(fw.AnswerTest):
         fields = ("temperature", "density", "velocity_magnitude",
                    ("deposit", "all_density"), ("deposit", "all_count"))
         # Set up hex digests
-        ppv_hd = b''
-        fv_hd = b''
+        hashes = OrderedDict()
+        hashes['pixelized_projection_values'] = OrderedDict()
+        hashes['field_values'] = OrderedDict()
         # Run tests
-        for dobj_name in dso:
-            for field in fields:
-                for axis in axes:
-                    for weight_field in weight_fields:
-                        ppv_hd += self.pixelized_projection_values_test(
-                            ds_sizmbhloz, axis, field, weight_field,
-                            dobj_name
+        for d in dso:
+            hashes['pixelized_projection_values'][d] = OrderedDict()
+            hashes['field_values'][d] = OrderedDict()
+            for f in fields:
+                fv_hd = utils.generate_hash(
+                    self.field_values_test(ds_sizmbhloz, f, d)
+                )
+                hashes['field_values'][d][f] = fv_hd 
+                hashes['pixelized_projection_values'][d][f] = OrderedDict()
+                for a in axes:
+                    hashes['pixelized_projection_values'][d][f][a] = OrderedDict()
+                    for w in weight_fields:
+                        ppv_hd = utils.generate_hash(
+                            self.pixelized_projection_values_test(ds_sizmbhloz, a, f, w, d)
                         )
-                fv_hd += self.field_values_test(ds_sizmbhloz, field, dobj_name)
-            dobj = utils.create_obj(ds_sizmbhloz, dobj_name)
+                        hashes['pixelized_projection_values'][d][f][a][w] = ppv_hd 
+            dobj = utils.create_obj(ds_sizmbhloz, d)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
         assert_equal(ds_sizmbhloz.particle_type_counts, {'N-BODY': 100000, 'STAR': 110650})
         # Save or compare hashes
-        hashes = {}
-        hashes['pixelized_projection_values'] = utils.generate_hash(ppv_hd)
-        hashes['field_values'] = utils.generate_hash(fv_hd)
-        utils.handle_hashes(self.save_dir, 'artio', hashes, self.answer_store)
+        hashes = {'sizmbhloz' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_ARTIODataset
