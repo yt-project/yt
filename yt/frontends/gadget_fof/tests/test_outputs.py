@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict()
+
 import numpy as np
 import pytest
 
@@ -24,6 +26,10 @@ g42 = "gadget_fof_halos/groups_042/fof_subhalo_tab_042.0.hdf5"
 g298 = "gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5"
 g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"
 g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"
+
+
+# Answer file
+answer_file = 'gadget_fof_answers.yaml'
 
 
 #============================================
@@ -65,11 +71,15 @@ class TestGadgetFOF(fw.AnswerTest):
                    "particle_position_z", "particle_velocity_x",
                    "particle_velocity_y", "particle_velocity_z",
                    "particle_mass", "particle_identifier")
-        fv_hd = b''
+        hashes = OrderedDict()
+        hashes['field_values'] = OrderedDict()
         for field in fields:
-            fv_hd += self.field_values_test(ds_g5, field, particle_type=True)
-        hashes = {'field_values' : utils.generate_hash(fv_hd)}
-        utils.handle_hashes(self.save_dir, 'g5-fields', hashes, self.answer_store)
+            fv_hd = utils.generate_hash(
+                self.field_values_test(ds_g5, field, particle_type=True)
+            )
+            hashes['field_values'][field] = fv_hd
+        hashes = {'fields_g5' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_fields_g42
@@ -93,11 +103,15 @@ class TestGadgetFOF(fw.AnswerTest):
                    "particle_position_z", "particle_velocity_x",
                    "particle_velocity_y", "particle_velocity_z",
                    "particle_mass", "particle_identifier")
-        fv_hd = b''
+        hashes = OrderedDict()
+        hashes['field_values'] = OrderedDict()
         for field in fields:
-            fv_hd += self.field_values_test(ds_g42, field, particle_type=True)
-        hashes = {'field_values' : utils.generate_hash(fv_hd)}
-        utils.handle_hashes(self.save_dir, 'g42-fields', hashes, self.answer_store)
+            fv_hd = utils.generate_hash(
+                self.field_values_test(ds_g42, field, particle_type=True)
+            )
+            hashes['field_values'][field] = fv_hd
+        hashes = {'fields_g42' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_GadgetFOFDataset
