@@ -8,6 +8,7 @@ Notes:
     software.
 """
 import os.path
+from collections import OrderedDict
 
 import pytest
 
@@ -21,6 +22,10 @@ from yt.utilities.answer_testing import utils
 # Test data
 g1 = "owls_fof_halos/groups_001/group_001.0.hdf5"
 g8 = "owls_fof_halos/groups_008/group_008.0.hdf5"
+
+
+# Answer file
+answer_file = 'owls_subfind_answers.yaml'
 
 
 #============================================
@@ -57,13 +62,17 @@ class TestOwlsSubfind(fw.AnswerTest):
         Returns:
         --------
         """
-        fv_hd = b''
+        hashes = OrderedDict()
+        hashes['field_values'] = OrderedDict()
         fields = ("particle_position_x", "particle_position_y",
                    "particle_position_z", "particle_mass")
         for field in fields:
-            fv_hd += self.field_values_test(ds_g8, field, particle_type=True)
-        hashes = {'field_values' : utils.generate_hash(fv_hd)}
-        utils.handle_hashes(self.save_dir, 'owls-subfind-g8fields', hashes, self.answer_store)
+            fv_hd = utils.generate_hash(
+                self.field_values_test(ds_g8, field, particle_type=True)
+            )
+            hashes['field_values'][field] = fv_hd
+        hashes = {'fields_g8' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_fields_g1
@@ -82,13 +91,17 @@ class TestOwlsSubfind(fw.AnswerTest):
         Returns:
         --------
         """
-        fv_hd = b''
+        hashes = OrderedDict()
+        hashes['field_values'] = OrderedDict()
         fields = ("particle_position_x", "particle_position_y",
                    "particle_position_z", "particle_mass")
         for field in fields:
-            fv_hd += self.field_values_test(ds_g1, field, particle_type=True)
-        hashes = {'field_values' : utils.generate_hash(fv_hd)}
-        utils.handle_hashes(self.save_dir, 'owls-subfind-g1fields', hashes, self.answer_store)
+            fv_hd = utils.generate_hash(
+                self.field_values_test(ds_g1, field, particle_type=True)
+            )
+            hashes['field_values'][field] = fv_hd
+        hashes = {'fields_g1' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_OWLSSubfindDataset
