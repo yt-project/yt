@@ -551,9 +551,9 @@ class AnswerTest():
         assert str(ds) == ds_str_repr
         # Set up keys of test names
         test_keys = ['pixelized_projection_values', 'field_values']
-        # Set up by bytestrings for tests
-        ppv_hd = b''
-        fv_hd = b''
+        hex_digests = OrderedDict()
+        hex_digests['pixelized_projection_values'] = OrderedDict()
+        hex_digests['field_values'] = OrderedDict()
         # Set up data objects to test with
         dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
         dd = ds.all_data()
@@ -562,29 +562,33 @@ class AnswerTest():
                   for ptype in ds.particle_types if ptype != "all")
         # Check
         assert tot == ds_nparticles
-        for dobj_name in dso:
-            dobj = utils.create_obj(ds, dobj_name)
+        for d in dso:
+            hex_digests['pixelized_projection_values'][d] = OrderedDict()
+            hex_digests['field_values'][d] = OrderedDict()
+            dobj = utils.create_obj(ds, d)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert s1 == s2
-            for field, weight_field in fields.items():
-                if field[0] in ds.particle_types:
+            for f, weight_field in fields.items():
+                hex_digests['pixelized_projection_values'][d][f[1]] = OrderedDict()
+                hex_digests['field_values'][d][f[1]] = OrderedDict()
+                if f[0] in ds.particle_types:
                     particle_type = True
                 else:
                     particle_type = False
-                for axis in [0, 1, 2]:
+                for a in [0, 1, 2]:
                     if particle_type is False:
-                        ppv_hd += self.pixelized_projection_values_test(
-                            ds, axis, field, weight_field, dobj_name)
-                fv_hd += self.field_values_test(ds, field, dobj_name,
-                                      particle_type=particle_type)
-        # Hash the final byte arrays
-        hex_digests = [ppv_hd, fv_hd]
-        hashes = [utils.generate_hash(hd) for hd in hex_digests]
-        hash_dict = {}
-        for key, value in zip(test_keys, hashes):
-            hash_dict[key] = value
-        return hash_dict
+                        ppv_hd = utils.generate_hash(
+                            self.pixelized_projection_values_test(
+                                ds, a, f, weight_field, d)
+                        )
+                        hex_digests['pixelized_projection_values'][d][f[1]][a] = ppv_hd
+                fv_hd = utils.generate_hash(
+                    self.field_values_test(ds, field, dobj_name,
+                        particle_type=particle_type)
+                )
+                hex_digests['field_values'][d][f[1]] = fv_hd
+        return hex_digests
 
     #-----
     # yt_field_test
