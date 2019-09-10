@@ -6,6 +6,8 @@ Purpose: Exodus II frontend tests
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict
+
 import pytest
 
 from yt.testing import \
@@ -20,6 +22,10 @@ out = "ExodusII/out.e"
 out_s002 = "ExodusII/out.e-s002"
 gold = "ExodusII/gold.e"
 big_data = "MOOSE_sample_data/mps_out.e"
+
+
+# Answer file
+answer_file = 'exodus_ii_answers.yaml'
 
 
 #============================================
@@ -151,13 +157,16 @@ class TestExodusII(fw.AnswerTest):
         displacement_dicts =[{'connect2': (5.0, [0.0, 0.0, 0.0])},
                              {'connect1': (1.0, [1.0, 2.0, 3.0]),
                               'connect2': (0.0, [0.0, 0.0, 0.0])}]
-        ga_hd = b''
+        hashes = OrderedDict()
+        hashes['generic_array'] = OrderedDict()
         for disp in displacement_dicts:
             ds = utils.data_dir_load(big_data, kwargs={'displacements':disp})
             for mesh in ds.index.meshes:
                 def array_func(*args, **kwargs):
                     return mesh.connectivity_coords
-                ga_hd += self.generic_array_test(ds, array_func, 12)
-        hashes = {}
-        hashes['generic_array'] = utils.generate_hash(ga_hd)
-        utils.handle_hashes(self.save_dir, 'exodusii-disp-fields', hashes, self.answer_store)
+                ga_hd = utils.generate_hash(
+                    self.generic_array_test(ds, array_func, 12)
+                )
+                hashes['generic_array'][str(mesh)] = ga_hd
+        hashes = {'displacement_fields' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
