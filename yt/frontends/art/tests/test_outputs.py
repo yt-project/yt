@@ -6,6 +6,8 @@ Notes:
     Distributed under the terms of the Modified BSD License.
     The full license is in the file COPYING.txt, distributed with this software.
 """
+from collections import OrderedDict
+
 import pytest
 
 from yt.frontends.art.api import ARTDataset
@@ -22,6 +24,10 @@ from yt.utilities.answer_testing import utils
 
 # Test data
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
+
+
+# Answer file
+answer_file = 'art_answers.yaml'
 
 
 #============================================
@@ -68,24 +74,34 @@ class TestArt(fw.AnswerTest):
             ("all", "particle_mass"),
             ("all", "particle_position_x")
         )
-        ppv_hd = b''
-        fv_hd = b''
+        hd = OrderedDict()
+        hd['pixelized_projection_values'] = OrderedDict()
+        hd['field_values'] = OrderedDict()
         ds = ds_d9p
         ds.index
         dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
-        for field in fields:
-            for axis in [0, 1, 2]:
-                for dobj_name in dso:
-                    for weight_field in [None, "density"]:
-                        if field[0] not in ds.particle_types:
-                            ppv_hd += self.pixelized_projection_values_test(
-                                ds, axis, field, weight_field,
-                                dobj_name)
-                if field[0] == "all":
+        for f in fields:
+            hd['pixelized_projection_values'][f] = OrderedDict()
+            hd['field_values'][f] = OrderedDict()
+            for d in dso:
+                if f[0] == "all":
                     particle_type = True
                 else:
                     particle_type = False
-                fv_hd += self.field_values_test(ds, field, dobj_name, particle_type=particle_type)
+                fv_hd = utils.generate_hash(
+                    self.field_values_test(ds, f, d, particle_type=particle_type)
+                )
+                hd['field_values'][f][d] = fv_hd
+                hd['pixelized_projection_values'][f][d] = OrderedDict()
+                for a in [0, 1, 2]:
+                    hd['pixelized_projection_values'][f][d][a] = OrderedDict()
+                    for w in [None, "density"]:
+                        if f[0] not in ds.particle_types:
+                            ppv_hd = self.generate_hash(
+                                self.pixelized_projection_values_test(
+                                    ds, a, f, w, d)
+                            )
+                            hd['pixelized_projection_values'][f][d][a][w] = ppv_hd
         ad = ds.all_data()
         # 'Ana' variable values output from the ART Fortran 'ANA' analysis code
         AnaNStars = 6255
@@ -135,7 +151,8 @@ class TestArt(fw.AnswerTest):
         hashes = {'pixelized_projection_values' : utils.generate_hash(ppv_hd),
             'field_values' : utils.generate_hash(fv_hd)
         }
-        utils.handle_hashes(self.save_dir, 'art', hashes, self.answer_store)
+        hd = {'d9p' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 
     #-----
     # test_ARTDataset
