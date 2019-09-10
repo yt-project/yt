@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict
+
 import numpy as np
 import pytest
 
@@ -23,6 +25,10 @@ from yt.utilities.answer_testing import utils
 # Test data
 disk = "KeplerianDisk/disk.out1.00000.athdf"
 AM06 = "AM06/AM06.out1.00400.athdf"
+
+
+# Answer file
+answer_file = 'athena_pp_answers.yaml'
 
 
 #============================================
@@ -60,20 +66,23 @@ class TestAthenaPP(fw.AnswerTest):
         --------
             pass
         """
+        hashes = OrderedDict()
+        hashes['generic_array'] = OrderedDict()
         fields = ("density", "velocity_r")
         dd = ds_disk.all_data()
         vol = (ds_disk.domain_right_edge[0]**3-ds_disk.domain_left_edge[0]**3)/3.0
         vol *= np.cos(ds_disk.domain_left_edge[1])-np.cos(ds_disk.domain_right_edge[1])
         vol *= ds_disk.domain_right_edge[2].v-ds_disk.domain_left_edge[2].v
         assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
-        ga_hd = b''
         for field in fields:
             def field_func(name):
                 return dd[field]
-            ga_hd += self.generic_array_test(ds_disk, field_func, args=[field])
-        hashes = {}
-        hashes['generic_array'] = utils.generate_hash(ga_hd)
-        utils.handle_hashes(self.save_dir, 'athenapp_disk', hashes, self.answer_store)
+            ga_hd = utils.generate_hash(
+                self.generic_array_test(ds_disk, field_func, args=[field])
+            )
+            hashes['generic_array'][field] = ga_hd
+        hashes = {'disk' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_AM06
@@ -106,7 +115,7 @@ class TestAthenaPP(fw.AnswerTest):
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds_AM06, fields, weights, axes, ds_objs)
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'athenapp_AM06', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_AM06_override
