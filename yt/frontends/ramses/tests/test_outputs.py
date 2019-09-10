@@ -8,6 +8,7 @@ Notes:
     software.
 """
 import os
+from collections import OrderedDict
 
 import numpy as np
 import pytest
@@ -32,6 +33,10 @@ ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
 ramses_sink = "ramses_sink_00016/output_00016/info_00016.txt"
 ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
 ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
+
+
+# Answer file
+answer_file = 'ramses_answers.yaml'
 
 
 #============================================
@@ -70,8 +75,9 @@ class TestRamses(fw.AnswerTest):
             pass
         """
         # Hex digests
-        ppv_hd = b''
-        fv_hd = b''
+        hashes = OrderedDict()
+        hashes['pixelized_projection_values'] = OrderedDict()
+        hashes['field_values'] = OrderedDict()
         # Test parameters
         dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
         axes = [0, 1, 2]
@@ -79,24 +85,32 @@ class TestRamses(fw.AnswerTest):
         fields = ("temperature", "density", "velocity_magnitude",
                    ("deposit", "all_density"), ("deposit", "all_count"))
         # Do tests
-        for dobj_name in dso:
-            for field in fields:
-                for axis in axes:
-                    for weight_field in weight_fields:
-                        ppv_hd += self.pixelized_projection_values_test(
-                            ds_output_00080, axis, field, weight_field,
-                            dobj_name)
-                fv_hd += self.field_values_test(ds_output_00080, field, dobj_name)
+        for d in dso:
+            hashes['pixelized_projection_values'][d] = OrderedDict()
+            hashes['field_values'][d] = OrderedDict()
+            for f in fields:
+                hashes['pixelized_projection_values'][d][f] = OrderedDict()
+                for a in axes:
+                    hashes['pixelized_projection_values'][d][f][a] = OrderedDict()
+                    for w in weight_fields:
+                        ppv_hd = utils.generate_hash(
+                            self.pixelized_projection_values_test(
+                                ds_output_00080, axis, field, weight_field,
+                                dobj_name)
+                        )
+                        hashes['pixelized_projection_values'][d][f][a][w] = ppv_hd
+                fv_hd = utils.generate_hash(
+                    self.field_values_test(ds_output_00080, field, dobj_name)
+                )
+                hashes['field_values'][d][f] = fv_hd 
             dobj = utils.create_obj(ds_output_00080, dobj_name)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
         assert_equal(ds_output_00080.particle_type_counts, {'io': 1090895})
         # Save or compare hashes
-        hashes = {}
-        hashes['pixelized_projection_values'] = utils.generate_hash(ppv_hd)
-        hashes['field_values'] = utils.generate_hash(fv_hd)
-        utils.handle_hashes(self.save_dir, 'ramses-00080', hashes, self.answer_store)
+        hashes = {'output_00080' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_RAMSESDataset
