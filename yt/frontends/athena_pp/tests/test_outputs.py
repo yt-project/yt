@@ -114,6 +114,7 @@ class TestAthenaPP(fw.AnswerTest):
         )
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds_AM06, fields, weights, axes, ds_objs)
+        hashes = {'AM06' : hashes}
         # Save or compare answer
         utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 

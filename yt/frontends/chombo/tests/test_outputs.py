@@ -7,6 +7,7 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict
 import pytest
 
 from yt.testing import \
@@ -25,6 +26,10 @@ tb = "TurbBoxLowRes/data.0005.3d.hdf5"
 iso = "IsothermalSphere/data.0000.3d.hdf5"
 zp = "ZeldovichPancake/plt32.2d.hdf5"
 kho = "KelvinHelmholtz/data.0004.hdf5"
+
+
+# Answer file
+answer_file = 'chombo_answers.yaml'
 
 
 #============================================
@@ -70,8 +75,9 @@ class TestChombo(fw.AnswerTest):
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
         hashes = self.small_patch_amr(ds_gc, fields, weights, axes, ds_objs)
+        hashes = {'gc' : hashes}
         # Save or compare hashes
-        utils.handle_hashes(self.save_dir, 'gaussiancloud', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_tb
@@ -100,7 +106,8 @@ class TestChombo(fw.AnswerTest):
         # Run small patch amr test suite
         hashes = self.small_patch_amr(ds_tb, fields, weights, axes, ds_objs)
         # Save or compare hashes
-        utils.handle_hashes(self.save_dir, 'turboxlowres', hashes, self.answer_store)
+        hashes = {'tb' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_iso
@@ -128,8 +135,9 @@ class TestChombo(fw.AnswerTest):
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
         hashes = self.small_patch_amr(ds_iso, fields, weights, axes, ds_objs)
+        hashes = {'iso' : hashes}
         # Save or compare hashes
-        utils.handle_hashes(self.save_dir, 'isothermalsphere', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_zp
@@ -156,8 +164,9 @@ class TestChombo(fw.AnswerTest):
         fields = ("rhs", "phi")
         # Run small patch amr test suite
         hashes = self.small_patch_amr(ds_zp, fields, weights, axes, ds_objs)
+        hashes = {'zp' : hashes}
         # Save or compare hashes
-        utils.handle_hashes(self.save_dir, 'zeldovichpancake', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_kho
@@ -185,8 +194,9 @@ class TestChombo(fw.AnswerTest):
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
         hashes = self.small_patch_amr(ds_kho, fields, weights, axes, ds_objs)
+        hashes = {'kho' : hashes}
         # Save or compare hashes
-        utils.handle_hashes(self.save_dir, 'kelvinhelmholtz', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_ChomboDataset
