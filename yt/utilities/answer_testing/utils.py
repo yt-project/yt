@@ -73,7 +73,7 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
     fname = os.path.join(save_dir_name, fname)
     # Save answer
     if answer_store:
-        with open(fname, 'w') as f:
+        with open(fname, 'a') as f:
             yaml.dump(hashes, f, default_flow_style=False)
     # Compare to already saved answer
     else:
