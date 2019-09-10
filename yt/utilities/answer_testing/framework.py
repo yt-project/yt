@@ -469,36 +469,43 @@ class AnswerTest():
             'grid_values',
             'pixelized_projection_values',
         ]
+        # Create nested dictionary for saving all test results in the
+        # same file
+        hex_digests = OrderedDict()
         # Grid hierarchy test
-        gh_hd = self.grid_hierarchy_test(ds)
+        gh_hd = utils.generate_hash(self.grid_hierarchy_test(ds))
+        hex_digests['grid_hierarchy'] = gh_hd
         # Parentage relationships test
-        pr_hd = self.parentage_relationships_test(ds)
+        pr_hd = utils.generate_hash(self.parentage_relationships_test(ds))
+        hex_digests['parentage_relationships'] = pr_hd
+        # Grid values, projection values, and field values tests
+        for t in test_keys[2:]:
+            hex_digests[t] = OrderedDict() 
         # Grid values and pixelized projection values tests
         # For these tests it might be possible for a frontend to not
         # run them for every field, axis, or data source, so the tests
         # are written to work with one instance of each of those. These
         # loops therefore combine the results of each desired combo.
         # This mirrors the way that it was done in the original test
-        gv_hd = b''
-        ppv_hd = b''
-        for field in fields:
-            gv_hd += self.grid_values_test(ds, field)
-            for axis in axes:
-                for dobj_name in ds_objs:
-                    for weight_field in weights:
-                        ppv_hd += self.pixelized_projection_values_test(ds,
-                            axis,
-                            field,
-                            weight_field,
-                            dobj_name
+        for f in fields:
+            gv_hd = utils.generate_hash(self.grid_values_test(ds, f))
+            hex_digests['grid_values'][f] = gv_hd
+            hex_digests['pixelized_projection_values'][f] = OrderedDict()
+            for a in axes:
+                hex_digests['pixelized_projection_values'][f][a] = OrderedDict()
+                for dobj in ds_objs:
+                    hex_digests['pixelized_projection_values'][f][a][dobj] = OrderedDict()
+                    for w in weights:
+                        ppv_hd = utils.generate_hash(
+                            self.pixelized_projection_values_test(ds,
+                                a,
+                                f,
+                                w,
+                                dobj
+                            )
                         )
-        # Hash the final byte arrays
-        hex_digests = [gh_hd, pr_hd, gv_hd, ppv_hd]
-        hashes = [utils.generate_hash(hd) for hd in hex_digests]
-        hash_dict = {}
-        for key, value in zip(test_keys, hashes):
-            hash_dict[key] = value
-        return hash_dict
+                        hex_digests['pixelized_projection_values'][f][a][dobj][w] = ppv_hd 
+        return hex_digests
 
     #-----
     # generic_array_test
