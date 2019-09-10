@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict
+
 import pytest
 
 from yt.frontends.gdf.api import GDFDataset
@@ -19,6 +21,10 @@ from yt.utilities.answer_testing import utils
 
 # Test data
 sedov = "sedov/sedov_tst_0004.h5"
+
+
+# Answer file
+answer_file = 'gdf_answers.yaml'
 
 
 #============================================
@@ -64,8 +70,9 @@ class TestGDF(fw.AnswerTest):
         fields = ("density", "velocity_x")
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds_sedov, fields, weights, axes, ds_objs)
+        hashes = {'sedov_tunnel' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'sedov', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_GDFDataset
