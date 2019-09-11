@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict
+
 import numpy as np
 import pytest
 
@@ -27,6 +29,10 @@ c5 = "c5/c5.h5m"
 # Globals
 _fields = (("moab", "flux"),
           )
+
+
+# Answer file
+answer_file = 'moab_answers.yaml'
 
 
 #============================================
@@ -65,7 +71,8 @@ class TestMoab(fw.AnswerTest):
             pass
         """
         ds = ds_c5
-        fv_hd = b''
+        hashes = OrderedDict()
+        hashes['field_values'] = OrderedDict()
         np.random.seed(0x4d3d3d3)
         dso = [ None, ("sphere", ("c", (0.1, 'unitary'))),
                       ("sphere", ("c", (0.2, 'unitary')))]
@@ -87,10 +94,14 @@ class TestMoab(fw.AnswerTest):
                 ray = ds.ray(p1, p2)
                 assert_almost_equal(ray["dts"].sum(dtype="float64"), 1.0, 8)
         for field in _fields:
+            hashes['field_values'][field] = OrderedDict()
             for dobj_name in dso:
-                fv_hd += self.field_values_test(ds, field, dobj_name)
-        hashes = {'field_values' : utils.generate_hash(fv_hd)}
-        utils.handle_hashes(self.save_dir, 'moab-test-c5', hashes, self.answer_store)
+                fv_hd = utils.generate_hash(
+                    self.field_values_test(ds, field, dobj_name)
+                )
+                hashes['field_values'][field][dobj_name] = fv_hd
+        hashes = {'cantor_5' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_MoabHex8Dataset
