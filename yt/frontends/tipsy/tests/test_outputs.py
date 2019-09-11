@@ -42,6 +42,10 @@ tg_fields = OrderedDict(
 )
 
 
+# Answer file
+answer_file = 'tipsy_answers.yaml'
+
+
 #============================================
 #                 TestTipsy
 #============================================
@@ -81,29 +85,38 @@ class TestTipsy(fw.AnswerTest):
             pass
         """
         ds = ds_pkdgrav
-        ppv_hd = b''
-        fv_hd = b''
+        hd = OrderedDict()
+        hd['field_values'] = OrderedDict()
+        hd['pixelized_projection_values'] = OrderedDict()
         dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
         dd = ds.all_data()
         assert_equal(dd["Coordinates"].shape, (26847360, 3))
         tot = sum(dd[ptype,"Coordinates"].shape[0]
                   for ptype in ds.particle_types if ptype != "all")
         assert_equal(tot, 26847360)
-        for dobj_name in dso:
-            for field in _fields:
-                for axis in [0, 1, 2]:
-                    for weight_field in [None]:
-                        ppv_hd += self.pixelized_projection_values_test(
-                            ds, axis, field, weight_field,
-                            dobj_name)
-                fv_hd += self.field_values_test(ds, field, dobj_name)
-            dobj = utils.create_obj(ds, dobj_name)
+        for d in dso:
+            hd['field_values'][d] = OrderedDict()
+            hd['pixelized_projection_values'][d] = OrderedDict()
+            for f in _fields:
+                hd['pixelized_projection_values'][d][f] = OrderedDict()
+                for a in [0, 1, 2]:
+                    hd['pixelized_projection_values'][][f][a] = OrderedDict()
+                    for w in [None]:
+                        ppv_hd = utils.generate_hash(
+                            self.pixelized_projection_values_test(
+                                ds, a, f, w, d)
+                        )
+                        hd['pixelized_projection_values'][d][f][a][w] = ppv_hd
+                fv_hd = utils.generate_hash(
+                    self.field_values_test(ds, f, d)
+                )
+                hd['field_values'][d][f] = fv_hd
+            dobj = utils.create_obj(ds, d)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
-        hashes = {'pixelized_projection_values' : utils.generate_hash(ppv_hd),
-            'field_values' : utils.generate_hash(fv_hd)}
-        utils.handle_hashes(self.save_dir, 'tipsy-test-pkdgrav', hashes, self.answer_store) 
+        hashes = {'pkdgrav' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
 
     #-----
     # test_gasoline_dmonly
@@ -127,29 +140,39 @@ class TestTipsy(fw.AnswerTest):
             pass
         """
         ds = ds_gasoline_dmonly
-        ppv_hd = b''
-        fv_hd = b''
+        hd = OrderedDict()
+        hd['field_values'] = OrderedDict()
+        hd['pixelized_projection_values'] = OrderedDict()
         dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
         dd = ds.all_data()
         assert_equal(dd["Coordinates"].shape, (10550576, 3))
         tot = sum(dd[ptype,"Coordinates"].shape[0]
                   for ptype in ds.particle_types if ptype != "all")
         assert_equal(tot, 10550576)
-        for dobj_name in dso:
-            for field in _fields:
-                for axis in [0, 1, 2]:
-                    for weight_field in [None]:
-                        ppv_hd += self.pixelized_projection_values_test(
-                            ds, axis, field, weight_field,
-                            dobj_name)
-                fv_hd += self.field_values_test(ds, field, dobj_name)
-            dobj = utils.create_obj(ds, dobj_name)
+        for d in dso:
+            hd['field_values'][d] = OrderedDict()
+            hd['pixelized_projection_values'][d] = OrderedDict()
+            for f in _fields:
+                hd['pixelized_projection_values'][d][f] = OrderedDict()
+                for a in [0, 1, 2]:
+                    hd['pixelized_projection_values'][d][f][a] = OrderedDict()
+                    for w in [None]:
+                        ppv_hd = utils.generate_hash(
+                            self.pixelized_projection_values_test(
+                                ds, axis, field, weight_field,
+                                dobj_name)
+                        )
+                        hd['pixelized_projection_values'][d][f][a][w] = ppv_hd
+                fv_hd = utils.generate_hash(
+                    self.field_values_test(ds, f, d)
+                )
+                hd['field_values'][d][f] = fv_hd
+            dobj = utils.create_obj(ds, d)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
-        hashes = {'pixelized_projection_values' : utils.generate_hash(ppv_hd),
-            'field_values' : utils.generate_hash(fv_hd)}
-        utils.handle_hashes(self.save_dir, 'tipsy-test-gasoline-dmonly', hashes, self.answer_store) 
+        hashes = {'gasoline_dm_only' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
 
     #-----
     # test_tipsy_galaxy
@@ -171,7 +194,8 @@ class TestTipsy(fw.AnswerTest):
         """
         ds = utils.data_dir_load(tipsy_gal)
         hashes = self.sph_answer(ds, 'galaxy.00300', 315372, tg_fields)
-        utils.handle_hashes(self.save_dir, 'tipsy-test-galaxy', hashes, self.answer_store)
+        hashes = {'tipsy_galaxy' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_TipsyDataset
