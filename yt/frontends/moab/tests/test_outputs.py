@@ -41,35 +41,11 @@ answer_file = 'moab_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestMoab(fw.AnswerTest):
-    """
-    Container for moab frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_cantor_5
     #-----
     @utils.requires_ds(c5)
     def test_cantor_5(self, ds_c5):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_c5
         hashes = OrderedDict()
         hashes['field_values'] = OrderedDict()
@@ -108,19 +84,6 @@ class TestMoab(fw.AnswerTest):
     #-----
     @requires_file(c5)
     def test_MoabHex8Dataset(self, ds_c5):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_c5, MoabHex8Dataset)
 
     #-----
@@ -128,17 +91,4 @@ class TestMoab(fw.AnswerTest):
     #-----
     @requires_file(c5)
     def test_units_override(self, ds_c5):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_c5, c5)

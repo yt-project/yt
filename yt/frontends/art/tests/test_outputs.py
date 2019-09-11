@@ -36,17 +36,6 @@ answer_file = 'art_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestArt(fw.AnswerTest):
-    """
-    Container for art frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_d9p
     #-----
@@ -159,19 +148,6 @@ class TestArt(fw.AnswerTest):
     #-----
     @requires_file(d9p)
     def test_ARTDataset(self, ds_d9p):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_d9p, ARTDataset)
 
     #-----
@@ -179,17 +155,4 @@ class TestArt(fw.AnswerTest):
     #-----
     @requires_file(d9p)
     def test_units_override(self, ds_d9p):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_d9p, d9p)

@@ -40,35 +40,11 @@ answer_file = 'rockstar_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestRockstar(fw.AnswerTest):
-    """
-    Container for rockstar frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_fields_r1
     #-----
     @utils.requires_ds(r1)
     def test_fields_r1(self, ds_r1):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         hashes = OrderedDict()
         hashes['field_values'] = OrderedDict()
         for field in _fields:
@@ -84,17 +60,4 @@ class TestRockstar(fw.AnswerTest):
     #-----
     @requires_file(r1)
     def test_RockstarDataset(self, ds_r1):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_r1, RockstarDataset)

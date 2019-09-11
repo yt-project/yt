@@ -34,35 +34,11 @@ answer_file = 'exodus_ii_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestExodusII(fw.AnswerTest):
-    """
-    Container for exodus ii frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_out
     #-----
     @requires_file(out)
     def test_out(self, ds_out):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         field_list = [('all', 'conv_indicator'),
                       ('all', 'conv_marker'),
                       ('all', 'convected'),
@@ -86,19 +62,6 @@ class TestExodusII(fw.AnswerTest):
     #-----
     @requires_file(out_s002)
     def test_out002(self, ds_out_s002):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         field_list = [('all', 'conv_indicator'),
                       ('all', 'conv_marker'),
                       ('all', 'convected'),
@@ -120,19 +83,6 @@ class TestExodusII(fw.AnswerTest):
     #-----
     @requires_file(gold)
     def test_gold(self, ds_gold):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         field_list = [('all', 'forced'), ('connect1', 'forced')]
         assert_array_equal(ds_gold.field_list, field_list)
 
@@ -141,19 +91,6 @@ class TestExodusII(fw.AnswerTest):
     #-----
     @utils.requires_ds(big_data)
     def test_displacement_fields(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         displacement_dicts =[{'connect2': (5.0, [0.0, 0.0, 0.0])},
                              {'connect1': (1.0, [1.0, 2.0, 3.0]),
                               'connect2': (0.0, [0.0, 0.0, 0.0])}]

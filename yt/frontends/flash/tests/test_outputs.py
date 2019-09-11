@@ -38,17 +38,6 @@ answer_file = 'flash_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestFlash(fw.AnswerTest):
-    """
-    Container for flash frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_sloshing
     #-----
@@ -57,19 +46,6 @@ class TestFlash(fw.AnswerTest):
     )
     @utils.requires_ds(sloshing)
     def test_sloshing(self, ds_sloshing):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -87,19 +63,6 @@ class TestFlash(fw.AnswerTest):
     #-----
     @utils.requires_ds(wt)
     def test_wind_tunnel(self, ds_wt):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -117,19 +80,6 @@ class TestFlash(fw.AnswerTest):
     #-----
     @requires_file(wt)
     def test_FLASHDataset(self, ds_wt):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_wt, FLASHDataset)
 
     #-----
@@ -157,19 +107,6 @@ class TestFlash(fw.AnswerTest):
     #-----
     @requires_file(fid_1to3_b1)
     def test_FLASHParticleDataset(self, ds_fid_1to3_b1):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_fid_1to3_b1, FLASHParticleDataset)
 
     #-----
@@ -177,19 +114,6 @@ class TestFlash(fw.AnswerTest):
     #-----
     @requires_file(dens_turb_mag)
     def test_FLASH25_dataset(self, ds_dens_turb_mag):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert_equal(ds_dens_turb_mag.parameters['time'], 751000000000.0)
         assert_equal(ds_dens_turb_mag.domain_dimensions, np.array([8, 8, 8]))
         assert_equal(ds_dens_turb_mag.domain_left_edge,
@@ -206,19 +130,6 @@ class TestFlash(fw.AnswerTest):
     )
     @utils.requires_ds(fid_1to3_b1)
     def test_fid_1to3_b1(self, ds_fid_1to3_b1):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         fid_1to3_b1_fields = OrderedDict(
             [
                 (("deposit", "all_density"), None),

@@ -54,32 +54,8 @@ OCT_MASK_LIST = [8, 0, 0, 0, 0, 8, 0, 0,
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestStream(fw.AnswerTest):
-    """
-    Container for stream frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     @pytest.mark.usefixtures('temp_dir')
     def test_load_empty_file(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert_raises(YTOutputNotIdentified, load, "not_a_file")
         assert_raises(YTOutputNotIdentified, load, tempfile.mkstemp('empty_file', dir=os.getcwd()))
         assert_raises(YTOutputNotIdentified, load, tempfile.mkdtemp(dir=os.getcwd()))
@@ -88,19 +64,6 @@ class TestStream(fw.AnswerTest):
     # test_dimensionless_field_units
     #-----
     def test_dimensionless_field_units(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         Z = np.random.uniform(size=(32,32,32))
         d = np.random.uniform(size=(32,32,32))
         data = {"density": d, "metallicity": Z}
@@ -112,19 +75,6 @@ class TestStream(fw.AnswerTest):
     # test_inconsistent_field_shape
     #-----
     def test_inconsistent_field_shape(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         def load_field_field_mismatch():
             d = np.random.uniform(size=(32, 32, 32))
             t = np.random.uniform(size=(32, 64, 32))
@@ -154,19 +104,6 @@ class TestStream(fw.AnswerTest):
     # test_qt_overflow
     #-----
     def test_qt_overflow(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         grid_data = []
         grid_dict = {}
         grid_dict['left_edge'] = [-1.0, -1.0, -1.0]
@@ -186,19 +123,6 @@ class TestStream(fw.AnswerTest):
     # test_refine_by
     #-----
     def test_refine_by(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         grid_data = []
         ref_by = 4
         lo = 0.0
@@ -219,19 +143,6 @@ class TestStream(fw.AnswerTest):
     # test_validation
     #-----
     def test_validation(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         dims = np.array([4, 2, 4])
         grid_data = [
             dict(left_edge = [0.0, 0.0, 0.0],
@@ -253,19 +164,6 @@ class TestStream(fw.AnswerTest):
     # test_stream_hexahedral
     #-----
     def test_stream_hexahedral(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         np.random.seed(0x4d3d3d3)
         Nx, Ny, Nz = 32, 18, 24
         # Note what we're doing here -- we are creating a randomly spaced mesh, but
@@ -313,19 +211,6 @@ class TestStream(fw.AnswerTest):
     # test_octree
     #-----
     def test_octree(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # See Issue #1272
         octree_mask = np.array(OCT_MASK_LIST, dtype=np.uint8)
         quantities = {}
@@ -343,19 +228,6 @@ class TestStream(fw.AnswerTest):
     # test_stream_particles
     #-----
     def test_stream_particles(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         num_particles = 100000
         domain_dims = (64, 64, 64)
         dens = np.random.random(domain_dims) 
@@ -544,19 +416,6 @@ class TestStream(fw.AnswerTest):
     # test_load_particles_types
     #-----
     def test_load_particles_types(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         num_particles = 10000
         data1 = {"particle_position_x": np.random.random(size=num_particles),
                  "particle_position_y": np.random.random(size=num_particles),
@@ -595,19 +454,6 @@ class TestStream(fw.AnswerTest):
     # test_particles_outside_domain
     #-----
     def test_particles_outside_domain(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         np.random.seed(0x4d3d3d3)
         posx_arr = np.random.uniform(low=-1.6, high=1.5, size=1000)
         posy_arr = np.random.uniform(low=-1.5, high=1.5, size=1000)
@@ -629,19 +475,6 @@ class TestStream(fw.AnswerTest):
     # test_multi_mesh
     #-----
     def test_multi_mesh(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         coordsMulti = np.array([[0.0, 0.0],
                                 [1.0, 0.0],
                                 [1.0, 1.0],
@@ -664,19 +497,6 @@ class TestStream(fw.AnswerTest):
     # test_multi_field
     #-----
     def test_multi_field(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         coords = np.array([[0.0, 0.0],
                            [1.0, 0.0],
                            [1.0, 1.0],
@@ -698,19 +518,6 @@ class TestStream(fw.AnswerTest):
     # test_update_data
     #-----
     def test_update_data(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = fake_random_ds(64, nprocs=8)
         ds.index
         dims = (32,32,32)

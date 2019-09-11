@@ -37,35 +37,11 @@ answer_file = 'artio_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestArtIo(fw.AnswerTest):
-    """
-    Container for ARTIO answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_sizmbhloz
     #-----
     @utils.requires_ds(sizmbhloz)
     def test_sizmbhloz(self, ds_sizmbhloz):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds_sizmbhloz.max_range = 1024*1024
         # Set up test parameters
         dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
@@ -108,21 +84,6 @@ class TestArtIo(fw.AnswerTest):
     #-----
     @requires_file(sizmbhloz)
     def test_ARTIODataset(self, ds_sizmbhloz):
-        """
-        Makes sure the loaded data is the proper type.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns
-        -------
-            pass
-        """
         assert isinstance(ds_sizmbhloz, ARTIODataset)
 
     #-----
@@ -130,21 +91,6 @@ class TestArtIo(fw.AnswerTest):
     #-----
     @requires_file(sizmbhloz)
     def test_units_override(self, ds_sizmbhloz):
-        """
-        Performs the units override test.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_sizmbhloz, sizmbhloz)
 
     #-----
@@ -152,21 +98,6 @@ class TestArtIo(fw.AnswerTest):
     #-----
     @requires_file(sizmbhloz)
     def test_particle_derived_field(self, ds_sizmbhloz):
-        """
-        Defines a derived field and makes sure that it works.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         def star_age_alias(field, data):
             # test to make sure we get back data in the correct units
             # during field detection

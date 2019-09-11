@@ -49,17 +49,6 @@ fields = OrderedDict(
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestGizmo(fw.AnswerTest):
-    """
-    Container for gizmo frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_gizmo_64
     #-----
@@ -68,19 +57,6 @@ class TestGizmo(fw.AnswerTest):
     )
     @utils.requires_ds(g64)
     def test_gizmo_64(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = yt.load(g64)
         assert isinstance(ds, GizmoDataset)
         hashes = self.sph_answer(ds, 'snap_N64L16_135', 524288, fields)
@@ -92,20 +68,7 @@ class TestGizmo(fw.AnswerTest):
     #-----
     @requires_file(gmhd)
     def test_gizmo_mhd(self, ds_gmhd):
-        """
-        Magnetic fields should be loaded correctly when they are present.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
+        r"""Magnetic fields should be loaded correctly when they are present.
         """
         ds = ds_gmhd
         ad = ds.all_data()
@@ -126,20 +89,7 @@ class TestGizmo(fw.AnswerTest):
     #-----
     @requires_file(gmhd)
     def test_gas_particle_fields(self, ds_gmhd):
-        """
-        Test fields set up in GizmoFieldInfo.setup_gas_particle_fields.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
+        r"""Test fields set up in GizmoFieldInfo.setup_gas_particle_fields.
         """
         ds = ds_gmhd
         ptype = "PartType0"
@@ -171,20 +121,7 @@ class TestGizmo(fw.AnswerTest):
     #-----
     @requires_file(gmhd)
     def test_star_particle_fields(self, ds_gmhd):
-        """
-        Test fields set up in GizmoFieldInfo.setup_star_particle_fields.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
+        r"""Test fields set up in GizmoFieldInfo.setup_star_particle_fields.
         """
         ds = ds_gmhd
         ptype = "PartType4"

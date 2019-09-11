@@ -38,35 +38,11 @@ answer_file = 'gadget_fof_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestGadgetFOF(fw.AnswerTest):
-    """
-    Container for gadget fof frontend tests.
-
-    Attritubes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_fields_g5
     #-----
     @requires_file(g5)
     def test_fields_g5(self, ds_g5):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         fields = ("particle_position_x", "particle_position_y",
                    "particle_position_z", "particle_velocity_x",
                    "particle_velocity_y", "particle_velocity_z",
@@ -86,19 +62,6 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     @utils.requires_ds(g42)
     def test_fields_g42(self, ds_g42):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         fields = ("particle_position_x", "particle_position_y",
                    "particle_position_z", "particle_velocity_x",
                    "particle_velocity_y", "particle_velocity_z",
@@ -118,19 +81,6 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     @requires_file(g42)
     def test_GadgetFOFDataset(self, ds_g42):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_g42, GadgetFOFDataset)
 
     #-----
@@ -138,19 +88,6 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     @requires_file(g298)
     def test_subhalos(self, ds_g298):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         total_sub = 0
         total_int = 0
         for hid in range(0, ds_g298.index.particle_count["Group"]):
@@ -167,19 +104,6 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     @requires_file(g298)
     def test_halo_masses(self, ds_g298):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ad = ds_g298.all_data()
         for ptype in ["Group", "Subhalo"]:
             nhalos = ds_g298.index.particle_count[ptype]
@@ -194,19 +118,6 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     @requires_file(g56)
     def test_unbalanced_dataset(self, ds_g56):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         halo = ds_g56.halo("Group", 0)
         halo["member_ids"]
         assert True
@@ -216,19 +127,6 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     @requires_file(g76)
     def test_3file_halo(self, ds_g76):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # this halo's particles are distributed over 3 files with the
         # middle file being empty
         halo = ds_g76.halo("Group", 6)

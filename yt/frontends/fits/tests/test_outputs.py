@@ -47,35 +47,11 @@ answer_file = 'fits_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason=("--with-answer-testing not set.")
 class TestFits(fw.AnswerTest):
-    """
-    Container for fits frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_grs
     #-----
     @utils.requires_ds(grs)
     def test_grs(self, ds_grs):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_grs
         # Set up arrays for testing
         axes = [0, 1, 2]
@@ -93,19 +69,6 @@ class TestFits(fw.AnswerTest):
     #-----
     @utils.requires_ds(vf)
     def test_velocity_field(self, ds_vf):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_vf
         # Set up arrays for testing
         axes = [0, 1, 2]
@@ -123,19 +86,6 @@ class TestFits(fw.AnswerTest):
     #-----
     @utils.requires_ds(acis)
     def test_acis(self, ds_acis):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         from yt.frontends.fits.misc import setup_counts_fields
         ds = ds_acis
         ebounds = [(0.1, 2.0), (2.0, 5.0)]
@@ -157,19 +107,6 @@ class TestFits(fw.AnswerTest):
     #-----
     @utils.requires_ds(A2052)
     def test_A2052(self, ds_A2052):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_A2052
         # Set up arrays for testing
         axes = [0, 1, 2]
@@ -187,19 +124,6 @@ class TestFits(fw.AnswerTest):
     #-----
     @requires_file(vf)
     def test_units_override(self, ds_vf):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_vf, vf)
 
     #-----
@@ -207,19 +131,6 @@ class TestFits(fw.AnswerTest):
     #-----
     @requires_file(vf)
     def test_FITSDataset(self, ds_vf):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_vf, FITSDataset)
 
     #-----
@@ -227,19 +138,6 @@ class TestFits(fw.AnswerTest):
     #-----
     @requires_file(grs)
     def test_SpectralCubeFITSDataset(self, ds_grs):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_grs, SpectralCubeFITSDataset)
 
     #-----
@@ -247,19 +145,6 @@ class TestFits(fw.AnswerTest):
     #-----
     @requires_file(acis)
     def test_EventsFITSDataset(self, ds_acis):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_acis, EventsFITSDataset)
 
     #-----
@@ -267,17 +152,4 @@ class TestFits(fw.AnswerTest):
     #-----
     @requires_file(A2052)
     def test_SkyDataFITSDataset(self, ds_A2052):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_A2052, SkyDataFITSDataset)

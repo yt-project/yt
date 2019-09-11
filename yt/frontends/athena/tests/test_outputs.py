@@ -57,35 +57,11 @@ answer_file = 'athena_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestAthena(fw.AnswerTest):
-    """
-    Container for the athena frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_cloud
     #-----
     @utils.requires_ds(cloud)
     def test_cloud(self, ds_cloud):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_cloud
         # Set up arrays for testing
         axes = [0, 1, 2]
@@ -104,19 +80,6 @@ class TestAthena(fw.AnswerTest):
     #-----
     @utils.requires_ds(blast)
     def test_blast(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = utils.data_dir_load(blast) 
         # Set up arrays for testing
         axes = [0, 1, 2]
@@ -135,19 +98,6 @@ class TestAthena(fw.AnswerTest):
     #-----
     @requires_file(blast)
     def test_blast_override(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # verify that overriding units causes derived unit values to be updated.
         # see issue #1259
         ds = load(blast, units_override=uo_blast)
@@ -161,19 +111,6 @@ class TestAthena(fw.AnswerTest):
     )
     @utils.requires_ds(stripping)
     def test_stripping(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = utils.data_dir_load(stripping, kwargs={"units_override":uo_stripping})
         # Set up arrays for testing
         axes = [0, 1, 2]
@@ -193,19 +130,6 @@ class TestAthena(fw.AnswerTest):
     @requires_file(sloshing)
     @disable_dataset_cache
     def test_nprocs(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds1 = load(sloshing, units_override=uo_sloshing)
         sp1 = ds1.sphere("c", (100.,"kpc"))
         prj1 = ds1.proj("density",0)
@@ -232,17 +156,4 @@ class TestAthena(fw.AnswerTest):
     #-----
     @requires_file(cloud)
     def test_AthenaDataset(self, ds_cloud):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_cloud, AthenaDataset)

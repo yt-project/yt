@@ -45,35 +45,11 @@ answer_file = 'ramses_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestRamses(fw.AnswerTest):
-    """
-    Container for Ramses frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_output_00080
     #-----
     @utils.requires_ds(output_00080)
     def test_output_00080(self, ds_output_00080):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Hex digests
         hashes = OrderedDict()
         hashes['pixelized_projection_values'] = OrderedDict()
@@ -117,19 +93,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(output_00080)
     def test_RAMSESDataset(self, ds_output_00080):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_output_00080, RAMSESDataset)
 
     #-----
@@ -137,19 +100,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(output_00080)
     def test_units_override(self, ds_output_00080):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_output_00080, output_00080)
 
     #-----
@@ -157,19 +107,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramsesNonCosmo)
     def test_non_cosmo_detection(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = yt.load(ramsesNonCosmo, cosmological=False)
         assert_equal(ds.cosmological_simulation, 0)
         ds = yt.load(ramsesNonCosmo, cosmological=None)
@@ -182,19 +119,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramsesNonCosmo)
     def test_unit_non_cosmo(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         for force_cosmo in [False, None]:
             ds = yt.load(ramsesNonCosmo, cosmological=force_cosmo)
             # Ramses time
@@ -209,19 +133,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(output_00080)
     def test_cosmo_detection(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = yt.load(output_00080, cosmological=True)
         assert_equal(ds.cosmological_simulation, 1)
         ds = yt.load(output_00080, cosmological=None)
@@ -234,19 +145,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(output_00080)
     def test_unit_cosmo(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         for force_cosmo in [True, None]:
             ds = yt.load(output_00080, cosmological=force_cosmo)
             # Ramses time
@@ -261,19 +159,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramsesExtraFieldsSmall)
     def test_extra_fields(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         extra_fields = [('particle_family', 'I'), ('particle_pointer', 'I')]
         ds = yt.load(os.path.join(ramsesExtraFieldsSmall, 'info_00001.txt'),
                      extra_particle_fields=extra_fields)
@@ -290,19 +175,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramsesExtraFieldsSmall)
     def test_extra_fields_2(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         extra_fields = ['particle_extra_field_%s' % (i + 1) for i in range(2)]
         ds = yt.load(os.path.join(ramsesExtraFieldsSmall, 'info_00001.txt'))
         # the dataset should contain the fields
@@ -316,19 +188,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramses_rt)
     def test_ramses_rt(self, ds_ramses_rt):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ad = ds_ramses_rt.all_data()
         expected_fields = ["Density", "x-velocity", "y-velocity", "z-velocity",
                            "Pres_IR", "Pressure", "Metallicity", "HII", "HeII",
@@ -354,19 +213,6 @@ class TestRamses(fw.AnswerTest):
     @requires_file(ramses_sink)
     @requires_file(output_00080)
     def test_ramses_sink(self, ds_ramses_sink, ds_output_00080):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         expected_fields = ["BH_bondi_accretion", "BH_eddington_accretion",
                            "BH_efficiency", "BH_esave",
                            "BH_real_accretion", "BH_spin", "BH_spin_x",
@@ -396,19 +242,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramses_new_format)
     def test_new_format(self, ds_ramses_new_format):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         expected_particle_fields = [
             ('star', 'particle_identity'),
             ('star', 'particle_level'),
@@ -436,19 +269,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramses_sink)
     def test_ramses_part_count(self, ds_ramses_sink):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         pcount = ds_ramses_sink.particle_type_counts
         assert_equal(pcount['io'], 17132)
         assert_equal(pcount['sink'], 8)
@@ -458,19 +278,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(output_00080)
     def test_custom_particle_def(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ytcfg.add_section('ramses-particles')
         ytcfg['ramses-particles', 'fields'] = '''particle_position_x, d
              particle_position_y, d
@@ -500,19 +307,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(output_00080)
     def test_custom_hydro_def(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ytcfg.add_section('ramses-hydro')
         ytcfg['ramses-hydro', 'fields'] = '''
         Density
@@ -538,19 +332,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(output_00080)
     def test_grav_detection(self, ds_output_00080):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Test detection
         for k in 'xyz':
             assert ('gravity', '%s-acceleration' % k) in ds_output_00080.field_list
@@ -565,22 +346,6 @@ class TestRamses(fw.AnswerTest):
     @requires_file(ramses_rt)
     @requires_file(output_00080)
     def test_ramses_field_detection(self):
-        """
-        The decorator uses ramses_sink, but the function uses ramses_rt.
-        Not sure which is right.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds1 = yt.load(ramses_rt)
         assert 'ramses' not in DETECTED_FIELDS
         # Now they are detected !
@@ -607,19 +372,6 @@ class TestRamses(fw.AnswerTest):
     @requires_file(output_00080)
     @requires_file(ramsesNonCosmo)
     def test_formation_time(self, ds_ramses_new_format):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         extra_particle_fields = [('particle_birth_time', 'd'),
                                  ('particle_metallicity', 'd')]
         # test semantics for cosmological dataset
@@ -650,19 +402,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramses_new_format)
     def test_cooling_fields(self, ds_ramses_new_format):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Test the field is being loaded correctly
         ds = ds_ramses_new_format
         # Derived cooling fields
@@ -702,19 +441,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramses_rt)
     def test_ramses_mixed_files(self, ds_ramses_rt):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Test that one can use derived fields that depend on different
         # files (here hydro and rt files)
         ds = ds_ramses_rt
@@ -729,19 +455,6 @@ class TestRamses(fw.AnswerTest):
     #-----
     @requires_file(ramses_empty_record)
     def test_ramses_empty_record(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Test that yt can load datasets with empty records
         ds = yt.load(ramses_empty_record)
         # This should not fail

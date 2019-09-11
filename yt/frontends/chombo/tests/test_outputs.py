@@ -38,35 +38,11 @@ answer_file = 'chombo_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestChombo(fw.AnswerTest):
-    """
-    Container for chombo frontend tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_gc
     #-----
     @utils.requires_ds(gc)
     def test_gc(self, ds_gc):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -84,19 +60,6 @@ class TestChombo(fw.AnswerTest):
     #-----
     @utils.requires_ds(tb)
     def test_tb(self, ds_tb):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -114,19 +77,6 @@ class TestChombo(fw.AnswerTest):
     #-----
     @utils.requires_ds(iso)
     def test_iso(self, ds_iso):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -144,19 +94,6 @@ class TestChombo(fw.AnswerTest):
     #-----
     @utils.requires_ds(zp)
     def test_zp(self, ds_zp):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         axes = [0, 1, 2]
         center = "c"
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
@@ -173,19 +110,6 @@ class TestChombo(fw.AnswerTest):
     #-----
     @utils.requires_ds(kho)
     def test_kho(self, ds_kho):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -203,19 +127,6 @@ class TestChombo(fw.AnswerTest):
     #-----
     @requires_file(zp)
     def test_ChomboDataset(self, ds_zp):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_zp, ChomboDataset)
 
     #-----
@@ -223,19 +134,6 @@ class TestChombo(fw.AnswerTest):
     #-----
     @requires_file(gc)
     def test_Orion2Dataset(self, ds_gc):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_gc, Orion2Dataset)
 
     #-----
@@ -243,19 +141,6 @@ class TestChombo(fw.AnswerTest):
     #-----
     @requires_file(kho)
     def test_PlutoDataset(self, ds_kho):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_kho, PlutoDataset)
 
     #-----
@@ -263,19 +148,6 @@ class TestChombo(fw.AnswerTest):
     #-----
     @requires_file(zp)
     def test_units_override_zp(self, ds_zp):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_zp, zp)
 
     #-----
@@ -283,19 +155,6 @@ class TestChombo(fw.AnswerTest):
     #-----
     @requires_file(gc)
     def test_units_override_gc(self, ds_gc):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_gc, gc)
 
     #-----
@@ -303,17 +162,4 @@ class TestChombo(fw.AnswerTest):
     #-----
     @requires_file(kho)
     def test_units_override_kho(self, ds_kho):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_kho, kho)

@@ -58,35 +58,11 @@ answer_file = 'ytdata_answers.yaml'
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir')
 class TestYTData(fw.AnswerTest):
-    """
-    Container for YTData frontend tests
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_datacontainer_data
     #-----
     @utils.requires_ds(enzotiny)
     def test_datacontainer_data(self, ds_enzotiny):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         hashes = OrderedDict()
         hashes['yt_field'] = OrderedDict()
         ds = ds_enzotiny
@@ -115,19 +91,6 @@ class TestYTData(fw.AnswerTest):
     #-----
     @utils.requires_ds(enzotiny)
     def test_grid_datacontainer_data(self, ds_enzotiny):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         hd = OrderedDict()
         hd['grid_datacontainer1'] = OrderedDict()
         hd['grid_datacontainer2'] = OrderedDict()
@@ -176,19 +139,6 @@ class TestYTData(fw.AnswerTest):
     #-----
     @utils.requires_ds(enzotiny)
     def test_spatial_data(self, ds_enzotiny):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_enzotiny
         proj = ds.proj("density", "x", weight_field="density")
         fn = proj.save_as_dataset()
@@ -205,19 +155,6 @@ class TestYTData(fw.AnswerTest):
     #-----
     @utils.requires_ds(enzotiny)
     def test_profile_data(self, ds_enzotiny):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_enzotiny
         ad = ds.all_data()
         profile_1d = create_profile(ad, "density", "temperature",
@@ -268,19 +205,6 @@ class TestYTData(fw.AnswerTest):
     #-----
     @utils.requires_ds(enzotiny)
     def test_nonspatial_data(self, ds_enzotiny):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         hd = OrderedDict()
         hd['yt_field_test'] = OrderedDict()
         ds = ds_enzotiny
@@ -317,19 +241,6 @@ class TestYTData(fw.AnswerTest):
     #-----
     @requires_module('h5py')
     def test_plot_data(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = fake_random_ds(16)
         plot = SlicePlot(ds, 'z', 'density')
         fn = plot.data_source.save_as_dataset('slice.h5')

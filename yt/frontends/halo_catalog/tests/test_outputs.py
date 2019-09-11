@@ -28,36 +28,12 @@ from yt.utilities.answer_testing import utils
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir')
 class TestHaloCatalog(fw.AnswerTest):
-    """
-    Container for halo catalog frontend tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
 
     #-----
     # test_halo_caatalog
     #-----
     @requires_module('h5py')
     def test_halo_catalog(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         rs = np.random.RandomState(3670474)
         n_halos = 100
         fields = ['particle_%s' % name for name in
@@ -80,19 +56,6 @@ class TestHaloCatalog(fw.AnswerTest):
     #-----
     @requires_module('h5py')
     def test_halo_catalog_boundary_particles(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         rs = np.random.RandomState(3670474)
         n_halos = 100
         fields = ['particle_%s' % name for name in

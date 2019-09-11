@@ -34,35 +34,11 @@ groupBased = "singleParticle/simData.h5"
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestOpenPMD(fw.AnswerTest):
-    """
-    Container for open_pmd answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_3d_out
     #-----
     @requires_file(threeD)
     def test_3d_out(self, ds_threeD):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         field_list = [('all', 'particle_charge'),
                       ('all', 'particle_mass'),
                       ('all', 'particle_momentum_x'),
@@ -110,19 +86,6 @@ class TestOpenPMD(fw.AnswerTest):
     #-----
     @requires_file(twoD)
     def test_2d_out(self, ds_twoD):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         field_list = [('Hydrogen1+', 'particle_charge'),
                       ('Hydrogen1+', 'particle_mass'),
                       ('Hydrogen1+', 'particle_momentum_x'),
@@ -188,19 +151,6 @@ class TestOpenPMD(fw.AnswerTest):
     #-----
     @requires_file(noFields)
     def test_no_fields_out(self, ds_noFields):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         field_list = [('all', 'particle_charge'),
                       ('all', 'particle_id'),
                       ('all', 'particle_mass'),
@@ -245,19 +195,6 @@ class TestOpenPMD(fw.AnswerTest):
     #-----
     @requires_file(noParticles)
     def test_no_particles_out(self, ds_noParticles):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         field_list = [('openPMD', 'E_x'),
                       ('openPMD', 'E_y'),
                       ('openPMD', 'E_z'),
@@ -281,19 +218,6 @@ class TestOpenPMD(fw.AnswerTest):
     #-----
     @requires_file(groupBased)
     def test_groupBased_out(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         dss = load(groupBased)
         field_list = [('all', 'particle_charge'),
                       ('all', 'particle_mass'),

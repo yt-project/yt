@@ -50,17 +50,6 @@ answer_file = 'owls_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestOwls(fw.AnswerTest):
-    """
-    Container for the owls frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_snapshot_033
     #-----
@@ -69,19 +58,6 @@ class TestOwls(fw.AnswerTest):
     )
     @utils.requires_ds(os33)
     def test_snapshot_033(self, ds_os33):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         hashes = self.sph_answer(ds_os33, 'snap_033', 2*128**3, _fields)
         hashes = {'snapshot_033' : hashes}
         utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
@@ -91,19 +67,6 @@ class TestOwls(fw.AnswerTest):
     #-----
     @requires_file(os33)
     def test_OWLSDataset(self, ds_os33):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_os33, OWLSDataset)
     
     #-----
@@ -111,19 +74,6 @@ class TestOwls(fw.AnswerTest):
     #----- 
     @utils.requires_ds(os33)
     def test_OWLS_particlefilter(self, ds_os33):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_os33
         ad = ds.all_data()
         def cold_gas(pfilter, data):

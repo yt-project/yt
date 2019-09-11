@@ -37,35 +37,11 @@ answer_file = 'athena_pp_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestAthenaPP(fw.AnswerTest):
-    """
-    Container for athena++ frontent tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_disk
     #-----
     @utils.requires_ds(disk)
     def test_disk(self, ds_disk):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         hashes = OrderedDict()
         hashes['generic_array'] = OrderedDict()
         fields = ("density", "velocity_r")
@@ -89,19 +65,6 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     @utils.requires_ds(AM06)
     def test_AM06(self, ds_AM06):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -123,21 +86,8 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     @requires_file(AMO06)
     def test_AM06_override(self):
-        """
-        Verify that overriding units causes derived unit values to be
+        r"""Verify that overriding units causes derived unit values to be
         updated. See issue #1259.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
         """
         uo_AM06 = {
             'length_unit': (1.0, 'kpc'),
@@ -152,19 +102,6 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     @requires_file(AM06)
     def test_units_override(self, ds_AM06):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_AM06, AM06)
 
     #-----
@@ -172,17 +109,4 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     @requires_file(AM06)
     def test_AthenaPPDataset(self, ds_AM06):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_AM06, AthenaPPDataset)

@@ -57,35 +57,11 @@ answer_file = 'gadget_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason=("--with-answer-testing not set.")
 class TestGadget(fw.AnswerTest):
-    """
-    Container for the gadget frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_gadget_binary
     #-----
     @pytest.mark.usefixtures('temp_dir')
     def test_gadget_binary(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         header_specs = ['default', 'default+pad32', ['default', 'pad32']]
         for header_spec, endian, fmt in product(header_specs, '<>', [1, 2]):
             fake_snap = fake_gadget_binary(
@@ -102,19 +78,6 @@ class TestGadget(fw.AnswerTest):
     #-----
     @requires_file(isothermal_h5)
     def test_gadget_hdf5(self, ds_isothermal_h5):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_isothermal_h5, GadgetHDF5Dataset)
 
     #-----
@@ -122,22 +85,9 @@ class TestGadget(fw.AnswerTest):
     #-----
     @requires_file(keplerian_ring)
     def test_non_cosmo_dataset(self):
-        """
-        Non-cosmological datasets may not have the cosmological parametrs in the
+        r"""Non-cosmological datasets may not have the cosmological parametrs in the
         Header. The code should fall back gracefully when they are not present,
         with the Redshift set to 0.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
         """
         data = utils.data_dir_load(keplerian_ring)
         assert data.current_redshift == 0.0
@@ -148,19 +98,6 @@ class TestGadget(fw.AnswerTest):
     #-----
     @utils.requires_ds(isothermal_h5)
     def test_iso_collapse(self, ds_isothermal_h5):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         hashes = self.sph_answer(ds_isothermal_h5, 'snap_505', 2**17, iso_fields)
         hashes = {'iso_collapse' : hashes}
         utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
@@ -170,21 +107,6 @@ class TestGadget(fw.AnswerTest):
     #-----
     @utils.requires_ds(LE_SnapFormat2)
     def test_pid_uniqueness(self):
-        """
-        ParticleIDs should be unique.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = utils.data_dir_load(LE_SnapFormat2)
         ad = ds.all_data()
         pid = ad['ParticleIDs']
@@ -195,19 +117,6 @@ class TestGadget(fw.AnswerTest):
     #-----
     @utils.requires_ds(BE_Gadget)
     def test_bigendian_field_access(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = utils.data_dir_load(BE_Gadget)
         data = ds.all_data()
         data['Halo', 'Velocities']

@@ -46,53 +46,16 @@ answer_file = 'enzo_p_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestEnzoP(fw.AnswerTest):
-    """
-    Container for enzo_p frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_EnzoDataset
     #-----
     @requires_file(hello_world)
     def test_EnzoPDataset(self, ds_hello_world):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_hello_world, EnzoPDataset)
 
     #-----
     # test_hello_world
     #-----
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
     @utils.requires_ds(hello_world)
     def test_hello_world(self, ds_hello_world):
         hd = OrderedDict()
@@ -127,19 +90,6 @@ class TestEnzoP(fw.AnswerTest):
     #-----
     @utils.requires_ds(ep_cosmo)
     def test_particle_fields(self, ds_ep_cosmo):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         hd = OrderedDict()
         hd['field_values'] = OrderedDict()
         ds = ds_ep_cosmo
@@ -164,19 +114,6 @@ class TestEnzoP(fw.AnswerTest):
     #-----
     @requires_file(hello_world)
     def test_hierarchy(self, ds_hello_world):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_hello_world
         fh = h5py.File(ds.index.grids[0].filename, "r")
         for grid in ds.index.grids:
@@ -197,19 +134,6 @@ class TestEnzoP(fw.AnswerTest):
     #-----
     @requires_file(ep_cosmo)
     def test_critical_density(self, ds_ep_cosmo):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_ep_cosmo
         c1 = (ds.r["dark", "particle_mass"].sum() +
               ds.r["gas", "cell_mass"].sum()) / \

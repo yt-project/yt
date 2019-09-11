@@ -34,34 +34,11 @@ answer_file = 'owls_subfind_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestOwlsSubfind(fw.AnswerTest):
-    """
-    Container for Owls subfind answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_fields_g8
     #-----
     @utils.requires_ds(g8)
     def test_fields_g8(self, ds_g8):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-        """
         hashes = OrderedDict()
         hashes['field_values'] = OrderedDict()
         fields = ("particle_position_x", "particle_position_y",
@@ -79,18 +56,6 @@ class TestOwlsSubfind(fw.AnswerTest):
     #-----
     @utils.requires_ds(g1)
     def test_fields_g1(self, ds_g1):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-        """
         hashes = OrderedDict()
         hashes['field_values'] = OrderedDict()
         fields = ("particle_position_x", "particle_position_y",
@@ -108,16 +73,4 @@ class TestOwlsSubfind(fw.AnswerTest):
     #-----
     @requires_file(g1)
     def test_OWLSSubfindDataset(self, ds_g1):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-        """
         assert isinstance(ds_g1, OWLSSubfindDataset)

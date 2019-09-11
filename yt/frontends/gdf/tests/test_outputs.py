@@ -33,35 +33,11 @@ answer_file = 'gdf_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestGDF(fw.AnswerTest):
-    """
-    Conainer for gdf frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_sedov_tunnel
     #-----
     @requires_file(sedov)
     def test_sedov_tunnel(self, ds_sedov):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"

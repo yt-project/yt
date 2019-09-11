@@ -34,37 +34,11 @@ answer_file = 'ahf_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestAHF(fw.AnswerTest):
-    """
-    Container for AHF frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_AHFHalosDataset
     #-----
     @requires_file(ahf_halos)
     def test_AHFHalosDataset(self, ds_ahf_halos):
-        """
-        Makes sure the dataset is loaded correctly.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_ahf_halos, AHFHalosDataset)
 
     #-----
@@ -72,21 +46,6 @@ class TestAHF(fw.AnswerTest):
     #-----
     @utils.requires_ds(ahf_halos)
     def test_fields_ahf_halos(self, ds_ahf_halos):
-        """
-        Runs the field_values_test on AHF fields.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         fields = ('particle_position_x', 'particle_position_y',
                    'particle_position_z', 'particle_mass')
         hashes = OrderedDict()

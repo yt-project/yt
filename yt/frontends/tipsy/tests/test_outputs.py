@@ -52,17 +52,6 @@ answer_file = 'tipsy_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestTipsy(fw.AnswerTest):
-    """
-    Container for tipsy frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_pkdgrav
     #-----
@@ -71,19 +60,6 @@ class TestTipsy(fw.AnswerTest):
     )
     @utils.requires_ds(pkdgrav, file_check = True)
     def test_pkdgrav(self, ds_pkdgrav):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_pkdgrav
         hd = OrderedDict()
         hd['field_values'] = OrderedDict()
@@ -126,19 +102,6 @@ class TestTipsy(fw.AnswerTest):
     )
     @utils.requires_ds(gasoline_dmonly, file_check = True)
     def test_gasoline_dmonly(self, ds_gasoline_dmonly):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_gasoline_dmonly
         hd = OrderedDict()
         hd['field_values'] = OrderedDict()
@@ -179,19 +142,6 @@ class TestTipsy(fw.AnswerTest):
     #-----
     @utils.requires_ds(tipsy_gal)
     def test_tipsy_galaxy(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = utils.data_dir_load(tipsy_gal)
         hashes = self.sph_answer(ds, 'galaxy.00300', 315372, tg_fields)
         hashes = {'tipsy_galaxy' : hashes}
@@ -203,18 +153,5 @@ class TestTipsy(fw.AnswerTest):
     @requires_file(gasoline_dmonly)
     @requires_file(pkdgrav)
     def test_TipsyDataset(self, ds_gasoline_dmonly, ds_pkdgrav):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_pkdgrav, TipsyDataset)
         assert isinstance(ds_gasoline_dmonly, TipsyDataset)

@@ -49,17 +49,6 @@ answer_file = 'enzo_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestEnzo(fw.AnswerTest):
-    """
-    Container for Enzo answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_toro1d
     #-----
@@ -122,21 +111,6 @@ class TestEnzo(fw.AnswerTest):
     )
     @utils.requires_ds(g30)
     def test_galaxy0030(self, ds_g30):
-        """
-        Tests the galaxy_0030 big data simulation.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up arrays for testing
         axes = [0, 1, 2]
         center = "max"
@@ -157,19 +131,6 @@ class TestEnzo(fw.AnswerTest):
     #-----
     @utils.requires_ds(enzotiny)
     def test_simulated_halo_mass_function(self, ds_enzotiny):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up hex digest
         hashes = OrderedDict()
         hashes['simulated_halo_mass_function'] = OrderedDict()
@@ -187,19 +148,6 @@ class TestEnzo(fw.AnswerTest):
     #-----
     @utils.requires_ds(enzotiny)
     def test_analytic_halo_mass_function(self, ds_enzotiny):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up hex digest
         hashes = OrderedDict()
         hashes['analytic_halo_mass_function'] = OrderedDict()
@@ -220,19 +168,6 @@ class TestEnzo(fw.AnswerTest):
     )
     @utils.requires_ds(ecp)
     def test_ecp(self, ds_ecp):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         self.color_conservation_test(ds_ecp)
 
     #-----
@@ -240,19 +175,6 @@ class TestEnzo(fw.AnswerTest):
     #-----
     @requires_file(enzotiny)
     def test_units_override(self, ds_enzotiny):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_enzotiny, enzotiny)
 
     #-----
@@ -281,19 +203,6 @@ class TestEnzo(fw.AnswerTest):
     #-----
     @requires_file(enzotiny)
     def test_EnzoDataset(self, ds_enzotiny):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_enzotiny, EnzoDataset)
 
     #-----
@@ -302,19 +211,6 @@ class TestEnzo(fw.AnswerTest):
     @requires_file(two_sphere_test)
     @requires_file(active_particle_cosmology)
     def test_active_particle_datasets(self, ds_two_sphere_test, ds_active_particle_cosmology):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up lists for comparison
         pfields = ['GridID', 'creation_time', 'dynamical_time',
                    'identifier', 'level', 'metallicity', 'particle_mass']
@@ -344,19 +240,6 @@ class TestEnzo(fw.AnswerTest):
     #-----
     @requires_file(mhdctot)
     def test_face_centered_mhdct_fields(self, ds_mhdctot):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ad = ds_mhdctot.all_data()
         grid = ds_mhdctot.index.grids[0]
         dims = ds_mhdctot.domain_dimensions
@@ -375,19 +258,6 @@ class TestEnzo(fw.AnswerTest):
     #-----
     @utils.requires_ds(dnz)
     def test_deeply_nested_zoom(self, ds_dnz):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Carefully chosen to just barely miss a grid in the middle of
         # the image
         center = [0.4915073260199302, 0.5052605316800006, 0.4905805557500548]
@@ -407,21 +277,8 @@ class TestEnzo(fw.AnswerTest):
     #-----
     @requires_file(kh2d)
     def test_2d_grid_shape(self, ds_kh2d):
-        """
-        See issue #1601: we want to make sure that accessing data on
+        r"""See issue #1601: we want to make sure that accessing data on
         a grid object returns a 3D array with a dummy dimension
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
         """
         g = ds_kh2d.index.grids[1]
         assert g['density'].shape == (128, 100, 1)
@@ -431,20 +288,7 @@ class TestEnzo(fw.AnswerTest):
     #-----
     @requires_file(p3mini)
     def test_nonzero_omega_radiation(self, ds_p3mini):
-        """
-        Test support for non-zero omega_radiation cosmologies.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
+        r"""Test support for non-zero omega_radiation cosmologies.
         """
         err_msg = "Simulation time not consistent with cosmology calculator."
         t_from_z = ds_p3mini.cosmology.t_from_z(ds_p3mini.current_redshift)

@@ -45,17 +45,6 @@ answer_file = 'gamer_answers.yaml'
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestGamer(fw.AnswerTest):
-    """
-    Container for gamer frontend answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
     #-----
     # test_jet
     #-----
@@ -64,19 +53,6 @@ class TestGamer(fw.AnswerTest):
     )
     @utils.requires_ds(jet)
     def test_jet(self, ds_jet):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_jet
         # Set up arrays for testing
         axes = [0, 1, 2]
@@ -97,19 +73,6 @@ class TestGamer(fw.AnswerTest):
     )
     @utils.requires_ds(psiDM)
     def test_psiDM(self, ds_psiDM):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = ds_psiDM
         # Set up arrays for testing
         axes = [0, 1, 2]
@@ -130,19 +93,6 @@ class TestGamer(fw.AnswerTest):
     )
     @utils.requires_ds(plummer)
     def test_plummer(self):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         ds = utils.data_dir_load(plummer)
         assert_equal(str(ds), "plummer_000000")
         # Set up arrays for testing
@@ -161,19 +111,6 @@ class TestGamer(fw.AnswerTest):
     #-----
     @requires_file(psiDM)
     def test_GAMERDataset(self, ds_psiDM):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         assert isinstance(ds_psiDM, GAMERDataset)
 
     #-----
@@ -181,17 +118,4 @@ class TestGamer(fw.AnswerTest):
     #-----
     @requires_file(jet)
     def test_units_override(self, ds_jet):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         units_override_check(ds_jet, jet)
