@@ -40,6 +40,10 @@ _fields = OrderedDict(
 )
 
 
+# Answer file
+answer_file = 'owls_answers.yaml'
+
+
 #============================================
 #                 TestOwls
 #============================================
@@ -79,7 +83,8 @@ class TestOwls(fw.AnswerTest):
             pass
         """
         hashes = self.sph_answer(ds_os33, 'snap_033', 2*128**3, _fields)
-        utils.handle_hashes(self.save_dir, 'owls-test-snapshot-033', hashes, self.answer_store)
+        hashes = {'snapshot_033' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_OWLSDataset
