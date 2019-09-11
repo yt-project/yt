@@ -6,6 +6,8 @@ Purpose: Enzo-P frontend tests
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict
+
 import numpy as np
 import pytest
 
@@ -32,6 +34,10 @@ _fields = ("density", "total_energy",
 _pfields = ("particle_position_x", "particle_position_y",
             "particle_position_z", "particle_velocity_x",
             "particle_velocity_y", "particle_velocity_z")
+
+
+# Answer file
+answer_file = 'enzo_p_answers.yaml'
 
 
 #============================================
@@ -89,26 +95,32 @@ class TestEnzoP(fw.AnswerTest):
         """
     @utils.requires_ds(hello_world)
     def test_hello_world(self, ds_hello_world):
-        ppv_hd = b''
-        fv_hd = b''
+        hd = OrderedDict()
+        hd['pixelized_projection_values'] = OrderedDict()
+        hd['field_values'] = OrderedDict()
         ds = ds_hello_world
         dso = [ None, ("sphere", ("max", (0.25, 'unitary')))]
-        for dobj_name in dso:
-            for field in _fields:
-                for axis in [0, 1, 2]:
-                    for weight_field in [None, "density"]:
-                        ppv_hd += self.pixelized_projection_values_test(
-                            ds, axis, field, weight_field,
-                            dobj_name)
-                fv_hd += self.field_values_test(ds, field, dobj_name)
-            dobj = utils.create_obj(ds, dobj_name)
+        for d in dso:
+            hd['pixelized_projection_values'][d] = OrderedDict()
+            hd['field_values'][d] = OrderedDict()
+            for f in _fields:
+                hd['pixelized_projection_values'][d][f] = OrderedDict()
+                for a in [0, 1, 2]:
+                    hd['pixelized_projection_values'][d][f][a] = OrderedDict()
+                    for w in [None, "density"]:
+                        ppv_hd = utils.generate_hash(
+                            self.pixelized_projection_values_test(
+                                ds, a, f, w, d)
+                        )
+                    hd['pixelized_projection_values'][d][f][a][w] = ppv_hd
+                fv_hd = utils.generate_hash(self.field_values_test(ds, f, d))
+                hd['field_values'][d][f] = fv_hd
+            dobj = utils.create_obj(ds, d)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
-        hashes = {'pixelized_projection_values' : utils.generate_hash(ppv_hd),
-            'field_values' : utils.generate_hash(fv_hd)
-        }
-        utils.handle_hashes(self.save_dir, 'test-enzop-helloworld', hashes, self.answer_store)
+        hd = {'hellow_world' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 
     #-----
     # test_particle_fields
@@ -128,19 +140,24 @@ class TestEnzoP(fw.AnswerTest):
         --------
             pass
         """
-        fv_hd = b''
+        hd = OrderedDict()
+        hd['field_values'] = OrderedDict()
         ds = ds_ep_cosmo
         dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
         for dobj_name in dso:
+            hd['field_values'][dobj_name] = OrderedDict()
             for field in _pfields:
-                fv_hd += self.field_values_test(ds, field, dobj_name,
+                fv_hd = utils.generate_hash(
+                    self.field_values_test(ds, field, dobj_name,
                                       particle_type=True)
+                )
+                hd['field_values'][dobj_name][field] = fv_hd
             dobj = utils.create_obj(ds, dobj_name)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
-        hashes = {'field_values' : utils.generate_hash(fv_hd)}
-        utils.handle_hashes(self.save_dir, 'test-enzop-particle-fields', hashes, self.answer_store)
+        hd = {'particle_fields' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 
     #-----
     # test_hierarchy
