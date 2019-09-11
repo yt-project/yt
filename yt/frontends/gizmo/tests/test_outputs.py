@@ -41,6 +41,8 @@ fields = OrderedDict(
 )
 
 
+# Answer file
+
 #============================================
 #                TestGizmo
 #============================================
@@ -82,7 +84,8 @@ class TestGizmo(fw.AnswerTest):
         ds = yt.load(g64)
         assert isinstance(ds, GizmoDataset)
         hashes = self.sph_answer(ds, 'snap_N64L16_135', 524288, fields)
-        utils.handle_hashes(self.save_dir, 'test-gizmo-64', hashes, self.answer_store)
+        hashes = {'gizmo_64' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_gizmo_mhd
