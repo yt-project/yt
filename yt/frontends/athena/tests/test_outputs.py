@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict
+
 import pytest
 
 from yt.testing import \
@@ -43,6 +45,10 @@ uo_sloshing = {"length_unit": (1.0,"Mpc"),
 _fields_cloud = ("scalar[0]", "density", "total_energy")
 _fields_blast = ("temperature", "density", "velocity_magnitude")
 _fields_stripping = ("temperature", "density", "specific_scalar[0]")
+
+
+# Answer file
+answer_file = 'athena_answers.yaml'
 
 
 #============================================
@@ -89,8 +95,9 @@ class TestAthena(fw.AnswerTest):
         assert_equal(str(ds), "Cloud.0050")
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _fields_cloud, weights, axes, ds_objs)
+        hashes = {'cloud' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'athena-cloud-test', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_blast
@@ -119,8 +126,9 @@ class TestAthena(fw.AnswerTest):
         assert_equal(str(ds), "Blast.0100")
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _fields_blast, weights, axes, ds_objs)
+        hashes = {'blast' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'athena-blast-test', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_blast_override
@@ -175,8 +183,9 @@ class TestAthena(fw.AnswerTest):
         assert_equal(str(ds), "rps.0062")
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _fields_stripping, weights, axes, ds_objs)
+        hashes = {'stripping' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'athena-stripping-test', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_nprocs
