@@ -8,6 +8,7 @@ Notes:
     software.
 """
 import os.path
+from collections import OrderedDict
 
 import pytest
 
@@ -27,6 +28,10 @@ r1 = "rockstar_halos/halos_0.0.bin"
 # Globals
 _fields = ("particle_position_x", "particle_position_y",
            "particle_position_z", "particle_mass")
+
+
+# Answer file
+answer_file = 'rockstar_answers.yaml'
 
 
 #============================================
@@ -64,11 +69,15 @@ class TestRockstar(fw.AnswerTest):
         --------
             pass
         """
-        fv_hd = b''
+        hashes = OrderedDict()
+        hashes['field_values'] = OrderedDict()
         for field in _fields:
-            fv_hd += self.field_values_test(ds_r1, field, particle_type=True)
-        hashes = {'field_values' : utils.generate_hash(fv_hd)}
-        utils.handle_hashes(self.save_dir, 'rockstar-test-fields-r1', hashes, self.answer_store)
+            fv_hd = utils.generate_hash(
+                self.field_values_test(ds_r1, field, particle_type=True)
+            )
+            hashes['field_values'][field] = fv_hd
+        hashes = {'fields_r1' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_RockstarDataset
