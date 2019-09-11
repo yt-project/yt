@@ -7,6 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+from collections import OrderedDict
+
 import numpy as np
 import pytest
 
@@ -46,6 +48,10 @@ _nyx_fields = ("Ne", "Temp", "particle_mass_density")
 _warpx_fields = ("Ex", "By", "jz")
 _castro_fields = ("Temp", "density", "particle_count")
 _raw_fields = [('raw', 'Bx'), ('raw', 'Ey'), ('raw', 'jz')]
+
+
+# Answer file
+answer_file = 'boxlib_answers.yaml'
 
 
 #============================================
@@ -92,8 +98,9 @@ class TestBoxLib(fw.AnswerTest):
         weights = [None, "density"]
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
+        hashes = {'radadvect' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'boxlib-test-radadvect', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_radtube
@@ -121,8 +128,9 @@ class TestBoxLib(fw.AnswerTest):
         weights = [None, "density"]
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
+        hashes = {'radtube' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'boxlib-test-radtube', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_star
@@ -150,8 +158,9 @@ class TestBoxLib(fw.AnswerTest):
         weights = [None, "density"]
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
+        hashes = {'star' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'boxlib-test-star', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_LyA
@@ -179,8 +188,9 @@ class TestBoxLib(fw.AnswerTest):
         weights = [None, "Ne"]
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _nyx_fields, weights, axes, ds_objs)
+        hashes = {'LyA' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'boxlib-test-LyA', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_nyx_particle_io
@@ -249,8 +259,9 @@ class TestBoxLib(fw.AnswerTest):
         weights = [None, "density"]
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _castro_fields, weights, axes, ds_objs)
+        hashes = {'RT_particles' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'boxlib-test-RT-particles', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_castro_particle_io
@@ -317,8 +328,9 @@ class TestBoxLib(fw.AnswerTest):
         weights = [None, "Ex"]
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
+        hashes = {'langmuir' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'boxlib-test-langmuir', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_plasma
@@ -346,8 +358,9 @@ class TestBoxLib(fw.AnswerTest):
         weights = [None, "Ex"]
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
+        hashes = {'plasma' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'boxlib-test-plasma', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_beam
@@ -376,8 +389,9 @@ class TestBoxLib(fw.AnswerTest):
         weights = [None, "Ex"]
         # Run the small_patch_amr test suite
         hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
+        hashes = {'beam' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, 'boxlib-test-beam', hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     #-----
     # test_warpx_particle_io
@@ -443,12 +457,14 @@ class TestBoxLib(fw.AnswerTest):
         --------
             pass
         """
-        gv_hd = b''
+        hd = OrderedDict()
+        hd['grid_values'] = OrderedDict()
         ds_fn = utils.data_dir_load(raw_fields)
         for field in _raw_fields:
-            gv_hd += self.grid_values_test(ds_fn, field)
-        hd = {'grid_values' : utils.generate_hash(gv_hd)}
-        utils.handle_hashes(self.save_dir, 'boxlib-test-raw-fields', hd, self.answer_store)
+            gv_hd = utils.generate_hash(self.grid_values_test(ds_fn, field))
+            hd['grid_values'][field] = gv_hd
+        hd = {'raw_fields' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 
     #-----
     # test_OrionDataset
