@@ -21,6 +21,7 @@ import numpy as np
 cimport numpy as np
 
 cimport cython
+from cpython.mem cimport PyMem_Realloc
 
 cdef class BoundedPriorityQueue:
     def __cinit__(self, np.intp_t max_elements, np.intp_t pids=0):
@@ -168,8 +169,12 @@ cdef class NeighborList:
         if self.size == self._max_size:
             self._max_size *= 2
             with gil:
-                self.data.resize(self._max_size)
-                self.pids.resize(self._max_size)
+                self.data_ptr = <np.float64_t*> PyMem_Realloc(self.data_ptr,
+                    self._max_size * sizeof(np.float64_t))
+                self.data = <np.float64_t[:self._max_size]> self.data_ptr
+                self.pids_ptr = <np.int64_t*> PyMem_Realloc(self.pids_ptr,
+                    self._max_size * sizeof(np.int64_t))
+                self.pids = <np.int64_t[:self._max_size]> self.pids_ptr
         return 0
 
     @cython.boundscheck(False)
