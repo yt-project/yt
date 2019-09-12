@@ -112,7 +112,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 g = f["/%s" % ptype]
                 if getattr(selector, 'is_all_data', False):
                     mask = slice(None, None, None)
-                    mask_sum = ei-si
+                    mask_sum = data_file.total_particles[ptype]
                     hsmls = None
                 else:
                     coords = g["Coordinates"][si:ei].astype("float64")
