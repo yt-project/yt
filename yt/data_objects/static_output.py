@@ -997,16 +997,21 @@ class Dataset(metaclass = RegisteredDataset):
         else:
             current_mks_unit = 'A'
         magnetic_unit = getattr(self, 'magnetic_unit', None)
-        if magnetic_unit is not None and unit_system == "cgs":
-            # if the magnetic unit is in T, we need to create the code unit
-            # system as an MKS-like system
-            if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
-                # this is perhaps a little funky
-                self.magnetic_unit = self.magnetic_unit.to('T').to('gauss')
-            # The following modification ensures that we get the conversion to 
-            # cgs correct
-            self.unit_registry.modify("code_magnetic", 
-                                      self.magnetic_unit.value*0.1**0.5)
+        if magnetic_unit is not None:
+            if unit_system == "mks":
+                if current_mks not in self.magnetic_unit.units.dimensions.free_symbols:
+                    self.magnetic_unit = self.magnetic_unit.to('gauss').to('T')
+                self.unit_registry.modify("code_magnetic", self.magnetic_unit.value)
+            else:
+                # if the magnetic unit is in T, we need to create the code unit
+                # system as an MKS-like system
+                if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
+                    self.magnetic_unit = self.magnetic_unit.to('T').to('gauss')
+                # The following modification ensures that we get the conversion to 
+                # cgs correct
+                self.unit_registry.modify("code_magnetic", 
+                                          self.magnetic_unit.value*0.1**0.5)
+
         us = create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit)
         if unit_system != "code":
@@ -1026,10 +1031,10 @@ class Dataset(metaclass = RegisteredDataset):
         self.unit_registry.add("code_specific_energy", 1.0,
                                dimensions.energy / dimensions.mass)
         self.unit_registry.add("code_time", 1.0, dimensions.time)
-        if unit_system == "cgs":
-            self.unit_registry.add("code_magnetic", 0.1**0.5, dimensions.magnetic_field_cgs)
+        if unit_system == "mks":
+            self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         else:
-            self.unit_registry.add("code_magnetic", .0001, dimensions.magnetic_field)
+            self.unit_registry.add("code_magnetic", 0.1**0.5, dimensions.magnetic_field_cgs)
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
         self.unit_registry.add("code_pressure", 0.1, dimensions.pressure)
         self.unit_registry.add("code_velocity", .01, dimensions.velocity)
