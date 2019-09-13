@@ -239,3 +239,12 @@ def validate():
 
     return np.asarray(m.heap)
 
+def validate_nblist():
+    nblist = NeighborList(init_size=2)
+
+    for i in range(4):
+        nblist.add_pid(1.0, i)
+
+    # Copy is necessary here. Without it, the allocated memory would be freed.
+    # Leaving random data array.
+    return np.asarray(nblist.data).copy(), np.asarray(nblist.pids).copy()
