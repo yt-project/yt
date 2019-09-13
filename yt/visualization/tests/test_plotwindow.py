@@ -12,15 +12,16 @@ Testsuite for PlotWindow class
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import matplotlib
-import numpy as np
+from collections import OrderedDict
+from distutils.version import LooseVersion
 import os
 import shutil
 import tempfile
 import unittest
 
-from distutils.version import LooseVersion
-from nose.tools import assert_true
+import matplotlib
+import numpy as np
+import pytest
 
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
@@ -149,6 +150,11 @@ CALLBACK_TESTS = (
     ("simple_velocity", (simple_velocity,)),
 )
 
+
+# Answer file
+answer_file = 'plot_window_answers.yaml'
+
+
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestPlotWindowAnswer(fw.AnswerTest):
@@ -158,19 +164,32 @@ class TestPlotWindowAnswer(fw.AnswerTest):
         plot_field = 'density'
         decimals = 12
         ds = utils.data_dir_load(M7)
-        pw_hd = b''
-        cb_hd = b''
+        hd = OrderedDict()
+        hd['non-callback'] = OrderedDict()
+        hd['callback'] = OrderedDict()
+        hd['non-callback']['plot_window_attribute'] = OrderedDict()
+        hd['callback']['plot_window_attribute'] = OrderedDict()
         for ax in 'xyz':
+            hd['non-callback']['plot_window_attribute'][ax] = OrderedDict()
+            hd['callback']['plot_window_attribute'][ax] = OrderedDict()
             for attr_name in ATTR_ARGS.keys():
+                hd['non-callback']['plot_window_attribute'][ax][attr_name] = OrderedDict()
+                hd['callback']['plot_window_attribute'][ax][attr_name] = OrderedDict()
                 for args in ATTR_ARGS[attr_name]:
-                    pw_hd += self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
+                    pw_hd = utils.generate_hash(
+                        self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
                                                    args, decimals)
+                    )
+                    hd['non-callback']['plot_window_attribute'][ax][attr_name][args] = pw_hd
+                    hd['callback']['plot_window_attribute'][ax][attr_name][args] = OrderedDict()
                     for n, r in CALLBACK_TESTS:
-                        cb_hd += self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
+                        pw_hd = utils.generate_hash(
+                            self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
                             args, decimals, callback_id=n, callback_runners=r)
-        hashes = {'plot_window' : utils.generate_hash(pw_hd),
-            'callback_plot_window' : utils.generate_hash(cb_hd)}
-        utils.handle_hashes(self.save_dir, 'plot-window-m7', hashes, self.answer_store) 
+                        )
+                        hd['callback']['plot_window_attribute'][ax][attr_name][args][n] = pw_hd
+        hashes = {'attributes' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
 
     @utils.requires_ds(WT)
     def test_attributes_wt(self):
@@ -178,16 +197,29 @@ class TestPlotWindowAnswer(fw.AnswerTest):
         decimals = 12
         ds = utils.data_dir_load(WT)
         ax = 'z'
+        hd = OrderedDict()
+        hd['non-callback'] = OrderedDict()
+        hd['callback'] = OrderedDict()
+        hd['non-callback']['plot_window_attribute'] = OrderedDict()
+        hd['callback']['plot_window_attribute']= OrderedDict()
         for attr_name in ATTR_ARGS.keys():
+            hd['non-callback']['plot_window_attribute'][attr_name] = OrderedDict()
+            hd['callback']['plot_window_attribute'][attr_name]= OrderedDict()
             for args in ATTR_ARGS[attr_name]:
-                pw_hd += self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
+                pw_hd = utils.generate_hash(
+                    self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
                                               args, decimals)
+                )
+                hd['non-callback']['plot_window_attribute'][attr_name][args] = pw_hd 
+                hd['callback']['plot_window_attribute'][attr_name][args] = OrderedDict()
                 for n, r in CALLBACK_TESTS:
-                    cb_hd += self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
+                    pw_hd = utils.generate_hash(
+                        self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
                         args, decimals, callback_id=n, callback_runners=r)
-        hashes = {'plot_window' : utils.generate_hash(pw_hd),
-            'callback_plot_window' : utils.generate_hash(cb_hd)}
-        utils.handle_hashes(self.save_dir, 'plot-window-wt', hashes, self.answer_store) 
+                    )
+                    hd['callback']['plot_window_attribute'][attr_name][args][n] = pw_hd 
+        hashes = {'attributes_wt' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
 
 class TestHideAxesColorbar(unittest.TestCase):
 
@@ -252,28 +284,28 @@ class TestSetWidth(unittest.TestCase):
     def test_set_width_one(self):
         assert_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
                      [(0.0, 1.0), (0.0, 1.0), (1.0, 1.0)])
-        assert_true(self.slc._axes_unit_names is None)
+        assert self.slc._axes_unit_names is None
 
     def test_set_width_nonequal(self):
         self.slc.set_width((0.5, 0.8))
         assert_rel_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
                          [(0.25, 0.75), (0.1, 0.9), (0.5, 0.8)], 15)
-        assert_true(self.slc._axes_unit_names is None)
+        assert self.slc._axes_unit_names is None
 
     def test_twoargs_eq(self):
         self.slc.set_width(0.5, 'cm')
         self._assert_05cm()
-        assert_true(self.slc._axes_unit_names == ('cm', 'cm'))
+        assert self.slc._axes_unit_names == ('cm', 'cm')
 
     def test_tuple_eq(self):
         self.slc.set_width((0.5, 'cm'))
         self._assert_05cm()
-        assert_true(self.slc._axes_unit_names == ('cm', 'cm'))
+        assert self.slc._axes_unit_names == ('cm', 'cm')
 
     def test_tuple_of_tuples_neq(self):
         self.slc.set_width(((0.5, 'cm'), (0.75, 'cm')))
         self._assert_05_075cm()
-        assert_true(self.slc._axes_unit_names == ('cm', 'cm'))
+        assert self.slc._axes_unit_names == ('cm', 'cm')
 
 
 class TestPlotWindowSave(unittest.TestCase):
@@ -356,7 +388,7 @@ class TestPlotWindowSave(unittest.TestCase):
             [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
             [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
             [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
-            assert_true(aun == plot._axes_unit_names)
+            assert aun == plot._axes_unit_names
 
 def test_on_off_compare():
     # fake density field that varies in the x-direction only

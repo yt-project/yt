@@ -10,9 +10,17 @@ Tests for making slices through raw fields
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+from collections import OrderedDict
+
+import pytest
 
 import yt
 from yt.utilities.answer_testing import utils
+
+
+# Answer file
+answer_file = 'raw_field_slice_answers.yaml'
+
 
 def setup():
     """Test specific setup."""
@@ -36,10 +44,13 @@ _raw_field_names =  [('raw', 'Bx'),
 @requires_ds(raw_fields)
 def test_raw_field_slices():
     ds = utils.data_dir_load(raw_fields)
+    hd = OrderedDict()
+    hd['generic_image'] = OrderedDict()
     for field in _raw_field_names:
         sl = yt.SlicePlot(ds, 'z', field)
         sl.set_log('all', False)
         image_file = sl.save("slice_answers_raw_{}".format(field[1]))
-        gi_hd += self.generic_image_test(image_file)
-    hashes = {'raw-field-slices' : utils.generate_hash(gi_hd)}
-    utils.handle_hashes(self.save_dir, 'raw-field_slices', hashes, self.answer_store) 
+        gi_hd = utils.generate_hash(self.generic_image_test(image_file))
+        hd['generic_image'][field] = gi_hd 
+    hashes = {'raw-field-slices' : hd} 
+    utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
