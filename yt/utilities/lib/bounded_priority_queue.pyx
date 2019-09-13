@@ -172,21 +172,6 @@ cdef class NeighborList:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef int _resize(self) except -1:
-        self.data_ptr = <np.float64_t*> PyMem_Realloc(
-            self.data_ptr,
-            self._max_size * sizeof(np.float64_t)
-        )
-        self.pids_ptr = <np.int64_t*> PyMem_Realloc(
-            self.pids_ptr,
-            self._max_size * sizeof(np.int64_t)
-        )
-        self._update_memview()
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    @cython.initializedcheck(False)
     cdef int _update_memview(self) except -1:
         self.data = <np.float64_t[:self._max_size]> self.data_ptr
         self.pids = <np.int64_t[:self._max_size]> self.pids_ptr
@@ -199,7 +184,15 @@ cdef class NeighborList:
         if self.size == self._max_size:
             self._max_size *= 2
             with gil:
-                self._resize()
+                self.data_ptr = <np.float64_t*> PyMem_Realloc(
+                    self.data_ptr,
+                    self._max_size * sizeof(np.float64_t)
+                )
+                self.pids_ptr = <np.int64_t*> PyMem_Realloc(
+                    self.pids_ptr,
+                    self._max_size * sizeof(np.int64_t)
+                )
+                self._update_memview()
         return 0
 
     @cython.boundscheck(False)
