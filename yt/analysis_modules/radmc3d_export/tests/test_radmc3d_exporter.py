@@ -27,6 +27,10 @@ from yt.utilities.answer_testing import utils
 ISO_GAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
+# Answer file
+answer_file = 'radmc3d_answers.yaml'
+
+
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
 reason="--with-answer-testing not set.")
 class TestRadmc3dExporter(fw.AnswerTest):
@@ -58,5 +62,5 @@ class TestRadmc3dExporter(fw.AnswerTest):
                 line = line.rstrip()
                 total += np.float64(line)
         total = total.tostring()
-        hashes = {'radmc3d_total' : utils.generate_hash(total)}
-        utils.handle_hashes(self.save_dir, 'radmc3d-exporter-continuum', hashes, self.answer_store)
+        hashes = {'radmc3d_exporter_continuum' : utils.generate_hash(total)}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)

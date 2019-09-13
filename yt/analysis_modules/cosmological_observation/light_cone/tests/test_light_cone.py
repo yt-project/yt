@@ -24,12 +24,16 @@ from yt.utilities.answer_testing import utils
 ETC = "enzo_tiny_cosmology/32Mpc_32.enzo"
 
 
+# Answer file
+answer_file = 'light_cone.yaml'
+
+
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir')
 @requires_module("h5py")
 @utils.requires_sim(ETC, "Enzo")
 def test_light_cone_projection():
-    lcp_hd = self.light_cone_projection_test(ETC, "Enzo")
-    hashes = {'light_cone_projection' : utils.generate_hash(lcp_hd)}
-    utils.handle_hashes(self.save_dir, 'light_cone', hashes, self.answer_store)
+    lcp_hd = utils.generate_hash(self.light_cone_projection_test(ETC, "Enzo"))
+    hashes = {'light_cone_projection' : hd}
+    utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)

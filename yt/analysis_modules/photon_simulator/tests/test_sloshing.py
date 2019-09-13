@@ -9,6 +9,7 @@ Answer test the photon_simulator analysis module.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+from collections import OrderedDict
 import os
 import shutil
 import tempfile
@@ -48,6 +49,11 @@ TBABS = os.path.join(xray_data_dir, "tbabs_table.h5")
 old_photon_file = os.path.join(xray_data_dir, "old_photons.h5")
 old_event_file = os.path.join(xray_data_dir, "old_events.h5")
 
+
+# Answer file
+answer_file = 'sloshing.yaml'
+
+
 def return_data(data):
     def _return_data(name):
         return data
@@ -75,8 +81,12 @@ class TestSloshingPhoton(fw.AnswerTest):
         photons1 = PhotonList.from_scratch(sphere, redshift, A, exp_time,
                                            thermal_model)
         return_photons = return_data(photons1.photons)
-        ga_hd = b''
-        ga_hd += self.generic_array_test(ds, return_photons, args=['photons'])
+        hd = OrderedDict()
+        ga_hd = utils.generate_hash(
+            self.generic_array_test(ds, return_photons, args=['photons'])
+        )
+        hd['generic_array1'] = ga_hd
+        hd['generic_array2'] = OrderedDict()
         for a, r in zip(arfs, rmfs):
             arf = os.path.join(xray_data_dir, a)
             rmf = os.path.join(xray_data_dir, r)
@@ -85,9 +95,12 @@ class TestSloshingPhoton(fw.AnswerTest):
                                               convolve_energies=True, prng=prng)
             events1['xsky']
             return_events = return_data(events1.events)
-            ga_hd += self.generic_array_test(ds, return_events, args=[a])
-        hashes = {'generic_array' : utils.generate_hash(ga_hd)}
-        utils.handle_hashes(self.save_dir, 'sloshing-photon', hashes, self.answer_store)
+            ga_hd = utils.generate_hash(
+                self.generic_array_test(ds, return_events, args=[a])
+            )
+            hd['generic_array2'][a] = ga_hd
+        hashes = {'sloshing' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
         photons1.write_h5_file("test_photons.h5")
         events1.write_h5_file("test_events.h5")
         photons2 = PhotonList.from_file("test_photons.h5")

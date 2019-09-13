@@ -1,3 +1,5 @@
+from collections import OrderedDict
+
 import pytest
 
 from yt.analysis_modules.photon_simulator.api import \
@@ -13,6 +15,11 @@ def setup():
 xray_data_dir = ytcfg.get("yt", "xray_data_dir")
 
 ds = fake_random_ds(64)
+
+
+# Answer file
+answer_file = 'spectra.yaml'
+
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
@@ -35,9 +42,11 @@ class TestSpectra(fw.AnswerTest):
             return spec1.v
         def spec2_test():
             return spec2.v
-        ga_hd1 = self.generic_array_test(ds, spec1_test)
-        ga_hd2 = self.generic_array_test(ds, spec2_test)
-        hashes = {'generic_array1' : utils.generate_hash(ga_hd1),
-            'generic_array2' : utils.generate_hash(ga_hd2)}
-        utils.handle_hashes(self.save_dir, 'spectra-aspec', hashes, self.answer_store)
+        ga_hd1 = utils.generate_hash(self.generic_array_test(ds, spec1_test))
+        ga_hd2 = utils.generate_hash(self.generic_array_test(ds, spec2_test))
+        hashes = OrderedDict()
+        hashes['generic_array1'] = ga_hd1
+        hashes['generic_array2'] = ga_hd2
+        hashes = {'apec' : hashes}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
         xmod.cleanup_spectrum()

@@ -10,6 +10,8 @@ Unit test for the AbsorptionSpectrum analysis module
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from collections import OrderedDict
+
 import numpy as np
 import pytest
 
@@ -33,6 +35,10 @@ GIZMO_PLUS = "gizmo_cosmology_plus/N128L16.param"
 GIZMO_PLUS_SINGLE = "gizmo_cosmology_plus/snap_N128L16_151.hdf5"
 ISO_GALAXY = "IsolatedGalaxy/galaxy0030/galaxy0030"
 FIRE = "FIRE_M12i_ref11/snapshot_600.hdf5"
+
+
+# Answer file
+answer_file = 'absorption_spectrum_answers.yaml'
 
 
 @pytest.mark.usefixtures('temp_dir')
@@ -212,12 +218,14 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=True)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        ga_hd = b''
+        hd = OrderedDict()
+        hd['generic_array'] = OrderedDict()
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd += self.generic_array_test(None, func)
-        hashes = {'generic_array' : utils.generate_hash(ga_hd)
-        utils.handle_hashes(self.save_dir, 'abs_spec_cosmo', hashes, self.answer_store)
+            ga_hd = utils.generate_hash(self.generic_array_test(None, func))
+            hd['generic_array'][key] = ga_hd
+        hashes = {'absorption_spectrum_cosmo' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     @requires_file(COSMO_PLUS_SINGLE)
     def test_absorption_spectrum_non_cosmo(self):
@@ -247,12 +255,14 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=True)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        ga_hd = b''
+        hd = OrderedDict()
+        hd['generic_array'] = OrderedDict()
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd += self.generic_array_test(None, func)
-        hashes = {'generic_array' : utils.generate_hash(ga_hd)
-        utils.handle_hashes(self.save_dir, 'abs_spec_non_cosmo', hashes, self.answer_store)
+            ga_hd = utils.generate_hash(self.generic_array_test(None, func))
+            hd['generic_array'][key] = ga_hd
+        hashes = {'absorption_spectrum_non_cosmo' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     @requires_file(COSMO_PLUS_SINGLE)
     def test_absorption_spectrum_non_cosmo_novpec(self):
@@ -282,12 +292,14 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=False)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        ga_hd = b''
+        hd = OrderedDict()
+        hd['generic_array'] = OrderedDict()
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd += self.generic_array_test(None, func)
-        hashes = {'generic_array' : utils.generate_hash(ga_hd)
-        utils.handle_hashes(self.save_dir, 'abs_spec_non_cosmo_no_pvec', hashes, self.answer_store)
+            ga_hd = utils.generate_hash(self.generic_array_test(None, func))
+            hd['generic_array'][key] = ga_hd
+        hashes = {'absorption_spectrum_non_cosmo_novpec' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
 
     @requires_file(GIZMO_PLUS)
@@ -323,12 +335,14 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=True)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        ga_hd = b''
+        hd = OrderedDict()
+        hd['generic_array'] = OrderedDict()
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd += self.generic_array_test(None, func)
-        hashes = {'generic_array' : utils.generate_hash(ga_hd)
-        utils.handle_hashes(self.save_dir, 'abs_spec_cosmo_sph', hashes, self.answer_store)
+            ga_hd = utils.generate_hash(self.generic_array_test(None, func))
+            hd['generic_array'][key] = ga_hd
+        hashes = {'absorption_spectrum_cosmo_sph' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     @requires_file(GIZMO_PLUS_SINGLE)
     def test_absorption_spectrum_non_cosmo_sph(self):
@@ -360,12 +374,14 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=True)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        ga_hd = b''
+        hd = OrderedDict()
+        hd['generic_array'] = OrderedDict()
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd += self.generic_array_test(None, func)
-        hashes = {'generic_array' : utils.generate_hash(ga_hd)
-        utils.handle_hashes(self.save_dir, 'abs_spec_non_cosmo_sph', hashes, self.answer_store)
+            ga_hd = utils.generate_hash(self.generic_array_test(None, func))
+            hd['generic_array'][key] = ga_hd
+        hashes = {'absorption_spectrum_non_cosmo_sph' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     @requires_file(ISO_GALAXY)
     def test_absorption_spectrum_with_continuum(self):
@@ -402,9 +418,11 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=True)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        ga_hd = b''
+        hd = OrderedDict()
+        hd['generic_array'] = OrderedDict()
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd += self.generic_array_test(None, func)
-        hashes = {'generic_array' : utils.generate_hash(ga_hd)
-        utils.handle_hashes(self.save_dir, 'abs_spec_with_cont', hashes, self.answer_store)
+            ga_hd = utils.generate_hahs(self.generic_array_test(None, func))
+            hd['generic_array'][key] = ga_hd
+        hashes = {'absorption_spectrum_with_continuum' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)

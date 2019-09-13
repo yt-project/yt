@@ -1,3 +1,4 @@
+from collections import OrderedDict
 import glob
 import os
 
@@ -13,6 +14,10 @@ from yt.testing import fake_particle_ds
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 from yt.utilities.exceptions import YTIllDefinedParticleData
+
+
+# Answer file
+answer_file = 'particle_trajectories.yaml'
 
 
 def setup():
@@ -37,13 +42,17 @@ class TestParticleTrajectories(fw.AnswerTest):
         ts = DatasetSeries(my_fns)
         ds = ts[0]
         traj = ts.particle_trajectories([1, 2], fields=fields, suppress_logging=True)
-        ga_hd = b''
+        hd = OrderedDict()
+        hd['generic_array'] = OrderedDict()
         for field in pfields+vfields:
             def field_func(name):
                 return traj[field]
-            ga_hd += self.generic_arraytest(ds, field_func, args=[field])
-        hashes = {'generica_array' : utils.generate_hash(ga_hd)}
-        utils.handle_hashes(self.save_dir, 'orbit_traj', hashes, self.answer_store)
+            ga_hd = utils.generate_hash(
+                self.generic_arraytest(ds, field_func, args=[field])
+            )
+            hd['generic_array'][field] = ga_hd
+        hashes = {'orbit_traj' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     @utils.requires_ds("enzo_tiny_cosmology/DD0000/DD0000")
     def test_etc_traj(self):
@@ -56,13 +65,17 @@ class TestParticleTrajectories(fw.AnswerTest):
         indices = sp["particle_index"][sp["particle_type"] == 1][:5]
         traj = ts.particle_trajectories(indices, fields=fields, suppress_logging=True)
         traj.add_fields(["density"])
-        ga_hd = b''
+        hd = OrderedDict()
+        hd['generic_array'] = OrderedDict()
         for field in pfields+vfields+["density"]:
             def field_func(name):
                 return traj[field]
-            ga_hd += self.generic_array_test(ds, field_func, args=[field])
-        hashes = {'generica_array' : utils.generate_hash(ga_hd)}
-        utils.handle_hashes(self.save_dir, 'etc_traj', hashes, self.answer_store)
+            ga_hd = utils.generate_hash(
+                self.generic_array_test(ds, field_func, args=[field])
+            )
+            hd['generic_array'][field] = ga_hd
+        hashes = {'etc_traj' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
     def test_uniqueness(self):
         n_particles = 2
