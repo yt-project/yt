@@ -76,6 +76,13 @@ yt/utilities/lib/partitioned_grid.c
 yt/utilities/lib/volume_container.c
 yt/utilities/lib/lenses.c
 yt/utilities/lib/image_samplers.c
+yt/utilities/lib/bounded_priority_queue.c
+yt/utilities/lib/cykdtree/kdtree.cpp
+yt/utilities/lib/cykdtree/utils.cpp
+yt/utilities/lib/cyoctree.cpp
+yt/utilities/lib/ewah_bool_wrap.cpp
+yt/utilities/lib/particle_kdtree_tools.cpp
+yt/utilities/lib/pixelization_routines.cpp
 *.pyc
 *.pyd
 .*.swp
