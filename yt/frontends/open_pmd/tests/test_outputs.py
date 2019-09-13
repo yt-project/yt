@@ -18,7 +18,6 @@ from yt.testing import \
     assert_equal, \
     requires_file
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 
 # Test data
 twoD = "example-2d/hdf5/data00000100.h5"

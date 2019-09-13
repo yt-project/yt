@@ -7,8 +7,8 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-import os
 from collections import OrderedDict
+import os
 
 import numpy as np
 import pytest
@@ -71,15 +71,15 @@ class TestRamses(fw.AnswerTest):
                     for w in weight_fields:
                         ppv_hd = utils.generate_hash(
                             self.pixelized_projection_values_test(
-                                ds_output_00080, axis, field, weight_field,
-                                dobj_name)
+                                ds_output_00080, a, f, w, d
+                            )
                         )
                         hashes['pixelized_projection_values'][d][f][a][w] = ppv_hd
                 fv_hd = utils.generate_hash(
-                    self.field_values_test(ds_output_00080, field, dobj_name)
+                    self.field_values_test(ds_output_00080, f, d)
                 )
                 hashes['field_values'][d][f] = fv_hd 
-            dobj = utils.create_obj(ds_output_00080, dobj_name)
+            dobj = utils.create_obj(ds_output_00080, d)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)

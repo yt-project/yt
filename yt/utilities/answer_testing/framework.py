@@ -550,7 +550,6 @@ class AnswerTest():
         # Make sure we're dealing with the right dataset
         assert str(ds) == ds_str_repr
         # Set up keys of test names
-        test_keys = ['pixelized_projection_values', 'field_values']
         hex_digests = OrderedDict()
         hex_digests['pixelized_projection_values'] = OrderedDict()
         hex_digests['field_values'] = OrderedDict()
@@ -584,8 +583,7 @@ class AnswerTest():
                         )
                         hex_digests['pixelized_projection_values'][d][f[1]][a] = ppv_hd
                 fv_hd = utils.generate_hash(
-                    self.field_values_test(ds, field, dobj_name,
-                        particle_type=particle_type)
+                    self.field_values_test(ds, f, d, particle_type=particle_type)
                 )
                 hex_digests['field_values'][d][f[1]] = fv_hd
         return hex_digests
@@ -734,7 +732,6 @@ class AnswerTest():
         --------
             pass
         """
-        ds = os.path.basename(parameter_file)
         lc = LightCone(
             parameter_file, simulation_type, 0., 0.1,
             observer_redshift=0.0, time_data=False)

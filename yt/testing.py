@@ -15,7 +15,6 @@ from __future__ import print_function
 
 import hashlib
 import matplotlib
-from yt.data_objects.static_output import Dataset
 from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it

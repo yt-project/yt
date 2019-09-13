@@ -7,8 +7,6 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-from collections import OrderedDict
-
 import pytest
 
 from yt.testing import \
@@ -45,7 +43,7 @@ answer_file = 'fits_answers.yaml'
 #                 TestFits
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason=("--with-answer-testing not set.")
+    reason=("--with-answer-testing not set."))
 class TestFits(fw.AnswerTest):
     #-----
     # test_grs

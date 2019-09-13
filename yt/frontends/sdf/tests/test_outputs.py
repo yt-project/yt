@@ -19,7 +19,6 @@ from yt.testing import \
     requires_module
 from yt.visualization.api import ProjectionPlot
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 
 _fields = (('deposit', 'all_cic'))
 scivis_data = "http://darksky.slac.stanford.edu/scivis2015/data/ds14_scivis_0128/ds14_scivis_0128_e4_dt04_1.0000"

@@ -11,8 +11,6 @@ Answer test the photon_simulator analysis module.
 #-----------------------------------------------------------------------------
 from collections import OrderedDict
 import os
-import shutil
-import tempfile
 
 from numpy.random import RandomState
 import pytest

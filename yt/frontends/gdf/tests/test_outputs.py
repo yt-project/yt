@@ -7,13 +7,10 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-from collections import OrderedDict
-
 import pytest
 
 from yt.frontends.gdf.api import GDFDataset
 from yt.testing import \
-    assert_equal, \
     requires_file, \
     units_override_check
 import yt.utilities.answer_testing.framework as fw

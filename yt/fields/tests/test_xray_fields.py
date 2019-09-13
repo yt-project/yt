@@ -20,15 +20,6 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
 
-def check_xray_fields(ds_fn, fields):
-    if not can_run_ds(ds_fn): return
-    dso = [ None, ("sphere", ("m", (0.1, 'unitary')))]
-    for field in fields:
-        for dobj_name in dso:
-            for axis in [0, 1, 2]:
-                yield ProjectionValuesTest(ds_fn, axis, field, 
-                                           None, dobj_name)
-            yield FieldValuesTest(ds_fn, field, dobj_name)
 
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
@@ -52,20 +43,20 @@ class TestXRayFields(fw.AnswerTest):
                 hd['projection_values'][field][dobj_name] = OrderedDict()
                 for axis in [0, 1, 2]:
                     pv_hd = utils.generate_hash(
-                        self.projection_values_test(ds_fn, axis, field, 
+                        self.projection_values_test(ds, axis, field, 
                                                None, dobj_name)
                     )
                     hd['projection_values'][field][dobj_name][axis] = pv_hd
                 fv_hd = utils.generate_hash(
-                    self.field_values_test(ds_fn, field, dobj_name)
+                    self.field_values_test(ds, field, dobj_name)
                 )
                 hd['field_values'][field][dobj_name] = fv_hd
         hashes = {'sloshing_apec' : hd}
         utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
-    @requires_ds(d9p, big_data=True)
-    def test_d9p_cloudy():
-        ds = data_dir_load(d9p)
+    @utils.requires_ds(d9p, big_data=True)
+    def test_d9p_cloudy(self):
+        ds = utils.data_dir_load(d9p)
         fields = add_xray_emissivity_field(ds, 0.5, 2.0, redshift=ds.current_redshift,
                                            table_type="cloudy", cosmology=ds.cosmology,
                                            metallicity=("gas", "metallicity"))
@@ -80,12 +71,12 @@ class TestXRayFields(fw.AnswerTest):
                 hd['projection_values'][field][dobj_name] = OrderedDict()
                 for axis in [0, 1, 2]:
                     pv_hd = utils.generate_hash(
-                        self.projection_values_test(ds_fn, axis, field, 
+                        self.projection_values_test(ds, axis, field, 
                                                None, dobj_name)
                     )
                     hd['projection_values'][field][dobj_name][axis] = pv_hd
                 fv_hd = utils.generate_hash(
-                    self.field_values_test(ds_fn, field, dobj_name)
+                    self.field_values_test(ds, field, dobj_name)
                 )
                 hd['field_values'][field][dobj_name] = fv_hd
         hashes = {'d9p_cloudy' : hd}

@@ -137,9 +137,6 @@ class TestArt(fw.AnswerTest):
                             AnaTotGasMass)
         AnaTotTemp = YTQuantity(150219844793.39072, 'K')  # just leaves
         assert_equal(ad[('gas', 'temperature')].sum(), AnaTotTemp)
-        hashes = {'pixelized_projection_values' : utils.generate_hash(ppv_hd),
-            'field_values' : utils.generate_hash(fv_hd)
-        }
         hd = {'d9p' : hd}
         utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 

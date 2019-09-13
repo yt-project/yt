@@ -2,8 +2,6 @@
 Title: conftest.py
 Purpose: Contains fixtures for loading data.
 """
-import os
-
 import pytest
 
 from yt.frontends.fits.data_structures import FITSDataset, \

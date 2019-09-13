@@ -36,7 +36,6 @@ from yt.visualization.api import \
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.units import kboltz
 from yt.frontends.stream.api import load_uniform_grid
-from collections import OrderedDict
 
 def setup():
     """Test specific setup."""

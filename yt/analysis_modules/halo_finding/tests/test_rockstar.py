@@ -2,6 +2,8 @@ import os
 from collections import OrderedDict
 import sys
 
+import pytest
+
 from yt.convenience import load
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils

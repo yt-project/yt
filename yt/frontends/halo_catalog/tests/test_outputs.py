@@ -12,11 +12,10 @@ import pytest
 
 from yt.convenience import load
 from yt.frontends.halo_catalog.data_structures import HaloCatalogDataset
-from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.testing import \
     assert_array_equal, \
     requires_module
-from yt.units.yt_array import YTArray, YTQuantity
+from yt.units.yt_array import YTArray
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 

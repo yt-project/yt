@@ -38,7 +38,6 @@ from yt.utilities.exceptions import \
 import yt.utilities.flagging_methods as fm
 import yt.utilities.initial_conditions as ic
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 
 
 # Globals

@@ -16,7 +16,7 @@ from yt.convenience import load
 from yt.frontends.athena_pp.api import AthenaPPDataset
 from yt.testing import \
     assert_allclose, \
-    requires_file
+    requires_file, \
     units_override_check
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
@@ -84,7 +84,7 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     # test_AM06_override
     #-----
-    @requires_file(AMO06)
+    @requires_file(AM06)
     def test_AM06_override(self):
         r"""Verify that overriding units causes derived unit values to be
         updated. See issue #1259.

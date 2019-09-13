@@ -23,13 +23,15 @@ from yt.analysis_modules.halo_analysis.api import \
     add_quantity
 from yt.convenience import \
     load
-from yt.testing import \
-    assert_equal
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 
 rh0 = "rockstar_halos/halos_0.0.bin"
 e64 = "Enzo_64/DD0043/data0043"
+
+
+# Answer file
+answer_file = 'halo_quantity_answers.yaml'
 
 def _nstars(halo):
     sp = halo.data_object
@@ -38,8 +40,8 @@ add_quantity("nstars", _nstars)
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('temp_dir')
 class TestHaloQuantity(fw.AnswerTest):
-    @pytest.mark.usefixtures('temp_dir')
     @utils.requires_ds(rh0)
     @utils.requires_ds(e64)
     def test_halo_quantity(self):
@@ -47,11 +49,11 @@ class TestHaloQuantity(fw.AnswerTest):
         halos_ds_fn = rh0
         ds = utils.data_dir_load(data_ds_fn)
 
-        dds = utils.data_dir_load(self.data_ds_fn)
-        hds = utils.data_dir_load(self.halos_ds_fn)
+        dds = utils.data_dir_load(data_ds_fn)
+        hds = utils.data_dir_load(halos_ds_fn)
         hc = HaloCatalog(
             data_ds=dds, halos_ds=hds,
-            output_dir=os.path.join(tmpdir, str(dds)))
+            output_dir=os.path.join(os.getcwd(), str(dds)))
         hc.add_callback("sphere")
         hc.add_quantity("nstars")
         hc.create()
@@ -63,3 +65,5 @@ class TestHaloQuantity(fw.AnswerTest):
         mi, ma = ad.quantities.extrema("nstars")
         mean = ad.quantities.weighted_average_quantity(
             "nstars", "particle_ones")
+        hd = {'halo_quantity' : utils.generate_hash(np.array([mean, mi, ma]).tostring())}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)

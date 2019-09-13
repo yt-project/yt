@@ -21,7 +21,7 @@ from yt.config import \
 from yt.testing import \
     fake_tetrahedral_ds, \
     fake_hexahedral_ds, \
-    requires_module, ANSWER_TEST_TAG
+    requires_module
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 from yt.visualization.volume_rendering.api import \
@@ -68,9 +68,6 @@ def surface_mesh_render():
         images.append(im)
     return images
 
-
-
-
 def hex8_render(engine, field):
     ytcfg["yt", "ray_tracing_engine"] = engine
     ds = utils.data_dir_load(hex8, kwargs={'step':-1})
@@ -86,8 +83,9 @@ def tet4_render(engine, field):
     ds = utils.data_dir_load(tet4, kwargs={'step':-1})
     sc = create_scene(ds, field)
     im = sc.render()
-    return compare(ds, im, "%s_render_answers_tet4_%s_%s" %
-                   (engine, field[0], field[1]))
+    fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+    im.save(im_name)
+    return im_name
 
 
 def hex20_render(engine, field):
@@ -105,8 +103,9 @@ def wedge6_render(engine, field):
     ds = utils.data_dir_load(wedge6, kwargs={'step':-1})
     sc = create_scene(ds, field)
     im = sc.render()
-    return compare(ds, im, "%s_render_answers_wedge6_%s_%s" %
-                   (engine, field[0], field[1]))
+    fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+    im.save(im_name)
+    return im_name
 
 
 def tet10_render(engine, field):
@@ -116,8 +115,9 @@ def tet10_render(engine, field):
     ms = sc.get_source(0)
     ms.color_bounds = (-.01, .2)
     im = sc.render()
-    return compare(ds, im, "%s_render_answers_tet10_%s_%s" %
-                   (engine, field[0], field[1]))
+    fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+    im.save(im_name)
+    return im_name
 
 
 def perspective_mesh_render(engine):
@@ -155,25 +155,25 @@ def composite_mesh_render(engine):
     im.save(im_name)
     return im_name
 
-@pytest.mark.skipif(not pyteset.config.getvalue('--with-answer-testing'),
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir')
 class TestVolumeRenderMesh(fw.AnswerTest):
-    def test_fake_hexahedral_ds_render():
-    ds = fake_hexahedral_ds()
-    field_list = [('connect1', 'elem'), ('connect1', 'test')]
-    hd = OrderedDict()
-    hd['generic_image'] = OrderedDict()
-    for field in field_list:
-        fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
-        sc = create_scene(ds, field)
-        im = sc.render()
-        im.save(im_name)
-        gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-        hd['generic_image'][field] = gi_hd
-    hashes = {'fake_hexahedral_ds_render' : hd}
-    utils.handle_hashes(self.save_dir, answer_file, hashes,
-        utils.answer_store)
+    def test_fake_hexahedral_ds_render(self):
+        ds = fake_hexahedral_ds()
+        field_list = [('connect1', 'elem'), ('connect1', 'test')]
+        hd = OrderedDict()
+        hd['generic_image'] = OrderedDict()
+        for field in field_list:
+            fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+            sc = create_scene(ds, field)
+            im = sc.render()
+            im.save(im_name)
+            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
+            hd['generic_image'][field] = gi_hd
+        hashes = {'fake_hexahedral_ds_render' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hashes,
+            utils.answer_store)
 
     @utils.requires_ds(hex8)
     @requires_module("pyembree")
@@ -250,7 +250,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
     @utils.requires_ds(hex8)
     @requires_module("pyembree")
     def test_perspective_mesh_render_pyembree(self):
-        im_namg = perspective_mesh_render("embree")
+        im_name = perspective_mesh_render("embree")
         hd = OrderedDict()
         gi_hd = utils.generate_hash(self.generic_image_test(im_name))
         hd['generic_image'] = gi_hd

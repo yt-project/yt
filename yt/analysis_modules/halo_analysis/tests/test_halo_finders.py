@@ -50,7 +50,7 @@ class TestHaloFinders(fw.AnswerTest):
             hd['field_values'] = OrderedDict()
             for field in _fields:
                 fv_hd = utils.generate_hash(
-                    field_values_test(ds, field, particle_type=True)
+                    self.field_values_test(ds, field, particle_type=True)
                 )
                 hd['field_values'][field] = fv_hd
             hashes = {'halo_finders' : hd}

@@ -7,15 +7,12 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-import os.path
 from collections import OrderedDict
 
 import pytest
 
 from yt.frontends.owls_subfind.api import OWLSSubfindDataset
-from yt.testing import \
-    assert_equal, \
-    requires_file
+from yt.testing import requires_file
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 

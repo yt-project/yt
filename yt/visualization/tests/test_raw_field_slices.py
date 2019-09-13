@@ -15,6 +15,7 @@ from collections import OrderedDict
 import pytest
 
 import yt
+import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 
 
@@ -41,16 +42,17 @@ _raw_field_names =  [('raw', 'Bx'),
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir')
-@requires_ds(raw_fields)
-def test_raw_field_slices():
-    ds = utils.data_dir_load(raw_fields)
-    hd = OrderedDict()
-    hd['generic_image'] = OrderedDict()
-    for field in _raw_field_names:
-        sl = yt.SlicePlot(ds, 'z', field)
-        sl.set_log('all', False)
-        image_file = sl.save("slice_answers_raw_{}".format(field[1]))
-        gi_hd = utils.generate_hash(self.generic_image_test(image_file))
-        hd['generic_image'][field] = gi_hd 
-    hashes = {'raw-field-slices' : hd} 
-    utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
+@utils.requires_ds(raw_fields)
+class TestRawFieldSlices(fw.AnswerTest):
+    def test_raw_field_slices(self):
+        ds = utils.data_dir_load(raw_fields)
+        hd = OrderedDict()
+        hd['generic_image'] = OrderedDict()
+        for field in _raw_field_names:
+            sl = yt.SlicePlot(ds, 'z', field)
+            sl.set_log('all', False)
+            image_file = sl.save("slice_answers_raw_{}".format(field[1]))
+            gi_hd = utils.generate_hash(self.generic_image_test(image_file))
+            hd['generic_image'][field] = gi_hd 
+        hashes = {'raw-field-slices' : hd} 
+        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 

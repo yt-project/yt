@@ -9,17 +9,11 @@ Unit test for the RADMC3D Exporter analysis module
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
-import os
-import shutil
-import tempfile
-
 import numpy as np
 import pytest
 
 import yt
 from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
-from yt.testing import assert_allclose
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 

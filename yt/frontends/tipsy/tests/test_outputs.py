@@ -76,7 +76,7 @@ class TestTipsy(fw.AnswerTest):
             for f in _fields:
                 hd['pixelized_projection_values'][d][f] = OrderedDict()
                 for a in [0, 1, 2]:
-                    hd['pixelized_projection_values'][][f][a] = OrderedDict()
+                    hd['pixelized_projection_values'][d][f][a] = OrderedDict()
                     for w in [None]:
                         ppv_hd = utils.generate_hash(
                             self.pixelized_projection_values_test(
@@ -122,8 +122,8 @@ class TestTipsy(fw.AnswerTest):
                     for w in [None]:
                         ppv_hd = utils.generate_hash(
                             self.pixelized_projection_values_test(
-                                ds, axis, field, weight_field,
-                                dobj_name)
+                                ds, a, f, w, d
+                            )
                         )
                         hd['pixelized_projection_values'][d][f][a][w] = ppv_hd
                 fv_hd = utils.generate_hash(

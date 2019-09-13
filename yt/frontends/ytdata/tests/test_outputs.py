@@ -26,8 +26,6 @@ from yt.frontends.ytdata.api import \
     save_as_dataset
 from yt.testing import \
     assert_array_equal, \
-    assert_allclose_units, \
-    assert_equal, \
     assert_fname, \
     fake_random_ds, \
     requires_module
@@ -109,7 +107,7 @@ class TestYTData(fw.AnswerTest):
             ytft_hd = utils.generate_hash(
                 self.yt_field_test(cg_ds, f, True)
             )
-            hashes['grid_datacontainer1']['yt_field_test'][f[1]] = ytft_hd
+            hd['grid_datacontainer1']['yt_field_test'][f[1]] = ytft_hd
         ag = ds.arbitrary_grid(left_edge=[0.25]*3, right_edge=[0.75]*3,
                                dims=[16]*3)
         fn = ag.save_as_dataset(fields=["density", "particle_mass"])
@@ -121,7 +119,7 @@ class TestYTData(fw.AnswerTest):
             ytft_hd = utils.generate_hash(
                 self.yt_field_test(ag_ds, f, True)
             )
-            hashes['grid_datacontainer2']['yt_field_test'][f[1]] = ytft_hd
+            hd['grid_datacontainer2']['yt_field_test'][f[1]] = ytft_hd
         my_proj = ds.proj("density", "x", weight_field="density")
         frb = my_proj.to_frb(1.0, (800, 800))
         fn = frb.save_as_dataset(fields=["density"])

@@ -7,18 +7,14 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-import os.path
 from collections import OrderedDict
 
 import pytest
 
-from yt.testing import \
-    assert_equal, \
-    requires_file
+from yt.testing import requires_file
 from yt.frontends.rockstar.api import RockstarDataset
-
-import framework as fw
-import utils
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 
 # Test data

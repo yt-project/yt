@@ -9,9 +9,6 @@ Notes:
 """
 from collections import OrderedDict
 from itertools import product
-import os
-import shutil
-import tempfile
 
 import pytest
 
@@ -55,7 +52,7 @@ answer_file = 'gadget_answers.yaml'
 #                 TestGadget
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason=("--with-answer-testing not set.")
+    reason=("--with-answer-testing not set."))
 class TestGadget(fw.AnswerTest):
     #-----
     # test_gadget_binary

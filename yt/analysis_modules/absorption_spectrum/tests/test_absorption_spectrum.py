@@ -11,6 +11,8 @@ Unit test for the AbsorptionSpectrum analysis module
 #-----------------------------------------------------------------------------
 
 from collections import OrderedDict
+import os
+import tempfile
 
 import numpy as np
 import pytest

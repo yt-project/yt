@@ -8,14 +8,11 @@ Notes:
     software.
 """
 from collections import OrderedDict
-import os.path
 
 import pytest
 
 from yt.frontends.ahf.api import AHFHalosDataset
-from yt.testing import \
-    assert_equal, \
-    requires_file
+from yt.testing import requires_file
 from yt.utilities.answer_testing import \
     framework as fw, \
     utils

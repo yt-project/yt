@@ -2,12 +2,9 @@
 Title: conftest.py
 Purpose: Contains fixtures for loading data.
 """
-import os
-
 import pytest
 
 import yt
-from yt.utilities.answer_testing import utils
 
 
 # Test data

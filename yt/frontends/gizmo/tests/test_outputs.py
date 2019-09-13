@@ -42,6 +42,8 @@ fields = OrderedDict(
 
 
 # Answer file
+answer_file = 'gizmo_answers.yaml'
+
 
 #============================================
 #                TestGizmo

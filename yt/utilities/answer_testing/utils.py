@@ -8,11 +8,10 @@ import hashlib
 import os
 
 import numpy as np
-import pytest
 import yaml
 
 from yt.config import ytcfg
-from yt.convenience import load
+from yt.convenience import load, simulation
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
 from yt.units.yt_array import \
@@ -21,6 +20,7 @@ from yt.units.yt_array import \
 from yt.utilities.exceptions import \
     YTOutputNotIdentified
 import yt.visualization.particle_plots as particle_plots
+import yt.visualization.plot_window as pw
 import yt.visualization.profile_plotter as profile_plotter
 
 
@@ -111,6 +111,21 @@ def can_run_ds(ds_fn, file_check = False):
         return False
 
 #============================================
+#                can_run_sim
+#============================================
+def can_run_sim(sim_fn, sim_type, file_check = False):
+    path = ytcfg.get("yt", "test_data_dir")
+    if not os.path.isdir(path):
+        return False
+    if file_check:
+        return os.path.isfile(os.path.join(path, sim_fn))
+    try:
+        simulation(sim_fn, sim_type)
+    except YTOutputNotIdentified:
+        return False
+    return True 
+
+#============================================
 #                data_dir_load
 #============================================
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
@@ -179,7 +194,7 @@ def requires_sim(sim_fn, sim_type, file_check = False):
         return lambda: None
     def ftrue(func):
         return func
-    elif not can_run_sim(sim_fn, sim_type, file_check):
+    if not can_run_sim(sim_fn, sim_type, file_check):
         return ffalse
     else:
         return ftrue
@@ -391,7 +406,7 @@ def create_plot(self, ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
 #============================================
 #               create_plot2
 #============================================
-def create_plot(data_source, x_field, y_field, z_field,
+def create_plot2(data_source, x_field, y_field, z_field,
                 plot_type, plot_kwargs=None):
     # plot_type should be a string
     # plot_kwargs should be a dict
