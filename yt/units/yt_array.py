@@ -1411,7 +1411,8 @@ class YTArray(np.ndarray):
                     out_arr = ufunc(*inp, out=_out)
                     unit = inputs[0].units
                     ret_class = type(inputs[0])
-                    mul = 1
+                    # This was added after unyt was spun out, but is not presently used:
+                    # mul = 1
                 else:
                     raise RuntimeError(
                         "Support for the %s ufunc with %i inputs has not been "
