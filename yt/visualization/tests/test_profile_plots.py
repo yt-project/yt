@@ -12,21 +12,24 @@ Testsuite for ProfilePlot and PhasePlot
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
+from collections import OrderedDict
 import os
 import tempfile
 import shutil
 import unittest
+
+import pytest
+
 import yt
-from nose.plugins.attrib import attr
 from yt.data_objects.profiles import create_profile
 from yt.testing import \
     fake_random_ds, \
     assert_array_almost_equal, \
-    assert_allclose_units, ANSWER_TEST_TAG
+    assert_allclose_units
 from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
-from yt.utilities.answer_testing.framework import \
-    PhasePlotAttributeTest, GenericImageTest
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 
 ATTR_ARGS = {"annotate_text": [(((5e-29, 5e7), "Hello YT"), {}),
                                (((5e-29, 5e7), "Hello YT"), {'color': 'b'})],
@@ -38,128 +41,137 @@ ATTR_ARGS = {"annotate_text": [(((5e-29, 5e7), "Hello YT"), {}),
              "set_ylim": [((1e2, 1e6), {})]}
 
 
-def compare(ds, plot, test_prefix, test_name, decimals=12):
-    def image_from_plot(filename_prefix):
-        return plot.save(filename_prefix)
-
-    image_from_plot.__name__ = "profile_{}".format(test_prefix)
-    test = GenericImageTest(ds, image_from_plot, decimals)
-    test.prefix = test_prefix
-    test.answer_name = test_name
-    return test
+# Answer file
+answer_file = 'profile_plot_answers.yaml'
 
 
-@attr(ANSWER_TEST_TAG)
-def test_phase_plot_attributes():
-    '''
-
-    This iterates over the all the plot modification functions in
-    ATTR_ARGS. Each time, it compares the images produced by
-    PhasePlot to the gold standard.
+def image_from_plot(plot):
+    tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
+    os.close(tmpfd)
+    plot.save(tmpfname)
+    return tmpfname
 
 
-    '''
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('temp_dir')
+class TestProfilePlots(fw.AnswerTest):
+    def test_phase_plot_attributes(self):
+        '''
+        This iterates over the all the plot modification functions in
+        ATTR_ARGS. Each time, it compares the images produced by
+        PhasePlot to the gold standard.
+        '''
+        x_field = 'density'
+        y_field = 'temperature'
+        z_field = 'cell_mass'
+        ds = fake_random_ds(16, fields=('density', 'temperature'))
+        hd = OrderedDict()
+        hd['phase_plot_attribute'] = OrderedDict()
+        i = 0
+        for attr_name in ATTR_ARGS.keys():
+            hd['phase_plot_attribute'][attr_name] = OrderedDict()
+            for args in ATTR_ARGS[attr_name]:
+                ppat_hd = utils.generate_hash(
+                    self.phase_plot_attribute_test(ds, x_field, y_field, z_field,
+                                              attr_name, args, decimals)
+                )
+                hd['phase_plot_attribute'][attr_name][str(i)] = ppat_hd
+                i += 1
+        hd = {'phase_plot_attributes' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 
-    x_field = 'density'
-    y_field = 'temperature'
-    z_field = 'cell_mass'
-    decimals = 12
-    ds = fake_random_ds(16, fields=('density', 'temperature'))
-    for attr_name in ATTR_ARGS.keys():
-        for args in ATTR_ARGS[attr_name]:
-            test = PhasePlotAttributeTest(ds, x_field, y_field, z_field,
-                                          attr_name, args, decimals)
-            test.prefix = "%s_%s" % (attr_name, args)
-            test.answer_name = "phase_plot_attributes"
-            yield test
+    def test_profile_plot(self):
+        fields = ('density', 'temperature', 'velocity_x', 'velocity_y',
+                  'velocity_z')
+        units = ('g/cm**3', 'K', 'cm/s', 'cm/s', 'cm/s')
+        test_ds = fake_random_ds(16, fields=fields, units=units)
+        regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
+        pr_fields = [('density', 'temperature'), ('density', 'velocity_x'),
+                     ('temperature', 'cell_mass'), ('density', 'radius'),
+                     ('velocity_magnitude', 'cell_mass')]
+        profiles = []
+        for reg in regions:
+            for x_field, y_field in pr_fields:
+                profiles.append(ProfilePlot(reg, x_field, y_field))
+                profiles.append(ProfilePlot(reg, x_field, y_field,
+                                            fractional=True, accumulation=True))
+                p1d = create_profile(reg, x_field, y_field)
+                profiles.append(ProfilePlot.from_profiles(p1d))
+        p1 = create_profile(test_ds.all_data(), 'density', 'temperature')
+        p2 = create_profile(test_ds.all_data(), 'density', 'velocity_x')
+        profiles.append(ProfilePlot.from_profiles(
+            [p1, p2], labels=['temperature', 'velocity']))
+        profiles[0]._repr_html_()
+        hd = OrderedDict()
+        hd['generic_image'] = OrderedDict()
+        for idx, plot in enumerate(profiles):
+            img_fname =  image_from_plot(plot)
+            gi_hd = utils.generate_hash(self.generic_image_test(img_fname))
+            hd['generic_image'][str(idx)] = gi_hd
+        hd = {'profile_plot' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 
+    def test_phase_plot(self):
+        fields = ('density', 'temperature', 'velocity_x', 'velocity_y',
+                  'velocity_z')
+        units = ('g/cm**3', 'K', 'cm/s', 'cm/s', 'cm/s')
+        test_ds = fake_random_ds(16, fields=fields, units=units)
+        regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
+        phases = []
+        ph_fields = [('density', 'temperature', 'cell_mass'),
+                     ('density', 'velocity_x', 'cell_mass'),
+                     ('radius', 'temperature', 'velocity_magnitude')]
+        for reg in regions:
+            for x_field, y_field, z_field in ph_fields:
+                # set n_bins to [16, 16] since matplotlib's postscript
+                # renderer is slow when it has to write a lot of polygons
+                phases.append(PhasePlot(reg, x_field, y_field, z_field,
+                                        x_bins=16, y_bins=16))
+                phases.append(PhasePlot(reg, x_field, y_field, z_field,
+                                        fractional=True, accumulation=True,
+                                        x_bins=16, y_bins=16))
+                p2d = create_profile(reg, [x_field, y_field], z_field,
+                                     n_bins=[16, 16])
+                phases.append(PhasePlot.from_profile(p2d))
+        pp = PhasePlot(test_ds.all_data(), 'density', 'temperature', 'cell_mass')
+        pp.set_xlim(0.3, 0.8)
+        pp.set_ylim(0.4, 0.6)
+        pp._setup_plots()
+        xlim = pp.plots['cell_mass'].axes.get_xlim()
+        ylim = pp.plots['cell_mass'].axes.get_ylim()
+        assert_array_almost_equal(xlim, (0.3, 0.8))
+        assert_array_almost_equal(ylim, (0.4, 0.6))
+        phases.append(pp)
+        phases[0]._repr_html_()
+        hd = OrderedDict()
+        hd['generic_image'] = OrderedDict()
+        for idx, plot in enumerate(phases):
+            img_fname =  image_from_plot(plot)
+            gi_hd = utils.generate_hash(self.generic_image_test(img_fname))
+            hd['generic_image'][str(idx)] = gi_hd
+        hd = {'phase_plot' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 
-@attr(ANSWER_TEST_TAG)
-def test_profile_plot():
-    fields = ('density', 'temperature', 'velocity_x', 'velocity_y',
-              'velocity_z')
-    units = ('g/cm**3', 'K', 'cm/s', 'cm/s', 'cm/s')
-    test_ds = fake_random_ds(16, fields=fields, units=units)
-    regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
-    pr_fields = [('density', 'temperature'), ('density', 'velocity_x'),
-                 ('temperature', 'cell_mass'), ('density', 'radius'),
-                 ('velocity_magnitude', 'cell_mass')]
-    profiles = []
-    for reg in regions:
-        for x_field, y_field in pr_fields:
-            profiles.append(ProfilePlot(reg, x_field, y_field))
-            profiles.append(ProfilePlot(reg, x_field, y_field,
-                                        fractional=True, accumulation=True))
-            p1d = create_profile(reg, x_field, y_field)
-            profiles.append(ProfilePlot.from_profiles(p1d))
-    p1 = create_profile(test_ds.all_data(), 'density', 'temperature')
-    p2 = create_profile(test_ds.all_data(), 'density', 'velocity_x')
-    profiles.append(ProfilePlot.from_profiles(
-        [p1, p2], labels=['temperature', 'velocity']))
-    profiles[0]._repr_html_()
-    for idx, plot in enumerate(profiles):
-        test_prefix = "%s_%s" % (plot.plots.keys(), idx)
-        yield compare(test_ds, plot, test_prefix=test_prefix,
-                      test_name="profile_plots")
-
-
-@attr(ANSWER_TEST_TAG)
-def test_phase_plot():
-    fields = ('density', 'temperature', 'velocity_x', 'velocity_y',
-              'velocity_z')
-    units = ('g/cm**3', 'K', 'cm/s', 'cm/s', 'cm/s')
-    test_ds = fake_random_ds(16, fields=fields, units=units)
-    regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
-    phases = []
-    ph_fields = [('density', 'temperature', 'cell_mass'),
-                 ('density', 'velocity_x', 'cell_mass'),
-                 ('radius', 'temperature', 'velocity_magnitude')]
-    for reg in regions:
-        for x_field, y_field, z_field in ph_fields:
-            # set n_bins to [16, 16] since matplotlib's postscript
-            # renderer is slow when it has to write a lot of polygons
-            phases.append(PhasePlot(reg, x_field, y_field, z_field,
-                                    x_bins=16, y_bins=16))
-            phases.append(PhasePlot(reg, x_field, y_field, z_field,
-                                    fractional=True, accumulation=True,
-                                    x_bins=16, y_bins=16))
-            p2d = create_profile(reg, [x_field, y_field], z_field,
-                                 n_bins=[16, 16])
-            phases.append(PhasePlot.from_profile(p2d))
-    pp = PhasePlot(test_ds.all_data(), 'density', 'temperature', 'cell_mass')
-    pp.set_xlim(0.3, 0.8)
-    pp.set_ylim(0.4, 0.6)
-    pp._setup_plots()
-    xlim = pp.plots['cell_mass'].axes.get_xlim()
-    ylim = pp.plots['cell_mass'].axes.get_ylim()
-    assert_array_almost_equal(xlim, (0.3, 0.8))
-    assert_array_almost_equal(ylim, (0.4, 0.6))
-    phases.append(pp)
-    phases[0]._repr_html_()
-    for idx, plot in enumerate(phases):
-        test_prefix = "%s_%s" % (plot.plots.keys(), idx)
-        yield compare(test_ds, plot, test_prefix=test_prefix,
-                      test_name="phase_plots")
-
-
-@attr(ANSWER_TEST_TAG)
-def test_profile_plot_multiple_field_multiple_plot():
-    fields = ('density', 'temperature', 'dark_matter_density')
-    ds = fake_random_ds(16, fields=fields)
-    sphere = ds.sphere("max", (1.0, "Mpc"))
-    profiles = []
-    profiles.append(yt.create_profile(sphere, ["radius"],
-                                      fields=["density"], n_bins=32))
-    profiles.append(yt.create_profile(sphere, ["radius"],
-                                      fields=["density"], n_bins=64))
-    profiles.append(yt.create_profile(sphere, ["radius"],
-                                      fields=["dark_matter_density"],
-                                      n_bins=64))
-
-    plot = yt.ProfilePlot.from_profiles(profiles)
-    yield compare(ds, plot, test_prefix=plot.plots.keys(),
-                  test_name="profile_plot_multiple_field_multiple_plot")
-
+    def test_profile_plot_multiple_field_multiple_plot(self):
+        fields = ('density', 'temperature', 'dark_matter_density')
+        ds = fake_random_ds(16, fields=fields)
+        sphere = ds.sphere("max", (1.0, "Mpc"))
+        profiles = []
+        profiles.append(yt.create_profile(sphere, ["radius"],
+                                          fields=["density"], n_bins=32))
+        profiles.append(yt.create_profile(sphere, ["radius"],
+                                          fields=["density"], n_bins=64))
+        profiles.append(yt.create_profile(sphere, ["radius"],
+                                          fields=["dark_matter_density"],
+                                          n_bins=64))
+        plot = yt.ProfilePlot.from_profiles(profiles)
+        hd = OrderedDict()
+        img_fname =  image_from_plot(plot)
+        gi_hd = utils.generate_hash(self.generic_image_test(img_fname))
+        hd['generic_image'] = gi_hd
+        hd = {'profile_plot_multiple_field_multiple_plot' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 
 def test_set_units():
     fields = ('density', 'temperature')
@@ -291,7 +303,3 @@ def test_phaseplot_showhide_colorbar_axes():
     plot.show_axes()
     with tempfile.NamedTemporaryFile(suffix='png') as f4:
         plot.save(f4.name)
-
-
-
-

@@ -12,8 +12,7 @@ from yt.testing import \
     assert_allclose_units, \
     fake_random_ds, \
     requires_file
-from yt.utilities.answer_testing.framework import \
-    data_dir_load
+from yt.utilities.answer_testing.utils import data_dir_load
 from yt.units import cm, s
 
 def random_unit_vector(prng):

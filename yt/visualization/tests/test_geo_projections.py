@@ -10,52 +10,59 @@ Tests for making unstructured mesh slices
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from nose.plugins.attrib import attr
+from collections import OrderedDict
+import os
+import tempfile
+
+import pytest
 
 import yt
 import unittest
 from yt.testing import \
-    ANSWER_TEST_TAG, \
     fake_amr_ds, \
     requires_module
-from yt.utilities.answer_testing.framework import GenericImageTest
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing import utils
 from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
+
+
+# Answer file
+answer_file = 'geo_projections.yaml'
+
 
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
-def compare(ds, field, idir, test_prefix, test_name, projection,
-            decimals=12, annotate=False):
-    def slice_image(filename_prefix):
-        sl = yt.SlicePlot(ds, idir, field)
-        sl.set_mpl_projection(projection)
-        if annotate:
-            sl._setup_plots()
-            sl.annotate_mesh_lines()
-        sl.set_log('all', False)
-        image_file = sl.save(filename_prefix)
-        return image_file
 
-    slice_image.__name__ = "slice_{}".format(test_prefix)
-    test = GenericImageTest(ds, slice_image, decimals)
-    test.prefix = test_prefix
-    test.answer_name = test_name
-    return test
-
-@requires_module("cartopy")
-@attr(ANSWER_TEST_TAG)
-def test_geo_slices_amr():
-    ds = fake_amr_ds(geometry="geographic")
-    for transform in transform_list:
-        if transform == 'UTM':
-            # requires additional argument so we skip
-            continue
-        for field in ds.field_list:
-            prefix = "%s_%s_%s" % (field[0], field[1], transform)
-            yield compare(ds, field, 'altitude', test_prefix=prefix,
-                          test_name="geo_slices_amr", projection=transform)
+@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('temp_dir')
+class TestGeoSlicesAMR(fw.AnswerTest):
+    @requires_module("cartopy")
+    def test_geo_slices_amr(self):
+        ds = fake_amr_ds(geometry="geographic")
+        hd = OrderedDict()
+        hd['generic_image'] = OrderedDict()
+        for transform in transform_list:
+            if transform == 'UTM':
+                # requires additional argument so we skip
+                continue
+            hd['generic_image'][transform] = OrderedDict()
+            for field in ds.field_list:
+                tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
+                os.close(tmpfd)
+                sl = yt.SlicePlot(ds, 'altitude', field)
+                sl.set_mpl_projection(transform)
+                sl.set_log('all', False)
+                sl.save(tmpfname)
+                gi_hd = utils.generate_hash(
+                    self.generic_image_test(tmpfname)
+                )
+                hd['generic_image'][transform][field] = gi_hd
+        hd = {'geo_slices_amr' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 
 @requires_module("cartopy")
 class TestGeoProjections(unittest.TestCase):

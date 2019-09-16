@@ -9,6 +9,10 @@ Unit test the sunyaev_zeldovich analysis module.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+from collections import OrderedDict
+import tempfile
+
+import pytest
 
 from yt.frontends.stream.api import load_uniform_grid
 from yt.funcs import get_pbar
@@ -24,8 +28,9 @@ from yt.utilities.physical_constants import \
     clight, \
     sigma_thompson
 from yt.testing import requires_module, assert_almost_equal
-from yt.utilities.answer_testing.framework import requires_ds, \
-    GenericArrayTest, data_dir_load, GenericImageTest
+import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing.utils import requires_ds, data_dir_load
+from yt.utilities.answer_testing import utils
 try:
     from yt.analysis_modules.sunyaev_zeldovich.projection import SZProjection, I0
 except ImportError:
@@ -35,6 +40,10 @@ try:
     import SZpack
 except ImportError:
     pass
+
+
+# Answer file
+answer_file = 'sunyaev_zeldovich_answers.yaml'
 
 mue = 1./0.88
 freqs = np.array([30., 90., 240.])
@@ -117,32 +126,52 @@ def test_projection():
             deltaI[i,:,:], np.array(szprj["%d_GHz" % int(freqs[i])]), 6)
 
 M7 = "DD0010/moving7_0010"
-@requires_module("SZpack")
-@requires_ds(M7)
-def test_M7_onaxis():
-    ds = data_dir_load(M7)
-    szprj = SZProjection(ds, freqs)
-    szprj.on_axis(2, nx=100)
-    def onaxis_array_func():
-        return szprj.data
-    def onaxis_image_func(filename_prefix):
-        szprj.write_png(filename_prefix)
-    for test in [GenericArrayTest(ds, onaxis_array_func),
-                 GenericImageTest(ds, onaxis_image_func, 12)]:
-        test_M7_onaxis.__name__ = test.description
-        yield test
+@pytest.mark.usefixtures('temp_dir')
+class TestSunyaevZeldovich(fw.AnswerTest):
+    @requires_module("SZpack")
+    @requires_ds(M7)
+    def test_M7_onaxis(self):
+        ds = data_dir_load(M7)
+        szprj = SZProjection(ds, freqs)
+        szprj.on_axis(2, nx=100)
+        def onaxis_array_func():
+            return szprj.data
+        def onaxis_image_func():
+            tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+            os.close(tmpfd)
+            szprj.write_png(tmpname)
+            return tmpname
+        hd = OrderedDict()
+        hd['generic_array'] = utils.generate_hash(
+            self.generic_array_test(ds, onaxis_array_func)
+        )
+        imgname = onaxis_image_func()
+        hd['generic_image'] = utils.generate_hash(
+            self.generic_image_test(imgname)
+        )
+        hd = {'M7_onaxis' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
 
-@requires_module("SZpack")
-@requires_ds(M7)
-def test_M7_offaxis():
-    ds = data_dir_load(M7)
-    szprj = SZProjection(ds, freqs)
-    szprj.off_axis(np.array([0.1,-0.2,0.4]), nx=100)
-    def offaxis_array_func():
-        return szprj.data
-    def offaxis_image_func(filename_prefix):
-        szprj.write_png(filename_prefix)
-    for test in [GenericArrayTest(ds, offaxis_array_func),
-                 GenericImageTest(ds, offaxis_image_func, 12)]:
-        test_M7_offaxis.__name__ = test.description
-        yield test
+    @requires_module("SZpack")
+    @requires_ds(M7)
+    def test_M7_offaxis(self):
+        ds = data_dir_load(M7)
+        szprj = SZProjection(ds, freqs)
+        szprj.off_axis(np.array([0.1,-0.2,0.4]), nx=100)
+        def offaxis_array_func():
+            return szprj.data
+        def offaxis_image_func():
+            tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+            os.close(tmpfd)
+            szprj.write_png(tmpname)
+            return tmpname
+        hd = OrderedDict()
+        hd['generic_array'] = utils.generate_hash(
+            self.generic_array_test(ds, offaxis_array_func)
+        )
+        imgname = offaxis_image_func()
+        hd['generic_image'] = utils.generate_hash(
+            self.generic_image_test(imgname)
+        )
+        hd = {'M7_offaxis' : hd}
+        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)

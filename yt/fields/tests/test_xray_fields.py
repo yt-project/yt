@@ -54,7 +54,7 @@ class TestXRayFields(fw.AnswerTest):
         hashes = {'sloshing_apec' : hd}
         utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
 
-    @utils.requires_ds(d9p, big_data=True)
+    @utils.requires_ds(d9p)
     def test_d9p_cloudy(self):
         ds = utils.data_dir_load(d9p)
         fields = add_xray_emissivity_field(ds, 0.5, 2.0, redshift=ds.current_redshift,

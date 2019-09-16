@@ -35,7 +35,7 @@ from yt.testing import \
     assert_array_equal, \
     assert_equal, \
     requires_file
-from yt.utilities.answer_testing.framework import \
+from yt.utilities.answer_testing.utils import \
     data_dir_load
 
 def test_clump_finding():

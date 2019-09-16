@@ -3,7 +3,7 @@ from nose.tools import assert_raises
 
 from yt.testing import assert_equal, fake_amr_ds, fake_particle_ds, \
     fake_random_ds, requires_file
-from yt.utilities.answer_testing.framework import data_dir_load
+from yt.utilities.answer_testing.utils import data_dir_load
 from yt.utilities.exceptions import YTDimensionalityError
 from yt.visualization.line_plot import LineBuffer
 

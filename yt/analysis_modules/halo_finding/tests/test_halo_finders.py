@@ -22,8 +22,7 @@ from yt.analysis_modules.halo_analysis.api import \
 from yt.testing import \
     requires_file, \
     assert_array_equal
-from yt.utilities.answer_testing.framework import \
-    data_dir_load
+from yt.utilities.answer_testing.utils import data_dir_load
 
 import tempfile
 import os

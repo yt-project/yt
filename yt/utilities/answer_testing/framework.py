@@ -38,37 +38,10 @@ import yt.visualization.plot_window as pw
 #============================================
 @pytest.mark.usefixtures("cli_testing_opts")
 class AnswerTest():
-    """
-    Contains the various answer tests.
-
-    Attributes:
-    -----------
-        pass
-
-    Methods:
-    --------
-        pass
-    """
-
     #-----
     # grid_hierarchy_test
     #-----
     def grid_hierarchy_test(self, ds):
-        """
-        Tests various aspects of the data set's grids.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         result = OrderedDict()
         result["grid_dimensions"] = ds.index.grid_dimensions
         result["grid_left_edges"] = ds.index.grid_left_edge
@@ -85,21 +58,6 @@ class AnswerTest():
     # parentage_relationships_test
     #-----
     def parentage_relationships_test(self, ds):
-        """
-        Makes sure the nested grids are properly related (I think).
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         result = OrderedDict()
         result["parents"] = []
         result["children"] = []
@@ -135,21 +93,6 @@ class AnswerTest():
     # grid_values_test
     #-----
     def grid_values_test(self, ds, field):
-        """
-        Tests the actual data stored in each grid.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         result = OrderedDict()
         for g in ds.index.grids:
             result[g.id] = g[field].tostring()
@@ -169,22 +112,6 @@ class AnswerTest():
     # projection_values_test
     #-----
     def projection_values_test(self, ds, axis, field, weight_field, dobj_type):
-        """
-        Ensures that projections of various fields using various
-        weights are unchanged.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         if dobj_type is not None:
             dobj = utils.create_obj(ds, dobj_type)
         else:
@@ -215,22 +142,6 @@ class AnswerTest():
         return s
 
     def field_values_test(self, ds, field, obj_type=None, particle_type=False):
-        """
-        Tests that the average, minimum, and maximum values of a field
-        remain unchanged.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass 
-        """
         # If needed build an instance of the dataset type
         obj = utils.create_obj(ds, obj_type)
         determined_field = obj._determine_fields(field)[0]
@@ -252,21 +163,6 @@ class AnswerTest():
     #-----
     def pixelized_projection_values_test(self, ds, axis, field,
         weight_field=None, dobj_type=None):
-        """
-        Tests aspects of a pixelized projection.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         if dobj_type is not None:
             obj = utils.create_obj(ds, dobj_type)
         else:
@@ -299,19 +195,6 @@ class AnswerTest():
     # check_color
     #-----
     def color_conservation_test(self, ds):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         species_names = ds.field_info.species_names
         dd = ds.all_data()
         dens_yt = dd["density"].copy()
@@ -340,19 +223,6 @@ class AnswerTest():
     # simulated_halo_mass_function_test
     #-----
     def simulated_halo_mass_function_test(self, ds, finder):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         hc = HaloCatalog(data_ds=ds, finder_method=finder)
         hc.create()
         hmf = HaloMassFcn(halos_ds=hc.halos_ds)
@@ -366,19 +236,6 @@ class AnswerTest():
     #-----
     # analytic_halo_mass_function_test
     def analytic_halo_mass_function_test(self, ds, fit):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         hmf = HaloMassFcn(simulation_ds=ds, fitting_function=fit)
         result = np.empty((2, hmf.masses_analytic.size))
         result[0] = hmf.masses_analytic.d
@@ -391,19 +248,6 @@ class AnswerTest():
     # small_patch_amr
     #-----
     def small_patch_amr(self, ds, fields, weights, axes, ds_objs):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up keys of test names
         test_keys = ['grid_hierarchy',
             'parentage_relationships',
@@ -450,19 +294,6 @@ class AnswerTest():
     # big_patch_amr
     #-----
     def big_patch_amr(self, ds, fields, weights, axes, ds_objs):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Set up keys of test names
         test_keys = ['grid_hierarchy',
             'parentage_relationships',
@@ -511,19 +342,6 @@ class AnswerTest():
     # generic_array_test
     #-----
     def generic_array_test(self, ds_fn, func, args=None, kwargs=None):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         if args is None:
             args = []
         if kwargs is None:
@@ -534,19 +352,6 @@ class AnswerTest():
     # sph_answer
     #-----
     def sph_answer(self, ds, ds_str_repr, ds_nparticles, fields):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         # Make sure we're dealing with the right dataset
         assert str(ds) == ds_str_repr
         # Set up keys of test names
@@ -592,19 +397,6 @@ class AnswerTest():
     # yt_field_test
     #-----
     def yt_field_test(self, ds, field, geometric):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         if geometric:
             obj = ds.all_data()
         else:
@@ -617,19 +409,6 @@ class AnswerTest():
     def plot_window_attribute_test(self, ds, plot_field, plot_axis, attr_name,
         attr_args, decimals, plot_type='SlicePlot', callback_id='',
         callback_runners=[]):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         plot = utils.create_plot(ds, plot_type, plot_field, plot_axis, {})
         for r in self.callback_runners:
             r(plot_field, plot)
@@ -648,19 +427,6 @@ class AnswerTest():
     def phase_plot_attribute_test(self, ds_fn, x_field, y_field, z_field,
                  attr_name, attr_args, decimals, plot_type='PhasePlot',
                  plot_kwargs={}):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         plot = utils.create_plot2(ds_fn, x_field, y_field,
                                 z_field, plot_type, plot_kwargs)
         attr = getattr(plot, attr_name)
@@ -687,18 +453,6 @@ class AnswerTest():
         This test is typically used once per geometry or coordinates type.
         Feed it a dataset, and it checks that the results of basic pixelization
         don't change.
-
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
         """
         for i, axis in enumerate(ds.coordinates.axis_order):
             (bounds, center, display_center) = \
@@ -719,19 +473,6 @@ class AnswerTest():
     # light_cone_projection_test
     #-----
     def light_cone_projection_test(self, parameter_file, simulation_type):
-        """
-        Parameters:
-        -----------
-            pass
-
-        Raises:
-        -------
-            pass
-
-        Returns:
-        --------
-            pass
-        """
         lc = LightCone(
             parameter_file, simulation_type, 0., 0.1,
             observer_redshift=0.0, time_data=False)
@@ -749,3 +490,29 @@ class AnswerTest():
         mi = data[data.nonzero()].min()
         ma = data.max()
         return np.array([mean, mi, ma]).tostring()
+
+    #-----
+    # extract_connected_sets_test
+    #-----
+    def extract_connected_sets_test(self, ds_fn, data_source, field, num_levels, min_val, max_val):
+        n, all_sets = data_source.extract_connected_sets(
+            field, num_levels, min_val, max_val)
+        result = []
+        for level in all_sets:
+            for set_id in all_sets[level]:
+                result.append([all_sets[level][set_id]["cell_mass"].size,
+                               all_sets[level][set_id]["cell_mass"].sum()])
+        result = np.array(result).tostring()
+        return result
+
+    #-----
+    # VR_image_comparison_test
+    #-----
+    def VR_image_comparison_test(self, scene):
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        scene.render()
+        scene.save(tmpname, sigma_clip=1.0)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
+        return zlib.compress(image.dumps())

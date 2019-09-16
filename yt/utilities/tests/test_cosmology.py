@@ -27,8 +27,7 @@ from yt.testing import \
 from yt.units.yt_array import \
      YTArray, \
      YTQuantity
-from yt.utilities.answer_testing.framework import \
-     data_dir_load
+from yt.utilities.answer_testing.utils import data_dir_load
 from yt.utilities.cosmology import \
      Cosmology
 
