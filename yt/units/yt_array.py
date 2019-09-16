@@ -51,6 +51,10 @@ from yt.utilities.exceptions import \
 from yt.utilities.lru_cache import lru_cache
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
+try:
+    from numpy.core.umath import clip
+except ImportError:
+    clip = None
 from sympy import Rational
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut
@@ -452,6 +456,7 @@ class YTArray(np.ndarray):
         divmod_: passthrough_unit,
         isnat: return_without_unit,
         heaviside: preserve_units,
+        clip: passthrough_unit,
     }
 
     __array_priority__ = 2.0
@@ -1397,9 +1402,21 @@ class YTArray(np.ndarray):
                     out, out_arr, unit = handle_multiply_divide_units(
                         unit, units, out, out_arr)
             else:
-                raise RuntimeError(
-                    "Support for the %s ufunc with %i inputs has not been"
-                    "added to YTArray." % (str(ufunc), len(inputs)))
+                if ufunc is clip:
+                    inp = (inputs[0].view(np.ndarray), inputs[1], inputs[2])
+                    if out is not None:
+                        _out = out.view(np.ndarray)
+                    else:
+                        _out = None
+                    out_arr = ufunc(*inp, out=_out)
+                    unit = inputs[0].units
+                    ret_class = type(inputs[0])
+                    mul = 1
+                else:
+                    raise RuntimeError(
+                        "Support for the %s ufunc with %i inputs has not been "
+                        "added to unyt_array." % (str(ufunc), len(inputs))
+                    )
             if unit is None:
                 out_arr = np.array(out_arr, copy=False)
             elif ufunc in (modf, divmod_):
