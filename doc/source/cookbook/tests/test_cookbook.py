@@ -49,10 +49,11 @@ def test_recipe():
             continue
         check_recipe.description = "Testing recipe: %s" % recipe
         if recipe in PARALLEL_TEST:
-            yield check_recipe, \
-                ["mpiexec", "-n", PARALLEL_TEST[recipe], "python", fname]
+            cmd = 'mpiexec -n ' + PARALLEL_TEST[recipe] + 'python ' + fname
+            check_recipe(cmd)
         else:
-            yield check_recipe, ["python", fname]
+            cmd = 'python ' + fname
+            check_recipe(cmd)
 
 
 def check_recipe(cmd):
