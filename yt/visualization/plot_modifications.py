@@ -530,7 +530,7 @@ class ContourCallback(PlotCallback):
                  plot_args=None, label=False, take_log=None,
                  label_args=None, text_args=None, data_source=None):
         PlotCallback.__init__(self)
-        def_plot_args = {'colors':'k'}
+        def_plot_args = {'colors':'k', 'linestyles': 'solid'}
         def_text_args = {'colors':'w'}
         self.ncont = ncont
         self.field = field
