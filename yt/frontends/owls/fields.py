@@ -153,6 +153,19 @@ class OWLSFieldInfo(SPHFieldInfo):
                 #---------------------------------------------------
                 add_species_field_by_density(self, ptype, yt_ion)
 
+            
+            def _h_p1_density(field, data):
+                return data[ptype, "H_density"] - data[ptype, "H_p0_density"]
+
+            self.add_field((ptype, "H_p1_density"),
+                           sampling_type="particle",
+                           function=_h_p1_density,
+                           units=self.ds.unit_system["density"])
+
+            add_species_field_by_density(self, ptype, "H_p1")
+            for sfx in ["mass", "density", "number_density"]:
+                fname = "H_p1_" + sfx
+                self.alias(("gas", fname), (ptype, fname))
 
             # alias ion fields
             #-----------------------------------------------
