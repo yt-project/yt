@@ -1402,3 +1402,18 @@ def test_display_ytarray():
 def test_display_ytarray_too_large():
     arr = YTArray([1,2,3,4], 'cm')
     assert_raises(YTArrayTooLargeToDisplay, display_ytarray, arr)
+
+def test_clip():
+    km = YTQuantity(1, 'km')
+
+    data = [1, 2, 3, 4, 5, 6] * km
+    answer = [2, 2, 3, 4, 4, 4] * km
+
+    ret = np.clip(data, 2, 4)
+    assert_array_equal(ret, answer)
+    assert ret.units == answer.units
+
+    np.clip(data, 2, 4, out=data)
+
+    assert_array_equal(data, answer)
+    assert data.units == answer.units
