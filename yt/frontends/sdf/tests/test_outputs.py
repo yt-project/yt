@@ -21,8 +21,9 @@ from yt.extern.six.moves import urllib
 
 
 _fields = (('deposit', 'all_cic'))
-scivis_data = "http://darksky.slac.stanford.edu/scivis2015/data/ds14_scivis_0128/ds14_scivis_0128_e4_dt04_1.0000"
-
+slac_scivis_data = "http://darksky.slac.stanford.edu/scivis2015/data/ds14_scivis_0128/ds14_scivis_0128_e4_dt04_1.0000"
+ncsa_scivis_data = "http://use.yt/upload/744abba3"
+scivis_data = ncsa_scivis_data
 
 # Answer on http://stackoverflow.com/questions/3764291/checking-network-connection
 # Better answer on http://stackoverflow.com/questions/2712524/handling-urllib2s-timeout-python
