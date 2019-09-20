@@ -78,7 +78,8 @@ class RegisteredDataContainer(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         if hasattr(cls, "_type_name") and not cls._skip_add:
-            data_object_registry[cls._type_name] = cls
+            name = getattr(cls, "_override_selector_name", cls._type_name)
+            data_object_registry[name] = cls
 
 class YTDataContainer(metaclass = RegisteredDataContainer):
     """
