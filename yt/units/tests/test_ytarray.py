@@ -1417,3 +1417,14 @@ def test_clip():
 
     assert_array_equal(data, answer)
     assert data.units == answer.units
+
+    left_edge = [0.0, 0.0, 0.0] * km
+    right_edge = [1.0, 1.0, 1.0] * km
+
+    positions = [[0.0, 0.0, 0.0],
+                 [1.0, 1.0, -0.1],
+                 [1.5, 1.0, 0.9]] * km
+    np.clip(positions, left_edge, right_edge, positions)
+    assert positions.units == left_edge.units
+    assert positions.max() == 1.0 * km
+    assert positions.min() == 0.0 * km
