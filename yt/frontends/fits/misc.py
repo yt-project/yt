@@ -168,9 +168,11 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     else:
         r = pyregion.parse(reg)
     reg_name = reg
-    filter = r.get_filter(header=ds.wcs_2d.to_header())
-    nx = ds.domain_dimensions[ds.lon_axis]
-    ny = ds.domain_dimensions[ds.lat_axis]
+    header = ds.wcs_2d.to_header()
+    # The FITS header only contains WCS-related keywords
+    header["NAXIS1"] = nx = ds.domain_dimensions[ds.lon_axis]
+    header["NAXIS2"] = ny = ds.domain_dimensions[ds.lat_axis]
+    filter = r.get_filter(header=header)
     mask = filter.mask((ny, nx)).transpose()
     if isinstance(ds, EventsFITSDataset):
         prefix = "event_"
