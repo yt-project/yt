@@ -56,7 +56,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         super(SPHFieldInfo, self).__init__(*args, **kwargs)
         if ("PartType0", "Metallicity_00") in self.field_list:
             self.nuclei_names = metal_elements
-            self.species_names = ["H", "H_p1"] + metal_elements
+            self.species_names = ["H_p0", "H_p1"] + metal_elements
 
     def setup_particle_fields(self, ptype):
         FieldInfoContainer.setup_particle_fields(self, ptype)
@@ -69,19 +69,17 @@ class GizmoFieldInfo(GadgetFieldInfo):
     def setup_gas_particle_fields(self, ptype):
         super(GizmoFieldInfo, self).setup_gas_particle_fields(ptype)
 
-        def _h_density(field, data):
+        def _h_p0_density(field, data):
             x_H = 1.0 - data[(ptype, "He_metallicity")] - \
               data[(ptype, "metallicity")]
             return x_H * data[(ptype, "density")] * \
               data[(ptype, "NeutralHydrogenAbundance")]
 
-        self.add_field((ptype, "H_density"),
+        self.add_field((ptype, "H_p0_density"),
                        sampling_type="particle",
-                       function=_h_density,
+                       function=_h_p0_density,
                        units=self.ds.unit_system["density"])
         add_species_field_by_density(self, ptype, "H")
-        for suffix in ["density", "fraction", "mass", "number_density"]:
-            self.alias((ptype, "H_p0_%s" % suffix), (ptype, "H_%s" % suffix))
 
         def _h_p1_density(field, data):
             x_H = 1.0 - data[(ptype, "He_metallicity")] - \
