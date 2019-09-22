@@ -162,11 +162,12 @@ def add_deprecated_species_alias(registry, ftype, alias_species, species,
     def _dep_field(field, data):
         if not isinstance(data, FieldDetector):
             issue_deprecation_warning(
-                f"The \"{alias_species}_{suffix}\" field is deprecated. " +
-                f"Please use \"{species}_{suffix}\" instead.")
-        return data[ftype, f"{species}_{suffix}"]
+                ("The \"%s_%s\" field is deprecated. " +
+                 "Please use \"%s_%s\" instead.") %
+                (alias_species, suffix, species, suffix))
+        return data[ftype, "%s_%s" % (species, suffix)]
 
-    registry.add_field((ftype, f"{alias_species}_{suffix}"),
+    registry.add_field((ftype, "%s_%s" % (alias_species, suffix)),
                        sampling_type="local",
                        function=_dep_field,
                        units=my_units)
