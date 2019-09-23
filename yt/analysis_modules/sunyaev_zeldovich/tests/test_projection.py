@@ -10,6 +10,7 @@ Unit test the sunyaev_zeldovich analysis module.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 from collections import OrderedDict
+import os
 import tempfile
 
 import pytest

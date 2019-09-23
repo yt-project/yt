@@ -74,7 +74,7 @@ class TestProfilePlots(fw.AnswerTest):
             for args in ATTR_ARGS[attr_name]:
                 ppat_hd = utils.generate_hash(
                     self.phase_plot_attribute_test(ds, x_field, y_field, z_field,
-                                              attr_name, args, decimals)
+                                              attr_name, args)
                 )
                 hd['phase_plot_attribute'][attr_name][str(i)] = ppat_hd
                 i += 1

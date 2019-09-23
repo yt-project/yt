@@ -425,7 +425,7 @@ class AnswerTest():
     # phase_plot_attribute_test
     #-----
     def phase_plot_attribute_test(self, ds_fn, x_field, y_field, z_field,
-                 attr_name, attr_args, decimals, plot_type='PhasePlot',
+                 attr_name, attr_args, plot_type='PhasePlot',
                  plot_kwargs={}):
         plot = utils.create_plot2(ds_fn, x_field, y_field,
                                 z_field, plot_type, plot_kwargs)

@@ -1,7 +1,7 @@
 import yt
 import numpy as np
 from yt.utilities.lib.bounding_volume_hierarchy import BVH, \
-    test_ray_trace
+    test_ray_trace as tst_ray_trace
 from yt.visualization.volume_rendering.api import Camera, Scene
 from yt.testing import requires_file
 
@@ -43,6 +43,6 @@ def test_bounding_volume_hierarchy():
     origins, direction = get_rays(cam)
 
     image = np.empty(800*800, np.float64)
-    test_ray_trace(image, origins, direction, bvh)
+    tst_ray_trace(image, origins, direction, bvh)
     image = image.reshape((800, 800))
     return image

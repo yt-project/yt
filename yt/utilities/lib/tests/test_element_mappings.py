@@ -17,16 +17,16 @@ yt/utilities/lib/element_mappings.pyx.
 import numpy as np
 from yt.testing import assert_almost_equal
 from yt.utilities.lib.element_mappings import \
-    test_tetra_sampler, \
-    test_hex_sampler, \
-    test_tri_sampler, \
-    test_quad_sampler, \
-    test_quad2_sampler, \
-    test_hex20_sampler, \
-    test_wedge_sampler, \
-    test_tri2_sampler, \
-    test_tet2_sampler, \
-    test_linear1D_sampler
+    test_tetra_sampler as tst_tetra_sampler, \
+    test_hex_sampler as tst_hex_sampler, \
+    test_tri_sampler as tst_tri_sampler, \
+    test_quad_sampler as tst_quad_sampler, \
+    test_quad2_sampler as tst_quad2_sampler, \
+    test_hex20_sampler as tst_hex20_sampler, \
+    test_wedge_sampler as tst_wedge_sampler, \
+    test_tri2_sampler as tst_tri2_sampler, \
+    test_tet2_sampler as tst_tet2_sampler, \
+    test_linear1D_sampler as tst_linear1D_sampler
 
 
 def check_all_vertices(sampler, vertices, field_values):
@@ -44,7 +44,7 @@ def test_P1Sampler1D():
     vertices = np.array([[0.1], [0.3]])
     field_values = np.array([ 1.,  2.])
 
-    check_all_vertices(test_linear1D_sampler, vertices, field_values)
+    check_all_vertices(tst_linear1D_sampler, vertices, field_values)
 
 
 def test_P1Sampler2D():
@@ -52,7 +52,7 @@ def test_P1Sampler2D():
     vertices = np.array([[0.1, 0.2], [0.6, 0.3], [0.2, 0.7]])
     field_values = np.array([ 1.,  2.,  3.])
 
-    check_all_vertices(test_tri_sampler, vertices, field_values)
+    check_all_vertices(tst_tri_sampler, vertices, field_values)
 
 
 def test_P1Sampler3D():
@@ -63,7 +63,7 @@ def test_P1Sampler3D():
 
     field_values = np.array([1.0, 2.0, 3.0, 4.0])
 
-    check_all_vertices(test_tetra_sampler, vertices, field_values)
+    check_all_vertices(tst_tetra_sampler, vertices, field_values)
 
 
 def test_Q1Sampler2D():
@@ -75,7 +75,7 @@ def test_Q1Sampler2D():
 
     field_values = np.array([1.,  2.,  3.,  4.])
 
-    check_all_vertices(test_quad_sampler, vertices, field_values)
+    check_all_vertices(tst_quad_sampler, vertices, field_values)
 
 
 def test_Q2Sampler2D():
@@ -92,7 +92,7 @@ def test_Q2Sampler2D():
 
     field_values = np.array([7., 27., 40., 12., 13., 30., 22., 9., 16.])
 
-    check_all_vertices(test_quad2_sampler, vertices, field_values)
+    check_all_vertices(tst_quad2_sampler, vertices, field_values)
     
 
 def test_Q1Sampler3D():
@@ -108,7 +108,7 @@ def test_Q1Sampler3D():
     field_values = np.array([0.4526278, 0.45262656, 0.45262657, 0.4526278,
                              0.54464296, 0.54464149, 0.5446415, 0.54464296])
 
-    check_all_vertices(test_hex_sampler, vertices, field_values)
+    check_all_vertices(tst_hex_sampler, vertices, field_values)
 
 
 def test_S2Sampler3D():
@@ -141,7 +141,7 @@ def test_S2Sampler3D():
                              658.80049342, 655.35571708, 650.46784761,
                              654.39247905, 659.28034852])
 
-    check_all_vertices(test_hex20_sampler, vertices, field_values)
+    check_all_vertices(tst_hex20_sampler, vertices, field_values)
 
 
 def test_W1Sampler3D():
@@ -155,7 +155,7 @@ def test_W1Sampler3D():
 
     field_values = np.array([1.,  2.,  3.,  4., 5., 6.])
 
-    check_all_vertices(test_wedge_sampler, vertices, field_values)
+    check_all_vertices(tst_wedge_sampler, vertices, field_values)
 
 def test_T2Sampler2D():
 
@@ -168,7 +168,7 @@ def test_T2Sampler2D():
 
     field_values = np.array([15., 37., 49., 32., 46., 24.])
 
-    check_all_vertices(test_tri2_sampler, vertices, field_values)
+    check_all_vertices(tst_tri2_sampler, vertices, field_values)
 
 
 def test_Tet2Sampler3D():
@@ -186,4 +186,4 @@ def test_Tet2Sampler3D():
 
     field_values = np.array([15., 37., 49., 24., 30., 44., 20., 17., 32., 36.])
 
-    check_all_vertices(test_tet2_sampler, vertices, field_values)
+    check_all_vertices(tst_tet2_sampler, vertices, field_values)

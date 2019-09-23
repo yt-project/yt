@@ -176,10 +176,7 @@ class TestParticlePlotAnswer(fw.AnswerTest):
         ParticlePhasePlot to the gold standard.
 
         '''
-
-        decimals = 12
         ds = utils.data_dir_load(g30)
-
         x_field = 'particle_velocity_x'
         y_field = 'particle_velocity_y'
         z_field = 'particle_mass'
@@ -190,7 +187,7 @@ class TestParticlePlotAnswer(fw.AnswerTest):
             for args in PHASE_ATTR_ARGS[attr_name]:
                 pp_hd = utils.generate_hash(
                     self.phase_plot_attribute_test(ds, x_field, y_field, z_field,
-                                              attr_name, args, decimals,
+                                              attr_name, args,
                                               'ParticlePhasePlot')
                 )
                 hd['phase_plot_attribute'][attr_name][args] = pp_hd 

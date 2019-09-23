@@ -47,7 +47,6 @@ class TestVROrientation(fw.AnswerTest):
         n_frames = 1
         orientations = [[-0.3, -0.1, 0.8]]
         theta = np.pi / n_frames
-        decimals = 12
         hd = OrderedDict()
         hd['vr_image_comparison'] = OrderedDict()
         hd['generic_image'] = OrderedDict()
@@ -64,8 +63,7 @@ class TestVROrientation(fw.AnswerTest):
             cam.switch_orientation(normal_vector=[1., 0., 0.],
                                    north_vector=[0., 0., 1.])
             cam.set_width(ds.domain_width*2.)
-            desc = '%s_%04d' % (lens_type, frame)
-            test1_hd = utils.generate_hash(self.VR_image_comparison_test(sc)
+            test1_hd = utils.generate_hash(self.VR_image_comparison_test(sc))
             hd['vr_image_comparison']['test1'][lens_type] = test1_hd
             hd['vr_image_comparison']['test2'][lens_type] = OrderedDict()
             hd['vr_image_comparison']['test3'][lens_type] = OrderedDict()
@@ -74,7 +72,6 @@ class TestVROrientation(fw.AnswerTest):
                 frame += 1
                 center = ds.arr([0, 0, 0], 'code_length')
                 cam.yaw(theta, rot_center=center)
-                desc = 'yaw_%s_%04d' % (lens_type, frame)
                 test2_hd = utils.generate_hash(self.VR_image_comparison_test(sc))
                 hd['vr_image_comparison']['test2'][lens_type][str(i)] = test2_hd
             for i in range(n_frames):
@@ -82,7 +79,6 @@ class TestVROrientation(fw.AnswerTest):
                 theta = np.pi / n_frames
                 center = ds.arr([0, 0, 0], 'code_length')
                 cam.pitch(theta, rot_center=center)
-                desc = 'pitch_%s_%04d' % (lens_type, frame)
                 test3_hd = utils.generate_hash(self.VR_image_comparison_test(sc))
                 hd['vr_image_comparison']['test3'][lens_type][str(i)] = test3_hd
             for i in range(n_frames):
@@ -90,7 +86,6 @@ class TestVROrientation(fw.AnswerTest):
                 theta = np.pi / n_frames
                 center = ds.arr([0, 0, 0], 'code_length')
                 cam.roll(theta, rot_center=center)
-                desc = 'roll_%s_%04d' % (lens_type, frame)
                 test4_hd = utils.generate_hash(self.VR_image_comparison_test(sc))
                 hd['vr_image_comparison']['test4'][lens_type][str(i)] = test4_hd
         center = [0.5, 0.5, 0.5]
