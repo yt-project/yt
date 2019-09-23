@@ -1405,7 +1405,7 @@ class YTArray(np.ndarray):
                 if ufunc is clip:
                     inp = []
                     for i in inputs:
-                        if isinstance(i, unyt_array):
+                        if isinstance(i, YTArray):
                             inp.append(i.to(inputs[0].units).view(np.ndarray))
                         elif _iterable(i):
                             inp.append(np.asarray(i))
