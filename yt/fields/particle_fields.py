@@ -640,7 +640,8 @@ def standard_particle_fields(registry, ptype,
         """
         normal = data.get_field_parameter('normal')
         pos = data['relative_particle_position'].T
-        return data.ds.arr(get_cyl_r(pos, normal), 'code_length')
+        pos.convert_to_units("code_length")
+        return data.ds.arr(get_cyl_r(pos, normal), "code_length")
 
     registry.add_field((ptype, "particle_position_cylindrical_radius"),
                        sampling_type="particle",
@@ -674,7 +675,8 @@ def standard_particle_fields(registry, ptype,
         """
         normal = data.get_field_parameter('normal')
         pos = data['relative_particle_position'].T
-        return data.ds.arr(get_cyl_z(pos, normal), 'code_length')
+        pos.convert_to_units("code_length")
+        return data.ds.arr(get_cyl_z(pos, normal), "code_length")
 
     registry.add_field((ptype, "particle_position_cylindrical_z"),
                        sampling_type="particle",
