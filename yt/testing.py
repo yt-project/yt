@@ -614,7 +614,10 @@ def requires_module(module):
     platform.
     """
     def ffalse(func):
-        return lambda: None
+        def skip(*args, **kwargs):
+            print("{} not found, skipping {}.".format(module, func.__name__))
+            pass
+        return skip
     def ftrue(func):
         return func
     try:
@@ -627,7 +630,10 @@ def requires_module(module):
 def requires_file(req_file):
     path = ytcfg.get("yt", "test_data_dir")
     def ffalse(func):
-        return lambda: None
+        def skip(*args, **kwargs):
+            print("{} not found, skipping {}.".format(sim_fn, func.__name__))
+            pass
+        return skip
     def ftrue(func):
         return func
     if os.path.exists(req_file):

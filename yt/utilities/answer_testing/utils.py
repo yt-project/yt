@@ -178,7 +178,10 @@ def requires_ds(ds_fn, file_check = False):
         pass
     """
     def ffalse(func):
-        return lambda: None
+        def skip(*args, **kwargs):
+            print("{} not found, skipping {}.".format(ds_fn, func.__name__))
+            pass
+        return skip
     def ftrue(func):
         return func
     if not can_run_ds(ds_fn, file_check):
@@ -191,7 +194,10 @@ def requires_ds(ds_fn, file_check = False):
 #============================================
 def requires_sim(sim_fn, sim_type, file_check = False):
     def ffalse(func):
-        return lambda: None
+        def skip(*args, **kwargs):
+            print("{} not found, skipping {}.".format(sim_fn, func.__name__))
+            pass
+        return skip
     def ftrue(func):
         return func
     if not can_run_sim(sim_fn, sim_type, file_check):
