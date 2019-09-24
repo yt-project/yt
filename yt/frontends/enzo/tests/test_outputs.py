@@ -107,9 +107,9 @@ def test_nuclei_density_fields():
     ds = data_dir_load(ecp)
     ad = ds.all_data()
     assert_array_equal(ad["H_nuclei_density"],
-                       (ad["H_number_density"] + ad["H_p1_number_density"]))
+                       (ad["H_p0_number_density"] + ad["H_p1_number_density"]))
     assert_array_equal(ad["He_nuclei_density"],
-        (ad["He_number_density"] +
+        (ad["He_p0_number_density"] +
          ad["He_p1_number_density"] + ad["He_p2_number_density"]))
 
 @requires_file(enzotiny)

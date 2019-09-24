@@ -1,8 +1,12 @@
 import numpy as np
 import re
 
+from yt.fields.field_detector import \
+    FieldDetector
 from yt.frontends.sph.data_structures import \
     ParticleDataset
+from yt.funcs import \
+    issue_deprecation_warning
 from yt.utilities.physical_ratios import \
     _primordial_mass_fraction
 from yt.utilities.chemical_formulas import \
@@ -134,6 +138,40 @@ def add_species_aliases(registry, ftype, alias_species, species):
     registry.alias((ftype, "%s_mass" % alias_species), 
                    (ftype, "%s_mass" % species))
 
+def add_deprecated_species_aliases(registry, ftype, alias_species, species):
+    """
+    Add the species aliases but with deprecation warnings.
+    """
+
+    for suffix in ["density", "fraction", "number_density", "mass"]:
+        add_deprecated_species_alias(
+            registry, ftype, alias_species, species, suffix)
+
+def add_deprecated_species_alias(registry, ftype, alias_species, species,
+                                 suffix):
+    """
+    Add a deprecated species alias field.
+    """
+
+    unit_system = registry.ds.unit_system
+    if suffix == "fraction":
+        my_units = ""
+    else:
+        my_units = unit_system[suffix]
+
+    def _dep_field(field, data):
+        if not isinstance(data, FieldDetector):
+            issue_deprecation_warning(
+                ("The \"%s_%s\" field is deprecated. " +
+                 "Please use \"%s_%s\" instead.") %
+                (alias_species, suffix, species, suffix))
+        return data[ftype, "%s_%s" % (species, suffix)]
+
+    registry.add_field((ftype, "%s_%s" % (alias_species, suffix)),
+                       sampling_type="local",
+                       function=_dep_field,
+                       units=my_units)
+
 def add_nuclei_density_fields(registry, ftype):
     unit_system = registry.ds.unit_system
     elements = _get_all_elements(registry.species_names)
@@ -243,4 +281,12 @@ def setup_species_fields(registry, ftype = "gas", slice_info = None):
             # Skip it
             continue
         func(registry, ftype, species)
+
+        # Add aliases of X_p0_<field> to X_<field>.
+        # These are deprecated and will be removed soon.
+        if ChemicalFormula(species).charge == 0:
+            alias_species = species.split("_")[0]
+            add_deprecated_species_aliases(
+                registry, "gas", alias_species, species)
+
     add_nuclei_density_fields(registry, ftype)
