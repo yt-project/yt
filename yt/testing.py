@@ -991,25 +991,24 @@ def periodicity_cases(ds):
                 center = dx * np.array([i,j,k]) + ds.domain_left_edge
                 yield center
 
-def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
+def run_pytest(verbose=False, run_answer_tests=False, answer_big_data=False,
              call_pdb=False, module=None):
-    from yt.utilities.on_demand_imports import _nose
+    from yt.utilities.on_demand_imports import _pytest
     import sys
     from yt.utilities.logger import ytLogger as mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
-    nose_argv = sys.argv
-    nose_argv += ['--exclude=answer_testing','--detailed-errors', '--exe']
+    pytest_argv = sys.argv
     if call_pdb:
-        nose_argv += ["--pdb", "--pdb-failures"]
+        pytest_argv += ["--pdb", "--trace"]
     if verbose:
-        nose_argv.append('-v')
+        pytest_argv.append('-v')
     if run_answer_tests:
-        nose_argv.append('--with-answer-testing')
+        pytest_argv.append('--with-answer-testing')
     if answer_big_data:
-        nose_argv.append('--answer-big-data')
+        pytest_argv.append('--answer-big-data')
     if module:
-        nose_argv.append(module)
+        pytest_argv.append(module)
     initial_dir = os.getcwd()
     yt_file = os.path.abspath(__file__)
     yt_dir = os.path.dirname(yt_file)
@@ -1018,18 +1017,18 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
         # see https://github.com/nose-devs/nose/issues/701
         raise RuntimeError(
             """
-    The yt.run_nose function does not work correctly when invoked in
+    The yt.run_pytest function does not work correctly when invoked in
     the same directory as the installed yt package. Try starting
-    a python session in a different directory before invoking yt.run_nose
-    again. Alternatively, you can also run the "nosetests" executable in
+    a python session in a different directory before invoking yt.run_pytest
+    again. Alternatively, you can also run the "pytest" executable in
     the current directory like so:
 
-        $ nosetests
+        $ pytest 
             """
             )
     os.chdir(yt_dir)
     try:
-        _nose.run(argv=nose_argv)
+        _pytest.run(argv=pytest_argv)
     finally:
         os.chdir(initial_dir)
         mylog.setLevel(orig_level)
