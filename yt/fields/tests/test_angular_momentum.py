@@ -17,7 +17,7 @@ def test_AM_value():
     X = (ds.arr([sp[k] for k in 'xyz']) - x0[:, None]).T
     V = (ds.arr([sp['velocity_'+k] for k in 'xyz']) - v0[:, None]).T
 
-    sAM_manual = ds.arr(np.cross(V, X), X.units*V.units)
+    sAM_manual = ds.arr(np.cross(X, V), X.units*V.units)
     sAM = ds.arr([sp['specific_angular_momentum_'+k] for k in 'xyz']).T
 
     assert_allclose_units(sAM_manual, sAM)
