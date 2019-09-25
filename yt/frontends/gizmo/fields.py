@@ -103,6 +103,16 @@ class GizmoFieldInfo(GadgetFieldInfo):
                 field = "%s%s" % (species, suf)
                 self.alias(("gas", field), (ptype, field))
 
+        if (ptype, "ElectronAbundance") in self.field_list:
+            def _el_number_density(field, data):
+                return data[ptype, "ElectronAbundance"] * \
+                       data[ptype, "H_number_density"]
+            self.add_field((ptype, "El_number_density"),
+                           sampling_type="particle",
+                           function=_el_number_density,
+                           units=self.ds.unit_system["number_density"])
+            self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
+
         for species in self.nuclei_names:
             self.add_field((ptype, "%s_nuclei_mass_density" % species),
                            sampling_type="particle",

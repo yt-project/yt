@@ -167,6 +167,16 @@ class OWLSFieldInfo(SPHFieldInfo):
                 fname = "H_p1_" + sfx
                 self.alias(("gas", fname), (ptype, fname))
 
+            def _el_number_density(field, data):
+                n_e = data[ptype, "H_p1_number_density"]
+                n_e += data[ptype, "He_p1_number_density"]
+                n_e += 2.0*data[ptype, "He_p2_number_density"]
+            self.add_field((ptype, "El_number_density"),
+                           sampling_type="particle",
+                           function=_el_number_density,
+                           units=self.ds.unit_system["number_density"])
+            self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
+
             # alias ion fields
             #-----------------------------------------------
             for ion in self._ions:

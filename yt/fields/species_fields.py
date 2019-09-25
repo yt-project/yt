@@ -286,6 +286,8 @@ def setup_species_fields(registry, ftype = "gas", slice_info = None):
         # These are deprecated and will be removed soon.
         if ChemicalFormula(species).charge == 0:
             alias_species = species.split("_")[0]
+            if (ftype, "{}_density".format(alias_species)) in registry:
+                continue
             add_deprecated_species_aliases(
                 registry, "gas", alias_species, species)
 
