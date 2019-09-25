@@ -431,20 +431,20 @@ class h5py_imports(object):
 
 _h5py = h5py_imports()
 
-class nose_imports(object):
-    _name = "nose"
+class pytest_imports(object):
+    _name = "pytest"
     _run = None
     @property
     def run(self):
         if self._run is None:
             try:
-                from nose import run
+                from pytest import main 
             except ImportError:
                 run = NotAModule(self._name)
             self._run = run
         return self._run
 
-_nose = nose_imports()
+_pytest = pytest_imports()
 
 class libconf_imports(object):
     _name = "libconf"
