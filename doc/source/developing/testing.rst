@@ -244,7 +244,7 @@ OWLS frontend, do the following:
 
 .. code-block:: bash
 
-   $ nosetests --with-answer-testing --answer-store --answer-big-data yt/frontends/owls
+   $ pytest --with-answer-testing --answer-store --answer-big-data yt/frontends/owls
 
 
 How to Write Answer Tests
