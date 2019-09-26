@@ -5,10 +5,6 @@ import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 
 
-# Answer file
-answer_file = 'connected_sets.yaml'
-
-
 class TesetConnectedSets(fw.AnswerTest):
     def test_connected_sets(self):
         ds = fake_random_ds(16, nprocs=8, particles=16**3)
@@ -23,4 +19,4 @@ class TesetConnectedSets(fw.AnswerTest):
         )
         hd['extract_connected_sets'] = ecs_hd
         hd = {'test_connected_sets' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)

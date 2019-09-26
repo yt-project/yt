@@ -28,10 +28,6 @@ fid_1to3_b1 = "fiducial_1to3_b1/fiducial_1to3_b1_hdf5_part_0080"
 dens_turb_mag = 'DensTurbMag/DensTurbMag_hdf5_plt_cnt_0015'
 
 
-# Answer file
-answer_file = 'flash_answers.yaml'
-
-
 #============================================
 #                 TestFlash
 #============================================
@@ -56,7 +52,7 @@ class TestFlash(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_sloshing, fields, weights, axes, ds_objs)
         hashes = {'sloshing' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_wind_tunnel
@@ -73,7 +69,7 @@ class TestFlash(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_wt, fields, weights, axes, ds_objs)
         hashes = {'wind_tunnel' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_FLASHDataset
@@ -148,4 +144,4 @@ class TestFlash(fw.AnswerTest):
         )
         hashes = {'fid_1to3_b1' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)

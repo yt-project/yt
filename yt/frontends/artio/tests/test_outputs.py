@@ -26,10 +26,6 @@ sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/"
 sizmbhloz += "sizmbhloz-clref04SNth-rs9_a0.9011.art"
 
 
-# Answer file
-answer_file = 'artio_answers.yaml'
-
-
 #============================================
 #                 TestArtIo
 #============================================
@@ -76,7 +72,7 @@ class TestArtIo(fw.AnswerTest):
         assert_equal(ds_sizmbhloz.particle_type_counts, {'N-BODY': 100000, 'STAR': 110650})
         # Save or compare hashes
         hashes = {'sizmbhloz' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_ARTIODataset

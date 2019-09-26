@@ -26,10 +26,6 @@ from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 
 
-# Answer file
-answer_file = 'mesh_slices_answers.yaml'
-
-
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
@@ -58,7 +54,7 @@ class TestMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(img_fname))
             hd['generic_image'][field] = gi_hd
         hd = {'mesh_slices_amr' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     def test_mesh_slices_tetrahedral(self):
         ds = fake_tetrahedral_ds()
@@ -76,7 +72,7 @@ class TestMesh(fw.AnswerTest):
                 assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
                 assert sl_obj[field].shape[0] < ad[field].shape[0]
         hd = {'mesh_slices_tetrahedral' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     def test_mesh_slices_hexahedral(self):
         # hexahedral ds
@@ -95,7 +91,7 @@ class TestMesh(fw.AnswerTest):
                 assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
                 assert sl_obj[field].shape[0] < ad[field].shape[0]
         hd = {'mesh_slices_hexahedral' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
 def test_perfect_element_intersection():
     # This test tests mesh line annotation where a z=0 slice

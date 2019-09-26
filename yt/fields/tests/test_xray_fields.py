@@ -12,10 +12,6 @@ sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 
 
-# Answer file
-answer_file = 'xray_fields_answers.yaml'
-
-
 def setup():
     from yt.config import ytcfg
     ytcfg["yt","__withintesting"] = "True"
@@ -52,7 +48,7 @@ class TestXRayFields(fw.AnswerTest):
                 )
                 hd['field_values'][field][dobj_name] = fv_hd
         hashes = {'sloshing_apec' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     @utils.requires_ds(d9p)
     def test_d9p_cloudy(self):
@@ -80,4 +76,4 @@ class TestXRayFields(fw.AnswerTest):
                 )
                 hd['field_values'][field][dobj_name] = fv_hd
         hashes = {'d9p_cloudy' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)

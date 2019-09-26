@@ -42,10 +42,6 @@ tet10 = "SecondOrderTets/tet10_unstructured_out.e"
 tet10_fields = [('connect1', 'uz')]
 
 
-# Answer file
-answer_file = 'mesh_render_answers.yaml'
-
-
 def surface_mesh_render():
     images = []
     ds = fake_tetrahedral_ds()
@@ -172,7 +168,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'fake_hexahedral_ds_render' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(hex8)
@@ -183,7 +179,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
         gi_hd = utils.generate_hash(self.generic_image_test(im_name))
         hd['generic_image'] = gi_hd
         hashes = {'composite_mesh_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(hex8)
@@ -193,7 +189,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
         gi_hd = utils.generate_hash(self.generic_image_test(im_name))
         hd['generic_image'] = gi_hd
         hashes = {'composite_mesh_render' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(hex20)
@@ -206,7 +202,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'hex20_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(hex20)
@@ -218,7 +214,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'hex20_render' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(hex8)
@@ -231,7 +227,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'hex8_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
 
@@ -244,7 +240,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'hex8_render' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(hex8)
@@ -255,7 +251,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
         gi_hd = utils.generate_hash(self.generic_image_test(im_name))
         hd['generic_image'] = gi_hd
         hashes = {'perspective_mesh_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(hex8)
@@ -265,7 +261,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
         gi_hd = utils.generate_hash(self.generic_image_test(im_name))
         hd['generic_image'] = gi_hd
         hashes = {'perspective_mesh_render' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @requires_module("pyembree")
@@ -287,7 +283,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'tet10_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(tet10)
@@ -299,7 +295,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'tet10_render' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(tet4)
@@ -312,7 +308,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'tet4_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(tet4)
@@ -324,7 +320,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'tet4_render' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(wedge6)
@@ -337,7 +333,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'wedge6_render_pyembree' : gi_hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)
 
     @utils.requires_ds(wedge6)
@@ -349,5 +345,5 @@ class TestVolumeRenderMesh(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(im_name))
             hd['generic_image'][field] = gi_hd
         hashes = {'wedge6_render' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes,
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
             utils.answer_store)

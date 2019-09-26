@@ -45,10 +45,6 @@ from yt.utilities.answer_testing import utils
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
 
 
-# Answer file
-answer_file = 'ytdata_answers.yaml'
-
-
 #============================================
 #                TestYTData
 #============================================
@@ -76,7 +72,7 @@ class TestYTData(fw.AnswerTest):
             )
             hashes['yt_field'][f[1]] = ytft_hd
         hashes = {'datacontainer-data' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
         cr = ds.cut_region(sphere, ['obj["temperature"] > 1e4'])
         fn = cr.save_as_dataset(fields=["temperature"])
         full_fn = os.path.join(os.getcwd(), fn)
@@ -130,7 +126,7 @@ class TestYTData(fw.AnswerTest):
         ytft_hd = utils.generate_hash(self.yt_field_test(frb_ds, 'density', False))
         hd['grid_datacontainer3']['yt_field_test']['density'] = ytft_hd
         hd = {'grid_datacontainer' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     #-----
     # test_spatial_data
@@ -146,7 +142,7 @@ class TestYTData(fw.AnswerTest):
         assert isinstance(proj_ds, YTSpatialPlotDataset)
         ytft_hd = utils.generate_hash(self.yt_field_test(proj_ds, ("grid", "density"), False))
         hd = {'spatial_data' : {'yt_field_test' : {'density' : ytft_hd}}}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     #-----
     # test_profile_data
@@ -196,7 +192,7 @@ class TestYTData(fw.AnswerTest):
             )
             hd['profile2']['yt_field_test'][f] = ytft_hd
         hd = {'profile_data' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     #-----
     # test_nonspatial_data
@@ -232,7 +228,7 @@ class TestYTData(fw.AnswerTest):
         ytft_hd = utils.generate_hash(self.yt_field_test(new_ds, 'density', False))
         hd['yt_field_test']['density'] = ytft_hd
         hd = {'non-spatial-data' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     #-----
     # test_plot_data

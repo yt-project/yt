@@ -42,10 +42,6 @@ tg_fields = OrderedDict(
 )
 
 
-# Answer file
-answer_file = 'tipsy_answers.yaml'
-
-
 #============================================
 #                 TestTipsy
 #============================================
@@ -92,7 +88,7 @@ class TestTipsy(fw.AnswerTest):
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
         hashes = {'pkdgrav' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
 
     #-----
     # test_gasoline_dmonly
@@ -135,7 +131,7 @@ class TestTipsy(fw.AnswerTest):
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
         hashes = {'gasoline_dm_only' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
 
     #-----
     # test_tipsy_galaxy
@@ -145,7 +141,7 @@ class TestTipsy(fw.AnswerTest):
         ds = utils.data_dir_load(tipsy_gal)
         hashes = self.sph_answer(ds, 'galaxy.00300', 315372, tg_fields)
         hashes = {'tipsy_galaxy' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_TipsyDataset

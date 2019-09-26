@@ -23,10 +23,6 @@ from yt.utilities.answer_testing import utils
 from yt.visualization.line_plot import _validate_point
 
 
-# Answer file
-answer_file = 'line_plot_answers.yaml'
-
-
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
@@ -59,7 +55,7 @@ class TestLinePlots(fw.AnswerTest):
         hd = OrderedDict()
         hd['generic_image'] = utils.generate_hash(self.generic_image_test(img_fname))
         hd = {'line_plot' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     def test_multi_line_plot(self):
         ds = fake_random_ds(4)
@@ -77,7 +73,7 @@ class TestLinePlots(fw.AnswerTest):
         hd = OrderedDict()
         hd['generic_image'] = utils.generate_hash(self.generic_image_test(img_fname))
         hd = {'muti_line_plot' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
 def test_line_buffer():
     ds = fake_random_ds(32)

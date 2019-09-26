@@ -87,10 +87,6 @@ PHASE_FIELDS = [('particle_velocity_x', 'particle_position_z', 'particle_mass'),
                  ['particle_mass', 'particle_ones'])]
 
 
-# Answer file
-answer_file = 'particle_plot_answers.yaml'
-
-
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
@@ -126,7 +122,7 @@ class TestParticlePlotAnswer(fw.AnswerTest):
                     )
                     hd['plot_window_attribute'][ax][attr_name][args] = pw_hd
         hashes = {'particle_projection_answers' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
 
 
     @utils.requires_ds(g30)
@@ -164,7 +160,7 @@ class TestParticlePlotAnswer(fw.AnswerTest):
                 )
                 hd['plot_window_attribute'][ax][args] = pw_hd 
         hashes = {'particle_projection_filter' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
 
 
     @utils.requires_ds(g30)
@@ -192,7 +188,7 @@ class TestParticlePlotAnswer(fw.AnswerTest):
                 )
                 hd['phase_plot_attribute'][attr_name][args] = pp_hd 
         hashes = {'particle_phase_answers' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
 
 class TestParticlePhasePlotSave(unittest.TestCase):
 

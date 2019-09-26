@@ -39,10 +39,6 @@ ISO_GALAXY = "IsolatedGalaxy/galaxy0030/galaxy0030"
 FIRE = "FIRE_M12i_ref11/snapshot_600.hdf5"
 
 
-# Answer file
-answer_file = 'absorption_spectrum_answers.yaml'
-
-
 @pytest.mark.usefixtures('temp_dir')
 @requires_file(FIRE)
 def test_absorption_spectrum_with_zero_field():
@@ -227,7 +223,7 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
             ga_hd = utils.generate_hash(self.generic_array_test(None, func))
             hd['generic_array'][key] = ga_hd
         hashes = {'absorption_spectrum_cosmo' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     @requires_file(COSMO_PLUS_SINGLE)
     def test_absorption_spectrum_non_cosmo(self):
@@ -264,7 +260,7 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
             ga_hd = utils.generate_hash(self.generic_array_test(None, func))
             hd['generic_array'][key] = ga_hd
         hashes = {'absorption_spectrum_non_cosmo' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     @requires_file(COSMO_PLUS_SINGLE)
     def test_absorption_spectrum_non_cosmo_novpec(self):
@@ -301,7 +297,7 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
             ga_hd = utils.generate_hash(self.generic_array_test(None, func))
             hd['generic_array'][key] = ga_hd
         hashes = {'absorption_spectrum_non_cosmo_novpec' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
 
     @requires_file(GIZMO_PLUS)
@@ -344,7 +340,7 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
             ga_hd = utils.generate_hash(self.generic_array_test(None, func))
             hd['generic_array'][key] = ga_hd
         hashes = {'absorption_spectrum_cosmo_sph' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     @requires_file(GIZMO_PLUS_SINGLE)
     def test_absorption_spectrum_non_cosmo_sph(self):
@@ -383,7 +379,7 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
             ga_hd = utils.generate_hash(self.generic_array_test(None, func))
             hd['generic_array'][key] = ga_hd
         hashes = {'absorption_spectrum_non_cosmo_sph' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     @requires_file(ISO_GALAXY)
     def test_absorption_spectrum_with_continuum(self):
@@ -427,4 +423,4 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
             ga_hd = utils.generate_hahs(self.generic_array_test(None, func))
             hd['generic_array'][key] = ga_hd
         hashes = {'absorption_spectrum_with_continuum' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)

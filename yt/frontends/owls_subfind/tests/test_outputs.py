@@ -21,10 +21,6 @@ g1 = "owls_fof_halos/groups_001/group_001.0.hdf5"
 g8 = "owls_fof_halos/groups_008/group_008.0.hdf5"
 
 
-# Answer file
-answer_file = 'owls_subfind_answers.yaml'
-
-
 #============================================
 #              TestOwlsSubfind
 #============================================
@@ -46,7 +42,7 @@ class TestOwlsSubfind(fw.AnswerTest):
             )
             hashes['field_values'][field] = fv_hd
         hashes = {'fields_g8' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_fields_g1
@@ -63,7 +59,7 @@ class TestOwlsSubfind(fw.AnswerTest):
             )
             hashes['field_values'][field] = fv_hd
         hashes = {'fields_g1' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_OWLSSubfindDataset

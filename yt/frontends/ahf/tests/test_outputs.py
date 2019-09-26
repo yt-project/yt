@@ -21,10 +21,6 @@ from yt.utilities.answer_testing import \
 ahf_halos = 'ahf_halos/snap_N64L16_135.parameter'
 
 
-# Answer file
-answer_file = 'ahf_answers.yaml'
-
-
 #============================================
 #                   TestAHF
 #============================================
@@ -55,4 +51,4 @@ class TestAHF(fw.AnswerTest):
         # Add function name to hashes
         hashes = {'fields_ahf_halos' : hashes}
         # Save or compare answers
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)

@@ -20,10 +20,6 @@ from yt.utilities.answer_testing import utils
 sedov = "sedov/sedov_tst_0004.h5"
 
 
-# Answer file
-answer_file = 'gdf_answers.yaml'
-
-
 #============================================
 #                  TestGDF
 #============================================
@@ -45,7 +41,7 @@ class TestGDF(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_sedov, fields, weights, axes, ds_objs)
         hashes = {'sedov_tunnel' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_GDFDataset

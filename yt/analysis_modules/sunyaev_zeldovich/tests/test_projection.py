@@ -43,9 +43,6 @@ except ImportError:
     pass
 
 
-# Answer file
-answer_file = 'sunyaev_zeldovich_answers.yaml'
-
 mue = 1./0.88
 freqs = np.array([30., 90., 240.])
 
@@ -151,7 +148,7 @@ class TestSunyaevZeldovich(fw.AnswerTest):
             self.generic_image_test(imgname)
         )
         hd = {'M7_onaxis' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     @requires_module("SZpack")
     @requires_ds(M7)
@@ -175,4 +172,4 @@ class TestSunyaevZeldovich(fw.AnswerTest):
             self.generic_image_test(imgname)
         )
         hd = {'M7_offaxis' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)

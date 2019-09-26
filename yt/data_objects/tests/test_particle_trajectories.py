@@ -16,10 +16,6 @@ from yt.utilities.answer_testing import utils
 from yt.utilities.exceptions import YTIllDefinedParticleData
 
 
-# Answer file
-answer_file = 'particle_trajectories.yaml'
-
-
 def setup():
     ytcfg["yt","__withintesting"] = "True"
 
@@ -52,7 +48,7 @@ class TestParticleTrajectories(fw.AnswerTest):
             )
             hd['generic_array'][field] = ga_hd
         hashes = {'orbit_traj' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     @utils.requires_ds("enzo_tiny_cosmology/DD0000/DD0000")
     def test_etc_traj(self):
@@ -75,7 +71,7 @@ class TestParticleTrajectories(fw.AnswerTest):
             )
             hd['generic_array'][field] = ga_hd
         hashes = {'etc_traj' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     def test_uniqueness(self):
         n_particles = 2

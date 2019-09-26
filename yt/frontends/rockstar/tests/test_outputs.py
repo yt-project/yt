@@ -26,10 +26,6 @@ _fields = ("particle_position_x", "particle_position_y",
            "particle_position_z", "particle_mass")
 
 
-# Answer file
-answer_file = 'rockstar_answers.yaml'
-
-
 #============================================
 #               TestRockstar
 #============================================
@@ -49,7 +45,7 @@ class TestRockstar(fw.AnswerTest):
             )
             hashes['field_values'][field] = fv_hd
         hashes = {'fields_r1' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_RockstarDataset

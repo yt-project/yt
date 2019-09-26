@@ -36,10 +36,6 @@ _pfields = ("particle_position_x", "particle_position_y",
             "particle_velocity_y", "particle_velocity_z")
 
 
-# Answer file
-answer_file = 'enzo_p_answers.yaml'
-
-
 #============================================
 #                TestEnzoP
 #============================================
@@ -83,7 +79,7 @@ class TestEnzoP(fw.AnswerTest):
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
         hd = {'hellow_world' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     #-----
     # test_particle_fields
@@ -107,7 +103,7 @@ class TestEnzoP(fw.AnswerTest):
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
         hd = {'particle_fields' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     #-----
     # test_hierarchy

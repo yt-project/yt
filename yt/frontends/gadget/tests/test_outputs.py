@@ -44,10 +44,6 @@ iso_fields = OrderedDict(
 iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
 
-# Answer file
-answer_file = 'gadget_answers.yaml'
-
-
 #============================================
 #                 TestGadget
 #============================================
@@ -97,7 +93,7 @@ class TestGadget(fw.AnswerTest):
     def test_iso_collapse(self, ds_isothermal_h5):
         hashes = self.sph_answer(ds_isothermal_h5, 'snap_505', 2**17, iso_fields)
         hashes = {'iso_collapse' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_pid_uniqueness

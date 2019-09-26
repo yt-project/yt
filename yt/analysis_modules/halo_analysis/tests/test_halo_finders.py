@@ -21,10 +21,6 @@ decimals = {"fof": 10, "hop": 10, "rockstar": 1}
 e64 = "Enzo_64/DD0043/data0043"
 
 
-# Answer file
-answer_file = 'halo_finders_answers.yaml'
-
-
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
@@ -54,4 +50,4 @@ class TestHaloFinders(fw.AnswerTest):
                 )
                 hd['field_values'][field] = fv_hd
             hashes = {'halo_finders' : hd}
-            utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+            utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)

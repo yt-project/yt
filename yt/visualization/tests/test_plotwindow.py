@@ -150,10 +150,6 @@ CALLBACK_TESTS = (
 )
 
 
-# Answer file
-answer_file = 'plot_window_answers.yaml'
-
-
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestPlotWindowAnswer(fw.AnswerTest):
@@ -188,7 +184,7 @@ class TestPlotWindowAnswer(fw.AnswerTest):
                         )
                         hd['callback']['plot_window_attribute'][ax][attr_name][args][n] = pw_hd
         hashes = {'attributes' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
 
     @utils.requires_ds(WT)
     def test_attributes_wt(self):
@@ -218,7 +214,7 @@ class TestPlotWindowAnswer(fw.AnswerTest):
                     )
                     hd['callback']['plot_window_attribute'][attr_name][args][n] = pw_hd 
         hashes = {'attributes_wt' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
 
 class TestHideAxesColorbar(unittest.TestCase):
 

@@ -24,10 +24,6 @@ gold = "ExodusII/gold.e"
 big_data = "MOOSE_sample_data/mps_out.e"
 
 
-# Answer file
-answer_file = 'exodus_ii_answers.yaml'
-
-
 #============================================
 #               TestExodusII
 #============================================
@@ -106,4 +102,4 @@ class TestExodusII(fw.AnswerTest):
                 )
                 hashes['generic_array'][str(mesh)] = ga_hd
         hashes = {'displacement_fields' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)

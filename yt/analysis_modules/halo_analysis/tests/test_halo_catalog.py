@@ -30,9 +30,6 @@ rh0 = "rockstar_halos/halos_0.0.bin"
 e64 = "Enzo_64/DD0043/data0043"
 
 
-# Answer file
-answer_file = 'halo_quantity_answers.yaml'
-
 def _nstars(halo):
     sp = halo.data_object
     return (sp["all", "creation_time"] > 0).sum()
@@ -66,4 +63,4 @@ class TestHaloQuantity(fw.AnswerTest):
         mean = ad.quantities.weighted_average_quantity(
             "nstars", "particle_ones")
         hd = {'halo_quantity' : utils.generate_hash(np.array([mean, mi, ma]).tostring())}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)

@@ -26,10 +26,6 @@ from yt.visualization.volume_rendering.api import \
     off_axis_projection
 
 
-# Answer file
-answer_file = 'vr_orientation_answers.yaml'
-
-
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestVROrientation(fw.AnswerTest):
@@ -102,4 +98,4 @@ class TestVROrientation(fw.AnswerTest):
             test5_hd = utils.generate_hash(self.generic_image_test(img_fname))
             hd['generic_image'][orientation] = test5_hd
         hd = {'orientation' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)

@@ -26,10 +26,6 @@ from yt.utilities.answer_testing import utils
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 
 
-# Answer file
-answer_file = 'art_answers.yaml'
-
-
 #============================================
 #                   TestArt
 #============================================
@@ -138,7 +134,7 @@ class TestArt(fw.AnswerTest):
         AnaTotTemp = YTQuantity(150219844793.39072, 'K')  # just leaves
         assert_equal(ad[('gas', 'temperature')].sum(), AnaTotTemp)
         hd = {'d9p' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     #-----
     # test_ARTDataset

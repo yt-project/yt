@@ -50,10 +50,6 @@ _castro_fields = ("Temp", "density", "particle_count")
 _raw_fields = [('raw', 'Bx'), ('raw', 'Ey'), ('raw', 'jz')]
 
 
-# Answer file
-answer_file = 'boxlib_answers.yaml'
-
-
 #============================================
 #                TestBoxLib
 #============================================
@@ -76,7 +72,7 @@ class TestBoxLib(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
         hashes = {'radadvect' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_radtube
@@ -93,7 +89,7 @@ class TestBoxLib(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
         hashes = {'radtube' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_star
@@ -110,7 +106,7 @@ class TestBoxLib(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
         hashes = {'star' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_LyA
@@ -127,7 +123,7 @@ class TestBoxLib(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _nyx_fields, weights, axes, ds_objs)
         hashes = {'LyA' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_nyx_particle_io
@@ -172,7 +168,7 @@ class TestBoxLib(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _castro_fields, weights, axes, ds_objs)
         hashes = {'RT_particles' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_castro_particle_io
@@ -215,7 +211,7 @@ class TestBoxLib(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
         hashes = {'langmuir' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_plasma
@@ -232,7 +228,7 @@ class TestBoxLib(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
         hashes = {'plasma' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_beam
@@ -250,7 +246,7 @@ class TestBoxLib(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
         hashes = {'beam' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_warpx_particle_io
@@ -297,7 +293,7 @@ class TestBoxLib(fw.AnswerTest):
             gv_hd = utils.generate_hash(self.grid_values_test(ds_fn, field))
             hd['grid_values'][field] = gv_hd
         hd = {'raw_fields' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     #-----
     # test_OrionDataset

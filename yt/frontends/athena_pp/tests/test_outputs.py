@@ -27,10 +27,6 @@ disk = "KeplerianDisk/disk.out1.00000.athdf"
 AM06 = "AM06/AM06.out1.00400.athdf"
 
 
-# Answer file
-answer_file = 'athena_pp_answers.yaml'
-
-
 #============================================
 #                TestAthenaPP
 #============================================
@@ -58,7 +54,7 @@ class TestAthenaPP(fw.AnswerTest):
             )
             hashes['generic_array'][field] = ga_hd
         hashes = {'disk' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_AM06
@@ -79,7 +75,7 @@ class TestAthenaPP(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_AM06, fields, weights, axes, ds_objs)
         hashes = {'AM06' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_AM06_override

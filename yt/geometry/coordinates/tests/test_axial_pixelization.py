@@ -8,10 +8,6 @@ import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 
 
-# Answer file
-answer_file = 'axial_pixelization.yaml'
-
-
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestAxialPixelization(fw.AnswerTest):
@@ -28,4 +24,4 @@ class TestAxialPixelization(fw.AnswerTest):
             hd['axial_pixelization']['x_axis'][geom] = apx_hd
             hd['axial_pixelization']['y_axis'][geom] = apy_hd
         hashes = {'axial_pixelization' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)

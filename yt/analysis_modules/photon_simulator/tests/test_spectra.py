@@ -17,10 +17,6 @@ xray_data_dir = ytcfg.get("yt", "xray_data_dir")
 ds = fake_random_ds(64)
 
 
-# Answer file
-answer_file = 'spectra.yaml'
-
-
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 class TestSpectra(fw.AnswerTest):
@@ -48,5 +44,5 @@ class TestSpectra(fw.AnswerTest):
         hashes['generic_array1'] = ga_hd1
         hashes['generic_array2'] = ga_hd2
         hashes = {'apec' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
         xmod.cleanup_spectrum()

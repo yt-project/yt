@@ -26,10 +26,6 @@ from yt.utilities.answer_testing import utils
 from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
 
 
-# Answer file
-answer_file = 'geo_projections.yaml'
-
-
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
@@ -62,7 +58,7 @@ class TestGeoSlicesAMR(fw.AnswerTest):
                 )
                 hd['generic_image'][transform][field] = gi_hd
         hd = {'geo_slices_amr' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
 @requires_module("cartopy")
 class TestGeoProjections(unittest.TestCase):

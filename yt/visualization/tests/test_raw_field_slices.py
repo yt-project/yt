@@ -19,10 +19,6 @@ import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 
 
-# Answer file
-answer_file = 'raw_field_slice_answers.yaml'
-
-
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
@@ -55,4 +51,4 @@ class TestRawFieldSlices(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(image_file))
             hd['generic_image'][field] = gi_hd 
         hashes = {'raw-field-slices' : hd} 
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store) 
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 

@@ -48,14 +48,11 @@ old_photon_file = os.path.join(xray_data_dir, "old_photons.h5")
 old_event_file = os.path.join(xray_data_dir, "old_events.h5")
 
 
-# Answer file
-answer_file = 'sloshing.yaml'
-
-
 def return_data(data):
     def _return_data(name):
         return data
     return _return_data
+
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
@@ -98,7 +95,7 @@ class TestSloshingPhoton(fw.AnswerTest):
             )
             hd['generic_array2'][a] = ga_hd
         hashes = {'sloshing' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
         photons1.write_h5_file("test_photons.h5")
         events1.write_h5_file("test_events.h5")
         photons2 = PhotonList.from_file("test_photons.h5")

@@ -41,10 +41,6 @@ fields = OrderedDict(
 )
 
 
-# Answer file
-answer_file = 'gizmo_answers.yaml'
-
-
 #============================================
 #                TestGizmo
 #============================================
@@ -63,7 +59,7 @@ class TestGizmo(fw.AnswerTest):
         assert isinstance(ds, GizmoDataset)
         hashes = self.sph_answer(ds, 'snap_N64L16_135', 524288, fields)
         hashes = {'gizmo_64' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_gizmo_mhd

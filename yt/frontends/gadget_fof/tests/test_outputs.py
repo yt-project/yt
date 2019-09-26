@@ -28,10 +28,6 @@ g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"
 g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"
 
 
-# Answer file
-answer_file = 'gadget_fof_answers.yaml'
-
-
 #============================================
 #               TestGadgetFOF
 #============================================
@@ -55,7 +51,7 @@ class TestGadgetFOF(fw.AnswerTest):
             )
             hashes['field_values'][field] = fv_hd
         hashes = {'fields_g5' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_fields_g42
@@ -74,7 +70,7 @@ class TestGadgetFOF(fw.AnswerTest):
             )
             hashes['field_values'][field] = fv_hd
         hashes = {'fields_g42' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_GadgetFOFDataset

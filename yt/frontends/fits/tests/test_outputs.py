@@ -35,10 +35,6 @@ _fields_acis = ("counts_0.1-2.0", "counts_2.0-5.0")
 _fields_A2052 = ("flux",)
 
 
-# Answer file
-answer_file = 'fits_answers.yaml'
-
-
 #============================================
 #                 TestFits
 #============================================
@@ -60,7 +56,7 @@ class TestFits(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _fields_grs, weights, axes, ds_objs)
         hashes = {'grs' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_velocity_field
@@ -77,7 +73,7 @@ class TestFits(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _fields_vels, weights, axes, ds_objs)
         hashes = {'velocity_field' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_acts
@@ -98,7 +94,7 @@ class TestFits(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _fields_acis, weights, axes, ds_objs)
         hashes = {'acis' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_A2052
@@ -115,7 +111,7 @@ class TestFits(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _fields_A2052, weights, axes, ds_objs)
         hashes = {'A2052' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_units_override

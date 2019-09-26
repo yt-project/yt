@@ -31,10 +31,6 @@ _fields = (("moab", "flux"),
           )
 
 
-# Answer file
-answer_file = 'moab_answers.yaml'
-
-
 #============================================
 #                  TestMoab
 #============================================
@@ -77,7 +73,7 @@ class TestMoab(fw.AnswerTest):
                 )
                 hashes['field_values'][field][dobj_name] = fv_hd
         hashes = {'cantor_5' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_MoabHex8Dataset

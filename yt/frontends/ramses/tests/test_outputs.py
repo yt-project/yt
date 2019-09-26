@@ -35,10 +35,6 @@ ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
 ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
 
 
-# Answer file
-answer_file = 'ramses_answers.yaml'
-
-
 #============================================
 #                TestRamses
 #============================================
@@ -86,7 +82,7 @@ class TestRamses(fw.AnswerTest):
         assert_equal(ds_output_00080.particle_type_counts, {'io': 1090895})
         # Save or compare hashes
         hashes = {'output_00080' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_RAMSESDataset

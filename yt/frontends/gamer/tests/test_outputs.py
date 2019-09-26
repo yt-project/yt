@@ -33,10 +33,6 @@ jet_units   = {"length_unit":(1.0,"kpc"),
                "mass_unit"  :(1.4690033e+36,"g")}
 
 
-# Answer file
-answer_file = 'gamer_answers.yaml'
-
-
 #============================================
 #                 TestGamer
 #============================================
@@ -61,7 +57,7 @@ class TestGamer(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _fields_jet, weights, axes, ds_objs)
         hashes = {'jet' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_psiDM
@@ -81,7 +77,7 @@ class TestGamer(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _fields_psiDM, weights, axes, ds_objs)
         hashes = {'psiDM' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_plummer
@@ -102,7 +98,7 @@ class TestGamer(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _fields_plummer, weights, axes, ds_objs)
         hashes = {'plummer' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_GAMERDataset

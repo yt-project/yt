@@ -41,10 +41,6 @@ ATTR_ARGS = {"annotate_text": [(((5e-29, 5e7), "Hello YT"), {}),
              "set_ylim": [((1e2, 1e6), {})]}
 
 
-# Answer file
-answer_file = 'profile_plot_answers.yaml'
-
-
 def image_from_plot(plot):
     tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
     os.close(tmpfd)
@@ -79,7 +75,7 @@ class TestProfilePlots(fw.AnswerTest):
                 hd['phase_plot_attribute'][attr_name][str(i)] = ppat_hd
                 i += 1
         hd = {'phase_plot_attributes' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     def test_profile_plot(self):
         fields = ('density', 'temperature', 'velocity_x', 'velocity_y',
@@ -110,7 +106,7 @@ class TestProfilePlots(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(img_fname))
             hd['generic_image'][str(idx)] = gi_hd
         hd = {'profile_plot' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     def test_phase_plot(self):
         fields = ('density', 'temperature', 'velocity_x', 'velocity_y',
@@ -151,7 +147,7 @@ class TestProfilePlots(fw.AnswerTest):
             gi_hd = utils.generate_hash(self.generic_image_test(img_fname))
             hd['generic_image'][str(idx)] = gi_hd
         hd = {'phase_plot' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     def test_profile_plot_multiple_field_multiple_plot(self):
         fields = ('density', 'temperature', 'dark_matter_density')
@@ -171,7 +167,7 @@ class TestProfilePlots(fw.AnswerTest):
         gi_hd = utils.generate_hash(self.generic_image_test(img_fname))
         hd['generic_image'] = gi_hd
         hd = {'profile_plot_multiple_field_multiple_plot' : hd}
-        utils.handle_hashes(self.save_dir, answer_file, hd, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
 def test_set_units():
     fields = ('density', 'temperature')

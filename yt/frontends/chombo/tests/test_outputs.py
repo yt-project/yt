@@ -27,10 +27,6 @@ zp = "ZeldovichPancake/plt32.2d.hdf5"
 kho = "KelvinHelmholtz/data.0004.hdf5"
 
 
-# Answer file
-answer_file = 'chombo_answers.yaml'
-
-
 #============================================
 #                 TestChombo
 #============================================
@@ -52,7 +48,7 @@ class TestChombo(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_gc, fields, weights, axes, ds_objs)
         hashes = {'gc' : hashes}
         # Save or compare hashes
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_tb
@@ -69,7 +65,7 @@ class TestChombo(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_tb, fields, weights, axes, ds_objs)
         # Save or compare hashes
         hashes = {'tb' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_iso
@@ -86,7 +82,7 @@ class TestChombo(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_iso, fields, weights, axes, ds_objs)
         hashes = {'iso' : hashes}
         # Save or compare hashes
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_zp
@@ -102,7 +98,7 @@ class TestChombo(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_zp, fields, weights, axes, ds_objs)
         hashes = {'zp' : hashes}
         # Save or compare hashes
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_kho
@@ -119,7 +115,7 @@ class TestChombo(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_kho, fields, weights, axes, ds_objs)
         hashes = {'kho' : hashes}
         # Save or compare hashes
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_ChomboDataset

@@ -39,10 +39,6 @@ dnz = "DeeplyNestedZoom/DD0025/data0025"
 p3mini = "PopIII_mini/DD0034/DD0034"
 
 
-# File to store answers (will eventually go in an ini file)
-answer_file = 'enzo_answers.yaml'
-
-
 #============================================
 #                 TestEnzo
 #============================================
@@ -65,7 +61,7 @@ class TestEnzo(fw.AnswerTest):
         # Add test name as a key
         hashes = {'toro1d' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_kh2d
@@ -82,7 +78,7 @@ class TestEnzo(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_kh2d, fields, weights, axes, ds_objs)
         hashes = {'kh2d' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_moving7
@@ -101,7 +97,7 @@ class TestEnzo(fw.AnswerTest):
         hashes = self.small_patch_amr(ds_m7, fields, weights, axes, ds_objs)
         hashes = {'moving7' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_galaxy0030
@@ -124,7 +120,7 @@ class TestEnzo(fw.AnswerTest):
         hashes = self.big_patch_amr(ds_g30, fields, weights, axes, ds_objs)
         hashes = {'galaxy0030' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_simulated_halo_mass_function
@@ -141,7 +137,7 @@ class TestEnzo(fw.AnswerTest):
             )
             hashes['simulated_halo_mass_function'][finder] = shmf_hd
         hashes = {'simulated_halo_mass_function' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_analytic_halo_mass_function
@@ -158,7 +154,7 @@ class TestEnzo(fw.AnswerTest):
             )
             hashes['analytic_halo_mass_function'][str(fit)] = ahmf_hd
         hashes = {'analytic_halo_mass_function' : hashes}
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_ecp

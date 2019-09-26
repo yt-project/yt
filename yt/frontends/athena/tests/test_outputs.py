@@ -45,10 +45,6 @@ _fields_blast = ("temperature", "density", "velocity_magnitude")
 _fields_stripping = ("temperature", "density", "specific_scalar[0]")
 
 
-# Answer file
-answer_file = 'athena_answers.yaml'
-
-
 #============================================
 #                 TestAthena
 #============================================
@@ -71,7 +67,7 @@ class TestAthena(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _fields_cloud, weights, axes, ds_objs)
         hashes = {'cloud' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_blast
@@ -89,7 +85,7 @@ class TestAthena(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _fields_blast, weights, axes, ds_objs)
         hashes = {'blast' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_blast_override
@@ -120,7 +116,7 @@ class TestAthena(fw.AnswerTest):
         hashes = self.small_patch_amr(ds, _fields_stripping, weights, axes, ds_objs)
         hashes = {'stripping' : hashes}
         # Save or compare answer
-        utils.handle_hashes(self.save_dir, answer_file, hashes, self.answer_store)
+        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
 
     #-----
     # test_nprocs
