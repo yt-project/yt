@@ -34,7 +34,7 @@ def setup():
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@pytest.mark.usefixtures('temp_dir')
+@pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestGeoSlicesAMR(fw.AnswerTest):
     @requires_module("cartopy")
     def test_geo_slices_amr(self):

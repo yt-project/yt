@@ -56,7 +56,7 @@ def return_data(data):
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@pytest.mark.usefixtures('temp_dir')
+@pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestSloshingPhoton(fw.AnswerTest):
     @utils.requires_ds(gslr)
     @requires_file(APEC)

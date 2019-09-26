@@ -92,6 +92,7 @@ g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
     reason="--with-answer-testing not set.")
 @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
     reason="--answer-big-data not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestParticlePlotAnswer(fw.AnswerTest):
     @utils.requires_ds(g30)
     def test_particle_projection_answers(self):

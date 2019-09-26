@@ -32,6 +32,7 @@ kho = "KelvinHelmholtz/data.0004.hdf5"
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestChombo(fw.AnswerTest):
     #-----
     # test_gc

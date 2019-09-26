@@ -44,6 +44,7 @@ p3mini = "PopIII_mini/DD0034/DD0034"
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestEnzo(fw.AnswerTest):
     #-----
     # test_toro1d

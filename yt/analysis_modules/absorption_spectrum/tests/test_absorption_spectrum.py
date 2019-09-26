@@ -182,7 +182,7 @@ def test_equivalent_width_conserved():
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@pytest.mark.usefixtures('temp_dir')
+@pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestAbsorptionSpectrum(fw.AnswerTest):
     @requires_file(COSMO_PLUS)
     def test_absorption_spectrum_cosmo(self):

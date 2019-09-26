@@ -43,7 +43,7 @@ def slice_image(ds, field, idir):
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@pytest.mark.usefixtures('temp_dir')
+@pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestMesh(fw.AnswerTest):
     def test_mesh_slices_amr(self):
         ds = fake_amr_ds()

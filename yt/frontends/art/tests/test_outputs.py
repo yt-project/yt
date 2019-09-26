@@ -31,6 +31,7 @@ d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestArt(fw.AnswerTest):
     #-----
     # test_d9p

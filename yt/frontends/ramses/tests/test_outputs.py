@@ -40,6 +40,7 @@ ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestRamses(fw.AnswerTest):
     #-----
     # test_output_00080

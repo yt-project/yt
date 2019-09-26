@@ -26,6 +26,7 @@ ahf_halos = 'ahf_halos/snap_N64L16_135.parameter'
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestAHF(fw.AnswerTest):
     #-----
     # test_AHFHalosDataset

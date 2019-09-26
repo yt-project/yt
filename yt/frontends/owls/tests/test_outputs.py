@@ -45,6 +45,7 @@ _fields = OrderedDict(
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestOwls(fw.AnswerTest):
     #-----
     # test_snapshot_033

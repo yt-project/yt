@@ -33,6 +33,7 @@ dens_turb_mag = 'DensTurbMag/DensTurbMag_hdf5_plt_cnt_0015'
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestFlash(fw.AnswerTest):
     #-----
     # test_sloshing

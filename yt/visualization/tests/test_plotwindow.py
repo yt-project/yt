@@ -152,6 +152,7 @@ CALLBACK_TESTS = (
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestPlotWindowAnswer(fw.AnswerTest):
     @utils.requires_ds(M7)
     def test_attributes(self):

@@ -153,7 +153,7 @@ def composite_mesh_render(engine):
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@pytest.mark.usefixtures('temp_dir')
+@pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestVolumeRenderMesh(fw.AnswerTest):
     def test_fake_hexahedral_ds_render(self):
         ds = fake_hexahedral_ds()

@@ -28,6 +28,7 @@ from yt.visualization.volume_rendering.api import \
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestVROrientation(fw.AnswerTest):
     def test_orientation(self):
         ds = fake_vr_orientation_test_ds()

@@ -22,6 +22,7 @@ def setup():
     reason="--with-answer-testing not set.")
 @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
     reason="--answer-big-data not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestXRayFields(fw.AnswerTest):
     @utils.requires_ds(sloshing)
     def test_sloshing_apec(self):

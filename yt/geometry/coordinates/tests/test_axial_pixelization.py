@@ -10,6 +10,7 @@ from yt.utilities.answer_testing import utils
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestAxialPixelization(fw.AnswerTest):
     def test_axial_pixelization(self):
         hd = OrderedDict()

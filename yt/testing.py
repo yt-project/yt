@@ -616,7 +616,7 @@ def requires_module(module):
     def ffalse(func):
         def skip(*args, **kwargs):
             print("{} not found, skipping {}.".format(module, func.__name__))
-            pass
+            assert False
         return skip
     def ftrue(func):
         return func
@@ -632,7 +632,7 @@ def requires_file(req_file):
     def ffalse(func):
         def skip(*args, **kwargs):
             print("{} not found, skipping {}.".format(sim_fn, func.__name__))
-            pass
+            assert False
         return skip
     def ftrue(func):
         return func

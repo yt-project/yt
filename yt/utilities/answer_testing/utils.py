@@ -180,7 +180,7 @@ def requires_ds(ds_fn, file_check = False):
     def ffalse(func):
         def skip(*args, **kwargs):
             print("{} not found, skipping {}.".format(ds_fn, func.__name__))
-            pass
+            assert False
         return skip
     def ftrue(func):
         return func
@@ -196,7 +196,7 @@ def requires_sim(sim_fn, sim_type, file_check = False):
     def ffalse(func):
         def skip(*args, **kwargs):
             print("{} not found, skipping {}.".format(sim_fn, func.__name__))
-            pass
+            assert False
         return skip
     def ftrue(func):
         return func

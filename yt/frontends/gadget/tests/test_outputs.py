@@ -49,6 +49,7 @@ iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason=("--with-answer-testing not set."))
+@pytest.mark.usefixtures('answer_file')
 class TestGadget(fw.AnswerTest):
     #-----
     # test_gadget_binary

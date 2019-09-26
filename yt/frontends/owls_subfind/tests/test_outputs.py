@@ -26,6 +26,7 @@ g8 = "owls_fof_halos/groups_008/group_008.0.hdf5"
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestOwlsSubfind(fw.AnswerTest):
     #-----
     # test_fields_g8

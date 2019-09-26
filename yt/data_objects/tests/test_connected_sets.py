@@ -1,10 +1,15 @@
 from collections import OrderedDict
 
+import pytest
+
 from yt.testing import fake_random_ds
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 
 
+@pytest.mark.skipif(not pytest.config.getoption('--with-answer-testing'),
+    reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TesetConnectedSets(fw.AnswerTest):
     def test_connected_sets(self):
         ds = fake_random_ds(16, nprocs=8, particles=16**3)

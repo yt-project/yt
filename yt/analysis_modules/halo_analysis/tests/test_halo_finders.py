@@ -25,6 +25,7 @@ e64 = "Enzo_64/DD0043/data0043"
     reason="--with-answer-testing not set.")
 @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
     reason="--answer-big-data not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestHaloFinders(fw.AnswerTest):
     @utils.requires_ds(e64)
     def test_halo_finders(self):

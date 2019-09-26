@@ -31,6 +31,7 @@ sizmbhloz += "sizmbhloz-clref04SNth-rs9_a0.9011.art"
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestArtIo(fw.AnswerTest):
     #-----
     # test_sizmbhloz

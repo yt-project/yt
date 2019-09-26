@@ -124,7 +124,7 @@ def test_projection():
             deltaI[i,:,:], np.array(szprj["%d_GHz" % int(freqs[i])]), 6)
 
 M7 = "DD0010/moving7_0010"
-@pytest.mark.usefixtures('temp_dir')
+@pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestSunyaevZeldovich(fw.AnswerTest):
     @requires_module("SZpack")
     @requires_ds(M7)

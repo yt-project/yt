@@ -26,7 +26,7 @@ ETC = "enzo_tiny_cosmology/32Mpc_32.enzo"
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@pytest.mark.usefixtures('temp_dir')
+@pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestLightCone(fw.AnswerTest):
     @requires_module("h5py")
     @utils.requires_sim(ETC, "Enzo")

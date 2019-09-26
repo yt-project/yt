@@ -37,9 +37,9 @@ _raw_field_names =  [('raw', 'Bx'),
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@pytest.mark.usefixtures('temp_dir')
-@utils.requires_ds(raw_fields)
+@pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestRawFieldSlices(fw.AnswerTest):
+    @utils.requires_ds(raw_fields)
     def test_raw_field_slices(self):
         ds = utils.data_dir_load(raw_fields)
         hd = OrderedDict()

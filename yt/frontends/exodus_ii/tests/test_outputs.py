@@ -29,6 +29,7 @@ big_data = "MOOSE_sample_data/mps_out.e"
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestExodusII(fw.AnswerTest):
     #-----
     # test_out

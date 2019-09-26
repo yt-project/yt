@@ -55,6 +55,7 @@ _raw_fields = [('raw', 'Bx'), ('raw', 'Ey'), ('raw', 'jz')]
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestBoxLib(fw.AnswerTest):
     #-----
     # test_radavect

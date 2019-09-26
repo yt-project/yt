@@ -46,6 +46,7 @@ fields = OrderedDict(
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestGizmo(fw.AnswerTest):
     #-----
     # test_gizmo_64

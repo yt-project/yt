@@ -24,6 +24,7 @@ s399 = "snipshot_399_z000p000/snip_399_z000p000.0.hdf5"
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestEagle(fw.AnswerTest):
     #-----
     # test_EagleDataset

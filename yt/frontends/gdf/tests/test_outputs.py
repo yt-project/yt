@@ -25,6 +25,7 @@ sedov = "sedov/sedov_tst_0004.h5"
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_test')
 class TestGDF(fw.AnswerTest):
     #-----
     # test_sedov_tunnel

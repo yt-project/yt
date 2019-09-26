@@ -25,7 +25,7 @@ from yt.utilities.answer_testing import utils
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@pytest.mark.usefixtures('temp_dir')
+@pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestHaloCatalog(fw.AnswerTest):
 
     #-----

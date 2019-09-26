@@ -40,6 +40,7 @@ _fields_A2052 = ("flux",)
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason=("--with-answer-testing not set."))
+@pytest.mark.usefixtures('answer_file')
 class TestFits(fw.AnswerTest):
     #-----
     # test_grs

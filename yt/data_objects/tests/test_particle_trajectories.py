@@ -29,6 +29,7 @@ vfields = ["particle_velocity_x", "particle_velocity_y", "particle_velocity_z"]
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestParticleTrajectories(fw.AnswerTest):
     @utils.requires_ds("Orbit/orbit_hdf5_chk_0000")
     def test_orbit_traj(self):

@@ -50,6 +50,7 @@ _fields_stripping = ("temperature", "density", "specific_scalar[0]")
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestAthena(fw.AnswerTest):
     #-----
     # test_cloud

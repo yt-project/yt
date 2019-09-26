@@ -52,6 +52,7 @@ OCT_MASK_LIST = [8, 0, 0, 0, 0, 8, 0, 0,
 #============================================
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
+@pytest.mark.usefixtures('answer_file')
 class TestStream(fw.AnswerTest):
     @pytest.mark.usefixtures('temp_dir')
     def test_load_empty_file(self):
