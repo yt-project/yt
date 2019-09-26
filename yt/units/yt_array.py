@@ -1407,7 +1407,7 @@ class YTArray(np.ndarray):
                     for i in inputs:
                         if isinstance(i, YTArray):
                             inp.append(i.to(inputs[0].units).view(np.ndarray))
-                        elif _iterable(i):
+                        elif iterable(i):
                             inp.append(np.asarray(i))
                         else:
                             inp.append(i)
