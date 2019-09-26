@@ -12,8 +12,17 @@ import shutil
 import tempfile
 
 import pytest
+import yaml
 
 from yt.config import ytcfg
+
+
+# Global variables can be added to the pytest namespace
+pytest.answer_files = {}
+
+# List of answer files
+answer_file = 'tests/tests.yaml'
+answer_dir = os.path.join(ytcfg.get('yt', 'test_data_dir'), 'answers')
 
 
 #============================================
@@ -46,6 +55,34 @@ def pytest_addoption(parser):
 
 
 #============================================
+#             pytest_configure
+#============================================
+def pytest_configure(config):
+    """
+    Reads in the tests/tests.yaml file. This file contains a list of
+    each answer test's answer file (including the changeset number).
+    """
+    # Make sure that the answers dir exists. If not, try to make it
+    if not os.path.isdir(answer_dir):
+        os.mkdir(answer_dir)
+    with open(answer_file, 'r') as f:
+        pytest.answer_files = yaml.load(f)
+    # If we're storing answers, make sure we're not overwriting an
+    # answer set that already exists
+    if config.getoption('--answer-store'):
+        for k, v in pytest.answer_files.items():
+            if os.path.isfile(os.path.join(answer_dir, v)):
+                raise ValueError("File: {} already exists. Change "
+                    "file version number to store a new set of answers.".format(v))
+    # If we're comparing answers, make sure the specified answer files
+    # exist
+    else:
+        for k, v in pytest.answer_files.items():
+            if not os.path.isfile(os.path.join(answer_dir, v)):
+                raise FileNotFoundError("Couldn't find answer file: {}".format(v))
+
+
+#============================================
 #                answer_store
 #============================================
 @pytest.fixture(scope='class')
@@ -60,8 +97,7 @@ def cli_testing_opts(request):
     # self.answer_store from the class using this fixture
     if request.cls is not None:
         request.cls.answer_store = request.config.getoption("--answer-store")
-        test_dir = ytcfg.get('yt', 'test_data_dir')
-        request.cls.save_dir = os.path.join(test_dir, 'answers')
+        request.cls.save_dir = answer_dir 
 
 
 #============================================
@@ -82,3 +118,15 @@ def temp_dir():
     os.chdir(curdir)
     if tmpdir != curdir:
         shutil.rmtree(tmpdir)
+
+
+#============================================
+#                answer_file
+#+===========================================
+@pytest.fixture(scope='class')
+def answer_file(request):
+    if request.cls is not None:
+        if request.cls.__name__ in pytest.answer_files:
+            request.cls.answer_file = pytest.answer_files[request.cls.__name__]
+        else:
+            print("Skipping {}".format(request.cls.__name__))
