@@ -61,61 +61,49 @@ def _strip_ftype(field):
     return field[1]
 
 
-class TestFieldAccess(object):
-    description = None
-
-    def __init__(self, field_name, ds, nprocs):
-        # Note this should be a field name
-        self.field_name = field_name
-        self.description = "Accessing_%s_%s" % (field_name, nprocs)
-        self.nprocs = nprocs
-        self.ds = ds
-
-    def __call__(self):
-        field = self.ds._get_field_info(*self.field_name)
-        skip_grids = False
-        needs_spatial = False
-        for v in field.validators:
-            if getattr(v, "ghost_zones", 0) > 0:
-                skip_grids = True
-            if hasattr(v, "ghost_zones"):
-                needs_spatial = True
-
-        ds = self.ds
-
-        # This gives unequal sized grids as well as subgrids
-        dd1 = ds.all_data()
-        dd2 = ds.all_data()
-        sp = get_params(ds)
-        dd1.field_parameters.update(sp)
-        dd2.field_parameters.update(sp)
-        with np.errstate(all='ignore'):
-            v1 = dd1[self.field_name]
-            # No more conversion checking
-            assert_equal(v1, dd1[self.field_name])
-            if not needs_spatial:
-                with field.unit_registry(dd2):
-                    res = field._function(field, dd2)
-                    res = dd2.apply_units(res, field.units)
+def access_fields(field_name, ds1, nprocs):
+    field = ds1._get_field_info(*field_name)
+    skip_grids = False
+    needs_spatial = False
+    for v in field.validators:
+        if getattr(v, "ghost_zones", 0) > 0:
+            skip_grids = True
+        if hasattr(v, "ghost_zones"):
+            needs_spatial = True
+    ds2 = ds1
+    # This gives unequal sized grids as well as subgrids
+    dd1 = ds2.all_data()
+    dd2 = ds2.all_data()
+    sp = get_params(ds2)
+    dd1.field_parameters.update(sp)
+    dd2.field_parameters.update(sp)
+    with np.errstate(all='ignore'):
+        v1 = dd1[field_name]
+        # No more conversion checking
+        assert_equal(v1, dd1[field_name])
+        if not needs_spatial:
+            with field.unit_registry(dd2):
+                res = field._function(field, dd2)
+                res = dd2.apply_units(res, field.units)
+            assert_array_almost_equal_nulp(v1, res, 4)
+        if not skip_grids:
+            for g in ds2.index.grids:
+                g.field_parameters.update(sp)
+                v1 = g[field_name]
+                g.clear_data()
+                g.field_parameters.update(sp)
+                r1 = field._function(field, g)
+                if field.particle_type:
+                    assert_equal(v1.shape[0], g.NumberOfParticles)
+                else:
+                    assert_array_equal(r1.shape, v1.shape)
+                    for ax in 'xyz':
+                        assert_array_equal(g[ax].shape, v1.shape)
+                with field.unit_registry(g):
+                    res = field._function(field, g)
+                    assert_array_equal(v1.shape, res.shape)
+                    res = g.apply_units(res, field.units)
                 assert_array_almost_equal_nulp(v1, res, 4)
-            if not skip_grids:
-                for g in ds.index.grids:
-                    g.field_parameters.update(sp)
-                    v1 = g[self.field_name]
-                    g.clear_data()
-                    g.field_parameters.update(sp)
-                    r1 = field._function(field, g)
-                    if field.particle_type:
-                        assert_equal(v1.shape[0], g.NumberOfParticles)
-                    else:
-                        assert_array_equal(r1.shape, v1.shape)
-                        for ax in 'xyz':
-                            assert_array_equal(g[ax].shape, v1.shape)
-                    with field.unit_registry(g):
-                        res = field._function(field, g)
-                        assert_array_equal(v1.shape, res.shape)
-                        res = g.apply_units(res, field.units)
-                    assert_array_almost_equal_nulp(v1, res, 4)
 
 def get_base_ds(nprocs):
     fields, units = [], []
@@ -156,11 +144,9 @@ def get_base_ds(nprocs):
     
 def test_all_fields():
     datasets = {}
-        
     for nprocs in [1, 4, 8]:
         ds = get_base_ds(nprocs)
         datasets[nprocs] = ds
-
     for field in sorted(ds.field_info):
         if field[1].find("beta_p") > -1:
             continue
@@ -174,10 +160,8 @@ def test_all_fields():
             # Don't know how to test this.  We need some way of having fields
             # that are fallbacks be tested, but we don't have that now.
             continue
-
         for nprocs in [1, 4, 8]:
-            test_all_fields.__name__ = "%s_%s" % (field, nprocs)
-            yield TestFieldAccess(field, datasets[nprocs], nprocs)
+            access_fields(field, datasets[nprocs], nprocs)
 
 def test_add_deposited_particle_field():
     # NOT tested: "std", "mesh_id", "nearest" and "simple_smooth"
