@@ -21,7 +21,7 @@ from yt.config import ytcfg
 pytest.answer_files = {}
 
 # List of answer files
-answer_file = 'tests/tests.yaml'
+answer_file_list = 'tests/tests.yaml'
 answer_dir = os.path.join(ytcfg.get('yt', 'test_data_dir'), 'answers')
 
 
@@ -65,7 +65,7 @@ def pytest_configure(config):
     # Make sure that the answers dir exists. If not, try to make it
     if not os.path.isdir(answer_dir):
         os.mkdir(answer_dir)
-    with open(answer_file, 'r') as f:
+    with open(answer_file_list, 'r') as f:
         pytest.answer_files = yaml.load(f)
     # If we're storing answers, make sure we're not overwriting an
     # answer set that already exists

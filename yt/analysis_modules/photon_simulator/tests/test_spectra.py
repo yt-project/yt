@@ -19,7 +19,7 @@ ds = fake_random_ds(64)
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@pytest.usefixtures('answer_file')
+@pytest.mark.usefixtures('answer_file')
 class TestSpectra(fw.AnswerTest):
     @requires_module("xspec")
     @requires_module("astropy")

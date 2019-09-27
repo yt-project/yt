@@ -23,7 +23,7 @@ ISO_GAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 @pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
     reason="--with-answer-testing not set.")
-@pytest.usefixtures('answer_file')
+@pytest.mark.usefixtures('answer_file')
 class TestRadmc3dExporter(fw.AnswerTest):
     @pytest.mark.usefixtures('temp_dir')
     @utils.requires_ds(ISO_GAL)
