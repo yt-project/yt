@@ -1,137 +1,107 @@
-answer_tests:
-  local_artio_001:
-    - yt/frontends/artio/tests/test_outputs.py
+TestArtIo:
+    artio_answers_000.yaml
 
-  local_athena_004:
-    - yt/frontends/athena
+TestAthena:
+    athena_answers_000.yaml
 
-  local_athena_pp_001:
-    - yt/frontends/athena_pp
+TestAthenaPP:
+    athena_pp_answers_000.yaml
 
-  local_chombo_002:
-    - yt/frontends/chombo/tests/test_outputs.py
+TestChombo:
+    chombo_answers_000.yaml
 
-  local_enzo_004:
-    - yt/frontends/enzo
+TestEnzo:
+    enzo_answers_000.yaml
 
-  local_enzo_p_005:
-    - yt/frontends/enzo_p/tests/test_outputs.py
+TestEnzoP:
+    enzo_p_answers_000.yaml
 
-  local_fits_002:
-    - yt/frontends/fits/tests/test_outputs.py
+TestFits:
+    fits_answers_000.yaml
 
-  local_flash_009:
-    - yt/frontends/flash/tests/test_outputs.py
+TestFlash:
+    flash_answers_000.yaml
 
-  local_gadget_001:
-    - yt/frontends/gadget/tests/test_outputs.py
+TestGadget:
+    gadget_answers_000.yaml
 
-  local_gamer_004:
-    - yt/frontends/gamer/tests/test_outputs.py
+TestGamer:
+    gamer_answers_000.yaml
 
-  local_gdf_001:
-    - yt/frontends/gdf/tests/test_outputs.py
+TestGDF:
+    gdf_answers_000.yaml
 
-  local_gizmo_002:
-    - yt/frontends/gizmo/tests/test_outputs.py
+TestGizmo:
+    gizmo_answers_000.yaml
 
-  local_halos_008:
-    - yt/analysis_modules/halo_analysis/tests/test_halo_finders.py
-    - yt/analysis_modules/halo_analysis/tests/test_halo_catalog.py
-    - yt/analysis_modules/halo_finding/tests/test_rockstar.py
-    - yt/frontends/ahf/tests/test_outputs.py
-    - yt/frontends/owls_subfind/tests/test_outputs.py
-    - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
-    - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
+TestAHF:
+    ahf_answers_000.yaml
 
-  local_owls_002:
-    - yt/frontends/owls/tests/test_outputs.py
+TestOwlsSubfind:
+    owls_subfind_answers_000.yaml
 
-  local_pw_026:
-    - yt/visualization/tests/test_plotwindow.py:test_attributes
-    - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
-    - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
-    - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
-    - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
-    - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
+TestGadgetFOF:
+    gadget_fof_answers_000.yaml
 
-  local_tipsy_002:
-    - yt/frontends/tipsy/tests/test_outputs.py
+TestOwls:
+    owls_answers_000.yaml
 
-  local_varia_010:
-    - yt/analysis_modules/radmc3d_export
-    - yt/frontends/moab/tests/test_c5.py
-    - yt/fields/tests/test_xray_fields.py
+TestTipsy:
+    tipsy_answers_000.yaml
 
-  local_photon_002:
-    - yt/analysis_modules/photon_simulator/tests/test_spectra.py
-    - yt/analysis_modules/photon_simulator/tests/test_sloshing.py
+TestMoab:
+    moab_answers_000.yaml
 
-  local_unstructured_010:
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex20_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex20_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex8_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex8_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_perspective_mesh_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_perspective_mesh_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_surface_mesh_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_surface_mesh_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet10_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet10_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet4_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_tet4_render_pyembree
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render
-    - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render_pyembree
+TestBoxLib:
+    boxlib_answers_000.yaml
 
-  local_boxlib_008:
-    - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
-    - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
-    - yt/frontends/boxlib/tests/test_outputs.py:test_star
-    - yt/frontends/boxlib/tests/test_outputs.py:test_OrionDataset
-    - yt/frontends/boxlib/tests/test_outputs.py:test_CastroDataset
-    - yt/frontends/boxlib/tests/test_outputs.py:test_RT_particles
-    - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
-    - yt/frontends/boxlib/tests/test_outputs.py:test_raw_fields
+TestRamses:
+    ramses_answers_000.yaml
 
-  local_boxlib_particles_005:
-    - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
-    - yt/frontends/boxlib/tests/test_outputs.py:test_nyx_particle_io
-    - yt/frontends/boxlib/tests/test_outputs.py:test_castro_particle_io
-    - yt/frontends/boxlib/tests/test_outputs.py:test_langmuir
-    - yt/frontends/boxlib/tests/test_outputs.py:test_plasma
-    - yt/frontends/boxlib/tests/test_outputs.py:test_beam
-    - yt/frontends/boxlib/tests/test_outputs.py:test_warpx_particle_io
-    - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
-    - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
+TestYTData:
+    ytdata_answers_000.yaml
 
-  local_ramses_001:
-    - yt/frontends/ramses/tests/test_outputs.py
+TestHaloFinders:
+    halo_finders_answers_000.yaml
 
-  local_ytdata_006:
-    - yt/frontends/ytdata/tests/test_outputs.py
-    - yt/frontends/ytdata/tests/test_old_outputs.py
+TestHaloQuantity:
+    halo_catalog_answers_000.yaml
 
-  local_absorption_spectrum_007:
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_novpec
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_sph
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo_sph
-    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_with_continuum
+TestRockstarHaloFinder:
+    rockstar_halo_finder_answers_000.yaml
 
-  local_axialpix_006:
-    - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
+TestPlotWindowAnswer:
+    plot_window_answers_000.yaml
 
-  local_particle_trajectory_001:
-    - yt/data_objects/tests/test_particle_trajectories.py
+TestParticlePlotAnswer:
+    particle_plot_answers_000.yaml
 
-  local_light_cone_002:
-    - yt/analysis_modules/cosmological_observation/light_cone/tests/test_light_cone.py
+TestRawFieldSlices:
+    raw_field_slices_answers_000.yaml
 
-other_tests:
-  unittests:
-     - '--exclude=test_mesh_slices'  # disable randomly failing test
-  cookbook:
-     - 'doc/source/cookbook/tests/test_cookbook.py'
+TestRadmc3dExporter:
+    radmc3d_answers_000.yaml
+
+TestXRayFields:
+    xray_answers_000.yaml
+
+TestSloshingPhoton:
+    sloshing_photon_answers_000.yaml
+
+TestSpectra:
+    spectra_photon_answers_000.yaml
+
+TestVolumeRenderMesh:
+    mesh_render_answers_000.yaml
+
+TestAbsorptionSpectrum:
+    absorption_spectrum_answers_000.yaml
+
+TestAxialPixelization:
+    axial_pixelization_answers_000.yaml
+
+TestParticleTrajectories:
+    particle_trajectory_answers_000.yaml
+
+TestLightCone:
+    light_cone_answers_000.yaml
