@@ -65,21 +65,10 @@ def pytest_configure(config):
     # Make sure that the answers dir exists. If not, try to make it
     if not os.path.isdir(answer_dir):
         os.mkdir(answer_dir)
+    # Read the list of answer test classes and their associated answer
+    # file
     with open(answer_file_list, 'r') as f:
         pytest.answer_files = yaml.load(f)
-    # If we're storing answers, make sure we're not overwriting an
-    # answer set that already exists
-    if config.getoption('--answer-store'):
-        for k, v in pytest.answer_files.items():
-            if os.path.isfile(os.path.join(answer_dir, v)):
-                raise ValueError("File: {} already exists. Change "
-                    "file version number to store a new set of answers.".format(v))
-    # If we're comparing answers, make sure the specified answer files
-    # exist
-    else:
-        for k, v in pytest.answer_files.items():
-            if not os.path.isfile(os.path.join(answer_dir, v)):
-                raise FileNotFoundError("Couldn't find answer file: {}".format(v))
 
 
 #============================================
