@@ -35,7 +35,15 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
     def setup_gas_particle_fields(self, ptype):
         super(ArepoFieldInfo, self).setup_gas_particle_fields(ptype)
-        if ("PartType0", "GFM_Metals_00") in self.field_list:
+
+        if (ptype, 'InternalEnergy') in self.field_list:
+            def _pressure(field, data):
+                return data.ds.gamma*data[ptype, "density"] * \
+                       data[ptype, "InternalEnergy"]
+            self.add_field((ptype, "pressure"), function=_pressure,
+                           sampling_type="particle", 
+                           units=self.ds.unit_system['pressure'])
+        if (ptype, "GFM_Metals_00") in self.field_list:
             self.nuclei_names = metal_elements
             self.species_names = ["H"]
             if (ptype, "NeutralHydrogenAbundance") in self.field_list:
