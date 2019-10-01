@@ -292,9 +292,9 @@ _turbo_colormap_data = np.array(
 
 _tvals = np.linspace(0, 1, 256)
 _turbo_data = \
-  dict((color, np.transpose(_tvals,
-                            _turbo_colormap_data[:, i],
-                            _turbo_colormap_data[:, i]))
+  dict((color, np.transpose([_tvals,
+                             _turbo_colormap_data[:, i],
+                             _turbo_colormap_data[:, i]]))
        for i, color in enumerate(['red', 'green', 'blue']))
 
 add_cmap("turbo", _turbo_data)
