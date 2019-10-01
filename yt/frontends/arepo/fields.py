@@ -10,11 +10,14 @@ from yt.fields.field_info_container import \
 metal_elements = ["He", "C", "N", "O", "Ne",
                   "Mg", "Si", "Fe"]
 
+
 class ArepoFieldInfo(GadgetFieldInfo):
     known_particle_fields = GadgetFieldInfo.known_particle_fields + \
                             (("smoothing_length", ("code_length", [], None)),
                              ("MagneticField",
                               ("code_magnetic", ["particle_magnetic_field"], None)),
+                             ("MagneticFieldDivergence",
+                              ("code_magnetic/code_length", ["magnetic_divergence"], None)),
                              ("GFM_Metallicity", ("", ["metallicity"], None)),
                              ("GFM_Metals_00", ("", ["H_fraction"], None)),
                              ("GFM_Metals_01", ("", ["He_fraction"], None)),
