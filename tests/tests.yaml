@@ -1,6 +1,9 @@
 TestArtIo:
     artio_answers_000.yaml
 
+TestArt:
+    art_answers_000.yaml
+
 TestAthena:
     athena_answers_000.yaml
 
@@ -15,6 +18,12 @@ TestEnzo:
 
 TestEnzoP:
     enzo_p_answers_000.yaml
+
+TestExodusII:
+    exodus_ii_answers_000.yaml
+
+TestEagle:
+    eagle_answers_000.yaml
 
 TestFits:
     fits_answers_000.yaml
@@ -40,6 +49,9 @@ TestAHF:
 TestOwlsSubfind:
     owls_subfind_answers_000.yaml
 
+TestOpenPMD:
+   open_pmd_answers_000.yaml 
+
 TestGadgetFOF:
     gadget_fof_answers_000.yaml
 
@@ -61,14 +73,23 @@ TestRamses:
 TestYTData:
     ytdata_answers_000.yaml
 
+TestHaloCatalog:
+    halo_catalog_answers_000.yaml
+
 TestHaloFinders:
     halo_finders_answers_000.yaml
 
 TestHaloQuantity:
-    halo_catalog_answers_000.yaml
+    halo_quantity_answers_000.yaml
+
+TestRockstar:
+    rockstar_answers_000.yaml
 
 TestRockstarHaloFinder:
     rockstar_halo_finder_answers_000.yaml
+
+TestStream:
+    stream_answers_000.yaml
 
 TestPlotWindowAnswer:
     plot_window_answers_000.yaml
