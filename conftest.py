@@ -15,6 +15,7 @@ import pytest
 import yaml
 
 from yt.config import ytcfg
+from yt.utilities.answer_testing import utils
 
 
 # Global variables can be added to the pytest namespace
@@ -118,4 +119,30 @@ def answer_file(request):
         if request.cls.__name__ in pytest.answer_files:
             request.cls.answer_file = pytest.answer_files[request.cls.__name__]
         else:
-            print("Skipping {}".format(request.cls.__name__))
+            assert False
+
+
+#============================================
+#                  hashing
+#============================================
+@pytest.fixture(scope='function')
+def hashing(request):
+    """
+    This fixture reduces answer test boilerplate by handling the
+    initialization of the hashes, the actual hashing of the arrays
+    returned by the tests, and performing the writing/comparison.
+    """
+    # Set up hashes dictionary
+    if request.cls is not None:
+        request.cls.hashes = OrderedDict()
+    else:
+        assert False
+    # Yield to the caller in order to actually perform the tests
+    yield
+    # Convert arrays returned by tests to bytes (for hashing)
+    hashes = utils.array_to_bytes(request.cls.hashes)
+    # Finalize by adding the function name as a key
+    hashes = {request.function.__name__ : hashes}
+    # Either save or compare
+    utils.handle_hashes(request.cls.save_dir, request.cls.answer_file, hashes,
+        request.cls.answer_store)
