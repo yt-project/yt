@@ -24,7 +24,7 @@ ahf_halos = 'ahf_halos/snap_N64L16_135.parameter'
 #============================================
 #                   TestAHF
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
+@pytest.mark.skipif(not pytest.config.getoption('--with-answer-testing'),
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('answer_file')
 class TestAHF(fw.AnswerTest):
@@ -38,18 +38,12 @@ class TestAHF(fw.AnswerTest):
     #-----
     # test_fields_ahf_halos
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(ahf_halos)
     def test_fields_ahf_halos(self, ds_ahf_halos):
         fields = ('particle_position_x', 'particle_position_y',
                    'particle_position_z', 'particle_mass')
-        hashes = OrderedDict()
-        hashes['field_values'] = OrderedDict()
+        self.hashes['field_values'] = OrderedDict()
         for field in fields:
-            fv_hd = utils.generate_hash(
-                self.field_values_test(ds_ahf_halos, field, particle_type=True)
-            )
-            hashes['field_values'][field] = fv_hd
-        # Add function name to hashes
-        hashes = {'fields_ahf_halos' : hashes}
-        # Save or compare answers
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+            fv_hd = self.field_values_test(ds_ahf_halos, field, particle_type=True)
+            self.hashes['field_values'][field] = fv_hd

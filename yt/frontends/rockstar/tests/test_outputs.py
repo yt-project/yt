@@ -36,17 +36,13 @@ class TestRockstar(fw.AnswerTest):
     #-----
     # test_fields_r1
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(r1)
     def test_fields_r1(self, ds_r1):
-        hashes = OrderedDict()
-        hashes['field_values'] = OrderedDict()
+        self.hashes['field_values'] = OrderedDict()
         for field in _fields:
-            fv_hd = utils.generate_hash(
-                self.field_values_test(ds_r1, field, particle_type=True)
-            )
-            hashes['field_values'][field] = fv_hd
-        hashes = {'fields_r1' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+            fv_hd = self.field_values_test(ds_r1, field, particle_type=True)
+            self.hashes['field_values'][field] = fv_hd
 
     #-----
     # test_RockstarDataset

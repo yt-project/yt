@@ -94,6 +94,7 @@ g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
     reason="--answer-big-data not set.")
 @pytest.mark.usefixtures('answer_file')
 class TestParticlePlotAnswer(fw.AnswerTest):
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g30)
     def test_particle_projection_answers(self):
         '''
@@ -108,24 +109,20 @@ class TestParticlePlotAnswer(fw.AnswerTest):
         plot_field = 'particle_mass'
         decimals = 12
         ds = utils.data_dir_load(g30)
-        hd = OrderedDict()
-        hd['plot_window_attribute'] = OrderedDict()
+        self.hashes['plot_window_attribute'] = OrderedDict()
         for ax in 'xyz':
-            hd['plot_window_attribute'][ax] = OrderedDict()
+            self.hashes['plot_window_attribute'][ax] = OrderedDict()
             for attr_name in PROJ_ATTR_ARGS.keys():
-                hd['plot_window_attribute'][ax][attr_name] = OrderedDict()
+                self.hashes['plot_window_attribute'][ax][attr_name] = OrderedDict()
                 for args in PROJ_ATTR_ARGS[attr_name]:
-                    pw_hd = utils.generate_hash(
-                        self.plot_window_attribute_test(ds, plot_field, ax, 
+                    pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, 
                                                    attr_name,
                                                    args, decimals, 
                                                    'ParticleProjectionPlot')
-                    )
-                    hd['plot_window_attribute'][ax][attr_name][args] = pw_hd
-        hashes = {'particle_projection_answers' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
+                    self.hashes['plot_window_attribute'][ax][attr_name][args] = pw_hd
 
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g30)
     def test_particle_projection_filter(self):
         '''
@@ -147,23 +144,19 @@ class TestParticlePlotAnswer(fw.AnswerTest):
         decimals = 12
         ds = utils.data_dir_load(g30)
         ds.add_particle_filter('formed_star')
-        hd = OrderedDict()
-        hd['plot_window_attribute'] = OrderedDict()
+        self.hashes['plot_window_attribute'] = OrderedDict()
         for ax in 'xyz':
-            hd['plot_window_attribute'][ax] = OrderedDict()
+            self.hashes['plot_window_attribute'][ax] = OrderedDict()
             attr_name = "set_log"
             for args in PROJ_ATTR_ARGS[attr_name]:
-                pw_hd = utils.generate_hash(
-                    self.plot_window_attribute_test(ds, plot_field, ax,
+                pw_hd = self.plot_window_attribute_test(ds, plot_field, ax,
                                                attr_name,
                                                args, decimals,
                                                'ParticleProjectionPlot')
-                )
-                hd['plot_window_attribute'][ax][args] = pw_hd 
-        hashes = {'particle_projection_filter' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
+                self.hashes['plot_window_attribute'][ax][args] = pw_hd 
 
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g30)
     def test_particle_phase_answers(self):
         '''
@@ -177,19 +170,14 @@ class TestParticlePlotAnswer(fw.AnswerTest):
         x_field = 'particle_velocity_x'
         y_field = 'particle_velocity_y'
         z_field = 'particle_mass'
-        hd = OrderedDict()
-        hd['phase_plot_attribute'] = OrderedDict()
+        self.hashes['phase_plot_attribute'] = OrderedDict()
         for attr_name in PHASE_ATTR_ARGS.keys():
-            hd['phase_plot_attribute'][attr_name] = OrderedDict()
+            self.hashes['phase_plot_attribute'][attr_name] = OrderedDict()
             for args in PHASE_ATTR_ARGS[attr_name]:
-                pp_hd = utils.generate_hash(
-                    self.phase_plot_attribute_test(ds, x_field, y_field, z_field,
+                pp_hd = self.phase_plot_attribute_test(ds, x_field, y_field, z_field,
                                               attr_name, args,
                                               'ParticlePhasePlot')
-                )
-                hd['phase_plot_attribute'][attr_name][args] = pp_hd 
-        hashes = {'particle_phase_answers' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
+                self.hashes['phase_plot_attribute'][attr_name][args] = pp_hd 
 
 class TestParticlePhasePlotSave(unittest.TestCase):
 

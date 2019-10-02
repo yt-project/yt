@@ -58,6 +58,7 @@ def return_data(data):
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestSloshingPhoton(fw.AnswerTest):
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(gslr)
     @requires_file(APEC)
     @requires_file(TBABS)
@@ -76,12 +77,9 @@ class TestSloshingPhoton(fw.AnswerTest):
         photons1 = PhotonList.from_scratch(sphere, redshift, A, exp_time,
                                            thermal_model)
         return_photons = return_data(photons1.photons)
-        hd = OrderedDict()
-        ga_hd = utils.generate_hash(
-            self.generic_array_test(ds, return_photons, args=['photons'])
-        )
-        hd['generic_array1'] = ga_hd
-        hd['generic_array2'] = OrderedDict()
+        ga_hd = self.generic_array_test(ds, return_photons, args=['photons'])
+        self.hashes['generic_array1'] = ga_hd
+        self.hashes['generic_array2'] = OrderedDict()
         for a, r in zip(arfs, rmfs):
             arf = os.path.join(xray_data_dir, a)
             rmf = os.path.join(xray_data_dir, r)
@@ -90,12 +88,8 @@ class TestSloshingPhoton(fw.AnswerTest):
                                               convolve_energies=True, prng=prng)
             events1['xsky']
             return_events = return_data(events1.events)
-            ga_hd = utils.generate_hash(
-                self.generic_array_test(ds, return_events, args=[a])
-            )
-            hd['generic_array2'][a] = ga_hd
-        hashes = {'sloshing' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+            ga_hd = self.generic_array_test(ds, return_events, args=[a])
+            self.hashes['generic_array2'][a] = ga_hd
         photons1.write_h5_file("test_photons.h5")
         events1.write_h5_file("test_events.h5")
         photons2 = PhotonList.from_file("test_photons.h5")

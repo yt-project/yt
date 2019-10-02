@@ -41,11 +41,11 @@ class TestMoab(fw.AnswerTest):
     #-----
     # test_cantor_5
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(c5)
     def test_cantor_5(self, ds_c5):
         ds = ds_c5
-        hashes = OrderedDict()
-        hashes['field_values'] = OrderedDict()
+        self.hashes['field_values'] = OrderedDict()
         np.random.seed(0x4d3d3d3)
         dso = [ None, ("sphere", ("c", (0.1, 'unitary'))),
                       ("sphere", ("c", (0.2, 'unitary')))]
@@ -67,14 +67,10 @@ class TestMoab(fw.AnswerTest):
                 ray = ds.ray(p1, p2)
                 assert_almost_equal(ray["dts"].sum(dtype="float64"), 1.0, 8)
         for field in _fields:
-            hashes['field_values'][field] = OrderedDict()
+            self.hashes['field_values'][field] = OrderedDict()
             for dobj_name in dso:
-                fv_hd = utils.generate_hash(
-                    self.field_values_test(ds, field, dobj_name)
-                )
-                hashes['field_values'][field][dobj_name] = fv_hd
-        hashes = {'cantor_5' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+                fv_hd = self.field_values_test(ds, field, dobj_name)
+                self.hashes['field_values'][field][dobj_name] = fv_hd
 
     #-----
     # test_MoabHex8Dataset

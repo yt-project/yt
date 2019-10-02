@@ -39,6 +39,7 @@ class TestArt(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(d9p)
     def test_d9p(self, ds_d9p):
         """
@@ -60,34 +61,28 @@ class TestArt(fw.AnswerTest):
             ("all", "particle_mass"),
             ("all", "particle_position_x")
         )
-        hd = OrderedDict()
-        hd['pixelized_projection_values'] = OrderedDict()
-        hd['field_values'] = OrderedDict()
+        self.hashes['pixelized_projection_values'] = OrderedDict()
+        self.hashes['field_values'] = OrderedDict()
         ds = ds_d9p
         ds.index
         dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
         for f in fields:
-            hd['pixelized_projection_values'][f] = OrderedDict()
-            hd['field_values'][f] = OrderedDict()
+            self.hashes['pixelized_projection_values'][f] = OrderedDict()
+            self.hashes['field_values'][f] = OrderedDict()
             for d in dso:
                 if f[0] == "all":
                     particle_type = True
                 else:
                     particle_type = False
-                fv_hd = utils.generate_hash(
-                    self.field_values_test(ds, f, d, particle_type=particle_type)
-                )
-                hd['field_values'][f][d] = fv_hd
-                hd['pixelized_projection_values'][f][d] = OrderedDict()
+                fv_hd = self.field_values_test(ds, f, d, particle_type=particle_type)
+                self.hashes['field_values'][f][d] = fv_hd
+                self.hashes['pixelized_projection_values'][f][d] = OrderedDict()
                 for a in [0, 1, 2]:
-                    hd['pixelized_projection_values'][f][d][a] = OrderedDict()
+                    self.hashes['pixelized_projection_values'][f][d][a] = OrderedDict()
                     for w in [None, "density"]:
                         if f[0] not in ds.particle_types:
-                            ppv_hd = self.generate_hash(
-                                self.pixelized_projection_values_test(
-                                    ds, a, f, w, d)
-                            )
-                            hd['pixelized_projection_values'][f][d][a][w] = ppv_hd
+                            ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, d)
+                            self.hashes['pixelized_projection_values'][f][d][a][w] = ppv_hd
         ad = ds.all_data()
         # 'Ana' variable values output from the ART Fortran 'ANA' analysis code
         AnaNStars = 6255
@@ -134,8 +129,6 @@ class TestArt(fw.AnswerTest):
                             AnaTotGasMass)
         AnaTotTemp = YTQuantity(150219844793.39072, 'K')  # just leaves
         assert_equal(ad[('gas', 'temperature')].sum(), AnaTotTemp)
-        hd = {'d9p' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
 
     #-----
     # test_ARTDataset

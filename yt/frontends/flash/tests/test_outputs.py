@@ -41,6 +41,7 @@ class TestFlash(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(sloshing)
     def test_sloshing(self, ds_sloshing):
         # Set up arrays for testing
@@ -50,14 +51,12 @@ class TestFlash(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("temperature", "density", "velocity_magnitude")
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds_sloshing, fields, weights, axes, ds_objs)
-        hashes = {'sloshing' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds_sloshing, fields, weights, axes, ds_objs)
 
     #-----
     # test_wind_tunnel
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(wt)
     def test_wind_tunnel(self, ds_wt):
         # Set up arrays for testing
@@ -67,10 +66,7 @@ class TestFlash(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("temperature", "density")
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds_wt, fields, weights, axes, ds_objs)
-        hashes = {'wind_tunnel' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds_wt, fields, weights, axes, ds_objs)
 
     #-----
     # test_FLASHDataset
@@ -125,6 +121,7 @@ class TestFlash(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(fid_1to3_b1)
     def test_fid_1to3_b1(self, ds_fid_1to3_b1):
         fid_1to3_b1_fields = OrderedDict(
@@ -138,11 +135,8 @@ class TestFlash(fw.AnswerTest):
             ]
         )
         # Run the sph_answer test suite
-        hashes = self.sph_answer(ds_fid_1to3_b1,
+        self.hashes = self.sph_answer(ds_fid_1to3_b1,
             'fiducial_1to3_b1_hdf5_part_0080',
             6684119,
             fid_1to3_b1_fields
         )
-        hashes = {'fid_1to3_b1' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)

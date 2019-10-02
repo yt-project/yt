@@ -55,6 +55,7 @@ class TestAthena(fw.AnswerTest):
     #-----
     # test_cloud
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(cloud)
     def test_cloud(self, ds_cloud):
         ds = ds_cloud
@@ -65,14 +66,12 @@ class TestAthena(fw.AnswerTest):
         weights = [None, "density"]
         assert_equal(str(ds), "Cloud.0050")
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _fields_cloud, weights, axes, ds_objs)
-        hashes = {'cloud' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _fields_cloud, weights, axes, ds_objs)
 
     #-----
     # test_blast
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(blast)
     def test_blast(self):
         ds = utils.data_dir_load(blast) 
@@ -83,10 +82,7 @@ class TestAthena(fw.AnswerTest):
         weights = [None, "density"]
         assert_equal(str(ds), "Blast.0100")
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _fields_blast, weights, axes, ds_objs)
-        hashes = {'blast' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _fields_blast, weights, axes, ds_objs)
 
     #-----
     # test_blast_override
@@ -104,6 +100,7 @@ class TestAthena(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(stripping)
     def test_stripping(self):
         ds = utils.data_dir_load(stripping, kwargs={"units_override":uo_stripping})
@@ -114,10 +111,7 @@ class TestAthena(fw.AnswerTest):
         weights = [None, "density"]
         assert_equal(str(ds), "rps.0062")
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _fields_stripping, weights, axes, ds_objs)
-        hashes = {'stripping' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _fields_stripping, weights, axes, ds_objs)
 
     #-----
     # test_nprocs

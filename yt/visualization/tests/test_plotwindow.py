@@ -154,68 +154,54 @@ CALLBACK_TESTS = (
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('answer_file')
 class TestPlotWindowAnswer(fw.AnswerTest):
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(M7)
     def test_attributes(self):
         """Test plot member functions that aren't callbacks"""
         plot_field = 'density'
         decimals = 12
         ds = utils.data_dir_load(M7)
-        hd = OrderedDict()
-        hd['non-callback'] = OrderedDict()
-        hd['callback'] = OrderedDict()
-        hd['non-callback']['plot_window_attribute'] = OrderedDict()
-        hd['callback']['plot_window_attribute'] = OrderedDict()
+        self.hashes['non-callback'] = OrderedDict()
+        self.hashes['callback'] = OrderedDict()
+        self.hashes['non-callback']['plot_window_attribute'] = OrderedDict()
+        self.hashes['callback']['plot_window_attribute'] = OrderedDict()
         for ax in 'xyz':
-            hd['non-callback']['plot_window_attribute'][ax] = OrderedDict()
-            hd['callback']['plot_window_attribute'][ax] = OrderedDict()
+            self.hashes['non-callback']['plot_window_attribute'][ax] = OrderedDict()
+            self.hashes['callback']['plot_window_attribute'][ax] = OrderedDict()
             for attr_name in ATTR_ARGS.keys():
-                hd['non-callback']['plot_window_attribute'][ax][attr_name] = OrderedDict()
-                hd['callback']['plot_window_attribute'][ax][attr_name] = OrderedDict()
+                self.hashes['non-callback']['plot_window_attribute'][ax][attr_name] = OrderedDict()
+                self.hashes['callback']['plot_window_attribute'][ax][attr_name] = OrderedDict()
                 for args in ATTR_ARGS[attr_name]:
-                    pw_hd = utils.generate_hash(
-                        self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
-                                                   args, decimals)
-                    )
-                    hd['non-callback']['plot_window_attribute'][ax][attr_name][args] = pw_hd
-                    hd['callback']['plot_window_attribute'][ax][attr_name][args] = OrderedDict()
+                    pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name, args, decimals)
+                    self.hashes['non-callback']['plot_window_attribute'][ax][attr_name][args] = pw_hd
+                    self.hashes['callback']['plot_window_attribute'][ax][attr_name][args] = OrderedDict()
                     for n, r in CALLBACK_TESTS:
-                        pw_hd = utils.generate_hash(
-                            self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
+                        pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
                             args, decimals, callback_id=n, callback_runners=r)
-                        )
-                        hd['callback']['plot_window_attribute'][ax][attr_name][args][n] = pw_hd
-        hashes = {'attributes' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
+                        self.hashes['callback']['plot_window_attribute'][ax][attr_name][args][n] = pw_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(WT)
     def test_attributes_wt(self):
         plot_field = 'density'
         decimals = 12
         ds = utils.data_dir_load(WT)
         ax = 'z'
-        hd = OrderedDict()
-        hd['non-callback'] = OrderedDict()
-        hd['callback'] = OrderedDict()
-        hd['non-callback']['plot_window_attribute'] = OrderedDict()
-        hd['callback']['plot_window_attribute']= OrderedDict()
+        self.hashes['non-callback'] = OrderedDict()
+        self.hashes['callback'] = OrderedDict()
+        self.hashes['non-callback']['plot_window_attribute'] = OrderedDict()
+        self.hashes['callback']['plot_window_attribute']= OrderedDict()
         for attr_name in ATTR_ARGS.keys():
-            hd['non-callback']['plot_window_attribute'][attr_name] = OrderedDict()
-            hd['callback']['plot_window_attribute'][attr_name]= OrderedDict()
+            self.hashes['non-callback']['plot_window_attribute'][attr_name] = OrderedDict()
+            self.hashes['callback']['plot_window_attribute'][attr_name]= OrderedDict()
             for args in ATTR_ARGS[attr_name]:
-                pw_hd = utils.generate_hash(
-                    self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
-                                              args, decimals)
-                )
-                hd['non-callback']['plot_window_attribute'][attr_name][args] = pw_hd 
-                hd['callback']['plot_window_attribute'][attr_name][args] = OrderedDict()
+                pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name, args, decimals)
+                self.hashes['non-callback']['plot_window_attribute'][attr_name][args] = pw_hd 
+                self.hashes['callback']['plot_window_attribute'][attr_name][args] = OrderedDict()
                 for n, r in CALLBACK_TESTS:
-                    pw_hd = utils.generate_hash(
-                        self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
+                    pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
                         args, decimals, callback_id=n, callback_runners=r)
-                    )
-                    hd['callback']['plot_window_attribute'][attr_name][args][n] = pw_hd 
-        hashes = {'attributes_wt' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
+                    self.hashes['callback']['plot_window_attribute'][attr_name][args][n] = pw_hd 
 
 class TestHideAxesColorbar(unittest.TestCase):
 

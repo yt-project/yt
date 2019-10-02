@@ -37,6 +37,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     # test_gc
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(gc)
     def test_gc(self, ds_gc):
         # Set up arrays for testing
@@ -46,14 +47,12 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
-        hashes = self.small_patch_amr(ds_gc, fields, weights, axes, ds_objs)
-        hashes = {'gc' : hashes}
-        # Save or compare hashes
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds_gc, fields, weights, axes, ds_objs)
 
     #-----
     # test_tb
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(tb)
     def test_tb(self, ds_tb):
         # Set up arrays for testing
@@ -63,14 +62,12 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
-        hashes = self.small_patch_amr(ds_tb, fields, weights, axes, ds_objs)
-        # Save or compare hashes
-        hashes = {'tb' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds_tb, fields, weights, axes, ds_objs)
 
     #-----
     # test_iso
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(iso)
     def test_iso(self, ds_iso):
         # Set up arrays for testing
@@ -80,14 +77,12 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
-        hashes = self.small_patch_amr(ds_iso, fields, weights, axes, ds_objs)
-        hashes = {'iso' : hashes}
-        # Save or compare hashes
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds_iso, fields, weights, axes, ds_objs)
 
     #-----
     # test_zp
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(zp)
     def test_zp(self, ds_zp):
         axes = [0, 1, 2]
@@ -96,14 +91,12 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "rhs"]
         fields = ("rhs", "phi")
         # Run small patch amr test suite
-        hashes = self.small_patch_amr(ds_zp, fields, weights, axes, ds_objs)
-        hashes = {'zp' : hashes}
-        # Save or compare hashes
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds_zp, fields, weights, axes, ds_objs)
 
     #-----
     # test_kho
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(kho)
     def test_kho(self, ds_kho):
         # Set up arrays for testing
@@ -113,10 +106,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
-        hashes = self.small_patch_amr(ds_kho, fields, weights, axes, ds_objs)
-        hashes = {'kho' : hashes}
-        # Save or compare hashes
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds_kho, fields, weights, axes, ds_objs)
 
     #-----
     # test_ChomboDataset

@@ -28,9 +28,9 @@ ETC = "enzo_tiny_cosmology/32Mpc_32.enzo"
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestLightCone(fw.AnswerTest):
+    @pytest.mark.usefixtures('hashing')
     @requires_module("h5py")
     @utils.requires_sim(ETC, "Enzo")
     def test_light_cone_projection(self):
-        lcp_hd = utils.generate_hash(self.light_cone_projection_test(ETC, "Enzo"))
-        hashes = {'light_cone_projection' : lcp_hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        lcp_hd = self.light_cone_projection_test(ETC, "Enzo")
+        self.hashes['light_cone_projection'] = lcp_hd

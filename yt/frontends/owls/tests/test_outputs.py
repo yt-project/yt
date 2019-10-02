@@ -53,11 +53,10 @@ class TestOwls(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(os33)
     def test_snapshot_033(self, ds_os33):
-        hashes = self.sph_answer(ds_os33, 'snap_033', 2*128**3, _fields)
-        hashes = {'snapshot_033' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.sph_answer(ds_os33, 'snap_033', 2*128**3, _fields)
 
     #-----
     # test_OWLSDataset

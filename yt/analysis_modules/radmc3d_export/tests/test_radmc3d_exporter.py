@@ -25,7 +25,7 @@ ISO_GAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('answer_file')
 class TestRadmc3dExporter(fw.AnswerTest):
-    @pytest.mark.usefixtures('temp_dir')
+    @pytest.mark.usefixtures('temp_dir', 'hashing')
     @utils.requires_ds(ISO_GAL)
     def test_radmc3d_exporter_continuum(self):
         """
@@ -52,6 +52,4 @@ class TestRadmc3dExporter(fw.AnswerTest):
                     continue
                 line = line.rstrip()
                 total += np.float64(line)
-        total = total.tostring()
-        hashes = {'radmc3d_exporter_continuum' : utils.generate_hash(total)}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes['radmc3d_exporter_continuum'] = total

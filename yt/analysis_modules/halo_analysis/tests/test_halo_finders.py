@@ -27,6 +27,7 @@ e64 = "Enzo_64/DD0043/data0043"
     reason="--answer-big-data not set.")
 @pytest.mark.usefixtures('answer_file')
 class TestHaloFinders(fw.AnswerTest):
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(e64)
     def test_halo_finders(self):
         from mpi4py import MPI
@@ -43,12 +44,7 @@ class TestHaloFinders(fw.AnswerTest):
                               "%s.0.h5" % method)
             ds = load(fn)
             assert isinstance(ds, HaloCatalogDataset)
-            hd = OrderedDict()
-            hd['field_values'] = OrderedDict()
+            self.hashes['field_values'] = OrderedDict()
             for field in _fields:
-                fv_hd = utils.generate_hash(
-                    self.field_values_test(ds, field, particle_type=True)
-                )
-                hd['field_values'][field] = fv_hd
-            hashes = {'halo_finders' : hd}
-            utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+                fv_hd = self.field_values_test(ds, field, particle_type=True)
+                self.hashes['field_values'][field] = fv_hd

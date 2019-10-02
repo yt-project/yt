@@ -39,16 +39,14 @@ _raw_field_names =  [('raw', 'Bx'),
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestRawFieldSlices(fw.AnswerTest):
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(raw_fields)
     def test_raw_field_slices(self):
         ds = utils.data_dir_load(raw_fields)
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in _raw_field_names:
             sl = yt.SlicePlot(ds, 'z', field)
             sl.set_log('all', False)
             image_file = sl.save("slice_answers_raw_{}".format(field[1]))
-            gi_hd = utils.generate_hash(self.generic_image_test(image_file))
-            hd['generic_image'][field] = gi_hd 
-        hashes = {'raw-field-slices' : hd} 
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
+            gi_hd = self.generic_image_test(image_file)
+            self.hashes['generic_image'][field] = gi_hd 

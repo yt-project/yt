@@ -155,114 +155,87 @@ def composite_mesh_render(engine):
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestVolumeRenderMesh(fw.AnswerTest):
+    @pytest.mark.usefixtures('hashing')
     def test_fake_hexahedral_ds_render(self):
         ds = fake_hexahedral_ds()
         field_list = [('connect1', 'elem'), ('connect1', 'test')]
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in field_list:
             fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
             sc = create_scene(ds, field)
             im = sc.render()
             im.save(im_name)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'fake_hexahedral_ds_render' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(hex8)
     @requires_module("pyembree")
     def test_composite_mesh_render_pyembree(self):
         im_name = composite_mesh_render("embree")
-        hd = OrderedDict()
-        gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-        hd['generic_image'] = gi_hd
-        hashes = {'composite_mesh_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+        gi_hd = self.generic_image_test(im_name)
+        self.hashes['generic_image'] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(hex8)
     def test_composite_mesh_render(self):
         im_name = composite_mesh_render("yt")
-        hd = OrderedDict()
-        gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-        hd['generic_image'] = gi_hd
-        hashes = {'composite_mesh_render' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+        gi_hd = self.generic_image_test(im_name)
+        self.hashes['generic_image'] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(hex20)
     @requires_module("pyembree")
     def test_hex20_render_pyembree(self):
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in hex20_fields:
             im_name = hex20_render("embree", field)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'hex20_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(hex20)
     def test_hex20_render(self):
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in hex20_fields:
             im_name = hex20_render("yt", field)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'hex20_render' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(hex8)
     @requires_module("pyembree")
     def test_hex8_render_pyembree(self):
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in hex8_fields:
             im_name = hex8_render("embree", field)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'hex8_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd
 
-
+    @pytest.mark.usefixtures('hashing')
+    @utils.requires_ds(hex8)
     @utils.requires_ds(hex8)
     def test_hex8_render(self):
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in hex8_fields:
             im_name = hex8_render("yt", field)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'hex8_render' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(hex8)
     @requires_module("pyembree")
     def test_perspective_mesh_render_pyembree(self):
         im_name = perspective_mesh_render("embree")
-        hd = OrderedDict()
-        gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-        hd['generic_image'] = gi_hd
-        hashes = {'perspective_mesh_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+        gi_hd = self.generic_image_test(im_name)
+        self.hashes['generic_image'] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(hex8)
     def test_perspective_mesh_render(self):
         im_name = perspective_mesh_render("yt")
-        hd = OrderedDict()
-        gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-        hd['generic_image'] = gi_hd
-        hashes = {'perspective_mesh_render' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+        gi_hd = self.generic_image_test(im_name)
+        self.hashes['generic_image'] = gi_hd
 
     @requires_module("pyembree")
     def test_surface_mesh_render_pyembree(self):
@@ -273,77 +246,59 @@ class TestVolumeRenderMesh(fw.AnswerTest):
         ytcfg["yt", "ray_tracing_engine"] = "yt"
         surface_mesh_render()
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(tet10)
     @requires_module("pyembree")
     def test_tet10_render_pyembree(self):
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in tet10_fields:
             im_name = tet10_render("embree", field)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'tet10_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(tet10)
     def test_tet10_render(self):
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in tet10_fields:
             im_name = tet10_render("yt", field)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'tet10_render' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(tet4)
     @requires_module("pyembree")
     def test_tet4_render_pyembree(self):
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in tet4_fields:
             im_name = tet4_render("embree", field)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'tet4_render_pyembree' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(tet4)
     def test_tet4_render(self):
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in tet4_fields:
             im_name = tet4_render("yt", field)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'tet4_render' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(wedge6)
     @requires_module("pyembree")
     def test_wedge6_render_pyembree(self):
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in wedge6_fields:
             im_name = wedge6_render("embree", field)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'wedge6_render_pyembree' : gi_hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd
 
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(wedge6)
     def test_wedge6_render(self):
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
+        self.hashes['generic_image'] = OrderedDict()
         for field in wedge6_fields:
             im_name = wedge6_render("yt", field)
-            gi_hd = utils.generate_hash(self.generic_image_test(im_name))
-            hd['generic_image'][field] = gi_hd
-        hashes = {'wedge6_render' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes,
-            utils.answer_store)
+            gi_hd = self.generic_image_test(im_name)
+            self.hashes['generic_image'][field] = gi_hd

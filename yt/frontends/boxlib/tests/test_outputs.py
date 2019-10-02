@@ -60,6 +60,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_radavect
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(radadvect)
     def test_radadvect(self):
         ds = utils.data_dir_load(radadvect)
@@ -70,14 +71,12 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
-        hashes = {'radadvect' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
 
     #-----
     # test_radtube
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(rt)
     def test_radtube(self, ds_rt):
         ds = ds_rt
@@ -87,14 +86,12 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
-        hashes = {'radtube' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
 
     #-----
     # test_star
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(star)
     def test_star(self, ds_star):
         ds = ds_star
@@ -104,14 +101,12 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
-        hashes = {'star' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
 
     #-----
     # test_LyA
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(LyA)
     def test_LyA(self, ds_LyA):
         ds = ds_LyA
@@ -121,10 +116,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "Ne"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _nyx_fields, weights, axes, ds_objs)
-        hashes = {'LyA' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _nyx_fields, weights, axes, ds_objs)
 
     #-----
     # test_nyx_particle_io
@@ -157,6 +149,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_RT_particles
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(RT_particles)
     def test_RT_particles(self, ds_RT_particles):
         ds = ds_RT_particles
@@ -166,10 +159,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _castro_fields, weights, axes, ds_objs)
-        hashes = {'RT_particles' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _castro_fields, weights, axes, ds_objs)
 
     #-----
     # test_castro_particle_io
@@ -199,6 +189,7 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_langmuir
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(langmuir)
     def test_langmuir(self):
         ds = utils.data_dir_load(langmuir)
@@ -209,14 +200,12 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "Ex"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
-        hashes = {'langmuir' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
 
     #-----
     # test_plasma
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(plasma)
     def test_plasma(self, ds_plasma):
         ds = ds_plasma
@@ -226,14 +215,12 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "Ex"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
-        hashes = {'plasma' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
 
     #-----
     # test_beam
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(beam)
     def test_beam(self):
         ds = utils.data_dir_load(beam)
@@ -244,10 +231,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "Ex"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
-        hashes = {'beam' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
 
     #-----
     # test_warpx_particle_io
@@ -285,16 +269,14 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     # test_raw_fields
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(raw_fields)
     def test_raw_fields(self):
-        hd = OrderedDict()
-        hd['grid_values'] = OrderedDict()
+        self.hashes['grid_values'] = OrderedDict()
         ds_fn = utils.data_dir_load(raw_fields)
         for field in _raw_fields:
-            gv_hd = utils.generate_hash(self.grid_values_test(ds_fn, field))
-            hd['grid_values'][field] = gv_hd
-        hd = {'raw_fields' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+            gv_hd = self.grid_values_test(ds_fn, field))
+            self.hashes['grid_values'][field] = gv_hd
 
     #-----
     # test_OrionDataset

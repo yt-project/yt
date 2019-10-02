@@ -54,13 +54,12 @@ class TestGizmo(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g64)
     def test_gizmo_64(self):
         ds = yt.load(g64)
         assert isinstance(ds, GizmoDataset)
-        hashes = self.sph_answer(ds, 'snap_N64L16_135', 524288, fields)
-        hashes = {'gizmo_64' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.sph_answer(ds, 'snap_N64L16_135', 524288, fields)
 
     #-----
     # test_gizmo_mhd

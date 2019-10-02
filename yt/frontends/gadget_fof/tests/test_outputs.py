@@ -38,40 +38,32 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     # test_fields_g5
     #-----
+    @pytest.mark.usefixtures('hashing')
     @requires_file(g5)
     def test_fields_g5(self, ds_g5):
         fields = ("particle_position_x", "particle_position_y",
                    "particle_position_z", "particle_velocity_x",
                    "particle_velocity_y", "particle_velocity_z",
                    "particle_mass", "particle_identifier")
-        hashes = OrderedDict()
-        hashes['field_values'] = OrderedDict()
+        self.hashes['field_values'] = OrderedDict()
         for field in fields:
-            fv_hd = utils.generate_hash(
-                self.field_values_test(ds_g5, field, particle_type=True)
-            )
-            hashes['field_values'][field] = fv_hd
-        hashes = {'fields_g5' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+            fv_hd = self.field_values_test(ds_g5, field, particle_type=True)
+            self.hashes['field_values'][field] = fv_hd
 
     #-----
     # test_fields_g42
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g42)
     def test_fields_g42(self, ds_g42):
         fields = ("particle_position_x", "particle_position_y",
                    "particle_position_z", "particle_velocity_x",
                    "particle_velocity_y", "particle_velocity_z",
                    "particle_mass", "particle_identifier")
-        hashes = OrderedDict()
-        hashes['field_values'] = OrderedDict()
+        self.hashes['field_values'] = OrderedDict()
         for field in fields:
-            fv_hd = utils.generate_hash(
-                self.field_values_test(ds_g42, field, particle_type=True)
-            )
-            hashes['field_values'][field] = fv_hd
-        hashes = {'fields_g42' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+            fv_hd = self.field_values_test(ds_g42, field, particle_type=True)
+            self.hashes['field_values'][field] = fv_hd
 
     #-----
     # test_GadgetFOFDataset

@@ -39,6 +39,7 @@ add_quantity("nstars", _nstars)
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestHaloQuantity(fw.AnswerTest):
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(rh0)
     @utils.requires_ds(e64)
     def test_halo_quantity(self):
@@ -62,5 +63,4 @@ class TestHaloQuantity(fw.AnswerTest):
         mi, ma = ad.quantities.extrema("nstars")
         mean = ad.quantities.weighted_average_quantity(
             "nstars", "particle_ones")
-        hd = {'halo_quantity' : utils.generate_hash(np.array([mean, mi, ma]).tostring())}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+        self.hashes = {'halo_quantity' : np.array([mean, mi, ma])}

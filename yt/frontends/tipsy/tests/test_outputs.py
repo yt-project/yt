@@ -55,12 +55,12 @@ class TestTipsy(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(pkdgrav, file_check = True)
     def test_pkdgrav(self, ds_pkdgrav):
         ds = ds_pkdgrav
-        hd = OrderedDict()
-        hd['field_values'] = OrderedDict()
-        hd['pixelized_projection_values'] = OrderedDict()
+        self.hashes['field_values'] = OrderedDict()
+        self.hashes['pixelized_projection_values'] = OrderedDict()
         dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
         dd = ds.all_data()
         assert_equal(dd["Coordinates"].shape, (26847360, 3))
@@ -68,28 +68,21 @@ class TestTipsy(fw.AnswerTest):
                   for ptype in ds.particle_types if ptype != "all")
         assert_equal(tot, 26847360)
         for d in dso:
-            hd['field_values'][d] = OrderedDict()
-            hd['pixelized_projection_values'][d] = OrderedDict()
+            self.hashes['field_values'][d] = OrderedDict()
+            self.hashes['pixelized_projection_values'][d] = OrderedDict()
             for f in _fields:
-                hd['pixelized_projection_values'][d][f] = OrderedDict()
+                self.hashes['pixelized_projection_values'][d][f] = OrderedDict()
                 for a in [0, 1, 2]:
-                    hd['pixelized_projection_values'][d][f][a] = OrderedDict()
+                    self.hashes['pixelized_projection_values'][d][f][a] = OrderedDict()
                     for w in [None]:
-                        ppv_hd = utils.generate_hash(
-                            self.pixelized_projection_values_test(
-                                ds, a, f, w, d)
-                        )
-                        hd['pixelized_projection_values'][d][f][a][w] = ppv_hd
-                fv_hd = utils.generate_hash(
-                    self.field_values_test(ds, f, d)
-                )
-                hd['field_values'][d][f] = fv_hd
+                        ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, d)
+                        self.hashes['pixelized_projection_values'][d][f][a][w] = ppv_hd
+                fv_hd = self.field_values_test(ds, f, d)
+                self.hashes['field_values'][d][f] = fv_hd
             dobj = utils.create_obj(ds, d)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
-        hashes = {'pkdgrav' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
 
     #-----
     # test_gasoline_dmonly
@@ -97,12 +90,12 @@ class TestTipsy(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(gasoline_dmonly, file_check = True)
     def test_gasoline_dmonly(self, ds_gasoline_dmonly):
         ds = ds_gasoline_dmonly
-        hd = OrderedDict()
-        hd['field_values'] = OrderedDict()
-        hd['pixelized_projection_values'] = OrderedDict()
+        self.hashes['field_values'] = OrderedDict()
+        self.hashes['pixelized_projection_values'] = OrderedDict()
         dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
         dd = ds.all_data()
         assert_equal(dd["Coordinates"].shape, (10550576, 3))
@@ -110,39 +103,30 @@ class TestTipsy(fw.AnswerTest):
                   for ptype in ds.particle_types if ptype != "all")
         assert_equal(tot, 10550576)
         for d in dso:
-            hd['field_values'][d] = OrderedDict()
-            hd['pixelized_projection_values'][d] = OrderedDict()
+            self.hashes['field_values'][d] = OrderedDict()
+            self.hashes['pixelized_projection_values'][d] = OrderedDict()
             for f in _fields:
-                hd['pixelized_projection_values'][d][f] = OrderedDict()
+                self.hashes['pixelized_projection_values'][d][f] = OrderedDict()
                 for a in [0, 1, 2]:
-                    hd['pixelized_projection_values'][d][f][a] = OrderedDict()
+                    self.hashes['pixelized_projection_values'][d][f][a] = OrderedDict()
                     for w in [None]:
-                        ppv_hd = utils.generate_hash(
-                            self.pixelized_projection_values_test(
-                                ds, a, f, w, d
-                            )
-                        )
-                        hd['pixelized_projection_values'][d][f][a][w] = ppv_hd
-                fv_hd = utils.generate_hash(
-                    self.field_values_test(ds, f, d)
-                )
-                hd['field_values'][d][f] = fv_hd
+                        ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, d)
+                        self.hashes['pixelized_projection_values'][d][f][a][w] = ppv_hd
+                fv_hd = self.field_values_test(ds, f, d)
+                self.hashes['field_values'][d][f] = fv_hd
             dobj = utils.create_obj(ds, d)
             s1 = dobj["ones"].sum()
             s2 = sum(mask.sum() for block, mask in dobj.blocks)
             assert_equal(s1, s2)
-        hashes = {'gasoline_dm_only' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store) 
 
     #-----
     # test_tipsy_galaxy
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(tipsy_gal)
     def test_tipsy_galaxy(self):
         ds = utils.data_dir_load(tipsy_gal)
-        hashes = self.sph_answer(ds, 'galaxy.00300', 315372, tg_fields)
-        hashes = {'tipsy_galaxy' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.sph_answer(ds, 'galaxy.00300', 315372, tg_fields)
 
     #-----
     # test_TipsyDataset

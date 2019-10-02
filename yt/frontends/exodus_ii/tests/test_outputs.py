@@ -86,21 +86,17 @@ class TestExodusII(fw.AnswerTest):
     #-----
     # test_displacement_fields
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(big_data)
     def test_displacement_fields(self):
         displacement_dicts =[{'connect2': (5.0, [0.0, 0.0, 0.0])},
                              {'connect1': (1.0, [1.0, 2.0, 3.0]),
                               'connect2': (0.0, [0.0, 0.0, 0.0])}]
-        hashes = OrderedDict()
-        hashes['generic_array'] = OrderedDict()
+        self.hashes['generic_array'] = OrderedDict()
         for disp in displacement_dicts:
             ds = utils.data_dir_load(big_data, kwargs={'displacements':disp})
             for mesh in ds.index.meshes:
                 def array_func(*args, **kwargs):
                     return mesh.connectivity_coords
-                ga_hd = utils.generate_hash(
-                    self.generic_array_test(ds, array_func, 12)
-                )
-                hashes['generic_array'][str(mesh)] = ga_hd
-        hashes = {'displacement_fields' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+                ga_hd = self.generic_array_test(ds, array_func, 12)
+                self.hashes['generic_array'][str(mesh)] = ga_hd

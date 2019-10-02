@@ -21,6 +21,7 @@ ds = fake_random_ds(64)
     reason="--with-answer-testing not set.")
 @pytest.mark.usefixtures('answer_file')
 class TestSpectra(fw.AnswerTest):
+    @pytest.mark.usefixtures('hashing')
     @requires_module("xspec")
     @requires_module("astropy")
     def test_apec(self):
@@ -39,11 +40,8 @@ class TestSpectra(fw.AnswerTest):
             return spec1.v
         def spec2_test():
             return spec2.v
-        ga_hd1 = utils.generate_hash(self.generic_array_test(ds, spec1_test))
-        ga_hd2 = utils.generate_hash(self.generic_array_test(ds, spec2_test))
-        hashes = OrderedDict()
-        hashes['generic_array1'] = ga_hd1
-        hashes['generic_array2'] = ga_hd2
-        hashes = {'apec' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        ga_hd1 = self.generic_array_test(ds, spec1_test))
+        ga_hd2 = self.generic_array_test(ds, spec2_test))
+        self.hashes['generic_array1'] = ga_hd1
+        self.hashes['generic_array2'] = ga_hd2
         xmod.cleanup_spectrum()

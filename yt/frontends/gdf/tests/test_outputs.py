@@ -30,6 +30,7 @@ class TestGDF(fw.AnswerTest):
     #-----
     # test_sedov_tunnel
     #-----
+    @pytest.mark.usefixtures('hashing')
     @requires_file(sedov)
     def test_sedov_tunnel(self, ds_sedov):
         # Set up arrays for testing
@@ -39,10 +40,7 @@ class TestGDF(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_x")
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds_sedov, fields, weights, axes, ds_objs)
-        hashes = {'sedov_tunnel' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds_sedov, fields, weights, axes, ds_objs)
 
     #-----
     # test_GDFDataset

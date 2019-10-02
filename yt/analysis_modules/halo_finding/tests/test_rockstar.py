@@ -20,6 +20,7 @@ _fields = (("halos", "particle_position_x"),
     reason="--answer-big-data not set.")
 @pytest.mark.usefixtures('answer_file')
 class TestRockstarHaloFinder(fw.AnswerTest):
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_sim("Enzo_64/64.param", "Enzo")
     def test_rockstar(self):
         from mpi4py import MPI
@@ -35,20 +36,14 @@ class TestRockstarHaloFinder(fw.AnswerTest):
         hd = OrderedDict()
         hd['field_values'] = OrderedDict()
         for field in _fields:
-            fv_hd = utils.generate_hash(
-                self.field_values_test(d1, field, particle_type=True)
-            )
+            fv_hd = self.field_values_test(d1, field, particle_type=True)
             hd['field_values'][field] = fv_hd
-        hashes = {'rockstar1' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes['rockstar1'] = hd
         h2 = "rockstar_halos/halos_1.0.bin"
         d2 = load(h2)
         hd = OrderedDict()
         hd['field_values'] = OrderedDict()
         for field in _fields:
-            fv_hd = utils.generate_hash(
-                self.field_values_test(d2, field, particle_type=True)
-            )
+            fv_hd = self.field_values_test(d2, field, particle_type=True)
             hd['field_values'][field] = fv_hd
-        hashes = {'rockstar2' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes['rockstar2'] = hd

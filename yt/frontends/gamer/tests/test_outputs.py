@@ -46,6 +46,7 @@ class TestGamer(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(jet)
     def test_jet(self, ds_jet):
         ds = ds_jet
@@ -55,10 +56,7 @@ class TestGamer(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _fields_jet, weights, axes, ds_objs)
-        hashes = {'jet' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _fields_jet, weights, axes, ds_objs)
 
     #-----
     # test_psiDM
@@ -66,6 +64,7 @@ class TestGamer(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(psiDM)
     def test_psiDM(self, ds_psiDM):
         ds = ds_psiDM
@@ -75,10 +74,7 @@ class TestGamer(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _fields_psiDM, weights, axes, ds_objs)
-        hashes = {'psiDM' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _fields_psiDM, weights, axes, ds_objs)
 
     #-----
     # test_plummer
@@ -86,6 +82,7 @@ class TestGamer(fw.AnswerTest):
     @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
         reason="Skipping test_jet because --answer-big-data was not set."
     )
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(plummer)
     def test_plummer(self):
         ds = utils.data_dir_load(plummer)
@@ -96,10 +93,7 @@ class TestGamer(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds, _fields_plummer, weights, axes, ds_objs)
-        hashes = {'plummer' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds, _fields_plummer, weights, axes, ds_objs)
 
     #-----
     # test_GAMERDataset

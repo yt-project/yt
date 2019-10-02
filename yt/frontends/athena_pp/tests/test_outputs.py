@@ -37,10 +37,10 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     # test_disk
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(disk)
     def test_disk(self, ds_disk):
-        hashes = OrderedDict()
-        hashes['generic_array'] = OrderedDict()
+        self.hashes['generic_array'] = OrderedDict()
         fields = ("density", "velocity_r")
         dd = ds_disk.all_data()
         vol = (ds_disk.domain_right_edge[0]**3-ds_disk.domain_left_edge[0]**3)/3.0
@@ -50,16 +50,13 @@ class TestAthenaPP(fw.AnswerTest):
         for field in fields:
             def field_func(name):
                 return dd[field]
-            ga_hd = utils.generate_hash(
-                self.generic_array_test(ds_disk, field_func, args=[field])
-            )
-            hashes['generic_array'][field] = ga_hd
-        hashes = {'disk' : hashes}
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+            ga_hd = self.generic_array_test(ds_disk, field_func, args=[field])
+            self.hashes['generic_array'][field] = ga_hd
 
     #-----
     # test_AM06
     #-----
+    @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(AM06)
     def test_AM06(self, ds_AM06):
         # Arrays for testing
@@ -73,10 +70,7 @@ class TestAthenaPP(fw.AnswerTest):
             "magnetic_field_x"
         )
         # Run the small_patch_amr test suite
-        hashes = self.small_patch_amr(ds_AM06, fields, weights, axes, ds_objs)
-        hashes = {'AM06' : hashes}
-        # Save or compare answer
-        utils.handle_hashes(self.save_dir, self.answer_file, hashes, self.answer_store)
+        self.hashes = self.small_patch_amr(ds_AM06, fields, weights, axes, ds_objs)
 
     #-----
     # test_AM06_override
