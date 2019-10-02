@@ -25,6 +25,25 @@ import yt.visualization.profile_plotter as profile_plotter
 
 
 #============================================
+#               array_to_hash
+#============================================
+def array_to_bytes(d):
+    """
+    This function loops recursively over each nested dictionary in d
+    and, when it reaches a non-dictionary value, if that value is an
+    array, it converts it to a bytes array.
+    """
+    for k, v in d.items():
+        if isinstance(v, dict) or isinstance(v, OrderedDict):
+            array_to_bytes(v)
+        elif hasattr(v, 'tostring'):
+            d[k] = v.tostring()
+        else:
+            raise ValueError
+    return d
+
+
+#============================================
 #               generate_hash
 #============================================
 def generate_hash(data):
@@ -232,90 +251,6 @@ def create_obj(ds, obj_type):
     cls = getattr(ds, obj_type[0])
     obj = cls(*obj_type[1])
     return obj
-
-
-#============================================
-#         convert_to_ordered_dict
-#============================================
-def convert_to_ordered_dict(d):
-    """
-    Converts the given dictionary to an OrderedDict sorted 
-    alphabetically by key.
-
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
-    """
-    # First store the key-value pairs in a list and sort by key. When
-    # the entries of the list being sorted are tuples, sorted()
-    # defaults to using the first entry of the tuple. This trend goes
-    # on if the tuples are nested (e.g., if the dict is:
-    # d = {('enzo', 'velocity') : val2, ('enzo', 'density') : val1, }
-    # then the below code will give: l = [(('enzo', 'density'), val1),
-    # (('enzo', 'velocity'), val2)]
-    l = sorted([(k, v) for k, v in d.items()])
-    # Put into an OrderedDict
-    od = OrderedDict()
-    for entry in l:
-        od[entry[0]] = entry[1]
-    return od
-
-
-#============================================
-#          check_result_hashability
-#============================================
-def check_result_hashability(result):
-    """
-    This is specifically for the parentage_relationships test.  
-    There are three cases: element 0 is empty and element 1 isn't, 
-    vice versa, or neither is empty, but they don't have the same
-    length. For whatever reason, the hexes for a np.array hash are
-    only the same if the rows in the array have the same length.
-    That is, a = np.array([[1,2,3], [4]]) and
-    b = np.array([[1,2,3], [4]]) will have different hashes
-    despite containing the same data. This holds for all
-    configurations unless the rows of the array have the same
-    number of elements (even both empty is fine). This pads the array
-    that's too short with -2, since I used -1 for None in the actual
-    test. This function generalizes from the two grids used in kh2d to
-    an arbitrary number of grids. This only applies to the children
-    key, because result["children"] = [list1, list2]. For
-    result["parents"], that's just a list of ints corresponding to grid
-    ids, so it doesn't need to be changed.
-
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
-    """
-    # Get longest element
-    longest = 0
-    for sublist in result["children"]:
-        if len(sublist) > longest:
-            longest = len(sublist)
-    # Now adjust such that each sublist has the same length as the
-    # longest one
-    for sublist in result["children"]:
-        if len(sublist) < longest:
-            diff = longest - len(sublist)
-            appendix = [-2 for i in range(diff)]
-            sublist += appendix
-    return result
 
 
 #============================================

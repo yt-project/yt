@@ -42,52 +42,30 @@ class AnswerTest():
     # grid_hierarchy_test
     #-----
     def grid_hierarchy_test(self, ds):
-        result = OrderedDict()
-        result["grid_dimensions"] = ds.index.grid_dimensions
-        result["grid_left_edges"] = ds.index.grid_left_edge
-        result["grid_right_edges"] = ds.index.grid_right_edge
-        result["grid_levels"] = ds.index.grid_levels
-        result["grid_particle_count"] = ds.index.grid_particle_count
-        # Put result into a hashable form
-        s = b''
-        for k, v in result.items():
-            s += bytes(k.encode('utf-8')) + bytes(v)
-        return s
+        result = [ds.index.grid_dimensions,
+            ds.index.grid_left_edge,
+            ds.index.grid_right_edge,
+            ds.index.grid_levels,
+            ds.index.grid_particle_count]
+        return np.array(result)
 
     #-----
     # parentage_relationships_test
     #-----
     def parentage_relationships_test(self, ds):
-        result = OrderedDict()
-        result["parents"] = []
-        result["children"] = []
+        parents = []
+        children = []
         for g in ds.index.grids:
             p = g.Parent
             if p is None:
-                result["parents"].append(-1)
+                parents.append(-1)
             elif hasattr(p, "id"):
-                result["parents"].append(p.id)
+                parents.append(p.id)
             else:
-                result["parents"].append([pg.id for pg in p])
-            result["children"].append([c.id for c in g.Children])
-        # Check result for compatibility with hashing
-        try:
-            result = utils.check_result_hashability(result)
-        except ValueError:
-            print("Could not put result in a hashable form!")
-            sys.exit()
-        # Put result in a hashable form
-        s = b''
-        for k, v in result.items():
-            # It's possible for v to contain None (if p is None above),
-            # and in that case None cannot be converted to bytes, so
-            # I'll use -1 as a default value, though it might make more
-            # sense to define a global DEFAULT_NONE_AS_INT constant and
-            # use that in case using 0 ever needs to be changed for
-            # some reason
-            v = np.array(v)
-            s += bytes(k.encode('utf-8')) + bytes(v)
-        return s
+                parents = parents + [pg.id for pg in p]
+            children = children + [c.id for c in g.Children]
+        result = np.array(parents + children)
+        return result 
 
     #-----
     # grid_values_test
@@ -95,17 +73,8 @@ class AnswerTest():
     def grid_values_test(self, ds, field):
         result = OrderedDict()
         for g in ds.index.grids:
-            result[g.id] = g[field].tostring()
+            result[g.id] = g[field]
             g.clear_data()
-        # Put result into a hashable form
-        s = b''
-        for k, v in result.items():
-            # v is already a bytes array from above. Casting to a bytes
-            # array is the same as doing array.tostring(). Also, g.id
-            # is an integer. I did not know you could key a dictionary
-            # by an int. Anyways, it means no encoding is needed on the
-            # key
-            s += bytes(k) + v
         return s
 
     #-----
@@ -132,14 +101,8 @@ class AnswerTest():
         # to a bytestring the same way as the other dicts in these
         # tests. However, in order to ensure that the keys are written
         # to the bytearray in the same order every time, I need an
-        # OrderedDict. As such, I'm going to store the entries 
-        # alphabetically by key
-        #field_data = utils.convert_to_ordered_dict(proj.field_data)
-        s = b''
-        for k, v in proj.field_data.items():
-            # The key is a tuple, hence the join
-            s += bytes(''.join(k).encode('utf-8')) + bytes(v)
-        return s
+        # OrderedDict
+        return proj.field_data
 
     def field_values_test(self, ds, field, obj_type=None, particle_type=False):
         # If needed build an instance of the dataset type
@@ -157,7 +120,7 @@ class AnswerTest():
             weight=weight_field)
         minimum, maximum = obj.quantities.extrema(field)
         # Return as a hashable bytestring
-        return np.array([avg, minimum, maximum]).tostring()
+        return np.array([avg, minimum, maximum])
     #-----
     # pixelized_projection_values_test
     #-----
@@ -176,20 +139,7 @@ class AnswerTest():
         for f in proj.field_data:
             # Sometimes f will be a tuple.
             d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
-        # Put the dictionary into a hashable form
-        s = b''
-        for k, v in d.items():
-            if isinstance(k, str):
-                s += bytes(k.encode('utf-8')) + bytes(v)
-            # Tuples can't be encoded, so the string entries are joined
-            # together as one string and then encoded
-            elif isinstance(k, tuple):
-                s += bytes(''.join(k[:]).encode('utf-8')) + bytes(v)
-            else:
-                err_msg = "Key isn't string or tuple in pixelized " + \
-                    "projection values test."
-                raise KeyError(err_msg)
-        return s
+        return d
 
     #-----
     # check_color
@@ -229,9 +179,7 @@ class AnswerTest():
         result = np.empty((2, hmf.masses_sim.size))
         result[0] = hmf.masses_sim.d
         result[1] = hmf.n_cumulative_sim.d
-        # Put in hashable form
-        s = result[0].tostring() + result[1].tostring()
-        return s
+        return result
 
     #-----
     # analytic_halo_mass_function_test
@@ -240,9 +188,7 @@ class AnswerTest():
         result = np.empty((2, hmf.masses_analytic.size))
         result[0] = hmf.masses_analytic.d
         result[1] = hmf.n_cumulative_analytic.d
-        # Put in hashable form
-        s = result[0].tostring() + result[1].tostring()
-        return s
+        return result
 
     #-----
     # small_patch_amr
@@ -259,34 +205,27 @@ class AnswerTest():
         # same file
         hex_digests = OrderedDict()
         # Grid hierarchy test
-        gh_hd = utils.generate_hash(self.grid_hierarchy_test(ds))
+        gh_hd = self.grid_hierarchy_test(ds)
         hex_digests['grid_hierarchy'] = gh_hd
         # Parentage relationships test
-        pr_hd = utils.generate_hash(self.parentage_relationships_test(ds))
+        pr_hd = self.parentage_relationships_test(ds)
         hex_digests['parentage_relationships'] = pr_hd
         # Grid values, projection values, and field values tests
         for t in test_keys[2:]:
             hex_digests[t] = OrderedDict() 
         for f in fields:
-            gv_hd = utils.generate_hash(self.grid_values_test(ds, f))
+            gv_hd = self.grid_values_test(ds, f)
             hex_digests['grid_values'][f] = gv_hd
             hex_digests['field_values'][f] = OrderedDict()
             hex_digests['projection_values'][f] = OrderedDict()
             for dobj in ds_objs:
-                fv_hd = utils.generate_hash(self.field_values_test(ds,f,dobj))
+                fv_hd = self.field_values_test(ds,f,dobj)
                 hex_digests['field_values'][f][dobj] = fv_hd
                 hex_digests['projection_values'][f][dobj] = OrderedDict()
                 for a in axes:
                     hex_digests['projection_values'][f][dobj][a] = OrderedDict()
                     for w in weights:
-                        pv_hd = utils.generate_hash(
-                            self.projection_values_test(ds,
-                                a,
-                                f,
-                                w,
-                                dobj
-                            )
-                        )
+                        pv_hd = self.projection_values_test(ds, a, f, w, dobj)
                         hex_digests['projection_values'][f][dobj][a][w] = pv_hd
         return hex_digests
 
@@ -304,10 +243,10 @@ class AnswerTest():
         # same file
         hex_digests = OrderedDict()
         # Grid hierarchy test
-        gh_hd = utils.generate_hash(self.grid_hierarchy_test(ds))
+        gh_hd = self.grid_hierarchy_test(ds)
         hex_digests['grid_hierarchy'] = gh_hd
         # Parentage relationships test
-        pr_hd = utils.generate_hash(self.parentage_relationships_test(ds))
+        pr_hd = self.parentage_relationships_test(ds)
         hex_digests['parentage_relationships'] = pr_hd
         # Grid values, projection values, and field values tests
         for t in test_keys[2:]:
@@ -319,7 +258,7 @@ class AnswerTest():
         # loops therefore combine the results of each desired combo.
         # This mirrors the way that it was done in the original test
         for f in fields:
-            gv_hd = utils.generate_hash(self.grid_values_test(ds, f))
+            gv_hd = self.grid_values_test(ds, f)
             hex_digests['grid_values'][f] = gv_hd
             hex_digests['pixelized_projection_values'][f] = OrderedDict()
             for a in axes:
@@ -327,14 +266,7 @@ class AnswerTest():
                 for dobj in ds_objs:
                     hex_digests['pixelized_projection_values'][f][a][dobj] = OrderedDict()
                     for w in weights:
-                        ppv_hd = utils.generate_hash(
-                            self.pixelized_projection_values_test(ds,
-                                a,
-                                f,
-                                w,
-                                dobj
-                            )
-                        )
+                        ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, dobj)
                         hex_digests['pixelized_projection_values'][f][a][dobj][w] = ppv_hd 
         return hex_digests
 
@@ -346,7 +278,7 @@ class AnswerTest():
             args = []
         if kwargs is None:
             kwargs = {}
-        return func(*args, **kwargs).tostring()
+        return func(*args, **kwargs)
 
     #-----
     # sph_answer
@@ -382,14 +314,9 @@ class AnswerTest():
                     particle_type = False
                 for a in [0, 1, 2]:
                     if particle_type is False:
-                        ppv_hd = utils.generate_hash(
-                            self.pixelized_projection_values_test(
-                                ds, a, f, weight_field, d)
-                        )
+                        ppv_hd = self.pixelized_projection_values_test(ds, a, f, weight_field, d)
                         hex_digests['pixelized_projection_values'][d][f[1]][a] = ppv_hd
-                fv_hd = utils.generate_hash(
-                    self.field_values_test(ds, f, d, particle_type=particle_type)
-                )
+                fv_hd = self.field_values_test(ds, f, d, particle_type=particle_type)
                 hex_digests['field_values'][d][f[1]] = fv_hd
         return hex_digests
 
@@ -401,7 +328,7 @@ class AnswerTest():
             obj = ds.all_data()
         else:
             obj = ds.data
-        return np.array([obj[field].size, obj[field].mean()]).tostring()
+        return np.array([obj[field].size, obj[field].mean()])
 
     #-----
     # plot_window_attribute_test
@@ -419,7 +346,7 @@ class AnswerTest():
         plot.save(name=tmpname)
         image = mpimg.imread(tmpname)
         os.remove(tmpname)
-        return zlib.compress(image.dumps())
+        return image
 
     #-----
     # phase_plot_attribute_test
@@ -436,14 +363,14 @@ class AnswerTest():
         plot.save(name=tmpname)
         image = mpimg.imread(tmpname)
         os.remove(tmpname)
-        return zlib.compress(image.dumps())
+        return image
 
     #-----
     # generic_image_test
     #-----
     def generic_image_test(self, img_fname):
         img_data = mpimg.imread(img_fname)
-        return zlib.compress(img_data.dumps())
+        return img_data
 
     #-----
     # axial_pixelization_test
@@ -467,7 +394,7 @@ class AnswerTest():
             pix_y[np.isnan(pix_y)] = 0.0
             pix_x
             pix_y
-        return pix_x.tostring(), pix_y.tostring() 
+        return pix_x, pix_y 
 
     #-----
     # light_cone_projection_test
@@ -489,7 +416,7 @@ class AnswerTest():
         mean = data.mean()
         mi = data[data.nonzero()].min()
         ma = data.max()
-        return np.array([mean, mi, ma]).tostring()
+        return np.array([mean, mi, ma])
 
     #-----
     # extract_connected_sets_test
@@ -502,7 +429,7 @@ class AnswerTest():
             for set_id in all_sets[level]:
                 result.append([all_sets[level][set_id]["cell_mass"].size,
                                all_sets[level][set_id]["cell_mass"].sum()])
-        result = np.array(result).tostring()
+        result = np.array(result)
         return result
 
     #-----
@@ -515,4 +442,4 @@ class AnswerTest():
         scene.save(tmpname, sigma_clip=1.0)
         image = mpimg.imread(tmpname)
         os.remove(tmpname)
-        return zlib.compress(image.dumps())
+        return image
