@@ -47,6 +47,15 @@ class AMRVACGrid(AMRGridPatch):
     def __repr__(self):
         return "AMRVACGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
+    def get_global_startindex(self):
+        """
+        Return the integer starting index for each dimension at the current
+        level.
+
+        """
+        start_index = (self.LeftEdge - self.ds.domain_left_edge)/self.dds
+        self.start_index = np.rint(start_index).astype('int64').ravel()
+        return self.start_index
 
 
 class AMRVACHierarchy(GridIndex):
@@ -153,7 +162,7 @@ class AMRVACDataset(Dataset):
 
         self.current_time = self.parameters['time']
         self.dimensionality = self.parameters['ndim']
-        self.domain_dimensions = self.parameters['block_nx'] * 2**self.parameters['levmax']
+        self.domain_dimensions = self.parameters['domain_nx']
 
         # the following parameters may not be present in the datfile,
         # dependending on format version
