@@ -70,7 +70,7 @@ class TestEnzoP(fw.AnswerTest):
                     for w in [None, "density"]:
                         ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, d)
                     self.hashes['pixelized_projection_values'][d][f][a][w] = ppv_hd
-                fv_hd = self.field_values_test(ds, f, d))
+                fv_hd = self.field_values_test(ds, f, d)
                 self.hashes['field_values'][d][f] = fv_hd
             dobj = utils.create_obj(ds, d)
             s1 = dobj["ones"].sum()

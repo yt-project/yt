@@ -42,12 +42,13 @@ class AnswerTest():
     # grid_hierarchy_test
     #-----
     def grid_hierarchy_test(self, ds):
-        result = [ds.index.grid_dimensions,
-            ds.index.grid_left_edge,
-            ds.index.grid_right_edge,
-            ds.index.grid_levels,
-            ds.index.grid_particle_count]
-        return np.array(result)
+        result = OrderedDict()
+        result['grid_dimensions'] = ds.index.grid_dimensions
+        result['grid_left_edge'] = ds.index.grid_left_edge
+        result['grid_right_edge'] = ds.index.grid_right_edge
+        result['grid_levels'] = ds.index.grid_levels
+        result['grid_particle_count'] = ds.index.grid_particle_count
+        return result
 
     #-----
     # parentage_relationships_test
@@ -75,7 +76,7 @@ class AnswerTest():
         for g in ds.index.grids:
             result[g.id] = g[field]
             g.clear_data()
-        return s
+        return result
 
     #-----
     # projection_values_test

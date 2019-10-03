@@ -115,7 +115,7 @@ class TestYTData(fw.AnswerTest):
         assert_array_equal(frb["density"], frb_ds.data["density"])
         utils.compare_unit_attributes(ds, frb_ds)
         assert isinstance(frb_ds, YTGridDataset)
-        ytft_hd = self.yt_field_test(frb_ds, 'density', False))
+        ytft_hd = self.yt_field_test(frb_ds, 'density', False)
         self.hashes['grid_datacontainer3']['yt_field_test']['density'] = ytft_hd
 
     #-----
@@ -131,7 +131,7 @@ class TestYTData(fw.AnswerTest):
         proj_ds = load(full_fn)
         utils.compare_unit_attributes(ds, proj_ds)
         assert isinstance(proj_ds, YTSpatialPlotDataset)
-        ytft_hd = self.yt_field_test(proj_ds, ("grid", "density"), False))
+        ytft_hd = self.yt_field_test(proj_ds, ("grid", "density"), False)
         self.hashes = {'spatial_data' : {'yt_field_test' : {'density' : ytft_hd}}}
 
     #-----
@@ -207,7 +207,7 @@ class TestYTData(fw.AnswerTest):
         full_fn = os.path.join(os.getcwd(), fn)
         new_ds = load(full_fn)
         assert isinstance(new_ds, YTNonspatialDataset)
-        ytft_hd = self.yt_field_test(new_ds, 'density', False))
+        ytft_hd = self.yt_field_test(new_ds, 'density', False)
         self.hashes['yt_field_test']['density'] = ytft_hd
 
     #-----

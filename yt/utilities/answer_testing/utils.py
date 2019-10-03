@@ -97,7 +97,7 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
     # Compare to already saved answer
     else:
         with open(fname, 'r') as f:
-            saved_hashes = yaml.load(fname)
+            saved_hashes = yaml.load(f)
         assert hashes == saved_hashes
 
 

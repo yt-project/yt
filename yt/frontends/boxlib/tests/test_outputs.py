@@ -275,7 +275,7 @@ class TestBoxLib(fw.AnswerTest):
         self.hashes['grid_values'] = OrderedDict()
         ds_fn = utils.data_dir_load(raw_fields)
         for field in _raw_fields:
-            gv_hd = self.grid_values_test(ds_fn, field))
+            gv_hd = self.grid_values_test(ds_fn, field)
             self.hashes['grid_values'][field] = gv_hd
 
     #-----
