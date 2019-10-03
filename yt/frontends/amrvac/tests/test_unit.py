@@ -73,7 +73,7 @@ class TestIO:
         for file in sample_datasets.values():
             ds = yt.load(file)
             ad = ds.all_data()
-            data = ad.get_data()
+            data = ad.get_data() # noqa: F841
 
     def test_grid_dataread(self):
         for file in sample_datasets.values():
@@ -100,7 +100,7 @@ class TestPlot:
             ds = yt.load(file)
             if ds.dimensionality == 3:
                 axis = {"cartesian": "x", "polar": "r", "cylindrical": "r", "spherical": "r"}[ds.geometry]
-                p = yt.ProjectionPlot(ds, axis, 'density')
+                p = yt.ProjectionPlot(ds, axis, 'density') # noqa: F841
 
     def test_slice(self):
         """"Check that no error is raised"""
@@ -108,7 +108,7 @@ class TestPlot:
             ds = yt.load(file)
             if ds.dimensionality == 3:
                 axis = {"cartesian": "x", "polar": "r", "cylindrical": "r", "spherical": "r"}[ds.geometry]
-                p = yt.SlicePlot(ds, axis, 'density')
+                p = yt.SlicePlot(ds, axis, 'density') # noqa: F841
 
 
 ds = yt.load(sample_datasets["blastwave_cartesian_3D"])
