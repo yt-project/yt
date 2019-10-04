@@ -27,7 +27,7 @@ import yt.visualization.profile_plotter as profile_plotter
 #============================================
 #               array_to_hash
 #============================================
-def array_to_bytes(d):
+def array_to_hash(d):
     """
     This function loops recursively over each nested dictionary in d
     and, when it reaches a non-dictionary value, if that value is an
@@ -35,9 +35,9 @@ def array_to_bytes(d):
     """
     for k, v in d.items():
         if isinstance(v, dict) or isinstance(v, OrderedDict):
-            array_to_bytes(v)
+            array_to_hash(v)
         elif hasattr(v, 'tostring'):
-            d[k] = v.tostring()
+            d[k] = generate_hash(v)
         else:
             raise ValueError
     return d
@@ -98,7 +98,11 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
     else:
         with open(fname, 'r') as f:
             saved_hashes = yaml.load(f)
-        assert hashes == saved_hashes
+        # The answer file contains all answers for a given test class,
+        # but it's possible that the user isn't running every test
+        # so we do a lookup
+        for k, v in hashes.items():
+            assert hashes[k] == saved_hashes[k]
 
 
 #============================================

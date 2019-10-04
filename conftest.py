@@ -140,8 +140,9 @@ def hashing(request):
         assert False
     # Yield to the caller in order to actually perform the tests
     yield
-    # Convert arrays returned by tests to bytes (for hashing)
-    hashes = utils.array_to_bytes(request.cls.hashes)
+    # Hash the arrays 
+    import pdb; pdb.set_trace()
+    hashes = utils.array_to_hash(request.cls.hashes)
     # Finalize by adding the function name as a key
     hashes = {request.function.__name__ : hashes}
     # Either save or compare
