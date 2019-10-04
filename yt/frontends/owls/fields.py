@@ -1,20 +1,3 @@
-"""
-OWLS fields
-
-
-
-
-"""
-from __future__ import absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
 import numpy as np
 from . import owls_ion_tables as oit
@@ -170,6 +153,29 @@ class OWLSFieldInfo(SPHFieldInfo):
                 #---------------------------------------------------
                 add_species_field_by_density(self, ptype, yt_ion)
 
+            
+            def _h_p1_density(field, data):
+                return data[ptype, "H_density"] - data[ptype, "H_p0_density"]
+
+            self.add_field((ptype, "H_p1_density"),
+                           sampling_type="particle",
+                           function=_h_p1_density,
+                           units=self.ds.unit_system["density"])
+
+            add_species_field_by_density(self, ptype, "H_p1")
+            for sfx in ["mass", "density", "number_density"]:
+                fname = "H_p1_" + sfx
+                self.alias(("gas", fname), (ptype, fname))
+
+            def _el_number_density(field, data):
+                n_e = data[ptype, "H_p1_number_density"]
+                n_e += data[ptype, "He_p1_number_density"]
+                n_e += 2.0*data[ptype, "He_p2_number_density"]
+            self.add_field((ptype, "El_number_density"),
+                           sampling_type="particle",
+                           function=_el_number_density,
+                           units=self.ds.unit_system["number_density"])
+            self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
 
             # alias ion fields
             #-----------------------------------------------

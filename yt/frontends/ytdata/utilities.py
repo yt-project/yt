@@ -1,19 +1,3 @@
-"""
-Utility functions for ytdata frontend.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.logger import \

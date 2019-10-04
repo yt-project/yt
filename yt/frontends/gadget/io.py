@@ -1,20 +1,3 @@
-"""
-Gadget data-file handling functions
-
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import os
 
@@ -129,7 +112,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 g = f["/%s" % ptype]
                 if getattr(selector, 'is_all_data', False):
                     mask = slice(None, None, None)
-                    mask_sum = ei-si
+                    mask_sum = data_file.total_particles[ptype]
                     hsmls = None
                 else:
                     coords = g["Coordinates"][si:ei].astype("float64")
@@ -159,6 +142,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     elif field.startswith("Metallicity_"):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["Metallicity"][si:ei, col][mask]
+                    elif field.startswith("GFM_Metals_"):
+                        col = int(field.rsplit("_", 1)[-1])
+                        data = g["GFM_Metals"][si:ei, col][mask]
                     elif field.startswith("Chemistry_"):
                         col = int(field.rsplit("_", 1)[-1])
                         data = g["ChemistryAbundances"][si:ei, col][mask]
@@ -223,10 +209,10 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     for j in gp.keys():
                         kk = j
                         fields.append((ptype, str(kk)))
-                elif k == 'Metallicity' and len(g[k].shape) > 1:
+                elif k in ['Metallicity', 'GFM_Metals'] and len(g[k].shape) > 1:
                     # Vector of metallicity
                     for i in range(g[k].shape[1]):
-                        fields.append((ptype, "Metallicity_%02i" % i))
+                        fields.append((ptype, "%s_%02i" % (k, i)))
                 elif k == "ChemistryAbundances" and len(g[k].shape) > 1:
                     for i in range(g[k].shape[1]):
                         fields.append((ptype, "Chemistry_%03i" % i))

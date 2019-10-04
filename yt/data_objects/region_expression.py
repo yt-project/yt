@@ -1,16 +1,3 @@
-"""
-An object that can live on the dataset to facilitate data access.
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import weakref
 
 from yt.funcs import obj_length

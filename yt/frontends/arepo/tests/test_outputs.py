@@ -1,19 +1,3 @@
-"""
-Arepo frontend tests
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from collections import OrderedDict
 from yt.testing import requires_file
 from yt.utilities.answer_testing.framework import \
@@ -61,6 +45,11 @@ tng59_fields = OrderedDict(
         (("gas", "density"), None),
         (("gas", "temperature"), None),
         (("gas", "temperature"), ('gas', 'density')),
+        (("gas", "H_number_density"), None),
+        (("gas", "H_p0_number_density"), None),
+        (("gas", "H_p1_number_density"), None),
+        (("gas", "El_number_density"), None),
+        (("gas", "C_number_density"), None),
         (('gas', 'velocity_magnitude'), None),
         (('gas', 'magnetic_field_strength'), None)
     ]

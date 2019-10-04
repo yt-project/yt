@@ -1,18 +1,3 @@
-"""
-FLASH frontend tests
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 from yt.testing import \
     assert_equal, \
@@ -56,6 +41,13 @@ def test_FLASHDataset():
 @requires_file(sloshing)
 def test_units_override():
     units_override_check(sloshing)
+
+@requires_file(sloshing)
+def test_mu():
+    ds = data_dir_load(sloshing)
+    sp = ds.sphere("c", (0.1, "unitary"))
+    assert np.all(sp["gas","mean_molecular_weight"] == 
+                  ds.parameters["eos_singlespeciesa"])
 
 fid_1to3_b1 = "fiducial_1to3_b1/fiducial_1to3_b1_hdf5_part_0080"
 

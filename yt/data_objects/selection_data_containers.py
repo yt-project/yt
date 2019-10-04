@@ -1,19 +1,3 @@
-"""
-Data containers based on geometric selection
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
 from yt.data_objects.data_containers import \
@@ -43,7 +27,8 @@ from yt.units.yt_array import \
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
-    YTEllipsoidOrdering
+    YTEllipsoidOrdering, \
+    YTException
 from yt.utilities.lib.pixelization_routines import \
     SPHKernelInterpolationTable
 from yt.utilities.minimal_representation import \
@@ -51,7 +36,7 @@ from yt.utilities.minimal_representation import \
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
 from yt.geometry.selection_routines import points_in_cells
-from yt.utilities.on_demand_imports import _scipy
+from yt.utilities.on_demand_imports import _scipy, _miniball
 
 
 class YTPoint(YTSelectionContainer0D):
@@ -816,6 +801,47 @@ class YTSphere(YTSelectionContainer3D):
         """
         return -self.radius + self.center, self.radius + self.center
 
+class YTMinimalSphere(YTSelectionContainer3D):
+    """
+    Build the smallest sphere that encompasses a set of points.
+
+    Parameters
+    ----------
+    points : YTArray
+        The points that the sphere will contain.
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("output_00080/info_00080.txt")
+    >>> points = ds.r['particle_position']
+    >>> sphere = ds.minimal_sphere(points)
+    """
+    _type_name = "sphere"
+    _override_selector_name = "minimal_sphere"
+    _con_args = ('center', 'radius')
+
+    def __init__(self, points, ds=None, field_parameters=None, data_source=None):
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
+        validate_object(points, YTArray)
+
+        points = fix_length(points, ds)
+        if len(points) < 2:
+            raise YTException("Not enough points. Expected at least 2, got %s" % len(points))
+        mylog.debug('Building minimal sphere around points.')
+        mb = _miniball.Miniball(points)
+        if not mb.is_valid():
+            raise YTException("Could not build valid sphere around points.")
+
+        center = ds.arr(mb.center(), points.units)
+        radius = ds.quan(np.sqrt(mb.squared_radius()), points.units)
+        super(YTMinimalSphere, self).__init__(center, ds, field_parameters, data_source)
+        self.set_field_parameter('radius', radius)
+        self.set_field_parameter("center", self.center)
+        self.radius = radius
 
 class YTEllipsoid(YTSelectionContainer3D):
     """

@@ -1,18 +1,3 @@
-"""
-Tests for exporting an FRB as a dataset
-
-
-
-"""
-from __future__ import absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import numpy as np
 from yt.testing import \
     fake_random_ds, assert_equal, \

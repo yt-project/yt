@@ -1,5 +1,5 @@
 answer_tests:
-  local_arepo_001:
+  local_arepo_002:
     - yt/frontends/arepo/tests/test_outputs.py
 
   local_artio_001:

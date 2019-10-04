@@ -1,6 +1,9 @@
 import numpy as np
 
-from yt.utilities.lib.bounded_priority_queue import validate, validate_pid
+from yt.utilities.lib.bounded_priority_queue import \
+    validate, \
+    validate_pid, \
+    validate_nblist
 
 from yt.testing import assert_array_equal
 
@@ -19,3 +22,9 @@ def test_bounded_priority_queue_pid():
     assert_array_equal(answers, dists)
     assert_array_equal(answers_pids, pids)
 
+def test_neighbor_list():
+    data, pids = validate_nblist()
+    answers_data = np.array([1.0, 1.0, 1.0, 1.0])
+    answers_pids = np.array([0, 1, 2, 3])
+    assert_array_equal(answers_data, data)
+    assert_array_equal(answers_pids, pids)

@@ -1,19 +1,3 @@
-"""
-Useful functions.  If non-original, see function for citation.
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import errno
 import builtins
 import copy
@@ -1216,7 +1200,7 @@ def validate_float(obj):
     """Validates if the passed argument is a float value.
 
     Raises an exception if `obj` is a single float value
-    or a YTQunatity of size 1.
+    or a YTQuantity of size 1.
 
     Parameters
     ----------

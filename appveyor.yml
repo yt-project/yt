@@ -8,6 +8,7 @@ environment:
 
   matrix:
       - PYTHON_VERSION: "3.6"
+        NUMPY_VERSION: "1.16"
 
 platform:
     -x64
@@ -29,7 +30,7 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython
+    - "conda install --yes -c conda-forge numpy==%NUMPY_VERSION% scipy nose setuptools ipython
     Cython sympy fastcache h5py matplotlib mock pandas cartopy conda-build unyt"
     # install yt
     - "conda develop -b ."

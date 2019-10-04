@@ -21,6 +21,7 @@ import numpy as np
 cimport numpy as np
 
 cimport cython
+from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 
 cdef class BoundedPriorityQueue:
     def __cinit__(self, np.intp_t max_elements, np.intp_t pids=0):
@@ -153,12 +154,27 @@ cdef class BoundedPriorityQueue:
 
 cdef class NeighborList:
     def __cinit__(self, np.intp_t init_size=32):
-        self.data = np.zeros(init_size)-1
-        self.data_ptr = &(self.data[0])
-        self.pids = np.zeros(init_size, dtype="int64")-1
-        self.pids_ptr = &(self.pids[0])
         self.size = 0
         self._max_size = init_size
+        self.data_ptr = <np.float64_t*> PyMem_Malloc(
+            self._max_size * sizeof(np.float64_t)
+        )
+        self.pids_ptr = <np.int64_t*> PyMem_Malloc(
+            self._max_size * sizeof(np.int64_t)
+        )
+        self._update_memview()
+
+    def __dealloc__(self):
+        PyMem_Free(self.data_ptr)
+        PyMem_Free(self.pids_ptr)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef int _update_memview(self) except -1:
+        self.data = <np.float64_t[:self._max_size]> self.data_ptr
+        self.pids = <np.int64_t[:self._max_size]> self.pids_ptr
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -168,8 +184,15 @@ cdef class NeighborList:
         if self.size == self._max_size:
             self._max_size *= 2
             with gil:
-                self.data.resize(self._max_size)
-                self.pids.resize(self._max_size)
+                self.data_ptr = <np.float64_t*> PyMem_Realloc(
+                    self.data_ptr,
+                    self._max_size * sizeof(np.float64_t)
+                )
+                self.pids_ptr = <np.int64_t*> PyMem_Realloc(
+                    self.pids_ptr,
+                    self._max_size * sizeof(np.int64_t)
+                )
+                self._update_memview()
         return 0
 
     @cython.boundscheck(False)
@@ -216,3 +239,12 @@ def validate():
 
     return np.asarray(m.heap)
 
+def validate_nblist():
+    nblist = NeighborList(init_size=2)
+
+    for i in range(4):
+        nblist.add_pid(1.0, i)
+
+    # Copy is necessary here. Without it, the allocated memory would be freed.
+    # Leaving random data array.
+    return np.asarray(nblist.data).copy(), np.asarray(nblist.pids).copy()

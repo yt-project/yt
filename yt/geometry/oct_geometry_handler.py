@@ -1,21 +1,4 @@
-"""
-Octree geometry handler
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
-
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.geometry_handler import Index
 from yt.fields.field_detector import FieldDetector

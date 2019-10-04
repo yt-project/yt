@@ -122,6 +122,10 @@ jansky_cgs = 1.0e-23
 rho_crit_g_cm3_h2 = 1.8784710838431654e-29
 primordial_H_mass_fraction = 0.76
 
+_primordial_mass_fraction = \
+    {"H": primordial_H_mass_fraction,
+     "He": (1 - primordial_H_mass_fraction)}
+
 # Misc. Approximations
 mass_mean_atomic_cosmology = 1.22
 mass_mean_atomic_galactic = 2.3

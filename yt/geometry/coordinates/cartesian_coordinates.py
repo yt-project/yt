@@ -1,19 +1,3 @@
-"""
-Definitions for cartesian coordinate systems
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 from .coordinate_handler import \
     CoordinateHandler, \
@@ -307,6 +291,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     left_edge=le, right_edge=re, center=data_source.center,
                     data_source=data_source.data_source
                 )
+                proj_reg.set_field_parameter("axis", data_source.axis)
                 bnds = data_source.ds.arr(
                     bounds, 'code_length').in_units('cm').tolist()
                 buff = np.zeros(size, dtype='float64')

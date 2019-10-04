@@ -1,18 +1,3 @@
-"""
-This file contains tests of the intracell interpolation code contained is
-yt/utilities/lib/element_mappings.pyx.
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 
 import numpy as np
 from yt.testing import assert_almost_equal

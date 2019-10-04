@@ -1,14 +1,3 @@
-"""
-FITSImageData Class
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import numpy as np
 from itertools import count
 from yt.fields.derived_field import DerivedField
@@ -127,6 +116,9 @@ class FITSImageData(object):
         >>> f_deg.writeto("temp.fits")
         """
 
+        if fields is not None:
+            fields = ensure_list(fields)
+
         if "units" in kwargs:
             issue_deprecation_warning("The 'units' keyword argument has been replaced "
                                       "by the 'length_unit' keyword argument and the "
@@ -185,9 +177,6 @@ class FITSImageData(object):
             return
 
         self.hdulist = _astropy.pyfits.HDUList()
-
-        if isinstance(fields, str):
-            fields = [fields]
 
         if hasattr(data, 'keys'):
             img_data = data

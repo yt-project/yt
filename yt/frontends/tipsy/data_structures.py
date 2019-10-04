@@ -1,20 +1,3 @@
-"""
-Data structures for Tipsy frontend
-
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import stat
 import struct
@@ -249,7 +232,7 @@ class TipsyDataset(SPHDataset):
                 self.hubble_constant /= self.quan(100, 'km/s/Mpc')
                 # If we leave it as a YTQuantity, the cosmology object
                 # used below will add units back on.
-                self.hubble_constant = self.hubble_constant.in_units("").d
+                self.hubble_constant = self.hubble_constant.to_value("")
         else:
             mu = self.parameters.get('dMsolUnit', 1.0)
             self.mass_unit = self.quan(mu, 'Msun')

@@ -1,15 +1,3 @@
-"""
-A set of convenient on-demand imports
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from pkg_resources import parse_version
 import sys
 
@@ -498,3 +486,28 @@ class yaml_imports(object):
         return self._FullLoader
 
 _yaml = yaml_imports()
+
+class NotMiniball(NotAModule):
+    def __init__(self, pkg_name):
+        super(NotMiniball, self).__init__(pkg_name)
+        str = ("This functionality requires the %s package to be installed. "
+               "Installation instructions can be found at "
+               "https://github.com/weddige/miniball or alternatively you can "
+               "install via `pip install MiniballCpp`.")
+        self.error = ImportError(str % self.pkg_name)
+
+class miniball_imports(object):
+    _name = 'miniball'
+    _Miniball = None
+
+    @property
+    def Miniball(self):
+        if self._Miniball is None:
+            try:
+                from miniball import Miniball
+            except ImportError:
+                Miniball = NotMiniball(self._name)
+            self._Miniball = Miniball
+        return self._Miniball
+
+_miniball = miniball_imports()

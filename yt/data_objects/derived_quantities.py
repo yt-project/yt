@@ -1,20 +1,3 @@
-"""
-Quantities that can be derived from Enzo data that may also required additional
-arguments.  (Standard arguments -- such as the center of a distribution of
-points -- are excluded here, and left to the EnzoDerivedFields.)
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
 from yt.funcs import \

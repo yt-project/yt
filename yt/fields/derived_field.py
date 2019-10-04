@@ -1,16 +1,3 @@
-"""
-Derived field base class.
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import contextlib
 import inspect
 import re
@@ -439,6 +426,7 @@ class ValidateParameter(FieldValidator):
         FieldValidator.__init__(self)
         self.parameters = ensure_list(parameters)
         self.parameter_values = parameter_values
+
     def __call__(self, data):
         doesnt_have = []
         for p in self.parameters:
