@@ -48,6 +48,7 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                          'FigureManagerNbAgg'],
                 'agg': ['backend_agg', 'FigureCanvasAgg']}
 
+_AGG_FORMATS = (".png", ".jpg", ".jpeg", ".raw", ".rgba", ".tif", ".tiff")
 
 class CallbackWrapper(object):
     def __init__(self, viewer, window_plot, frb, field, font_properties,
@@ -133,7 +134,7 @@ class PlotMPL(object):
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
         from ._mpl_imports import \
-            FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
+            FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS, FigureCanvasSVG
         if mpl_kwargs is None:
             mpl_kwargs = {}
         if 'papertype' not in mpl_kwargs:
@@ -146,8 +147,10 @@ class PlotMPL(object):
 
         mylog.info("Saving plot %s", name)
 
-        if suffix == ".png":
+        if suffix in _AGG_FORMATS:
             canvas = FigureCanvasAgg(self.figure)
+        elif suffix in (".svg", ".svgz"):
+            canvas = FigureCanvasSVG(self.figure)
         elif suffix == ".pdf":
             canvas = FigureCanvasPdf(self.figure)
         elif suffix in (".eps", ".ps"):
