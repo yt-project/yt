@@ -1,8 +1,7 @@
 import numpy as np
 
 from yt.fields.particle_fields import \
-    add_nearest_neighbor_field, \
-    add_nearest_neighbor_value_field
+    add_nearest_neighbor_field
 from yt.testing import \
     fake_particle_ds, \
     assert_equal, \

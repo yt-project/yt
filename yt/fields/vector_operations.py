@@ -194,8 +194,8 @@ def create_vector_fields(registry, basename, field_units,
                            validators=[ValidateParameter("normal"),
                                        ValidateParameter("center"),
                                        ValidateParameter("bulk_%s" % basename)])
-    create_los_field(
-        registry, basename, field_units, ftype=ftype, slice_info=slice_info)
+        create_los_field(
+            registry, basename, field_units, ftype=ftype, slice_info=slice_info)
 
         def _radial(field, data):
             return data[ftype, "%s_spherical_radius" % basename]
