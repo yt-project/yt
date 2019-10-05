@@ -813,7 +813,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
 
             ## you must have velocities (and they must be named "Velocities")
             tracked_arrays = [
-                self[ptype,'relative_particle_velocity'].convert_to_units(velocity_units)]
+                self[ptype,'relative_particle_velocity'].in_units(velocity_units)]
             tracked_names = ['Velocities']
 
             ## explicitly go after the fields we want
@@ -832,7 +832,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
 
                 ## perform the unit conversion and take the log if 
                 ##  necessary.
-                this_field_array.convert_to_units(units)
+                this_field_array.in_units(units)
                 if log_flag:
                     this_field_array = np.log10(this_field_array)
 
@@ -849,7 +849,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             ## create a firefly ParticleGroup for this particle type
             pg = ParticleGroup(
                 UIname =  ptype,
-                coordinates=self[ptype,'relative_particle_position'].convert_to_units(coordinate_units),
+                coordinates=self[ptype,'relative_particle_position'].in_units(coordinate_units),
                 tracked_arrays=tracked_arrays,
                 tracked_names=tracked_names,
                 tracked_filter_flags=tracked_filter_flags,
