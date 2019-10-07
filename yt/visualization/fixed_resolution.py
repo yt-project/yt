@@ -1,9 +1,6 @@
 import weakref
 from functools import partial
 from typing import TYPE_CHECKING, Dict, List, Optional
-
-import numpy as np
-
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt._typing import FieldKey
 from yt.data_objects.image_array import ImageArray
@@ -23,8 +20,11 @@ from .volume_rendering.api import off_axis_projection
 if TYPE_CHECKING:
     from yt.visualization.fixed_resolution_filters import FixedResolutionBufferFilter
 
+import traitlets
+from yt.utilities.traitlets_support import \
+    YTDimensionfulTrait, YTPositionTrait
 
-class FixedResolutionBuffer:
+class FixedResolutionBuffer(traitlets.HasTraits):
     r"""
     FixedResolutionBuffer(data_source, bounds, buff_size, antialias = True)
 
@@ -97,6 +97,15 @@ class FixedResolutionBuffer:
         ("index", "theta"),
         ("index", "dtheta"),
     )
+    antialias = traitlets.Bool(True)
+    buff_size = traitlets.Tuple(traitlets.Int(), traitlets.Int())
+    period = traitlets.Tuple(YTDimensionfulTrait(dimensions = dims.length),
+                             YTDimensionfulTrait(dimensions = dims.length))
+    periodic = traitlets.Bool(True)
+    bounds = traitlets.List(YTDimensionfulTrait(dimensions = dims.length))
+    axis = traitlets.Enum([0,1,2,3,4])
+    data_source = traitlets.Instance(YTDataContainer)
+    ds = traitlets.Instance(Dataset, allow_none = True)
 
     def __init__(
         self,
@@ -108,14 +117,12 @@ class FixedResolutionBuffer:
         *,
         filters: Optional[List["FixedResolutionBufferFilter"]] = None,
     ):
-        self.data_source = data_source
-        self.ds = data_source.ds
-        self.bounds = bounds
-        self.buff_size = (int(buff_size[0]), int(buff_size[1]))
-        self.antialias = antialias
+        super().__init__(data_source = data_source, bounds = bounds,
+                         antialias = antialias, buff_size = buff_size,
+                         periodic = periodic, ds = data_source.ds,
+                         axis = data_source.axis)
+        self.data = {}
         self.data: Dict[str, np.ndarray] = {}
-        self.axis = data_source.axis
-        self.periodic = periodic
         self._data_valid = False
 
         # import type here to avoid import cycles
