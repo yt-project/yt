@@ -40,7 +40,7 @@ class TestGDF(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_x")
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds_sedov, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_sedov, fields, weights, axes, ds_objs))
 
     #-----
     # test_GDFDataset

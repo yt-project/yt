@@ -55,7 +55,7 @@ class TestFits(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "ones"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _fields_grs, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _fields_grs, weights, axes, ds_objs))
 
     #-----
     # test_velocity_field
@@ -70,7 +70,7 @@ class TestFits(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "ones"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _fields_vels, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _fields_vels, weights, axes, ds_objs))
 
     #-----
     # test_acts
@@ -89,7 +89,7 @@ class TestFits(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "ones"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _fields_acis, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _fields_acis, weights, axes, ds_objs))
 
     #-----
     # test_A2052
@@ -104,7 +104,7 @@ class TestFits(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "ones"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _fields_A2052, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _fields_A2052, weights, axes, ds_objs))
 
     #-----
     # test_units_override

@@ -56,7 +56,7 @@ class TestGamer(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _fields_jet, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _fields_jet, weights, axes, ds_objs))
 
     #-----
     # test_psiDM
@@ -74,7 +74,7 @@ class TestGamer(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _fields_psiDM, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _fields_psiDM, weights, axes, ds_objs))
 
     #-----
     # test_plummer
@@ -93,7 +93,7 @@ class TestGamer(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _fields_plummer, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _fields_plummer, weights, axes, ds_objs))
 
     #-----
     # test_GAMERDataset

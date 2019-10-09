@@ -59,7 +59,7 @@ class TestEnzo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ds_toro1d.field_list
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds_toro1d, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_toro1d, fields, weights, axes, ds_objs))
 
     #-----
     # test_kh2d
@@ -74,7 +74,7 @@ class TestEnzo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ds_kh2d.field_list
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds_kh2d, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_kh2d, fields, weights, axes, ds_objs))
 
     #-----
     # test_moving7
@@ -91,7 +91,7 @@ class TestEnzo(fw.AnswerTest):
             "velocity_divergence"
         )
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds_m7, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_m7, fields, weights, axes, ds_objs))
 
     #-----
     # test_galaxy0030
@@ -112,7 +112,7 @@ class TestEnzo(fw.AnswerTest):
         # Color conservation test
         self.color_conservation_test(ds_g30)
         # Run the big patch amr test suite
-        self.hashes = self.big_patch_amr(ds_g30, fields, weights, axes, ds_objs)
+        self.hashes.update(self.big_patch_amr(ds_g30, fields, weights, axes, ds_objs))
 
     #-----
     # test_simulated_halo_mass_function

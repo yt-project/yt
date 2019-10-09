@@ -66,7 +66,7 @@ class TestAthena(fw.AnswerTest):
         weights = [None, "density"]
         assert_equal(str(ds), "Cloud.0050")
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _fields_cloud, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _fields_cloud, weights, axes, ds_objs))
 
     #-----
     # test_blast
@@ -82,7 +82,7 @@ class TestAthena(fw.AnswerTest):
         weights = [None, "density"]
         assert_equal(str(ds), "Blast.0100")
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _fields_blast, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _fields_blast, weights, axes, ds_objs))
 
     #-----
     # test_blast_override
@@ -111,7 +111,7 @@ class TestAthena(fw.AnswerTest):
         weights = [None, "density"]
         assert_equal(str(ds), "rps.0062")
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _fields_stripping, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _fields_stripping, weights, axes, ds_objs))
 
     #-----
     # test_nprocs

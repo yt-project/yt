@@ -47,7 +47,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
-        self.hashes = self.small_patch_amr(ds_gc, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_gc, fields, weights, axes, ds_objs))
 
     #-----
     # test_tb
@@ -62,7 +62,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
-        self.hashes = self.small_patch_amr(ds_tb, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_tb, fields, weights, axes, ds_objs))
 
     #-----
     # test_iso
@@ -77,7 +77,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
-        self.hashes = self.small_patch_amr(ds_iso, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_iso, fields, weights, axes, ds_objs))
 
     #-----
     # test_zp
@@ -91,7 +91,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "rhs"]
         fields = ("rhs", "phi")
         # Run small patch amr test suite
-        self.hashes = self.small_patch_amr(ds_zp, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_zp, fields, weights, axes, ds_objs))
 
     #-----
     # test_kho
@@ -106,7 +106,7 @@ class TestChombo(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         # Run small patch amr test suite
-        self.hashes = self.small_patch_amr(ds_kho, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_kho, fields, weights, axes, ds_objs))
 
     #-----
     # test_ChomboDataset

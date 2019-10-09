@@ -126,7 +126,7 @@ class TestTipsy(fw.AnswerTest):
     @utils.requires_ds(tipsy_gal)
     def test_tipsy_galaxy(self):
         ds = utils.data_dir_load(tipsy_gal)
-        self.hashes = self.sph_answer(ds, 'galaxy.00300', 315372, tg_fields)
+        self.hashes.update(self.sph_answer(ds, 'galaxy.00300', 315372, tg_fields))
 
     #-----
     # test_TipsyDataset

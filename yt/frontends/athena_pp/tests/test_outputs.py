@@ -70,7 +70,7 @@ class TestAthenaPP(fw.AnswerTest):
             "magnetic_field_x"
         )
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds_AM06, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_AM06, fields, weights, axes, ds_objs))
 
     #-----
     # test_AM06_override

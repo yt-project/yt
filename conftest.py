@@ -141,7 +141,6 @@ def hashing(request):
     # Yield to the caller in order to actually perform the tests
     yield
     # Hash the arrays 
-    import pdb; pdb.set_trace()
     hashes = utils.array_to_hash(request.cls.hashes)
     # Finalize by adding the function name as a key
     hashes = {request.function.__name__ : hashes}

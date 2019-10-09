@@ -59,7 +59,7 @@ class TestGizmo(fw.AnswerTest):
     def test_gizmo_64(self):
         ds = yt.load(g64)
         assert isinstance(ds, GizmoDataset)
-        self.hashes = self.sph_answer(ds, 'snap_N64L16_135', 524288, fields)
+        self.hashes.update(self.sph_answer(ds, 'snap_N64L16_135', 524288, fields))
 
     #-----
     # test_gizmo_mhd

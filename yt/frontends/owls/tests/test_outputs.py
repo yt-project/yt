@@ -56,7 +56,7 @@ class TestOwls(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(os33)
     def test_snapshot_033(self, ds_os33):
-        self.hashes = self.sph_answer(ds_os33, 'snap_033', 2*128**3, _fields)
+        self.hashes.update(self.sph_answer(ds_os33, 'snap_033', 2*128**3, _fields))
 
     #-----
     # test_OWLSDataset

@@ -71,7 +71,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs))
 
     #-----
     # test_radtube
@@ -86,7 +86,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs))
 
     #-----
     # test_star
@@ -101,7 +101,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs))
 
     #-----
     # test_LyA
@@ -116,7 +116,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "Ne"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _nyx_fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _nyx_fields, weights, axes, ds_objs))
 
     #-----
     # test_nyx_particle_io
@@ -159,7 +159,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "density"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _castro_fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _castro_fields, weights, axes, ds_objs))
 
     #-----
     # test_castro_particle_io
@@ -200,7 +200,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "Ex"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs))
 
     #-----
     # test_plasma
@@ -215,7 +215,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "Ex"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs))
 
     #-----
     # test_beam
@@ -231,7 +231,7 @@ class TestBoxLib(fw.AnswerTest):
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "Ex"]
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs))
 
     #-----
     # test_warpx_particle_io

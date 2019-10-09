@@ -132,7 +132,7 @@ class TestYTData(fw.AnswerTest):
         utils.compare_unit_attributes(ds, proj_ds)
         assert isinstance(proj_ds, YTSpatialPlotDataset)
         ytft_hd = self.yt_field_test(proj_ds, ("grid", "density"), False)
-        self.hashes = {'spatial_data' : {'yt_field_test' : {'density' : ytft_hd}}}
+        self.hashes['yt_field_test'] = {'density' : ytft_hd}
 
     #-----
     # test_profile_data

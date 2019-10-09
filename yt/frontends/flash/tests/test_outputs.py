@@ -51,7 +51,7 @@ class TestFlash(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("temperature", "density", "velocity_magnitude")
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds_sloshing, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_sloshing, fields, weights, axes, ds_objs))
 
     #-----
     # test_wind_tunnel
@@ -66,7 +66,7 @@ class TestFlash(fw.AnswerTest):
         weights = [None, "density"]
         fields = ("temperature", "density")
         # Run the small_patch_amr test suite
-        self.hashes = self.small_patch_amr(ds_wt, fields, weights, axes, ds_objs)
+        self.hashes.update(self.small_patch_amr(ds_wt, fields, weights, axes, ds_objs))
 
     #-----
     # test_FLASHDataset
@@ -135,8 +135,9 @@ class TestFlash(fw.AnswerTest):
             ]
         )
         # Run the sph_answer test suite
-        self.hashes = self.sph_answer(ds_fid_1to3_b1,
+        self.hashes.upate(self.sph_answer(ds_fid_1to3_b1,
             'fiducial_1to3_b1_hdf5_part_0080',
             6684119,
             fid_1to3_b1_fields
+            )
         )
