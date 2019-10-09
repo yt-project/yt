@@ -741,6 +741,28 @@ class PlotWindow(ImagePlotContainer):
     def toggle_right_handed(self):
         self._right_handed = not self._right_handed
 
+    def to_fits_data(self, fields=None, other_keys=None, length_unit=None,
+                     **kwargs):
+        r"""Export the fields in this PlotWindow instance 
+        to a FITSImageData instance.
+
+        This will export a set of FITS images of either the fields specified
+        or all the fields already in the object.
+
+        Parameters
+        ----------
+        fields : list of strings
+            These fields will be pixelized and output. If "None", the keys of 
+            the FRB will be used.
+        other_keys : dictionary, optional
+            A set of header keys and values to write into the FITS header.
+        length_unit : string, optional
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
+        """
+        return self.frb.to_fits_data(fields=fields, other_keys=other_keys,
+                                     length_unit=length_unit, **kwargs)
+
 
 class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
