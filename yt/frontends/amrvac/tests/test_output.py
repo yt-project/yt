@@ -2,7 +2,7 @@ import numpy as np
 
 import yt
 from yt.utilities.parameter_file_storage import output_type_registry
-from yt.utilities.answer_testing.framework import requires_ds, data_dir_load
+from yt.utilities.answer_testing.framework import requires_ds, data_dir_load, small_patch_amr
 
 blastwave_cartesian_3D = "amrvac/bw_3d0000.dat"
 blastwave_polar_2D = "amrvac/bw_polar_2D0000.dat"
@@ -37,3 +37,64 @@ def test_grid_attributes(self):
         assert isinstance(g.ActiveDimensions, np.ndarray)
         assert isinstance(g.Level, (np.int32, np.int64, int))
 
+@requires_ds(blastwave_polar_2D)
+def test_bw_polar_2d():
+    ds = data_dir_load(blastwave_polar_2D)
+    for test in small_patch_amr(ds, ds.field_list):
+        test_bw_polar_2d.__name__ = test.description
+        yield test
+@requires_ds(blastwave_cartesian_3D)
+def test_blastwave_cartesian_3D():
+    ds = data_dir_load(blastwave_cartesian_3D)
+    for test in small_patch_amr(ds, ds.field_list):
+        test_blastwave_cartesian_3D.__name__ = test.description
+        yield test
+
+@requires_ds(blastwave_polar_2D)
+def test_blastwave_polar_2D():
+    ds = data_dir_load(blastwave_polar_2D)
+    for test in small_patch_amr(ds, ds.field_list):
+        test_blastwave_polar_2D.__name__ = test.description
+        yield test
+
+@requires_ds(blastwave_spherical_2D)
+def test_blastwave_spherical_2D():
+    ds = data_dir_load(blastwave_spherical_2D)
+    for test in small_patch_amr(ds, ds.field_list):
+        test_blastwave_spherical_2D.__name__ = test.description
+        yield test
+
+@requires_ds(blastwave_cylindrical_3D)
+def test_blastwave_cylindrical_3D():
+    ds = data_dir_load(blastwave_cylindrical_3D)
+    for test in small_patch_amr(ds, ds.field_list):
+        test_blastwave_cylindrical_3D.__name__ = test.description
+        yield test
+
+@requires_ds(khi_cartesian_2D)
+def test_khi_cartesian_2D():
+    ds = data_dir_load(khi_cartesian_2D)
+    for test in small_patch_amr(ds, ds.field_list):
+        test_khi_cartesian_2D.__name__ = test.description
+        yield test
+
+@requires_ds(khi_cartesian_3D)
+def test_khi_cartesian_3D():
+    ds = data_dir_load(khi_cartesian_3D)
+    for test in small_patch_amr(ds, ds.field_list):
+        test_khi_cartesian_3D.__name__ = test.description
+        yield test
+
+@requires_ds(jet_cylindrical_25D)
+def test_jet_cylindrical_25D():
+    ds = data_dir_load(jet_cylindrical_25D)
+    for test in small_patch_amr(ds, ds.field_list):
+        test_jet_cylindrical_25D.__name__ = test.description
+        yield test
+
+@requires_ds(riemann_cartesian_175D)
+def test_riemann_cartesian_175D():
+    ds = data_dir_load(riemann_cartesian_175D)
+    for test in small_patch_amr(ds, ds.field_list):
+        test_riemann_cartesian_175D.__name__ = test.description
+        yield test
