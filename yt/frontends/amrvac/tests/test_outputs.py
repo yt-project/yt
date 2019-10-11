@@ -1,7 +1,6 @@
 import numpy as np
 
 import yt
-from yt.utilities.parameter_file_storage import output_type_registry
 from yt.utilities.answer_testing.framework import \
     requires_ds, requires_file, \
     data_dir_load, small_patch_amr
