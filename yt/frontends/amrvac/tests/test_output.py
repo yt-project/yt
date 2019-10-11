@@ -2,7 +2,9 @@ import numpy as np
 
 import yt
 from yt.utilities.parameter_file_storage import output_type_registry
-from yt.utilities.answer_testing.framework import requires_ds, data_dir_load, small_patch_amr
+from yt.utilities.answer_testing.framework import \
+    requires_ds, requires_file, \
+    data_dir_load, small_patch_amr
 
 blastwave_cartesian_3D = "amrvac/bw_3d0000.dat"
 blastwave_polar_2D = "amrvac/bw_polar_2D0000.dat"
@@ -24,7 +26,7 @@ def test_domain_size(self):
     for w in ds.domain_width:
         assert int(w) == 2
 
-@requires_ds(blastwave_cartesian_3D)
+@requires_file(blastwave_cartesian_3D)
 def test_grid_attributes(self):
     """Check various grid attributes"""
     ds = data_dir_load(blastwave_cartesian_3D)
