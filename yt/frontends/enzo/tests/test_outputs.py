@@ -106,7 +106,7 @@ def test_kh2d():
     ds = data_dir_load(kh2d)
     assert_equal(str(ds), 'DD0011')
     for test in small_patch_amr(ds, ds.field_list):
-        test_toro1d.__name__ = test.description
+        test_kh2d.__name__ = test.description
         yield test
 
 @requires_ds(enzotiny)
@@ -203,7 +203,7 @@ def test_deeply_nested_zoom():
 
     # carefully chosen to just barely miss a grid in the middle of the image
     center = [0.4915073260199302, 0.5052605316800006, 0.4905805557500548]
-    
+
     plot = SlicePlot(ds, 'z', 'density', width=(0.001, 'pc'),
                      center=center)
 
