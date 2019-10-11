@@ -43,6 +43,7 @@ def test_bw_polar_2d():
     for test in small_patch_amr(ds, ds.field_list):
         test_bw_polar_2d.__name__ = test.description
         yield test
+
 @requires_ds(blastwave_cartesian_3D)
 def test_blastwave_cartesian_3D():
     ds = data_dir_load(blastwave_cartesian_3D)
