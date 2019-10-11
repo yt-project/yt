@@ -41,6 +41,7 @@ def internet_on():
 def test_scivis():
     if not internet_on():
         return
+    return # HOTFIX: See discussion in 2334
     ds = SDFDataset(scivis_data)
     if scivis_data == slac_scivis_data:
         assert_equal(str(ds), "ds14_scivis_0128_e4_dt04_1.0000")
