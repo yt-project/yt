@@ -1384,7 +1384,13 @@ def _read_header(raw_file, field):
             f.readline()  # version
             f.readline()  # how
             f.readline()  # ncomp
-            nghost = int(f.readline().strip())  # nghost
+            nghost_lines = f.readline().strip().split()
+            try:
+                ng = int(nghost_lines[0])
+                nghost = np.array([ng, ng, ng])
+            except ValueError:
+                nghosts = nghost_lines[0][1:-1].split(",")
+                nghost = np.array([int(ng) for ng in nghosts])
             f.readline()  # num boxes
             
             # read boxes
