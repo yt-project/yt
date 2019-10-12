@@ -137,8 +137,9 @@ class AMRVACDataset(Dataset):
     _index_class = AMRVACHierarchy
     _field_info_class = AMRVACFieldInfo
 
-    def __init__(self, filename, dataset_type='amrvac', units_override=None):
-        super(AMRVACDataset, self).__init__(filename, dataset_type, units_override=units_override)
+    def __init__(self, filename, dataset_type='amrvac', units_override=None, unit_system="code"):
+        super(AMRVACDataset, self).__init__(filename, dataset_type,
+                                            units_override=units_override, unit_system=unit_system)
         self.fluid_types += ('amrvac',)
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
