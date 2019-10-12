@@ -38,7 +38,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("m2", ("", ["momentum_2"], r"$m_2$")),
         ("m3", ("", ["momentum_3"], r"$m_3$")),
         ("e", ("", ["energy"], r"$e$")),
-        ("b1", ("", [], r"$B_x$")),
+        ("b1", ("", [], r"$B_x$")), # todo: check notation (x, y, z) should only apply to cartesian case
         ("b2", ("", [], r"$B_y$")),
         ("b3", ("", [], r"$B_z$"))
     )
