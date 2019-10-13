@@ -48,23 +48,13 @@ class AMRVACIOHandler(BaseIOHandler):
     def _read_data(self, grid, field):
         ileaf = grid.id
         offset = grid._index.block_offsets[ileaf]
-        with open(self.datfile, "rb") as istream:
-            block = get_single_block_data(istream, offset, self.block_shape)
-        dim = self.ds.dimensionality
         field_idx = self.ds.parameters['w_names'].index(field)
+        with open(self.datfile, "rb") as istream:
+            data = get_single_block_data(istream, offset, self.block_shape)[..., field_idx]
 
-        # Always convert into 3D array, as grid.ActiveDimensions is always 3D
-        if dim == 1:
-            data = block[:, field_idx]
-            data = data[:, np.newaxis, np.newaxis]
-        elif dim == 2:
-            data = block[:, :, field_idx]
-            data = data[:, :, np.newaxis]
-        else:
-            data = block[:, :, :, field_idx]
-        # if ileaf == 34:
-        #     print(block_shape)
-        #     print(grid.block_idx)
+        # Always convert data to 3D, as grid.ActiveDimensions is always 3D
+        while len(data.shape) < 3:
+            data = data[..., np.newaxis]
         return data
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
