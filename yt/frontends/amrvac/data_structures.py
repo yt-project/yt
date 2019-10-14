@@ -169,6 +169,8 @@ class AMRVACDataset(Dataset):
         # dependending on format version
         if self.parameters["datfile_version"] < 5:
             mylog.warning("This data format does not contain geometry or periodicity info")
+        if self.parameters.get("staggered", False):
+            mylog.warning("'staggered' flag was found, but is currently ignored (unsupported)")
 
         # parse geometry
         amrvac_geom = self.parameters.get("geometry", "default")
