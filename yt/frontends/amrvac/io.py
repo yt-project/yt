@@ -17,7 +17,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.geometry.selection_routines import \
     GridSelector
-from .datfile_utils import get_single_block_data
+from .datfile_utils import get_single_block_field_data
 
 
 class AMRVACIOHandler(BaseIOHandler):
@@ -50,7 +50,7 @@ class AMRVACIOHandler(BaseIOHandler):
         offset = grid._index.block_offsets[ileaf]
         field_idx = self.ds.parameters['w_names'].index(field)
         with open(self.datfile, "rb") as istream:
-            data = get_single_block_data(istream, offset, self.block_shape)[..., field_idx]
+            data = get_single_block_field_data(istream, offset, self.block_shape, field_idx)
 
         # Always convert data to 3D, as grid.ActiveDimensions is always 3D
         while len(data.shape) < 3:
