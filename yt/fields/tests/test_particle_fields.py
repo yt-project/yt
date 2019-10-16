@@ -1,4 +1,3 @@
-import numpy as np
 from yt.testing import \
     assert_allclose_units, \
     requires_file
