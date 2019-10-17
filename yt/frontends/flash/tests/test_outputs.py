@@ -43,30 +43,18 @@ class TestFlash(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(sloshing)
-    def test_sloshing(self, ds_sloshing):
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        fields = ("temperature", "density", "velocity_magnitude")
+    def test_sloshing(self, a, d, w, f, ds_sloshing):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds_sloshing, fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_sloshing, f, w, a, d))
 
     #-----
     # test_wind_tunnel
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(wt)
-    def test_wind_tunnel(self, ds_wt):
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        fields = ("temperature", "density")
+    def test_wind_tunnel(self, a, d, w, f, ds_wt):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds_wt, fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_wt, f, w, a, d))
 
     #-----
     # test_FLASHDataset
@@ -123,21 +111,11 @@ class TestFlash(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(fid_1to3_b1)
-    def test_fid_1to3_b1(self, ds_fid_1to3_b1):
-        fid_1to3_b1_fields = OrderedDict(
-            [
-                (("deposit", "all_density"), None),
-                (("deposit", "all_count"), None),
-                (("deposit", "all_cic"), None),
-                (("deposit", "all_cic_velocity_x"), ("deposit", "all_cic")),
-                (("deposit", "all_cic_velocity_y"), ("deposit", "all_cic")),
-                (("deposit", "all_cic_velocity_z"), ("deposit", "all_cic")),
-            ]
-        )
+    def test_fid_1to3_b1(self, field, ds_fid_1to3_b1):
         # Run the sph_answer test suite
         self.hashes.upate(self.sph_answer(ds_fid_1to3_b1,
             'fiducial_1to3_b1_hdf5_part_0080',
             6684119,
-            fid_1to3_b1_fields
+            field 
             )
         )
