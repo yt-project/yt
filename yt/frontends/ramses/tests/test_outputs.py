@@ -47,35 +47,17 @@ class TestRamses(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(output_00080)
-    def test_output_00080(self, ds_output_00080):
-        # Hex digests
-        self.hashes['pixelized_projection_values'] = OrderedDict()
-        self.hashes['field_values'] = OrderedDict()
-        # Test parameters
-        dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
-        axes = [0, 1, 2]
-        weight_fields = [None, "density"]
-        fields = ("temperature", "density", "velocity_magnitude",
-                   ("deposit", "all_density"), ("deposit", "all_count"))
-        # Do tests
-        for d in dso:
-            self.hashes['pixelized_projection_values'][d] = OrderedDict()
-            self.hashes['field_values'][d] = OrderedDict()
-            for f in fields:
-                self.hashes['pixelized_projection_values'][d][f] = OrderedDict()
-                for a in axes:
-                    self.hashes['pixelized_projection_values'][d][f][a] = OrderedDict()
-                    for w in weight_fields:
-                        ppv_hd = self.pixelized_projection_values_test(
-                                ds_output_00080, a, f, w, d
-                            )
-                        self.hashes['pixelized_projection_values'][d][f][a][w] = ppv_hd
-                fv_hd = self.field_values_test(ds_output_00080, f, d)
-                self.hashes['field_values'][d][f] = fv_hd 
-            dobj = utils.create_obj(ds_output_00080, d)
-            s1 = dobj["ones"].sum()
-            s2 = sum(mask.sum() for block, mask in dobj.blocks)
-            assert_equal(s1, s2)
+    def test_output_00080(self, a, d, w, f, ds_output_00080):
+        ppv_hd = self.pixelized_projection_values_test(
+                ds_output_00080, a, f, w, d
+            )
+        self.hashes.update({'pixelized_projection_values' : ppv_hd})
+        fv_hd = self.field_values_test(ds_output_00080, f, d)
+        self.hashes.update({'field_values' : fv_hd}) 
+        dobj = utils.create_obj(ds_output_00080, d)
+        s1 = dobj["ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        assert_equal(s1, s2)
         assert_equal(ds_output_00080.particle_type_counts, {'io': 1090895})
 
     #-----

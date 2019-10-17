@@ -17,6 +17,20 @@ ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
 ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
 
 
+def pytest_generate_tests(metafunc):
+    if metafunc.function.__name__ == 'test_output_00080':
+        dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+        axes = [0, 1, 2]
+        weight_fields = [None, "density"]
+        fields = ("temperature", "density", "velocity_magnitude",
+                   ("deposit", "all_density"), ("deposit", "all_count"))
+        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
+        metafunc.parametrize('d', dso, ids=['None', 'sphere'])
+        metafunc.parametrize('w', weight_fields, ids=['None', 'density'])
+        metafunc.parametrize('f', fields, ids=['temperature', 'density',
+            'velocity_magnitude', 'dep_all_density', 'dep_all_count'])
+
+
 @pytest.fixture(scope='class')
 def ds_output_00080():
     ds = utils.data_dir_load(output_00080)
