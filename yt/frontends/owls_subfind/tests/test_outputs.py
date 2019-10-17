@@ -33,26 +33,18 @@ class TestOwlsSubfind(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g8)
-    def test_fields_g8(self, ds_g8):
-        self.hashes['field_values'] = OrderedDict()
-        fields = ("particle_position_x", "particle_position_y",
-                   "particle_position_z", "particle_mass")
-        for field in fields:
-            fv_hd = self.field_values_test(ds_g8, field, particle_type=True)
-            self.hashes['field_values'][field] = fv_hd
+    def test_fields_g8(self, field, ds_g8):
+        fv_hd = self.field_values_test(ds_g8, field, particle_type=True)
+        self.hashes.update({'field_values' : fv_hd})
 
     #-----
     # test_fields_g1
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g1)
-    def test_fields_g1(self, ds_g1):
-        self.hashes['field_values'] = OrderedDict()
-        fields = ("particle_position_x", "particle_position_y",
-                   "particle_position_z", "particle_mass")
-        for field in fields:
-            fv_hd = self.field_values_test(ds_g1, field, particle_type=True)
-            self.hashes['field_values'][field] = fv_hd
+    def test_fields_g1(self, field, ds_g1):
+        fv_hd = self.field_values_test(ds_g1, field, particle_type=True)
+        self.hashes.update({'field_values' : fv_hd})
 
     #-----
     # test_OWLSSubfindDataset
