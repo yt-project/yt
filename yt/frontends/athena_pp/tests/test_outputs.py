@@ -39,38 +39,25 @@ class TestAthenaPP(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(disk)
-    def test_disk(self, ds_disk):
-        self.hashes['generic_array'] = OrderedDict()
-        fields = ("density", "velocity_r")
+    def test_disk(self, field, ds_disk):
         dd = ds_disk.all_data()
         vol = (ds_disk.domain_right_edge[0]**3-ds_disk.domain_left_edge[0]**3)/3.0
         vol *= np.cos(ds_disk.domain_left_edge[1])-np.cos(ds_disk.domain_right_edge[1])
         vol *= ds_disk.domain_right_edge[2].v-ds_disk.domain_left_edge[2].v
         assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
-        for field in fields:
-            def field_func(name):
-                return dd[field]
-            ga_hd = self.generic_array_test(ds_disk, field_func, args=[field])
-            self.hashes['generic_array'][field] = ga_hd
+        def field_func(name):
+            return dd[field]
+        ga_hd = self.generic_array_test(ds_disk, field_func, args=[field])
+        self.hashes.update({'generic_array'} : ga_hd)
 
     #-----
     # test_AM06
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(AM06)
-    def test_AM06(self, ds_AM06):
-        # Arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        fields = ("temperature",
-            "density",
-            "velocity_magnitude",
-            "magnetic_field_x"
-        )
+    def test_AM06(self, a, d, w, f, ds_AM06):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds_AM06, fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_AM06, f, w, a, d))
 
     #-----
     # test_AM06_override
