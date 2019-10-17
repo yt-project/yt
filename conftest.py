@@ -8,7 +8,6 @@ Notes:
     4.) https://docs.pytest.org/en/latest/reference.html
 """
 import os
-from collections import OrderedDict
 import shutil
 import tempfile
 
@@ -113,7 +112,7 @@ def temp_dir():
 
 #============================================
 #                answer_file
-#+===========================================
+#============================================
 @pytest.fixture(scope='class')
 def answer_file(request):
     if request.cls is not None:
@@ -132,18 +131,34 @@ def hashing(request):
     This fixture reduces answer test boilerplate by handling the
     initialization of the hashes, the actual hashing of the arrays
     returned by the tests, and performing the writing/comparison.
+    It also handles saving the values and names of the test parameters.
     """
     # Set up hashes dictionary
     if request.cls is not None:
-        request.cls.hashes = OrderedDict()
+        request.cls.hashes = {}
     else:
         assert False
+    test_params = {}
     # Yield to the caller in order to actually perform the tests
     yield
+    # Get the test parameters
+    func = request.node.function
+    # co_varnames is all of the variable names local to the function
+    # it starts with self, then the passed args, then the vars defined
+    # in the function body. This excludes fixture names
+    args = func.__code__.co_varnames[1:func.__code__.co_argcount]
+    # funcargs includes the names and values of all arguments, including
+    # fixtures, so we use args to weed out the fixtures. Need to have
+    # special treatment of the data files loaded in fixtures for the
+    # frontends
+    for key, val in request.node.funcargs.items():
+        if key in args and not key.startswith('ds_'):
+            params[key] = val
+    request.cls.hashes.update(params)
     # Hash the arrays 
     hashes = utils.array_to_hash(request.cls.hashes)
     # Finalize by adding the function name as a key
-    hashes = {request.function.__name__ : hashes}
+    hashes = {request.node.name : hashes}
     # Either save or compare
     utils.handle_hashes(request.cls.save_dir, request.cls.answer_file, hashes,
         request.cls.answer_store)
