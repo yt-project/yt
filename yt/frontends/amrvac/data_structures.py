@@ -137,7 +137,8 @@ class AMRVACDataset(Dataset):
     _index_class = AMRVACHierarchy
     _field_info_class = AMRVACFieldInfo
 
-    def __init__(self, filename, dataset_type='amrvac', units_override=None, unit_system="code"):
+    def __init__(self, filename, dataset_type='amrvac', units_override=None, unit_system="code", geometry_override=None):
+        self._geometry_override = geometry_override
         super(AMRVACDataset, self).__init__(filename, dataset_type,
                                             units_override=units_override, unit_system=unit_system)
         self.fluid_types += ('amrvac',)
@@ -153,6 +154,12 @@ class AMRVACDataset(Dataset):
             validation = True
         finally:
             return validation
+
+    def parse_geometry(self, geometry_string):
+        geom = geometry_string.split("_")[0].lower()
+        if geom not in ("cartesian", "polar", "cylindrical", "spherical"):
+            raise ValueError
+        return geom
 
     def _parse_parameter_file(self):
         self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
@@ -173,11 +180,32 @@ class AMRVACDataset(Dataset):
             mylog.warning("'staggered' flag was found, but is currently ignored (unsupported)")
 
         # parse geometry
+        # by order of descending priority, we use
+        # - geometry_override 
+        # - "geometry" parameter from datfile
+        # - if all fails, default ("cartesian")
+        geom_candidates = {"param": None, "override": None}
         amrvac_geom = self.parameters.get("geometry", None)
-        if not amrvac_geom:
-            self.geometry = "cartesian"
+        if amrvac_geom is None:
+            mylog.warning("Could not find a 'geometry' parameter in source file.")
         else:
-            self.geometry = amrvac_geom.split("_")[0].lower()
+            geom_candidates.update({"param": self.parse_geometry(amrvac_geom)})
+
+        if self._geometry_override is not None:
+            try:
+                geom_candidates.update({"override": self.parse_geometry(self._geometry_override)})
+            except ValueError:
+                mylog.error("Unknown value for geometry_override (will be ignored).")
+    
+        if geom_candidates["override"] is not None:
+            mylog.warning("Using override geometry, this may lead to surprising results for unappropriate values.")
+            self.geometry = geom_candidates["override"]
+        elif geom_candidates["param"] is not None:
+            mylog.info("Using parameter geometry")
+            self.geometry = geom_candidates["param"]
+        else:
+            mylog.warning("No geometry parameter supplied or found, defaulting to cartesian.")
+            self.geometry = "cartesian"
 
         # parse peridicity
         per = self.parameters.get("periodic", np.array([False, False, False]))
