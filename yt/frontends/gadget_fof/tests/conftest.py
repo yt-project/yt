@@ -15,6 +15,18 @@ g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"
 g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"
 
 
+fields = ("particle_position_x", "particle_position_y",
+           "particle_position_z", "particle_velocity_x",
+           "particle_velocity_y", "particle_velocity_z",
+           "particle_mass", "particle_identifier")
+
+
+def pytest_generate_tests(metafunc):
+    if metafunc.function.__name__ in ['test_fields_g5', 'test_fields_g42']:
+        metafunc.parametrize('field', fields, ids=['x', 'y', 'z', 'vx', 'vy',
+            'vz', 'mass', 'identifier'])
+
+
 @pytest.fixture(scope='class')
 def ds_g5():
     ds = utils.data_dir_load(g5)

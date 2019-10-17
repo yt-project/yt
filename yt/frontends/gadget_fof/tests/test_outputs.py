@@ -40,30 +40,18 @@ class TestGadgetFOF(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @requires_file(g5)
-    def test_fields_g5(self, ds_g5):
-        fields = ("particle_position_x", "particle_position_y",
-                   "particle_position_z", "particle_velocity_x",
-                   "particle_velocity_y", "particle_velocity_z",
-                   "particle_mass", "particle_identifier")
-        self.hashes['field_values'] = OrderedDict()
-        for field in fields:
-            fv_hd = self.field_values_test(ds_g5, field, particle_type=True)
-            self.hashes['field_values'][field] = fv_hd
+    def test_fields_g5(self, field, ds_g5):
+        fv_hd = self.field_values_test(ds_g5, field, particle_type=True)
+        self.hashes.update({'field_values' : fv_hd})
 
     #-----
     # test_fields_g42
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g42)
-    def test_fields_g42(self, ds_g42):
-        fields = ("particle_position_x", "particle_position_y",
-                   "particle_position_z", "particle_velocity_x",
-                   "particle_velocity_y", "particle_velocity_z",
-                   "particle_mass", "particle_identifier")
-        self.hashes['field_values'] = OrderedDict()
-        for field in fields:
-            fv_hd = self.field_values_test(ds_g42, field, particle_type=True)
-            self.hashes['field_values'][field] = fv_hd
+    def test_fields_g42(self, field, ds_g42):
+        fv_hd = self.field_values_test(ds_g42, field, particle_type=True)
+        self.hashes.update('field_values' : fv_hd})
 
     #-----
     # test_GadgetFOFDataset
