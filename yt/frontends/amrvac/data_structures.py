@@ -198,7 +198,7 @@ class AMRVACDataset(Dataset):
                 mylog.error("Unknown value for geometry_override (will be ignored).")
     
         if geom_candidates["override"] is not None:
-            mylog.warning("Using override geometry, this may lead to surprising results for unappropriate values.")
+            mylog.warning("Using override geometry, this may lead to surprising results for inappropriate values.")
             self.geometry = geom_candidates["override"]
         elif geom_candidates["param"] is not None:
             mylog.info("Using parameter geometry")
