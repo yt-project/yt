@@ -40,10 +40,6 @@ class TestAHF(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(ahf_halos)
-    def test_fields_ahf_halos(self, ds_ahf_halos):
-        fields = ('particle_position_x', 'particle_position_y',
-                   'particle_position_z', 'particle_mass')
-        self.hashes['field_values'] = OrderedDict()
-        for field in fields:
-            fv_hd = self.field_values_test(ds_ahf_halos, field, particle_type=True)
-            self.hashes['field_values'][field] = fv_hd
+    def test_fields_ahf_halos(self, field, ds_ahf_halos):
+        fv_hd = self.field_values_test(ds_ahf_halos, field, particle_type=True)
+        self.hashes.update({'field_values_test' : fv_hd})
