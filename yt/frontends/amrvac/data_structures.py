@@ -173,8 +173,8 @@ class AMRVACDataset(Dataset):
             mylog.warning("'staggered' flag was found, but is currently ignored (unsupported)")
 
         # parse geometry
-        amrvac_geom = self.parameters.get("geometry", "default")
-        if amrvac_geom.lower() == "default":
+        amrvac_geom = self.parameters.get("geometry", None)
+        if not amrvac_geom:
             self.geometry = "cartesian"
         else:
             self.geometry = amrvac_geom.split("_")[0].lower()
