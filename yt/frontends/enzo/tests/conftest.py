@@ -21,6 +21,38 @@ dnz = "DeeplyNestedZoom/DD0025/data0025"
 p3mini = "PopIII_mini/DD0034/DD0034"
 
 
+axes = [0, 1, 2]
+center = "max"
+ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
+weights = [None, "density"]
+
+
+def pytest_generate_tests(metafunc):
+    amr_tests = ['test_toro1d', 'test_kh2d', 'test_moving7', 'test_galaxy0030']
+    if metafunc.function.__name__ == 'test_toro1d':
+        fields = ds_toro1d.field_list
+    if metafunc.function.__name__ == 'test_kh2d':
+        fields = ds_kh2d.field_list
+    if metafunc.function.__name__ == 'test_moving7':
+        fields = ("temperature", "density", "velocity_magnitude",
+            "velocity_divergence"
+        )
+    if metafunc.function.__name__ == 'test_galaxy0030':
+        fields = ("temperature", "density", "velocity_magnitude",
+                   "velocity_divergence")
+    if metafunc.function.__name__ == 'test_simulated_halo_mass_function':
+        finders = ['fof', 'hop']
+        metafunc.parametrize('finder', finders, ids=['fof', 'hop'])
+    if metafunc.function.__name__ == 'test_analytic_halo_mass_function':
+        fits = range(1,6)
+        metafunc.parametrize('fit', fits, ids=range(1,6))
+    if metafunc.function.__name__ in amr_tests:
+        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
+        metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
+        metafunc.parametrize('w', weights, ids=['None', 'density'])
+        metafunc.parametrize('f', fields, ids=range(len(fields)))
+
+
 @pytest.fixture(scope='class')
 def ds_toro1d():
     ds = utils.data_dir_load(toro1d)

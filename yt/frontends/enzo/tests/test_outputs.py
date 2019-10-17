@@ -51,47 +51,27 @@ class TestEnzo(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(toro1d)
-    def test_toro1d(self, ds_toro1d):
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        fields = ds_toro1d.field_list
+    def test_toro1d(self, a, d, w, f, ds_toro1d):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds_toro1d, fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_toro1d, f, w, a, d))
 
     #-----
     # test_kh2d
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(kh2d)
-    def test_kh2d(self, ds_kh2d):
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        fields = ds_kh2d.field_list
+    def test_kh2d(self, a, d, w, f, ds_kh2d):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds_kh2d, fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_kh2d, f, w, a, d))
 
     #-----
     # test_moving7
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(m7)
-    def test_moving7(self, ds_m7):
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        fields = ("temperature", "density", "velocity_magnitude",
-            "velocity_divergence"
-        )
+    def test_moving7(self, a, d, w, f, ds_m7):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds_m7, fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_m7, f, w, a, d))
 
     #-----
     # test_galaxy0030
@@ -101,44 +81,29 @@ class TestEnzo(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g30)
-    def test_galaxy0030(self, ds_g30):
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        fields = ("temperature", "density", "velocity_magnitude",
-                   "velocity_divergence")
+    def test_galaxy0030(self, a, d, w, f, ds_g30):
         # Color conservation test
         self.color_conservation_test(ds_g30)
         # Run the big patch amr test suite
-        self.hashes.update(self.big_patch_amr(ds_g30, fields, weights, axes, ds_objs))
+        self.hashes.update(self.big_patch_amr(ds_g30, f, w, a, d))
 
     #-----
     # test_simulated_halo_mass_function
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(enzotiny)
-    def test_simulated_halo_mass_function(self, ds_enzotiny):
-        # Set up hex digest
-        self.hashes['simulated_halo_mass_function'] = OrderedDict()
-        # Loop over the different finders
-        for finder in ["fof", "hop"]:
-            shmf_hd = self.simulated_halo_mass_function_test(ds_enzotiny, finder)
-            self.hashes['simulated_halo_mass_function'][finder] = shmf_hd
+    def test_simulated_halo_mass_function(self, finder, ds_enzotiny):
+        shmf_hd = self.simulated_halo_mass_function_test(ds_enzotiny, finder)
+        self.hashes.update({'simulated_halo_mass_function' : shmf_hd})
 
     #-----
     # test_analytic_halo_mass_function
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(enzotiny)
-    def test_analytic_halo_mass_function(self, ds_enzotiny):
-        # Set up hex digest
-        self.hashes['analytic_halo_mass_function'] = OrderedDict()
-        # Loop over the different finders
-        for fit in range(1,6):
-            ahmf_hd = self.analytic_halo_mass_function_test(ds_enzotiny, fit)
-            self.hashes['analytic_halo_mass_function'][str(fit)] = ahmf_hd
+    def test_analytic_halo_mass_function(self, fit, ds_enzotiny):
+        ahmf_hd = self.analytic_halo_mass_function_test(ds_enzotiny, fit)
+        self.hashes.update({'analytic_halo_mass_function' : ahmf_hd})
 
     #-----
     # test_ecp
