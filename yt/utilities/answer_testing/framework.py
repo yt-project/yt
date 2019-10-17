@@ -274,7 +274,7 @@ class AnswerTest():
     #-----
     # generic_array_test
     #-----
-    def generic_array_test(self, ds_fn, func, args=None, kwargs=None):
+    def generic_array_test(self, func, args=None, kwargs=None):
         if args is None:
             args = []
         if kwargs is None:
