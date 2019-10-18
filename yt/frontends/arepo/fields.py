@@ -17,7 +17,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
                              ("MagneticField",
                               ("code_magnetic", ["particle_magnetic_field"], None)),
                              ("MagneticFieldDivergence",
-                              ("code_magnetic/code_length", ["magnetic_divergence"], None)),
+                              ("code_magnetic/code_length", ["magnetic_field_divergence"], None)),
                              ("GFM_Metallicity", ("", ["metallicity"], None)),
                              ("GFM_Metals_00", ("", ["H_fraction"], None)),
                              ("GFM_Metals_01", ("", ["He_fraction"], None)),
