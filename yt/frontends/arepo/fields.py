@@ -41,7 +41,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
         if (ptype, 'InternalEnergy') in self.field_list:
             def _pressure(field, data):
-                return data.ds.gamma*data[ptype, "density"] * \
+                return (data.ds.gamma-1.0)*data[ptype, "density"] * \
                        data[ptype, "InternalEnergy"]
             self.add_field((ptype, "pressure"), function=_pressure,
                            sampling_type="particle", 
