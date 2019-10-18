@@ -90,7 +90,7 @@ class IOHandlerBoxlib(BaseIOHandler):
             f.readline()  # always skip the first line
             arr = np.fromfile(f, 'float64', np.product(shape))
             arr = arr.reshape(shape, order='F')
-        return arr[[slice(nghost,-nghost) for _ in range(self.ds.dimensionality)]]
+        return arr[[slice(nghost[dim],-nghost[dim]) for dim in range(self.ds.dimensionality)]]
 
     def _read_chunk_data(self, chunk, fields):
         data = {}
