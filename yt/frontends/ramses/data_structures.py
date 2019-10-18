@@ -37,6 +37,7 @@ from yt.data_objects.octree_subset import \
 from yt.data_objects.particle_filters import add_particle_filter
 
 from yt.utilities.physical_constants import mp, kb
+from yt.utilities.on_demand_imports import _f90nml as f90nml
 from .definitions import ramses_header, field_aliases, particle_families
 from .fields import \
     RAMSESFieldInfo, _X
@@ -581,6 +582,21 @@ class RAMSESDataset(Dataset):
 
         if self.num_groups > 0:
             self.group_size = rheader['ncpu'] // self.num_groups
+
+        # Read namelist.txt file (if any)
+        self.read_namelist()
+
+    def read_namelist(self):
+        """Read the namelist.txt file in the output folder, if present"""
+        namelist_file = os.path.join(self.root_folder, 'namelist.txt')
+        if os.path.exists(namelist_file):
+            try:
+                with open(namelist_file, 'r') as f:
+                    nml = f90nml.read(f)
+            except ImportError as e:
+                nml = "An error occurred when reading the namelist: %s" % str(e)
+
+            self.parameters['namelist'] = nml
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
