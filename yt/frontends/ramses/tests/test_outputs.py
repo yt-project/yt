@@ -438,3 +438,15 @@ def test_ramses_empty_record():
 
     # Access some field
     ds.r[('gas', 'density')]
+
+output_00080 = "output_00080/info_00080.txt"
+@requires_ds(output_00080)
+def test_namelist_reading():
+    import f90nml
+    ds = data_dir_load(output_00080)
+    with open(os.path.join(output_00080, 'namelist.txt'), 'r') as f:
+        ref = f90nml.read(f)
+
+    nml = ds.parameters['namelist']
+
+    assert nml == ref
