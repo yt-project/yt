@@ -17,7 +17,8 @@ RAMSES frontend tests
 from yt.testing import \
     assert_equal, \
     requires_file, \
-    units_override_check
+    units_override_check, \
+    requires_module
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
@@ -441,6 +442,7 @@ def test_ramses_empty_record():
 
 output_00080 = "output_00080/info_00080.txt"
 @requires_ds(output_00080)
+@requires_module('f90nml')
 def test_namelist_reading():
     import f90nml
     ds = data_dir_load(output_00080)
