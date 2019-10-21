@@ -440,23 +440,25 @@ def test_ramses_empty_record():
     # Access some field
     ds.r[('gas', 'density')]
 
-output_00080 = "output_00080/info_00080.txt"
-@requires_ds(output_00080)
+@requires_ds(ramses_new_format)
 @requires_module('f90nml')
 def test_namelist_reading():
     import f90nml
-    ds = data_dir_load(output_00080)
-    with open(os.path.join(output_00080, 'namelist.txt'), 'r') as f:
+    ds = data_dir_load(ramses_new_format)
+    namelist_fname = os.path.join(ds.directory, 'namelist.txt')
+    with open(namelist_fname, 'r') as f:
         ref = f90nml.read(f)
 
     nml = ds.parameters['namelist']
 
     assert nml == ref
 
-ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
 @requires_ds(ramses_empty_record)
+@requires_ds(output_00080)
 @requires_module('f90nml')
 def test_namelist_reading_should_not_fail():
-    # Test that the reading does not fail for malformed namelist.txt files
-    ds = data_dir_load(output_00080)
-    ds.index  # should work
+
+    for ds_name in (ramses_empty_record, output_00080):
+        # Test that the reading does not fail for malformed namelist.txt files
+        ds = data_dir_load(ds_name)
+        ds.index  # should work
