@@ -596,7 +596,7 @@ class RAMSESDataset(Dataset):
             except ImportError as e:
                 nml = "An error occurred when reading the namelist: %s" % str(e)
             except ValueError as e:
-                mylog.warn("Could not parse `namelist.txt` file as it was malformed.")
+                mylog.warn("Could not parse `namelist.txt` file as it was malformed: %s" % str(e))
                 return
 
             self.parameters['namelist'] = nml
