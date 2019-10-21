@@ -170,7 +170,10 @@ class AMRVACDataset(Dataset):
 
         self.current_time = self.parameters['time']
         self.dimensionality = self.parameters['ndim']
-        self.domain_dimensions = self.parameters['domain_nx']
+
+        # force 3D for this definition
+        self.domain_dimensions = np.ones(3, dtype="int64")
+        self.domain_dimensions[:self.dimensionality] = self.parameters['domain_nx']
 
         # the following parameters may not be present in the datfile,
         # dependending on format version
