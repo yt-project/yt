@@ -381,18 +381,21 @@ class WeightedVariance(DerivedQuantity):
 
     def __call__(self, fields, weight):
         fields = ensure_list(fields)
+        units = [self.data_source.ds._get_field_info(field).units 
+                 for field in fields]
         rv = super(WeightedVariance, self).__call__(fields, weight)
+        rv = [self.data_source.ds.arr(v, u) for v, u in zip(rv, units)] 
         if len(rv) == 1: rv = rv[0]
         return rv
 
     def process_chunk(self, data, fields, weight):
-        my_weight = data[weight].sum(dtype=np.float64)
+        my_weight = data[weight].d.sum(dtype=np.float64)
         if my_weight == 0:
             return [0.0 for field in fields] + \
-              [0.0 for field in fields] + [0.0]
-        my_means = [(data[field] *  data[weight]).sum(dtype=np.float64) / my_weight
+                [0.0 for field in fields] + [0.0]
+        my_means = [(data[field].d * data[weight].d).sum(dtype=np.float64) / my_weight
                     for field in fields]
-        my_var2s = [(data[weight] * (data[field] -
+        my_var2s = [(data[weight].d * (data[field].d -
                                      my_mean)**2).sum(dtype=np.float64) / my_weight
                    for field, my_mean in zip(fields, my_means)]
         return my_means + my_var2s + [my_weight]
@@ -408,7 +411,7 @@ class WeightedVariance(DerivedQuantity):
             ret = [(np.sqrt(
                 (my_weight * (my_var2 + (my_mean - all_mean)**2) / all_weight)
                 ).sum(dtype=np.float64)), all_mean]
-            rvals.append(self.data_source.ds.arr(ret))
+            rvals.append(np.array(ret))
         return rvals
 
 class AngularMomentumVector(DerivedQuantity):
