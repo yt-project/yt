@@ -452,3 +452,11 @@ def test_namelist_reading():
     nml = ds.parameters['namelist']
 
     assert nml == ref
+
+ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
+@requires_ds(ramses_empty_record)
+@requires_module('f90nml')
+def test_namelist_reading_should_not_fail():
+    # Test that the reading does not fail for malformed namelist.txt files
+    ds = data_dir_load(output_00080)
+    ds.index  # should work
