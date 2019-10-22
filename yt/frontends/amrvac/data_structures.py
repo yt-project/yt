@@ -34,11 +34,11 @@ from .datfile_utils import get_header, get_tree_info
 
 
 class AMRVACGrid(AMRGridPatch):
-    """devnote : a patch represent part of a block. The hierarchy/index is a collection of patches"""
+    """A class to populate AMRVACHierarchy.grids, setting parent/children relations """
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        #note: the <level> here should use yt's convention (start from 0)
+        #<level> should use yt's convention (start from 0)
         super(AMRVACGrid, self).__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
@@ -71,14 +71,18 @@ class AMRVACHierarchy(GridIndex):
         super(AMRVACHierarchy, self).__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
+        """Parse field names from datfile header, which is stored in self.dataset.parameters"""
+        # required method
         self.field_list = [(self.dataset_type, f) for f in self.dataset.parameters["w_names"]]
 
     def _count_grids(self):
-        """Set self.num_grids using datfile header"""
+        """Set self.num_grids from datfile header."""
+        # required method
         self.num_grids = self.dataset.parameters['nleafs']
 
     def _parse_index(self):
-        """Populate self.grid_* attributes from tree info directly available in the datfile header"""
+        """Populate self.grid_* attributes from tree info from datfile header."""
+        # required method
         with open(self.index_filename, "rb") as istream:
             vaclevels, morton_indices, block_offsets = get_tree_info(istream)
             assert len(vaclevels) == len(morton_indices) == len(block_offsets) == self.num_grids
@@ -94,9 +98,7 @@ class AMRVACHierarchy(GridIndex):
         domain_width = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
         block_nx = self.dataset.parameters["block_nx"]
         xmin = self.dataset.parameters["xmin"]
-
-        # dx at coarsest grid level (YT level 0)
-        dx0 = domain_width / self.dataset.parameters["domain_nx"]
+        dx0 = domain_width / self.dataset.parameters["domain_nx"] # dx at coarsest grid level (YT level 0)
         dim = self.dataset.dimensionality
 
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -104,12 +106,14 @@ class AMRVACHierarchy(GridIndex):
             dx = dx0 / self.dataset.refine_by**ytlevel
             left_edge = xmin + (morton_index-1) * block_nx * dx
 
+            # edges and dimensions are filled in a dimensionality-agnostic way
             self.grid_left_edge[igrid, :dim] = left_edge
             self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
             self.grid_dimensions[igrid, :dim] = block_nx
             self.grids[igrid] = self.grid(igrid, self, ytlevels[igrid])
 
     def _populate_grid_objects(self):
+        # required method
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
@@ -130,6 +134,8 @@ class AMRVACDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        """At load time, check whether data is recognized as AMRVAC formatted."""
+        # required class method
         validation = False
         try:
             with open(args[0], "rb") as istream:
@@ -139,12 +145,15 @@ class AMRVACDataset(Dataset):
             return validation
 
     def parse_geometry(self, geometry_string):
+        """Transform a string such as "Polar_2D" or "Cartesian_1.75D" to yt's standard equivalent (i.e. respectively "polar", "cartesian")."""
+        # frontend specific method
         geom = geometry_string.split("_")[0].lower()
         if geom not in ("cartesian", "polar", "cylindrical", "spherical"):
             raise ValueError
         return geom
 
     def _parse_parameter_file(self):
+        # required method
         self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # populate self.parameters with header data
@@ -166,10 +175,10 @@ class AMRVACDataset(Dataset):
             mylog.warning("'staggered' flag was found, but is currently ignored (unsupported)")
 
         # parse geometry
-        # by order of descending priority, we use
+        # by order of decreasing priority, we use
         # - geometry_override 
         # - "geometry" parameter from datfile
-        # - if all fails, default ("cartesian")
+        # - if all fails, default to "cartesian"
         geom_candidates = {"param": None, "override": None}
         amrvac_geom = self.parameters.get("geometry", None)
         if amrvac_geom is None:
@@ -210,13 +219,14 @@ class AMRVACDataset(Dataset):
 
         # defaulting to non-cosmological
         self.cosmological_simulation = 0
-        self.current_redshift        = 0.0
-        self.omega_matter            = 0.0
-        self.omega_lambda            = 0.0
-        self.hubble_constant         = 0.0
+        self.current_redshift = 0.0
+        self.omega_matter = 0.0
+        self.omega_lambda = 0.0
+        self.hubble_constant = 0.0
 
     # units stuff ===============================================================================
     def _set_code_unit_attributes(self):
+        # required method
         # This is where quantities are created that represent the various
         # on-disk units.  These are the currently available quantities which
         # should be set, along with examples of how to set them to standard
@@ -287,4 +297,5 @@ class AMRVACDataset(Dataset):
             setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
 
     def set_code_unit(self):
+        # required method
         super(AMRVACDataset, self).set_code_units()
