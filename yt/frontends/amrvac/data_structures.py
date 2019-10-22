@@ -227,75 +227,18 @@ class AMRVACDataset(Dataset):
     # units stuff ===============================================================================
     def _set_code_unit_attributes(self):
         # required method
-        # This is where quantities are created that represent the various
-        # on-disk units.  These are the currently available quantities which
-        # should be set, along with examples of how to set them to standard
-        # values.
+        # note: this method is never defined in the parent abstract class Dataset
+        # but it is called in Dataset.set_code_units(), which is part of Dataset.__init__()
+        # so it must be defined here.
+        setdefaultattr(self, "length_unit", self.quan(1, "cm"))
+        setdefaultattr(self, "mass_unit", self.quan(1, "g"))
+        setdefaultattr(self, "time_unit", self.quan(1, "s"))
 
-        mp  = 1.672621777e-24    # cgs units (g)
-        kB  = 1.3806488e-16      # cgs units (erg / K)
-        mu0 = 4 * np.pi
-        He_abundance = 0.1       # hardcoded in AMRVAC
+        setdefaultattr(self, "velocity_unit", self.length_unit/self.time_unit)
+        setdefaultattr(self, "density_unit", self.quan(self.mass_unit/self.length_unit**3, "g*cm**-3"))
+        setdefaultattr(self, "numberdensity_unit", self.quan(self.length_unit**-3, "cm**-3"))
 
-        unit_system = self.parameters.get("unit_system", "cgs")
-        # devnote : leaving this idle for now, waiting for datfile format 6 to be released
-        #if self.parameters["datfile_version"] < 6:
-        #    mylog.warning("This datfile format does not contain unit system. Defaulting to cgs.")
-
-        if unit_system not in ("cgs", "si"):
-            mylog.warning("Unknown unit_system parameter '%s'" % self.parameters["unit_system"])
-
-        if unit_system == "si":
-            mp *= 1e-3
-            kB *= 1e-7
-            mu0 = 1.2566370614e-6
-
-        # Obtain unit normalisations from .dat file
-        # default values mock AMRVAC itself
-        unit_length = self.parameters.get("unit_length", 1)
-        unit_numberdensity = self.parameters.get("unit_numberdensity", 1)
-        unit_velocity = self.parameters.get("unit_velocity", 0)
-        unit_temperature = self.parameters.get("unit_temperature", 1)
-
-        unit_density = (1.0 + 4.0*He_abundance) * mp * unit_numberdensity
-
-        # numberdensity, length and temperature defined in mod_usr.t file.
-        if unit_velocity == 0:
-            unit_pressure = (2.0 + 3.0*He_abundance) * unit_numberdensity * kB * unit_temperature
-            unit_velocity = np.sqrt(unit_pressure / unit_density)
-        # numberdensity, length and velocity defined in mod_usr.t file.
-        else:
-            unit_pressure    = unit_density * unit_velocity**2
-            unit_temperature = unit_pressure / ((2.0 + 3.0*He_abundance) * unit_numberdensity * kB)
-
-        unit_magneticfield = np.sqrt(mu0 * unit_pressure)
-        unit_time          = unit_length / unit_velocity
-
-        # TOREVIEW @Niels: this seems really off, I don't think density and numberdensity share a unit
-        unit_mass          = unit_numberdensity * unit_length**3
-
-
-        # Set unit attributes
-        if unit_system == "cgs":
-            setdefaultattr(self, "length_unit", self.quan(unit_length, "cm"))
-            setdefaultattr(self, "numberdensity_unit", self.quan(unit_numberdensity, "cm**-3"))
-            setdefaultattr(self, "velocity_unit", self.quan(unit_velocity, "cm/s"))
-            setdefaultattr(self, "temperature_unit", self.quan(unit_temperature, "K"))
-            setdefaultattr(self, "density_unit", self.quan(unit_density, "g*cm**-3"))
-            setdefaultattr(self, "pressure_unit", self.quan(unit_pressure, "dyn*cm**-2"))
-            setdefaultattr(self, "magnetic_unit", self.quan(unit_magneticfield, "gauss"))
-            setdefaultattr(self, "mass_unit", self.quan(unit_mass, "g"))
-            setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
-        elif unit_system == "si":
-            setdefaultattr(self, "length_unit", self.quan(unit_length, "m"))
-            setdefaultattr(self, "numberdensity_unit", self.quan(unit_numberdensity, "m**-3"))
-            setdefaultattr(self, "velocity_unit", self.quan(unit_velocity, "m/s"))
-            setdefaultattr(self, "temperature_unit", self.quan(unit_temperature, "K"))
-            setdefaultattr(self, "density_unit", self.quan(unit_density, "kg*m**-3"))
-            setdefaultattr(self, "pressure_unit", self.quan(unit_pressure, "pa"))
-            setdefaultattr(self, "mass_unit", self.quan(unit_mass, "kg"))
-            setdefaultattr(self, "time_unit", self.quan(unit_time, "s"))
-
-    def set_code_unit(self):
-        # required method
-        super(AMRVACDataset, self).set_code_units()
+        # TODO: check this
+        setdefaultattr(self, "temperature_unit", self.quan(1, "K"))
+        setdefaultattr(self, "pressure_unit", self.quan(1, "dyn*cm**-2"))
+        setdefaultattr(self, "magnetic_unit", self.quan(1, "gauss"))

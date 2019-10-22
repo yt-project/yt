@@ -31,16 +31,16 @@ adiab_cte = 1.0
 
 
 class AMRVACFieldInfo(FieldInfoContainer):
+    code_momentum = "code_density * code_velocity"
     known_other_fields = (
-        # Everything in AMRVAC is normalised to dimensionless units, so set units to ""
-        ("rho", ("", ["density"], r"$\rho$")),
-        ("m1", ("", ["momentum_1"], r"$m_1$")),
-        ("m2", ("", ["momentum_2"], r"$m_2$")),
-        ("m3", ("", ["momentum_3"], r"$m_3$")),
-        ("e", ("", ["energy"], r"$e$")),
-        ("b1", ("", [], r"$B_x$")), # todo: check notation (x, y, z) should only apply to cartesian case
-        ("b2", ("", [], r"$B_y$")),
-        ("b3", ("", [], r"$B_z$"))
+        ("rho", ("g/cm**3", ["density"], r"$\rho$")),
+        ("m1", (code_momentum, ["momentum_1"], r"$m_1$")),
+        ("m2", (code_momentum, ["momentum_2"], r"$m_2$")),
+        ("m3", (code_momentum, ["momentum_3"], r"$m_3$")),
+        ("e", ("code_energy", ["energy"], r"$e$")),
+        ("b1", ("code_margnetic", [], r"$B_1$")),
+        ("b2", ("code_margnetic", [], r"$B_2$")),
+        ("b3", ("code_margnetic", [], r"$B_3$"))
     )
 
     known_particle_fields = ()
