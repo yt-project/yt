@@ -77,7 +77,6 @@ class AMRVACHierarchy(GridIndex):
         """Set self.num_grids using datfile header"""
         self.num_grids = self.dataset.parameters['nleafs']
 
-
     def _parse_index(self):
         """Populate self.grid_* attributes from tree info directly available in the datfile header"""
         with open(self.index_filename, "rb") as istream:
@@ -102,14 +101,13 @@ class AMRVACHierarchy(GridIndex):
 
         self.grids = np.empty(self.num_grids, dtype='object')
         for igrid, (ytlevel, morton_index) in enumerate(zip(ytlevels, morton_indices)):
-            dx = dx0 * (1./self.dataset.refine_by)**ytlevel
+            dx = dx0 / self.dataset.refine_by**ytlevel
             left_edge = xmin + (morton_index-1) * block_nx * dx
 
             self.grid_left_edge[igrid, :dim] = left_edge
             self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
             self.grid_dimensions[igrid, :dim] = block_nx
             self.grids[igrid] = self.grid(igrid, self, ytlevels[igrid])
-
 
     def _populate_grid_objects(self):
         for g in self.grids:
@@ -195,7 +193,7 @@ class AMRVACDataset(Dataset):
             mylog.warning("No geometry parameter supplied or found, defaulting to cartesian.")
             self.geometry = "cartesian"
 
-        # parse peridicity
+        # parse peridiocity
         per = self.parameters.get("periodic", np.array([False, False, False]))
         missing_dim = 3 - len(per)
         self.periodicity = np.append(per, [False]*missing_dim)
