@@ -15,21 +15,22 @@ zp = "ZeldovichPancake/plt32.2d.hdf5"
 kho = "KelvinHelmholtz/data.0004.hdf5"
 
 
-axes = [0, 1, 2]
-center = "max"
-ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-weights = [None, "density"]
-fields = ("density", "velocity_magnitude", "magnetic_field_x")
 
 
 def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ in ['test_gc', 'test_tb', 'test_iso', 'test_kho']:
+        axes = [0, 1, 2]
+        center = "max"
+        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
+        weights = [None, "density"]
+        fields = ("density", "velocity_magnitude", "magnetic_field_x")
         metafunc.parametrize('a', axes, ids=['0', '1', '2'])
         metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
         metafunc.parametrize('w', weights, ids=['None' 'density'])
         metafunc.parametrize('f', fields, ids=['density', 'velocity_magnitude',
             'magnetic_field_x'])
     if metafunc.function.__name__ == 'test_zp':
+        axes = [0, 1, 2]
         center = "c"
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
         weights = [None, "rhs"]

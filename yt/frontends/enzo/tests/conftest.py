@@ -44,13 +44,13 @@ def pytest_generate_tests(metafunc):
         finders = ['fof', 'hop']
         metafunc.parametrize('finder', finders, ids=['fof', 'hop'])
     if metafunc.function.__name__ == 'test_analytic_halo_mass_function':
-        fits = range(1,6)
-        metafunc.parametrize('fit', fits, ids=range(1,6))
+        fits = [i for i in range(1,6)]
+        metafunc.parametrize('fit', fits, ids=[str(i) for i in range(1,6)])
     if metafunc.function.__name__ in amr_tests:
         metafunc.parametrize('a', axes, ids=['0', '1', '2'])
         metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
         metafunc.parametrize('w', weights, ids=['None', 'density'])
-        metafunc.parametrize('f', fields, ids=range(len(fields)))
+        metafunc.parametrize('f', fields, ids=[str(i) for i in range(len(fields))])
 
 
 @pytest.fixture(scope='class')

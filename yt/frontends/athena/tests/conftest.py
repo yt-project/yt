@@ -12,38 +12,24 @@ cloud = "ShockCloud/id0/Cloud.0050.vtk"
 blast = "MHDBlast/id0/Blast.0100.vtk"
 stripping = "RamPressureStripping/id0/rps.0062.vtk"
 
+axes = [0, 1, 2]
+center = "max"
+ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
+weights = [None, "density"]
+
 
 def pytest_generate_tests(metafunc):
+    param_tests = ['test_cloud', 'test_blast', 'test_stripping']
     if metafunc.function.__name__ == 'test_cloud':
-        _fields_cloud = ("scalar[0]", "density", "total_energy")
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        metafunc.parametrize('f', _fields_cloud, ids=['scalar0', 'density',
-            'total_energy'])
-        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
-        metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None', 'density'])
+        fields = ("scalar[0]", "density", "total_energy")
+        metafunc.parametrize('f', fields, ids=['scalar0', 'density', 'total_energy'])
     if metafunc.function.__name__ == 'test_blast':
-        _fields_blast = ("temperature", "density", "velocity_magnitude")
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        metafunc.parametrize('f', _fields_blast, ids=['temperature', 'density',
-            'velocity_magnitude'])
-        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
-        metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None', 'density'])
+        fields = ("temperature", "density", "velocity_magnitude")
+        metafunc.parametrize('f', fields, ids=['temperature', 'density', 'velocity_magnitude'])
     if metafunc.function.__name__ == 'test_stripping':
-        _fields_stripping = ("temperature", "density", "specific_scalar[0]")
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        metafunc.parametrize('f', _fields_stripping, ids=['temperature', 'density',
-            'specific_scalar0'])
+        fields = ("temperature", "density", "specific_scalar[0]")
+        metafunc.parametrize('f', fields, ids=['temperature', 'density', 'specific_scalar0'])
+    if metafunc.function.__name__ in param_tests:
         metafunc.parametrize('a', axes, ids=['0', '1', '2'])
         metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
         metafunc.parametrize('w', weights, ids=['None', 'density'])
