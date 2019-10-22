@@ -55,46 +55,30 @@ class TestEnzoP(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(hello_world)
-    def test_hello_world(self, ds_hello_world):
-        self.hashes['pixelized_projection_values'] = OrderedDict()
-        self.hashes['field_values'] = OrderedDict()
+    def test_hello_world(self, f, a, d, w, ds_hello_world):
         ds = ds_hello_world
-        dso = [ None, ("sphere", ("max", (0.25, 'unitary')))]
-        for d in dso:
-            self.hashes['pixelized_projection_values'][d] = OrderedDict()
-            self.hashes['field_values'][d] = OrderedDict()
-            for f in _fields:
-                self.hashes['pixelized_projection_values'][d][f] = OrderedDict()
-                for a in [0, 1, 2]:
-                    self.hashes['pixelized_projection_values'][d][f][a] = OrderedDict()
-                    for w in [None, "density"]:
-                        ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, d)
-                    self.hashes['pixelized_projection_values'][d][f][a][w] = ppv_hd
-                fv_hd = self.field_values_test(ds, f, d)
-                self.hashes['field_values'][d][f] = fv_hd
-            dobj = utils.create_obj(ds, d)
-            s1 = dobj["ones"].sum()
-            s2 = sum(mask.sum() for block, mask in dobj.blocks)
-            assert_equal(s1, s2)
+        ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, d)
+        self.hashes.update({'pixelized_projection_values' : ppv_hd})
+        fv_hd = self.field_values_test(ds, f, d)
+        self.hashes.update({'field_values' : fv_hd})
+        dobj = utils.create_obj(ds, d)
+        s1 = dobj["ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        assert_equal(s1, s2)
 
     #-----
     # test_particle_fields
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(ep_cosmo)
-    def test_particle_fields(self, ds_ep_cosmo):
-        self.hashes['field_values'] = OrderedDict()
+    def test_particle_fields(self, f, d, ds_ep_cosmo):
         ds = ds_ep_cosmo
-        dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
-        for dobj_name in dso:
-            self.hashes['field_values'][dobj_name] = OrderedDict()
-            for field in _pfields:
-                fv_hd = self.field_values_test(ds, field, dobj_name, particle_type=True)
-                self.hashes['field_values'][dobj_name][field] = fv_hd
-            dobj = utils.create_obj(ds, dobj_name)
-            s1 = dobj["ones"].sum()
-            s2 = sum(mask.sum() for block, mask in dobj.blocks)
-            assert_equal(s1, s2)
+        fv_hd = self.field_values_test(ds, f, d, particle_type=True)
+        self.hashes.update({'field_values' : fv_hd})
+        dobj = utils.create_obj(ds, d)
+        s1 = dobj["ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        assert_equal(s1, s2)
 
     #-----
     # test_hierarchy
