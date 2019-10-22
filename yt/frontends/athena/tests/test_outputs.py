@@ -40,9 +40,6 @@ uo_blast = {
 uo_sloshing = {"length_unit": (1.0,"Mpc"),
                "time_unit": (1.0,"Myr"),
                "mass_unit": (1.0e14,"Msun")}
-_fields_cloud = ("scalar[0]", "density", "total_energy")
-_fields_blast = ("temperature", "density", "velocity_magnitude")
-_fields_stripping = ("temperature", "density", "specific_scalar[0]")
 
 
 #============================================
@@ -57,32 +54,20 @@ class TestAthena(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(cloud)
-    def test_cloud(self, ds_cloud):
+    def test_cloud(self, f, a, d, w, ds_cloud):
         ds = ds_cloud
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        assert_equal(str(ds), "Cloud.0050")
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _fields_cloud, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_blast
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(blast)
-    def test_blast(self):
-        ds = utils.data_dir_load(blast) 
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        assert_equal(str(ds), "Blast.0100")
+    def test_blast(self, f, a, d, w, ds_blast):
+        ds = ds_blast
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _fields_blast, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_blast_override
@@ -102,16 +87,9 @@ class TestAthena(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(stripping)
-    def test_stripping(self):
-        ds = utils.data_dir_load(stripping, kwargs={"units_override":uo_stripping})
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        assert_equal(str(ds), "rps.0062")
+    def test_stripping(self, f, a, d, w, ds_stripping):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _fields_stripping, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_nprocs
