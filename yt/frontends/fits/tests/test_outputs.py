@@ -47,49 +47,27 @@ class TestFits(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(grs)
-    def test_grs(self, ds_grs):
-        ds = ds_grs
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "c"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "ones"]
+    def test_grs(self, f, a, d, w, ds_grs):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _fields_grs, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_grs, f, w, a, d))
 
     #-----
     # test_velocity_field
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(vf)
-    def test_velocity_field(self, ds_vf):
-        ds = ds_vf
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "c"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "ones"]
+    def test_velocity_field(self, f, a, d, w, ds_vf):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _fields_vels, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_vf, f, w, a, d))
 
     #-----
     # test_acts
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(acis)
-    def test_acis(self, ds_acis):
-        from yt.frontends.fits.misc import setup_counts_fields
-        ds = ds_acis
-        ebounds = [(0.1, 2.0), (2.0, 5.0)]
-        setup_counts_fields(ds, ebounds)
-        assert_equal(str(ds), "acisf05356N003_evt2.fits")
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "c"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "ones"]
+    def test_acis(self, f, a, d, w, ds_acis):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _fields_acis, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_acis, f, w, a, d))
 
     #-----
     # test_A2052
@@ -97,14 +75,8 @@ class TestFits(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(A2052)
     def test_A2052(self, ds_A2052):
-        ds = ds_A2052
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "c"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "ones"]
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _fields_A2052, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_A2052, f, w, a, d))
 
     #-----
     # test_units_override
