@@ -62,61 +62,36 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(radadvect)
-    def test_radadvect(self):
-        ds = utils.data_dir_load(radadvect)
-        assert_equal(str(ds), "plt00000")
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
+    def test_radadvect(self, f, a, d, w, ds_radadvect):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_radadvect, f, w, a, d))
 
     #-----
     # test_radtube
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(rt)
-    def test_radtube(self, ds_rt):
-        ds = ds_rt
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
+    def test_radtube(self, f, a, d, w, ds_rt):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_rt, f, w, a, d))
 
     #-----
     # test_star
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(star)
-    def test_star(self, ds_star):
-        ds = ds_star
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
+    def test_star(self, f, a, d, w, ds_star):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _orion_fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_star, f, w, a, d))
 
     #-----
     # test_LyA
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(LyA)
-    def test_LyA(self, ds_LyA):
-        ds = ds_LyA
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "c"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "Ne"]
+    def test_LyA(self, f, a, d, w, ds_LyA):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _nyx_fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_LyA, f, w, a, d))
 
     #-----
     # test_nyx_particle_io
@@ -151,15 +126,9 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(RT_particles)
-    def test_RT_particles(self, ds_RT_particles):
-        ds = ds_RT_particles
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
+    def test_RT_particles(self, f, a, d, w, ds_RT_particles):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _castro_fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_RT_particles, f, w, a, d))
 
     #-----
     # test_castro_particle_io
@@ -191,47 +160,27 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(langmuir)
-    def test_langmuir(self):
-        ds = utils.data_dir_load(langmuir)
-        assert_equal(str(ds), "plt00020_v2")
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "c"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "Ex"]
+    def test_langmuir(self, f, a, d, w, ds_langmuir):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_langmuir, f, w, a, d))
 
     #-----
     # test_plasma
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(plasma)
-    def test_plasma(self, ds_plasma):
-        ds = ds_plasma
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "c"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "Ex"]
+    def test_plasma(self, f, a, d, w, ds_plasma):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_plasma, f, w, a, d))
 
     #-----
     # test_beam
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(beam)
-    def test_beam(self):
-        ds = utils.data_dir_load(beam)
-        assert_equal(str(ds), "plt03008")
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "c"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "Ex"]
+    def test_beam(self, f, a, d, w, ds_beam):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _warpx_fields, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_beam, f, w, a, d))
 
     #-----
     # test_warpx_particle_io
@@ -271,12 +220,9 @@ class TestBoxLib(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(raw_fields)
-    def test_raw_fields(self):
-        self.hashes['grid_values'] = OrderedDict()
-        ds_fn = utils.data_dir_load(raw_fields)
-        for field in _raw_fields:
-            gv_hd = self.grid_values_test(ds_fn, field)
-            self.hashes['grid_values'][field] = gv_hd
+    def test_raw_fields(self, f, ds_raw_fields):
+        gv_hd = self.grid_values_test(ds_raw_fields, f)
+        self.hashes.update({'grid_values' : gv_hd})
 
     #-----
     # test_OrionDataset
