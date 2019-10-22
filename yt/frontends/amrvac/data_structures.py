@@ -77,35 +77,12 @@ class AMRVACHierarchy(GridIndex):
         """Set self.num_grids using datfile header"""
         self.num_grids = self.dataset.parameters['nleafs']
 
-    def _get_patch(self, ytlevel, morton_index):
-        # Width of the domain, used to correctly calculate fractions
-        domain_width = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
-        block_nx = self.dataset.parameters["block_nx"]
-
-        # dx at coarsest grid level (YT level 0)
-        dx0 = domain_width / self.dataset.parameters["domain_nx"]
-        # dx at ytlevel
-        dx = dx0 * (1./self.dataset.refine_by)**ytlevel
-        l_edge = self.dataset.parameters["xmin"] + (morton_index-1) * block_nx * dx
-        r_edge = l_edge + block_nx * dx
-
-        # force return arrays to 3D
-        missing_dim = 3 - self.dataset.dimensionality
-        l_edge = np.append(l_edge, [0]*missing_dim)
-        r_edge = np.append(r_edge, [1]*missing_dim)
-        block_nx = np.append(block_nx, [1]*missing_dim)
-
-        patch = {
-            "left_edge": l_edge,
-            "right_edge": r_edge,
-            "width": block_nx, # number of cells along an axis
-        }
-        return patch
 
     def _parse_index(self):
+        """Populate self.grid_* attributes from tree info directly available in the datfile header"""
         with open(self.index_filename, "rb") as istream:
-            vaclevels, idxs, block_offsets = get_tree_info(istream)
-            assert len(vaclevels) == len(idxs) == len(block_offsets) == self.num_grids
+            vaclevels, morton_indices, block_offsets = get_tree_info(istream)
+            assert len(vaclevels) == len(morton_indices) == len(block_offsets) == self.num_grids
 
         self.block_offsets = block_offsets
         # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
@@ -114,17 +91,25 @@ class AMRVACHierarchy(GridIndex):
         self.max_level = np.max(ytlevels)
         assert self.max_level == self.dataset.parameters["levmax"] - 1
 
+        # some aliases for left/right edges computation in the coming loop
+        domain_width = self.dataset.parameters["xmax"] - self.dataset.parameters["xmin"]
+        block_nx = self.dataset.parameters["block_nx"]
+        xmin = self.dataset.parameters["xmin"]
+
+        # dx at coarsest grid level (YT level 0)
+        dx0 = domain_width / self.dataset.parameters["domain_nx"]
+        dim = self.dataset.dimensionality
+
         self.grids = np.empty(self.num_grids, dtype='object')
+        for igrid, (ytlevel, morton_index) in enumerate(zip(ytlevels, morton_indices)):
+            dx = dx0 * (1./self.dataset.refine_by)**ytlevel
+            left_edge = xmin + (morton_index-1) * block_nx * dx
 
-        for igrid, (lvl, idx) in enumerate(zip(ytlevels, idxs)):
-            # devnote : idx is the index on the Morton Curve
-            # maybe it ought to be properly translated to yt indexing first...
-            patch = self._get_patch(lvl, idx)
-            self.grid_left_edge[igrid, :] = patch["left_edge"]
-            self.grid_right_edge[igrid, :] = patch["right_edge"]
-            self.grid_dimensions[igrid, :] = patch["width"]
-
+            self.grid_left_edge[igrid, :dim] = left_edge
+            self.grid_right_edge[igrid, :dim] = left_edge + block_nx * dx
+            self.grid_dimensions[igrid, :dim] = block_nx
             self.grids[igrid] = self.grid(igrid, self, ytlevels[igrid])
+
 
     def _populate_grid_objects(self):
         for g in self.grids:
