@@ -41,6 +41,39 @@ class TestArt(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(d9p)
+    def test_d9p(self, field, d, a, w, ds_d9p):
+        """
+        Parameters:
+        -----------
+            pass
+
+        Raises:
+        -------
+            pass
+
+        Returns:
+        --------
+            pass
+        """
+        ds = ds_d9p
+        ds.index
+        if f[0] == "all":
+            particle_type = True
+        else:
+            particle_type = False
+        fv_hd = self.field_values_test(ds, f, d, particle_type=particle_type)
+        self.hashes.update({'field_values' : fv_hd})
+        if f[0] not in ds.particle_types:
+            ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, d)
+            self.hashes.update({'pixelized_projection_values' : ppv_hd})
+
+    #-----
+    # test_AnaDM
+    #-----
+    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
+        reason="Skipping test_jet because --answer-big-data was not set."
+    )
+    @utils.requires_ds(d9p)
     def test_d9p(self, ds_d9p):
         """
         Parameters:
@@ -55,34 +88,8 @@ class TestArt(fw.AnswerTest):
         --------
             pass
         """
-        fields = (
-            ("gas", "density"),
-            ("gas", "temperature"),
-            ("all", "particle_mass"),
-            ("all", "particle_position_x")
-        )
-        self.hashes['pixelized_projection_values'] = OrderedDict()
-        self.hashes['field_values'] = OrderedDict()
         ds = ds_d9p
         ds.index
-        dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
-        for f in fields:
-            self.hashes['pixelized_projection_values'][f] = OrderedDict()
-            self.hashes['field_values'][f] = OrderedDict()
-            for d in dso:
-                if f[0] == "all":
-                    particle_type = True
-                else:
-                    particle_type = False
-                fv_hd = self.field_values_test(ds, f, d, particle_type=particle_type)
-                self.hashes['field_values'][f][d] = fv_hd
-                self.hashes['pixelized_projection_values'][f][d] = OrderedDict()
-                for a in [0, 1, 2]:
-                    self.hashes['pixelized_projection_values'][f][d][a] = OrderedDict()
-                    for w in [None, "density"]:
-                        if f[0] not in ds.particle_types:
-                            ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, d)
-                            self.hashes['pixelized_projection_values'][f][d][a][w] = ppv_hd
         ad = ds.all_data()
         # 'Ana' variable values output from the ART Fortran 'ANA' analysis code
         AnaNStars = 6255
