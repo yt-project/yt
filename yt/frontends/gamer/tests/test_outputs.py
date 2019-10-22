@@ -48,15 +48,9 @@ class TestGamer(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(jet)
-    def test_jet(self, ds_jet):
-        ds = ds_jet
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
+    def test_jet(self, f, a, d, w, ds_jet):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _fields_jet, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_jet, f, w, a, d))
 
     #-----
     # test_psiDM
@@ -66,15 +60,9 @@ class TestGamer(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(psiDM)
-    def test_psiDM(self, ds_psiDM):
-        ds = ds_psiDM
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
+    def test_psiDM(self, f, a, d, w, ds_psiDM):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _fields_psiDM, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_psiDM, f, w, a, d))
 
     #-----
     # test_plummer
@@ -84,16 +72,9 @@ class TestGamer(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(plummer)
-    def test_plummer(self):
-        ds = utils.data_dir_load(plummer)
-        assert_equal(str(ds), "plummer_000000")
-        # Set up arrays for testing
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
+    def test_plummer(self, f, a, d, w, ds_plummer):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, _fields_plummer, weights, axes, ds_objs))
+        self.hashes.update(self.small_patch_amr(ds_plummer, f, w, a, d))
 
     #-----
     # test_GAMERDataset
