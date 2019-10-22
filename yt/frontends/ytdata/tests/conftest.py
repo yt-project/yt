@@ -41,7 +41,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('field', fields, ids=['region_density', 'sphere_density'])
     if metafunc.function.__name__ == 'test_nonspatial_data2':
         fields = ['density']
-        metafunc.parametrize('field', fields, ids=['density''])
+        metafunc.parametrize('field', fields, ids=['density'])
 
 
 
