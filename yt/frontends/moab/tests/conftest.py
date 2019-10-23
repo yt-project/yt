@@ -10,6 +10,15 @@ from yt.utilities.answer_testing import utils
 # Test data
 c5 = "c5/c5.h5m"
 
+dso = [ None, ("sphere", ("c", (0.1, 'unitary'))),
+          ("sphere", ("c", (0.2, 'unitary')))]
+_fields = (("moab", "flux"),)
+
+
+def pytest_generate_tests(metafunc):
+    if metafunc.function.__name__ == 'test_cantor_5':
+        metafunc.parametrize('f', _fields, ids=['flux'])
+        metafunc.parametrize('d', dso, ids=['None', 'sphere'])
 
 @pytest.fixture(scope='class')
 def ds_c5():
