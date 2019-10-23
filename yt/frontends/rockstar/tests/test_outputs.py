@@ -21,9 +21,6 @@ from yt.utilities.answer_testing import utils
 r1 = "rockstar_halos/halos_0.0.bin"
 
 
-# Globals
-_fields = ("particle_position_x", "particle_position_y",
-           "particle_position_z", "particle_mass")
 
 
 #============================================
@@ -38,11 +35,9 @@ class TestRockstar(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(r1)
-    def test_fields_r1(self, ds_r1):
-        self.hashes['field_values'] = OrderedDict()
-        for field in _fields:
-            fv_hd = self.field_values_test(ds_r1, field, particle_type=True)
-            self.hashes['field_values'][field] = fv_hd
+    def test_fields_r1(self, f, ds_r1):
+        fv_hd = self.field_values_test(ds_r1, f, particle_type=True)
+        self.hashes.update({'field_values' : fv_hd})
 
     #-----
     # test_RockstarDataset
