@@ -12,8 +12,7 @@ from collections import OrderedDict
 import pytest
 
 import yt
-from yt.testing import \
-    requires_file
+from yt.testing import requires_file
 from yt.frontends.gizmo.api import GizmoDataset
 from yt.frontends.gizmo.fields import metal_elements
 import yt.utilities.answer_testing.framework as fw
@@ -23,22 +22,6 @@ from yt.utilities.answer_testing import utils
 # Test data
 g64 = "gizmo_64/output/snap_N64L16_135.hdf5"
 gmhd = "gizmo_mhd_mwdisk/gizmo_mhd_mwdisk.hdf5"
-
-
-# Globals
-# This maps from field names to weight field names to use for projections
-fields = OrderedDict(
-    [
-        (("gas", "density"), None),
-        (("gas", "temperature"), ('gas', 'density')),
-        (("gas", "metallicity"), ('gas', 'density')),
-        (("gas", "O_metallicity"), ('gas', 'density')),
-        (('gas', 'velocity_magnitude'), None),
-        (("deposit", "all_count"), None),
-        (("deposit", "all_cic"), None),
-        (("deposit", "PartType0_density"), None),
-    ]
-)
 
 
 #============================================
@@ -56,10 +39,8 @@ class TestGizmo(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g64)
-    def test_gizmo_64(self):
-        ds = yt.load(g64)
-        assert isinstance(ds, GizmoDataset)
-        self.hashes.update(self.sph_answer(ds, 'snap_N64L16_135', 524288, fields))
+    def test_gizmo_64(self, f, w, ds_64):
+        self.hashes.update(self.sph_answer(ds_64, 'snap_N64L16_135', 524288, f, w))
 
     #-----
     # test_gizmo_mhd
