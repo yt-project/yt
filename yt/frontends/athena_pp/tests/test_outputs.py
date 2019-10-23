@@ -48,7 +48,7 @@ class TestAthenaPP(fw.AnswerTest):
         def field_func(name):
             return dd[field]
         ga_hd = self.generic_array_test(ds_disk, field_func, args=[field])
-        self.hashes.update({'generic_array'} : ga_hd)
+        self.hashes.update({'generic_array' : ga_hd})
 
     #-----
     # test_AM06

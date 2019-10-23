@@ -29,7 +29,7 @@ def pytest_generate_tests(metafunc):
         _pfields = ("particle_position_x", "particle_position_y",
                     "particle_position_z", "particle_velocity_x",
                     "particle_velocity_y", "particle_velocity_z")
-        metafunc.parametrize('f', _pfields, ids=['x', 'y', 'z', 'vx', 'vy', 'vz')]
+        metafunc.parametrize('f', _pfields, ids=['x', 'y', 'z', 'vx', 'vy', 'vz'])
         metafunc.parametrize('d', dso, ids=['None', 'sphere'])
 
 

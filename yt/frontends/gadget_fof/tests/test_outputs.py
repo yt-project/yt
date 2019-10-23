@@ -51,7 +51,7 @@ class TestGadgetFOF(fw.AnswerTest):
     @utils.requires_ds(g42)
     def test_fields_g42(self, field, ds_g42):
         fv_hd = self.field_values_test(ds_g42, field, particle_type=True)
-        self.hashes.update('field_values' : fv_hd})
+        self.hashes.update({'field_values' : fv_hd})
 
     #-----
     # test_GadgetFOFDataset

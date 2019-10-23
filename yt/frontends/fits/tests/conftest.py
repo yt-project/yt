@@ -34,7 +34,7 @@ def pytest_generate_tests(metafunc):
         ids = ['vx', 'vy', 'vz']
     if metafunc.function.__name__ == 'test_acis':
         fields = ("counts_0.1-2.0", "counts_2.0-5.0")
-        ids='counts.1-2', 'counts2-5']
+        ids=['counts.1-2', 'counts2-5']
     if metafunc.function.__name__ == 'test_2052':
         fields = ("flux",)
         ids = ['flux']

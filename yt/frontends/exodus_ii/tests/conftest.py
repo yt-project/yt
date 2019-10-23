@@ -14,7 +14,7 @@ gold = "ExodusII/gold.e"
 big_data = "MOOSE_sample_data/mps_out.e"
 
 
-def pytest_generate_test(metafunc):
+def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ == 'test_displacement_fields':
         displacement_dicts =[{'connect2': (5.0, [0.0, 0.0, 0.0])},
                              {'connect1': (1.0, [1.0, 2.0, 3.0]),

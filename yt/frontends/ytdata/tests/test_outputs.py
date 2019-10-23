@@ -122,7 +122,7 @@ class TestYTData(fw.AnswerTest):
         utils.compare_unit_attributes(ds, frb_ds)
         assert isinstance(frb_ds, YTGridDataset)
         ytft_hd = self.yt_field_test(frb_ds, field, False)
-        self.hashes.update({['yt_field_test' : ytft_hd})
+        self.hashes.update({'yt_field_test' : ytft_hd})
 
     #-----
     # test_spatial_data
@@ -170,7 +170,7 @@ class TestYTData(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(enzotiny)
-    def test_profile_data2(self, field, ds_enzotiny)
+    def test_profile_data2(self, field, ds_enzotiny):
         ds = ds_enzotiny
         profile_2d = create_profile(ad, ["density", "temperature"],
                                    "cell_mass", weight_field=None,

@@ -13,8 +13,7 @@ gmhd = "gizmo_mhd_mwdisk/gizmo_mhd_mwdisk.hdf5"
 g64 = "gizmo_64/output/snap_N64L16_135.hdf5"
 
 
-fields = 
-    {
+fields = {
         ("gas", "density"): None,
         ("gas", "temperature"): ('gas', 'density'),
         ("gas", "metallicity"): ('gas', 'density'),

@@ -11,8 +11,7 @@ from yt.utilities.answer_testing import utils
 os33 = "snapshot_033/snap_033.0.hdf5"
 
 # This maps from field names to weight field names to use for projections
-_fields = 
-    {
+_fields = {
         ("gas", "density"): None,
         ("gas", "temperature"): None,
         ("gas", "temperature"): ("gas", "density"),

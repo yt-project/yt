@@ -17,8 +17,7 @@ _fields = (("deposit", "all_density"),
            ("deposit", "all_count"),
            ("deposit", "DarkMatter_density"),
 )
-tg_fields = 
-    {
+tg_fields = {
         ('gas', 'density'): None,
         ('gas', 'temperature'): None,
         ('gas', 'temperature'): ('gas', 'density'),

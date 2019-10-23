@@ -12,8 +12,7 @@ isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
 
 iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
-fields = 
-    {
+fields = {
         ("gas", "density"): None,
         ("gas", "temperature"): None,
         ("gas", "temperature"): ('gas', 'density'),

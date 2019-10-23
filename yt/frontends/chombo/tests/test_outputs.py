@@ -48,7 +48,7 @@ class TestChombo(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(tb)
-    def test_tb(self, a, d, w, , f, ds_tb):
+    def test_tb(self, a, d, w, f, ds_tb):
         # Run small patch amr test suite
         self.hashes.update(self.small_patch_amr(ds_tb, f, w, a, d))
 
