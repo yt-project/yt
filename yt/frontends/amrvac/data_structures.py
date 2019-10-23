@@ -124,7 +124,12 @@ class AMRVACDataset(Dataset):
     _index_class = AMRVACHierarchy
     _field_info_class = AMRVACFieldInfo
 
-    def __init__(self, filename, dataset_type='amrvac', units_override=None, unit_system="code", geometry_override=None):
+    def __init__(self, filename, dataset_type='amrvac',
+                units_override=None, unit_system="code",
+                geometry_override=None):
+        # note: defaulting unit_system to "code" is not yt's norm but better suits the AMRVAC community's usual workflow
+        # note2: geometry_override is specific to this frontend
+
         self._geometry_override = geometry_override
         super(AMRVACDataset, self).__init__(filename, dataset_type,
                                             units_override=units_override, unit_system=unit_system)
@@ -230,6 +235,11 @@ class AMRVACDataset(Dataset):
         # note: this method is never defined in the parent abstract class Dataset
         # but it is called in Dataset.set_code_units(), which is part of Dataset.__init__()
         # so it must be defined here.
+
+        # note2: this gets called later than Dataset._override_code_units()
+        # This is the reason why it uses setdefaultattr: it will only fill the gaps lefts by the "override",
+        # instead of overriding them again
+
         setdefaultattr(self, "length_unit", self.quan(1, "cm"))
         setdefaultattr(self, "mass_unit", self.quan(1, "g"))
         setdefaultattr(self, "time_unit", self.quan(1, "s"))
