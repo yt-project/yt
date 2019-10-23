@@ -22,22 +22,6 @@ from yt.utilities.answer_testing import utils
 os33 = "snapshot_033/snap_033.0.hdf5"
 
 
-# Globals
-# This maps from field names to weight field names to use for projections
-_fields = OrderedDict(
-    [
-        (("gas", "density"), None),
-        (("gas", "temperature"), None),
-        (("gas", "temperature"), ("gas", "density")),
-        (('gas', 'He_p0_number_density'), None),
-        (('gas', 'velocity_magnitude'), None),
-        (("deposit", "all_density"), None),
-        (("deposit", "all_count"), None),
-        (("deposit", "all_cic"), None),
-        (("deposit", "PartType0_density"), None),
-        (("deposit", "PartType4_density"), None),
-    ]
-)
 
 
 #============================================
@@ -55,8 +39,8 @@ class TestOwls(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(os33)
-    def test_snapshot_033(self, ds_os33):
-        self.hashes.update(self.sph_answer(ds_os33, 'snap_033', 2*128**3, _fields))
+    def test_snapshot_033(self, f, w, ds_os33):
+        self.hashes.update(self.sph_answer(ds_os33, 'snap_033', 2*128**3, f, w))
 
     #-----
     # test_OWLSDataset
