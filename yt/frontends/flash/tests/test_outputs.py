@@ -111,11 +111,12 @@ class TestFlash(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(fid_1to3_b1)
-    def test_fid_1to3_b1(self, field, ds_fid_1to3_b1):
+    def test_fid_1to3_b1(self, f, w, ds_fid_1to3_b1):
         # Run the sph_answer test suite
         self.hashes.upate(self.sph_answer(ds_fid_1to3_b1,
             'fiducial_1to3_b1_hdf5_part_0080',
             6684119,
-            field 
+            f,
+            w
             )
         )
