@@ -40,8 +40,6 @@ class AMRVACFieldInfo(FieldInfoContainer):
     known_particle_fields = ()
 
     def setup_fluid_fields(self):
-
-
         def _v1(field, data):
             return data["gas", "momentum_1"] / data["gas", "density"]
         def _v2(field, data):
