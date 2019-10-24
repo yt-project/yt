@@ -25,6 +25,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
     code_energy = "code_mass * code_length**2 / code_time**2"
 
     # format: (native(?) field, (units, [aliases], display_name))
+    # note: aliases will correspond to "gas" typed fields, whereas the native ones are "amrvac" typed
     known_other_fields = (
         ("rho", (code_density, ["density"], r"$\rho$")),
         ("m1", (code_momentum, ["momentum_1"], r"$m_1$")),
