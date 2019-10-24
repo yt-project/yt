@@ -22,6 +22,7 @@ from yt.units import dimensions
 class AMRVACFieldInfo(FieldInfoContainer):
     code_density = "code_mass / code_length**3"
     code_momentum = "code_mass / code_length**2 / code_time"
+    code_energy = "code_mass * code_length**2 / code_time**2"
 
     # format: (native(?) field, (units, [aliases], display_name))
     known_other_fields = (
@@ -29,12 +30,10 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("m1", (code_momentum, ["momentum_1"], r"$m_1$")),
         ("m2", (code_momentum, ["momentum_2"], r"$m_2$")),
         ("m3", (code_momentum, ["momentum_3"], r"$m_3$")),
-
-        # TODO: check bellow
-        ("e", ("code_energy", ["energy"], r"$e$")),
-        ("b1", ("code_margnetic", [], r"$B_1$")),
-        ("b2", ("code_margnetic", [], r"$B_2$")),
-        ("b3", ("code_margnetic", [], r"$B_3$"))
+        ("e", (code_energy, ["energy"], r"$e$")),
+        ("b1", ("code_magnetic", ["magnetic_1"], r"$B_1$")),
+        ("b2", ("code_magnetic", ["magnetic_2"], r"$B_2$")),
+        ("b3", ("code_magnetic", ["magnetic_3"], r"$B_3$"))
     )
 
     known_particle_fields = ()
