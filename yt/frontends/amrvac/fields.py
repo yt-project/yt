@@ -15,6 +15,8 @@ AMRVAC-specific fields
 
 from yt.fields.field_info_container import \
     FieldInfoContainer
+from yt.fields.magnetic_field import setup_magnetic_field_aliases
+
 
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_length**2 * code_time**2)"
@@ -51,25 +53,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         super(AMRVACFieldInfo, self).__init__(ds, field_list)
 
     def setup_fluid_fields(self):
-        from yt.fields.magnetic_field import \
-            setup_magnetic_field_aliases
-
         # add primitive variables as custom fields
-        def _get_ekin(data):
-            ekin = 0.5 * data["amrvac", "m1"]**2 / data["amrvac", "rho"]
-            if self.ds.dimensionality > 1:
-                ekin = ekin + 0.5 * data["amrvac", "m2"] ** 2 / data["amrvac", "rho"]
-            if self.ds.dimensionality > 2:
-                ekin = ekin + 0.5 * data["amrvac", "m3"] ** 2 / data["amrvac", "rho"]
-            return ekin
-        def _get_emag(data):
-            emag = 0.5 * data["amrvac", "b1"]**2
-            if self.ds.dimensionality > 1:
-                emag = emag + 0.5 * data["amrvac", "b2"]**2
-            if self.ds.dimensionality > 2:
-                emag = emag + 0.5 * data["amrvac", "b3"]**2
-            return emag
-
         def _velocity1(field, data):
             return data["amrvac", "m1"] / data["amrvac", "rho"]
         def _velocity2(field, data):
@@ -77,20 +61,19 @@ class AMRVACFieldInfo(FieldInfoContainer):
         def _velocity3(field, data):
             return data["amrvac", "m3"] / data["amrvac", "rho"]
 
-        self.alias(("gas", "temperature"), ("amrvac", "temperature"), units="")
         # velocity fields
         self.add_field(("amrvac", "velocity_1"), sampling_type="cell",
                        function=_velocity1, units="")
-        self.alias(("amrvac", "v1"), ("amrvac", "velocity_1"), units="")
+        self.alias(("amrvac", "v1"), ("amrvac", "velocity_1"), units="") # missing units
+
         if ("amrvac", "m2") in self.field_list:
             self.add_field(("amrvac", "velocity_2"), sampling_type="cell",
-                           function=_velocity2, units="")
-            self.alias(("amrvac", "v2"), ("amrvac", "velocity_2"), units="")
+                           function=_velocity2, units="") # missing units
+            self.alias(("amrvac", "v2"), ("amrvac", "velocity_2"), units="") # missing units
         if ("amrvac", "m3") in self.field_list:
             self.add_field(("amrvac", "velocity_3"), sampling_type="cell",
-                           function=_velocity3, units="")
-            self.alias(("amrvac", "v3"), ("amrvac", "velocity_3"), units="")
-        self.alias(("gas", "total_energy"), ("amrvac", "total_energy"), units="")
+                           function=_velocity3, units="") # missing units
+            self.alias(("amrvac", "v3"), ("amrvac", "velocity_3"), units="") # missing units
 
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
 
