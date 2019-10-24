@@ -1,8 +1,6 @@
 """
 AMRVAC-specific fields
 
-
-
 """
 
 #-----------------------------------------------------------------------------
@@ -16,7 +14,7 @@ AMRVAC-specific fields
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
-
+from yt.units import dimensions
 
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
@@ -41,34 +39,13 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     known_particle_fields = ()
 
-    def __init__(self, ds, field_list):
-        super(AMRVACFieldInfo, self).__init__(ds, field_list)
-
     def setup_fluid_fields(self):
-        # add primitive variables as custom fields
-        #def _velocity1(field, data):
-        #    return data["amrvac", "m1"] / data["amrvac", "rho"]
-        #def _velocity2(field, data):
-        #    return data["amrvac", "m2"] / data["amrvac", "rho"]
-        #def _velocity3(field, data):
-        #    return data["amrvac", "m3"] / data["amrvac", "rho"]
 
-        # velocity fields
-        #self.add_field(("amrvac", "velocity_1"), sampling_type="cell",
-        #               function=_velocity1, units="code_velocity")
-        #self.alias(("amrvac", "v1"), ("amrvac", "velocity_1"), units="code_velocity") # missing units
+        def _velocity1(field, data):
+            return data["gas", "momentum_1"] / data["gas", "density"]
 
-        #if ("amrvac", "m2") in self.field_list:
-        #    self.add_field(("amrvac", "velocity_2"), sampling_type="cell",
-        #                   function=_velocity2, units="") # missing units
-        #    self.alias(("amrvac", "v2"), ("amrvac", "velocity_2"), units="") # missing units
-        #if ("amrvac", "m3") in self.field_list:
-        #    self.add_field(("amrvac", "velocity_3"), sampling_type="cell",
-        #                   function=_velocity3, units="") # missing units
-        #    self.alias(("amrvac", "v3"), ("amrvac", "velocity_3"), units="") # missing units
+        self.add_field(("gas", "v1"), function=_velocity1,
+                        display_name=r"$v_1$",
+                        units="auto", dimensions=dimensions.velocity, sampling_type="cell")
 
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
-
-
-    def setup_particle_fields(self, ptype):
-        super(AMRVACFieldInfo, self).setup_particle_fields(ptype)
