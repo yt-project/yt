@@ -50,7 +50,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         for idir, func in zip("123", (_v1, _v2, _v3)):
             if not ("amrvac", "m%s" % idir) in self.field_list:
                 break
-            self.add_field(("gas", "v%s" % idir), function=func,
+            self.add_field(("gas", "velocity_%s" % idir), function=func,
                             display_name=r"$v_%s$" % idir,
                             units="auto", dimensions=dimensions.velocity, sampling_type="cell")
 
