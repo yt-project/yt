@@ -18,20 +18,9 @@ from yt.fields.field_info_container import \
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 
 
-rho_units = "code_mass / code_length**3"
-mom_units = "code_mass / (code_length**2 * code_time**2)"
-pres_units = "code_mass / (code_length * code_time**2)"
-b_units   = "code_magnetic"
-erg_units = "code_mass * (code_length/code_time)**2"
-
-# adiabatic constant for non HD/MHD datasets, used in the EoS for pressure
-adiab_cte = 1.0
-
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
 # optionally methods on it that get called which can be subclassed.
-
-
 class AMRVACFieldInfo(FieldInfoContainer):
     code_momentum = "code_density * code_velocity"
 
