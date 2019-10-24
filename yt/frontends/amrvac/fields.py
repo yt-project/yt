@@ -41,11 +41,19 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
 
-        def _velocity1(field, data):
-            return data["gas", "momentum_1"] / data["gas", "density"]
 
-        self.add_field(("gas", "v1"), function=_velocity1,
-                        display_name=r"$v_1$",
-                        units="auto", dimensions=dimensions.velocity, sampling_type="cell")
+        def _v1(field, data):
+            return data["gas", "momentum_1"] / data["gas", "density"]
+        def _v2(field, data):
+            return data["gas", "momentum_2"] / data["gas", "density"]
+        def _v3(field, data):
+            return data["gas", "momentum_3"] / data["gas", "density"]
+
+        for idir, func in zip("123", (_v1, _v2, _v3)):
+            if not ("amrvac", "m%s" % idir) in self.field_list:
+                break
+            self.add_field(("gas", "v%s" % idir), function=func,
+                            display_name=r"$v_%s$" % idir,
+                            units="auto", dimensions=dimensions.velocity, sampling_type="cell")
 
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
