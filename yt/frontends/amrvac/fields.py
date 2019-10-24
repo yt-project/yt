@@ -22,11 +22,12 @@ from yt.fields.magnetic_field import setup_magnetic_field_aliases
 # container subclass here will define which fields it knows about.  There are
 # optionally methods on it that get called which can be subclassed.
 class AMRVACFieldInfo(FieldInfoContainer):
+    code_density = "code_mass / code_length**3"
     code_momentum = "code_density * code_velocity"
 
     # format: (native(?) field, (units, [aliases], display_name))
     known_other_fields = (
-        ("rho", ("code_density", ["density"], r"$\rho$")),
+        ("rho", (code_density, ["density"], r"$\rho$")),
         ("m1", (code_momentum, ["momentum_1"], r"$m_1$")),
         ("m2", (code_momentum, ["momentum_2"], r"$m_2$")),
         ("m3", (code_momentum, ["momentum_3"], r"$m_3$")),
