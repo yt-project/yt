@@ -52,6 +52,9 @@ def test_geo_slices_amr():
         if transform == 'UTM':
             # requires additional argument so we skip
             continue
+        if transform == 'OSNI':
+            # avoid crashes, see https://github.com/SciTools/cartopy/issues/1177
+            continue
         for field in ds.field_list:
             prefix = "%s_%s_%s" % (field[0], field[1], transform)
             yield compare(ds, field, 'altitude', test_prefix=prefix,
