@@ -19,18 +19,26 @@ from yt.units import dimensions
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
 # optionally methods on it that get called which can be subclassed.
+
+direction_aliases = {
+    "cartesian": ("x", "y", "z"),
+    "polar": ("r", "theta", "z"),
+    "cylindrical": ("r", "z", "theta"),
+    "spherical": ("r", "theta", "phi")
+}
+
 class AMRVACFieldInfo(FieldInfoContainer):
     code_density = "code_mass / code_length**3"
-    code_momentum = "code_mass / code_length**2 / code_time"
+    code_moment = "code_mass / code_length**2 / code_time"
     code_energy = "code_mass * code_length**2 / code_time**2"
 
     # format: (native(?) field, (units, [aliases], display_name))
     # note: aliases will correspond to "gas" typed fields, whereas the native ones are "amrvac" typed
     known_other_fields = (
         ("rho", (code_density, ["density"], r"$\rho$")),
-        ("m1", (code_momentum, ["momentum_1"], r"$m_1$")),
-        ("m2", (code_momentum, ["momentum_2"], r"$m_2$")),
-        ("m3", (code_momentum, ["momentum_3"], r"$m_3$")),
+        ("m1", (code_moment, ["moment_1"], r"$m_1$")),
+        ("m2", (code_moment, ["moment_2"], r"$m_2$")),
+        ("m3", (code_moment, ["moment_3"], r"$m_3$")),
         ("e", (code_energy, ["energy"], r"$e$")),
         ("b1", ("code_magnetic", ["magnetic_1"], r"$B_1$")),
         ("b2", ("code_magnetic", ["magnetic_2"], r"$B_2$")),
@@ -41,17 +49,24 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         def _v1(field, data):
-            return data["gas", "momentum_1"] / data["gas", "density"]
+            return data["gas", "moment_1"] / data["gas", "density"]
         def _v2(field, data):
-            return data["gas", "momentum_2"] / data["gas", "density"]
+            return data["gas", "moment_2"] / data["gas", "density"]
         def _v3(field, data):
-            return data["gas", "momentum_3"] / data["gas", "density"]
+            return data["gas", "moment_3"] / data["gas", "density"]
 
-        for idir, func in zip("123", (_v1, _v2, _v3)):
+        unit_system = self.ds.unit_system
+        aliases = direction_aliases[self.ds.geometry]
+        for idir, alias, func in zip("123", aliases, (_v1, _v2, _v3)):
             if not ("amrvac", "m%s" % idir) in self.field_list:
                 break
-            self.add_field(("gas", "velocity_%s" % idir), function=func,
-                            display_name=r"$v_%s$" % idir,
+            self.add_field(("gas", "velocity_%s" % alias), function=func,
+                            display_name=r"$v_%s$" % alias,
                             units="auto", dimensions=dimensions.velocity, sampling_type="cell")
+            self.alias(("gas", "velocity_%s" % idir), ("gas", "velocity_%s" % alias),
+                        units=unit_system["velocity"])
+            self.alias(("gas", "moment_%s" % alias), ("gas", "moment_%s" % idir),
+                        units=unit_system["density"]*unit_system["velocity"])
+
 
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
