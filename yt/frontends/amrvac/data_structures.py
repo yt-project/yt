@@ -244,7 +244,7 @@ class AMRVACDataset(Dataset):
         setdefaultattr(self, "mass_unit", self.quan(1, "g"))
         setdefaultattr(self, "time_unit", self.quan(1, "s"))
 
-        setdefaultattr(self, "velocity_unit", self.length_unit/self.time_unit)
+        setdefaultattr(self, "velocity_unit", self.quan(self.length_unit/self.time_unit, "cm*s**-1"))
         setdefaultattr(self, "density_unit", self.quan(self.mass_unit/self.length_unit**3, "g*cm**-3"))
         setdefaultattr(self, "numberdensity_unit", self.quan(self.length_unit**-3, "cm**-3"))
 
