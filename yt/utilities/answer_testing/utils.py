@@ -36,7 +36,7 @@ def array_to_hash(d):
     for k, v in d.items():
         if isinstance(v, dict) or isinstance(v, OrderedDict):
             array_to_hash(v)
-        else:
+        elif not isinstance(v, str):
             d[k] = generate_hash(v)
     return d
 
