@@ -42,7 +42,7 @@ class AnswerTest():
     # grid_hierarchy_test
     #-----
     def grid_hierarchy_test(self, ds):
-        result = OrderedDict()
+        result = {}
         result['grid_dimensions'] = ds.index.grid_dimensions
         result['grid_left_edge'] = ds.index.grid_left_edge
         result['grid_right_edge'] = ds.index.grid_right_edge
@@ -72,7 +72,7 @@ class AnswerTest():
     # grid_values_test
     #-----
     def grid_values_test(self, ds, field):
-        result = OrderedDict()
+        result = {}
         for g in ds.index.grids:
             result[g.id] = g[field]
             g.clear_data()
@@ -194,17 +194,8 @@ class AnswerTest():
     #-----
     # small_patch_amr
     #-----
-    def small_patch_amr(self, ds, fields, weights, axes, ds_objs):
-        # Set up keys of test names
-        test_keys = ['grid_hierarchy',
-            'parentage_relationships',
-            'grid_values',
-            'projection_values',
-            'field_values'
-        ]
-        # Create nested dictionary for saving all test results in the
-        # same file
-        hex_digests = OrderedDict()
+    def small_patch_amr(self, ds, field, weight, axis, ds_obj):
+        hex_digests = {} 
         # Grid hierarchy test
         gh_hd = self.grid_hierarchy_test(ds)
         hex_digests['grid_hierarchy'] = gh_hd
@@ -212,37 +203,19 @@ class AnswerTest():
         pr_hd = self.parentage_relationships_test(ds)
         hex_digests['parentage_relationships'] = pr_hd
         # Grid values, projection values, and field values tests
-        for t in test_keys[2:]:
-            hex_digests[t] = OrderedDict() 
-        for f in fields:
-            gv_hd = self.grid_values_test(ds, f)
-            hex_digests['grid_values'][f] = gv_hd
-            hex_digests['field_values'][f] = OrderedDict()
-            hex_digests['projection_values'][f] = OrderedDict()
-            for dobj in ds_objs:
-                fv_hd = self.field_values_test(ds,f,dobj)
-                hex_digests['field_values'][f][dobj] = fv_hd
-                hex_digests['projection_values'][f][dobj] = OrderedDict()
-                for a in axes:
-                    hex_digests['projection_values'][f][dobj][a] = OrderedDict()
-                    for w in weights:
-                        pv_hd = self.projection_values_test(ds, a, f, w, dobj)
-                        hex_digests['projection_values'][f][dobj][a][w] = pv_hd
+        gv_hd = self.grid_values_test(ds, field)
+        hex_digests['grid_values'] = gv_hd
+        fv_hd = self.field_values_test(ds, field, ds_obj)
+        hex_digests['field_values'] = fv_hd
+        pv_hd = self.projection_values_test(ds, axis, field, weight, ds_obj)
+        hex_digests['projection_values'] = pv_hd
         return hex_digests
 
     #-----
     # big_patch_amr
     #-----
-    def big_patch_amr(self, ds, fields, weights, axes, ds_objs):
-        # Set up keys of test names
-        test_keys = ['grid_hierarchy',
-            'parentage_relationships',
-            'grid_values',
-            'pixelized_projection_values',
-        ]
-        # Create nested dictionary for saving all test results in the
-        # same file
-        hex_digests = OrderedDict()
+    def big_patch_amr(self, ds, field, weight, axis, ds_obj):
+        hex_digests = {} 
         # Grid hierarchy test
         gh_hd = self.grid_hierarchy_test(ds)
         hex_digests['grid_hierarchy'] = gh_hd
@@ -250,25 +223,10 @@ class AnswerTest():
         pr_hd = self.parentage_relationships_test(ds)
         hex_digests['parentage_relationships'] = pr_hd
         # Grid values, projection values, and field values tests
-        for t in test_keys[2:]:
-            hex_digests[t] = OrderedDict() 
-        # Grid values and pixelized projection values tests
-        # For these tests it might be possible for a frontend to not
-        # run them for every field, axis, or data source, so the tests
-        # are written to work with one instance of each of those. These
-        # loops therefore combine the results of each desired combo.
-        # This mirrors the way that it was done in the original test
-        for f in fields:
-            gv_hd = self.grid_values_test(ds, f)
-            hex_digests['grid_values'][f] = gv_hd
-            hex_digests['pixelized_projection_values'][f] = OrderedDict()
-            for a in axes:
-                hex_digests['pixelized_projection_values'][f][a] = OrderedDict()
-                for dobj in ds_objs:
-                    hex_digests['pixelized_projection_values'][f][a][dobj] = OrderedDict()
-                    for w in weights:
-                        ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, dobj)
-                        hex_digests['pixelized_projection_values'][f][a][dobj][w] = ppv_hd 
+        gv_hd = self.grid_values_test(ds, field)
+        hex_digests['grid_values'] = gv_hd
+        ppv_hd = self.pixelized_projection_values_test(ds, axis, field, weight, ds_obj)
+        hex_digests['pixelized_projection_values'] = ppv_hd 
         return hex_digests
 
     #-----
@@ -284,41 +242,30 @@ class AnswerTest():
     #-----
     # sph_answer
     #-----
-    def sph_answer(self, ds, ds_str_repr, ds_nparticles, fields):
+    def sph_answer(self, ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
         # Make sure we're dealing with the right dataset
         assert str(ds) == ds_str_repr
         # Set up keys of test names
-        hex_digests = OrderedDict()
-        hex_digests['pixelized_projection_values'] = OrderedDict()
-        hex_digests['field_values'] = OrderedDict()
-        # Set up data objects to test with
-        dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
+        hex_digests = {} 
         dd = ds.all_data()
         assert dd["particle_position"].shape == (ds_nparticles, 3)
         tot = sum(dd[ptype, "particle_position"].shape[0]
                   for ptype in ds.particle_types if ptype != "all")
         # Check
         assert tot == ds_nparticles
-        for d in dso:
-            hex_digests['pixelized_projection_values'][d] = OrderedDict()
-            hex_digests['field_values'][d] = OrderedDict()
-            dobj = utils.create_obj(ds, d)
-            s1 = dobj["ones"].sum()
-            s2 = sum(mask.sum() for block, mask in dobj.blocks)
-            assert s1 == s2
-            for f, weight_field in fields.items():
-                hex_digests['pixelized_projection_values'][d][f[1]] = OrderedDict()
-                hex_digests['field_values'][d][f[1]] = OrderedDict()
-                if f[0] in ds.particle_types:
-                    particle_type = True
-                else:
-                    particle_type = False
-                for a in [0, 1, 2]:
-                    if particle_type is False:
-                        ppv_hd = self.pixelized_projection_values_test(ds, a, f, weight_field, d)
-                        hex_digests['pixelized_projection_values'][d][f[1]][a] = ppv_hd
-                fv_hd = self.field_values_test(ds, f, d, particle_type=particle_type)
-                hex_digests['field_values'][d][f[1]] = fv_hd
+        dobj = utils.create_obj(ds, d)
+        s1 = dobj["ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        assert s1 == s2
+        if f[0] in ds.particle_types:
+            particle_type = True
+        else:
+            particle_type = False
+        if particle_type is False:
+            ppv_hd = self.pixelized_projection_values_test(ds, axis, field, weight, ds_obj)
+            hex_digests['pixelized_projection_values'] = ppv_hd
+        fv_hd = self.field_values_test(ds, field, ds_obj, particle_type=particle_type)
+        hex_digests['field_values'] = fv_hd
         return hex_digests
 
     #-----
