@@ -26,7 +26,7 @@ def pytest_generate_tests(metafunc):
         fields = ("density", "velocity_magnitude", "magnetic_field_x")
         metafunc.parametrize('a', axes, ids=['0', '1', '2'])
         metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None' 'density'])
+        metafunc.parametrize('w', weights, ids=['None', 'density'])
         metafunc.parametrize('f', fields, ids=['density', 'velocity_magnitude',
             'magnetic_field_x'])
     if metafunc.function.__name__ == 'test_zp':
@@ -37,7 +37,7 @@ def pytest_generate_tests(metafunc):
         fields = ("rhs", "phi")
         metafunc.parametrize('a', axes, ids=['0', '1', '2'])
         metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None' 'rhs'])
+        metafunc.parametrize('w', weights, ids=['None', 'rhs'])
         metafunc.parametrize('f', fields, ids=['rhs', 'phi'])
 
 
