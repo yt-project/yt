@@ -41,7 +41,7 @@ class TestArt(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(d9p)
-    def test_d9p(self, field, d, a, w, ds_d9p):
+    def test_d9p(self, f, d, a, w, ds_d9p):
         """
         Parameters:
         -----------
@@ -74,7 +74,7 @@ class TestArt(fw.AnswerTest):
         reason="Skipping test_jet because --answer-big-data was not set."
     )
     @utils.requires_ds(d9p)
-    def test_d9p(self, ds_d9p):
+    def test_d9p_no_params(self, ds_d9p):
         """
         Parameters:
         -----------

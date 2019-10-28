@@ -20,7 +20,7 @@ def pytest_generate_tests(metafunc):
             ("all", "particle_position_x")
         )
         dso = [None, ("sphere", ("max", (0.1, 'unitary')))]
-        metafunc.parametrize('field', fields, ids=['density', 'temperature',
+        metafunc.parametrize('f', fields, ids=['density', 'temperature',
             'particle_mass', 'x'])
         metafunc.parametrize('d', dso, ids=['None', 'sphere'])
         metafunc.parametrize('a', [0, 1, 2], ids=['0', '1', '2'])
