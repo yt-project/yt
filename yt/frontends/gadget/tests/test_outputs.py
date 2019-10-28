@@ -92,8 +92,8 @@ class TestGadget(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(isothermal_h5)
-    def test_iso_collapse(self, f, w, ds_isothermal_h5):
-        self.hashes.update(self.sph_answer(ds_isothermal_h5, 'snap_505', 2**17, f, w))
+    def test_iso_collapse(self, f, w, d, a, ds_isothermal_h5):
+        self.hashes.update(self.sph_answer(ds_isothermal_h5, 'snap_505', 2**17, f, w, d, a))
 
     #-----
     # test_pid_uniqueness
