@@ -71,6 +71,29 @@ def generate_hash(data):
 
 
 #============================================
+#               log_test_error
+#============================================
+def log_test_error(func_name, test_params, param, saved_hashes, e):
+    """
+    Logs the answer test error by saving the relevant information for
+    both the saved and obtained tests.
+
+    Parameters:
+    -----------
+        pass
+
+    Raises:
+    -------
+        pass
+
+    Returns:
+    --------
+        pass
+    """
+    pass
+
+
+#============================================
 #               handle_hashes
 #============================================
 def handle_hashes(save_dir_name, fname, hashes, answer_store):
@@ -99,11 +122,18 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
     else:
         with open(fname, 'r') as f:
             saved_hashes = yaml.load(f)
-        # The answer file contains all answers for a given test class,
-        # but it's possible that the user isn't running every test
-        # so we do a lookup
-        for k, v in hashes.items():
-            assert hashes[k] == saved_hashes[k]
+        # The layout of the answer file is:
+        # {functionName : {param1 : val1, param2 : val2, ...}, functionName2 : {...}}
+        # Since dicts are being used we can't bank on the test parameters being in
+        # the same order in the file and the hashes dict. OrderedDicts are not used
+        # because there's a bug in pyyaml with duplicate anchors. It's also harder
+        # to read
+        for func_name, test_vals in hashes.items():
+            for test_param, val in test_vals.items():
+                try:
+                    assert val == saved_hashes[func_name][test_param]
+                except (AssertionError, KeyError) as e:
+                    log_test_error(func_name, test_vals, test_param, saved_hashes, e)
 
 
 #============================================
