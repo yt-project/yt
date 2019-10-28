@@ -40,7 +40,7 @@ def pytest_generate_tests(metafunc):
                 [("deposit", "all_cic_velocity_z") , ("deposit", "all_cic")]
         ]
         dso = [None, ('sphere', ('c', (0.1, 'unitary')))]
-        metafunc.parametrize('f, w', [(k, v) for k, v in fid_1to3_b1_fields.items()],
+        metafunc.parametrize('f, w', [(pair[0], pair[1]) for pair in fid_1to3_b1_fields],
             ids=['all_dens', 'all_count', 'all_cic', 'all_cic_vx', 'all_cic_vy', 'all_cic_vz'])
         metafunc.parametrize('d', dso, ids=['None', 'sphere'])
         metafunc.parametrize('a', [0, 1, 2], ids=['0', '1', '2'])
