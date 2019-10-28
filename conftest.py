@@ -153,8 +153,8 @@ def hashing(request):
     # frontends
     for key, val in request.node.funcargs.items():
         if key in args and not key.startswith('ds_'):
-            params[key] = val
-    request.cls.hashes.update(params)
+            test_params[key] = val
+    request.cls.hashes.update(test_params)
     # Hash the arrays 
     hashes = utils.array_to_hash(request.cls.hashes)
     # Finalize by adding the function name as a key
