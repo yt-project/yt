@@ -30,9 +30,11 @@ weights = [None, "density"]
 def pytest_generate_tests(metafunc):
     amr_tests = ['test_toro1d', 'test_kh2d', 'test_moving7', 'test_galaxy0030']
     if metafunc.function.__name__ == 'test_toro1d':
-        fields = ds_toro1d.field_list
+        ds = utils.data_dir_load(toro1d)
+        fields = ds.field_list
     if metafunc.function.__name__ == 'test_kh2d':
-        fields = ds_kh2d.field_list
+        ds = utils.data_dir_load(kh2d)
+        fields = ds.field_list
     if metafunc.function.__name__ == 'test_moving7':
         fields = ("temperature", "density", "velocity_magnitude",
             "velocity_divergence"
