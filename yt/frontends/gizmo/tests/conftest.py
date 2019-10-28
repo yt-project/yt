@@ -13,23 +13,26 @@ gmhd = "gizmo_mhd_mwdisk/gizmo_mhd_mwdisk.hdf5"
 g64 = "gizmo_64/output/snap_N64L16_135.hdf5"
 
 
-fields = {
-        ("gas", "density"): None,
-        ("gas", "temperature"): ('gas', 'density'),
-        ("gas", "metallicity"): ('gas', 'density'),
-        ("gas", "O_metallicity"): ('gas', 'density'),
-        ('gas', 'velocity_magnitude'): None,
-        ("deposit", "all_count"): None,
-        ("deposit", "all_cic"): None,
-        ("deposit", "PartType0_density"): None
-    }
+fields = [
+        [("gas", "density"), None],
+        [("gas", "temperature"), ('gas', 'density')],
+        [("gas", "metallicity"), ('gas', 'density')],
+        [("gas", "O_metallicity"), ('gas', 'density')],
+        [('gas', 'velocity_magnitude'), None],
+        [("deposit", "all_count"), None],
+        [("deposit", "all_cic"), None],
+        [("deposit", "PartType0_density"), None]
+    ]
+dso = [None, ('sphere', ('c', (0.1, 'unitary')))]
 
 
 def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ == 'test_gizmo_64':
-        metafunc.parametrize('f, w', [(k, v) for k, v in fields.items()],
+        metafunc.parametrize('f, w', [(pair[0], pair[1]) for pair in fields],
             ids=['dens', 'temp', 'metallicity', 'O_metallicity', 'velocity_magnitude',
             'all_count', 'all_cic', 'PartType0Dens'])
+        metafunc.parametrize('d', dso, ids=['None', 'sphere'])
+        metafunc.parametrize('a', [0, 1, 2], ids=['0', '1', '2'])
 
 @pytest.fixture(scope='class')
 def ds_gmhd():

@@ -39,8 +39,8 @@ class TestGizmo(fw.AnswerTest):
     )
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g64)
-    def test_gizmo_64(self, f, w, ds_64):
-        self.hashes.update(self.sph_answer(ds_64, 'snap_N64L16_135', 524288, f, w))
+    def test_gizmo_64(self, f, w, d, a, ds_64):
+        self.hashes.update(self.sph_answer(ds_64, 'snap_N64L16_135', 524288, f, w, d, a))
 
     #-----
     # test_gizmo_mhd
