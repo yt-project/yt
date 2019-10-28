@@ -17,14 +17,14 @@ _fields = (("deposit", "all_density"),
            ("deposit", "all_count"),
            ("deposit", "DarkMatter_density"),
 )
-tg_fields = {
-        ('gas', 'density'): None,
-        ('gas', 'temperature'): None,
-        ('gas', 'temperature'): ('gas', 'density'),
-        ('gas', 'velocity_magnitude'): None,
-        ('gas', 'Fe_fraction'): None,
-        ('Stars', 'Metals'): None
-    }
+tg_fields = [
+        [('gas', 'density'), None],
+        [('gas', 'temperature'), None],
+        [('gas', 'temperature'), ('gas', 'density')],
+        [('gas', 'velocity_magnitude'), None],
+        [('gas', 'Fe_fraction'), None],
+        [('Stars', 'Metals'), None]
+    ]
 
 
 def pytest_generate_tests(metafunc):
@@ -38,7 +38,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('w', weights, ids=['None'])
     if metafunc.function.__name__ == 'test_tipsy_galaxy':
         dso = [None, ('sphere', ('c', (0.1, 'unitary')))]
-        metafunc.parametrize('f,w', [(k,v) for k, v in tg_fields.items()],
+        metafunc.parametrize('f,w', [(pair[0], pair[1]) for pair in tg_fields],
             ids=['dens', 'temp-None', 'temp-dens', 'velocity_magnitude',
             'Fe_fraction', 'Metals'])
         metafunc.parametrize('d', dso, ids=['None', 'sphere'])
