@@ -168,8 +168,9 @@ class AMRVACDataset(Dataset):
         self.dimensionality = self.parameters['ndim']
 
         # force 3D for this definition
-        self.domain_dimensions = np.ones(3, dtype="int64")
-        self.domain_dimensions[:self.dimensionality] = self.parameters['domain_nx']
+        dd = np.ones(3, dtype="int64")
+        dd[:self.dimensionality] = self.parameters['domain_nx']
+        self.domain_dimensions = dd
 
         # the following parameters may not be present in the datfile,
         # dependending on format version
