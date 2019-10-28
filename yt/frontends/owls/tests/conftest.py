@@ -28,10 +28,10 @@ dso = [None, ('sphere', ('c', (0.1, 'unitary')))]
 
 def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ == 'test_snapshot_033':
-        metafunc.parametrize('f,w', [(pair[0], pair[1]) for pair in _fields],
+        metafunc.parametrize('f, w', [(pair[0], pair[1]) for pair in _fields],
             ids=['dens', 'temp-None', 'temp-dens', 'He_p0_number_density',
-            'velocity_magnitude', 'all_density', 'all_cic', 'PartType0Dens',
-            'PartType4Dens'])
+            'velocity_magnitude', 'all_density', 'all_count', 'all_cic',
+            'PartType0Dens', 'PartType4Dens'])
         metafunc.parametrize('d', dso, ids=['None', 'sphere'])
         metafunc.parametrize('a', [0, 1, 2], ids=['0', '1', '2'])
 
