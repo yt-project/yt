@@ -487,3 +487,20 @@ class yaml_imports(object):
         return self._FullLoader
 
 _yaml = yaml_imports()
+
+
+class f90nml_imports(object):
+    _name = "f90nml"
+    _module = None
+
+    def __init__(self):
+        try:
+            import f90nml as myself
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+_f90nml = f90nml_imports()
