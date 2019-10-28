@@ -125,10 +125,9 @@ class AMRVACDataset(Dataset):
     _field_info_class = AMRVACFieldInfo
 
     def __init__(self, filename, dataset_type='amrvac',
-                units_override=None, unit_system="code",
+                units_override=None, unit_system="cgs",
                 geometry_override=None):
-        # note: defaulting unit_system to "code" is not yt's norm but better suits the AMRVAC community's usual workflow
-        # note2: geometry_override is specific to this frontend
+        # note: geometry_override is specific to this frontend
 
         self._geometry_override = geometry_override
         super(AMRVACDataset, self).__init__(filename, dataset_type,
