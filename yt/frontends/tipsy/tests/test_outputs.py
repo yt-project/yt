@@ -87,8 +87,8 @@ class TestTipsy(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(tipsy_gal)
-    def test_tipsy_galaxy(self, f, w, ds_tipsy_gal):
-        self.hashes.update(self.sph_answer(ds_tipsy_gal, 'galaxy.00300', 315372, f, w))
+    def test_tipsy_galaxy(self, f, w, d, a, ds_tipsy_gal):
+        self.hashes.update(self.sph_answer(ds_tipsy_gal, 'galaxy.00300', 315372, f, w, d, a))
 
     #-----
     # test_TipsyDataset

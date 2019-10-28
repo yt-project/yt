@@ -25,21 +25,24 @@ tg_fields = {
         ('gas', 'Fe_fraction'): None,
         ('Stars', 'Metals'): None
     }
-dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
-axes = [0, 1, 2]
-weights = [None]
 
 
 def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ in ['test_pkdgrav', 'test_gasoline_dm_only']:
+        dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
+        axes = [0, 1, 2]
+        weights = [None]
         metafunc.parametrize('f', _fields, ids=['all_density', 'all_count', 'DM_density'])
         metafunc.parametrize('a', axes, ids=['0', '1', '2'])
         metafunc.parametrize('d', dso, ids=['None', 'sphere'])
         metafunc.parametrize('w', weights, ids=['None'])
     if metafunc.function.__name__ == 'test_tipsy_galaxy':
+        dso = [None, ('sphere', ('c', (0.1, 'unitary')))]
         metafunc.parametrize('f,w', [(k,v) for k, v in tg_fields.items()],
             ids=['dens', 'temp-None', 'temp-dens', 'velocity_magnitude',
             'Fe_fraction', 'Metals'])
+        metafunc.parametrize('d', dso, ids=['None', 'sphere'])
+        metafunc.parametrize('a', [0, 1, 2], ids=['0', '1', '2'])
 
 
 @pytest.fixture(scope='class')
