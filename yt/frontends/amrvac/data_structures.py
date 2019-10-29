@@ -29,6 +29,9 @@ from yt.funcs import \
     setdefaultattr
 from yt.data_objects.static_output import \
    Dataset
+from yt.utilities.physical_constants import \
+    mass_hydrogen_cgs, \
+    boltzmann_constant_cgs
 
 from .fields import AMRVACFieldInfo
 from .datfile_utils import get_header, get_tree_info
@@ -130,7 +133,6 @@ class AMRVACDataset(Dataset):
                 units_override=None, unit_system="cgs",
                 geometry_override=None):
         # note: geometry_override is specific to this frontend
-
         self._geometry_override = geometry_override
         super(AMRVACDataset, self).__init__(filename, dataset_type,
                                             units_override=units_override, unit_system=unit_system)
@@ -250,16 +252,69 @@ class AMRVACDataset(Dataset):
         # This is the reason why it uses setdefaultattr: it will only fill the gaps lefts by the "override",
         # instead of overriding them again
 
-        setdefaultattr(self, "length_unit", self.quan(1, "cm"))
-        setdefaultattr(self, "mass_unit", self.quan(1, "g"))
-        setdefaultattr(self, "time_unit", self.quan(1, "s"))
+        # check for inconsistencies between override_units and amrvac normalisations
+        self._check_override_units_amrvac()
 
-        # derived units
-        setdefaultattr(self, "velocity_unit", self.quan(self.length_unit/self.time_unit))
-        setdefaultattr(self, "density_unit", self.quan(self.mass_unit/self.length_unit**3))
-        setdefaultattr(self, "numberdensity_unit", self.quan(self.length_unit**-3))
+        # First check if overrides have been supplied, if that's the case use those instead.
+        # If not, use AMRVAC default values.
+        # Assume cgs values and let YT handle conversion if supplied in an 'mks' unit system.
+        length_override = self.units_override.get('length_unit', (1, 'cm'))
+        numberdensity_override = self.units_override.get('numberdensity_unit', (1, 'cm**-3'))
+        velocity_override = self.units_override.get('velocity_unit', (0, 'cm*s**-1'))
+        temperature_override = self.units_override.get('temperature_unit', (1, 'K'))
+        mylog.info('Overriding numberdensity_unit: {:1.0e} {}.'.format(*numberdensity_override))
 
-        # TODO: check this
-        setdefaultattr(self, "temperature_unit", self.quan(1, "K"))
-        setdefaultattr(self, "pressure_unit", self.quan(1, "dyn*cm**-2"))
-        setdefaultattr(self, "magnetic_unit", self.quan(1, "gauss"))
+        # Create YT quantities
+        length_unit = self.quan(*length_override)
+        numberdensity_unit = self.quan(*numberdensity_override)
+        temperature_unit = self.quan(*temperature_override)
+        velocity_unit = self.quan(*velocity_override)
+
+        He_abundance = 0.1  # hardcoded parameter in AMRVAC
+        density_unit = (1.0 + 4.0*He_abundance) * mass_hydrogen_cgs * numberdensity_unit
+        if velocity_unit.value == 0:
+            pressure_unit = ((2.0 + 3.0*He_abundance) *
+                             numberdensity_unit * boltzmann_constant_cgs  * temperature_unit).to('dyn*cm**-2')
+            velocity_unit = (np.sqrt(pressure_unit / density_unit)).to('cm*s**-1')
+        else:
+            pressure_unit = (density_unit * velocity_unit**2).to('dyn*cm**-2')
+            temperature_unit = (pressure_unit /
+                                ((2.0 + 3.0*He_abundance) * numberdensity_unit * boltzmann_constant_cgs)).to('K')
+        time_unit = length_unit / velocity_unit
+        mass_unit = density_unit * length_unit**3
+        magneticfield_unit = (np.sqrt(4*np.pi * pressure_unit)).to('gauss')
+
+        setdefaultattr(self, "length_unit", length_unit)
+        setdefaultattr(self, "mass_unit", mass_unit)
+        setdefaultattr(self, "time_unit", time_unit)
+
+        setdefaultattr(self, "velocity_unit", velocity_unit)
+        setdefaultattr(self, "density_unit", density_unit)
+        setdefaultattr(self, "numberdensity_unit", numberdensity_unit)
+
+        setdefaultattr(self, "temperature_unit", temperature_unit)
+        setdefaultattr(self, "pressure_unit", pressure_unit)
+        setdefaultattr(self, "magnetic_unit", magneticfield_unit)
+
+    def _check_override_units_amrvac(self):
+        # frontend specific method
+        # note: normalisations in AMRVAC have 3 degrees of freedom. The user can specify a unit length and unit
+        # numberdensity, with the third option either a unit temperature OR unit velocity.
+        # If unit temperature is specified then unit velocity will be calculated accordingly, and vice-versa.
+        # AMRVAC does not allow to specify any other normalisation beside those four.
+        # YT does support overriding other normalisations, this method checks for inconsistencies between
+        # supplied 'units_override' items and those allowed by AMRVAC.
+        if not self.units_override:
+            return
+
+        accepted_overrides = ['length_unit', 'numberdensity_unit', 'temperature_unit', 'velocity_unit']
+
+        # note: _override_code_units() has already been called, so self.units_override has been set
+        for unit_override_name in self.units_override:
+            if not unit_override_name in accepted_overrides:
+                raise ValueError('Only length, numberdensity, temperature or velocity are '
+                                 'accepted overrides for amrvac! ({} was supplied)'.format(unit_override_name))
+
+        if hasattr(self, 'temperature_unit') and hasattr(self, 'velocity_unit'):
+            raise ValueError('Both temperature and velocity have been supplied as overrides. '
+                             'Only one of them is allowed.')
