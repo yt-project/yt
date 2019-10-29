@@ -410,8 +410,7 @@ def create_vector_fields(registry, basename, field_units,
     else: # Create Cartesian fields for curvilinear coordinates
 
         def _cartesian_x(field,data):
-
-          if registry.ds.geometry is "polar":
+          if registry.ds.geometry == "polar":
 
             return data["%s_r" % basename] * np.cos(data["theta"])
 
@@ -442,7 +441,7 @@ def create_vector_fields(registry, basename, field_units,
 
         def _cartesian_y(field,data):
 
-          if registry.ds.geometry=="polar":
+          if registry.ds.geometry == "polar":
 
             return data["%s_r" % basename] * np.sin(data["theta"])
 
