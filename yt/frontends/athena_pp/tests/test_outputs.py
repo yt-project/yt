@@ -40,6 +40,7 @@ class TestAthenaPP(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(disk)
     def test_disk(self, field, ds_disk):
+        import pdb; pdb.set_trace()
         dd = ds_disk.all_data()
         vol = (ds_disk.domain_right_edge[0]**3-ds_disk.domain_left_edge[0]**3)/3.0
         vol *= np.cos(ds_disk.domain_left_edge[1])-np.cos(ds_disk.domain_right_edge[1])
@@ -47,7 +48,7 @@ class TestAthenaPP(fw.AnswerTest):
         assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
         def field_func(name):
             return dd[field]
-        ga_hd = self.generic_array_test(ds_disk, field_func, args=[field])
+        ga_hd = self.generic_array_test(field_func, args=[field])
         self.hashes.update({'generic_array' : ga_hd})
 
     #-----

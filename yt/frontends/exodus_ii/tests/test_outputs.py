@@ -94,5 +94,5 @@ class TestExodusII(fw.AnswerTest):
         for mesh in ds.index.meshes:
             def array_func(*args, **kwargs):
                 return mesh.connectivity_coords
-            ga_hd = self.generic_array_test(array_func, 12)
+            ga_hd = self.generic_array_test(array_func, args=[12])
             self.hashes.update({'generic_array' :  {str(mesh) : ga_hd}})

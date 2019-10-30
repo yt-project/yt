@@ -253,11 +253,11 @@ class AnswerTest():
                   for ptype in ds.particle_types if ptype != "all")
         # Check
         assert tot == ds_nparticles
-        dobj = utils.create_obj(ds, d)
+        dobj = utils.create_obj(ds, ds_obj)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert s1 == s2
-        if f[0] in ds.particle_types:
+        if field[0] in ds.particle_types:
             particle_type = True
         else:
             particle_type = False

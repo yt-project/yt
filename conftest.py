@@ -53,6 +53,11 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
     )
+    parser.addoption(
+        "--force-override-answers",
+        action="store_true",
+        default=False,
+    )
 
 
 #============================================
@@ -118,6 +123,15 @@ def answer_file(request):
     if request.cls is not None:
         if request.cls.__name__ in pytest.answer_files:
             request.cls.answer_file = pytest.answer_files[request.cls.__name__]
+            # Make sure we're not overwriting an existing answer set
+            if os.path.isfile(os.path.join(answer_dir, request.cls.answer_file)):
+                if request.config.getoption('--answer-store'):
+                    raise FileExistsError("Error, attempting to overwrite "
+                        "answer file {}. Either specify a new version or "
+                        "set the `--force-override-answers` option".format(
+                            request.cls.answer_file
+                        )
+                    )
         else:
             assert False
 

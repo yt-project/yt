@@ -36,7 +36,8 @@ def array_to_hash(d):
     for k, v in d.items():
         if isinstance(v, dict) or isinstance(v, OrderedDict):
             array_to_hash(v)
-        elif not isinstance(v, str):
+        # elif not isinstance(v, str):
+        else:
             d[k] = generate_hash(v)
     return d
 
@@ -67,7 +68,11 @@ def generate_hash(data):
     if isinstance(data, np.ndarray):
         # Sometimes md5 complains that the data is not contiguous
         data = np.ascontiguousarray(data)
-    return hashlib.md5(data).hexdigest()
+    try:
+        hd = hashlib.md5(data).hexdigest()
+    except TypeError:
+        hd = data.__repr__()
+    return hd
 
 
 #============================================
