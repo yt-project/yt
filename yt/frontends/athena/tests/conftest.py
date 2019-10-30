@@ -4,6 +4,7 @@ Purpose: Contains fixtures for loading data.
 """
 import pytest
 
+from yt.testing import assert_equal
 from yt.utilities.answer_testing import utils
 
 

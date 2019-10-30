@@ -4,6 +4,7 @@ Purpose: Contains fixtures for loading data.
 """
 import pytest
 
+from yt.testing import assert_equal
 from yt.utilities.answer_testing import utils
 
 
@@ -35,7 +36,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('a', axes, ids=['0', '1', '2'])
         metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
         metafunc.parametrize('w', weights, ids=['None', 'density'])
-    if metafunc.function.__name__ == 'testLyA':
+    if metafunc.function.__name__ == 'test_LyA':
         _nyx_fields = ("Ne", "Temp", "particle_mass_density")
         center = "c"
         ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]

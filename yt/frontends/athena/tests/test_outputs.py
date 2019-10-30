@@ -89,7 +89,7 @@ class TestAthena(fw.AnswerTest):
     @utils.requires_ds(stripping)
     def test_stripping(self, f, a, d, w, ds_stripping):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds, f, w, a, d))
+        self.hashes.update(self.small_patch_amr(ds_stripping, f, w, a, d))
 
     #-----
     # test_nprocs

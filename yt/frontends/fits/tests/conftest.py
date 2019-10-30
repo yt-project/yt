@@ -8,6 +8,7 @@ from yt.frontends.fits.data_structures import FITSDataset, \
     SpectralCubeFITSDataset, \
     SkyDataFITSDataset, \
     EventsFITSDataset
+from yt.testing import assert_equal
 from yt.utilities.answer_testing import utils
 
 
@@ -25,7 +26,7 @@ weights = [None, "ones"]
 
 
 def pytest_generate_tests(metafunc):
-    param_tests = ['test_grs', 'test_velocity_field', 'test_acis', 'test_2052']
+    param_tests = ['test_grs', 'test_velocity_field', 'test_acis', 'test_A2052']
     if metafunc.function.__name__ == 'test_grs':
         fields = ("temperature",)
         ids = ['temperature']
@@ -35,7 +36,7 @@ def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ == 'test_acis':
         fields = ("counts_0.1-2.0", "counts_2.0-5.0")
         ids=['counts.1-2', 'counts2-5']
-    if metafunc.function.__name__ == 'test_2052':
+    if metafunc.function.__name__ == 'test_A2052':
         fields = ("flux",)
         ids = ['flux']
     if metafunc.function.__name__ in param_tests:

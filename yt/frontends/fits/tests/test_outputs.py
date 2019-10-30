@@ -74,7 +74,7 @@ class TestFits(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(A2052)
-    def test_A2052(self, ds_A2052):
+    def test_A2052(self, f, a, d, w, ds_A2052):
         # Run the small_patch_amr test suite
         self.hashes.update(self.small_patch_amr(ds_A2052, f, w, a, d))
 

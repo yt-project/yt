@@ -631,7 +631,7 @@ def requires_file(req_file):
     path = ytcfg.get("yt", "test_data_dir")
     def ffalse(func):
         def skip(*args, **kwargs):
-            print("{} not found, skipping {}.".format(sim_fn, func.__name__))
+            print("{} not found, skipping {}.".format(req_file, func.__name__))
             assert False
         return skip
     def ftrue(func):

@@ -172,6 +172,7 @@ class TestYTData(fw.AnswerTest):
     @utils.requires_ds(enzotiny)
     def test_profile_data2(self, field, ds_enzotiny):
         ds = ds_enzotiny
+        ad = ds.all_data()
         profile_2d = create_profile(ad, ["density", "temperature"],
                                    "cell_mass", weight_field=None,
                                    n_bins=(128, 128))
