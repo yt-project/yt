@@ -27,8 +27,7 @@ pfields = ["particle_position_x", "particle_position_y", "particle_position_z"]
 vfields = ["particle_velocity_x", "particle_velocity_y", "particle_velocity_z"]
 
 
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestParticleTrajectories(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')

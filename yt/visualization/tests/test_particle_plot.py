@@ -88,10 +88,8 @@ PHASE_FIELDS = [('particle_velocity_x', 'particle_position_z', 'particle_mass'),
 
 
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
-@pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-    reason="--answer-big-data not set.")
+@pytest.mark.answer_test
+@pytest.mark.big_data
 @pytest.mark.usefixtures('answer_file')
 class TestParticlePlotAnswer(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')

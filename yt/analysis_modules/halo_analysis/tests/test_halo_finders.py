@@ -21,10 +21,8 @@ decimals = {"fof": 10, "hop": 10, "rockstar": 1}
 e64 = "Enzo_64/DD0043/data0043"
 
 
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
-@pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-    reason="--answer-big-data not set.")
+@pytest.mark.answer_test
+@pytest.mark.big_data
 @pytest.mark.usefixtures('answer_file')
 class TestHaloFinders(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')

@@ -180,8 +180,7 @@ def test_equivalent_width_conserved():
         assert_almost_equal(tau, total_tau[0], 3)
 
 
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestAbsorptionSpectrum(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')

@@ -54,8 +54,7 @@ def return_data(data):
     return _return_data
 
 
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestSloshingPhoton(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')

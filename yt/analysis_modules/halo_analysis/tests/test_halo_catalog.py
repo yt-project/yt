@@ -35,8 +35,7 @@ def _nstars(halo):
     return (sp["all", "creation_time"] > 0).sum()
 add_quantity("nstars", _nstars)
 
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestHaloQuantity(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')

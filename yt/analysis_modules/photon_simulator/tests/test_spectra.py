@@ -17,8 +17,7 @@ xray_data_dir = ytcfg.get("yt", "xray_data_dir")
 ds = fake_random_ds(64)
 
 
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestSpectra(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
