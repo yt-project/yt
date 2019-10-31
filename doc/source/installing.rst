@@ -17,19 +17,28 @@ In this document we describe several methods for installing yt. The method that
 will work best for you depends on your precise situation:
 
 * If you do not have root access on your computer, are not comfortable managing
-  python packages, or are working on a supercomputer or cluster computer, you
+  python packages, or are working on a machine where you are not allowed to, you
   will probably want to use the bash all-in-one installation script.  This
   creates a python environment using the `miniconda python
   distribution <https://docs.conda.io/en/latest/miniconda.html>`_ and the
   `conda <https://conda.io/en/latest/>`_ package manager inside of a single
   folder in your home directory. See :ref:`install-script` for more details.
-
+  
 * If you use the `Anaconda <https://www.anaconda.com/distribution/>`_ python
   distribution and already have ``conda`` installed, see
   :ref:`anaconda-installation` for details on how to install yt using the
   ``conda`` package manager. Note that this is currently the only supported
   installation mechanism on Windows.
 
+*  A viable alternative to the installation based on Anaconda is the use of the 
+   `Intel Distribution for Python <https://software.intel.com/en-us/distribution-for-python>`_. 
+   For `Parallel Computation <http://yt-project.org/docs/dev/analyzing/parallel_computation.html>`_ 
+   on Intel architectures, especially on supercomputers, a large 
+   `performance and scalability improvement <https://arxiv.org/abs/1910.07855>`_ 
+   over several common tasks has been demonstrated.
+   Detailed installation instructions are provided below as well, see :ref:`conda-intel-python`.
+   No change in the way yt is managed by ``conda`` is required.
+  
 * If you want to build a development version of yt or are comfortable with
   compilers and know your way around python packaging,
   :ref:`source-installation` will probably be the best choice. If you have set
@@ -44,7 +53,6 @@ will work best for you depends on your precise situation:
   See `Parallel Computation
   <http://yt-project.org/docs/dev/analyzing/parallel_computation.html>`_
   for a discussion on using yt in parallel.
-
 
 .. _branches-of-yt:
 
@@ -267,6 +275,37 @@ each *conda* invocation. Please refer to `Conda Manual
 <https://conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#channel-locations-channels>`_
 for detailed instructions.
 
+.. _conda-intel-python:
+
+Using the Intel Distribution for Python from conda
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you use conda, you can install yt with the  
+`Intel Distribution for Python <https://software.intel.com/en-us/distribution-for-python>`_
+(recommended for performance in parallel computations on Intel architectures) instead of 
+the standard Anaconda distribution. First you need to add the intel channel: 
+
+.. code-block:: bash
+
+   $ conda config --add channels intel
+   
+If you want, at this point you can create a separate environment and switch to it:
+   
+.. code-block:: bash      
+
+   $ conda create -c intel -n yt_intel
+   $ conda activate yt_intel
+   
+Now you need to install the remaining yt dependencies in your current environment.
+The following provides the Intel-optimized versions of these underlying packages:
+   
+.. code-block:: bash
+
+   $ conda config --add channels intel 
+   $ conda install -c intel numpy scipy mpi4py cython git sympy ipython matplotlib netCDF4
+
+Then you can install yt normally, either from the conda-forge channel as above, or from source (see below).
+   
 .. _conda-source-build:
 
 Building yt from Source For Conda-based Installs
@@ -278,7 +317,7 @@ conda environment:
 .. code-block:: bash
 
   $ conda install -c conda-forge cython git sympy ipython matplotlib netCDF4
-
+  
 In addition, you will need a C compiler installed.
 
 Clone the yt repository with:
@@ -562,7 +601,8 @@ you installed using ``INST_YT_SOURCE=1``.
 Conda-based installs (``INST_YT_SOURCE=0``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In this case you can either install one of the nightly conda builds (see :ref:`nightly-conda-builds`), or you can follow the instructions above to build yt from source under conda (see :ref:`conda-source-build`).
+In this case you can either install one of the nightly conda builds (see :ref:`nightly-conda-builds`), or you can follow the instructions above to build yt from source under conda (see 
+:ref:`conda-source-build`).
 
 Source-based installs (``INST_YT_SOURCE=1``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
