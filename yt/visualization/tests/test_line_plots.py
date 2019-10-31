@@ -36,8 +36,7 @@ def image_from_plot(plot):
     return tmpfname
 
 
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestLinePlots(fw.AnswerTest):
     def test_line_plot(self):

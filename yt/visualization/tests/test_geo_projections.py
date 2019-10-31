@@ -32,8 +32,7 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestGeoSlicesAMR(fw.AnswerTest):
     @requires_module("cartopy")

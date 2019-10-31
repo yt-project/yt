@@ -26,8 +26,7 @@ from yt.visualization.volume_rendering.api import \
     off_axis_projection
 
 
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestVROrientation(fw.AnswerTest):
     def test_orientation(self):
