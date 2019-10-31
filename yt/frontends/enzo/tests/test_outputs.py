@@ -42,8 +42,7 @@ p3mini = "PopIII_mini/DD0034/DD0034"
 #============================================
 #                 TestEnzo
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestEnzo(fw.AnswerTest):
     #-----
@@ -76,9 +75,7 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_galaxy0030
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g30)
     def test_galaxy0030(self, a, d, w, f, ds_g30):
@@ -108,9 +105,7 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_ecp
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @utils.requires_ds(ecp)
     def test_ecp(self, ds_ecp):
         self.color_conservation_test(ds_ecp)
@@ -125,9 +120,7 @@ class TestEnzo(fw.AnswerTest):
     #-----
     # test_nuclei_density_fields
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @utils.requires_ds(ecp)
     def test_nuclei_density_fields(self, ds_ecp):
         ad = ds_ecp.all_data()

@@ -34,8 +34,7 @@ _fields = (("moab", "flux"),
 #============================================
 #                  TestMoab
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestMoab(fw.AnswerTest):
     #-----

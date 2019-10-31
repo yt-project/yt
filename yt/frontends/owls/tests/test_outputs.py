@@ -27,16 +27,13 @@ os33 = "snapshot_033/snap_033.0.hdf5"
 #============================================
 #                 TestOwls
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestOwls(fw.AnswerTest):
     #-----
     # test_snapshot_033
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(os33)
     def test_snapshot_033(self, f, w, d, a, ds_os33):

@@ -31,16 +31,13 @@ dens_turb_mag = 'DensTurbMag/DensTurbMag_hdf5_plt_cnt_0015'
 #============================================
 #                 TestFlash
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestFlash(fw.AnswerTest):
     #-----
     # test_sloshing
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(sloshing)
     def test_sloshing(self, a, d, w, f, ds_sloshing):
@@ -106,9 +103,7 @@ class TestFlash(fw.AnswerTest):
     #-----
     # test_fid_1to3_b1
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(fid_1to3_b1)
     def test_fid_1to3_b1(self, f, w, d, a, ds_fid_1to3_b1):

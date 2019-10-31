@@ -45,8 +45,7 @@ uo_sloshing = {"length_unit": (1.0,"Mpc"),
 #============================================
 #                 TestAthena
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestAthena(fw.AnswerTest):
     #-----
@@ -82,9 +81,7 @@ class TestAthena(fw.AnswerTest):
     #-----
     # test_stripping
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(stripping)
     def test_stripping(self, f, a, d, w, ds_stripping):

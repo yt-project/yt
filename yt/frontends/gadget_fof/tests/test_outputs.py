@@ -31,8 +31,7 @@ g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"
 #============================================
 #               TestGadgetFOF
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestGadgetFOF(fw.AnswerTest):
     #-----

@@ -30,16 +30,13 @@ tipsy_gal = 'TipsyGalaxy/galaxy.00300'
 #============================================
 #                 TestTipsy
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestTipsy(fw.AnswerTest):
     #-----
     # test_pkdgrav
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(pkdgrav, file_check = True)
     def test_pkdgrav(self, f, a, d, w, ds_pkdgrav):
@@ -61,9 +58,7 @@ class TestTipsy(fw.AnswerTest):
     #-----
     # test_gasoline_dmonly
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(gasoline_dmonly, file_check = True)
     def test_gasoline_dmonly(self, f, a, d, w, ds_gasoline_dmonly):

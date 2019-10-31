@@ -27,16 +27,13 @@ gmhd = "gizmo_mhd_mwdisk/gizmo_mhd_mwdisk.hdf5"
 #============================================
 #                TestGizmo
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestGizmo(fw.AnswerTest):
     #-----
     # test_gizmo_64
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(g64)
     def test_gizmo_64(self, f, w, d, a, ds_g64):

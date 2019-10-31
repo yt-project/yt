@@ -36,16 +36,13 @@ jet_units   = {"length_unit":(1.0,"kpc"),
 #============================================
 #                 TestGamer
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestGamer(fw.AnswerTest):
     #-----
     # test_jet
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(jet)
     def test_jet(self, f, a, d, w, ds_jet):
@@ -55,9 +52,7 @@ class TestGamer(fw.AnswerTest):
     #-----
     # test_psiDM
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(psiDM)
     def test_psiDM(self, f, a, d, w, ds_psiDM):
@@ -67,9 +62,7 @@ class TestGamer(fw.AnswerTest):
     #-----
     # test_plummer
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(plummer)
     def test_plummer(self, f, a, d, w, ds_plummer):

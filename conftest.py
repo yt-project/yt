@@ -78,6 +78,34 @@ def pytest_configure(config):
 
 
 #============================================
+#     pytest_collection_modifyitems
+#============================================
+def pytest_collection_modifyitems(config, items):
+    """
+    Sets up the marks.
+    
+    pytest version 5.x.x no longer provides access to pytest.config
+    (which was originally used for skipping answer tests when the CL
+    option wasn't set), but pytest 5.x.x is what works with the most
+    recent pytest-xdist, which enables parallizing by class. This
+    function is called once, right after test collection.
+    """
+    # Set up the skip marks
+    skip_answer = pytest.mark.skip(reason="--with-answer-testing not set.")
+    skip_big = pytest.mark.skip(reason="--answer-big-data not set.")
+    # Loop over every collected test function
+    for item in items:
+        # If it's an answer test and the appropriate CL option hasn't
+        # been set, skip it
+        if "answer_test" in item.keywords and not config.getoption("--with-answer-testing"):
+            item.add_marker(skip_answer)
+        # If it's an answer test that requires big data and the CL
+        # option hasn't been set, skip it
+        if "big_data" in item.keywords and not config.getoption("--answer-big-data"):
+            item.add_marker(skip_big)
+
+
+#============================================
 #                answer_store
 #============================================
 @pytest.fixture(scope='class')

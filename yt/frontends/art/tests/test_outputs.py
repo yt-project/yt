@@ -29,16 +29,13 @@ d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 #============================================
 #                   TestArt
 #============================================
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
+@pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestArt(fw.AnswerTest):
     #-----
     # test_d9p
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(d9p)
     def test_d9p(self, f, d, a, w, ds_d9p):
@@ -70,9 +67,7 @@ class TestArt(fw.AnswerTest):
     #-----
     # test_AnaDM
     #-----
-    @pytest.mark.skipif(not pytest.config.getvalue('--answer-big-data'),
-        reason="Skipping test_jet because --answer-big-data was not set."
-    )
+    @pytest.mark.big_data
     @utils.requires_ds(d9p)
     def test_d9p_no_params(self, ds_d9p):
         """
