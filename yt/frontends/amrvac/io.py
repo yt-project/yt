@@ -81,7 +81,7 @@ class AMRVACIOHandler(BaseIOHandler):
         chunks = list(chunks)
         data_dict = {} # <- return variable
         if isinstance(selector, GridSelector):
-            if not (len(chunks) == len(chunks[0].objs) == 1):
+            if not len(chunks) == len(chunks[0].objs) == 1:
                 raise RuntimeError
             grid = chunks[0].objs[0]
             for ftype, fname in fields:

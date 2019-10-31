@@ -15,8 +15,9 @@ AMRVAC data structures
 
 import os
 import stat
-import numpy as np
 import weakref
+
+import numpy as np
 
 from yt.data_objects.grid_patch import \
    AMRGridPatch
@@ -181,7 +182,7 @@ class AMRVACDataset(Dataset):
 
         # parse geometry
         # by order of decreasing priority, we use
-        # - geometry_override 
+        # - geometry_override
         # - "geometry" parameter from datfile
         # - if all fails, default to "cartesian"
         geom_candidates = {"param": None, "override": None}
