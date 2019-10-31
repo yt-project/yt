@@ -45,7 +45,6 @@ class TestHaloQuantity(fw.AnswerTest):
         data_ds_fn = e64
         halos_ds_fn = rh0
         ds = utils.data_dir_load(data_ds_fn)
-
         dds = utils.data_dir_load(data_ds_fn)
         hds = utils.data_dir_load(halos_ds_fn)
         hc = HaloCatalog(
@@ -54,12 +53,10 @@ class TestHaloQuantity(fw.AnswerTest):
         hc.add_callback("sphere")
         hc.add_quantity("nstars")
         hc.create()
-
-        fn = os.path.join(os.getcwd(), str(dds),
-                          "%s.0.h5" % str(dds))
+        fn = os.path.join(os.getcwd(), str(dds), "%s.0.h5" % str(dds))
         ds = load(fn)
         ad = ds.all_data()
         mi, ma = ad.quantities.extrema("nstars")
         mean = ad.quantities.weighted_average_quantity(
             "nstars", "particle_ones")
-        self.hashes['halo_quantity'] = np.array([mean, mi, ma])
+        self.hashes.update({'halo_quantity' : np.array([mean, mi, ma]}))

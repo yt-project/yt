@@ -25,27 +25,16 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 raw_fields = "Laser/plt00015"
-_raw_field_names =  [('raw', 'Bx'),
-                     ('raw', 'By'),
-                     ('raw', 'Bz'),
-                     ('raw', 'Ex'),
-                     ('raw', 'Ey'),
-                     ('raw', 'Ez'),
-                     ('raw', 'jx'),
-                     ('raw', 'jy'),
-                     ('raw', 'jz')]
 
 @pytest.mark.answer_test
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestRawFieldSlices(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(raw_fields)
-    def test_raw_field_slices(self):
+    def test_raw_field_slices(self, field):
         ds = utils.data_dir_load(raw_fields)
-        self.hashes['generic_image'] = OrderedDict()
-        for field in _raw_field_names:
-            sl = yt.SlicePlot(ds, 'z', field)
-            sl.set_log('all', False)
-            image_file = sl.save("slice_answers_raw_{}".format(field[1]))
-            gi_hd = self.generic_image_test(image_file)
-            self.hashes['generic_image'][field] = gi_hd 
+        sl = yt.SlicePlot(ds, 'z', field)
+        sl.set_log('all', False)
+        image_file = sl.save("slice_answers_raw_{}".format(field[1]))
+        gi_hd = self.generic_image_test(image_file)
+        self.hashes.update({'generic_image' : gi_hd}) 

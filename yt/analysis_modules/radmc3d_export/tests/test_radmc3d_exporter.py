@@ -51,4 +51,4 @@ class TestRadmc3dExporter(fw.AnswerTest):
                     continue
                 line = line.rstrip()
                 total += np.float64(line)
-        self.hashes['radmc3d_exporter_continuum'] = total
+        self.hashes.update({'radmc3d_exporter_continuum' : total})

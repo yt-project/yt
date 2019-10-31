@@ -37,39 +37,10 @@ from yt.units.yt_array import YTArray, YTQuantity
 from yt.units import kboltz
 from yt.frontends.stream.api import load_uniform_grid
 
-def setup():
-    """Test specific setup."""
-    from yt.config import ytcfg
-    ytcfg["yt", "__withintesting"] = "True"
-
 
 TEST_FLNMS = ['test.png']
 M7 = "DD0010/moving7_0010"
 WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
-
-FPROPS = {'family': 'sans-serif', 'style': 'italic',
-          'weight': 'bold', 'size': 24}
-
-ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
-             "pan_rel": [(((0.1, 0.1), ), {})],
-             "set_axes_unit": [(("kpc", ), {}),
-                               (("Mpc", ), {}),
-                               ((("kpc", "kpc"),), {}),
-                               ((("kpc", "Mpc"),), {})],
-             "set_buff_size": [((1600, ), {}),
-                               (((600, 800), ), {})],
-             "set_center": [(((0.4, 0.3), ), {})],
-             "set_cmap": [(('density', 'RdBu'), {}),
-                          (('density', 'kamae'), {})],
-             "set_font": [((OrderedDict(sorted(FPROPS.items(), key=lambda t: t[0])), ),
-                           {})],
-             "set_log": [(('density', False), {})],
-             "set_window_size": [((7.0, ), {})],
-             "set_zlim": [(('density', 1e-25, 1e-23), {}),
-                          (('density', 1e-25, None), {'dynamic_range': 4})],
-             "zoom": [((10, ), {})],
-             "toggle_right_handed": [((),{})]}
-
 
 CENTER_SPECS = (
     "m",
@@ -144,63 +115,32 @@ def simple_velocity(plot_field, plot):
     plot.annotate_velocity()
 
 
-CALLBACK_TESTS = (
-    ("simple_contour", (simple_contour,)),
-    ("simple_velocity", (simple_velocity,)),
-)
-
-
 @pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
 class TestPlotWindowAnswer(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(M7)
-    def test_attributes(self):
+    def test_attributes(self, axis, attr_name, attr_args, callback):
         """Test plot member functions that aren't callbacks"""
         plot_field = 'density'
-        decimals = 12
         ds = utils.data_dir_load(M7)
-        self.hashes['non-callback'] = OrderedDict()
-        self.hashes['callback'] = OrderedDict()
-        self.hashes['non-callback']['plot_window_attribute'] = OrderedDict()
-        self.hashes['callback']['plot_window_attribute'] = OrderedDict()
-        for ax in 'xyz':
-            self.hashes['non-callback']['plot_window_attribute'][ax] = OrderedDict()
-            self.hashes['callback']['plot_window_attribute'][ax] = OrderedDict()
-            for attr_name in ATTR_ARGS.keys():
-                self.hashes['non-callback']['plot_window_attribute'][ax][attr_name] = OrderedDict()
-                self.hashes['callback']['plot_window_attribute'][ax][attr_name] = OrderedDict()
-                for args in ATTR_ARGS[attr_name]:
-                    pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name, args, decimals)
-                    self.hashes['non-callback']['plot_window_attribute'][ax][attr_name][args] = pw_hd
-                    self.hashes['callback']['plot_window_attribute'][ax][attr_name][args] = OrderedDict()
-                    for n, r in CALLBACK_TESTS:
-                        pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
-                            args, decimals, callback_id=n, callback_runners=r)
-                        self.hashes['callback']['plot_window_attribute'][ax][attr_name][args][n] = pw_hd
+        pw_hd = self.plot_window_attribute_test(ds, plot_field, axis, attr_name, attr_args)
+        self.hashes.update({'plot_window_attribute' : pw_hd})
+        pw_hd = self.plot_window_attribute_test(ds, plot_field, axis, attr_name,
+            attr_args, callback_id=callback[0], callback_runners=callback[1])
+        self.hashes.update([{'plot_window_attribute_with_callback' :  pw_hd})
 
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(WT)
-    def test_attributes_wt(self):
+    def test_attributes_wt(self, attr_name, attr_args, callback):
         plot_field = 'density'
-        decimals = 12
         ds = utils.data_dir_load(WT)
         ax = 'z'
-        self.hashes['non-callback'] = OrderedDict()
-        self.hashes['callback'] = OrderedDict()
-        self.hashes['non-callback']['plot_window_attribute'] = OrderedDict()
-        self.hashes['callback']['plot_window_attribute']= OrderedDict()
-        for attr_name in ATTR_ARGS.keys():
-            self.hashes['non-callback']['plot_window_attribute'][attr_name] = OrderedDict()
-            self.hashes['callback']['plot_window_attribute'][attr_name]= OrderedDict()
-            for args in ATTR_ARGS[attr_name]:
-                pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name, args, decimals)
-                self.hashes['non-callback']['plot_window_attribute'][attr_name][args] = pw_hd 
-                self.hashes['callback']['plot_window_attribute'][attr_name][args] = OrderedDict()
-                for n, r in CALLBACK_TESTS:
-                    pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
-                        args, decimals, callback_id=n, callback_runners=r)
-                    self.hashes['callback']['plot_window_attribute'][attr_name][args][n] = pw_hd 
+        pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name, attr_args)
+        self.hashes.update({'plot_window_attribute' : pw_hd}) 
+        pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
+            attr_args, callback_id=callback[0], callback_runners=callback[1])
+        self.hashes.update({'plot_window_attribute_with_callback' : pw_hd}) 
 
 class TestHideAxesColorbar(unittest.TestCase):
 
