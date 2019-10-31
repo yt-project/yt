@@ -864,8 +864,10 @@ class PWViewerMPL(PlotWindow):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
-
-            if self._axes_unit_names is None:
+            if self.ds.unit_system.name.startswith("us"):
+                # this should happen only if the dataset was initialized with argument unit_system="code"
+                (unit_x, unit_y) = ('code_length', 'code_length')
+            elif self._axes_unit_names is None:
                 unit = self.ds.get_smallest_appropriate_unit(
                     self.xlim[1] - self.xlim[0])
                 (unit_x, unit_y) = (unit, unit)
