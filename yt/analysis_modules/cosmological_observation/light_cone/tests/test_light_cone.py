@@ -32,4 +32,4 @@ class TestLightCone(fw.AnswerTest):
     @utils.requires_sim(ETC, "Enzo")
     def test_light_cone_projection(self):
         lcp_hd = self.light_cone_projection_test(ETC, "Enzo")
-        self.hashes['light_cone_projection'] = lcp_hd
+        self.hashes.update({'light_cone_projection' : lcp_hd})

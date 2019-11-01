@@ -16,10 +16,6 @@ from yt.utilities.answer_testing import utils
 from yt.utilities.exceptions import YTIllDefinedParticleData
 
 
-def setup():
-    ytcfg["yt","__withintesting"] = "True"
-
-
 data_path = ytcfg.get("yt", "test_data_dir")
 
 
@@ -32,38 +28,21 @@ vfields = ["particle_velocity_x", "particle_velocity_y", "particle_velocity_z"]
 class TestParticleTrajectories(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds("Orbit/orbit_hdf5_chk_0000")
-    def test_orbit_traj(self):
-        fields = ["particle_velocity_x", "particle_velocity_y", "particle_velocity_z"]
-        my_fns = glob.glob(os.path.join(data_path, "Orbit/orbit_hdf5_chk_00[0-9][0-9]"))
-        my_fns.sort()
-        ts = DatasetSeries(my_fns)
-        ds = ts[0]
-        traj = ts.particle_trajectories([1, 2], fields=fields, suppress_logging=True)
-        self.hashes['generic_array'] = OrderedDict()
-        for field in pfields+vfields:
-            def field_func(name):
-                return traj[field]
-            ga_hd = self.generic_arraytest(ds, field_func, args=[field])
-            self.hashes['generic_array'][field] = ga_hd
+    def test_orbit_traj(self, field, orbit_traj):
+        ds, traj = orbit_traj
+        def field_func(name):
+            return traj[field]
+        ga_hd = self.generic_arraytest(ds, field_func, args=[field])
+        self.hashes.update({'generic_array' : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds("enzo_tiny_cosmology/DD0000/DD0000")
-    def test_etc_traj(self):
-        fields = ["particle_velocity_x", "particle_velocity_y", "particle_velocity_z"]
-        my_fns = glob.glob(os.path.join(data_path, "enzo_tiny_cosmology/DD000[0-9]/*.hierarchy"))
-        my_fns.sort()
-        ts = DatasetSeries(my_fns)
-        ds = ts[0]
-        sp = ds.sphere("max", (0.5, "Mpc"))
-        indices = sp["particle_index"][sp["particle_type"] == 1][:5]
-        traj = ts.particle_trajectories(indices, fields=fields, suppress_logging=True)
-        traj.add_fields(["density"])
-        self.hashes['generic_array'] = OrderedDict()
-        for field in pfields+vfields+["density"]:
-            def field_func(name):
-                return traj[field]
-            ga_hd = self.generic_array_test(ds, field_func, args=[field])
-            self.hashes['generic_array'][field] = ga_hd
+    def test_etc_traj(self, field, etc_traj):
+        ds, traj = etc_traj
+        def field_func(name):
+            return traj[field]
+        ga_hd = self.generic_array_test(ds, field_func, args=[field])
+        self.hashes.update({'generic_array' : ga_hd})
 
     def test_uniqueness(self):
         n_particles = 2

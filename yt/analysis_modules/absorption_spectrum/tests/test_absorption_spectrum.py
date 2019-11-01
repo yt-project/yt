@@ -216,11 +216,11 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=True)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        self.hashes['generic_array'] = OrderedDict()
+        self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
             ga_hd = self.generic_array_test(None, func)
-            self.hashes['generic_array'][key] = ga_hd
+            self.hashes['generic_array'].update({key : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
     @requires_file(COSMO_PLUS_SINGLE)
@@ -251,11 +251,11 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=True)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        self.hashes['generic_array'] = OrderedDict()
+        self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
             ga_hd = self.generic_array_test(None, func)
-            self.hashes['generic_array'][key] = ga_hd
+            self.hashes['generic_array'].update({key : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
     @requires_file(COSMO_PLUS_SINGLE)
@@ -286,11 +286,11 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=False)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        self.hashes['generic_array'] = OrderedDict()
+        self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
             ga_hd = self.generic_array_test(None, func)
-            self.hashes['generic_array'][key] = ga_hd
+            self.hashes['generic_array'].update({key : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
     @requires_file(GIZMO_PLUS)
@@ -326,11 +326,11 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=True)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        self.hashes['generic_array'] = OrderedDict()
+        self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
             ga_hd = self.generic_array_test(None, func)
-            self.hashes['generic_array'][key] = ga_hd
+            self.hashes['generic_array'].update({key : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
     @requires_file(GIZMO_PLUS_SINGLE)
@@ -363,11 +363,11 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=True)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        self.hashes['generic_array'] = OrderedDict()
+        self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
             ga_hd = self.generic_array_test(None, func)
-            self.hashes['generic_array'][key] = ga_hd
+            self.hashes['generic_array'].update({key : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
     @requires_file(ISO_GALAXY)
@@ -405,8 +405,8 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
                                             use_peculiar_velocity=True)
         # load just-generated hdf5 file of spectral data (for consistency)
         data = h5.File(fname, 'r')
-        self.hashes['generic_array'] = OrderedDict()
+        self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
             ga_hd = self.generic_array_test(None, func)
-            self.hashes['generic_array'][key] = ga_hd
+            self.hashes['generic_array'].update({key : ga_hd})

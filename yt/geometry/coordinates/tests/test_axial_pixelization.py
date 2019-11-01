@@ -12,14 +12,11 @@ from yt.utilities.answer_testing import utils
 @pytest.mark.usefixtures('answer_file')
 class TestAxialPixelization(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
-    def test_axial_pixelization(self):
-        self.hashes['axial_pixelization'] = OrderedDict()
-        self.hashes['axial_pixelization']['x_axis'] = OrderedDict()
-        self.hashes['axial_pixelization']['y_axis'] = OrderedDict()
-        for geom in sorted(_geom_transforms):
-            ds = fake_amr_ds(geometry=geom)
-            ap = self.axial_pixelization_test(ds)
+    def test_axial_pixelization(self, geom, axis):
+        ds = fake_amr_ds(geometry=geom)
+        ap = self.axial_pixelization_test(ds)
+        if axis == 'x_axis':
             apx_hd = ap[0]
+        elif axis == 'y_axis':
             apy_hd = ap[1]
-            self.hashes['axial_pixelization']['x_axis'][geom] = apx_hd
-            self.hashes['axial_pixelization']['y_axis'][geom] = apy_hd
+        self.hashes.update({'axial_pixelization' : apx_hd})
