@@ -16,7 +16,7 @@ jet_cylindrical_25D = "amrvac/Jet0003.dat"
 riemann_cartesian_175D = "amrvac/R_1d0005.dat"
 
 @requires_ds(blastwave_cartesian_3D)
-def test_domain_size(self):
+def test_domain_size():
     """Check for correct box size, see bw_3d.par"""
     ds = data_dir_load(blastwave_cartesian_3D)
     for lb in ds.domain_left_edge:
