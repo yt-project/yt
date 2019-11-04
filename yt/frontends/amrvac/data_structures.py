@@ -141,13 +141,7 @@ class AMRVACDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         """At load time, check whether data is recognized as AMRVAC formatted."""
         # required class method
-        validation = False
-        try:
-            with open(args[0], "rb") as istream:
-                get_header(istream)
-            validation = True
-        finally:
-            return validation
+        return args[0].endswith(".dat")
 
     def parse_geometry(self, geometry_string):
         """Transform a string such as "Polar_2D" or "Cartesian_1.75D" to yt's standard equivalent (i.e. respectively "polar", "cartesian")."""
