@@ -30,7 +30,6 @@ from yt.funcs import \
 from yt.data_objects.static_output import \
    Dataset
 from yt.utilities.physical_constants import \
-    mass_hydrogen_cgs, \
     boltzmann_constant_cgs
 
 from .fields import AMRVACFieldInfo
@@ -252,69 +251,134 @@ class AMRVACDataset(Dataset):
         # This is the reason why it uses setdefaultattr: it will only fill the gaps lefts by the "override",
         # instead of overriding them again
 
-        # check for inconsistencies between override_units and amrvac normalisations
-        self._check_override_units_amrvac()
+        amrvac_units_dict = self._get_amrvac_normalisations()
 
-        # First check if overrides have been supplied, if that's the case use those instead.
-        # If not, use AMRVAC default values.
-        # Assume cgs values and let YT handle conversion if supplied in an 'mks' unit system.
-        length_override = self.units_override.get('length_unit', (1, 'cm'))
-        numberdensity_override = self.units_override.get('numberdensity_unit', (1, 'cm**-3'))
-        velocity_override = self.units_override.get('velocity_unit', (0, 'cm*s**-1'))
-        temperature_override = self.units_override.get('temperature_unit', (1, 'K'))
-        mylog.info('Overriding numberdensity_unit: {:1.0e} {}.'.format(*numberdensity_override))
+        setdefaultattr(self, "length_unit", amrvac_units_dict['length_unit'])
+        setdefaultattr(self, "mass_unit", amrvac_units_dict['mass_unit'])
+        setdefaultattr(self, "time_unit", amrvac_units_dict['time_unit'])
 
-        # Create YT quantities
-        length_unit = self.quan(*length_override)
-        numberdensity_unit = self.quan(*numberdensity_override)
-        temperature_unit = self.quan(*temperature_override)
-        velocity_unit = self.quan(*velocity_override)
+        setdefaultattr(self, "velocity_unit", amrvac_units_dict['velocity_unit'])
+        setdefaultattr(self, "density_unit", amrvac_units_dict['density_unit'])
+        setdefaultattr(self, "numberdensity_unit", amrvac_units_dict['numberdensity_unit'])
 
-        He_abundance = 0.1  # hardcoded parameter in AMRVAC
-        density_unit = (1.0 + 4.0*He_abundance) * mass_hydrogen_cgs * numberdensity_unit
-        if velocity_unit.value == 0:
-            pressure_unit = ((2.0 + 3.0*He_abundance) *
-                             numberdensity_unit * boltzmann_constant_cgs  * temperature_unit).to('dyn*cm**-2')
-            velocity_unit = (np.sqrt(pressure_unit / density_unit)).to('cm*s**-1')
-        else:
-            pressure_unit = (density_unit * velocity_unit**2).to('dyn*cm**-2')
-            temperature_unit = (pressure_unit /
-                                ((2.0 + 3.0*He_abundance) * numberdensity_unit * boltzmann_constant_cgs)).to('K')
-        time_unit = length_unit / velocity_unit
-        mass_unit = density_unit * length_unit**3
-        magneticfield_unit = (np.sqrt(4*np.pi * pressure_unit)).to('gauss')
+        setdefaultattr(self, "temperature_unit", amrvac_units_dict['temperature_unit'])
+        setdefaultattr(self, "pressure_unit", amrvac_units_dict['pressure_unit'])
+        setdefaultattr(self, "magnetic_unit", amrvac_units_dict['magnetic_unit'])
 
-        setdefaultattr(self, "length_unit", length_unit)
-        setdefaultattr(self, "mass_unit", mass_unit)
-        setdefaultattr(self, "time_unit", time_unit)
 
-        setdefaultattr(self, "velocity_unit", velocity_unit)
-        setdefaultattr(self, "density_unit", density_unit)
-        setdefaultattr(self, "numberdensity_unit", numberdensity_unit)
-
-        setdefaultattr(self, "temperature_unit", temperature_unit)
-        setdefaultattr(self, "pressure_unit", pressure_unit)
-        setdefaultattr(self, "magnetic_unit", magneticfield_unit)
-
-    def _check_override_units_amrvac(self):
+    def _get_amrvac_normalisations(self):
         # frontend specific method
         # note: normalisations in AMRVAC have 3 degrees of freedom. The user can specify a unit length and unit
         # numberdensity, with the third option either a unit temperature OR unit velocity.
         # If unit temperature is specified then unit velocity will be calculated accordingly, and vice-versa.
         # AMRVAC does not allow to specify any other normalisation beside those four.
-        # YT does support overriding other normalisations, this method checks for inconsistencies between
-        # supplied 'units_override' items and those allowed by AMRVAC.
+        # YT does support overriding other normalisations, this method ensures consistency between
+        # supplied 'units_override' items and those used by AMRVAC.
+
+        # note: _override_code_units() has already been called, so self.units_override has been set
+        self._check_override_consistency()
+
+        # note: yt sets hydrogen mass equal to proton mass... This value is taken from AstroPy
+        proton_mass_cgs = self.quan(1.672621898e-24, 'g')
+
+        # note: _override_code_units() sets supplied items in units_override as attributes.
+        # Handled items are length, time, mass, velocity, magnetic, temperature
+
+        He_abundance = 0.1  # hardcoded parameter in AMRVAC
+
+        # self.length_unit should always be supplied when using units_override
+        length_unit = getattr(self, 'length_unit', self.quan(1, 'cm'))
+
+        # if overrides are not specified, use default values
+        if not self.units_override:
+            numberdensity_unit = self.quan(1, 'cm**-3')
+            temperature_unit = self.quan(1, 'K')
+            density_unit = (1.0 + 4.0 * He_abundance) * proton_mass_cgs * numberdensity_unit
+            pressure_unit = ((2.0 + 3.0 * He_abundance) *
+                             numberdensity_unit * boltzmann_constant_cgs * temperature_unit).to('dyn*cm**-2')
+            velocity_unit = (np.sqrt(pressure_unit / density_unit)).to('cm*s**-1')
+            time_unit = length_unit / velocity_unit
+            mass_unit = density_unit * length_unit**3
+            magnetic_unit = (np.sqrt(4 * np.pi * pressure_unit)).to('gauss')
+        # handle specification of units_override
+        else:
+            # unit mass is supplied
+            if self.units_override.get('mass_unit') is not None:
+                mass_unit = self.mass_unit
+                density_unit = mass_unit / length_unit**3
+                numberdensity_unit = density_unit / ((1.0 + 4.0*He_abundance) * proton_mass_cgs)
+            # else use unit numberdensity if supplied. If not, use default value
+            else:
+                numberdensity_override = self.units_override.get('numberdensity_unit', (1, 'cm**-3'))
+                # do it like this, because this is never set as an attribute in _override_code_units()
+                numberdensity_unit = self.quan(*numberdensity_override)
+                mylog.info('Overriding numberdensity_unit: {:1.0e}.'.format(numberdensity_unit))
+                density_unit = (1.0 + 4.0 * He_abundance) * proton_mass_cgs * numberdensity_unit
+                mass_unit = density_unit * length_unit**3
+
+            # if unit time is supplied, calculate velocity from that
+            if self.units_override.get('time_unit') is not None:
+                time_unit = self.time_unit
+                velocity_unit = length_unit / time_unit
+            # else if unit time is not supplied, use unit velocity if supplied. If not, set to zero (default)
+            else:
+                velocity_unit = getattr(self, 'velocity_unit', self.quan(0, 'cm*s**-1'))
+
+            # if unit velocity was supplied (so not defaulted to zero), calculate pressure and temperature accordingly
+            if velocity_unit.value != 0:
+                pressure_unit = (density_unit * velocity_unit ** 2).to('dyn*cm**-2')
+                temperature_unit = (pressure_unit / ((2.0 + 3.0 * He_abundance) * numberdensity_unit
+                                                     * boltzmann_constant_cgs)).to('K')
+                # explicitly calculate time like this, to avoid overwriting the case where time_unit is supplied
+                time_unit = getattr(self, 'time_unit', length_unit/velocity_unit)
+            # else check if temperature unit is supplied. If not, use default value
+            else:
+                temperature_unit = getattr(self, 'temperature_unit', self.quan(1, 'K'))
+                pressure_unit = ((2.0 + 3.0 * He_abundance) *
+                                 numberdensity_unit * boltzmann_constant_cgs * temperature_unit).to('dyn*cm**-2')
+                velocity_unit = (np.sqrt(pressure_unit / density_unit)).to('cm*s**-1')
+                time_unit = length_unit / velocity_unit
+
+            magnetic_unit = (np.sqrt(4 * np.pi * pressure_unit)).to('gauss')
+
+        amrvac_units_dict = {'length_unit': length_unit, 'numberdensity_unit': numberdensity_unit,
+                             'density_unit': density_unit, 'temperature_unit': temperature_unit,
+                             'pressure_unit': pressure_unit, 'velocity_unit': velocity_unit, 'time_unit': time_unit,
+                             'mass_unit': mass_unit, 'magnetic_unit': magnetic_unit}
+
+        return amrvac_units_dict
+
+
+    def _check_override_consistency(self):
+        # frontend specific method
+        # note: checks consistency of supplied units_override items. A maximum of three is allowed, with either
+        # velocity_unit or temperature_unit specified
         if not self.units_override:
             return
 
-        accepted_overrides = ['length_unit', 'numberdensity_unit', 'temperature_unit', 'velocity_unit']
+        # there are only three degrees of freedom, so explicitly check for this
+        if len(self.units_override) > 3:
+            raise ValueError('Normalisations in amrvac only allow for three degrees of freedom, '
+                             'but {} were specified in units_override'.format(len(self.units_override)))
 
-        # note: _override_code_units() has already been called, so self.units_override has been set
-        for unit_override_name in self.units_override:
-            if not unit_override_name in accepted_overrides:
-                raise ValueError('Only length, numberdensity, temperature or velocity are '
-                                 'accepted overrides for amrvac! ({} was supplied)'.format(unit_override_name))
-
+        # temperature and velocity cannot both be specified
         if hasattr(self, 'temperature_unit') and hasattr(self, 'velocity_unit'):
             raise ValueError('Both temperature and velocity have been supplied as overrides. '
                              'Only one of them is allowed.')
+
+        # if units are overridden, ask that length should always be specified.
+        if not hasattr(self, 'length_unit'):
+            raise ValueError('Length unit should always be specified when overriding units')
+
+        allowed_combinations = [{'numberdensity_unit', 'temperature_unit', 'length_unit'},
+                                {'mass_unit', 'temperature_unit', 'length_unit'},
+                                {'mass_unit', 'time_unit', 'length_unit'},
+                                {'numberdensity_unit', 'velocity_unit', 'length_unit'},
+                                {'mass_unit', 'velocity_unit', 'length_unit'}]
+        overrides = set(self.units_override)
+        for allowed_combo in allowed_combinations:
+            if overrides.issubset(allowed_combo):
+                break
+        else:
+            raise ValueError('Combination {} passed to units_override is not consistent with AMRVAC. \n'
+                             'Allowed combinations are {}'.format(overrides, allowed_combinations))
