@@ -16,6 +16,7 @@ AMRVAC data structures
 import os
 import stat
 import weakref
+import struct
 
 import numpy as np
 
@@ -141,7 +142,21 @@ class AMRVACDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         """At load time, check whether data is recognized as AMRVAC formatted."""
         # required class method
-        return args[0].endswith(".dat")
+        validation = False
+        if args[0].endswith(".dat"):
+            try:
+                with open(args[0], mode="rb") as istream:
+                    fmt = "=i"
+                    [datfile_version] = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
+                    if 3 <= datfile_version < 6:
+                        fmt = "=ii"
+                        offset_tree, offset_blocks = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
+                        istream.seek(0,2)
+                        file_size = istream.tell()
+                        validation = offset_tree < file_size and offset_blocks < file_size
+            except:
+                pass
+        return validation
 
     def parse_geometry(self, geometry_string):
         """Transform a string such as "Polar_2D" or "Cartesian_1.75D" to yt's standard equivalent (i.e. respectively "polar", "cartesian")."""
