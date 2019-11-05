@@ -46,8 +46,6 @@ def ds_gslr():
 def photon_data():
     return PhotonData()
 
-@pytest.fixture(scope=
-
 def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ == 'test_sloshing':
         params = [(a, r) for a, r in zip(arfs, rmfs)]

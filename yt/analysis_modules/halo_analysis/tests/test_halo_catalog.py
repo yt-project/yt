@@ -59,4 +59,4 @@ class TestHaloQuantity(fw.AnswerTest):
         mi, ma = ad.quantities.extrema("nstars")
         mean = ad.quantities.weighted_average_quantity(
             "nstars", "particle_ones")
-        self.hashes.update({'halo_quantity' : np.array([mean, mi, ma]}))
+        self.hashes.update({'halo_quantity' : np.array([mean, mi, ma])})

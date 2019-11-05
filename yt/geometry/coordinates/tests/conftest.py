@@ -2,7 +2,7 @@ import pytest
 
 from yt.testing import _geom_transforms
 
-geom_ids = [g.__repr__ for g in sorted(_geom_transforms)]
+geom_ids = [g.__repr__() for g in sorted(_geom_transforms)]
 
 
 def pytest_generate_tests(metafunc):

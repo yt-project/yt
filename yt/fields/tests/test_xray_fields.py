@@ -2,8 +2,6 @@ from collections import OrderedDict
 
 import pytest
 
-from yt.fields.xray_emission_fields import \
-    add_xray_emissivity_field
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 
@@ -32,4 +30,4 @@ class TestXRayFields(fw.AnswerTest):
         pv_hd = self.projection_values_test(ds, axis, field, None, dobj_name)
         self.hashes.update({'projection_values' : pv_hd})
         fv_hd = self.field_values_test(ds, field, dobj_name)
-        self.hashes.update({'field_values' : fv_hd}
+        self.hashes.update({'field_values' : fv_hd})

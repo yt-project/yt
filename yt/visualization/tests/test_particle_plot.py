@@ -22,8 +22,6 @@ import numpy as np
 import pytest
 
 from yt.data_objects.profiles import create_profile
-from yt.visualization.tests.test_plotwindow import \
-    WIDTH_SPECS, ATTR_ARGS
 from yt.convenience import load
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.testing import \

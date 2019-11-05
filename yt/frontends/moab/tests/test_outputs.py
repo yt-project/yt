@@ -43,7 +43,7 @@ class TestMoab(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(c5)
     def test_cantor_5(self, f, d, ds_c5):
-        fv_hd = self.field_values_test(ds, f, d)
+        fv_hd = self.field_values_test(ds_c5, f, d)
         self.hashes.update({'field_values': fv_hd})
 
     @utils.requires_ds(c5)

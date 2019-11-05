@@ -22,4 +22,4 @@ class TestRockstarHaloFinder(fw.AnswerTest):
         comm.Disconnect()
         d1 = load(h)
         fv_hd = self.field_values_test(d1, field, particle_type=True)
-        hd.update({'field_values'] : fv_hd})
+        self.hashes.update({'field_values' : fv_hd})

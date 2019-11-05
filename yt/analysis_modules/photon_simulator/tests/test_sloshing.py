@@ -16,6 +16,7 @@ import pytest
 from yt.analysis_modules.photon_simulator.api import \
     ThermalPhotonModel, PhotonList, EventList, \
     convert_old_file, merge_files
+from yt.config import ytcfg
 from yt.testing import \
     requires_file, \
     assert_almost_equal
@@ -24,6 +25,7 @@ import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 
 
+xray_data_dir = ytcfg.get("yt", "xray_data_dir")
 gslr = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 old_photon_file = os.path.join(xray_data_dir, "old_photons.h5")
 old_event_file = os.path.join(xray_data_dir, "old_events.h5")
@@ -44,7 +46,7 @@ class TestSloshingPhoton(fw.AnswerTest):
         self.hashes.update({'generic_array' : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
-    def test_sloshing_return_events(self, arf, rmf, photon_data, ds_gslr)
+    def test_sloshing_return_events(self, arf, rmf, photon_data, ds_gslr):
         events1 = photon_data.photons1.project_photons([1.0,-0.5,0.2], responses=[arf,rmf],
           absorb_model=photon_data.tbabs_model, 
           convolve_energies=True, prng=photon_data.prng

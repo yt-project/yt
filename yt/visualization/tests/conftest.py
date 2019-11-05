@@ -1,4 +1,13 @@
+from collections import OrderedDict
+
 import pytest
+
+
+def simple_contour(plot_field, plot):
+    plot.annotate_contour(plot_field)
+
+def simple_velocity(plot_field, plot):
+    plot.annotate_velocity()
 
 
 FPROPS = {'family': 'sans-serif', 'style': 'italic',
@@ -50,7 +59,7 @@ CALLBACK_TESTS = (
 def get_attr_pairs(attr_args):
     pairs = []
     for k in attr_args:
-        for v in args[k]:
+        for v in attr_args[k]:
             pairs.append((k, v))
     return pairs
 
@@ -60,7 +69,7 @@ phase_attr_pairs = get_attr_pairs(PHASE_ATTR_ARGS)
 
 attr_ids = ['pan', 'pan_rel', 'axis_unit_kpc', 'axis_unit_mpc', 'axis_unit_kpc_kpc',
     'axis_unit_kpc_mpc', 'buff_size_1600', 'buff_size_600_800', 'center', 'cmap_RdBu',
-    'cmap_kamae', 'font', 'log', 'window_size', 'zlim_upper', 'zlim_unbound', 'zlim_dynamic',
+    'cmap_kamae', 'font', 'log', 'window_size', 'zlim_upper', 'zlim_unbound', 
     'zoom', 'toggle_rh']
 phase_ids = ['annotate_no_color', 'annotate_color', 'title', 'log', 'unit', 'xlim', 'ylim']
 callback_ids = ['contour', 'velocity']
@@ -86,11 +95,11 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('callback', CALLBACK_TESTS, ids=callback_ids)
     if metafunc.function.__name__ == "test_particle_projection_answers":
         metafunc.parametrize('axis', ['x', 'y', 'z'], ids=['x', 'y', 'z'])
-        metafunc.parametrize('attr_name, attr_args', part_attr_pairs, ids=part_attr_ids)
+        metafunc.parametrize('attr_name, attr_args', part_attr_pairs, ids=attr_ids)
     if metafunc.function.__name__ == "test_particle_projection_filter":
         metafunc.parametrize('axis', ['x', 'y', 'z'], ids=['x', 'y', 'z'])
         attr_name = "set_log"
-        metafunc.parametrize('attr_args', [v for v in PROJ_ATTR_ARGS[attr_name]], ids=part_attr_ids)
+        metafunc.parametrize('attr_args', [v for v in PROJ_ATTR_ARGS[attr_name]], ids=["set_log"])
     if metafunc.function.__name__ == "test_particle_phase_answers":
         metafunc.parametrize('attr_name, attr_args', phase_attr_pairs, ids=phase_ids)
     if metafunc.function.__name__ == "test_raw_field_slices":

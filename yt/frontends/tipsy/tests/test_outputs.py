@@ -40,17 +40,17 @@ class TestTipsy(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(pkdgrav, file_check = True)
     def test_pkdgrav(self, f, a, d, w, ds_pkdgrav):
-        ds = ds_pkdgrav
-        dd = ds.all_data()
+        # ds = ds_pkdgrav
+        dd = ds_pkdgrav.all_data()
         assert_equal(dd["Coordinates"].shape, (26847360, 3))
         tot = sum(dd[ptype,"Coordinates"].shape[0]
-                  for ptype in ds.particle_types if ptype != "all")
+                  for ptype in ds_pkdgrav.particle_types if ptype != "all")
         assert_equal(tot, 26847360)
-        ppv_hd = self.pixelized_projection_values_test(ds, a, f, w, d)
+        ppv_hd = self.pixelized_projection_values_test(ds_pkdgrav, a, f, w, d)
         self.hashes.update({'pixelized_projection_values' : ppv_hd})
-        fv_hd = self.field_values_test(ds, f, d)
+        fv_hd = self.field_values_test(ds_pkdgrav, f, d)
         self.hashes.update({'field_values' : fv_hd})
-        dobj = utils.create_obj(ds, d)
+        dobj = utils.create_obj(ds_pkdgrav, d)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)

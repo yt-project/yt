@@ -108,12 +108,6 @@ PROJECTION_METHODS = (
     'mip'
 )
 
-def simple_contour(plot_field, plot):
-    plot.annotate_contour(plot_field)
-
-def simple_velocity(plot_field, plot):
-    plot.annotate_velocity()
-
 
 @pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
@@ -128,7 +122,7 @@ class TestPlotWindowAnswer(fw.AnswerTest):
         self.hashes.update({'plot_window_attribute' : pw_hd})
         pw_hd = self.plot_window_attribute_test(ds, plot_field, axis, attr_name,
             attr_args, callback_id=callback[0], callback_runners=callback[1])
-        self.hashes.update([{'plot_window_attribute_with_callback' :  pw_hd})
+        self.hashes.update({'plot_window_attribute_with_callback' :  pw_hd})
 
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(WT)
