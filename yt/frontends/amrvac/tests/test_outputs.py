@@ -1,6 +1,6 @@
-import numpy as np
+import numpy as np # NOQA
 
-import yt
+import yt # NOQA
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, small_patch_amr
