@@ -5,6 +5,7 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, small_patch_amr
 from yt.testing import requires_file
+from yt.frontends.amrvac import AMRVACDataset
 
 blastwave_cartesian_3D = "amrvac/bw_3d0000.dat"
 blastwave_polar_2D = "amrvac/bw_polar_2D0000.dat"
