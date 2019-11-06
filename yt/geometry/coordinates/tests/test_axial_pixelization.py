@@ -16,7 +16,7 @@ class TestAxialPixelization(fw.AnswerTest):
         ds = fake_amr_ds(geometry=geom)
         ap = self.axial_pixelization_test(ds)
         if axis == 'x_axis':
-            apx_hd = ap[0]
+            ap_hd = ap[0]
         elif axis == 'y_axis':
-            apy_hd = ap[1]
-        self.hashes.update({'axial_pixelization' : apx_hd})
+            ap_hd = ap[1]
+        self.hashes.update({'axial_pixelization' : ap_hd})

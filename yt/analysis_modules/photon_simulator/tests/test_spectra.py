@@ -39,8 +39,8 @@ class TestSpectra(fw.AnswerTest):
             return spec1.v
         def spec2_test():
             return spec2.v
-        ga_hd1 = self.generic_array_test(ds, spec1_test)
-        ga_hd2 = self.generic_array_test(ds, spec2_test)
+        ga_hd1 = self.generic_array_test(spec1_test)
+        ga_hd2 = self.generic_array_test(spec2_test)
         self.hashes.update({'generic_array1' : ga_hd1})
         self.hashes.update({'generic_array2' : ga_hd2})
         xmod.cleanup_spectrum()

@@ -219,7 +219,7 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
         self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd = self.generic_array_test(None, func)
+            ga_hd = self.generic_array_test(func)
             self.hashes['generic_array'].update({key : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
@@ -254,7 +254,7 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
         self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd = self.generic_array_test(None, func)
+            ga_hd = self.generic_array_test(func)
             self.hashes['generic_array'].update({key : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
@@ -289,7 +289,7 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
         self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd = self.generic_array_test(None, func)
+            ga_hd = self.generic_array_test(func)
             self.hashes['generic_array'].update({key : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
@@ -329,7 +329,7 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
         self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd = self.generic_array_test(None, func)
+            ga_hd = self.generic_array_test(func)
             self.hashes['generic_array'].update({key : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
@@ -366,7 +366,7 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
         self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd = self.generic_array_test(None, func)
+            ga_hd = self.generic_array_test(func)
             self.hashes['generic_array'].update({key : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
@@ -408,5 +408,5 @@ class TestAbsorptionSpectrum(fw.AnswerTest):
         self.hashes.update({'generic_array' : {}})
         for key in data.keys():
             func = lambda x=key: data[x][:]
-            ga_hd = self.generic_array_test(None, func)
+            ga_hd = self.generic_array_test(func)
             self.hashes['generic_array'].update({key : ga_hd})

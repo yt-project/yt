@@ -32,7 +32,7 @@ class TestParticleTrajectories(fw.AnswerTest):
         ds, traj = orbit_traj
         def field_func(name):
             return traj[field]
-        ga_hd = self.generic_arraytest(ds, field_func, args=[field])
+        ga_hd = self.generic_array_test(field_func, args=[field])
         self.hashes.update({'generic_array' : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
@@ -41,7 +41,7 @@ class TestParticleTrajectories(fw.AnswerTest):
         ds, traj = etc_traj
         def field_func(name):
             return traj[field]
-        ga_hd = self.generic_array_test(ds, field_func, args=[field])
+        ga_hd = self.generic_array_test(field_func, args=[field])
         self.hashes.update({'generic_array' : ga_hd})
 
     def test_uniqueness(self):
