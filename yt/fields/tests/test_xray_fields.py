@@ -16,8 +16,7 @@ d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 class TestXRayFields(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(sloshing)
-    def test_sloshing_apec(self, field, dobj_name, axis):
-        ds = utils.data_dir_load(sloshing)
+    def test_sloshing_apec(self, ds, field, dobj_name, axis):
         pv_hd = self.projection_values_test(ds, axis, field, None, dobj_name)
         self.hashes.update({'projection_values' : pv_hd})
         fv_hd = self.field_values_test(ds, field, dobj_name)
@@ -25,8 +24,7 @@ class TestXRayFields(fw.AnswerTest):
 
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(d9p)
-    def test_d9p_cloudy(self, field, dobj_name, axis):
-        ds = utils.data_dir_load(d9p)
+    def test_d9p_cloudy(self, ds, field, dobj_name, axis):
         pv_hd = self.projection_values_test(ds, axis, field, None, dobj_name)
         self.hashes.update({'projection_values' : pv_hd})
         fv_hd = self.field_values_test(ds, field, dobj_name)

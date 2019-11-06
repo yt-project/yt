@@ -282,10 +282,9 @@ class AnswerTest():
     # plot_window_attribute_test
     #-----
     def plot_window_attribute_test(self, ds, plot_field, plot_axis, attr_name,
-        attr_args, decimals, plot_type='SlicePlot', callback_id='',
-        callback_runners=[]):
+        attr_args, plot_type='SlicePlot', callback_id='', callback_runners=[]):
         plot = utils.create_plot(ds, plot_type, plot_field, plot_axis, {})
-        for r in self.callback_runners:
+        for r in callback_runners:
             r(plot_field, plot)
         attr = getattr(plot, attr_name)
         attr(*attr_args[0], **attr_args[1])
@@ -302,7 +301,8 @@ class AnswerTest():
     def phase_plot_attribute_test(self, ds_fn, x_field, y_field, z_field,
                  attr_name, attr_args, plot_type='PhasePlot',
                  plot_kwargs={}):
-        plot = utils.create_plot2(ds_fn, x_field, y_field,
+        data_source = ds_fn.all_data()
+        plot = utils.create_plot2(data_source, x_field, y_field,
                                 z_field, plot_type, plot_kwargs)
         attr = getattr(plot, attr_name)
         attr(*attr_args[0], **attr_args[1])
@@ -317,7 +317,7 @@ class AnswerTest():
     # generic_image_test
     #-----
     def generic_image_test(self, img_fname):
-        img_data = mpimg.imread(img_fname)
+        img_data = mpimg.imread(img_fname[0])
         return img_data
 
     #-----

@@ -39,7 +39,7 @@ class TestRadmc3dExporter(fw.AnswerTest):
             return dust_to_gas * data["density"]
         ds.add_field(("gas", "dust_density"), function=_DustDensity, units="g/cm**3")
         # try to write the output files
-        writer = RadMC3DWriter(self.ds)
+        writer = RadMC3DWriter(ds)
         writer.write_amr_grid()
         writer.write_dust_file(("gas", "dust_density"), "dust_density.inp")
         # compute the sum of the values in the resulting file

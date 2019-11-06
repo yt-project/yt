@@ -24,6 +24,7 @@ def pytest_generate_tests(metafunc):
                                            table_type="cloudy", cosmology=ds.cosmology,
                                            metallicity=("gas", "metallicity"))
     if metafunc.function.__name__ in ["test_sloshing_apec", "test_d9p_cloudy"]:
-        metafunc.parametrize('field', fields, ids=[f.__repr__() for f in fields])
+        metafunc.parametrize('ds, field', [(ds, f) for f in fields],
+            ids=[f.__repr__() for f in fields])
         metafunc.parametrize('dobj_name', dso, ids=['None', 'sphere'])
         metafunc.parametrize('axis', axes, ids=['0', '1', '2'])

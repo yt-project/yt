@@ -41,20 +41,20 @@ def return_data(data):
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
 class TestSloshingPhoton(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
-    def test_sloshing_return_photons(self, photon_data, ds_gslr):
-        ga_hd = self.generic_array_test(ds_gslr, photon_data.return_photons, args=['photons'])
+    def test_sloshing_return_photons(self, photon_data):
+        ga_hd = self.generic_array_test(photon_data.return_data, args=['photons'])
         self.hashes.update({'generic_array' : ga_hd})
 
     @pytest.mark.usefixtures('hashing')
-    def test_sloshing_return_events(self, arf, rmf, photon_data, ds_gslr):
+    def test_sloshing_return_events(self, arf, rmf, photon_data):
         events1 = photon_data.photons1.project_photons([1.0,-0.5,0.2], responses=[arf,rmf],
           absorb_model=photon_data.tbabs_model, 
           convolve_energies=True, prng=photon_data.prng
         )
         events1['xsky']
-        return_events = photon_data.return_data(events1.events)
-        ga_hd = self.generic_array_test(ds_gslr, return_events, args=[os.path.basename(arf)])
-        self.hashes.upate({'generic_array_return_events' : ga_hd})
+        return_events = return_data(events1.events)
+        ga_hd = self.generic_array_test(return_events, args=[os.path.basename(arf)])
+        self.hashes.update({'generic_array_return_events' : ga_hd})
         photon_data.photons1.write_h5_file("test_photons.h5")
         events1.write_h5_file("test_events.h5")
         photons2 = PhotonList.from_file("test_photons.h5")
@@ -63,7 +63,7 @@ class TestSloshingPhoton(fw.AnswerTest):
         convert_old_file(old_event_file, "converted_events.h5")
         PhotonList.from_file("converted_photons.h5")
         EventList.from_h5_file("converted_events.h5")
-        for k in photons1.keys():
+        for k in photon_data.photons1.keys():
             if k == "Energy":
                 arr1 = uconcatenate(photon_data.photons1[k])
                 arr2 = uconcatenate(photons2[k])
@@ -86,4 +86,4 @@ class TestSloshingPhoton(fw.AnswerTest):
                     clobber=True)
         merged_events = EventList.from_h5_file("merged_events.h5")
         assert len(merged_events["xsky"]) == nevents
-        assert merged_events.parameters["ExposureTime"] == exp_time
+        assert merged_events.parameters["ExposureTime"] == photon_data.exp_time

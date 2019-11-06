@@ -359,7 +359,7 @@ def fake_halo_catalog(data):
 #============================================
 #                 create_plot
 #+===========================================
-def create_plot(self, ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
+def create_plot(ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
     """
     Parameters:
     -----------
