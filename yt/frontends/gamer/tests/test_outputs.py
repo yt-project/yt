@@ -70,6 +70,15 @@ class TestGamer(fw.AnswerTest):
         self.hashes.update(self.small_patch_amr(ds_plummer, f, w, a, d))
 
     #-----
+    # test_mhd_vortex
+    #-----
+    @pytest.mark.big_data
+    @pytest.mark.usefixtures('hashing')
+    @utils.requires_ds(mhd_vortex)
+    def test_mhdvortex(self, f, a, d, w, ds_mhd_vortex):
+        self.hashes.update(self.small_patch_amr(ds_mhd_vortex, f, w, a, d))
+
+    #-----
     # test_GAMERDataset
     #-----
     @requires_file(psiDM)

@@ -11,12 +11,14 @@ from yt.utilities.answer_testing import utils
 jet         = "InteractingJets/jet_000002"
 psiDM       = "WaveDarkMatter/psiDM_000020"
 plummer     = "Plummer/plummer_000000"
+mhdvortex   = "MHDOrszagTangVortex/Data_000018"
 
 
 axes = [0, 1, 2]
 center = "max"
 ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
 weights = [None, "density"]
+fields_mhdvortex = (("gamer","CCMagX"), ("gamer","CCMagY"), ("gas","magnetic_energy"))
 
 
 def pytest_generate_tests(metafunc):
@@ -30,6 +32,9 @@ def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ == 'test_plummer':
         fields = ( ("gamer","ParDens"), ("deposit","io_cic") )
         ids = ['pardens', 'io_cic']
+    if metafunc.function.__name__ == 'test_mhdvortex':
+        fields = fields_mhdvortex
+        ids = ['CCMagX', 'CCMagY', 'magnetic_energy']
     if metafunc.function.__name__ in param_tests:
         metafunc.parametrize('f', fields, ids=ids)
         metafunc.parametrize('a', axes, ids=['0', '1', '2'])
@@ -56,4 +61,10 @@ def ds_psiDM():
 def ds_plummer():
     ds = utils.data_dir_load(plummer)
     assert (str(ds), "plummer_000000")
+    return ds
+
+@pytest.fixture(scope='class')
+def ds_mhd_vortex():
+    ds = utils.data_dir_load(mhd_vortex)
+    assert str(ds) == "Data_000018"
     return ds
