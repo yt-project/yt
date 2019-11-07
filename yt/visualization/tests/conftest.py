@@ -2,6 +2,9 @@ from collections import OrderedDict
 
 import pytest
 
+from yt.testing import fake_amr_ds
+from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
+
 
 def simple_contour(plot_field, plot):
     plot.annotate_contour(plot_field)
@@ -105,3 +108,7 @@ def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ == "test_raw_field_slices":
         metafunc.parametrize('field', _raw_field_names, ids=['Bx', 'By', 'Bz',
             'Ex', 'Ey', 'Ez', 'jx', 'jy', 'jz'])
+    if metafunc.function.__name__ == 'test_geo_slices_amr':
+        ds = fake_amr_ds(geometry="geographic")
+        metafunc.parametrize('transform', transform_list, ids=[t.__repr__() for t in transform_list])
+        metafunc.parametrize('field, ds', [(f, ds) for f in ds.field_list], ids=[f.__repr__() for f in ds.field_list])

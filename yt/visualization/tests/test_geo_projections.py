@@ -26,38 +26,20 @@ from yt.utilities.answer_testing import utils
 from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
 
 
-def setup():
-    """Test specific setup."""
-    from yt.config import ytcfg
-    ytcfg["yt", "__withintesting"] = "True"
-
-
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('temp_dir', 'answer_file')
+@pytest.mark.usefixtures('temp_dir', 'answer_file', 'hashing')
 class TestGeoSlicesAMR(fw.AnswerTest):
     @requires_module("cartopy")
-    def test_geo_slices_amr(self):
-        ds = fake_amr_ds(geometry="geographic")
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
-        for transform in transform_list:
-            if transform == 'UTM':
-                # requires additional argument so we skip
-                continue
-            hd['generic_image'][transform] = OrderedDict()
-            for field in ds.field_list:
-                tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
-                os.close(tmpfd)
-                sl = yt.SlicePlot(ds, 'altitude', field)
-                sl.set_mpl_projection(transform)
-                sl.set_log('all', False)
-                sl.save(tmpfname)
-                gi_hd = utils.generate_hash(
-                    self.generic_image_test(tmpfname)
-                )
-                hd['generic_image'][transform][field] = gi_hd
-        hd = {'geo_slices_amr' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+    def test_geo_slices_amr(self, transform, field, ds):
+        if transform not in ('UTM', 'OSNI'):
+            tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
+            os.close(tmpfd)
+            sl = yt.SlicePlot(ds, 'altitude', field)
+            sl.set_mpl_projection(transform)
+            sl.set_log('all', False)
+            sl.save(tmpfname)
+            gi_hd = self.generic_image_test(tmpfname)
+            self.hashes.update({'generic_image' : gi_hd})
 
 @requires_module("cartopy")
 class TestGeoProjections(unittest.TestCase):
