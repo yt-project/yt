@@ -56,7 +56,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         super(SPHFieldInfo, self).__init__(*args, **kwargs)
         if ("PartType0", "Metallicity_00") in self.field_list:
             self.nuclei_names = metal_elements
-            self.species_names = ["H", "H_p1"] + metal_elements
+            self.species_names = ["H_p0", "H_p1"] + metal_elements
 
     def setup_particle_fields(self, ptype):
         FieldInfoContainer.setup_particle_fields(self, ptype)
@@ -69,19 +69,17 @@ class GizmoFieldInfo(GadgetFieldInfo):
     def setup_gas_particle_fields(self, ptype):
         super(GizmoFieldInfo, self).setup_gas_particle_fields(ptype)
 
-        def _h_density(field, data):
+        def _h_p0_density(field, data):
             x_H = 1.0 - data[(ptype, "He_metallicity")] - \
               data[(ptype, "metallicity")]
             return x_H * data[(ptype, "density")] * \
               data[(ptype, "NeutralHydrogenAbundance")]
 
-        self.add_field((ptype, "H_density"),
+        self.add_field((ptype, "H_p0_density"),
                        sampling_type="particle",
-                       function=_h_density,
+                       function=_h_p0_density,
                        units=self.ds.unit_system["density"])
         add_species_field_by_density(self, ptype, "H")
-        for suffix in ["density", "fraction", "mass", "number_density"]:
-            self.alias((ptype, "H_p0_%s" % suffix), (ptype, "H_%s" % suffix))
 
         def _h_p1_density(field, data):
             x_H = 1.0 - data[(ptype, "He_metallicity")] - \
@@ -104,6 +102,16 @@ class GizmoFieldInfo(GadgetFieldInfo):
             for suf in ["_density", "_number_density"]:
                 field = "%s%s" % (species, suf)
                 self.alias(("gas", field), (ptype, field))
+
+        if (ptype, "ElectronAbundance") in self.field_list:
+            def _el_number_density(field, data):
+                return data[ptype, "ElectronAbundance"] * \
+                       data[ptype, "H_number_density"]
+            self.add_field((ptype, "El_number_density"),
+                           sampling_type="particle",
+                           function=_el_number_density,
+                           units=self.ds.unit_system["number_density"])
+            self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
 
         for species in self.nuclei_names:
             self.add_field((ptype, "%s_nuclei_mass_density" % species),

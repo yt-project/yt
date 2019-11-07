@@ -14,17 +14,18 @@ from yt.utilities.math_utils import \
     get_sph_phi_component
 
 @register_field_plugin
-def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
+def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     ds = registry.ds
-    
+
     unit_system = ds.unit_system
+    pc = registry.ds.units.physical_constants
 
     axis_names = registry.ds.coordinates.axis_order
 
-    if (ftype,"magnetic_field_%s" % axis_names[0]) not in registry:
+    if (ftype, "magnetic_field_%s" % axis_names[0]) not in registry:
         return
 
-    u = registry[ftype,"magnetic_field_%s" % axis_names[0]].units
+    u = registry[ftype, "magnetic_field_%s" % axis_names[0]].units
 
     def mag_factors(dims):
         if dims == dimensions.magnetic_field_cgs:
@@ -109,6 +110,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
             return data[ftype,"magnetic_field_theta"] - bm[ax]
 
     elif registry.ds.geometry == "spherical":
+
         def _magnetic_field_poloidal(field, data):
             ax = axis_names.find('theta')
             bm = data.get_field_parameter("bulk_magnetic_field")
@@ -158,6 +160,22 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
                        sampling_type="local",
                        function=_mach_alfven,
                        units="dimensionless")
+
+    b_units = registry.ds.quan(1.0, u).units
+    if dimensions.current_mks in b_units.dimensions.free_symbols:
+        rm_scale = pc.qp.to("C", "SI")**3/(4.0*np.pi*pc.eps_0)
+    else:
+        rm_scale = pc.qp**3/pc.clight
+    rm_scale *= registry.ds.quan(1.0, "rad")/(2.0*np.pi*pc.me**2*pc.clight**3)
+    rm_units = registry.ds.quan(1.0, "rad/m**2").units/unit_system["length"]
+
+    def _rotation_measure(field, data):
+        return rm_scale*data[ftype, "magnetic_field_los"]*data[ftype, "El_number_density"]
+
+    registry.add_field((ftype, "rotation_measure"), sampling_type="local",
+                       function=_rotation_measure, units=rm_units,
+                       validators=[
+                           ValidateParameter("axis", {'axis': [0, 1, 2]})])
 
 def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
     r"""
@@ -241,6 +259,6 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
                                sampling_type=sampling_type,
                                function=mag_field(ax),
                                units=units)
-            sph_ptype = getattr(registry.ds, "_sph_ptype", None)
-            if ds_ftype == sph_ptype:
+            sph_ptypes = getattr(registry.ds, "_sph_ptypes", tuple())
+            if ds_ftype in sph_ptypes:
                 registry.alias((ftype, "magnetic_field_%s" % ax), (ds_ftype, fname))

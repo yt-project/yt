@@ -203,6 +203,13 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
             raise RuntimeError("Your dataset does not have a {} field! ".format(metallicity) +
                                "Perhaps you should specify a constant metallicity instead?")
 
+    if table_type == "cloudy":
+        # Cloudy wants to know the total number density of hydrogen
+        H_field = "H_nuclei_density"
+    else:
+        # APEC only wants the free proton density
+        H_field = "H_p1_number_density"
+
     my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, 
                                      redshift=redshift)
 
@@ -214,20 +221,20 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
     def _emissivity_field(field, data):
         with np.errstate(all='ignore'):
-            dd = {"log_nH": np.log10(data[ftype, "H_nuclei_density"]),
+            dd = {"log_nH": np.log10(data[ftype, H_field]),
                   "log_T": np.log10(data[ftype, "temperature"])}
 
         my_emissivity = np.power(10, em_0(dd))
         if metallicity is not None:
             if isinstance(metallicity, DerivedField):
-                my_Z = data[metallicity.name]
+                my_Z = data[metallicity.name].to("Zsun")
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, em_Z(dd))
 
         my_emissivity[np.isnan(my_emissivity)] = 0
 
-        return data[ftype, "H_nuclei_density"]**2 * \
+        return data[ftype, H_field]**2 * \
             YTArray(my_emissivity, "erg*cm**3/s")
 
     emiss_name = (ftype, "xray_emissivity_%s_%s_keV" % (e_min, e_max))
@@ -244,18 +251,18 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                  sampling_type="local", units="erg/s")
 
     def _photon_emissivity_field(field, data):
-        dd = {"log_nH": np.log10(data[ftype, "H_nuclei_density"]),
+        dd = {"log_nH": np.log10(data[ftype, H_field]),
               "log_T": np.log10(data[ftype, "temperature"])}
 
         my_emissivity = np.power(10, emp_0(dd))
         if metallicity is not None:
             if isinstance(metallicity, DerivedField):
-                my_Z = data[metallicity.name]
+                my_Z = data[metallicity.name].to("Zsun")
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
 
-        return data[ftype, "H_nuclei_density"]**2 * \
+        return data[ftype, H_field]**2 * \
             YTArray(my_emissivity, "photons*cm**3/s")
 
     phot_name = (ftype, "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max))
@@ -275,7 +282,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                     cosmology = Cosmology()
             D_L = cosmology.luminosity_distance(0.0, redshift)
             angular_scale = 1.0/cosmology.angular_scale(0.0, redshift)
-            dist_fac = 1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale)
+            dist_fac = ds.quan(1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale).v, "rad**-2")
         else:
             redshift = 0.0  # Only for local sources!
             if not isinstance(dist, YTQuantity):
@@ -287,7 +294,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
             else:
                 dist = ds.quan(dist.value, dist.units)
             angular_scale = dist/ds.quan(1.0, "radian")
-            dist_fac = 1.0/(4.0*np.pi*dist*dist*angular_scale*angular_scale)
+            dist_fac = ds.quan(1.0/(4.0*np.pi*dist*dist*angular_scale*angular_scale).v, "rad**-2")
 
         ei_name = (ftype, "xray_intensity_%s_%s_keV" % (e_min, e_max))
         def _intensity_field(field, data):

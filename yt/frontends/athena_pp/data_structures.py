@@ -21,6 +21,8 @@ from yt.data_objects.unstructured_mesh import \
     SemiStructuredMesh
 from itertools import chain, product
 from .fields import AthenaPPFieldInfo
+from yt.utilities.chemical_formulas import \
+    default_mu
 
 geom_map = {"cartesian": "cartesian",
             "cylindrical": "cylindrical",
@@ -320,6 +322,7 @@ class AthenaPPDataset(Dataset):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
             self.parameters["Gamma"] = 5./3.
+        self.mu = self.specified_parameters.get("mu", default_mu)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

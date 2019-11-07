@@ -26,6 +26,10 @@ from yt.utilities.math_utils import \
     get_sph_theta, get_sph_phi, \
     modify_reference_frame
 
+from yt.utilities.lib.misc_utilities import \
+    obtain_relative_velocity_vector, \
+    obtain_position_vector
+
 from .vector_operations import \
     create_magnitude_field
 
@@ -297,7 +301,7 @@ def standard_particle_fields(registry, ptype,
         # adding in the unit registry allows us to have a reference to the
         # dataset and thus we will always get the correct units after applying
         # the cross product.
-        return -ucross(r_vec, v_vec, registry=data.ds.unit_registry)
+        return ucross(r_vec, v_vec, registry=data.ds.unit_registry)
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
@@ -361,16 +365,12 @@ def standard_particle_fields(registry, ptype,
     def _relative_particle_position(field, data):
         """The cartesian particle positions in a rotated reference frame
 
-        Relative to the coordinate system defined by the *normal* vector and
-        *center* field parameters.
+        Relative to the coordinate system defined by *center* field parameter.
 
         Note that the orientation of the x and y axes are arbitrary.
         """
-        normal = data.get_field_parameter('normal')
-        center = data.get_field_parameter('center')
-        pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"]).T
-        L, pos = modify_reference_frame(center, normal, P=pos)
-        return pos
+        field_names = [(ptype, 'particle_position_%s' % ax) for ax in "xyz"]
+        return obtain_position_vector(data, field_names=field_names).T
 
     def _particle_position_relative(field, data):
         if not isinstance(data, FieldDetector):
@@ -396,19 +396,13 @@ def standard_particle_fields(registry, ptype,
     def _relative_particle_velocity(field, data):
         """The vector particle velocities in an arbitrary coordinate system
 
-        Relative to the coordinate system defined by the *normal* vector,
-        *bulk_velocity* vector and *center* field parameters.
+        Relative to the coordinate system defined by the *bulk_velocity* 
+        vector field parameter.
 
         Note that the orientation of the x and y axes are arbitrary.
         """
-        normal = data.get_field_parameter('normal')
-        center = data.get_field_parameter('center')
-        bv = data.get_field_parameter("bulk_velocity")
-        vel = data.ds.arr(
-            [data[ptype, svel % ax] - bv[iax]
-             for iax, ax in enumerate("xyz")]).T
-        L, vel = modify_reference_frame(center, normal, V=vel)
-        return vel
+        field_names = [(ptype, 'particle_velocity_%s' % ax) for ax in "xyz"]
+        return obtain_relative_velocity_vector(data, field_names=field_names).T
 
     def _particle_velocity_relative(field, data):
         if not isinstance(data, FieldDetector):
@@ -640,7 +634,8 @@ def standard_particle_fields(registry, ptype,
         """
         normal = data.get_field_parameter('normal')
         pos = data['relative_particle_position'].T
-        return data.ds.arr(get_cyl_r(pos, normal), 'code_length')
+        pos.convert_to_units("code_length")
+        return data.ds.arr(get_cyl_r(pos, normal), "code_length")
 
     registry.add_field((ptype, "particle_position_cylindrical_radius"),
                        sampling_type="particle",
@@ -674,7 +669,8 @@ def standard_particle_fields(registry, ptype,
         """
         normal = data.get_field_parameter('normal')
         pos = data['relative_particle_position'].T
-        return data.ds.arr(get_cyl_z(pos, normal), 'code_length')
+        pos.convert_to_units("code_length")
+        return data.ds.arr(get_cyl_z(pos, normal), "code_length")
 
     registry.add_field((ptype, "particle_position_cylindrical_z"),
                        sampling_type="particle",

@@ -103,6 +103,16 @@ class GAMERFieldInfo(FieldInfoContainer):
                        function = _pressure,
                        units = unit_system["pressure"] )
 
+        # mean molecular weight
+        if hasattr(self.ds, "mu"):
+            def _mu(field, data):
+                return data.ds.mu*data["index", "ones"]
+
+            self.add_field(("gas", "mean_molecular_weight"),
+                           sampling_type="cell",
+                           function=_mu,
+                           units="")
+
         # temperature
         def _temperature(field, data):
             return data.ds.mu*mh*data["gas","pressure"] / \

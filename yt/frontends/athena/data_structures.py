@@ -12,6 +12,8 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
+from yt.utilities.chemical_formulas import \
+    default_mu
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.geometry_handler import \
@@ -531,9 +533,9 @@ class AthenaDataset(Dataset):
             dataset_dir = dataset_dir[:-3]
 
         gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
-        if 'id0' in dname :
+        if 'id0' in dname:
             gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
-        else :
+        else:
             gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         ndots = dname.count(".")
         gridlistread = [fn for fn in gridlistread if os.path.basename(fn).count(".") == ndots]
@@ -549,6 +551,7 @@ class AthenaDataset(Dataset):
             self.parameters["Gamma"] = 5./3.
         self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
+        self.mu = self.specified_parameters.get("mu", default_mu)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

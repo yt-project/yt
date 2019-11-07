@@ -12,20 +12,20 @@ rho_units = "code_mass / code_length**3"
 vel_units = "code_velocity"
 
 known_species_names = {
-    'HI'      : 'H',
+    'HI'      : 'H_p0',
     'HII'     : 'H_p1',
-    'HeI'     : 'He',
+    'HeI'     : 'He_p0',
     'HeII'    : 'He_p1',
     'HeIII'   : 'He_p2',
-    'H2I'     : 'H2',
+    'H2I'     : 'H2_p0',
     'H2II'    : 'H2_p1',
     'HM'      : 'H_m1',
-    'HeH'     : 'HeH',
-    'DI'      : 'D',
+    'HeH'     : 'HeH_p0',
+    'DI'      : 'D_p0',
     'DII'     : 'D_p1',
-    'HDI'     : 'HD',
+    'HDI'     : 'HD_p0',
     'Electron': 'El',
-    'OI'      : 'O',
+    'OI'      : 'O_p0',
     'OII'     : 'O_p1',
     'OIII'    : 'O_p2',
     'OIV'     : 'O_p3',
@@ -276,8 +276,18 @@ class EnzoFieldInfo(FieldInfoContainer):
                 function=_tot_minus_kin,
                 units=unit_system["specific_energy"])
         if multi_species == 0 and 'Mu' in params:
+            def _mean_molecular_weight(field, data):
+                return params["Mu"]*data['index', 'ones']
+
+            self.add_field(
+                ("gas", "mean_molecular_weight"),
+                sampling_type="cell",
+                function=_mean_molecular_weight,
+                units="")
+
             def _number_density(field, data):
                 return data['gas', 'density']/(mp*params['Mu'])
+
             self.add_field(
                 ("gas", "number_density"),
                 sampling_type="cell",

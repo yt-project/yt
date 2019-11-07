@@ -426,6 +426,7 @@ class ValidateParameter(FieldValidator):
         FieldValidator.__init__(self)
         self.parameters = ensure_list(parameters)
         self.parameter_values = parameter_values
+
     def __call__(self, data):
         doesnt_have = []
         for p in self.parameters:

@@ -116,6 +116,9 @@ class FITSImageData(object):
         >>> f_deg.writeto("temp.fits")
         """
 
+        if fields is not None:
+            fields = ensure_list(fields)
+
         if "units" in kwargs:
             issue_deprecation_warning("The 'units' keyword argument has been replaced "
                                       "by the 'length_unit' keyword argument and the "
@@ -174,9 +177,6 @@ class FITSImageData(object):
             return
 
         self.hdulist = _astropy.pyfits.HDUList()
-
-        if isinstance(fields, str):
-            fields = [fields]
 
         if hasattr(data, 'keys'):
             img_data = data

@@ -45,6 +45,11 @@ tng59_fields = OrderedDict(
         (("gas", "density"), None),
         (("gas", "temperature"), None),
         (("gas", "temperature"), ('gas', 'density')),
+        (("gas", "H_number_density"), None),
+        (("gas", "H_p0_number_density"), None),
+        (("gas", "H_p1_number_density"), None),
+        (("gas", "El_number_density"), None),
+        (("gas", "C_number_density"), None),
         (('gas', 'velocity_magnitude'), None),
         (('gas', 'magnetic_field_strength'), None)
     ]

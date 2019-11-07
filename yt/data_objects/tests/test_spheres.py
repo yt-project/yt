@@ -2,7 +2,10 @@ import numpy as np
 from numpy.testing import assert_array_equal
 
 from yt.data_objects.profiles import create_profile
-from yt.testing import fake_random_ds, assert_equal, periodicity_cases
+from yt.testing import fake_random_ds, assert_equal, periodicity_cases, \
+    assert_raises, requires_module
+
+from yt.utilities.exceptions import YTException
 
 
 def setup():
@@ -77,3 +80,33 @@ def test_sphere_center():
     sp1 = ds.sphere("min", (0.25, 'unitary'))
     sp2 = ds.sphere("min_density", (0.25, 'unitary'))
     assert_array_equal(sp1.center, sp2.center)
+
+@requires_module("MiniballCpp")
+def test_minimal_sphere():
+    ds = fake_random_ds(16, nprocs=8, particles=100)
+
+    pos = ds.r['particle_position']
+    sp1 = ds.minimal_sphere(pos)
+
+    N0 = len(pos)
+
+    # Check all particles have been found
+    N1 = len(sp1['particle_ones'])
+    assert_equal(N0, N1)
+
+    # Check that any smaller sphere is missing some particles
+    sp2 = ds.sphere(sp1.center, sp1.radius*0.9)
+    N2 = len(sp2['particle_ones'])
+    assert N2 < N0
+
+@requires_module("MiniballCpp")
+def test_minimal_sphere_bad_inputs():
+    ds = fake_random_ds(16, nprocs=8, particles=100)
+    pos = ds.r['particle_position']
+
+    ## Check number of points >= 2
+    # -> should fail
+    assert_raises(YTException, ds.minimal_sphere, pos[:1, :])
+
+    # -> should not fail
+    ds.minimal_sphere(pos[:2, :])

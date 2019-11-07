@@ -2,7 +2,8 @@ import numpy as np
 
 from .derived_field import \
     ValidateParameter, \
-    ValidateSpatial
+    ValidateSpatial, \
+    NeedsParameter
 
 from yt.utilities.math_utils import \
     get_sph_r_component, \
@@ -12,7 +13,7 @@ from yt.utilities.math_utils import \
     get_cyl_z_component, \
     get_cyl_theta_component
 
-from yt.funcs import just_one
+from yt.funcs import just_one, iterable
 
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 
@@ -76,6 +77,39 @@ def create_relative_field(registry, basename, field_units, ftype='gas',
                            units=field_units,
                            validators=validators)
 
+def create_los_field(registry, basename, field_units, 
+                     ftype='gas', slice_info=None):
+    axis_order = registry.ds.coordinates.axis_order
+
+    validators = [ValidateParameter('bulk_%s' % basename),
+                  ValidateParameter("axis", {'axis': [0, 1, 2]})]
+
+    field_comps = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
+
+    def _los_field(field, data):
+        if data.has_field_parameter('bulk_%s' % basename):
+            fns = [(fc[0], "relative_%s" % fc[1]) for fc in field_comps]
+        else:
+            fns = field_comps
+        ax = data.get_field_parameter("axis")
+        if iterable(ax):
+            # Make sure this is a unit vector
+            ax /= np.sqrt(np.dot(ax, ax))
+            ret = data[fns[0]]*ax[0] + \
+                  data[fns[1]]*ax[1] + \
+                  data[fns[2]]*ax[2]
+        elif ax in [0, 1, 2]:
+            ret = data[fns[ax]]
+        else:
+            raise NeedsParameter(["axis"])
+        return ret
+
+    registry.add_field((ftype, "%s_los" % basename),
+                       sampling_type='local',
+                       function=_los_field,
+                       units=field_units,
+                       validators=validators)
+
 def create_squared_field(registry, basename, field_units,
                          ftype="gas", slice_info=None,
                          validators=None):
@@ -131,6 +165,9 @@ def create_vector_fields(registry, basename, field_units,
     create_magnitude_field(
         registry, basename, field_units, ftype=ftype, slice_info=slice_info,
         validators=[ValidateParameter('bulk_%s' % basename)])
+
+    create_los_field(
+        registry, basename, field_units, ftype=ftype, slice_info=slice_info)
 
     def _spherical_radius_component(field, data):
         """The spherical radius component of the vector field
@@ -381,7 +418,7 @@ def create_vector_fields(registry, basename, field_units,
 
 def create_averaged_field(registry, basename, field_units, ftype="gas",
                           slice_info=None, validators=None,
-                          weight="cell_mass"):
+                          weight="mass"):
 
     if validators is None:
         validators = []

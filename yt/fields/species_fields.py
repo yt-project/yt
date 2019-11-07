@@ -1,18 +1,19 @@
 import numpy as np
 import re
 
+from yt.fields.field_detector import \
+    FieldDetector
 from yt.frontends.sph.data_structures import \
     ParticleDataset
+from yt.funcs import \
+    issue_deprecation_warning
 from yt.utilities.physical_ratios import \
-    primordial_H_mass_fraction
+    _primordial_mass_fraction
 from yt.utilities.chemical_formulas import \
     ChemicalFormula
 from .field_plugin_registry import \
     register_field_plugin
 
-_primordial_mass_fraction = \
-  {"H": primordial_H_mass_fraction,
-   "He" : (1 - primordial_H_mass_fraction)}
 
 # See YTEP-0003 for details, but we want to ensure these fields are all
 # populated:
@@ -87,6 +88,7 @@ def add_species_field_by_density(registry, ftype, species):
             (ftype, "%s_density" % species),
             (ftype, "%s_mass" % species)]
 
+
 def add_species_field_by_fraction(registry, ftype, species):
     """
     This takes a field registry, a fluid type, and a species name and then
@@ -136,28 +138,89 @@ def add_species_aliases(registry, ftype, alias_species, species):
     registry.alias((ftype, "%s_mass" % alias_species), 
                    (ftype, "%s_mass" % species))
 
+def add_deprecated_species_aliases(registry, ftype, alias_species, species):
+    """
+    Add the species aliases but with deprecation warnings.
+    """
+
+    for suffix in ["density", "fraction", "number_density", "mass"]:
+        add_deprecated_species_alias(
+            registry, ftype, alias_species, species, suffix)
+
+def add_deprecated_species_alias(registry, ftype, alias_species, species,
+                                 suffix):
+    """
+    Add a deprecated species alias field.
+    """
+
+    unit_system = registry.ds.unit_system
+    if suffix == "fraction":
+        my_units = ""
+    else:
+        my_units = unit_system[suffix]
+
+    def _dep_field(field, data):
+        if not isinstance(data, FieldDetector):
+            issue_deprecation_warning(
+                ("The \"%s_%s\" field is deprecated. " +
+                 "Please use \"%s_%s\" instead.") %
+                (alias_species, suffix, species, suffix))
+        return data[ftype, "%s_%s" % (species, suffix)]
+
+    registry.add_field((ftype, "%s_%s" % (alias_species, suffix)),
+                       sampling_type="local",
+                       function=_dep_field,
+                       units=my_units)
+
 def add_nuclei_density_fields(registry, ftype):
     unit_system = registry.ds.unit_system
     elements = _get_all_elements(registry.species_names)
     for element in elements:
         registry.add_field((ftype, "%s_nuclei_density" % element),
                            sampling_type="local",
-                           function = _nuclei_density,
-                           units = unit_system["number_density"])
+                           function=_nuclei_density,
+                           units=unit_system["number_density"])
+
+    # Here, we add default nuclei and number density fields for H and
+    # He if they are not defined above. This assumes full ionization!
     for element in ["H", "He"]:
         if element in elements:
             continue
-        registry.add_field((ftype, "%s_nuclei_density" % element),
+        registry.add_field((ftype, "%s_nuclei_density" % element), 
                            sampling_type="local",
-                           function = _default_nuclei_density,
-                           units = unit_system["number_density"])
+                           function=_default_nuclei_density,
+                           units=unit_system["number_density"])
+        if element == "H":
+            registry.alias((ftype, "H_p1_number_density"),
+                           (ftype, "H_nuclei_density"))
+
+        if element == "He":
+            registry.alias((ftype, "He_p2_number_density"),
+                           (ftype, "He_nuclei_density"))
+
+    if (ftype, "El_number_density") not in registry:
+        registry.add_field((ftype, "El_number_density"),
+                           sampling_type="local",
+                           function=_default_nuclei_density,
+                           units=unit_system["number_density"])
+
 
 def _default_nuclei_density(field, data):
     ftype = field.name[0]
     element = field.name[1][:field.name[1].find("_")]
-    return data[ftype, "density"] * _primordial_mass_fraction[element] / \
-      ChemicalFormula(element).weight / data.ds.units.physical_constants.amu_cgs
-        
+    amu_cgs = data.ds.units.physical_constants.amu_cgs
+    if element == "El":
+        # This assumes full ionization!
+        muinv = 1.0*_primordial_mass_fraction["H"] / \
+          ChemicalFormula("H").weight
+        muinv += 2.0*_primordial_mass_fraction["He"] / \
+          ChemicalFormula("He").weight
+    else:
+        muinv = _primordial_mass_fraction[element] / \
+          ChemicalFormula(element).weight
+    return data[ftype, "density"] * muinv / amu_cgs
+
+
 def _nuclei_density(field, data):
     ftype = field.name[0]
     element = field.name[1][:field.name[1].find("_")]
@@ -204,6 +267,7 @@ def _get_element_multiple(compound, element):
         return 1
     return int(my_split[loc + 1])
 
+
 @register_field_plugin
 def setup_species_fields(registry, ftype = "gas", slice_info = None):
     for species in registry.species_names:
@@ -217,10 +281,14 @@ def setup_species_fields(registry, ftype = "gas", slice_info = None):
             # Skip it
             continue
         func(registry, ftype, species)
-        # Adds aliases for all neutral species from their raw "MM_"
-        # species to "MM_p0_" species to be explicit.
-        # See YTEP-0003 for more details.
-        if (ChemicalFormula(species).charge == 0):
-            alias_species = "%s_p0" % species.split('_')[0]
-            add_species_aliases(registry, "gas", alias_species, species)
+
+        # Add aliases of X_p0_<field> to X_<field>.
+        # These are deprecated and will be removed soon.
+        if ChemicalFormula(species).charge == 0:
+            alias_species = species.split("_")[0]
+            if (ftype, "{}_density".format(alias_species)) in registry:
+                continue
+            add_deprecated_species_aliases(
+                registry, "gas", alias_species, species)
+
     add_nuclei_density_fields(registry, ftype)

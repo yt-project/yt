@@ -371,6 +371,65 @@ different magnetic field units in the different :ref:`unit systems <unit_systems
 determine how to set up special magnetic field handling when designing a new frontend, check out
 :ref:`bfields-frontend`.
 
+Species Fields
+--------------
+
+For many types of data, yt is able to detect different chemical elements and molecules
+within the dataset, as well as their abundances and ionization states. Examples include:
+
+* CO (Carbon monoxide)
+* Co (Cobalt)
+* OVI (Oxygen ionized five times)
+* H:math:`^{2+}` (Molecular Hydrogen ionized once)
+* H:math:`^{-}` (Hydrogen atom with an additional electron)
+
+The naming scheme for the fields starts with prefixes in the form ``MM[_[mp][NN]]``. ``MM``
+is the molecule, defined as a concatenation of atomic symbols and numbers, with no spaces or
+underscores. The second sequence is only required if ionization states are present in the
+dataset, and is of the form ``p`` and ``m`` to indicate "plus" or "minus" respectively, 
+followed by the number. If a given species has no ionization states given, the prefix is
+simply ``MM``. 
+
+For the examples above, the prefixes would be:
+
+* ``CO``
+* ``Co``
+* ``O_p5``
+* ``H2_p1``
+* ``H_m1``
+
+The name ``El`` is used for electron fields, as it is unambiguous and will not be
+utilized elsewhere. Neutral ionic species (e.g. H I, O I) are represented as ``MM_p0``.
+Additionally, the isotope of :math:`^2`H will be included as ``D``.
+
+Finally, in those frontends which are single-fluid, these fields for each species are
+defined:
+
+* ``MM[_[mp][NN]]_fraction``
+* ``MM[_[mp][NN]]_number_density``
+* ``MM[_[mp][NN]]_density``
+* ``MM[_[mp][NN]]_mass``
+
+To refer to the number density of the entirety of a single atom or molecule (regardless
+of its ionization state), please use the ``MM_nuclei_density`` fields.
+
+Finally, if the abundances of hydrogen and helium are not defined, it is assumed that
+assumed that these elements are fully ionized with primordial abundances In this case,
+the following fields are defined:
+
+* ``H_p1_number_density``
+* ``H_nuclei_density``
+* ``He_p2_number_density``
+* ``He_nuclei_density``
+* ``El_number_density``
+
+The ``mean_molecular_weight`` field will be constructed from the abundances of the elements
+in the dataset. If no element or molecule fields are defined, the above fields for the ionized
+primordial H/He plasma are defined, and the ``mean_molecular_weight`` field is correspondingly set
+to :math:`\mu \approx 0.6`. Some frontends do not directly store the gas temperature in their
+datasets, in which case it must be computed from the pressure and/or thermal energy as well
+as the mean molecular weight, so check this carefully!
+
 Particle Fields
 ---------------
 
@@ -426,6 +485,8 @@ Within a field function, these can then be retrieved and used in the same way.
 
 For a practical application of this, see :ref:`cookbook-radial-velocity`.
 
+.. _gradient_fields:
+
 Gradient Fields
 ---------------
 
@@ -448,6 +509,98 @@ of how to create and use these fields, see :ref:`cookbook-complicated-derived-fi
 .. note::
 
     ``add_gradient_fields`` currently only supports Cartesian geometries!
+
+.. _relative_fields:
+
+Relative Vector Fields
+----------------------
+
+yt makes use of "relative" fields for certain vector fields, which are fields
+which have been defined relative to a particular origin in the space of that
+field. For example, relative particle positions can be specified relative to
+a center coordinate, and relative velocities can be specified relative to a
+bulk velocity. These origin points are specified by setting field parameters
+as detailed below (see :ref:`field_parameters` for more information).
+
+The relative fields which are currently supported for gas fields are:
+
+* ``("gas", "relative_velocity_{xyz}")``, defined by setting the 
+  ``"bulk_velocity"`` field parameter
+* ``("gas", "relative_magnetic_field_{xyz}")``, defined by setting the 
+  ``"bulk_magnetic_field"`` field parameter
+
+For particle fields, for a given particle type ``ptype``, the relative 
+fields which are supported are:
+
+* ``(ptype, "relative_particle_position")``, defined by setting the 
+  ``"center"`` field parameter
+* ``(ptype, "relative_particle_velocity")``, defined by setting the 
+  ``"bulk_velocity"`` field parameter
+* ``(ptype, "relative_particle_position_{xyz}")``, defined by setting the 
+  ``"center"`` field parameter
+* ``(ptype, "relative_particle_velocity_{xyz}")``, defined by setting the 
+  ``"bulk_velocity"`` field parameter
+
+These fields are in use when defining magnitude fields, line-of-sight fields,
+etc.. The ``"bulk_{}"`` field parameters are ``[0.0, 0.0, 0.0]`` by default,
+and the ``"center"`` field parameter depends on the data container in use. 
+
+There is currently no mechanism to create new relative fields, but one may be
+added at a later time. 
+
+.. _los_fields:
+
+Line of Sight Fields
+--------------------
+
+In astrophysics applications, one often wants to know the component of a vector 
+field along a given line of sight. If you are doing a projection of a vector 
+field along an axis, or just want to obtain the values of a vector field 
+component along an axis, you can use a line-of-sight field. For projections, 
+this will be handled automatically:
+
+.. code-block:: python
+
+    prj = yt.ProjectionPlot(ds, "z", ("gas", "velocity_los"), 
+                            weight_field=("gas", "density"))
+
+Which, because the axis is ``"z"``, will give you the same result if you had
+projected the `"velocity_z"`` field. This also works for off-axis projections:
+
+.. code-block:: python
+
+    prj = yt.OffAxisProjectionPlot(ds, [0.1, -0.2, 0.3], ("gas", "velocity_los"), 
+                                   weight_field=("gas", "density"))
+
+
+This shows that the projection axis can be along a principle axis of the domain 
+or an arbitrary off-axis 3-vector (which will be automatically normalized). If 
+you want to examine a line-of-sight vector within a 3-D data object, set the 
+``"axis"`` field parameter:
+
+.. code-block:: python
+
+    dd = ds.all_data()
+    # Set to one of [0, 1, 2] for ["x", "y", "z"] axes
+    dd.set_field_parameter("axis", 1)
+    print(dd["gas", "magnetic_field_los"])
+    # Set to a three-vector for an off-axis component
+    dd.set_field_parameter("axis", [0.3, 0.4, -0.7])
+    print(dd["gas", "velocity_los"])
+
+.. warning::
+
+    If you need to change the axis of the line of sight on the *same* data container
+    (sphere, box, cylinder, or whatever), you will need to delete the field using
+    ``del dd["velocity_los"]`` and re-generate it. 
+
+At this time, this functionality is enabled for the velocity and magnetic vector
+fields, ``("gas", "velocity_los")`` and ``("gas", "magnetic_field_los")``. The 
+following fields built into yt make use of these line-of-sight fields:
+
+* ``("gas", "sz_kinetic")`` uses ``("gas", "velocity_los")``
+* ``("gas", "rotation_measure")`` uses ``("gas", "magnetic_field_los")``
+
 
 General Particle Fields
 -----------------------
