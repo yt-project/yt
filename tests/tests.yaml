@@ -126,3 +126,6 @@ TestParticleTrajectories:
 
 TestLightCone:
     light_cone_answers_000.yaml
+
+TestGeoSlicesAMR:
+    geo_slices_answers_000.yaml
