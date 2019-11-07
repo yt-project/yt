@@ -432,3 +432,29 @@ class TestRamses(fw.AnswerTest):
         ds.index
         # Access some field
         ds.r[('gas', 'density')]
+
+    #-----
+    # test_namelist_reading
+    #-----
+    @requires_ds(ramses_new_format)
+    @requires_module('f90nml')
+    def test_namelist_reading(self):
+        import f90nml
+        ds = utils.data_dir_load(ramses_new_format)
+        namelist_fname = os.path.join(ds.directory, 'namelist.txt')
+        with open(namelist_fname, 'r') as f:
+            ref = f90nml.read(f)
+        nml = ds.parameters['namelist']
+        assert nml == ref
+
+    #-----
+    # test_namelist_reading_should_not_fail
+    #-----
+    @requires_ds(ramses_empty_record)
+    @requires_ds(output_00080)
+    @requires_module('f90nml')
+    def test_namelist_reading_should_not_fail(self):
+        for ds_name in (ramses_empty_record, output_00080):
+            # Test that the reading does not fail for malformed namelist.txt files
+            ds = utils.data_dir_load(ds_name)
+            ds.index  # should work
