@@ -660,14 +660,8 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         self.spec_axis = np.where(self.spec_axis)[0][0]
         self.spec_name = spec_names[self.ctypes[self.spec_axis].split("-")[0][0]]
 
-        self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
-        self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
-        self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.lon_axis, self.lat_axis]]
-        self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.lon_axis, self.lat_axis]]
-        self.wcs_2d.wcs.cunit = [str(self.wcs.wcs.cunit[self.lon_axis]),
-                                 str(self.wcs.wcs.cunit[self.lat_axis])]
-        self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
-                                 self.wcs.wcs.ctype[self.lat_axis]]
+        # Extract a subimage from a WCS object
+        self.wcs_2d = self.wcs.sub(["longitude", "latitude"])
 
         self._p0 = self.wcs.wcs.crpix[self.spec_axis]
         self._dz = self.wcs.wcs.cdelt[self.spec_axis]

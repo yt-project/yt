@@ -213,7 +213,7 @@ def subfind_field_list(fh, ptype, pcount):
                     fields.append(("FOF", fname))
                 offset_fields.append(fname)
             else:
-                mylog.warn("Cannot add field (%s, %s) with size %d." % \
-                           (ptype, fh[field].name, fh[field].size))
+                mylog.warning("Cannot add field (%s, %s) with size %d." % \
+                              (ptype, fh[field].name, fh[field].size))
                 continue
     return fields, offset_fields

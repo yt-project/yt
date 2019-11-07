@@ -7,7 +7,7 @@ Beginning with version 3.3, yt has the ability to volume render unstructured
 mesh data like that created by finite element calculations. No additional 
 dependencies are required in order to use this feature. However, it is 
 possible to speed up the rendering operation by installing with 
-`Embree <https://embree.github.io>`_ support. Embree is a fast ray-tracing
+`Embree <https://www.embree.org>`_ support. Embree is a fast ray-tracing
 library from Intel that can substantially speed up the mesh rendering operation
 on large datasets. You can read about how to install yt with Embree support 
 below, or you can skip to the examples.
@@ -33,7 +33,7 @@ and then run like so:
 Alternatively, you can install the additional dependencies by hand.
 First, you will need to install Embree, either by compiling from source 
 or by using one of the pre-built binaries available at Embree's 
-`downloads <https://embree.github.io/downloads.html>`_ page.
+`downloads <https://www.embree.org/downloads.html>`_ page.
 
 Second, the python bindings for Embree (called
 `pyembree <https://github.com/scopatz/pyembree>`_) must also be installed. To

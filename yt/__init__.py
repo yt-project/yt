@@ -1,10 +1,10 @@
 """
 yt is a toolkit for analyzing and visualizing volumetric data.
 
-* Website: http://yt-project.org
-* Documentation: http://yt-project.org/doc
-* Data hub: http://hub.yt
-* Contribute: http://github.com/yt-project/yt
+* Website: https://yt-project.org
+* Documentation: https://yt-project.org/doc
+* Data hub: https://girder.hub.yt
+* Contribute: https://github.com/yt-project/yt
 
 """
 

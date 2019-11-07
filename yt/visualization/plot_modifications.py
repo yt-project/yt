@@ -530,7 +530,7 @@ class ContourCallback(PlotCallback):
                  plot_args=None, label=False, take_log=None,
                  label_args=None, text_args=None, data_source=None):
         PlotCallback.__init__(self)
-        def_plot_args = {'colors':'k'}
+        def_plot_args = {'colors':'k', 'linestyles': 'solid'}
         def_text_args = {'colors':'w'}
         self.ncont = ncont
         self.field = field
@@ -755,7 +755,7 @@ class GridBoundaryCallback(PlotCallback):
                     np.logical_and(levels >= min_level, levels <= max_level))
 
             if self.id_loc and not self.draw_ids:
-                mylog.warn("Supplied id_loc but draw_ids is False. Not drawing grid ids")
+                mylog.warning("Supplied id_loc but draw_ids is False. Not drawing grid ids")
 
             if self.draw_ids:
                 id_loc = self.id_loc.lower() # Make case-insensitive
@@ -1011,14 +1011,18 @@ class CuttingQuiverCallback(PlotCallback):
         pixX = np.zeros((ny, nx), dtype="f8")
         pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_off_axis_cartesian(pixX,
-                               plot.data['x'], plot.data['y'], plot.data['z'],
+                               plot.data['x'].to('code_length'),
+                               plot.data['y'].to('code_length'),
+                               plot.data['z'].to('code_length'),
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_x],
                                (x0, x1, y0, y1))
         pixelize_off_axis_cartesian(pixY,
-                               plot.data['x'], plot.data['y'], plot.data['z'],
+                               plot.data['x'].to('code_length'),
+                               plot.data['y'].to('code_length'),
+                               plot.data['z'].to('code_length'),
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
@@ -1545,7 +1549,7 @@ class HaloCatalogCallback(PlotCallback):
 
     Parameters
     ----------
-    halo_catalog : Dataset, DataContainer, or HaloCatalog
+    halo_catalog : Dataset, DataContainer, or ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
         The object containing halos to be overplotted. This can
         be a HaloCatalog object, a loaded halo catalog dataset,
         or a data container from a halo catalog dataset.
@@ -1795,9 +1799,9 @@ class ParticleCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         if type(self.data_source)==YTCutRegion:
-            mylog.warn("Parameter 'width' is ignored in annotate_particles if the "
-                       "data_source is a cut_region. "
-                       "See https://github.com/yt-project/yt/issues/1933 for further details.")
+            mylog.warning("Parameter 'width' is ignored in annotate_particles if the "
+                          "data_source is a cut_region. "
+                          "See https://github.com/yt-project/yt/issues/1933 for further details.")
             self.region=self.data_source
         else:
             self.region=self._get_region((x0,x1), (y0,y1), plot.data.axis, data)

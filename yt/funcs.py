@@ -991,7 +991,7 @@ def enable_plugins():
 
     if _fn is not None and os.path.isfile(_fn):
         if _fn.startswith(old_config_dir):
-            mylog.warn(
+            mylog.warning(
                 'Your plugin file is located in a deprecated directory. '
                 'Please move it from %s to %s',
                 os.path.join(old_config_dir, my_plugin_name),
@@ -1019,7 +1019,7 @@ def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
     """Generate file hash without reading in the entire file at once.
 
     Original code licensed under MIT.  Source:
-    http://pythoncentral.io/hashing-files-with-python/
+    https://www.pythoncentral.io/hashing-files-with-python/
 
     Parameters
     ----------

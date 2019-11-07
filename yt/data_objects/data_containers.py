@@ -633,7 +633,7 @@ class YTDataContainer(object):
     def to_glue(self, fields, label="yt", data_collection=None):
         """
         Takes specific *fields* in the container and exports them to
-        Glue (http://www.glueviz.org) for interactive
+        Glue (http://glueviz.org) for interactive
         analysis. Optionally add a *label*. If you are already within
         the Glue environment, you can pass a *data_collection* object,
         otherwise Glue will be started.
@@ -787,7 +787,7 @@ class YTDataContainer(object):
                 ## load the extra fields and print them
                 for field in this_ptype_fields:
                     if field not in fields_to_include:
-                        mylog.warn('detected (but did not request) {} {}'.format(ptype,field))
+                        mylog.warning('detected (but did not request) {} {}'.format(ptype,field))
 
             ## you must have velocities (and they must be named "Velocities")
             tracked_arrays = [
@@ -1595,7 +1595,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         self.field_data[field] = self.ds.arr(fd, units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")
-                        mylog.warn(msg % (fi.name, units))
+                        mylog.warning(msg % (fi.name, units))
                     try:
                         fd.convert_to_units(fi.units)
                     except AttributeError:
@@ -2410,12 +2410,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         This function simply returns the vertices of all the triangles
         calculated by the `marching cubes
-        <http://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm; for more
+        <https://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm; for more
         complex operations, such as identifying connected sets of cells above a
         given threshold, see the extract_connected_sets function.  This is more
         useful for calculating, for instance, total isocontour area, or
         visualizing in an external program (such as `MeshLab
-        <http://meshlab.sf.net>`_.)
+        <http://www.meshlab.net>`_.)
 
         Parameters
         ----------
@@ -2509,7 +2509,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         those contours.
 
         This function will conduct `marching cubes
-        <http://en.wikipedia.org/wiki/Marching_cubes>`_ on all the cells in a
+        <https://en.wikipedia.org/wiki/Marching_cubes>`_ on all the cells in a
         given data container (grid-by-grid), and then for each identified
         triangular segment of an isocontour in a given cell, calculate the
         gradient (i.e., normal) in the isocontoured field, interpolate the local

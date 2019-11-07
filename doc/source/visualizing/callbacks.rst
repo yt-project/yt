@@ -473,6 +473,7 @@ Overplotting Particle Positions
 To plot only the central particles
 
 .. python-script::
+
    import yt
    ds = yt.load("Enzo_64/DD0043/data0043")
    p = yt.ProjectionPlot(ds, "x", "density", center='m', width=(10, 'Mpc'))

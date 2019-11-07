@@ -439,7 +439,7 @@ class EnzoSimulation(SimulationTimeSeries):
         Calculate cycle outputs.
         """
 
-        mylog.warn('Calculating cycle outputs.  Dataset times will be unavailable.')
+        mylog.warning('Calculating cycle outputs.  Dataset times will be unavailable.')
 
         if self.stop_cycle is None or \
             'CycleSkipDataDump' not in self.parameters or \
@@ -522,7 +522,7 @@ class EnzoSimulation(SimulationTimeSeries):
                     'StopCycle' in self.parameters):
                 raise NoStoppingCondition(self.parameter_filename)
             if self.final_time is None:
-                mylog.warn(
+                mylog.warning(
                     "Simulation %s has no stop time set, stopping condition " +
                     "will be based only on cycles.",
                     self.parameter_filename)

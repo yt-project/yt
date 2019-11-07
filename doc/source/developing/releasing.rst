@@ -2,7 +2,7 @@ How to Do a Release
 -------------------
 
 Periodically, the yt development community issues new releases. Since yt follows
-`semantic versioning <http://semver.org/>`_, the type of release can be read off
+`semantic versioning <https://semver.org/>`_, the type of release can be read off
 from the version number used. Version numbers should follow the scheme
 ``MAJOR.MINOR.PATCH``. There are three kinds of possible releases:
 
@@ -141,7 +141,7 @@ current yt developers for access to the webserver running yt-project.org if you
 do not already have it. You will need a copy of your SSH public key so that your
 key can be added to the list of authorized keys. Once you login, use
 e.g. ``scp`` to upload a copy of the souce distribution tarball to
-http://yt-project.org/sdist, like so::
+https://yt-project.org/sdist, like so::
 
   $ scp dist/yt-3.5.1.tar.gz yt_analysis@dickenson.dreamhost.com:yt-project.org/sdist
 

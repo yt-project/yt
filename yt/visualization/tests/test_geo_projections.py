@@ -24,6 +24,7 @@ import yt.utilities.answer_testing.framework as fw
 from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
 
 
+<<<<<<< HEAD
 @pytest.mark.answer_test
 @pytest.mark.usefixtures('temp_dir', 'answer_file', 'hashing')
 class TestGeoSlicesAMR(fw.AnswerTest):
@@ -38,6 +39,7 @@ class TestGeoSlicesAMR(fw.AnswerTest):
             sl.save(tmpfname)
             gi_hd = self.generic_image_test(tmpfname)
             self.hashes.update({'generic_image' : gi_hd})
+
 
 @requires_module("cartopy")
 class TestGeoProjections(unittest.TestCase):

@@ -87,12 +87,20 @@ where ``test_module.py``, ``TestClass``, and ``method_name`` would be replaced b
 Handling yt dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-We attempt to make yt compatible with a wide variety of downstream software versions. However, sometimes a specific version of a project that yt depends on causes some breakage and must be blacklisted in the tests or a more experimental project that yt depends on optionally might change sufficiently that the yt community decides not to support an old version of that project.
+We attempt to make yt compatible with a wide variety of upstream software
+versions. However, sometimes a specific version of a project that yt depends on
+causes some breakage and must be blacklisted in the tests or a more
+experimental project that yt depends on optionally might change sufficiently
+that the yt community decides not to support an old version of that project.
 
-To handle cases like this, the versions of downstream software projects installed on the machines running the yt test suite are pinned to specific version numbers that must be updated manually. This prevents breaking the yt tests when a new version of a downstream dependency is released and allows us to manage updates in downstream projects at our pace.
+To handle cases like this, the versions of upstream software projects installed
+on the machines running the yt test suite are pinned to specific version
+numbers that must be updated manually. This prevents breaking the yt tests when
+a new version of an upstream dependency is released and allows us to manage
+updates in upstream projects at our pace.
 
 If you would like to add a new dependency for yt (even an optional dependency)
-or would like to update a version of a yt depdendency, you must edit the
+or would like to update a version of a yt dependency, you must edit the
 ``tests/test_requirements.txt`` file, this path is relative to the root of the
 repository. This file contains an enumerated list of direct dependencies and
 pinned version numbers. For new dependencies, simply append the name of the new
@@ -202,7 +210,7 @@ directory with the test data you want to test with, e.g.:
 
 We use a number of real-world datasets for the tests that must be downloaded and
 unzipped in the ``test_data_dir`` path you have set. The test datasets, can be
-downloaded from http://yt-project.org/data/. We do not explicitly list the
+downloaded from https://yt-project.org/data/. We do not explicitly list the
 datasets we use in the tests here because the list of necessary datasets changes
 regularly, instead you should take a look at the tests you would like to run and
 make sure that the necessary data files are downloaded before running the tests.

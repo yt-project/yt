@@ -17,24 +17,33 @@ In this document we describe several methods for installing yt. The method that
 will work best for you depends on your precise situation:
 
 * If you do not have root access on your computer, are not comfortable managing
-  python packages, or are working on a supercomputer or cluster computer, you
+  python packages, or are working on a machine where you are not allowed to, you
   will probably want to use the bash all-in-one installation script.  This
   creates a python environment using the `miniconda python
-  distribution <http://conda.pydata.org/miniconda.html>`_ and the
-  `conda <http://conda.pydata.org/docs/>`_ package manager inside of a single
+  distribution <https://docs.conda.io/en/latest/miniconda.html>`_ and the
+  `conda <https://conda.io/en/latest/>`_ package manager inside of a single
   folder in your home directory. See :ref:`install-script` for more details.
-
-* If you use the `Anaconda <https://store.continuum.io/cshop/anaconda/>`_ python
+  
+* If you use the `Anaconda <https://www.anaconda.com/distribution/>`_ python
   distribution and already have ``conda`` installed, see
   :ref:`anaconda-installation` for details on how to install yt using the
   ``conda`` package manager. Note that this is currently the only supported
   installation mechanism on Windows.
 
+*  A viable alternative to the installation based on Anaconda is the use of the 
+   `Intel Distribution for Python <https://software.intel.com/en-us/distribution-for-python>`_. 
+   For `Parallel Computation <http://yt-project.org/docs/dev/analyzing/parallel_computation.html>`_ 
+   on Intel architectures, especially on supercomputers, a large 
+   `performance and scalability improvement <https://arxiv.org/abs/1910.07855>`_ 
+   over several common tasks has been demonstrated.
+   Detailed installation instructions are provided below as well, see :ref:`conda-intel-python`.
+   No change in the way yt is managed by ``conda`` is required.
+  
 * If you want to build a development version of yt or are comfortable with
   compilers and know your way around python packaging,
   :ref:`source-installation` will probably be the best choice. If you have set
   up python using a source-based package manager like `Homebrew
-  <http://brew.sh>`_ or `MacPorts <http://www.macports.org/>`_ this choice will
+  <https://brew.sh>`_ or `MacPorts <https://www.macports.org/>`_ this choice will
   let you install yt using the python installed by the package
   manager. Similarly, this will also work for python environments set up via
   Linux package managers so long as you have the necessary compilers installed
@@ -44,7 +53,6 @@ will work best for you depends on your precise situation:
   See `Parallel Computation
   <http://yt-project.org/docs/dev/analyzing/parallel_computation.html>`_
   for a discussion on using yt in parallel.
-
 
 .. _branches-of-yt:
 
@@ -107,9 +115,9 @@ If you do not have ``wget``, the following should also work:
   $ curl -OL https://raw.githubusercontent.com/yt-project/yt/master/doc/install_script.sh
 
 By default, the bash install script will create a python environment based on
-the `miniconda python distribution <http://conda.pydata.org/miniconda.html>`_,
+the `miniconda python distribution <https://docs.conda.io/en/latest/miniconda.html>`_,
 and will install yt's dependencies using the `conda
-<http://conda.pydata.org/docs/>`_ package manager. To avoid needing a
+<https://conda.io/en/latest/>`_ package manager. To avoid needing a
 compilation environment to run the install script, yt itself will also be
 installed using `conda`.
 
@@ -124,8 +132,8 @@ yt git repository and build yt form source. The default is
 In addition, you can tell the install script to download and install some
 additional packages --- currently these include
 `PyX <http://pyx.sourceforge.net/>`_, the `Rockstar halo
-finder <http://arxiv.org/abs/1110.4372>`_, `SciPy <https://www.scipy.org/>`_,
-`Astropy <http://www.astropy.org/>`_, 
+finder <https://arxiv.org/abs/1110.4372>`_, `SciPy <https://www.scipy.org/>`_,
+`Astropy <https://www.astropy.org/>`_, 
 `Cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_, 
 and the necessary dependencies for
 :ref:`unstructured mesh rendering <unstructured_mesh_rendering>`. The script has
@@ -264,9 +272,40 @@ packages, simply remove ``-c conda-forge`` during conda installation.
 
 Location of our channel can be added to ``.condarc`` to avoid retyping it during
 each *conda* invocation. Please refer to `Conda Manual
-<http://conda.pydata.org/docs/config.html#channel-locations-channels>`_ for
-detailed instructions.
+<https://conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#channel-locations-channels>`_
+for detailed instructions.
 
+.. _conda-intel-python:
+
+Using the Intel Distribution for Python from conda
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you use conda, you can install yt with the  
+`Intel Distribution for Python <https://software.intel.com/en-us/distribution-for-python>`_
+(recommended for performance in parallel computations on Intel architectures) instead of 
+the standard Anaconda distribution. First you need to add the intel channel: 
+
+.. code-block:: bash
+
+   $ conda config --add channels intel
+   
+If you want, at this point you can create a separate environment and switch to it:
+   
+.. code-block:: bash      
+
+   $ conda create -c intel -n yt_intel
+   $ conda activate yt_intel
+   
+Now you need to install the remaining yt dependencies in your current environment.
+The following provides the Intel-optimized versions of these underlying packages:
+   
+.. code-block:: bash
+
+   $ conda config --add channels intel 
+   $ conda install -c intel numpy scipy mpi4py cython git sympy ipython matplotlib netCDF4
+
+Then you can install yt normally, either from the conda-forge channel as above, or from source (see below).
+   
 .. _conda-source-build:
 
 Building yt from Source For Conda-based Installs
@@ -278,7 +317,7 @@ conda environment:
 .. code-block:: bash
 
   $ conda install -c conda-forge cython git sympy ipython matplotlib netCDF4
-
+  
 In addition, you will need a C compiler installed.
 
 Clone the yt repository with:
@@ -422,7 +461,7 @@ development version of yt instead of the latest stable release, you will need
   OS-level python installation, you can leave off ``--user --install-option="--prefix="``, although
   you might need ``sudo`` depending on where python is installed. See `This
   StackOverflow discussion
-  <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
+  <https://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
   if you are curious why ``--install-option="--prefix="`` is necessary on some systems.
 
 This will install yt into a folder in your home directory
@@ -432,7 +471,7 @@ the ``setuptools`` documentation for the additional options.
 
 If you are unable to locate the ``yt`` executable (i.e. executing ``yt version``
 at the bash command line fails), then you likely need to add the
-``$HOME/.local/bin`` (or the equivalent on your OS) to your PATH. Some linux
+``$HOME/.local/bin`` (or the equivalent on your OS) to your PATH. Some Linux
 distributions do not include this directory in the default search path.
 
 If you choose this installation method, you do not need to run any activation
@@ -562,7 +601,8 @@ you installed using ``INST_YT_SOURCE=1``.
 Conda-based installs (``INST_YT_SOURCE=0``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In this case you can either install one of the nightly conda builds (see :ref:`nightly-conda-builds`), or you can follow the instructions above to build yt from source under conda (see :ref:`conda-source-build`).
+In this case you can either install one of the nightly conda builds (see :ref:`nightly-conda-builds`), or you can follow the instructions above to build yt from source under conda (see 
+:ref:`conda-source-build`).
 
 Source-based installs (``INST_YT_SOURCE=1``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
