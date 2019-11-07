@@ -1,6 +1,3 @@
-import pytest
-
-
 _fields = (("halos", "particle_position_x"),
            ("halos", "particle_position_y"),
            ("halos", "particle_position_z"),

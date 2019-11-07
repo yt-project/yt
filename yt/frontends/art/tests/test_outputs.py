@@ -6,8 +6,6 @@ Notes:
     Distributed under the terms of the Modified BSD License.
     The full license is in the file COPYING.txt, distributed with this software.
 """
-from collections import OrderedDict
-
 import pytest
 
 from yt.frontends.art.api import ARTDataset

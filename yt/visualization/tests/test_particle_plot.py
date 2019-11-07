@@ -12,7 +12,6 @@ Test suite for Particle Plots
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from collections import OrderedDict
 import os
 import tempfile
 import shutil
@@ -36,6 +35,7 @@ from yt.visualization.api import \
     ParticlePlot, \
     ParticleProjectionPlot, \
     ParticlePhasePlot
+from yt.visualization.tests.test_plotwindow import WIDTH_SPECS
 from yt.units.yt_array import YTArray
 
 

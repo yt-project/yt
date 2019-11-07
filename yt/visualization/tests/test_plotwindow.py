@@ -12,7 +12,6 @@ Testsuite for PlotWindow class
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from collections import OrderedDict
 from distutils.version import LooseVersion
 import os
 import shutil

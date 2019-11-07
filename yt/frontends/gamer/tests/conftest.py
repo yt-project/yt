@@ -11,7 +11,7 @@ from yt.utilities.answer_testing import utils
 jet         = "InteractingJets/jet_000002"
 psiDM       = "WaveDarkMatter/psiDM_000020"
 plummer     = "Plummer/plummer_000000"
-mhdvortex   = "MHDOrszagTangVortex/Data_000018"
+mhd_vortex   = "MHDOrszagTangVortex/Data_000018"
 
 
 axes = [0, 1, 2]
@@ -60,7 +60,7 @@ def ds_psiDM():
 @pytest.fixture(scope='class')
 def ds_plummer():
     ds = utils.data_dir_load(plummer)
-    assert (str(ds), "plummer_000000")
+    assert str(ds) == "plummer_000000"
     return ds
 
 @pytest.fixture(scope='class')

@@ -6,8 +6,6 @@ Purpose: Exodus II frontend tests
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-from collections import OrderedDict
-
 import pytest
 
 from yt.testing import \

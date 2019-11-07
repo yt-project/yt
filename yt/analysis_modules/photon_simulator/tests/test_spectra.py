@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import pytest
 
 from yt.analysis_modules.photon_simulator.api import \
@@ -7,13 +5,9 @@ from yt.analysis_modules.photon_simulator.api import \
 from yt.config import ytcfg
 from yt.testing import requires_module, fake_random_ds
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 
-def setup():
-    ytcfg["yt", "__withintesting"] = "True"
 
 xray_data_dir = ytcfg.get("yt", "xray_data_dir")
-
 ds = fake_random_ds(64)
 
 

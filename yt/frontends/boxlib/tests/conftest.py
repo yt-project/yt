@@ -71,7 +71,7 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture(scope='class')
 def ds_radadvect():
     ds = utils.data_dir_load(radadvect)
-    assert (str(ds), "plt00000")
+    assert str(ds) == "plt00000"
     return ds
 
 @pytest.fixture(scope='class')
@@ -113,7 +113,7 @@ def ds_langmuir():
 @pytest.fixture(scope='class')
 def ds_beam():
     ds = utils.data_dir_load(beam)
-    assert (str(ds), "plt03008")
+    assert str(ds) == "plt03008"
     return ds
 
 @pytest.fixture(scope='class')

@@ -273,7 +273,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
                 t1 = time.time()
                 t_waiting += (t1-t0)
                 if (self.recv_points < -1.).any() or (self.recv_points > 1.).any(): # or \
-                        #(np.abs(np.log10(np.abs(self.recv_points))) > 20).any():
+                    #(np.abs(np.log10(np.abs(self.recv_points))) > 20).any():
                     raise ValueError("self.recv_points is no good!")
                 self.points = self.recv_points.copy()
                 self.fields_vals = self.recv_fields_vals.copy()

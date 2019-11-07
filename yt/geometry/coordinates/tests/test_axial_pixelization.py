@@ -1,11 +1,7 @@
-from collections import OrderedDict
-
 import pytest
 
-from yt.testing import \
-    fake_amr_ds, _geom_transforms
+from yt.testing import fake_amr_ds 
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 
 
 @pytest.mark.answer_test

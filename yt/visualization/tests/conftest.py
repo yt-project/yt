@@ -1,9 +1,7 @@
 from collections import OrderedDict
 
-import pytest
-
 from yt.testing import fake_amr_ds
-from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
+from yt.visualization.geo_plot_utils import transform_list
 
 
 def simple_contour(plot_field, plot):

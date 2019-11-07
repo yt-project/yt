@@ -5,8 +5,7 @@ import pytest
 
 from yt.analysis_modules.photon_simulator.api import \
     TableApecModel, TableAbsorbModel, \
-    ThermalPhotonModel, PhotonList, EventList, \
-    convert_old_file, merge_files
+    ThermalPhotonModel, PhotonList
 from yt.config import ytcfg
 from yt.utilities.answer_testing import utils
 

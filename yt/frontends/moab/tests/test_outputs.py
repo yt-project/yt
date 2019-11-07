@@ -7,8 +7,6 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-from collections import OrderedDict
-
 import numpy as np
 import pytest
 

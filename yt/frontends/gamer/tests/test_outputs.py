@@ -10,7 +10,6 @@ Notes:
 import pytest
 
 from yt.testing import \
-    assert_equal, \
     requires_file, \
     units_override_check
 from yt.frontends.gamer.api import GAMERDataset
@@ -22,6 +21,7 @@ from yt.utilities.answer_testing import utils
 jet         = "InteractingJets/jet_000002"
 psiDM       = "WaveDarkMatter/psiDM_000020"
 plummer     = "Plummer/plummer_000000"
+mhd_vortex   = "MHDOrszagTangVortex/Data_000018"
 
 
 # Globals

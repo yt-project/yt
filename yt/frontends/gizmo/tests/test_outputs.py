@@ -7,13 +7,9 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-from collections import OrderedDict
-
 import pytest
 
-import yt
 from yt.testing import requires_file
-from yt.frontends.gizmo.api import GizmoDataset
 from yt.frontends.gizmo.fields import metal_elements
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils

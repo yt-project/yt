@@ -7,7 +7,6 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-from collections import OrderedDict
 import os
 
 import numpy as np
@@ -21,6 +20,7 @@ from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, \
 from yt.testing import \
     assert_equal, \
     requires_file, \
+    requires_module, \
     units_override_check
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
@@ -436,7 +436,7 @@ class TestRamses(fw.AnswerTest):
     #-----
     # test_namelist_reading
     #-----
-    @requires_ds(ramses_new_format)
+    @utils.requires_ds(ramses_new_format)
     @requires_module('f90nml')
     def test_namelist_reading(self):
         import f90nml
@@ -450,8 +450,8 @@ class TestRamses(fw.AnswerTest):
     #-----
     # test_namelist_reading_should_not_fail
     #-----
-    @requires_ds(ramses_empty_record)
-    @requires_ds(output_00080)
+    @utils.requires_ds(ramses_empty_record)
+    @utils.requires_ds(output_00080)
     @requires_module('f90nml')
     def test_namelist_reading_should_not_fail(self):
         for ds_name in (ramses_empty_record, output_00080):

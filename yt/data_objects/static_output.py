@@ -717,12 +717,10 @@ class Dataset(object):
             # the type of field it is.  So we look at the field type and
             # determine if we need to change the type.
             fi = self._last_finfo = self.field_info[fname]
-            if fi.particle_type and self._last_freq[0] \
-                not in self.particle_types:
-                    field = "all", field[1]
-            elif not fi.particle_type and self._last_freq[0] \
-                not in self.fluid_types:
-                    field = self.default_fluid_type, field[1]
+            if fi.particle_type and self._last_freq[0] not in self.particle_types:
+                field = "all", field[1]
+            elif not fi.particle_type and self._last_freq[0] not in self.fluid_types:
+                field = self.default_fluid_type, field[1]
             self._last_freq = field
             return self._last_finfo
         # We also should check "all" for particles, which can show up if you're

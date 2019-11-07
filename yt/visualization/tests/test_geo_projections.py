@@ -10,7 +10,6 @@ Tests for making unstructured mesh slices
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from collections import OrderedDict
 import os
 import tempfile
 
@@ -22,7 +21,6 @@ from yt.testing import \
     fake_amr_ds, \
     requires_module
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
 
 

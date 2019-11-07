@@ -1,5 +1,3 @@
-import pytest
-
 from yt.fields.xray_emission_fields import \
     add_xray_emissivity_field
 from yt.utilities.answer_testing import utils

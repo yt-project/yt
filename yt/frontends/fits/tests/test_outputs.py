@@ -10,7 +10,6 @@ Notes:
 import pytest
 
 from yt.testing import \
-    assert_equal, \
     requires_file, \
     units_override_check
 from yt.frontends.fits.data_structures import FITSDataset, \

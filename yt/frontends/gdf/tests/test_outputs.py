@@ -14,7 +14,6 @@ from yt.testing import \
     requires_file, \
     units_override_check
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 
 # Test data
 sedov = "sedov/sedov_tst_0004.h5"

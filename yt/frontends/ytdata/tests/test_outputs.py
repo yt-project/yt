@@ -8,7 +8,6 @@ Notes:
     software.
 """
 import os
-from collections import OrderedDict
 
 import numpy as np
 import pytest
@@ -212,8 +211,7 @@ class TestYTData(fw.AnswerTest):
     #-----
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(enzotiny)
-    def test_nonspatial_data2(self, field, ds_enzotiny):
-        ds = ds_enzotiny
+    def test_nonspatial_data2(self, field):
         my_data = {"density": YTArray(np.linspace(1.,20.,10), "g/cm**3")}
         fake_ds = {"current_time": YTQuantity(10, "Myr")}
         fn = "random_data.h5"

@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import pytest
 
 import yt.utilities.answer_testing.framework as fw

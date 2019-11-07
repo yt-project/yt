@@ -14,15 +14,12 @@ import os
 import pytest
 
 from yt.analysis_modules.photon_simulator.api import \
-    ThermalPhotonModel, PhotonList, EventList, \
+    PhotonList, EventList, \
     convert_old_file, merge_files
 from yt.config import ytcfg
-from yt.testing import \
-    requires_file, \
-    assert_almost_equal
+from yt.testing import assert_almost_equal
 from yt.units.yt_array import uconcatenate
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 
 
 xray_data_dir = ytcfg.get("yt", "xray_data_dir")

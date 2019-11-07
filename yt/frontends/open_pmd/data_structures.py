@@ -444,7 +444,7 @@ class OpenPMDDataset(Dataset):
         elif "fileBased" in encoding:
             itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
             regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
-            if path is "":
+            if path == "":
                 mylog.warning("For file based iterations, please use absolute file paths!")
                 pass
             for filename in listdir(path):

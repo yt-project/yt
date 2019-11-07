@@ -9,8 +9,6 @@ Unit test for the AbsorptionSpectrum analysis module
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
-from collections import OrderedDict
 import os
 import tempfile
 
@@ -26,7 +24,6 @@ from yt.testing import \
     assert_allclose_units, requires_file, requires_module, \
     assert_almost_equal
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 from yt.utilities.on_demand_imports import \
     _h5py as h5
 

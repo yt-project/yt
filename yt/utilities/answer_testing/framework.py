@@ -13,11 +13,8 @@ Notes:
     different or because just the key name has changed. I might want
     to hash them separately.
 """
-from collections import OrderedDict
 import os
-import sys
 import tempfile
-import zlib
 
 import matplotlib.image as mpimg
 import numpy as np
@@ -100,9 +97,7 @@ class AnswerTest():
         # which is basically just an alias for dict, as it inherits
         # from dict and does nothing else. As such, it can be converted
         # to a bytestring the same way as the other dicts in these
-        # tests. However, in order to ensure that the keys are written
-        # to the bytearray in the same order every time, I need an
-        # OrderedDict
+        # tests
         return proj.field_data
 
     def field_values_test(self, ds, field, obj_type=None, particle_type=False):
