@@ -35,14 +35,14 @@ class AMRVACFieldInfo(FieldInfoContainer):
     # format: (native(?) field, (units, [aliases], display_name))
     # note: aliases will correspond to "gas" typed fields, whereas the native ones are "amrvac" typed
     known_other_fields = (
-        ("rho", (code_density, ["density"], r"$\rho$")),
-        ("m1", (code_moment, ["moment_1"], r"$m_1$")),
-        ("m2", (code_moment, ["moment_2"], r"$m_2$")),
-        ("m3", (code_moment, ["moment_3"], r"$m_3$")),
-        ("e", (code_energy, ["energy"], r"$e$")),
-        ("b1", ("code_magnetic", ["magnetic_1"], r"$B_1$")),
-        ("b2", ("code_magnetic", ["magnetic_2"], r"$B_2$")),
-        ("b3", ("code_magnetic", ["magnetic_3"], r"$B_3$"))
+        ("rho", (code_density, ["density"], None)),
+        ("m1", (code_moment, ["moment_1"], None)),
+        ("m2", (code_moment, ["moment_2"], None)),
+        ("m3", (code_moment, ["moment_3"], None)),
+        ("e", (code_energy, ["energy"], None)),
+        ("b1", ("code_magnetic", ["magnetic_1"], None)),
+        ("b2", ("code_magnetic", ["magnetic_2"], None)),
+        ("b3", ("code_magnetic", ["magnetic_3"], None))
     )
 
     known_particle_fields = ()
@@ -61,8 +61,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             if not ("amrvac", "m%s" % idir) in self.field_list:
                 break
             self.add_field(("gas", "velocity_%s" % alias), function=func,
-                            display_name=r"$v_%s$" % alias,
-                            units="auto", dimensions=dimensions.velocity, sampling_type="cell")
+                            units=unit_system['velocity'], dimensions=dimensions.velocity, sampling_type="cell")
             self.alias(("gas", "velocity_%s" % idir), ("gas", "velocity_%s" % alias),
                         units=unit_system["velocity"])
             self.alias(("gas", "moment_%s" % alias), ("gas", "moment_%s" % idir),
