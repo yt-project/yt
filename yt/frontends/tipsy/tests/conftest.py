@@ -28,7 +28,7 @@ tg_fields = [
 
 
 def pytest_generate_tests(metafunc):
-    if metafunc.function.__name__ in ['test_pkdgrav', 'test_gasoline_dm_only']:
+    if metafunc.function.__name__ in ['test_pkdgrav', 'test_gasoline_dmonly']:
         dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
         axes = [0, 1, 2]
         weights = [None]
