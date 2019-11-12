@@ -16,6 +16,7 @@ Notes:
 import os
 import tempfile
 
+import hashlib
 import matplotlib.image as mpimg
 import numpy as np
 import pytest
@@ -69,11 +70,16 @@ class AnswerTest():
     # grid_values_test
     #-----
     def grid_values_test(self, ds, field):
-        result = {}
+        # result = {}
+        result = None
         for g in ds.index.grids:
-            result[g.id] = g[field]
+            # result[g.id] = g[field]
+            if result is None:
+                result = hashlib.md5(bytes(g.id) + g[field].tobytes())
+            else:
+                result.update(bytes(g.id) + g[field].tobytes())
             g.clear_data()
-        return result
+        return result.hexdigest()
 
     #-----
     # projection_values_test
