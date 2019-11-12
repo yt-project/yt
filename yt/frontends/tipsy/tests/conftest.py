@@ -45,7 +45,7 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize('a', [0, 1, 2], ids=['0', '1', '2'])
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope='function')
 def ds_pkdgrav():
     cosmology_parameters = dict(current_redshift = 0.0,
                                 omega_lambda = 0.728,
