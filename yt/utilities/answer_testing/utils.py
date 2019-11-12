@@ -34,6 +34,8 @@ def array_to_hash(d):
     array, it converts it to a bytes array.
     """
     for k, v in d.items():
+        if k == 'grid_values':
+            continue
         if isinstance(v, dict) or isinstance(v, OrderedDict):
             array_to_hash(v)
         # elif not isinstance(v, str):
