@@ -22,7 +22,7 @@ fields_mhdvortex = (("gamer","CCMagX"), ("gamer","CCMagY"), ("gas","magnetic_ene
 
 
 def pytest_generate_tests(metafunc):
-    param_tests = ['test_jet', 'test_psiDM', 'test_plummer']
+    param_tests = ['test_jet', 'test_psiDM', 'test_plummer', 'test_mhdvortex']
     if metafunc.function.__name__ == 'test_jet':
         fields = ("temperature", "density", "velocity_magnitude")
         ids = ['temperature', 'density', 'velocity_magnitude']
