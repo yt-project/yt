@@ -278,6 +278,10 @@ def _read_fluid_file_descriptor(fname):
         ('pressure', 'Pressure'),
         ('metallicity', 'Metallicity'),
     ]
+
+    #Magnetic field file descriptors
+    magnetic=np.array([['B_{0}_{1}'.format(dim,side) for side in ['left','right']] for dim in ['x','y','z']]).ravel()
+
     # Convert in dictionary
     mapping = {k: v for k, v in mapping}
 
@@ -305,6 +309,8 @@ def _read_fluid_file_descriptor(fname):
 
                 if varname in mapping:
                     varname = mapping[varname]
+                elif varname in magnetic:
+                    varname = varname
                 else:
                     varname = 'hydro_%s' % varname
 

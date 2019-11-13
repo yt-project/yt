@@ -38,6 +38,9 @@ from yt.utilities.physical_constants import \
     mp
 from yt.funcs import mylog
 
+from yt.fields.magnetic_field import \
+    setup_magnetic_field_aliases
+
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
 rho_units = "code_density"
@@ -105,7 +108,13 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-acceleration", (ra_units, ['acceleration_x'], None)),
         ("y-acceleration", (ra_units, ['acceleration_y'], None)),
         ("z-acceleration", (ra_units, ['acceleration_z'], None)),
-        ("Potential", (ener_units, ['potential'], None))
+        ("Potential", (ener_units, ['potential'], None)),
+        ("B_x_left", (b_units, ['magnetic_field_x_left'],None)),
+        ("B_x_right", (b_units, ['magnetic_field_x_right'],None)),
+        ("B_y_left", (b_units, ['magnetic_field_y_left'],None)),
+        ("B_y_right", (b_units, ['magnetic_field_y_right'],None)),
+        ("B_z_left", (b_units, ['magnetic_field_z_left'],None)),
+        ("B_z_right", (b_units, ['magnetic_field_z_right'],None)),
     )
     known_particle_fields = (
         ("particle_position_x", ("code_length", [], None)),
@@ -179,6 +188,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
                        function=star_age, units=self.ds.unit_system['time'])
 
     def setup_fluid_fields(self):
+        setup_magnetic_field_aliases(self,'ramses',["B_{0}_left".format(ax) for ax in ['x','y','z']],ftype="gas")
+
         def _temperature(field, data):
             rv = data["gas", "pressure"]/data["gas", "density"]
             rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
@@ -257,7 +268,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         filename = "%s/cooling_%05i.out" % (
             os.path.dirname(self.ds.parameter_filename), int(num))
 
-        if not os.path.exists(filename): 
+        if not os.path.exists(filename):
             mylog.warning('This output has no cooling fields')
             return
 
