@@ -11,6 +11,7 @@ import os
 import shutil
 import tempfile
 
+import numpy as np
 import pytest
 import yaml
 
@@ -74,7 +75,11 @@ def pytest_configure(config):
     # Read the list of answer test classes and their associated answer
     # file
     with open(answer_file_list, 'r') as f:
-        pytest.answer_files = yaml.load(f)
+        pytest.answer_files = yaml.load(f, Loader=yaml.Loader)
+    # Register custom marks for answer tests and big data
+    config.addinivalue_line('markers', 'answer_test: Run the answer tests.')
+    config.addinivalue_line('markers', 'big_data: Run answer tests that require'
+        ' large data files.')
 
 
 #============================================
