@@ -318,7 +318,7 @@ class AnswerTest():
     # generic_image_test
     #-----
     def generic_image_test(self, img_fname):
-        img_data = mpimg.imread(img_fname[0])
+        img_data = mpimg.imread(img_fname)
         return img_data
 
     #-----
