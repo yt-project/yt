@@ -462,3 +462,22 @@ def test_namelist_reading_should_not_fail():
         # Test that the reading does not fail for malformed namelist.txt files
         ds = data_dir_load(ds_name)
         ds.index  # should work
+
+
+ramses_mhd_128 = "ramses_mhd_128/output_00027/info_00027.txt"
+@requires_file(ramses_mhd_128)
+def test_magnetic_field_aliasing():
+    # Test if RAMSES magnetic fields are correctly aliased to yt magnetic fields and if 
+    # derived magnetic quantities are calculated
+    ds = data_dir_load(ramses_mhd_128)
+    
+    assert ('gas','magnetic_field_x') in ds.derived_field_list
+    assert ('gas','magnetic_field_magnitude') in ds.derived_field_list
+    assert ('gas','alfven_speed') in ds.derived_field_list
+
+@requires_file(ramses_mhd_128)
+def test_magnetic_field_unit():
+    ds = data_dir_load(ramses_mhd_128)
+    ad=ds.all_data()
+    print(ad['magnetic_field_magnitude'].min().in_units("gauss"))
+    assert ad['magnetic_field_magnitude'].min().in_units("gauss") == ds.quan(1,"gauss")
