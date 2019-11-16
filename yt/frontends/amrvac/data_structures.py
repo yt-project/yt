@@ -286,7 +286,7 @@ class AMRVACDataset(Dataset):
 
         He_abundance = 0.1  # hardcoded parameter in AMRVAC
 
-        # self.length_unit should always be supplied when using units_override
+        # get self.length_unit if overrides are supplied, otherwise use default
         length_unit = getattr(self, 'length_unit', self.quan(1, 'cm'))
 
         # if overrides are not specified, use default values
@@ -365,10 +365,6 @@ class AMRVACDataset(Dataset):
         if hasattr(self, 'temperature_unit') and hasattr(self, 'velocity_unit'):
             raise ValueError('Both temperature and velocity have been supplied as overrides. '
                              'Only one of them is allowed.')
-
-        # if units are overridden, ask that length should always be specified.
-        if not hasattr(self, 'length_unit'):
-            raise ValueError('Length unit should always be specified when overriding units')
 
         allowed_combinations = [{'numberdensity_unit', 'temperature_unit', 'length_unit'},
                                 {'mass_unit', 'temperature_unit', 'length_unit'},
