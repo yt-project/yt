@@ -10,7 +10,6 @@ Tests for making unstructured mesh slices
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from collections import OrderedDict
 import os
 import tempfile
 
@@ -30,12 +29,6 @@ from yt.utilities.lib.mesh_triangulation import triangulate_indices
 pytest.skip("Mesh slice tests randomly fail. Skipping.", allow_module_level=True)
 
 
-def setup():
-    """Test specific setup."""
-    from yt.config import ytcfg
-    ytcfg["yt", "__withintesting"] = "True"
-
-
 def slice_image(ds, field, idir):
     tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
     os.close(tmpfd)
@@ -45,57 +38,34 @@ def slice_image(ds, field, idir):
     return tmpfname 
 
 
-@pytest.mark.skipif(not pytest.config.getvalue('--with-answer-testing'),
-    reason="--with-answer-testing not set.")
-@pytest.mark.usefixtures('temp_dir', 'answer_file')
+@pytest.mark.answer_test
+@pytest.mark.usefixtures('temp_dir', 'answer_file', 'hashing')
 class TestMesh(fw.AnswerTest):
-    def test_mesh_slices_amr(self):
-        ds = fake_amr_ds()
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
-        for field in ds.field_list:
-            img_fname = slice_image(ds, field, 0)
-            gi_hd = utils.generate_hash(self.generic_image_test(img_fname))
-            hd['generic_image'][field] = gi_hd
-        hd = {'mesh_slices_amr' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+    def test_mesh_slices_amr(self, ds_amr, field):
+        img_fname = slice_image(ds_amr, field, 0)
+        gi_hd = self.generic_image_test(img_fname)
+        self.hashes.update({'generic_image' : gi_hd})
 
-    def test_mesh_slices_tetrahedral(self):
-        ds = fake_tetrahedral_ds()
-        mesh = ds.index.meshes[0]
-        ad = ds.all_data()
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
-        for field in ds.field_list:
-            hd['generic_image'][field] = OrderedDict()
-            for idir in [0, 1, 2]:
-                img_fname = slice_image(ds, field, idir)
-                gi_hd = utils.generate_hash(self.generic_image_test(img_fname))
-                hd['generic_image'][field][str(idir)] = gi_hd
-                sl_obj = ds.slice(idir, ds.domain_center[idir])
-                assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
-                assert sl_obj[field].shape[0] < ad[field].shape[0]
-        hd = {'mesh_slices_tetrahedral' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+    def test_mesh_slices_tetrahedral(self, ds_tetra, field, idir):
+        mesh = ds_tetra.index.meshes[0]
+        ad = ds_tetra.all_data()
+        img_fname = slice_image(ds_tetra, field, idir)
+        gi_hd = self.generic_image_test(img_fname)
+        self.hashes.update({'generic_image' : gi_hd})
+        sl_obj = ds_tetra.slice(idir, ds_tetra.domain_center[idir])
+        assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
+        assert sl_obj[field].shape[0] < ad[field].shape[0]
 
-    def test_mesh_slices_hexahedral(self):
+    def test_mesh_slices_hexahedral(self, ds_hex, field, idir):
         # hexahedral ds
-        ds = fake_hexahedral_ds()
-        ad = ds.all_data()
-        mesh = ds.index.meshes[0]
-        hd = OrderedDict()
-        hd['generic_image'] = OrderedDict()
-        for field in ds.field_list:
-            hd['generic_image'][field] = OrderedDict()
-            for idir in [0, 1, 2]:
-                img_fname = slice_image(ds, field, idir)
-                gi_hd = utils.generate_hash(self.generic_image_test(img_fname))
-                hd['generic_image'][field][str(idir)] = gi_hd
-                sl_obj = ds.slice(idir, ds.domain_center[idir])
-                assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
-                assert sl_obj[field].shape[0] < ad[field].shape[0]
-        hd = {'mesh_slices_hexahedral' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+        ad = ds_hex.all_data()
+        mesh = ds_hex.index.meshes[0]
+        img_fname = slice_image(ds_hex, field, idir)
+        gi_hd = self.generic_image_test(img_fname)
+        self.hashes.update({'generic_image' : gi_hd})
+        sl_obj = ds_hex.slice(idir, ds_hex.domain_center[idir])
+        assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
+        assert sl_obj[field].shape[0] < ad[field].shape[0]
 
 def test_perfect_element_intersection():
     # This test tests mesh line annotation where a z=0 slice

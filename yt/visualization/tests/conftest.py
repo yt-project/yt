@@ -110,3 +110,27 @@ def pytest_generate_tests(metafunc):
         ds = fake_amr_ds(geometry="geographic")
         metafunc.parametrize('transform', transform_list, ids=[t.__repr__() for t in transform_list])
         metafunc.parametrize('field, ds', [(f, ds) for f in ds.field_list], ids=[f.__repr__() for f in ds.field_list])
+    if metafunc.function.__name__ == 'test_mesh_slices_amr':
+        metafunc.parametrize('field', ds_amr.field_list, ids=[f.__repr__() for f in fields])
+    if metafunc.function.__name__ == 'test_mesh_slices_tetrahedral':
+        metafunc.parametrize('field', ds_tetra.field_list, ids=[f.__repr__() for f in fields])
+        metafunc.parametrize('idir', [0, 1, 2], ids=['0', '1', '2'])
+    if metafunc.function.__name__ == 'test_mesh_slices_hexahedral':
+        metafunc.parametrize('field', ds_hex.field_list, ids=[f.__repr__() for f in fields])
+        metafunc.parametrize('idir', [0, 1, 2], ids=['0', '1', '2'])
+
+
+@pytest.fixture(scope='class')
+def ds_amr():
+    ds = fake_amr_ds()
+    return ds
+
+@pytest.fixture(scope='class')
+def ds_tetra():
+    ds = fake_tetrahedral_ds()
+    return ds
+
+@pytest.fixture(scope='class')
+def ds_hex():
+    ds = fake_hexahedral_ds()
+    return ds
