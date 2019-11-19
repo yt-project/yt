@@ -69,6 +69,7 @@ def hex8_render(engine, field):
     sc = create_scene(ds, field)
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+    os.close(fd)
     im.save(im_name)
     return im_name
 
@@ -79,6 +80,7 @@ def tet4_render(engine, field):
     sc = create_scene(ds, field)
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+    os.close(fd)
     im.save(im_name)
     return im_name
 
@@ -89,6 +91,7 @@ def hex20_render(engine, field):
     sc = create_scene(ds, field)
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+    os.close(fd)
     im.save(im_name)
     return im_name
 
@@ -99,6 +102,7 @@ def wedge6_render(engine, field):
     sc = create_scene(ds, field)
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+    os.close(fd)
     im.save(im_name)
     return im_name
 
@@ -111,6 +115,7 @@ def tet10_render(engine, field):
     ms.color_bounds = (-.01, .2)
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+    os.close(fd)
     im.save(im_name)
     return im_name
 
@@ -127,6 +132,7 @@ def perspective_mesh_render(engine):
     cam.resolution = (800, 800)
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+    os.close(fd)
     im.save(im_name)
     return im_name
 
@@ -147,6 +153,7 @@ def composite_mesh_render(engine):
     sc.add_source(ms2)
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+    os.close(fd)
     im.save(im_name)
     return im_name
 
@@ -156,6 +163,7 @@ class TestVolumeRenderMesh(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     def test_fake_hexahedral_ds_render(self, field, ds_hex):
         fd, im_name = tempfile.mkstemp(suffix='.png', prefix='tmp', dir=os.getcwd())
+        os.close(fd)
         sc = create_scene(ds_hex, field)
         im = sc.render()
         im.save(im_name)

@@ -9,93 +9,74 @@ Answer test to verify VR orientation and rotation is correct
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
-from collections import OrderedDict
 import os
 import tempfile
 
 import numpy as np
 import pytest
 
-from yt.testing import fake_vr_orientation_test_ds
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
-from yt.visualization.volume_rendering.api import \
-    Scene, \
-    VolumeSource, \
-    ColorTransferFunction, \
-    off_axis_projection
+from yt.visualization.volume_rendering.api import off_axis_projection
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('answer_file')
+@pytest.mark.usefixtures('answer_file', 'hashing')
 class TestVROrientation(fw.AnswerTest):
-    def test_orientation(self):
-        ds = fake_vr_orientation_test_ds()
-        sc = Scene()
-        vol = VolumeSource(ds, field=('gas', 'density'))
-        sc.add_source(vol)
-        tf = vol.transfer_function
-        tf = ColorTransferFunction((0.1, 1.0))
-        tf.sample_colormap(1.0, 0.01, colormap="coolwarm")
-        tf.sample_colormap(0.8, 0.01, colormap="coolwarm")
-        tf.sample_colormap(0.6, 0.01, colormap="coolwarm")
-        tf.sample_colormap(0.3, 0.01, colormap="coolwarm")
+    def test_vr_images(self, ds_vr, sc, lens_type):
         n_frames = 1
-        orientations = [[-0.3, -0.1, 0.8]]
         theta = np.pi / n_frames
-        hd = OrderedDict()
-        hd['vr_image_comparison'] = OrderedDict()
-        hd['generic_image'] = OrderedDict()
-        hd['vr_image_comparison']['test1'] = OrderedDict()
-        hd['vr_image_comparison']['test2'] = OrderedDict()
-        hd['vr_image_comparison']['test3'] = OrderedDict()
-        hd['vr_image_comparison']['test4'] = OrderedDict()
-        hd['vr_image_comparison']['test5'] = OrderedDict()
-        for lens_type in ['plane-parallel', 'perspective']:
-            frame = 0
-            cam = sc.add_camera(ds, lens_type=lens_type)
-            cam.resolution = (1000, 1000)
-            cam.position = ds.arr(np.array([-4., 0., 0.]), 'code_length')
-            cam.switch_orientation(normal_vector=[1., 0., 0.],
-                                   north_vector=[0., 0., 1.])
-            cam.set_width(ds.domain_width*2.)
-            test1_hd = utils.generate_hash(self.VR_image_comparison_test(sc))
-            hd['vr_image_comparison']['test1'][lens_type] = test1_hd
-            hd['vr_image_comparison']['test2'][lens_type] = OrderedDict()
-            hd['vr_image_comparison']['test3'][lens_type] = OrderedDict()
-            hd['vr_image_comparison']['test4'][lens_type] = OrderedDict()
-            for i in range(n_frames):
-                frame += 1
-                center = ds.arr([0, 0, 0], 'code_length')
-                cam.yaw(theta, rot_center=center)
-                test2_hd = utils.generate_hash(self.VR_image_comparison_test(sc))
-                hd['vr_image_comparison']['test2'][lens_type][str(i)] = test2_hd
-            for i in range(n_frames):
-                frame += 1
-                theta = np.pi / n_frames
-                center = ds.arr([0, 0, 0], 'code_length')
-                cam.pitch(theta, rot_center=center)
-                test3_hd = utils.generate_hash(self.VR_image_comparison_test(sc))
-                hd['vr_image_comparison']['test3'][lens_type][str(i)] = test3_hd
-            for i in range(n_frames):
-                frame += 1
-                theta = np.pi / n_frames
-                center = ds.arr([0, 0, 0], 'code_length')
-                cam.roll(theta, rot_center=center)
-                test4_hd = utils.generate_hash(self.VR_image_comparison_test(sc))
-                hd['vr_image_comparison']['test4'][lens_type][str(i)] = test4_hd
+        cam = sc.add_camera(ds_vr, lens_type=lens_type)
+        cam.resolution = (1000, 1000)
+        cam.position = ds_vr.arr(np.array([-4., 0., 0.]), 'code_length')
+        cam.switch_orientation(normal_vector=[1., 0., 0.],
+                               north_vector=[0., 0., 1.])
+        cam.set_width(ds_vr.domain_width*2.)
+        test1_hd = self.VR_image_comparison_test(sc)
+        self.hashes.update({'test1' : test1_hd})
+        for i in range(n_frames):
+            center = ds_vr.arr([0, 0, 0], 'code_length')
+            cam.yaw(theta, rot_center=center)
+            test2_hd = self.VR_image_comparison_test(sc)
+            # Updating nested dictionaries doesn't add the new key, it
+            # overwrites the old one (so d.update({'key1' : {'subkey1' : 1}})
+            # is d = {'key1' : {'subkey1' : 1}}. Then if you do
+            # d.update({'key1' : {'subkey2' : 2}}), d = {'key1' : 'subkey2':2}},
+            # so to add subkey2 to key1's subdictionary, you need to do
+            # d['key1'].update({'subkey2' : 2}))
+            if 'test2' not in self.hashes:
+                self.hashes.update({'test2' : {str(i) : test2_hd}})
+            else:
+                self.hashes['test2'].update({str(i) : test2_hd})
+        for i in range(n_frames):
+            theta = np.pi / n_frames
+            center = ds_vr.arr([0, 0, 0], 'code_length')
+            cam.pitch(theta, rot_center=center)
+            test3_hd = self.VR_image_comparison_test(sc)
+            if 'test3' not in self.hashes:
+                self.hashes.update({'test3' : {str(i) : test3_hd}})
+            else:
+                self.hashes['test3'].update({str(i) : test3_hd})
+        for i in range(n_frames):
+            theta = np.pi / n_frames
+            center = ds_vr.arr([0, 0, 0], 'code_length')
+            cam.roll(theta, rot_center=center)
+            test4_hd = self.VR_image_comparison_test(sc)
+            if 'test4' not in self.hashes:
+                self.hashes.update({'test4' : {str(i) : test4_hd}})
+            else:
+                self.hashes['test4'].update({str(i) : test4_hd})
+
+    def test_orientations(self, ds_vr, orientation):
         center = [0.5, 0.5, 0.5]
         width = [1.0, 1.0, 1.0]
-        for i, orientation in enumerate(orientations):
-            image = off_axis_projection(ds, center, orientation, width,
-                                        512, "density", no_ghost=False)
-            def offaxis_image_func():
-                tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
-                os.close(tmpfd)
-                image.write_image(tmpfname)
-                return tmpfname
-            img_fname = offaxis_image_func()
-            test5_hd = utils.generate_hash(self.generic_image_test(img_fname))
-            hd['generic_image'][orientation] = test5_hd
-        hd = {'orientation' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+        image = off_axis_projection(ds_vr, center, orientation, width,
+                                    512, "density", no_ghost=False)
+        def offaxis_image_func():
+            tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
+            os.close(tmpfd)
+            image.write_image(tmpfname)
+            return tmpfname
+        img_fname = offaxis_image_func()
+        gi_hd = self.generic_image_test(img_fname)
+        self.hashes.update({'generic_image' : gi_hd})
