@@ -135,3 +135,9 @@ TestGeoSlicesAMR:
 
 TestLinePlots:
     line_plot_answers_000.yaml
+
+TestSunyaevZeldovich:
+    sz_answers_000.yaml
+
+TestProfilePlots:
+    profile_plot_answers_000.yaml
