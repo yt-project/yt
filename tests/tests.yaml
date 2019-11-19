@@ -8,16 +8,16 @@ TestArt:
     art_answers_000.yaml
 
 TestAthena:
-    athena_answers_001.yaml
+    athena_answers_000.yaml
 
 TestAthenaPP:
-    athena_pp_answers_001.yaml
+    athena_pp_answers_000.yaml
 
 TestChombo:
-    chombo_answers_001.yaml
+    chombo_answers_000.yaml
 
 TestEnzo:
-    enzo_answers_001.yaml
+    enzo_answers_000.yaml
 
 TestEnzoP:
     enzo_p_answers_000.yaml
@@ -29,25 +29,25 @@ TestEagle:
     eagle_answers_000.yaml
 
 TestFits:
-    fits_answers_001.yaml
+    fits_answers_000.yaml
 
 TestFlash:
-    flash_answers_001.yaml
+    flash_answers_000.yaml
 
 TestGadget:
     gadget_answers_000.yaml
 
 TestGamer:
-    gamer_answers_001.yaml
+    gamer_answers_000.yaml
 
 TestGDF:
-    gdf_answers_001.yaml
+    gdf_answers_000.yaml
 
 TestGizmo:
     gizmo_answers_000.yaml
 
 TestAHF:
-    ahf_answers_001.yaml
+    ahf_answers_000.yaml
 
 TestOwlsSubfind:
     owls_subfind_answers_000.yaml
@@ -68,7 +68,7 @@ TestMoab:
     moab_answers_000.yaml
 
 TestBoxLib:
-    boxlib_answers_001.yaml
+    boxlib_answers_000.yaml
 
 TestRamses:
     ramses_answers_000.yaml
