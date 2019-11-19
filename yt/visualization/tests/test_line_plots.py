@@ -23,12 +23,6 @@ from yt.utilities.answer_testing import utils
 from yt.visualization.line_plot import _validate_point
 
 
-def setup():
-    """Test specific setup."""
-    from yt.config import ytcfg
-    ytcfg["yt", "__withintesting"] = "True"
-
-
 def image_from_plot(plot):
     tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
     os.close(tmpfd)
@@ -37,7 +31,7 @@ def image_from_plot(plot):
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('temp_dir', 'answer_file')
+@pytest.mark.usefixtures('temp_dir', 'answer_file', 'hashing')
 class TestLinePlots(fw.AnswerTest):
     def test_line_plot(self):
         ds = fake_random_ds(4)
@@ -51,10 +45,8 @@ class TestLinePlots(fw.AnswerTest):
         plot.set_unit(fields[0], 'kg/cm**3')
         plot.annotate_title(fields[0], "Density Plot")
         img_fname = image_from_plot(plot)
-        hd = OrderedDict()
-        hd['generic_image'] = utils.generate_hash(self.generic_image_test(img_fname))
-        hd = {'line_plot' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+        gi_hd = self.generic_image_test(img_fname)
+        self.hashes.update({'generic_image' : gi_hd})
 
     def test_multi_line_plot(self):
         ds = fake_random_ds(4)
@@ -69,10 +61,8 @@ class TestLinePlots(fw.AnswerTest):
         plot.annotate_legend(fields[0])
         plot.annotate_legend(fields[1])
         img_fname = image_from_plot(plot)
-        hd = OrderedDict()
-        hd['generic_image'] = utils.generate_hash(self.generic_image_test(img_fname))
-        hd = {'muti_line_plot' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+        gi_hd = self.generic_image_test(img_fname)
+        self.hashes.update({'generic_image' : gi_hd})
 
 def test_line_buffer():
     ds = fake_random_ds(32)
