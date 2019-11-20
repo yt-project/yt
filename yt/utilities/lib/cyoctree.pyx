@@ -409,9 +409,15 @@ cdef class CyOctree:
         z = 0
         for i in range(self.nodes.size()):
             if self.nodes[i].leaf == 0:
+                # Not refined
                 refined[z] = 1
                 z += 1
             else:
+                # Add the cell
+                refined[z] = 1
+                z += 1
+
+                # Add the unrefined next level
                 for j in range(self._num_cells_per_dim):
                     for k in range(self._num_cells_per_dim):
                         for l in range(self._num_cells_per_dim):
