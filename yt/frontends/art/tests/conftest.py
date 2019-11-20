@@ -2,6 +2,8 @@
 Title: conftest.py
 Purpose: Contains fixtures for loading data.
 """
+import os
+
 import pytest
 
 from yt.utilities.answer_testing import utils
@@ -30,5 +32,5 @@ def pytest_generate_tests(metafunc):
 @pytest.fixture(scope='class')
 def ds_d9p():
     ds = utils.data_dir_load(d9p)
-    assert str(ds) == "10MpcBox_HartGal_csf_a0.500.d"
+    assert os.path.basename(str(ds)) == "10MpcBox_HartGal_csf_a0.500.d"
     return ds
