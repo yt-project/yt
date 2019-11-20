@@ -1,4 +1,6 @@
-<<<<<<< HEAD
+# List of answer test classes that use the hashing fixture and the file those
+# answers are saved to
+
 TestArtIo:
     artio_answers_000.yaml
 
@@ -74,9 +76,6 @@ TestRamses:
 TestYTData:
     ytdata_answers_000.yaml
 
-TestHaloCatalog:
-    halo_catalog_answers_000.yaml
-
 TestHaloFinders:
     halo_finders_answers_000.yaml
 
@@ -116,6 +115,9 @@ TestSpectra:
 TestVolumeRenderMesh:
     mesh_render_answers_000.yaml
 
+TestVROrientation:
+    vr_orientation_answers_000.yaml
+
 TestAbsorptionSpectrum:
     absorption_spectrum_answers_000.yaml
 
@@ -130,3 +132,12 @@ TestLightCone:
 
 TestGeoSlicesAMR:
     geo_slices_answers_000.yaml
+
+TestLinePlots:
+    line_plot_answers_000.yaml
+
+TestSunyaevZeldovich:
+    sz_answers_000.yaml
+
+TestProfilePlots:
+    profile_plot_answers_000.yaml

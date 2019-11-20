@@ -124,11 +124,11 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
     # Save answer
     if answer_store:
         with open(fname, 'a') as f:
-            yaml.dump(hashes, f, default_flow_style=False)
+            yaml.dump(hashes, f, default_flow_style=False, Dumper=yaml.Dumper)
     # Compare to already saved answer
     else:
         with open(fname, 'r') as f:
-            saved_hashes = yaml.load(f)
+            saved_hashes = yaml.load(f, Loader=yaml.Loader)
         # The layout of the answer file is:
         # {functionName : {param1 : val1, param2 : val2, ...}, functionName2 : {...}}
         # Since dicts are being used we can't bank on the test parameters being in

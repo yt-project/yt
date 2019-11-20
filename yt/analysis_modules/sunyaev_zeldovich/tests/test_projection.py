@@ -45,11 +45,8 @@ except ImportError:
 
 mue = 1./0.88
 freqs = np.array([30., 90., 240.])
+M7 = "DD0010/moving7_0010"
 
-def setup():
-    """Test specific setup."""
-    from yt.config import ytcfg
-    ytcfg["yt", "__withintesting"] = "True"
 
 def full_szpack3d(ds, xo):
     data = ds.index.grids[0]
@@ -70,8 +67,8 @@ def full_szpack3d(ds, xo):
     pbar.finish()
     return np.array(I0*xo**3*np.sum(dn, axis=2))
 
-def setup_cluster():
 
+def setup_cluster():
     R = 1000.
     r_c = 100.
     rho_c = 1.673e-26
@@ -83,32 +80,26 @@ def setup_cluster():
     a = 200.
     v0 = 300.*cm_per_km
     ddims = (nx,ny,nz)
-
     x, y, z = np.mgrid[-R:R:nx*1j,
                        -R:R:ny*1j,
                        -R:R:nz*1j]
-
     r = np.sqrt(x**2+y**2+z**2)
-
     dens = np.zeros(ddims)
     dens = rho_c*(1.+(r/r_c)**2)**(-1.5*beta)
     temp = T0*K_per_keV/(1.+r/a)*(c+r/a_c)/(1.+r/a_c)
     velz = v0*temp/(T0*K_per_keV)
-
     data = {}
     data["density"] = (dens, "g/cm**3")
     data["temperature"] = (temp, "K")
     data["velocity_x"] = (np.zeros(ddims), "cm/s")
     data["velocity_y"] = (np.zeros(ddims), "cm/s")
     data["velocity_z"] = (velz, "cm/s")
-
     L = 2 * R * cm_per_kpc
     bbox = np.array([[-0.5,0.5],[-0.5,0.5],[-0.5,0.5]]) * L
-
     ds = load_uniform_grid(data, ddims, length_unit='cm', bbox=bbox)
     ds.index
-
     return ds
+
 
 @requires_module("SZpack")
 def test_projection():
@@ -123,8 +114,9 @@ def test_projection():
         assert_almost_equal(
             deltaI[i,:,:], np.array(szprj["%d_GHz" % int(freqs[i])]), 6)
 
-M7 = "DD0010/moving7_0010"
-@pytest.mark.usefixtures('temp_dir', 'answer_file')
+
+@pytest.mark.answer_test
+@pytest.mark.usefixtures('temp_dir', 'answer_file', 'hashing')
 class TestSunyaevZeldovich(fw.AnswerTest):
     @requires_module("SZpack")
     @requires_ds(M7)
@@ -139,16 +131,10 @@ class TestSunyaevZeldovich(fw.AnswerTest):
             os.close(tmpfd)
             szprj.write_png(tmpname)
             return tmpname
-        hd = OrderedDict()
-        hd['generic_array'] = utils.generate_hash(
-            self.generic_array_test(ds, onaxis_array_func)
-        )
+        ga_hd = self.generic_array_test(ds, onaxis_array_func)
         imgname = onaxis_image_func()
-        hd['generic_image'] = utils.generate_hash(
-            self.generic_image_test(imgname)
-        )
-        hd = {'M7_onaxis' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+        gi_hd = self.generic_image_test(imgname)
+        self.hashes.update({'generic_array' : ga_hd, 'generic_image' : gi_hd})
 
     @requires_module("SZpack")
     @requires_ds(M7)
@@ -163,13 +149,7 @@ class TestSunyaevZeldovich(fw.AnswerTest):
             os.close(tmpfd)
             szprj.write_png(tmpname)
             return tmpname
-        hd = OrderedDict()
-        hd['generic_array'] = utils.generate_hash(
-            self.generic_array_test(ds, offaxis_array_func)
-        )
+        ga_hd = self.generic_array_test(ds, offaxis_array_func)
         imgname = offaxis_image_func()
-        hd['generic_image'] = utils.generate_hash(
-            self.generic_image_test(imgname)
-        )
-        hd = {'M7_offaxis' : hd}
-        utils.handle_hashes(self.save_dir, self.answer_file, hd, self.answer_store)
+        gi_hd = self.generic_image_test(imgname)
+        self.hashes.update({'generic_array' : ga_hd, 'generic_image' : gi_hd})

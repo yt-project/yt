@@ -1,6 +1,8 @@
 from collections import OrderedDict
 
-from yt.testing import fake_amr_ds
+import pytest
+
+from yt.testing import fake_amr_ds, fake_random_ds
 from yt.visualization.geo_plot_utils import transform_list
 
 
@@ -56,6 +58,15 @@ CALLBACK_TESTS = (
     ("simple_velocity", (simple_velocity,)),
 )
 
+PROFILE_ATTR_ARGS = {"annotate_text": [(((5e-29, 5e7), "Hello YT"), {}),
+                               (((5e-29, 5e7), "Hello YT"), {'color': 'b'})],
+
+             "set_title": [(('cell_mass', 'A phase plot.'), {})],
+             "set_log": [(('cell_mass', False), {})],
+             "set_unit": [(('cell_mass', 'Msun'), {})],
+             "set_xlim": [((1e-27, 1e-24), {})],
+             "set_ylim": [((1e2, 1e6), {})]}
+
 
 def get_attr_pairs(attr_args):
     pairs = []
@@ -67,12 +78,15 @@ def get_attr_pairs(attr_args):
 attr_pairs = get_attr_pairs(ATTR_ARGS)
 part_attr_pairs = get_attr_pairs(PROJ_ATTR_ARGS)
 phase_attr_pairs = get_attr_pairs(PHASE_ATTR_ARGS)
+profile_pairs = get_attr_pairs(PROFILE_ATTR_ARGS)
 
 attr_ids = ['pan', 'pan_rel', 'axis_unit_kpc', 'axis_unit_mpc', 'axis_unit_kpc_kpc',
     'axis_unit_kpc_mpc', 'buff_size_1600', 'buff_size_600_800', 'center', 'cmap_RdBu',
     'cmap_kamae', 'font', 'log', 'window_size', 'zlim_upper', 'zlim_unbound', 
     'zoom', 'toggle_rh']
 phase_ids = ['annotate_no_color', 'annotate_color', 'title', 'log', 'unit', 'xlim', 'ylim']
+profile_ids = ['annotate_Hello_YT', 'annotate_Hello_YTb', 'set_title', 'set_log', 'set_unit',
+    'set_xlim', 'set_ylim']
 callback_ids = ['contour', 'velocity']
 
 _raw_field_names =  [('raw', 'Bx'),
@@ -110,3 +124,74 @@ def pytest_generate_tests(metafunc):
         ds = fake_amr_ds(geometry="geographic")
         metafunc.parametrize('transform', transform_list, ids=[t.__repr__() for t in transform_list])
         metafunc.parametrize('field, ds', [(f, ds) for f in ds.field_list], ids=[f.__repr__() for f in ds.field_list])
+    # The parameterizations for test_mesh_slices.py's functions doesn't work b/c
+    # the ds_amr fixture cannot be accesed from here. Creating the ds object here
+    # gives issues with weak references. I'm not sure how to implement the indirect
+    # method used in test_profile_plot.py's parameterizations below since the
+    # fields are unknown. These tests are skipped, however, so this doesn't
+    # currently break anything
+    if metafunc.function.__name__ == 'test_mesh_slices_amr':
+        metafunc.parametrize('field', ds_amr.field_list, ids=[f.__repr__() for f in fields])
+    if metafunc.function.__name__ == 'test_mesh_slices_tetrahedral':
+        metafunc.parametrize('field', ds_tetra.field_list, ids=[f.__repr__() for f in fields])
+        metafunc.parametrize('idir', [0, 1, 2], ids=['0', '1', '2'])
+    if metafunc.function.__name__ == 'test_mesh_slices_hexahedral':
+        metafunc.parametrize('field', ds_hex.field_list, ids=[f.__repr__() for f in fields])
+        metafunc.parametrize('idir', [0, 1, 2], ids=['0', '1', '2'])
+    if metafunc.function.__name__ == 'test_phase_plot_attributes':
+        metafunc.parametrize('attr_name, args', profile_pairs, ids=profile_ids)
+    if metafunc.function.__name__ == 'test_profile_plot':
+        pr_fields = [('density', 'temperature'), ('density', 'velocity_x'),
+                     ('temperature', 'cell_mass'), ('density', 'radius'),
+                     ('velocity_magnitude', 'cell_mass')]
+        metafunc.parametrize('region', ['region1', 'region_all_data'], indirect=True)
+        metafunc.parametrize('x_field, y_field', [(f[0], f[1]) for f in pr_fields],
+            ids=['dens-temp', 'dens-vx', 'temp-cell_mass', 'dens-rad', 'v-cell_mass'])
+    if metafunc.function.__name__ == 'test_phase_plot':
+        ph_fields = [('density', 'temperature', 'cell_mass'),
+                     ('density', 'velocity_x', 'cell_mass'),
+                     ('radius', 'temperature', 'velocity_magnitude')]
+        metafunc.parametrize('region', ['region1', 'region_all_data'], indirect=True)
+        metafunc.parametrize('x_field, y_field, z_field', [(f[0], f[1], f[2]) for f in ph_fields],
+            ids=['dens-temp-cell_mass', 'dens-vx-cell_mass', 'rad-temp-v'])
+
+
+@pytest.fixture(scope='class')
+def ds_amr():
+    ds = fake_amr_ds()
+    return ds
+
+@pytest.fixture(scope='class')
+def ds_tetra():
+    ds = fake_tetrahedral_ds()
+    return ds
+
+@pytest.fixture(scope='class')
+def ds_hex():
+    ds = fake_hexahedral_ds()
+    return ds
+
+@pytest.fixture(scope='class')
+def ds_random():
+    ds = fake_random_ds(16, fields=('density', 'temperature'))
+    return ds
+
+@pytest.fixture(scope='class')
+def ds_test():
+    fields = ('density', 'temperature', 'velocity_x', 'velocity_y', 'velocity_z')
+    units = ('g/cm**3', 'K', 'cm/s', 'cm/s', 'cm/s')
+    ds = fake_random_ds(16, fields=fields, units=units)
+    return ds
+
+@pytest.fixture(scope='class')
+def ds_mult():
+    fields = ('density', 'temperature', 'dark_matter_density')
+    ds = fake_random_ds(16, fields=fields)
+    return ds
+
+@pytest.fixture(scope='class')
+def region(request, ds_test):
+    if request.param == 'region1':
+        return ds_test.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
+    if request.param == 'region_all_data':
+        return ds_test.all_data()

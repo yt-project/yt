@@ -34,5 +34,5 @@ class TestRawFieldSlices(fw.AnswerTest):
         sl = yt.SlicePlot(ds, 'z', field)
         sl.set_log('all', False)
         image_file = sl.save("slice_answers_raw_{}".format(field[1]))
-        gi_hd = self.generic_image_test(image_file)
+        gi_hd = self.generic_image_test(image_file[0])
         self.hashes.update({'generic_image' : gi_hd}) 
