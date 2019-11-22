@@ -34,6 +34,7 @@ import base64
 import numpy
 import matplotlib
 import getpass
+import glob
 from math import floor, ceil
 from numbers import Number as numeric_type
 
