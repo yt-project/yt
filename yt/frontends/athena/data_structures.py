@@ -16,7 +16,6 @@ Data structures for Athena.
 import numpy as np
 import os
 import weakref
-import glob
 
 from yt.funcs import \
     mylog, \
@@ -248,7 +247,7 @@ class AthenaHierarchy(GridIndex):
             dname = "id0/"+dname
             dataset_dir = dataset_dir[:-3]
 
-        gridlistread = sglob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:]))))
+        gridlistread = sglob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         gridlistread.insert(0,self.index_filename)
         if 'id0' in dname:
             gridlistread += sglob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
