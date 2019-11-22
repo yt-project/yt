@@ -1263,3 +1263,9 @@ def validate_center(center):
         raise TypeError("Expected 'center' to be a numeric object of type "
                         "list/tuple/np.ndarray/YTArray/YTQuantity, "
                         "received '%s'." % str(type(center)).split("'")[1])
+
+def sglob(pattern):
+    """
+    Return the results of a glob through the sorted() function.
+    """
+    return sorted(glob.glob(pattern))
