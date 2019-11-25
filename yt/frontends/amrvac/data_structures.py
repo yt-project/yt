@@ -278,19 +278,19 @@ class AMRVACDataset(Dataset):
             # in this case time was supplied
             velocity_unit = length_unit / self.time_unit
         else:
-            # other case: velocity was supplied. Fall back to zero (default) if no overrides supplied
+            # other case: velocity was supplied. Fall back to None if no overrides supplied
             velocity_unit = getattr(self, 'velocity_unit', None)
 
         # 3. calculations for pressure and temperature
         if velocity_unit is None:
             # velocity and time not given, see if temperature is given. Fall back to one (default) if not
             temperature_unit = getattr(self, 'temperature_unit', self.quan(1, 'K'))
-            pressure_unit = ((2.0 + 3.0 * He_abundance) * numberdensity_unit * kb_cgs * temperature_unit).to('dyn*cm**-2')
-            velocity_unit = (np.sqrt(pressure_unit / density_unit)).to('cm*s**-1')
+            pressure_unit = ((2.0 + 3.0 * He_abundance) * numberdensity_unit * kb_cgs * temperature_unit).in_cgs()
+            velocity_unit = (np.sqrt(pressure_unit / density_unit)).in_cgs()
         else:
             # velocity is not zero if either time was given OR velocity was given
-            pressure_unit = (density_unit * velocity_unit ** 2).to('dyn*cm**-2')
-            temperature_unit = (pressure_unit / ((2.0 + 3.0 * He_abundance) * numberdensity_unit * kb_cgs)).to('K')
+            pressure_unit = (density_unit * velocity_unit ** 2).in_cgs()
+            temperature_unit = (pressure_unit / ((2.0 + 3.0 * He_abundance) * numberdensity_unit * kb_cgs)).in_cgs()
 
         # 4. calculations for magnetic unit and time
         time_unit = getattr(self, 'time_unit', length_unit / velocity_unit)  # if time given use it, else calculate
