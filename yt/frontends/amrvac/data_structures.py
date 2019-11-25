@@ -152,8 +152,6 @@ class AMRVACDataset(Dataset):
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
 
-
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
         """At load time, check whether data is recognized as AMRVAC formatted."""
