@@ -23,7 +23,7 @@ from distutils.version import LooseVersion
 from nose.tools import assert_true
 
 from yt.testing import \
-    requires_file,
+    requires_file, \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
     assert_array_almost_equal, assert_raises, assert_fname
 from yt.utilities.answer_testing.framework import \
