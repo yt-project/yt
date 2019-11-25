@@ -243,22 +243,15 @@ class AMRVACDataset(Dataset):
     # units stuff ===============================================================================
     def _set_code_unit_attributes(self):
         # required method
-        # note: this method is never defined in the parent abstract class Dataset
+        # devnote: this method is never defined in the parent abstract class Dataset
         # but it is called in Dataset.set_code_units(), which is part of Dataset.__init__()
         # so it must be defined here.
 
-        # note2: this gets called later than Dataset._override_code_units()
-        # This is the reason why it uses setdefaultattr: it will only fill the gaps lefts by the "override",
-        # instead of overriding them again
-
-        # note: normalisations in AMRVAC have 3 degrees of freedom. The user can specify a unit length and unit
-        # numberdensity, with the third option either a unit temperature OR unit velocity.
-        # If unit temperature is specified then unit velocity will be calculated accordingly, and vice-versa.
-        # AMRVAC does not allow to specify any other normalisation beside those four.
-
-        # note: _override_code_units() has already been called, so self.units_override has been set.
-        # _override_code_units() sets supplied items in units_override as attributes.
-        # Handled items are length, time, mass, velocity, magnetic, temperature
+        # devnote: this gets called later than Dataset._override_code_units()
+        # This is the reason why it uses setdefaultattr: it will only fill in the gaps left
+        # by the "override", instead of overriding them again.
+        # For the same reason, self.units_override is set, as well as corresponding *_unit instance attributes
+        # which may include up to 3 of the following items: length, time, mass, velocity, number_density, temperature
 
         # note: yt sets hydrogen mass equal to proton mass, amrvac doesn't.
         mp_cgs = self.quan(1.672621898e-24, 'g')  # This value is taken from AstroPy
@@ -325,7 +318,11 @@ class AMRVACDataset(Dataset):
         # frontend specific method
         # YT supports overriding other normalisations, this method ensures consistency between
         # supplied 'units_override' items and those used by AMRVAC.
-        # A maximum of three is allowed, with either velocity_unit or temperature_unit specified.
+
+        # AMRVAC's normlisations/units have 3 degrees of freedom.
+        # Moreover, if temperature unit is specified then velocity unit will be calculated
+        # accordingly, and vice-versa.
+        # Currently we replicate this by allowing a finite set of combinations in units_override
         if not self.units_override:
             return
         overrides = set(self.units_override)
