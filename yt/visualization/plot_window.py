@@ -2066,6 +2066,8 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
         axis = "z"
     elif ds.geometry == "cylindrical":
         axis = "theta"
+    elif ds.geometry == "spherical":
+        axis = "phi"
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument
     if not isinstance(center, string_types) and obj_length(center) == 2:
