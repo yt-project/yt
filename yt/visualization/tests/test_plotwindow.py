@@ -513,7 +513,7 @@ def test_set_unit():
 WD = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
 blast_wave = "amrvac/bw_2d0000.dat"
 
-@requires_ds(WD)
+@requires_file(WD)
 @requires_file(blast_wave)
 def test_plot_2d():
     # Cartesian
