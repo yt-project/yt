@@ -155,15 +155,26 @@ class AMRVACDataset(Dataset):
 
     def __init__(self, filename, dataset_type='amrvac',
                 units_override=None, unit_system="cgs",
-                geometry_override=None):
-        # note: geometry_override is specific to this frontend
+                geometry_override=None,
+                parfiles=None):
+        # note: geometry_override and parfiles are specific to this frontend
 
         self._geometry_override = geometry_override
         super(AMRVACDataset, self).__init__(filename, dataset_type,
                                             units_override=units_override, unit_system=unit_system)
+
+        self._parfiles = parfiles
+        if parfiles is not None:
+            self.parameters["namelist"] = read_amrvac_namelist(parfiles)
+        else:
+            # todo: add a warning here when having this parameter becomes useful
+            self.parameters["namelist"] = None
+
         self.fluid_types += ('amrvac',)
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
+
+
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
