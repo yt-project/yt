@@ -40,7 +40,7 @@ from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.utilities.logger import ytLogger as mylog
 from .fields import GDFFieldInfo
-
+from .io import _grid_dname
 
 GEOMETRY_TRANS = {
     0: "cartesian",
@@ -97,9 +97,39 @@ class GDFHierarchy(GridIndex):
         h5f.close()
 
     def _detect_output_fields(self):
-        h5f = h5py.File(self.index_filename, 'r')
-        self.field_list = [("gdf", str(f)) for f in h5f['field_types'].keys()]
-        h5f.close()
+        field_info = self.ds._field_info_class
+        with h5py.File(self.index_filename, 'r') as h5f:
+            defined_fields = set(
+                str(name) for name in h5f["field_types"].keys()
+            )
+            known_other_fields = {
+                field[0] for field in field_info.known_other_fields
+            }
+            defined_fields = defined_fields.union(known_other_fields)
+            on_disk_fields = set(
+                str(name) for name in h5f[_grid_dname(0)].keys()
+            )
+            valid_fields = defined_fields.intersection(on_disk_fields)
+
+            self.field_list = [("gdf", field) for field in valid_fields]
+
+            for ptype in self.ds.particle_types:
+                pfield_attrs = "/particle_types/{}".format(ptype)
+                if pfield_attrs:
+                    defined_particle_fields = set(
+                        str(name)
+                        for name in h5f.get("/particle_types/{}".format(ptype), {}).keys()
+                    )
+                else:
+                    defined_particle_fields = {}
+
+                known_particle_fields = {
+                    field[0] for field in field_info.known_particle_fields
+                }
+                defined_particle_fields = defined_particle_fields.union(
+                        known_particle_fields
+                )
+                self.field_list += [(ptype, field) for field in defined_particle_fields]
 
     def _count_grids(self):
         h5f = h5py.File(self.index_filename, 'r')
@@ -291,6 +321,11 @@ class GDFDataset(Dataset):
         self.parameters['Time'] = 1.0  # Hardcode time conversion for now.
         # Hardcode for now until field staggering is supported.
         self.parameters["HydroMethod"] = 0
+        self.particle_types = {"dark_matter"}.union({
+            ptype for ptype in self._handle.get("particle_types", {}).keys()
+        })
+        self.particle_types = tuple(self.particle_types)
+        self.particle_types_raw = self.particle_types
         self._handle.close()
         del self._handle
 
