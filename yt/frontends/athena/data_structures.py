@@ -16,11 +16,11 @@ Data structures for Athena.
 import numpy as np
 import os
 import weakref
-import glob
 
 from yt.funcs import \
     mylog, \
-    ensure_tuple
+    ensure_tuple, \
+    sglob
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -247,12 +247,12 @@ class AthenaHierarchy(GridIndex):
             dname = "id0/"+dname
             dataset_dir = dataset_dir[:-3]
 
-        gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
+        gridlistread = sglob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         gridlistread.insert(0,self.index_filename)
         if 'id0' in dname:
-            gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
+            gridlistread += sglob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
-            gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
+            gridlistread += sglob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         ndots = dname.count(".")
         gridlistread = [fn for fn in gridlistread if os.path.basename(fn).count(".") == ndots]
         self.num_grids = len(gridlistread)
@@ -552,11 +552,11 @@ class AthenaDataset(Dataset):
             dname = "id0/"+dname
             dataset_dir = dataset_dir[:-3]
 
-        gridlistread = glob.glob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
+        gridlistread = sglob(os.path.join(dataset_dir, 'id*/%s-id*%s' % (dname[4:-9],dname[-9:])))
         if 'id0' in dname :
-            gridlistread += glob.glob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
+            gridlistread += sglob(os.path.join(dataset_dir, 'id*/lev*/%s*-lev*%s' % (dname[4:-9],dname[-9:])))
         else :
-            gridlistread += glob.glob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
+            gridlistread += sglob(os.path.join(dataset_dir, 'lev*/%s*-lev*%s' % (dname[:-9],dname[-9:])))
         ndots = dname.count(".")
         gridlistread = [fn for fn in gridlistread if os.path.basename(fn).count(".") == ndots]
         self.nvtk = len(gridlistread)+1
