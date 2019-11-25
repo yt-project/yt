@@ -267,14 +267,17 @@ class GDFDataset(Dataset):
             refine_by = 2
         self.refine_by = refine_by
         self.dimensionality = sp["dimensionality"]
-        self.current_time = sp["current_time"]
+        self.current_time = sp.get("current_time", 0)
         self.unique_identifier = sp["unique_identifier"]
         self.cosmological_simulation = sp["cosmological_simulation"]
         if sp["num_ghost_zones"] != 0:
             raise RuntimeError
         self.num_ghost_zones = sp["num_ghost_zones"]
-        self.field_ordering = sp["field_ordering"]
-        self.boundary_conditions = sp["boundary_conditions"][:]
+        self.field_ordering = sp.get("field_ordering", 0)
+        try:
+            self.boundary_conditions = sp["boundary_conditions"][:]
+        except KeyError:
+            self.boundary_conditions = [0, 0, 0, 0, 0, 0]
         p = [bnd == 0 for bnd in self.boundary_conditions[::2]]
         self.periodicity = ensure_tuple(p)
         if self.cosmological_simulation:
