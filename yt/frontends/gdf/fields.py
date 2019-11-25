@@ -32,7 +32,19 @@ class GDFFieldInfo(FieldInfoContainer):
         ("mag_field_y", ("gauss", ["magnetic_field_y"], None)),
         ("mag_field_z", ("gauss", ["magnetic_field_z"], None)),
     )
-    known_particle_fields = ()
+    known_particle_fields = (
+        ("position_x", ("cm", ["particle_position_x"], None)),
+        ("position_y", ("cm", ["particle_position_x"], None)),
+        ("position_z", ("cm", ["particle_position_x"], None)),
+        ("velocity_x", ("cm/s", ["particle_velocity_x"], None)),
+        ("velocity_y", ("cm/s", ["particle_velocity_y"], None)),
+        ("velocity_z", ("cm/s", ["particle_velocity_z"], None)),
+        ("id", ("", ["particle_index"], None)),
+        ("mass", ("g", ["particle_mass"], None)),
+    )
+    known_particle_types = (
+        ("dark_matter",)
+    )
 
     def setup_fluid_fields(self):
         from yt.fields.magnetic_field import \
