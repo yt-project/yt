@@ -22,7 +22,6 @@ def read_amrvac_namelist(parfiles):
     This function replicates the patching logic of MPI-AMRVAC where redundant parameters
     only retain last-in-line values EXCEPT `&filelist:base_filename`, which is accumulated.
     """
-    # devnote: this function is meant to be public-facing. So it should be exposed at a higher level in yt.
     # typechecking
     if isinstance(parfiles, string_types):
         parfiles = [parfiles]
