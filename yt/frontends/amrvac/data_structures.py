@@ -139,6 +139,11 @@ class AMRVACDataset(Dataset):
         self._parfiles = parfiles
         if parfiles is not None:
             self.namelist = read_amrvac_namelist(parfiles)
+            if "hd_list" in self.namelist:
+                namelist_gamma = self.namelist["hd_list"].get("hd_gamma", None)
+                if namelist_gamma is not None and not self.gamma == namelist_gamma:
+                    mylog.error("Inconsistent values in gamma: datfile {}, parfiles {}".format(self.gamma, namelist_gamma))
+
         else:
             # todo: add a warning here when having this parameter becomes useful
             self.namelist = None
