@@ -102,3 +102,44 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             if fid is not None:
                 fid.close()
         return rv
+
+    def _read_particle_coords(self, chunks, ptf):
+        for rv in self._read_particle_fields(chunks, ptf, None):
+            yield rv
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        h5f = None
+        for chunk in list(chunks):
+            for grid in chunk.objs:
+                if grid.filename is None:
+                    continue
+                if h5f is None:
+                    h5f = h5py.File(grid.filename)
+
+                ds = h5f.get(_grid_dname(grid.id))
+                for ptype, field_list in sorted(ptf.items()):
+                    pds = ds.get("particles/{}".format(ptype))
+                    if pds is None:
+                        continue
+
+                    x, y, z = (
+                        np.asarray(
+                            pds.get("position_{}".format(ax))[()], dtype="=f8"
+                        )
+                        for ax in "xyz"
+                    )
+
+                    if selector is None:
+                        # This only ever happens if the call is made from
+                        # _read_particle_coords.
+                        yield ptype, (x, y, z)
+                        continue
+
+                    mask = selector.select_points(x, y, z, 0.0)
+                    if mask is None:
+                        continue
+                    for field in field_list:
+                        data = np.asarray(pds.get(field)[()], "=f8")
+                        yield (ptype, field), data[mask]
+        if h5f:
+            h5f.close()
