@@ -138,10 +138,10 @@ class AMRVACDataset(Dataset):
 
         self._parfiles = parfiles
         if parfiles is not None:
-            self.parameters["namelist"] = read_amrvac_namelist(parfiles)
+            self.namelist = read_amrvac_namelist(parfiles)
         else:
             # todo: add a warning here when having this parameter becomes useful
-            self.parameters["namelist"] = None
+            self.namelist = None
 
         self.fluid_types += ('amrvac',)
         # refinement factor between a grid and its subgrid
