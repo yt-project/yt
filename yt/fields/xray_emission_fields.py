@@ -211,7 +211,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         # APEC wants to scale by nH*ne
         def _norm_field(field, data):
             return data[ftype, "H_nuclei_density"]*data[ftype, "El_number_density"]
-    ds.add_field((ftype, "norm_field"), _norm_field, units="cm**6",
+    ds.add_field((ftype, "norm_field"), _norm_field, units="cm**-6",
                  sampling_type='local')
 
     my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, 
