@@ -34,8 +34,8 @@ class GDFFieldInfo(FieldInfoContainer):
     )
     known_particle_fields = (
         ("position_x", ("cm", ["particle_position_x"], None)),
-        ("position_y", ("cm", ["particle_position_x"], None)),
-        ("position_z", ("cm", ["particle_position_x"], None)),
+        ("position_y", ("cm", ["particle_position_y"], None)),
+        ("position_z", ("cm", ["particle_position_z"], None)),
         ("velocity_x", ("cm/s", ["particle_velocity_x"], None)),
         ("velocity_y", ("cm/s", ["particle_velocity_y"], None)),
         ("velocity_z", ("cm/s", ["particle_velocity_z"], None)),
