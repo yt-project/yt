@@ -370,9 +370,6 @@ class HydroFieldFileHandler(FieldFileHandler):
 
         cls.set_detected_fields(ds, fields)
 
-        if 'B_x_left' in fields:
-            mylog.warning('The left magnetic fields are use to compute derived magnetic field quantities.')
-
         return fields
 
 class GravFieldFileHandler(FieldFileHandler):
