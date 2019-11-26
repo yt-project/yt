@@ -112,6 +112,8 @@ class GDFHierarchy(GridIndex):
             valid_fields = defined_fields.intersection(on_disk_fields)
 
             self.field_list = [("gdf", field) for field in valid_fields]
+            if self.grid_particle_count.sum() < 1:
+                return
 
             for ptype in self.ds.particle_types:
                 pfield_attrs = "/particle_types/{}".format(ptype)
@@ -127,7 +129,7 @@ class GDFHierarchy(GridIndex):
                     field[0] for field in field_info.known_particle_fields
                 }
                 defined_particle_fields = defined_particle_fields.union(
-                        known_particle_fields
+                    known_particle_fields
                 )
                 self.field_list += [(ptype, field) for field in defined_particle_fields]
 
