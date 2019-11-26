@@ -185,7 +185,6 @@ class RAMSESFieldInfo(FieldInfoContainer):
                        function=star_age, units=self.ds.unit_system['time'])
 
     def setup_fluid_fields(self):
-
         def _temperature(field, data):
             rv = data["gas", "pressure"]/data["gas", "density"]
             rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
@@ -201,7 +200,6 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         #Load magnetic fields
         if ('gas','magnetic_field_x_left') in self:
-            self.ds.MHD=True
             self.create_magnetic_fields()
 
     def create_magnetic_fields(self):
