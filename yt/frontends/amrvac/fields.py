@@ -30,7 +30,7 @@ direction_aliases = {
 class AMRVACFieldInfo(FieldInfoContainer):
     code_density = "code_mass / code_length**3"
     code_moment = "code_mass / code_length**2 / code_time"
-    code_energy = "code_mass * code_length**2 / code_time**2"
+    code_energy_density = "code_mass / code_length / code_time**2"
 
     # format: (native(?) field, (units, [aliases], display_name))
     # note: aliases will correspond to "gas" typed fields, whereas the native ones are "amrvac" typed
@@ -39,7 +39,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("m1", (code_moment, ["moment_1"], None)),
         ("m2", (code_moment, ["moment_2"], None)),
         ("m3", (code_moment, ["moment_3"], None)),
-        ("e", (code_energy, ["energy"], None)),
+        ("e", (code_energy_density, ["energy_density"], None)),
         ("b1", ("code_magnetic", ["magnetic_1"], None)),
         ("b2", ("code_magnetic", ["magnetic_2"], None)),
         ("b3", ("code_magnetic", ["magnetic_3"], None))
