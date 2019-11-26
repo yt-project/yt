@@ -87,13 +87,12 @@ def test_khi_cartesian_3D():
         test_khi_cartesian_3D.__name__ = test.description
         yield test
 
-# this test is broken and needs inspection (can not load this specific dataset)
-#@requires_ds(jet_cylindrical_25D)
-#def test_jet_cylindrical_25D():
-#    ds = data_dir_load(jet_cylindrical_25D)
-#    for test in small_patch_amr(ds, ds.field_list):
-#        test_jet_cylindrical_25D.__name__ = test.description
-#        yield test
+@requires_ds(jet_cylindrical_25D)
+def test_jet_cylindrical_25D():
+   ds = data_dir_load(jet_cylindrical_25D)
+   for test in small_patch_amr(ds, ds.field_list):
+       test_jet_cylindrical_25D.__name__ = test.description
+       yield test
 
 @requires_ds(riemann_cartesian_175D)
 def test_riemann_cartesian_175D():
