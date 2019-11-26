@@ -203,6 +203,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             self.create_magnetic_fields()
 
     def create_magnetic_fields(self):
+        #Calculate cell-centred magnetic fields from face-centred
         def mag_field(ax):
             def _mag_field(field, data):
                 return (data['magnetic_field_%s_left' % ax]+data['magnetic_field_%s_right' % ax])/2
