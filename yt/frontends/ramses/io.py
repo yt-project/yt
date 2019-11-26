@@ -285,7 +285,7 @@ def _read_fluid_file_descriptor(fname):
                  for dim in ['x','y','z'])]  
 
 
-    # Convert in dictionary
+    # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
     with open(fname, 'r') as f:
