@@ -464,7 +464,8 @@ class RAMSESDataset(Dataset):
 
         # calculating derived units (except velocity and temperature, done below)
         mass_unit = density_unit * length_unit**3
-        magnetic_unit = np.sqrt(4*np.pi*mass_unit / (time_unit**2 * length_unit))
+        magnetic_unit = np.sqrt(4*np.pi * mass_unit /
+                                (time_unit**2 * length_unit))
         pressure_unit = density_unit * (length_unit / time_unit)**2
 
         # TODO:
