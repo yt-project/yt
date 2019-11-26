@@ -38,9 +38,6 @@ from yt.utilities.physical_constants import \
     mp
 from yt.funcs import mylog
 
-from yt.fields.magnetic_field import \
-    setup_magnetic_field_aliases
-
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
 rho_units = "code_density"
@@ -188,7 +185,6 @@ class RAMSESFieldInfo(FieldInfoContainer):
                        function=star_age, units=self.ds.unit_system['time'])
 
     def setup_fluid_fields(self):
-        setup_magnetic_field_aliases(self,'ramses',["B_{0}_left".format(ax) for ax in ['x','y','z']],ftype="gas")
 
         def _temperature(field, data):
             rv = data["gas", "pressure"]/data["gas", "density"]
@@ -202,6 +198,23 @@ class RAMSESFieldInfo(FieldInfoContainer):
         rt_flag = RTFieldFileHandler.any_exist(self.ds)
         if rt_flag: # rt run
             self.create_rt_fields()
+
+        #Load magnetic fields
+        if ('gas','magnetic_field_x_left') in self:
+            self.ds.MHD=True
+            self.create_magnetic_fields()
+
+    def create_magnetic_fields(self):
+        def mag_field(ax):
+            def _mag_field(field, data):
+                return (data['magnetic_field_%s_left' % ax]+data['magnetic_field_%s_right' % ax])/2
+            return _mag_field
+
+        for ax in self.ds.coordinates.axis_order:
+            self.add_field(('gas',"magnetic_field_%s" % ax),
+                           sampling_type='cell',
+                           function=mag_field(ax),
+                           units=self.ds.unit_system['magnetic_field_cgs'])
 
     def create_rt_fields(self):
         self.ds.fluid_types += ('rt', )
