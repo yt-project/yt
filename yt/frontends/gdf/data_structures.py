@@ -17,7 +17,6 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import weakref
 import os
-from yt.extern.six import string_types
 from yt.funcs import \
     ensure_tuple, \
     just_one, \
@@ -227,23 +226,30 @@ class GDFDataset(Dataset):
         based on the parameter file
         """
 
-        # This should be improved.
         h5f = h5py.File(self.parameter_filename, "r")
         for field_name in h5f["/field_types"]:
             current_field = h5f["/field_types/%s" % field_name]
-            if 'field_to_cgs' in current_field.attrs:
-                field_conv = current_field.attrs['field_to_cgs']
-                self.field_units[field_name] = just_one(field_conv)
-            elif 'field_units' in current_field.attrs:
-                field_units = current_field.attrs['field_units']
-                if isinstance(field_units, string_types):
-                    current_field_units = current_field.attrs['field_units']
-                else:
-                    current_field_units = \
-                        just_one(current_field.attrs['field_units'])
-                self.field_units[field_name] = current_field_units.decode("utf8")
+            field_conv = just_one(current_field.attrs.get("field_to_cgs", 1))
+            field_units = just_one(current_field.attrs.get("field_units", ""))
+            if field_units:
+                self.field_units[field_name] = "{} * {}".format(
+                    field_conv, field_units.decode()
+                )
             else:
-                self.field_units[field_name] = ""
+                self.field_units[field_name] = field_conv
+
+        for ptype in h5f.get("/particle_types", []):
+            for field_name in h5f["/particle_types"][ptype]:
+                current_field = h5f[os.path.join("/particle_types", ptype, field_name)]
+                field_conv = just_one(current_field.attrs.get("field_to_cgs", 1))
+                field_units = just_one(current_field.attrs.get("field_units", ""))
+                pfield_name = (ptype, field_name)
+                if field_units:
+                    self.field_units[pfield_name] = "{} * {}".format(
+                        field_conv, field_units.decode()
+                    )
+                else:
+                    self.field_units[field_name] = field_conv
 
         if "dataset_units" in h5f:
             for unit_name in h5f["/dataset_units"]:
@@ -262,13 +268,12 @@ class GDFDataset(Dataset):
                     un = unit_name[:-5]
                     un = un.replace('magnetic', 'magnetic_field', 1)
                     unit = unit_system_registry["cgs"][un]
-                    setdefaultattr(self, unit_name, self.quan(value, unit))
                 setdefaultattr(self, unit_name, self.quan(value, unit))
                 if unit_name in h5f["/field_types"]:
                     if unit_name in self.field_units:
                         mylog.warning("'field_units' was overridden by 'dataset_units/%s'"
                                       % (unit_name))
-                    self.field_units[unit_name] = str(unit)
+                    self.field_units[unit_name] = "{} * {}".format(value, str(unit))
         else:
             setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
             setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
