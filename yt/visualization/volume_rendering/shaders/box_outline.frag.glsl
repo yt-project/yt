@@ -13,6 +13,10 @@ uniform vec4 viewport; // (offset_x, offset_y, 1 / screen_x, 1 / screen_y)
 uniform float box_width;
 uniform float box_alpha;
 
+//
+//  THIS IS CURRENTLY UNUSED
+//
+
 void main()
 {
     // Obtain screen coordinates

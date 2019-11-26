@@ -401,6 +401,14 @@ class Framebuffer(traitlets.HasTraits):
                                            GL.GL_FLOAT)
         return arr
 
+    @property
+    def depth_data(self):
+        _, _, width, height = self.viewport
+        with self.bind(clear = False):
+            arr = GL.glReadPixels(0, 0, width, height, GL.GL_DEPTH_COMPONENT,
+                                           GL.GL_FLOAT)
+        return arr
+
     @traitlets.default("viewport")
     def _viewport_default(self):
         # origin_x, origin_y, width, height

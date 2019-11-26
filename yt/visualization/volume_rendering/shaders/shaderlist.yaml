@@ -11,9 +11,10 @@ fragment:
     info: A first pass fragment shader that performs ray casting using transfer function.
       See :ref:`volume-rendering-method` for more details.
     source: block_outline.frag.glsl
-  draw_box:
-    info: A box annotation.
-    source: box_outline.frag.glsl
+    blend_func:
+    - src alpha
+    - one minus src alpha
+    blend_equation: func add
   max_intensity:
     info: A first pass fragment shader that computes Maximum Intensity Projection
       of the data. See :ref:`projection-types` for more information.

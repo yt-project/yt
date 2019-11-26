@@ -9,6 +9,10 @@ flat in mat4 inverse_mvm;
 flat in mat4 inverse_pmvm;
 out vec4 output_color;
 
+uniform vec3 camera_pos;
+uniform mat4 modelview;
+uniform mat4 projection;
+
 uniform sampler3D ds_tex;
 uniform sampler3D bitmap_tex;
 //layout (binding = 1) uniform sampler2D depth_tex;
@@ -21,7 +25,7 @@ bool within_bb(vec3 pos)
     return all(left) && all(right);
 }
 
-void sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
+bool sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
                     float t, vec3 dir);
 vec4 cleanup_phase(in vec4 curr_color, in vec3 dir, in float t0, in float t1);
 
@@ -47,7 +51,7 @@ void main()
 
     // Five samples
     vec3 step_size = dx/5.0;
-    vec3 dir = normalize(ray_position - v_camera_pos.xyz);
+    vec3 dir = normalize(v_camera_pos.xyz - ray_position);
     dir = max(abs(dir), 0.0001) * sign(dir);
     vec4 curr_color = vec4(0.0);
 
@@ -101,17 +105,38 @@ void main()
     vec3 tex_curr_pos = vec3(0.0);
 
     vec3 step = normalize(p1 - p0) * step_size;
+    bool sampled;
+    bool ever_sampled = false;
+    vec3 last_sampled;
+
+    vec4 v_clip_coord;
+    float f_ndc_depth;
+    float depth = 1.0;
+
 
     while(t <= t1) {
         tex_curr_pos = (ray_position - left_edge) / range;  // Scale from 0 .. 1
         // But, we actually need it to be 0 + normalized dx/2 to 1 - normalized dx/2
         tex_curr_pos = (tex_curr_pos * (1.0 - ndx)) + ndx/2.0;
 
-        sample_texture(tex_curr_pos, curr_color, tdelta, t, dir);
+        sampled = sample_texture(tex_curr_pos, curr_color, tdelta, t, dir);
+
+        if (sampled) {
+            ever_sampled = true;
+            v_clip_coord = projection * modelview * vec4(ray_position, 1.0);
+            f_ndc_depth = v_clip_coord.z / v_clip_coord.w;
+            depth = min(depth, (1.0 - 0.0) * 0.5 * f_ndc_depth + (1.0 + 0.0) * 0.5);
+
+        }
 
         t += tdelta;
         ray_position += tdelta * dir;
+
     }
 
     output_color = cleanup_phase(curr_color, dir, t0, t1);
+
+    if (ever_sampled) {
+        gl_FragDepth = depth;
+    }
 }

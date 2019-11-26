@@ -17,6 +17,9 @@ uniform vec3 camera_pos;
 uniform mat4 modelview;
 uniform mat4 projection;
 
+uniform float near_plane;
+uniform float far_plane;
+
 void main()
 {
     v_model = model_vertex;

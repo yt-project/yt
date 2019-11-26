@@ -3,7 +3,7 @@ uniform float tf_max;
 uniform float tf_log;
 uniform sampler1D tf_tex;
 
-void sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
+bool sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
                     float t, vec3 dir)
 {
     float tm = tf_min;
@@ -11,7 +11,7 @@ void sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
     vec4 tf_sample;
 
     float map_sample = texture(bitmap_tex, tex_curr_pos).r;
-    if (!(map_sample > 0.0)) return;
+    if (!(map_sample > 0.0)) return false;
  
     float tex_sample = texture(ds_tex, tex_curr_pos).r;
  
@@ -27,6 +27,7 @@ void sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
     float ta = max((1.0f - dt * tf_sample.a), 0.0);
 
     curr_color = dt * tf_sample + ta * curr_color;
+    return true;
 }
 
 vec4 cleanup_phase(in vec4 curr_color, in vec3 dir, in float t0, in float t1) 

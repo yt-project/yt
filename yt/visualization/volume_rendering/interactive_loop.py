@@ -128,6 +128,7 @@ class RenderingContext(object):
     '''
     should_quit = False
     image_widget = None
+    draw = False
     def __init__(self, width=1024, height=1024, title="vol_render",
                  always_on_top = False, decorated = True, position = None,
                  visible = True):
@@ -246,12 +247,12 @@ class RenderingContext(object):
     def __call__(self, scene, camera, callbacks):
         while not glfw.WindowShouldClose(self.window) or self.should_quit:
             callbacks(self.window)
-            if callbacks.draw:
+            if callbacks.draw or self.draw:
                 camera.compute_matrices()
                 scene.camera = camera
                 scene.render()
                 glfw.SwapBuffers(self.window)
-                callbacks.draw = False
+                callbacks.draw = self.draw = False
                 if self.image_widget is not None:
                     self.image_widget.value = write_bitmap(
                             scene.image[:,:,:3], None)

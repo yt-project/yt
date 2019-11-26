@@ -292,6 +292,7 @@ class SceneComponent(traitlets.HasTraits):
     base_quad = traitlets.Instance(SceneData)
     events = traitlets.Instance(EventCollection)
     name = "undefined"
+    priority = traitlets.CInt(0)
 
     fragment_shader = ShaderTrait(allow_none = True).tag(shader_type = "fragment")
     vertex_shader = ShaderTrait(allow_none = True).tag(shader_type = "vertex")
@@ -423,7 +424,7 @@ class SceneComponent(traitlets.HasTraits):
                         p2._set_uniform("cmap_log", float(self.cmap_log))
                         with self.base_quad.vertex_array.bind(p2):
                             GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
-                
+
     def draw(self, scene, program):
         raise NotImplementedError
 
@@ -678,6 +679,8 @@ class BlockRendering(SceneComponent):
     default_shaders = ("default", "max_intensity",
                        "passthrough", "apply_colormap")
 
+    priority = 10
+
     @traitlets.default("transfer_function")
     def _default_transfer_function(self):
         tf = TransferFunctionTexture(data = np.zeros((256, 4), dtype='f4'))
@@ -890,10 +893,9 @@ class SceneGraph(traitlets.HasTraits):
     def render(self):
         with self.bind_buffer():
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        for component in self.components:
-            component.run_program(self)
-        for annotation in self.annotations:
-            annotation.run_program(self)
+        elements = self.components + self.annotations
+        for element in sorted(elements, key = lambda a: a.priority):
+            element.run_program(self)
 
     @contextlib.contextmanager
     def bind_buffer(self):
@@ -914,6 +916,19 @@ class SceneGraph(traitlets.HasTraits):
                 GL.GL_FLOAT)[::-1,:,:]
         arr.swapaxes(0, 1)
         return arr
+
+    @property
+    def depth(self):
+        if self.fb is not None:
+            arr = self.fb.depth_data[::-1,:]
+            arr.swapaxes(0, 1)
+            return arr
+        _, _, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
+        arr = GL.glReadPixels(0, 0, width, height, GL.GL_DEPTH_COMPONENT,
+                GL.GL_FLOAT)[::-1,:]
+        arr.swapaxes(0, 1)
+        return arr
+
 
     @staticmethod
     def from_ds(ds, field, render_context = None, no_ghost = True,
@@ -939,6 +954,6 @@ class SceneGraph(traitlets.HasTraits):
         if not interactive:
             return scene, c
 
-        local_ns = {'scene': scene, 'camera': c}
+        local_ns = {'scene': scene, 'camera': c, 'rc': render_context}
         shell = render_context.start_shell(scene, c, kwargs = dict())
         shell(stack_depth = 2, module = None, local_ns = local_ns) 
