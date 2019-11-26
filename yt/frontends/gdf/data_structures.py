@@ -1,9 +1,4 @@
-"""
-Data structures for GDF.
-
-
-
-"""
+"""Data structures for GDF."""
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
@@ -89,56 +84,82 @@ class GDFHierarchy(GridIndex):
     def __init__(self, ds, dataset_type='grid_data_format'):
         self.dataset = weakref.proxy(ds)
         self.index_filename = self.dataset.parameter_filename
-        h5f = h5py.File(self.index_filename, 'r')
         self.dataset_type = dataset_type
-        GridIndex.__init__(self, ds, dataset_type)
         self.directory = os.path.dirname(self.index_filename)
-        h5f.close()
+
+        with h5py.File(self.index_filename, 'r') as self._index_handle:
+            GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
+        """
+        Set up available fields.
+
+        Called during:
+            1. self.__init__ ->
+            2. Index.__init__
+        """
+        # Set handy aliases
         field_info = self.ds._field_info_class
-        with h5py.File(self.index_filename, 'r') as h5f:
-            defined_fields = set(
-                str(name) for name in h5f["field_types"].keys()
-            )
-            known_other_fields = {
-                field[0] for field in field_info.known_other_fields
-            }
-            defined_fields = defined_fields.union(known_other_fields)
-            on_disk_fields = set(
-                str(name) for name in h5f[_grid_dname(0)].keys()
-            )
-            valid_fields = defined_fields.intersection(on_disk_fields)
+        h5f = self._index_handle
 
-            self.field_list = [("gdf", field) for field in valid_fields]
-            if self.grid_particle_count.sum() < 1:
-                return
+        defined_fields = set(
+            str(name) for name in h5f["field_types"].keys()
+        )
+        known_other_fields = {
+            field[0] for field in field_info.known_other_fields
+        }
+        defined_fields = defined_fields.union(known_other_fields)
+        on_disk_fields = set(
+            str(name) for name in h5f[_grid_dname(0)].keys()
+        )
+        valid_fields = defined_fields.intersection(on_disk_fields)
 
-            for ptype in self.ds.particle_types:
-                pfield_attrs = "/particle_types/{}".format(ptype)
-                if pfield_attrs:
-                    defined_particle_fields = set(
-                        str(name)
-                        for name in h5f.get("/particle_types/{}".format(ptype), {}).keys()
-                    )
-                else:
-                    defined_particle_fields = {}
+        self.field_list = [("gdf", field) for field in valid_fields]
+        if self.grid_particle_count.sum() < 1:
+            return
 
-                known_particle_fields = {
-                    field[0] for field in field_info.known_particle_fields
-                }
-                defined_particle_fields = defined_particle_fields.union(
-                    known_particle_fields
+        for ptype in self.ds.particle_types:
+            pfield_attrs = "/particle_types/{}".format(ptype)
+            if pfield_attrs:
+                defined_particle_fields = set(
+                    str(name)
+                    for name in h5f.get("/particle_types/{}".format(ptype), {}).keys()
                 )
-                self.field_list += [(ptype, field) for field in defined_particle_fields]
+            else:
+                defined_particle_fields = {}
+
+            known_particle_fields = {
+                field[0] for field in field_info.known_particle_fields
+            }
+            defined_particle_fields = defined_particle_fields.union(
+                known_particle_fields
+            )
+            self.field_list += [(ptype, field) for field in defined_particle_fields]
 
     def _count_grids(self):
-        h5f = h5py.File(self.index_filename, 'r')
-        self.num_grids = h5f['/grid_parent_id'].shape[0]
-        h5f.close()
+        """
+        Set up grids count.
+
+        Called during:
+            1. self.__init__ ->
+            2. Index.__init__ ->
+            3. GridIndex._setup_geometry
+        Before: _detect_output_fields
+        """
+        self.num_grids = self._index_handle['/grid_parent_id'].shape[0]
 
     def _parse_index(self):
-        h5f = h5py.File(self.index_filename, 'r')
+        """
+        Set up basic grids' properties.
+
+        Called during:
+            1. self.__init__ ->
+            2. Index.__init__ ->
+            3. GridIndex._setup_geometry
+        Before: _detect_output_fields
+        After: _count_grids
+        """
+        h5f = self._index_handle
         dxs = []
         self.grids = np.empty(self.num_grids, dtype='object')
         levels = (h5f['grid_level'][:]).copy()
@@ -164,9 +185,18 @@ class GDFHierarchy(GridIndex):
         self.grid_right_edge = self.grid_left_edge + dx * self.grid_dimensions
         self.grid_particle_count = h5f['grid_particle_count'][:]
         del levels, glis, gdims
-        h5f.close()
 
     def _populate_grid_objects(self):
+        """
+        Set up addtional grids' properties.
+
+        Called during:
+            1. self.__init__ ->
+            2. Index.__init__ ->
+            3. GridIndex._setup_geometry
+        Before: _detect_output_fields
+        After: _count_grids, _parse_index
+        """
         mask = np.empty(self.grids.size, dtype='int32')
         for gi, g in enumerate(self.grids):
             g._prepare_grid()
@@ -190,7 +220,9 @@ class GDFHierarchy(GridIndex):
 
     def _get_box_grids(self, left_edge, right_edge):
         """
-        Gets back all the grids between a left edge and right edge
+        Get back all the grids between a left edge and right edge.
+
+        Note: used only in self._get_grid_children
         """
         eps = np.finfo(np.float64).eps
         grid_i = np.where(
@@ -199,7 +231,13 @@ class GDFHierarchy(GridIndex):
 
         return self.grids[grid_i], grid_i
 
+
     def _get_grid_children(self, grid):
+        """
+        Get child grids of the current grid.
+
+        Note: used only in self._populate_grid_objects
+        """
         mask = np.zeros(self.num_grids, dtype='bool')
         grids, grid_ind = self._get_box_grids(grid.LeftEdge, grid.RightEdge)
         mask[grid_ind] = True
@@ -222,10 +260,8 @@ class GDFDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         """
-        Generates the conversion to various physical _units
-        based on the parameter file
+        Generate the conversion to various physical _units based on the parameter file.
         """
-
         h5f = h5py.File(self.parameter_filename, "r")
         for field_name in h5f["/field_types"]:
             current_field = h5f["/field_types/%s" % field_name]
