@@ -298,14 +298,14 @@ class GDFDataset(Dataset):
         if refine_by is None:
             refine_by = 2
         self.refine_by = refine_by
-        self.dimensionality = sp["dimensionality"]
-        self.current_time = sp.get("current_time", 0)
+        self.dimensionality = just_one(sp["dimensionality"])
+        self.current_time = just_one(sp.get("current_time", 0))
         self.unique_identifier = sp["unique_identifier"]
-        self.cosmological_simulation = sp["cosmological_simulation"]
+        self.cosmological_simulation = just_one(sp["cosmological_simulation"])
         if sp["num_ghost_zones"] != 0:
             raise RuntimeError
-        self.num_ghost_zones = sp["num_ghost_zones"]
-        self.field_ordering = sp.get("field_ordering", 0)
+        self.num_ghost_zones = just_one(sp["num_ghost_zones"])
+        self.field_ordering = just_one(sp.get("field_ordering", 0))
         try:
             self.boundary_conditions = sp["boundary_conditions"][:]
         except KeyError:
@@ -313,10 +313,10 @@ class GDFDataset(Dataset):
         p = [bnd == 0 for bnd in self.boundary_conditions[::2]]
         self.periodicity = ensure_tuple(p)
         if self.cosmological_simulation:
-            self.current_redshift = sp["current_redshift"]
-            self.omega_lambda = sp["omega_lambda"]
-            self.omega_matter = sp["omega_matter"]
-            self.hubble_constant = sp["hubble_constant"]
+            self.current_redshift = just_one(sp["current_redshift"])
+            self.omega_lambda = just_one(sp["omega_lambda"])
+            self.omega_matter = just_one(sp["omega_matter"])
+            self.hubble_constant = just_one(sp["hubble_constant"])
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
