@@ -93,6 +93,7 @@ cdef struct Node:
     np.int64_t leaf_id              # This is used in depositions (maybe)
     unsigned char depth
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -234,17 +235,39 @@ cdef class CyOctree:
     cdef int build_tree(self, double * input_pos):
         # Generate an array to store the which particles are in each child oct
         cdef np.int64_t * split_arr
+        cdef np.int64_t[:] nodes_to_process = np.zeros(self._max_depth, "int64")
+        cdef np.int64_t[:] nodes_processed = np.zeros(self._max_depth, "int64")
+        cdef int refined_node
         split_arr = <np.int64_t*> malloc((self._num_children + 1) *
                                                             sizeof(np.int64_t))
 
         # Loop through the nodes in serial and process them, i.e, sort the
         # particles and create the children, which will increase the node.size
-        # then we iterate through those children
+        # we store our depth, and which node we are up to at each depth to allow
+        # us to build in a depth-first way, non-recursively
+        cdef int depth = 0
         cdef int num_nodes_processed = 0
         while num_nodes_processed < self.nodes.size():
-            self.process_node(&self.nodes[num_nodes_processed], input_pos,
-                              split_arr)
+            node_idx = nodes_to_process[depth] + nodes_processed[depth]
+
+            refined_node = self.process_node(&self.nodes[node_idx], input_pos, split_arr)
+
+            nodes_processed[depth] += 1
             num_nodes_processed += 1
+
+            if refined_node == 1:
+                depth += 1
+                nodes_to_process[depth] = self.nodes[node_idx].children
+                nodes_processed[depth] = 0
+
+            while nodes_processed[depth] == self._num_children:
+                nodes_to_process[depth] = 0
+                nodes_processed[depth] = 0
+                depth -= 1
+
+        #print(np.asarray(nodes_to_process))
+        #print(np.asarray(nodes_processed))
+        #print(num_nodes_processed, self.nodes.size())
 
         free(split_arr)
 
@@ -269,7 +292,7 @@ cdef class CyOctree:
         # of the first and last particles they contain
         self.generate_children(node, split_arr)
 
-        return 0
+        return 1
 
     cdef inline void generate_children(self, Node * node,
                                        np.int64_t * split_arr) nogil:
