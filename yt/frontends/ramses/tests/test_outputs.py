@@ -470,8 +470,11 @@ def test_magnetic_field_aliasing():
     # Test if RAMSES magnetic fields are correctly aliased to yt magnetic fields and if 
     # derived magnetic quantities are calculated
     ds = data_dir_load(ramses_mhd_128)
-    
-    assert ('gas','magnetic_field_x') in ds.derived_field_list
-    assert ('gas','magnetic_field_magnitude') in ds.derived_field_list
-    assert ('gas','alfven_speed') in ds.derived_field_list
-    assert ('gas','divB') in ds.derived_field_list
+    ad=ds.all_data()
+
+    for field in ['magnetic_field_x',
+                  'magnetic_field_magnitude',
+                  'alfven_speed',
+                  'divB']:
+        assert ('gas',field) in ds.derived_field_list
+        ad[('gas',field)]
