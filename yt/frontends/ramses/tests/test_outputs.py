@@ -474,10 +474,4 @@ def test_magnetic_field_aliasing():
     assert ('gas','magnetic_field_x') in ds.derived_field_list
     assert ('gas','magnetic_field_magnitude') in ds.derived_field_list
     assert ('gas','alfven_speed') in ds.derived_field_list
-
-@requires_file(ramses_mhd_128)
-def test_magnetic_field_unit():
-    ds = data_dir_load(ramses_mhd_128)
-    ad=ds.all_data()
-    print(ad['magnetic_field_magnitude'].min().in_units("gauss"))
-    assert ad['magnetic_field_magnitude'].min().in_units("gauss") == ds.quan(1,"gauss")
+    assert ('gas','divB') in ds.derived_field_list

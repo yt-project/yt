@@ -216,6 +216,18 @@ class RAMSESFieldInfo(FieldInfoContainer):
                            function=mag_field(ax),
                            units=self.ds.unit_system['magnetic_field_cgs'])
 
+        def _divB(field,data):
+            '''Calculate magnetic field divergence'''
+            out=data['zeros']
+            for ax in data.ds.coordinates.axis_order:
+                out=out+data['magnetic_field_%s_right' % ax]-data['magnetic_field_%s_left' % ax]
+            return out
+
+        self.add_field(('gas','divB'),
+                       sampling_type='cell',
+                       function=_divB,
+                       units=self.ds.unit_system['magnetic_field_cgs'])
+
     def create_rt_fields(self):
         self.ds.fluid_types += ('rt', )
         p = RTFieldFileHandler.get_rt_parameters(self.ds).copy()
