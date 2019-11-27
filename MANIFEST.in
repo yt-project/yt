@@ -13,3 +13,4 @@ prune doc/build
 recursive-include yt/analysis_modules/halo_finding/rockstar *.py *.pyx
 recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
 prune yt/frontends/_skeleton
+recursive-include yt/frontends/amrvac *.par
