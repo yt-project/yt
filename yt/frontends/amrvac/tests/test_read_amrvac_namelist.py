@@ -1,16 +1,19 @@
 from copy import deepcopy
+from yt.testing import requires_module
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.frontends.amrvac import read_amrvac_namelist
 
 blast_wave_parfile = "sample_parfiles/bw_3d.par"
 modifier_parfile = "sample_parfiles/tvdlf_scheme.par"
 
+@requires_module("f90nml")
 def test_read_one_file():
     """when provided a single file, the fonction should merely act as a wrapper for f90nml.read()"""
     namelist1 = read_amrvac_namelist(blast_wave_parfile)
     namelist2 = f90nml.read(blast_wave_parfile)
     assert namelist1 == namelist2
 
+@requires_module("f90nml")
 def test_accumulate_basename():
     """When two (or more) parfiles are passed, the filelist:base_filename should be special-cased"""
     namelist_base = f90nml.read(blast_wave_parfile)
