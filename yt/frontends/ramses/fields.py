@@ -222,7 +222,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 out += data['magnetic_field_%s_right' % ax] - data['magnetic_field_%s_left' % ax] 
             return out/data['dx']
 
-        self.add_field(('gas','divB'),
+        self.add_field(('gas','magnetic_field_divergence'),
                        sampling_type='cell',
                        function=_divB,
                        units=self.ds.unit_system['magnetic_field_cgs']/ self.ds.unit_system['length'])
