@@ -475,6 +475,6 @@ def test_magnetic_field_aliasing():
     for field in ['magnetic_field_x',
                   'magnetic_field_magnitude',
                   'alfven_speed',
-                  'divB']:
+                  'magnetic_field_divergence']:
         assert ('gas',field) in ds.derived_field_list
         ad[('gas',field)]
