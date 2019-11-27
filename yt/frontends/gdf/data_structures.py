@@ -258,6 +258,25 @@ class GDFDataset(Dataset):
         self.storage_filename = storage_filename
         self.filename = filename
 
+    @staticmethod
+    def _extract_units_from_attrs(field):
+        """Parse field unit definition into Unit.
+
+        GDF defines 3 attributes describing unit fields:
+          * field_to_cgs - convertion factor to CGS
+          * field_units - string with units
+          * field_name - human readable field name
+        """
+        field_conv = just_one(field.attrs.get("field_to_cgs", 1.0))
+        field_units = just_one(field.attrs.get("field_units", ""))
+        if field_units:
+            if field_conv == 1.0:  # I hate float comparison...
+                return field_units.decode()
+            else:
+                return "{} * {}".format(field_conv, field_units.decode())
+        else:
+            return field_conv
+
     def _set_code_unit_attributes(self):
         """
         Generate the conversion to various physical _units based on the parameter file.
@@ -265,27 +284,13 @@ class GDFDataset(Dataset):
         h5f = h5py.File(self.parameter_filename, "r")
         for field_name in h5f["/field_types"]:
             current_field = h5f["/field_types/%s" % field_name]
-            field_conv = just_one(current_field.attrs.get("field_to_cgs", 1))
-            field_units = just_one(current_field.attrs.get("field_units", ""))
-            if field_units:
-                self.field_units[field_name] = "{} * {}".format(
-                    field_conv, field_units.decode()
-                )
-            else:
-                self.field_units[field_name] = field_conv
+            self.field_units[field_name] = self._extract_units_from_attrs(current_field)
 
         for ptype in h5f.get("/particle_types", []):
             for field_name in h5f["/particle_types"][ptype]:
                 current_field = h5f[os.path.join("/particle_types", ptype, field_name)]
-                field_conv = just_one(current_field.attrs.get("field_to_cgs", 1))
-                field_units = just_one(current_field.attrs.get("field_units", ""))
                 pfield_name = (ptype, field_name)
-                if field_units:
-                    self.field_units[pfield_name] = "{} * {}".format(
-                        field_conv, field_units.decode()
-                    )
-                else:
-                    self.field_units[field_name] = field_conv
+                self.field_units[pfield_name] = self._extract_units_from_attrs(current_field)
 
         if "dataset_units" in h5f:
             for unit_name in h5f["/dataset_units"]:
@@ -309,7 +314,10 @@ class GDFDataset(Dataset):
                     if unit_name in self.field_units:
                         mylog.warning("'field_units' was overridden by 'dataset_units/%s'"
                                       % (unit_name))
-                    self.field_units[unit_name] = "{} * {}".format(value, str(unit))
+                    if value == 1.0:
+                        self.field_units[unit_name] = str(unit)
+                    else:
+                        self.field_units[unit_name] = "{} * {}".format(value, str(unit))
         else:
             setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
             setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
