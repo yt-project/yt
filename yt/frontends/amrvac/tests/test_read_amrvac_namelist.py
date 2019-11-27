@@ -1,10 +1,12 @@
+from os import path
 from copy import deepcopy
 from yt.testing import requires_module
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.frontends.amrvac import read_amrvac_namelist
 
-blast_wave_parfile = "sample_parfiles/bw_3d.par"
-modifier_parfile = "sample_parfiles/tvdlf_scheme.par"
+test_dir = path.dirname(path.abspath(__file__))
+blast_wave_parfile = path.join(test_dir, "sample_parfiles/bw_3d.par")
+modifier_parfile = path.join(test_dir, "sample_parfiles/tvdlf_scheme.par")
 
 @requires_module("f90nml")
 def test_read_one_file():
