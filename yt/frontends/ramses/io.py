@@ -228,7 +228,7 @@ def _read_part_file_descriptor(fname):
         ('family', 'particle_family'),
         ('tag', 'particle_tag')
     ]
-    # Convert in dictionary
+    # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
     with open(fname, 'r') as f:
@@ -278,7 +278,14 @@ def _read_fluid_file_descriptor(fname):
         ('pressure', 'Pressure'),
         ('metallicity', 'Metallicity'),
     ]
-    # Convert in dictionary
+
+    # Add mapping for magnetic fields
+    mapping += [(key, key) for key in 
+                ('B_{0}_{1}'.format(dim,side) for side in ['left','right'] 
+                 for dim in ['x','y','z'])]  
+
+
+    # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
     with open(fname, 'r') as f:
