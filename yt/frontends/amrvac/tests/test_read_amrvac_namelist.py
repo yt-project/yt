@@ -29,8 +29,9 @@ def test_accumulate_basename():
     name1 = namelist_tot1["filelist"].pop("base_filename")
     name2 = namelist_tot2["filelist"].pop("base_filename")
 
-    assert name1 != name2
     assert name1 == namelist_base["filelist"]["base_filename"] + namelist_update["filelist"]["base_filename"]
+    assert name2 == namelist_update["filelist"]["base_filename"]
+    assert name1 != name2
 
     # test equality for the rest of the namelist
     assert namelist_tot1 == namelist_tot2
