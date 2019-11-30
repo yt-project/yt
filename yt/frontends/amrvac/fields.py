@@ -15,6 +15,7 @@ from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.units import dimensions
+from yt import mylog
 
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
@@ -69,3 +70,43 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
 
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
+
+
+        def _kinetic_energy_density(field, data):
+            # devnote : have a look at issue 1301
+            return 0.5 * data["gas", "density"] * data["gas", "velocity_amplitude"]**2
+
+        self.add_field(("gas", "kinetic_energy_density"), function=_kinetic_energy_density,
+                       ...)
+
+
+        def _thermal_pressure(field, data):
+            gamma = data.ds.gamma
+            namelist = data.ds.namelist
+            if namelist.get(["hd_list"], {}).get("hd_ernergy", True):
+                pth = (gamma - 1) * data["gas", "energy_density"] - data["gas", "kinetic_energy_density"]
+                pth *= unit_factor # no idea what this should be :(
+            else:
+                mylog.warning("thermal_pressure field is assumed polytropic when hd_energy = False." \
+                              "If your simulation used usr_set_pthermal you should redefine this field.")
+                hd_adiab = namelist.get("hd_list", {}).get("hd_adiab", 1.)
+                #entropy_unit = ... # todo: writeme
+                pth = hd_adiab * entropy_unit * data["gas", "density"]**gamma
+            return pth
+
+        self.add_field(("gas", "thermal_pressure"), function=_thermal_pressure,
+                       ...)
+
+
+        def _sound_speed(field, data):
+            return np.sqrt(data.ds.gamma * data["thermal_pressure"] / data["gas", "density"])
+
+        self.add_field(("gas", "sound_speed"), function=_sound_speed,
+                       ...)
+
+
+        def _mach(field, data):
+            return data["gas", "velocity_magnitude"] / data["sound_speed"]
+
+        self.add_field(("gas", "mach"), function=_mach,
+                       ...)
