@@ -10,7 +10,7 @@ modifier_parfile = path.join(test_dir, "sample_parfiles/tvdlf_scheme.par")
 
 @requires_module("f90nml")
 def test_read_one_file():
-    """when provided a single file, the fonction should merely act as a wrapper for f90nml.read()"""
+    """when provided a single file, the function should merely act as a wrapper for f90nml.read()"""
     namelist1 = read_amrvac_namelist(blast_wave_parfile)
     namelist2 = f90nml.read(blast_wave_parfile)
     assert namelist1 == namelist2
