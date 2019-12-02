@@ -864,8 +864,10 @@ class PWViewerMPL(PlotWindow):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
-
-            if self._axes_unit_names is None:
+            if self.ds.unit_system.name.startswith("us"):
+                # this should happen only if the dataset was initialized with argument unit_system="code"
+                (unit_x, unit_y) = ('code_length', 'code_length')
+            elif self._axes_unit_names is None:
                 unit = self.ds.get_smallest_appropriate_unit(
                     self.xlim[1] - self.xlim[0])
                 (unit_x, unit_y) = (unit, unit)
@@ -2064,6 +2066,10 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
         axis = "z"
     elif ds.geometry == "cylindrical":
         axis = "theta"
+    elif ds.geometry == "spherical":
+        axis = "phi"
+    else:
+        raise NotImplementedError("plot_2d does not yet support datasets with {} geometries".format(ds.geometry))
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument
     if not isinstance(center, string_types) and obj_length(center) == 2:

@@ -53,7 +53,7 @@ TestOwlsSubfind:
     owls_subfind_answers_000.yaml
 
 TestOpenPMD:
-   open_pmd_answers_000.yaml 
+   open_pmd_answers_000.yaml
 
 TestGadgetFOF:
     gadget_fof_answers_000.yaml

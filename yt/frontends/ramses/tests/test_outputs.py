@@ -52,7 +52,7 @@ class TestRamses(fw.AnswerTest):
             )
         self.hashes.update({'pixelized_projection_values' : ppv_hd})
         fv_hd = self.field_values_test(ds_output_00080, f, d)
-        self.hashes.update({'field_values' : fv_hd}) 
+        self.hashes.update({'field_values' : fv_hd})
         dobj = utils.create_obj(ds_output_00080, d)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
@@ -328,7 +328,7 @@ class TestRamses(fw.AnswerTest):
         assert P1['nvar'] == 10
         assert len(fields_1) == P1['nvar']
         # Now load another dataset
-        ds2 = yt.load(output_00080) 
+        ds2 = yt.load(output_00080)
         ds2.index
         P2 = HydroFieldFileHandler.parameters
         fields_2 = set(DETECTED_FIELDS[ds2.unique_identifier]['ramses'])

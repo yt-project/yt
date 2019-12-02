@@ -23,6 +23,7 @@ import numpy as np
 import pytest
 
 from yt.testing import \
+    requires_file, \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
     assert_array_almost_equal, assert_raises, assert_fname
 import yt.utilities.answer_testing.framework as fw
@@ -130,10 +131,10 @@ class TestPlotWindowAnswer(fw.AnswerTest):
         ds = utils.data_dir_load(WT)
         ax = 'z'
         pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name, attr_args)
-        self.hashes.update({'plot_window_attribute' : pw_hd}) 
+        self.hashes.update({'plot_window_attribute' : pw_hd})
         pw_hd = self.plot_window_attribute_test(ds, plot_field, ax, attr_name,
             attr_args, callback_id=callback[0], callback_runners=callback[1])
-        self.hashes.update({'plot_window_attribute_with_callback' : pw_hd}) 
+        self.hashes.update({'plot_window_attribute_with_callback' : pw_hd})
 
 class TestHideAxesColorbar(unittest.TestCase):
 
@@ -223,7 +224,7 @@ class TestSetWidth(unittest.TestCase):
 
 
 class TestPlotWindowSave(unittest.TestCase):
-        
+
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
         self.curdir = os.getcwd()
@@ -452,8 +453,10 @@ def test_set_unit():
     assert str(slc.frb['gas', 'temperature'].units) == 'keV'
 
 WD = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
+blast_wave = "amrvac/bw_2d0000.dat"
 
-@utils.requires_ds(WD)
+@requires_file(WD)
+@requires_file(blast_wave)
 def test_plot_2d():
     # Cartesian
     ds = fake_random_ds((32,32,1), fields=('temperature',), units=('K',))
@@ -469,6 +472,12 @@ def test_plot_2d():
     ds = utils.data_dir_load(WD)
     slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
     slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
+    assert_array_equal(slc.frb['density'], slc2.frb['density'])
+
+    # Spherical
+    ds = data_dir_load(blast_wave)
+    slc = SlicePlot(ds, "phi", ["density"], width=(1, "unitary"))
+    slc2 = plot_2d(ds, "density", width=(1, "unitary"))
     assert_array_equal(slc.frb['density'], slc2.frb['density'])
 
 def test_symlog_colorbar():
