@@ -35,6 +35,11 @@ from yt.utilities.physical_constants import \
 from .fields import AMRVACFieldInfo
 from .datfile_utils import get_header, get_tree_info
 
+ALLOWED_UNIT_COMBINATIONS = [{'numberdensity_unit', 'temperature_unit', 'length_unit'},
+                             {'mass_unit', 'temperature_unit', 'length_unit'},
+                             {'mass_unit', 'time_unit', 'length_unit'},
+                             {'numberdensity_unit', 'velocity_unit', 'length_unit'},
+                             {'mass_unit', 'velocity_unit', 'length_unit'}]
 
 
 class AMRVACGrid(AMRGridPatch):
@@ -269,6 +274,8 @@ class AMRVACDataset(Dataset):
         else:
             # other case: numberdensity is supplied. Fall back to one (default) if no overrides supplied
             numberdensity_override = self.units_override.get('numberdensity_unit', (1, 'cm**-3'))
+            if 'numberdensity_unit' in self.units_override: # print similar warning as yt when overriding numberdensity
+                mylog.info("Overriding numberdensity_unit: %g %s.", *numberdensity_override)
             numberdensity_unit = self.quan(*numberdensity_override)  # numberdensity is never set as attribute
             density_unit = (1.0 + 4.0 * He_abundance) * mp_cgs * numberdensity_unit
             mass_unit = density_unit * length_unit**3
@@ -319,7 +326,7 @@ class AMRVACDataset(Dataset):
         # YT supports overriding other normalisations, this method ensures consistency between
         # supplied 'units_override' items and those used by AMRVAC.
 
-        # AMRVAC's normlisations/units have 3 degrees of freedom.
+        # AMRVAC's normalisations/units have 3 degrees of freedom.
         # Moreover, if temperature unit is specified then velocity unit will be calculated
         # accordingly, and vice-versa.
         # Currently we replicate this by allowing a finite set of combinations in units_override
@@ -334,15 +341,10 @@ class AMRVACDataset(Dataset):
         # temperature and velocity cannot both be specified
         if 'temperature_unit' in overrides and 'velocity_unit' in overrides:
             raise ValueError('Either temperature or velocity is allowed in units_override, not both.')
-
-        allowed_combinations = [{'numberdensity_unit', 'temperature_unit', 'length_unit'},
-                                {'mass_unit', 'temperature_unit', 'length_unit'},
-                                {'mass_unit', 'time_unit', 'length_unit'},
-                                {'numberdensity_unit', 'velocity_unit', 'length_unit'},
-                                {'mass_unit', 'velocity_unit', 'length_unit'}]
-        for allowed_combo in allowed_combinations:
+        # check if provided overrides are allowed
+        for allowed_combo in ALLOWED_UNIT_COMBINATIONS:
             if overrides.issubset(allowed_combo):
                 break
         else:
             raise ValueError('Combination {} passed to units_override is not consistent with AMRVAC. \n'
-                             'Allowed combinations are {}'.format(overrides, allowed_combinations))
+                             'Allowed combinations are {}'.format(overrides, ALLOWED_UNIT_COMBINATIONS))
