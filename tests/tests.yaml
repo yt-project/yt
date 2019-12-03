@@ -1,6 +1,9 @@
 # List of answer test classes that use the hashing fixture and the file those
 # answers are saved to
 
+TestAMRVac:
+    amrvac_answers_000.yaml
+
 TestArtIo:
     artio_answers_000.yaml
 
