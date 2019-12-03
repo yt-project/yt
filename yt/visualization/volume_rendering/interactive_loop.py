@@ -247,6 +247,8 @@ class RenderingContext(object):
     def __call__(self, scene, camera, callbacks):
         while not glfw.WindowShouldClose(self.window) or self.should_quit:
             callbacks(self.window)
+            scene.input_captured_mouse = False
+            scene.input_captured_keyboard = False
             if callbacks.draw or self.draw:
                 camera.compute_matrices()
                 scene.camera = camera

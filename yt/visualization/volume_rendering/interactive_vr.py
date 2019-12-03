@@ -468,10 +468,13 @@ class SimpleGui(SceneAnnotation):
         io = self.context.get_io()
         io.fonts.add_font_default()
         io.display_size = GetWindowSize(self.window)
+        return io
 
     def run_program(self, scene):
         io = self.io
         self.impl.process_inputs()
+        scene.input_captured_mouse = io.want_capture_mouse
+        scene.input_captured_keyboard = io.want_capture_keyboard
         self.context.new_frame()
         if self.context.begin_main_menu_bar():
             if self.context.begin_menu("File", True):
@@ -923,6 +926,8 @@ class SceneGraph(traitlets.HasTraits):
     camera = traitlets.Instance(IDVCamera)
     ds = traitlets.Instance(Dataset)
     fb = traitlets.Instance(Framebuffer, allow_none = True)
+    input_captured_mouse = traitlets.Bool(False)
+    input_captured_keyboard = traitlets.Bool(False)
 
     def add_volume(self, data_source, field_name, no_ghost = False):
         self.data_objects.append(BlockCollection(

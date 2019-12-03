@@ -61,6 +61,7 @@ class EventCollection(object):
         self.current_colormap = 0
 
     def key_call(self, window, key, scancode, action, mods):
+        if self.scene.input_captured_keyboard: return
         draw = False
         event = GLFWEvent(window, key, scancode, action, mods, None, None)
         for f in self.key_callbacks[key, action, mods]:
@@ -68,6 +69,7 @@ class EventCollection(object):
         self.draw = self.draw or draw
 
     def mouse_call(self, window, key, action, mods):
+        if self.scene.input_captured_mouse: return
         event = GLFWEvent(window, key, None, action, mods, None, None)
         draw = False
         for f in self.mouse_callbacks[key, action, mods]:
