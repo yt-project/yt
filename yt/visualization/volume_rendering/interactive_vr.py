@@ -60,15 +60,6 @@ from .input_events import \
     EventCollection
 from yt.data_objects.api import Dataset
 
-try:
-    from imgui.integrations.cyglfw3 import Cyglfw3Renderer
-    from cyglfw3.glfw3 import Window as Cyglfw3Window
-    from cyglfw3.glfw3 import GetCurrentContext
-    from cyglfw3 import GetWindowSize
-    import imgui
-except ImportError:
-    imgui = Cyglfw3Window = Cyglfw3Renderer = None
-
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
        [ 0.,  0.,  1.,  1.],
@@ -439,57 +430,6 @@ class SceneComponent(traitlets.HasTraits):
 
 class SceneAnnotation(SceneComponent):
     pass
-
-class SimpleGui(SceneAnnotation):
-    priority = 100
-
-    window = traitlets.Instance(Cyglfw3Window)
-    impl = traitlets.Instance(Cyglfw3Renderer)
-    context = traitlets.Any()
-    io = traitlets.Any()
-
-    @traitlets.default("window")
-    def _default_window(self):
-        _ = self.context
-        return GetCurrentContext()
-
-    @traitlets.default("impl")
-    def _default_impl(self):
-        _ = self.context
-        return Cyglfw3Renderer(self.window)
-
-    @traitlets.default("context")
-    def _default_context(self):
-        imgui.create_context()
-        return imgui
-
-    @traitlets.default("io")
-    def _default_io(self):
-        io = self.context.get_io()
-        io.fonts.add_font_default()
-        io.display_size = GetWindowSize(self.window)
-        return io
-
-    def run_program(self, scene):
-        io = self.io
-        self.impl.process_inputs()
-        scene.input_captured_mouse = io.want_capture_mouse
-        scene.input_captured_keyboard = io.want_capture_keyboard
-        self.context.new_frame()
-        if self.context.begin_main_menu_bar():
-            if self.context.begin_menu("File", True):
-                clicked_quit, selected_quit = self.context.menu_item(
-                    "Quit", "Cmd+Q", False, True
-                )
-                self.context.end_menu()
-        self.context.end_main_menu_bar()
-        self.context.show_test_window()
-        self.context.begin("Custom window", True)
-        self.context.text("Bar")
-        self.context.text_colored("Eggs", 0.2, 1.0, 0.0)
-        self.context.end()
-        self.context.render()
-        self.impl.render(self.context.get_draw_data())
 
 # This is drawn in part from
 #  https://learnopengl.com/#!In-Practice/Text-Rendering
@@ -947,12 +887,6 @@ class SceneGraph(traitlets.HasTraits):
         self.annotations.append(TextAnnotation(**kwargs))
         return self.annotations[-1]
 
-    def add_gui(self, **kwargs):
-        if imgui is None:
-            print("Unable to add GUI as pyimgui is not installed.")
-            return
-        self.annotations.append(SimpleGui())
-
     def add_box(self, left_edge, right_edge):
         data = BoxData(left_edge = left_edge, right_edge = right_edge)
         self.data_objects.append(data)
@@ -1020,7 +954,7 @@ class SceneGraph(traitlets.HasTraits):
         scene = SceneGraph(camera = c)
         scene.add_volume(data_source, field, no_ghost = no_ghost)
         if not interactive:
-            return scene, c
+            return render_context, scene, c
 
         local_ns = {'scene': scene, 'camera': c, 'rc': render_context}
         shell = render_context.start_shell(scene, c, kwargs = dict())

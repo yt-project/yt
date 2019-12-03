@@ -22,6 +22,10 @@ import OpenGL.GL as GL
 from .input_events import EventCollection, MouseRotation, JoystickAction
 from .glfw_inputhook import InputHookGLFW
 from ..image_writer import write_bitmap
+try:
+    from .simple_gui import SimpleGUI
+except ImportError:
+    pass
 
 from yt import write_bitmap
 
@@ -129,6 +133,7 @@ class RenderingContext(object):
     should_quit = False
     image_widget = None
     draw = False
+    gui = None
     def __init__(self, width=1024, height=1024, title="vol_render",
                  always_on_top = False, decorated = True, position = None,
                  visible = True):
@@ -228,7 +233,7 @@ class RenderingContext(object):
         callbacks.draw = True
         return callbacks
 
-    def start_shell(self, scene, camera, **kwargs): 
+    def start_shell(self, scene, camera, **kwargs):
         from IPython.terminal.pt_inputhooks import register
         from IPython.terminal.embed import InteractiveShellEmbed
         callbacks = self.setup_loop(scene, camera)
@@ -244,21 +249,49 @@ class RenderingContext(object):
         for i in self(scene, camera, callbacks):
             pass
 
+    def add_gui(self):
+        # This then sets them up, but we need to append onto them
+        glfw.SetInputMode(self.window, glfw.STICKY_MOUSE_BUTTONS, True)
+        self.gui = SimpleGUI(self.window)
+        self.gui.setup_renderer()
+
+    def _call_gui(self, scene, camera, callbacks):
+        self.gui.respond_to_inputs(callbacks)
+        self.gui.init_frame()
+        callbacks(self.window)
+        if callbacks.draw or self.draw or self.gui.draw:
+            camera.compute_matrices()
+            scene.camera = camera
+            scene.render()
+            self.gui.run(scene, callbacks)
+            self.gui.finalize_frame()
+            glfw.SwapBuffers(self.window)
+        else:
+            self.gui.finalize_frame()
+        callbacks.draw = self.draw = self.gui.draw = False
+        if self.image_widget is not None:
+            self.image_widget.value = write_bitmap(
+                    scene.image[:,:,:3], None)
+
+    def _call_nogui(self, scene, camera, callbacks):
+        callbacks(self.window)
+        if callbacks.draw or self.draw:
+            camera.compute_matrices()
+            scene.camera = camera
+            scene.render()
+            glfw.SwapBuffers(self.window)
+            callbacks.draw = self.draw = False
+            if self.image_widget is not None:
+                self.image_widget.value = write_bitmap(
+                        scene.image[:,:,:3], None)
+        glfw.PollEvents()
+
     def __call__(self, scene, camera, callbacks):
         while not glfw.WindowShouldClose(self.window) or self.should_quit:
-            callbacks(self.window)
-            scene.input_captured_mouse = False
-            scene.input_captured_keyboard = False
-            if callbacks.draw or self.draw:
-                camera.compute_matrices()
-                scene.camera = camera
-                scene.render()
-                glfw.SwapBuffers(self.window)
-                callbacks.draw = self.draw = False
-                if self.image_widget is not None:
-                    self.image_widget.value = write_bitmap(
-                            scene.image[:,:,:3], None)
-            glfw.PollEvents()
+            # Put this in the loop so we can change it during the run
+            if self.gui:
+                self._call_gui(scene, camera, callbacks)
+            else:
+                self._call_nogui(scene, camera, callbacks)
             yield self
         glfw.Terminate()
-
