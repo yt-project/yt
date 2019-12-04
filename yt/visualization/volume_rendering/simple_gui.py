@@ -70,7 +70,7 @@ class SimpleGUI:
             cyglfw3.SetMouseButtonCallback(self.window, _mouse_input(callbacks))
             cyglfw3.SetCharCallback(self.window, self.renderer.char_callback)
             cyglfw3.SetScrollCallback(self.window, self.renderer.scroll_callback)
-            cyglfw3.SetCursorPosCallback(self.window, self.renderer.cursor_callback)
+            cyglfw3.SetCursorPosCallback(self.window, self.renderer.mouse_callback)
             self._initialized = True
 
     def process_keyboard_inputs(self):
