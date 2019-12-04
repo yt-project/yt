@@ -38,9 +38,11 @@ def array_to_hash(d):
             continue
         if isinstance(v, dict) or isinstance(v, OrderedDict):
             array_to_hash(v)
-        # elif not isinstance(v, str):
         else:
             d[k] = generate_hash(v)
+            if not isinstance(k, str):
+                d.update({k.__repr__() : d[k]})
+                del d[k]
     return d
 
 
