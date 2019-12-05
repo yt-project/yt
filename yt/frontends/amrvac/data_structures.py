@@ -34,6 +34,7 @@ from yt.utilities.physical_constants import \
 
 from .fields import AMRVACFieldInfo
 from .datfile_utils import get_header, get_tree_info
+from . import read_amrvac_namelist
 
 ALLOWED_UNIT_COMBINATIONS = [{'numberdensity_unit', 'temperature_unit', 'length_unit'},
                              {'mass_unit', 'temperature_unit', 'length_unit'},
@@ -135,11 +136,26 @@ class AMRVACDataset(Dataset):
 
     def __init__(self, filename, dataset_type='amrvac',
                 units_override=None, unit_system="cgs",
-                geometry_override=None):
-        # note: geometry_override is specific to this frontend
+                geometry_override=None,
+                parfiles=None):
+        # note: geometry_override and parfiles are specific to this frontend
+
         self._geometry_override = geometry_override
         super(AMRVACDataset, self).__init__(filename, dataset_type,
                                             units_override=units_override, unit_system=unit_system)
+
+        self._parfiles = parfiles
+        if parfiles is not None:
+            self.namelist = read_amrvac_namelist(parfiles)
+            if "hd_list" in self.namelist:
+                namelist_gamma = self.namelist["hd_list"].get("hd_gamma", None)
+                if namelist_gamma is not None and not self.gamma == namelist_gamma:
+                    mylog.error("Inconsistent values in gamma: datfile {}, parfiles {}".format(self.gamma, namelist_gamma))
+
+        else:
+            # todo: add a warning here when having this parameter becomes useful
+            self.namelist = None
+
         self.fluid_types += ('amrvac',)
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
