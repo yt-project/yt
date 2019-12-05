@@ -12,7 +12,6 @@ Testsuite for ProfilePlot and PhasePlot
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
-from collections import OrderedDict
 import os
 import tempfile
 import shutil
@@ -29,7 +28,6 @@ from yt.testing import \
 from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 
 
 def image_from_plot(plot):

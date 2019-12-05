@@ -10,7 +10,6 @@ Tests for making line plots
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from collections import OrderedDict
 import os
 import tempfile
 
@@ -19,7 +18,6 @@ import pytest
 import yt
 from yt.testing import assert_equal, fake_random_ds
 import yt.utilities.answer_testing.framework as fw
-from yt.utilities.answer_testing import utils
 from yt.visualization.line_plot import _validate_point
 
 
