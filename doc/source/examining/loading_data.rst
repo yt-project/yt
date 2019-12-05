@@ -63,6 +63,19 @@ The user has two ways to control displayed units, through
   units_override = dict(length_unit=(100., 'au'), mass_unit=yt.units.mass_sun)
   ds = yt.load("output0010.dat", units_override=units_override, unit_system="mks")
 
+To ensure consistency with normalisations as used in AMRVAC we only allow
+overriding a maximum of three units. Allowed unit combinations at the moment are
+
+.. code-block:: none
+
+  {numberdensity_unit, temperature_unit, length_unit}
+  {mass_unit, temperature_unit, length_unit}
+  {mass_unit, time_unit, length_unit}
+  {numberdensity_unit, velocity_unit, length_unit}
+  {mass_unit, velocity_unit, length_unit}
+
+Appropriate errors are thrown for other combinations.
+
 
 .. rubric:: Partially supported and unsupported features
 
@@ -2385,7 +2398,7 @@ stars might look like this:
 
 For a cosmological simulation, this filter will distinguish between stars and
 dark matter particles.
-        
+
 .. _loading-sph-data:
 
 SPH Particle Data
