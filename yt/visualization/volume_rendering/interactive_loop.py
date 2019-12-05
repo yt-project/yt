@@ -185,7 +185,7 @@ class RenderingContext(object):
     def center_window(self):
         self.set_position(0.5, 0.5)
 
-    def setup_loop(self, scene, camera):
+    def setup_loop(self, scene, camera, catch_input = True):
         scene.camera = camera
         camera.compute_matrices()
         print("Starting rendering...")
@@ -226,11 +226,12 @@ class RenderingContext(object):
         joystick_callbacks = JoystickAction()
         #joystick_callbacks.calibrate()
         callbacks.add_render_callback(joystick_callbacks.check_axes)
-        glfw.SetFramebufferSizeCallback(self.window,
-            callbacks.framebuffer_call)
-        glfw.SetKeyCallback(self.window, callbacks.key_call)
-        glfw.SetMouseButtonCallback(self.window, callbacks.mouse_call)
         callbacks.draw = True
+        if catch_input:
+            glfw.SetFramebufferSizeCallback(self.window,
+                callbacks.framebuffer_call)
+            glfw.SetKeyCallback(self.window, callbacks.key_call)
+            glfw.SetMouseButtonCallback(self.window, callbacks.mouse_call)
         return callbacks
 
     def start_shell(self, scene, camera, **kwargs):
@@ -245,20 +246,39 @@ class RenderingContext(object):
         return shell
 
     def start_loop(self, scene, camera):
-        callbacks = self.setup_loop(scene, camera)
+        callbacks = self.setup_loop(scene, camera, catch_input = True)
         for i in self(scene, camera, callbacks):
             pass
 
-    def add_gui(self):
-        # This then sets them up, but we need to append onto them
-        glfw.SetInputMode(self.window, glfw.STICKY_MOUSE_BUTTONS, True)
-        self.gui = SimpleGUI(self.window)
-        self.gui.setup_renderer()
+    def start_gui_loop(self, scene, camera, max_fps = 100.0):
+        # Now we 
+        #glfw.SetInputMode(self.window, glfw.STICKY_MOUSE_BUTTONS, True)
+        callbacks = self.setup_loop(scene, camera, catch_input = False)
+        self.gui = SimpleGUI(self.window, callbacks)
+        for i in self(scene, camera, callbacks):
+            glfw.WaitEventsTimeout(1.0/max_fps)
 
     def _call_gui(self, scene, camera, callbacks):
-        self.gui.respond_to_inputs(callbacks)
+        # This is where we do all our rendering.  Essentially, we need to
+        # figure out if we should re-render.  There are a few things that make
+        # this tricky.  The first is that we only want to re-render if we get
+        # any type of input that changes the state.  This will include any
+        # keyboard callback that interacts with the status of the system --
+        # which could belong to imgui as well as to our callbacks and setup.
+        #
+        # Additionally, the flags for whether or not we want input in imgui are
+        # only called when new_frame is called.
+        # 
+        # The ordering here is such that when we get into this, we've had
+        # events already polled.  So any callbacks that happen have happened,
+        # and we can safely call new_frame.
+
+        callbacks(self.window) # This is just the "render" callbacks -- usually empty.
+
+        # Events have been polled, framebuffer too, so now we can start a new frame.
+
         self.gui.init_frame()
-        callbacks(self.window)
+
         if callbacks.draw or self.draw or self.gui.draw:
             camera.compute_matrices()
             scene.camera = camera
