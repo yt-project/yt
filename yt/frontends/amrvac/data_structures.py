@@ -187,6 +187,10 @@ class AMRVACDataset(Dataset):
             if namelist_gamma is not None and self.gamma != namelist_gamma:
                 mylog.error("Inconsistent values in gamma: datfile {}, parfiles {}".format(self.gamma, namelist_gamma))
 
+        if c_adiab is not None:
+            # this complicated unit is required for the adiabatic equation of state to make physical sense
+            c_adiab *= self.mass_unit**(1-self.gamma) * self.length_unit**(2+3*(self.gamma-1)) / self.time_unit**2
+
         self.namelist = namelist
         self._c_adiab = c_adiab
 

@@ -93,13 +93,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             return (data.ds.gamma - 1) * (data["gas", "energy_density"] - data["gas", "kinetic_energy_density"])
 
         def _adiabatic_thermal_pressure(field, data):
-            ds = data.ds
-            gamma = ds.gamma
-            c_adiab = ds._c_adiab
-            # this complicated unit is required for the equation of state to make physical sense
-            # todo : move this to init ?
-            c_adiab *= ds.mass_unit**(1-gamma) * ds.length_unit**(2+3*(gamma-1)) / ds.time_unit**2
-            return c_adiab * data["gas", "density"]**gamma
+            return data.ds._c_adiab * data["gas", "density"]**data.ds.gamma
 
         if ("amrvac", "e") in self.field_list:
             if ("amrvac", "b1") in self.field_list:
@@ -111,16 +105,16 @@ class AMRVACFieldInfo(FieldInfoContainer):
                                 dimensions=dimensions.density*dimensions.velocity**2,
                                 sampling_type="cell")
 
-        elif self.ds.c_adiab is not None:
-            mylog.warning("Assuming an adiabatic equation of state since no energy density was found." \
-                          "If your simulation used usr_set_pthermal you should redefine this field.")
+        elif self.ds._c_adiab is not None:
+            mylog.warning("Assuming an adiabatic equation of state since no energy density was found. " \
+                          "If your simulation used usr_set_pthermal you should redefine the thermal_pressure field.")
             self.add_field(("gas", "thermal_pressure"), function=_adiabatic_thermal_pressure,
                             units=us["density"]*us["velocity"]**2,
                             dimensions=dimensions.density*dimensions.velocity**2,
                             sampling_type="cell")
 
         else:
-            mylog.warning("Energy density field not found and parfiles were not passed:"\
+            mylog.warning("Energy density field not found and parfiles were not passed: " \
                           "can not setup adiabatic thermal_pressure")
 
         if ("gas", "thermal_pressure") in self.field_list:
