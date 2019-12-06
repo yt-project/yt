@@ -101,10 +101,14 @@ class AnswerTest():
                 )
         # proj.field_data is an instance of the YTFieldData class,
         # which is basically just an alias for dict, as it inherits
-        # from dict and does nothing else. As such, it can be converted
-        # to a bytestring the same way as the other dicts in these
-        # tests
-        return proj.field_data
+        # from dict and does nothing else. As such, it gets converted
+        # to a dict here to remove the python-specific anchor in the
+        # yaml answer file
+        fd_dict = {}
+        for k, v in proj.field_data.items():
+            fd_dict[k] = v
+        # return proj.field_data
+        return fd_dict
 
     def field_values_test(self, ds, field, obj_type=None, particle_type=False):
         # If needed build an instance of the dataset type
@@ -141,7 +145,10 @@ class AnswerTest():
         for f in proj.field_data:
             # Sometimes f will be a tuple.
             d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
-        return d
+        result = {}
+        for k, v in d.items():
+            result[k.__repr__()] = hashlib.md5(v).hexdigest()
+        return result 
 
     #-----
     # check_color
