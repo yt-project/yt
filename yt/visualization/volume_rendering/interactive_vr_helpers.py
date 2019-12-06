@@ -52,7 +52,7 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     '''
 
     try:
-        import cyglfw3  # NOQA
+        import pyglet  # NOQA
         import OpenGL.GL  # NOQA
     except ImportError:
         raise ImportError("This functionality requires the cyglfw3 and PyOpenGL "

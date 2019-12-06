@@ -16,7 +16,7 @@ Event loop for Interactive Data Visualization
 
 import os
 
-import cyglfw3 as glfw
+import pyglet
 import numpy as np
 import OpenGL.GL as GL
 from .input_events import EventCollection, MouseRotation, JoystickAction
@@ -105,7 +105,7 @@ class EGLRenderingContext(object):
         arr = scene._retrieve_framebuffer()
         write_bitmap(arr, "test.png")
 
-class RenderingContext(object):
+class RenderingContext(pyglet.window.Window):
     '''Basic rendering context for IDV using GLFW3, that handles the main window even loop
     
     Parameters
@@ -130,188 +130,61 @@ class RenderingContext(object):
         What position should the window be moved to? (Upper left)  If not
         specified, default to center.
     '''
-    should_quit = False
     image_widget = None
-    draw = False
-    gui = None
     def __init__(self, width=1024, height=1024, title="vol_render",
                  always_on_top = False, decorated = True, position = None,
-                 visible = True):
-        curdir = os.getcwd()
-        glfw.Init()
-        # glfw sometimes changes the current working directory, see
-        # https://github.com/adamlwgriffiths/cyglfw3/issues/21
-        os.chdir(curdir)
+                 visible = True, scene = None):
         self.offscreen = not visible
-        glfw.WindowHint(glfw.VISIBLE, visible)
-        glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
-        glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
-        glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, True)
-        glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
-        glfw.WindowHint(glfw.FLOATING, always_on_top)
-        glfw.WindowHint(glfw.DECORATED, decorated)
-        self.window = glfw.CreateWindow(width, height, title)
-        if not self.window:
-            glfw.Terminate()
-            exit()
+        config = pyglet.gl.Config(major_version = 3, minor_version = 3,
+                                  forward_compat = True, double_buffer = True)
+        super(RenderingContext, self).__init__(width, height,
+                                           config = config,
+                                           visible = visible,
+                                           caption = title)
         if position is None:
             self.center_window()
         else:
-            self.set_position(*position)
+            #self.set_position(*position)
+            self.set_location(*position)
 
-        glfw.MakeContextCurrent(self.window)
-        GL.glClearColor(0.0, 0.0, 0.0, 0.0)
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        glfw.SwapBuffers(self.window)
-        glfw.PollEvents()
+        self.scene = scene
+        self.label = pyglet.text.Label('Hello, world',
+                                  font_name='Times New Roman',
+                                  font_size=36,
+                                  x=self.width//2, y=self.height//2,
+                                  anchor_x='center', anchor_y='center')
+
+    def on_draw(self):
+        if self.scene is not None:
+            #self.scene.render()
+            if self.image_widget is not None:
+                self.image_widget.value = write_bitmap(
+                        self.scene.image[:,:,:3], None)
+        self.label.draw()
+        #self.flip()
 
     def set_position(self, xpos, ypos):
         if xpos < 0 or ypos < 0:
             raise RuntimeError
-        monitor = glfw.GetPrimaryMonitor()
-        video_mode = glfw.GetVideoMode(monitor)
-        win_width, win_height = glfw.GetWindowSize(self.window)
+        max_width = self.screen.width
+        max_height = self.screen.height
+        win_width, win_height = self.width, self.height
         if 0 < xpos < 1:
             # We're being fed relative coords.  We offset these for the window
             # center.
-            xpos = max(xpos * video_mode.width - 0.5 * win_width, 0)
+            xpos = max(xpos * max_width - 0.5 * win_width, 0)
         if 0 < ypos < 1:
             # We're being fed relative coords.  We offset these for the window
             # center.
-            ypos = max(ypos * video_mode.height - 0.5 * win_height, 0)
+            ypos = max(ypos * max_height - 0.5 * win_height, 0)
         print("Setting position", xpos, ypos)
-        glfw.SetWindowPos(self.window, xpos, ypos)
+        self.set_location(int(xpos), int(ypos))
 
     def center_window(self):
         self.set_position(0.5, 0.5)
 
-    def setup_loop(self, scene, camera, catch_input = True):
-        scene.camera = camera
-        camera.compute_matrices()
-        print("Starting rendering...")
-        callbacks = EventCollection(scene, camera)
-        # register key callbacks defined in 
-        # yt.visualization.volume_rendering.input_events
-        callbacks.add_key_callback("close_window", "escape")
-        callbacks.add_key_callback("zoomin", "w")
-        callbacks.add_key_callback("zoomout", "s")
-        callbacks.add_key_callback("closeup", "z")
-        callbacks.add_key_callback("cmap_cycle", "c")
-        callbacks.add_key_callback("reset", "r")
-        callbacks.add_key_callback("camera_orto", "o")
-        callbacks.add_key_callback("camera_proj", "p")
-        callbacks.add_key_callback("shader_max", "1")
-        callbacks.add_key_callback("shader_proj", "2")
-        callbacks.add_key_callback("shader_test", "3")
-        callbacks.add_key_callback("shader_lines", "4")
-        callbacks.add_key_callback("print_limits", "g")
-        callbacks.add_key_callback("print_help", "h")
-        callbacks.add_key_callback("debug_buffer", "d")
-        callbacks.add_key_callback("cmap_max_up", "right_bracket")
-        callbacks.add_key_callback("cmap_max_down", "left_bracket")
-        callbacks.add_key_callback("cmap_min_up", "semicolon")
-        callbacks.add_key_callback("cmap_min_down", "apostrophe")
-        callbacks.add_key_callback("cmap_autoscale", "a")
-        callbacks.add_key_callback("cmap_toggle_log", "l")
-        callbacks.add_key_callback("screenshot", "f")
-        callbacks.add_key_callback("prev_component", "minus")
-        callbacks.add_key_callback("next_component", "equal")
-        mouse_callbacks = MouseRotation()
-        callbacks.add_mouse_callback(mouse_callbacks.start_rotation,
-            glfw.MOUSE_BUTTON_LEFT)
-        callbacks.add_mouse_callback(mouse_callbacks.stop_rotation,
-            glfw.MOUSE_BUTTON_LEFT, action="release")
-        callbacks.add_framebuffer_callback("framebuffer_size")
-        callbacks.add_render_callback(mouse_callbacks.do_rotation)
-        joystick_callbacks = JoystickAction()
-        #joystick_callbacks.calibrate()
-        callbacks.add_render_callback(joystick_callbacks.check_axes)
-        callbacks.draw = True
-        if catch_input:
-            glfw.SetFramebufferSizeCallback(self.window,
-                callbacks.framebuffer_call)
-            glfw.SetKeyCallback(self.window, callbacks.key_call)
-            glfw.SetMouseButtonCallback(self.window, callbacks.mouse_call)
-        return callbacks
+    def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        print(x, y, dx, dy, buttons, modifiers)
 
-    def start_shell(self, scene, camera, **kwargs):
-        from IPython.terminal.pt_inputhooks import register
-        from IPython.terminal.embed import InteractiveShellEmbed
-        callbacks = self.setup_loop(scene, camera)
-        rl = self(scene, camera, callbacks)
-        hook = InputHookGLFW(rl)
-        register("glfw", hook)
-        shell = InteractiveShellEmbed(**kwargs)
-        shell.enable_gui('glfw')
-        return shell
-
-    def start_loop(self, scene, camera):
-        callbacks = self.setup_loop(scene, camera, catch_input = True)
-        for i in self(scene, camera, callbacks):
-            pass
-
-    def start_gui_loop(self, scene, camera, max_fps = 100.0):
-        # Now we 
-        #glfw.SetInputMode(self.window, glfw.STICKY_MOUSE_BUTTONS, True)
-        callbacks = self.setup_loop(scene, camera, catch_input = False)
-        self.gui = SimpleGUI(self.window, callbacks)
-        for i in self(scene, camera, callbacks):
-            glfw.WaitEventsTimeout(1.0/max_fps)
-
-    def _call_gui(self, scene, camera, callbacks):
-        # This is where we do all our rendering.  Essentially, we need to
-        # figure out if we should re-render.  There are a few things that make
-        # this tricky.  The first is that we only want to re-render if we get
-        # any type of input that changes the state.  This will include any
-        # keyboard callback that interacts with the status of the system --
-        # which could belong to imgui as well as to our callbacks and setup.
-        #
-        # Additionally, the flags for whether or not we want input in imgui are
-        # only called when new_frame is called.
-        # 
-        # The ordering here is such that when we get into this, we've had
-        # events already polled.  So any callbacks that happen have happened,
-        # and we can safely call new_frame.
-
-        callbacks(self.window) # This is just the "render" callbacks -- usually empty.
-
-        # Events have been polled, framebuffer too, so now we can start a new frame.
-
-        self.gui.init_frame()
-
-        if callbacks.draw or self.draw or self.gui.draw:
-            camera.compute_matrices()
-            scene.camera = camera
-            scene.render()
-            self.gui.run(scene, callbacks)
-            self.gui.finalize_frame()
-            glfw.SwapBuffers(self.window)
-        else:
-            self.gui.finalize_frame()
-        callbacks.draw = self.draw = self.gui.draw = False
-        if self.image_widget is not None:
-            self.image_widget.value = write_bitmap(
-                    scene.image[:,:,:3], None)
-
-    def _call_nogui(self, scene, camera, callbacks):
-        callbacks(self.window)
-        if callbacks.draw or self.draw:
-            camera.compute_matrices()
-            scene.camera = camera
-            scene.render()
-            glfw.SwapBuffers(self.window)
-            callbacks.draw = self.draw = False
-            if self.image_widget is not None:
-                self.image_widget.value = write_bitmap(
-                        scene.image[:,:,:3], None)
-        glfw.PollEvents()
-
-    def __call__(self, scene, camera, callbacks):
-        while not glfw.WindowShouldClose(self.window) or self.should_quit:
-            # Put this in the loop so we can change it during the run
-            if self.gui:
-                self._call_gui(scene, camera, callbacks)
-            else:
-                self._call_nogui(scene, camera, callbacks)
-            yield self
-        glfw.Terminate()
+    def on_resize(self, *args, **kwargs):
+        pass
