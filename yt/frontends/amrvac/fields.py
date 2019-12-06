@@ -118,8 +118,8 @@ class AMRVACFieldInfo(FieldInfoContainer):
                           "can not setup adiabatic thermal_pressure")
 
 
+        # sound speed depends on thermal pressure
         if ("gas", "thermal_pressure") in self.field_list:
-            # sound speed depends on thermal pressure
             def _sound_speed(field, data):
                 return sqrt(data.ds.gamma * data["thermal_pressure"] / data["gas", "density"])
 
