@@ -172,19 +172,23 @@ class AMRVACDataset(Dataset):
 
         self._parfiles = parfiles
 
-        self.c_adiab = None
+        namelist = None
         namelist_gamma = None
+        c_adiab = None
         if parfiles is not None:
-            self.namelist = read_amrvac_namelist(parfiles)
-            if "hd_list" in self.namelist:
-                self.c_adiab = self.namelist["hd_list"].get(["hd_adiab"])
-                namelist_gamma = self.namelist["hd_list"].get("hd_gamma")
-            elif "mhd_list" in self.namelist:
-                self.c_adiab = self.namelist["mhd_list"].get(["mhd_adiab"])
-                namelist_gamma = self.namelist["mhd_list"].get("mhd_gamma")
+            namelist = read_amrvac_namelist(parfiles)
+            if "hd_list" in namelist:
+                c_adiab = namelist["hd_list"].get(["hd_adiab"], 1.0)
+                namelist_gamma = namelist["hd_list"].get("hd_gamma")
+            elif "mhd_list" in namelist:
+                c_adiab = namelist["mhd_list"].get(["mhd_adiab"], 1.0)
+                namelist_gamma = namelist["mhd_list"].get("mhd_gamma")
 
             if namelist_gamma is not None and self.gamma != namelist_gamma:
                 mylog.error("Inconsistent values in gamma: datfile {}, parfiles {}".format(self.gamma, namelist_gamma))
+
+        self.namelist = namelist
+        self._c_adiab = c_adiab
 
         self.fluid_types += ('amrvac',)
         # refinement factor between a grid and its subgrid

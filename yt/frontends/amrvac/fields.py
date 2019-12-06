@@ -95,7 +95,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         def _adiabatic_thermal_pressure(field, data):
             ds = data.ds
             gamma = ds.gamma
-            c_adiab = ds.c_adiab
+            c_adiab = ds._c_adiab
             # this complicated unit is required for the equation of state to make physical sense
             # todo : move this to init ?
             c_adiab *= ds.mass_unit**(1-gamma) * ds.length_unit**(2+3*(gamma-1)) / ds.time_unit**2
