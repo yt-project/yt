@@ -11,6 +11,7 @@ AMRVAC-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from numpy import sqrt
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
@@ -66,7 +67,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
                             dimensions=dimensions.velocity,
                             sampling_type="cell")
             self.alias(("gas", "velocity_%s" % idir), ("gas", "velocity_%s" % alias),
-                        units=us"velocity"])
+                        units=us["velocity"])
             self.alias(("gas", "moment_%s" % alias), ("gas", "moment_%s" % idir),
                         units=us["density"]*us["velocity"])
 
@@ -103,7 +104,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
                 # this complicated unit is required for the equation of state to make physical sense
                 hd_adiab *= ds.mass_unit**(1-gamma) * ds.length_unit**(2+3*(gamma-1)) / ds.time_unit**2
-                pth = hd_adiab * entropy_unit * data["gas", "density"]**gamma
+                pth = hd_adiab * data["gas", "density"]**gamma
             return pth
 
         self.add_field(("gas", "thermal_pressure"), function=_thermal_pressure,
@@ -114,7 +115,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
         # sound speed depends on thermal pressure
         def _sound_speed(field, data):
-            return np.sqrt(data.ds.gamma * data["thermal_pressure"] / data["gas", "density"])
+            return sqrt(data.ds.gamma * data["thermal_pressure"] / data["gas", "density"])
 
         self.add_field(("gas", "sound_speed"), function=_sound_speed,
                         units=us["velocity"],
