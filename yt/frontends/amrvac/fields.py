@@ -117,6 +117,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             mylog.warning("Energy density field not found and parfiles were not passed: " \
                           "can not setup adiabatic thermal_pressure")
 
+
         if ("gas", "thermal_pressure") in self.field_list:
             # sound speed depends on thermal pressure
             def _sound_speed(field, data):
@@ -126,7 +127,6 @@ class AMRVACFieldInfo(FieldInfoContainer):
                             units=us["velocity"],
                             dimensions=dimensions.velocity,
                             sampling_type="cell")
-
 
             # mach number depends on sound speed
             def _mach(field, data):
