@@ -3,7 +3,7 @@ import shutil
 import sys
 import argparse
 from yt.config import CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE, YTConfigParser
-from yt.extern.six.moves import configparser
+import configparser
 
 CONFIG = YTConfigParser()
 CONFIG.read([CURRENT_CONFIG_FILE])
