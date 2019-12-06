@@ -71,7 +71,6 @@ class AMRVACFieldInfo(FieldInfoContainer):
             self.alias(("gas", "moment_%s" % alias), ("gas", "moment_%s" % idir),
                         units=us["density"]*us["velocity"])
 
-
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
 
 
@@ -96,7 +95,10 @@ class AMRVACFieldInfo(FieldInfoContainer):
         def _adiabatic_thermal_pressure(field, data):
             ds = data.ds
             gamma = ds.gamma
-            hd_adiab = data.ds.namelist.get("hd_list", {}).get("hd_adiab", 1.)
+            try:
+                hd_adiab = ds.namelist["mhd_list"]["hd_adiab"]
+            except KeyError:
+                hd_adiab = ds.namelist["hd_list"]["hd_adiab"]
             # this complicated unit is required for the equation of state to make physical sense
             hd_adiab *= ds.mass_unit**(1-gamma) * ds.length_unit**(2+3*(gamma-1)) / ds.time_unit**2
             return hd_adiab * data["gas", "density"]**gamma
@@ -106,30 +108,36 @@ class AMRVACFieldInfo(FieldInfoContainer):
                             units=us["density"]*us["velocity"]**2,
                             dimensions=dimensions.density*dimensions.velocity**2,
                             sampling_type="cell")
-        else:
-            mylog.warning("thermal_pressure field is assumed polytropic when hd_energy = False." \
+
+        elif self.data.namelist is not None:
+            mylog.warning("Assuming an adiabatic equation of state since no energy density was found." \
                           "If your simulation used usr_set_pthermal you should redefine this field.")
+
             self.add_field(("gas", "thermal_pressure"), function=_adiabatic_thermal_pressure,
                             units=us["density"]*us["velocity"]**2,
                             dimensions=dimensions.density*dimensions.velocity**2,
                             sampling_type="cell")
 
+        else:
+            mylog.warning("Energy density field not found and no parfiles were not passed:"\
+                          "can not setup adiabatic thermal_pressure")
 
-        # sound speed depends on thermal pressure
-        def _sound_speed(field, data):
-            return sqrt(data.ds.gamma * data["thermal_pressure"] / data["gas", "density"])
+        if ("gas", "thermal_pressure") in self.field_list:
+            # sound speed depends on thermal pressure
+            def _sound_speed(field, data):
+                return sqrt(data.ds.gamma * data["thermal_pressure"] / data["gas", "density"])
 
-        self.add_field(("gas", "sound_speed"), function=_sound_speed,
-                        units=us["velocity"],
-                        dimensions=dimensions.velocity,
-                        sampling_type="cell")
+            self.add_field(("gas", "sound_speed"), function=_sound_speed,
+                            units=us["velocity"],
+                            dimensions=dimensions.velocity,
+                            sampling_type="cell")
 
 
-        # mach number depends on sound speed
-        def _mach(field, data):
-            return data["gas", "velocity_magnitude"] / data["sound_speed"]
+            # mach number depends on sound speed
+            def _mach(field, data):
+                return data["gas", "velocity_magnitude"] / data["sound_speed"]
 
-        self.add_field(("gas", "mach"), function=_mach,
-                        units="auto",
-                        dimensions=dimensions.dimensionless,
-                        sampling_type="cell")
+            self.add_field(("gas", "mach"), function=_mach,
+                            units="auto",
+                            dimensions=dimensions.dimensionless,
+                            sampling_type="cell")
