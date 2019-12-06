@@ -10,11 +10,14 @@ from yt.fields.field_info_container import \
 metal_elements = ["He", "C", "N", "O", "Ne",
                   "Mg", "Si", "Fe"]
 
+
 class ArepoFieldInfo(GadgetFieldInfo):
     known_particle_fields = GadgetFieldInfo.known_particle_fields + \
                             (("smoothing_length", ("code_length", [], None)),
                              ("MagneticField",
                               ("code_magnetic", ["particle_magnetic_field"], None)),
+                             ("MagneticFieldDivergence",
+                              ("code_magnetic/code_length", ["magnetic_field_divergence"], None)),
                              ("GFM_Metallicity", ("", ["metallicity"], None)),
                              ("GFM_Metals_00", ("", ["H_fraction"], None)),
                              ("GFM_Metals_01", ("", ["He_fraction"], None)),
@@ -35,7 +38,16 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
     def setup_gas_particle_fields(self, ptype):
         super(ArepoFieldInfo, self).setup_gas_particle_fields(ptype)
-        if ("PartType0", "GFM_Metals_00") in self.field_list:
+
+        if (ptype, 'InternalEnergy') in self.field_list:
+            def _pressure(field, data):
+                return (data.ds.gamma-1.0)*data[ptype, "density"] * \
+                       data[ptype, "InternalEnergy"]
+            self.add_field((ptype, "pressure"), function=_pressure,
+                           sampling_type="particle", 
+                           units=self.ds.unit_system['pressure'])
+
+        if (ptype, "GFM_Metals_00") in self.field_list:
             self.nuclei_names = metal_elements
             self.species_names = ["H"]
             if (ptype, "NeutralHydrogenAbundance") in self.field_list:

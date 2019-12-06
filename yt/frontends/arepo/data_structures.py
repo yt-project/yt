@@ -29,6 +29,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         # is multiplied by the radius of the sphere with a volume equal
         # to that of the Voronoi cell to create smoothing lengths.
         self.smoothing_factor = smoothing_factor
+        self.gamma = 5./3.
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

@@ -1233,7 +1233,7 @@ cdef class DiskSelector(SelectorObject):
         h = d = 0
         for i in range(3):
             temp = self.periodic_difference(pos[i], self.center[i], i)
-            h += pos[i] * self.norm_vec[i]
+            h += temp * self.norm_vec[i]
             d += temp*temp
         r2 = (d - h*h)
         d = self.radius+radius

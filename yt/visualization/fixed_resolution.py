@@ -293,7 +293,8 @@ class FixedResolutionBuffer(object):
 
     def to_fits_data(self, fields=None, other_keys=None, length_unit=None,
                      **kwargs):
-        r"""Export a set of pixelized fields to a FITS file.
+        r"""Export the fields in this FixedResolutionBuffer instance 
+        to a FITSImageData instance.
 
         This will export a set of FITS images of either the fields specified
         or all the fields already in the object.

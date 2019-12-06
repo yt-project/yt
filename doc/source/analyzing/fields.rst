@@ -520,6 +520,44 @@ of how to create and use these fields, see :ref:`cookbook-complicated-derived-fi
 
     ``add_gradient_fields`` currently only supports Cartesian geometries!
 
+.. _relative_fields:
+
+Relative Vector Fields
+----------------------
+
+yt makes use of "relative" fields for certain vector fields, which are fields
+which have been defined relative to a particular origin in the space of that
+field. For example, relative particle positions can be specified relative to
+a center coordinate, and relative velocities can be specified relative to a
+bulk velocity. These origin points are specified by setting field parameters
+as detailed below (see :ref:`field_parameters` for more information).
+
+The relative fields which are currently supported for gas fields are:
+
+* ``("gas", "relative_velocity_{xyz}")``, defined by setting the 
+  ``"bulk_velocity"`` field parameter
+* ``("gas", "relative_magnetic_field_{xyz}")``, defined by setting the 
+  ``"bulk_magnetic_field"`` field parameter
+
+For particle fields, for a given particle type ``ptype``, the relative 
+fields which are supported are:
+
+* ``(ptype, "relative_particle_position")``, defined by setting the 
+  ``"center"`` field parameter
+* ``(ptype, "relative_particle_velocity")``, defined by setting the 
+  ``"bulk_velocity"`` field parameter
+* ``(ptype, "relative_particle_position_{xyz}")``, defined by setting the 
+  ``"center"`` field parameter
+* ``(ptype, "relative_particle_velocity_{xyz}")``, defined by setting the 
+  ``"bulk_velocity"`` field parameter
+
+These fields are in use when defining magnitude fields, line-of-sight fields,
+etc.. The ``"bulk_{}"`` field parameters are ``[0.0, 0.0, 0.0]`` by default,
+and the ``"center"`` field parameter depends on the data container in use. 
+
+There is currently no mechanism to create new relative fields, but one may be
+added at a later time. 
+
 .. _los_fields:
 
 Line of Sight Fields
@@ -533,16 +571,16 @@ this will be handled automatically:
 
 .. code-block:: python
 
-    prj = yt.ProjectionPlot(ds, "z", ("gas","velocity_los"), 
-                            weight_field=("gas","density"))
+    prj = yt.ProjectionPlot(ds, "z", ("gas", "velocity_los"), 
+                            weight_field=("gas", "density"))
 
 Which, because the axis is ``"z"``, will give you the same result if you had
 projected the `"velocity_z"`` field. This also works for off-axis projections:
 
 .. code-block:: python
 
-    prj = yt.OffAxisProjectionPlot(ds, [0.1, -0.2, 0.3], ("gas","velocity_los"), 
-                                   weight_field=("gas","density"))
+    prj = yt.OffAxisProjectionPlot(ds, [0.1, -0.2, 0.3], ("gas", "velocity_los"), 
+                                   weight_field=("gas", "density"))
 
 
 This shows that the projection axis can be along a principle axis of the domain 
@@ -555,10 +593,10 @@ you want to examine a line-of-sight vector within a 3-D data object, set the
     dd = ds.all_data()
     # Set to one of [0, 1, 2] for ["x", "y", "z"] axes
     dd.set_field_parameter("axis", 1)
-    print(dd["gas","magnetic_field_los"])
+    print(dd["gas", "magnetic_field_los"])
     # Set to a three-vector for an off-axis component
     dd.set_field_parameter("axis", [0.3, 0.4, -0.7])
-    print(dd["gas","velocity_los"])
+    print(dd["gas", "velocity_los"])
 
 .. warning::
 
@@ -567,11 +605,11 @@ you want to examine a line-of-sight vector within a 3-D data object, set the
     ``del dd["velocity_los"]`` and re-generate it. 
 
 At this time, this functionality is enabled for the velocity and magnetic vector
-fields, ``("gas","velocity_los")`` and ``("gas","magnetic_field_los")``. The 
+fields, ``("gas", "velocity_los")`` and ``("gas", "magnetic_field_los")``. The 
 following fields built into yt make use of these line-of-sight fields:
 
-* ``("gas","sz_kinetic")`` uses ``("gas","velocity_los")``
-* ``("gas","rotation_measure")`` uses ``("gas","magnetic_field_los")``
+* ``("gas", "sz_kinetic")`` uses ``("gas", "velocity_los")``
+* ``("gas", "rotation_measure")`` uses ``("gas", "magnetic_field_los")``
 
 
 General Particle Fields
