@@ -89,28 +89,30 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
 
         # thermal pressure depends kinetic energy and equation of state
-        def _thermal_pressure(field, data):
+        def _full_thermal_pressure(field, data):
+            # important note : energy density and pressure are actually expressed in the same unit
+            return (data.ds.gamma - 1) * (data["gas", "energy_density"] - data["gas", "kinetic_energy_density"])
+
+        def _adiabatic_thermal_pressure(field, data):
             ds = data.ds
             gamma = ds.gamma
-            namelist = ds.namelist
-            if namelist.get(["hd_list"], {}).get("hd_ernergy", True):
-                # important note : energy density and pressure are actually expressed in the same unit
-                pth = (gamma - 1) * (data["gas", "energy_density"] - data["gas", "kinetic_energy_density"])
-            else:
-                # todo: move this warning so it's only triggered once ?
-                mylog.warning("thermal_pressure field is assumed polytropic when hd_energy = False." \
-                              "If your simulation used usr_set_pthermal you should redefine this field.")
-                hd_adiab = namelist.get("hd_list", {}).get("hd_adiab", 1.)
+            hd_adiab = data.ds.namelist.get("hd_list", {}).get("hd_adiab", 1.)
+            # this complicated unit is required for the equation of state to make physical sense
+            hd_adiab *= ds.mass_unit**(1-gamma) * ds.length_unit**(2+3*(gamma-1)) / ds.time_unit**2
+            return hd_adiab * data["gas", "density"]**gamma
 
-                # this complicated unit is required for the equation of state to make physical sense
-                hd_adiab *= ds.mass_unit**(1-gamma) * ds.length_unit**(2+3*(gamma-1)) / ds.time_unit**2
-                pth = hd_adiab * data["gas", "density"]**gamma
-            return pth
-
-        self.add_field(("gas", "thermal_pressure"), function=_thermal_pressure,
-                        units=us["density"]*us["velocity"]**2,
-                        dimensions=dimensions.density*dimensions.velocity**2,
-                        sampling_type="cell")
+        if ("amrvac", "e") in self.field_list:
+            self.add_field(("gas", "thermal_pressure"), function=_full_thermal_pressure,
+                            units=us["density"]*us["velocity"]**2,
+                            dimensions=dimensions.density*dimensions.velocity**2,
+                            sampling_type="cell")
+        else:
+            mylog.warning("thermal_pressure field is assumed polytropic when hd_energy = False." \
+                          "If your simulation used usr_set_pthermal you should redefine this field.")
+            self.add_field(("gas", "thermal_pressure"), function=_adiabatic_thermal_pressure,
+                            units=us["density"]*us["velocity"]**2,
+                            dimensions=dimensions.density*dimensions.velocity**2,
+                            sampling_type="cell")
 
 
         # sound speed depends on thermal pressure
