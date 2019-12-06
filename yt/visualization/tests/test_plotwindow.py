@@ -475,7 +475,7 @@ def test_plot_2d():
     assert_array_equal(slc.frb['density'], slc2.frb['density'])
 
     # Spherical
-    ds = data_dir_load(blast_wave)
+    ds = utils.data_dir_load(blast_wave)
     slc = SlicePlot(ds, "phi", ["density"], width=(1, "unitary"))
     slc2 = plot_2d(ds, "density", width=(1, "unitary"))
     assert_array_equal(slc.frb['density'], slc2.frb['density'])

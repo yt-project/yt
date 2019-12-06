@@ -17,10 +17,8 @@ import numpy as np
 import pytest
 
 import yt
-from yt.testing import fake_amr_ds, fake_tetrahedral_ds, \
-    fake_hexahedral_ds, small_fake_hexahedral_ds
+from yt.testing import small_fake_hexahedral_ds
 import yt.utilities.answer_testing.framework as fw 
-from yt.utilities.answer_testing import utils
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 

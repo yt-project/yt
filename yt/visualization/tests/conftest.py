@@ -2,7 +2,8 @@ from collections import OrderedDict
 
 import pytest
 
-from yt.testing import fake_amr_ds, fake_random_ds
+from yt.testing import fake_amr_ds, fake_random_ds, \
+    fake_hexahedral_ds, fake_tetrahedral_ds
 from yt.visualization.geo_plot_utils import transform_list
 
 
