@@ -95,7 +95,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             namelist = ds.namelist
             if namelist.get(["hd_list"], {}).get("hd_ernergy", True):
                 # important note : energy density and pressure are actually expressed in the same unit
-                pth = (gamma - 1) * data["gas", "energy_density"] - data["gas", "kinetic_energy_density"]
+                pth = (gamma - 1) * (data["gas", "energy_density"] - data["gas", "kinetic_energy_density"])
             else:
                 # todo: move this warning so it's only triggered once ?
                 mylog.warning("thermal_pressure field is assumed polytropic when hd_energy = False." \
