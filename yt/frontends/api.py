@@ -2,6 +2,7 @@ import sys, types, os, glob, time, importlib
 
 _frontends = [
     'ahf',
+    'amrvac',
     'art',
     'arepo',
     'artio',

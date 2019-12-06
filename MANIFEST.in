@@ -12,3 +12,4 @@ prune doc/source/reference/api/generated
 prune doc/build
 recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
 prune yt/frontends/_skeleton
+recursive-include yt/frontends/amrvac *.par

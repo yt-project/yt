@@ -237,16 +237,18 @@ Open Issues
 If you're interested in participating in yt development, take a look at the
 `issue tracker on GitHub
 <https://github.com/yt-project/yt/issues>`_.
-Issues are marked with a milestone of "easy", "moderate", or "difficult"
-depending on the estimated level of difficulty for fixing the issue. While we
-try to triage the issue tracker regularly, it may be the case that issues marked
-"moderate" are actually easier than their milestone label indicates since that
-is the default value.
+You can search by labels, indicating estimated level of difficulty or category,
+to find issues that you would like to contribute to.  Good first issues are
+marked with a label of `new contributor friendly`.  While we try to triage the
+issue tracker regularly to assign appropriate labels to every issue, it may be
+the case that issues not marked as `new contributor friendly` are actually
+suitable for new contributors.
 
 Here are some predefined issue searches that might be useful:
 
-* Unresolved issues `marked "easy" <https://github.com/yt-project/yt/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20milestone%3Aeasy>`_.
-* `All unresolved issues <https://github.com/yt-project/yt/issues>`_
+* Unresolved issues `marked "new contributor friendly"
+  <https://github.com/yt-project/yt/labels/new%20contributor%20friendly>`_.
+* `All unresolved issues <https://github.com/yt-project/yt/issues>`_.
 
 Submitting Changes
 ------------------

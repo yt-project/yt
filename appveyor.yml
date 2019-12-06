@@ -31,7 +31,7 @@ install:
 
     # Install specified version of numpy and dependencies
     - "conda install --yes -c conda-forge numpy==%NUMPY_VERSION% scipy nose setuptools ipython
-    Cython sympy fastcache h5py matplotlib mock pandas cartopy conda-build unyt"
+    Cython sympy fastcache h5py matplotlib mock pandas cartopy conda-build unyt pyyaml"
     # install yt
     - "conda develop -b ."
 

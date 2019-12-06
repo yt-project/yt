@@ -179,7 +179,9 @@ class DatasetSeries(object):
             if isinstance(key.start, float):
                 return self.get_range(key.start, key.stop)
             # This will return a sliced up object!
-            return DatasetSeries(self._pre_outputs[key], self.parallel)
+            return DatasetSeries(self._pre_outputs[key],
+                                 parallel=self.parallel,
+                                 **self.kwargs)
         o = self._pre_outputs[key]
         if isinstance(o, str):
             o = self._load(o, **self.kwargs)

@@ -6,6 +6,92 @@ Loading Data
 This section contains information on how to load data into yt, as well as
 some important caveats about different data formats.
 
+.. _loading-amrvac-data
+
+AMRVAC Data
+-----------
+
+.. note:
+   This frontend is brand new and may be subject to rapid change in the
+   near future.
+
+To load data to yt, simply use
+
+.. code-block::
+
+  import yt
+  ds = yt.load("output0010.dat")
+
+
+.. rubric:: Dataset geometry & periodicity
+
+Starting from AMRVAC 2.2, and datfile format 5, a geometry flag
+(e.g. "Cartesian_2.5D", "Polar_2D", "Cylindrical_1.5D"...) was added
+to the datfile header.  yt will fall back to a cartesian mesh if the
+geometry flag is not found.  For older datfiles however it is possible
+to provide it externally with the ``override_geometry`` parameter.
+
+.. code-block:: python
+  # examples
+  ds = yt.load("output0010.dat", override_geometry="polar")
+  ds = yt.load("output0010.dat", override_geometry="cartesian")
+
+Note that ``override_geometry`` has priority over any ``geometry`` flag
+present in recent datfiles, which means it can be used to force ``r``
+VS ``theta`` 2D plots in polar geometries (for example), but this may
+produce unpredictable behaviour and comes with no guarantee.
+
+A ``ndim``-long ``periodic`` boolean array was also added to improve
+comptatibility with yt. See http://amrvac.org/md_doc_fileformat.html
+for details.
+
+
+.. rubric:: Unit System
+
+AMRVAC only supports dimensionless fields and as such, no unit system
+is ever attached to any given dataset.  yt however defines physical
+quantities and give them units. As is customary in yt, the default
+unit system is ``cgs``, e.g. lengths are read as "cm" unless specified
+otherwise.
+
+The user has two ways to control displayed units, through
+``unit_system`` (``"cgs"``, ``"mks"`` or ``"code"``) and
+``units_override``. Example:
+
+.. code-block:: python
+
+  units_override = dict(length_unit=(100., 'au'), mass_unit=yt.units.mass_sun)
+  ds = yt.load("output0010.dat", units_override=units_override, unit_system="mks")
+
+To ensure consistency with normalisations as used in AMRVAC we only allow
+overriding a maximum of three units. Allowed unit combinations at the moment are
+
+.. code-block:: none
+
+  {numberdensity_unit, temperature_unit, length_unit}
+  {mass_unit, temperature_unit, length_unit}
+  {mass_unit, time_unit, length_unit}
+  {numberdensity_unit, velocity_unit, length_unit}
+  {mass_unit, velocity_unit, length_unit}
+
+Appropriate errors are thrown for other combinations.
+
+
+.. rubric:: Partially supported and unsupported features
+
+* dust fields (e.g. ``rhod1``, ``md1``...), if present, will be detected
+  by yt but no unit is currently attached to them.
+* particle data: currently not supported (but might come later)
+* staggered grids (AMRVAC 2.2 and later): yt logs a warning if you load
+  staggered datasets, but the flag is currently ignored.
+* "stretched grids" as defined in AMRVAC have no correspondance in yt,
+  hence will never be supported.
+
+.. note
+   Ghost cells exist in .dat files but never read by yt.
+
+
+
 .. _loading-art-data:
 
 ART Data
@@ -2423,7 +2509,7 @@ stars might look like this:
 
 For a cosmological simulation, this filter will distinguish between stars and
 dark matter particles.
-        
+
 .. _loading-sph-data:
 
 SPH Particle Data
