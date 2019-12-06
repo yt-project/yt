@@ -96,18 +96,22 @@ class AMRVACFieldInfo(FieldInfoContainer):
             ds = data.ds
             gamma = ds.gamma
             try:
-                hd_adiab = ds.namelist["mhd_list"]["hd_adiab"]
+                c_adiab = ds.namelist["hd_list"]["hd_adiab"]
             except KeyError:
-                hd_adiab = ds.namelist["hd_list"]["hd_adiab"]
+                c_adiab = ds.namelist["mhd_list"]["hd_adiab"]
             # this complicated unit is required for the equation of state to make physical sense
-            hd_adiab *= ds.mass_unit**(1-gamma) * ds.length_unit**(2+3*(gamma-1)) / ds.time_unit**2
-            return hd_adiab * data["gas", "density"]**gamma
+            c_adiab *= ds.mass_unit**(1-gamma) * ds.length_unit**(2+3*(gamma-1)) / ds.time_unit**2
+            return c_adiab * data["gas", "density"]**gamma
 
         if ("amrvac", "e") in self.field_list:
-            self.add_field(("gas", "thermal_pressure"), function=_full_thermal_pressure,
-                            units=us["density"]*us["velocity"]**2,
-                            dimensions=dimensions.density*dimensions.velocity**2,
-                            sampling_type="cell")
+            if ("amrvac", "b1") in self.field_list:
+                #Not implemented yet
+                mylog.warning("Magnetic fields are not yet taken into account to setup thermal pressure !")
+            else:
+                self.add_field(("gas", "thermal_pressure"), function=_full_thermal_pressure,
+                                units=us["density"]*us["velocity"]**2,
+                                dimensions=dimensions.density*dimensions.velocity**2,
+                                sampling_type="cell")
 
         elif self.data.namelist is not None:
             mylog.warning("Assuming an adiabatic equation of state since no energy density was found." \
