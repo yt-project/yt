@@ -8,6 +8,7 @@ import hashlib
 import os
 
 import numpy as np
+import pytest
 import yaml
 
 from yt.config import ytcfg
@@ -82,7 +83,7 @@ def generate_hash(data):
 #============================================
 #               log_test_error
 #============================================
-def log_test_error(func_name, test_params, param, saved_hashes, e):
+def log_test_error(func_name, val, param, saved_hashes, e):
     """
     Logs the answer test error by saving the relevant information for
     both the saved and obtained tests.
@@ -99,7 +100,35 @@ def log_test_error(func_name, test_params, param, saved_hashes, e):
     --------
         pass
     """
-    pass
+    msg = "Error: {} in {} with value {} differs from saved value of {}".format(
+        param, func_name, val, saved_hashes[func_name][param])
+    pytest.fail(msg)
+
+
+#============================================
+#                 check_vals
+#============================================
+def check_vals(newVals, savedVals):
+    """
+    Doc string.
+
+    Parameters:
+    -----------
+        pass
+
+    Raises:
+    -------
+        pass
+
+    Returns:
+    --------
+        pass
+    """
+    for key, value in newVals.items():
+        if isinstance(value, dict):
+            check_vals(value, savedVals[key])
+        else:
+            assert value == savedVals[key]
 
 
 #============================================
@@ -137,12 +166,14 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
         # the same order in the file and the hashes dict. OrderedDicts are not used
         # because there's a bug in pyyaml with duplicate anchors. It's also harder
         # to read
-        for func_name, test_vals in hashes.items():
-            for test_param, val in test_vals.items():
-                try:
-                    assert val == saved_hashes[func_name][test_param]
-                except (AssertionError, KeyError) as e:
-                    log_test_error(func_name, test_vals, test_param, saved_hashes, e)
+        import pdb; pdb.set_trace()
+        check_vals(hashes, saved_hashes)
+        # for func_name, test_vals in hashes.items():
+        #     for test_param, val in test_vals.items():
+        #         try:
+        #             assert val == saved_hashes[func_name][test_param]
+        #         except (AssertionError, KeyError) as e:
+        #             log_test_error(func_name, val, test_param, saved_hashes, e)
 
 
 #============================================
