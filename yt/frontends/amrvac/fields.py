@@ -95,6 +95,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         def _adiabatic_thermal_pressure(field, data):
             return data.ds._c_adiab * data["gas", "density"]**data.ds.gamma
 
+        pressure_is_defined = False
         if ("amrvac", "e") in self.field_list:
             if ("amrvac", "b1") in self.field_list:
                 #Not implemented yet
@@ -104,6 +105,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
                                 units=us["density"]*us["velocity"]**2,
                                 dimensions=dimensions.density*dimensions.velocity**2,
                                 sampling_type="cell")
+                pressure_is_defined = True
 
         elif self.ds._c_adiab is not None:
             mylog.warning("Assuming an adiabatic equation of state since no energy density was found. " \
@@ -112,6 +114,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
                             units=us["density"]*us["velocity"]**2,
                             dimensions=dimensions.density*dimensions.velocity**2,
                             sampling_type="cell")
+            pressure_is_defined = True
 
         else:
             mylog.warning("Energy density field not found and parfiles were not passed: " \
@@ -119,7 +122,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
 
         # sound speed depends on thermal pressure
-        if ("gas", "thermal_pressure") in self.field_list:
+        if pressure_is_defined:
             def _sound_speed(field, data):
                 return sqrt(data.ds.gamma * data["thermal_pressure"] / data["gas", "density"])
 
