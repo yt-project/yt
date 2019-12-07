@@ -2,7 +2,7 @@ import numpy as np # NOQA
 import pytest
 
 import yt # NOQA
-from yt.testing import requires_file
+from yt.testing import assert_allclose_units, requires_file
 from yt.frontends.amrvac.api import AMRVACDataset, AMRVACGrid
 import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
@@ -181,5 +181,3 @@ def test_normalisations_vel_and_length():
                      temperature_unit=temperature_unit)
     with assert_raises(ValueError):
         data_dir_load(khi_cartesian_2D, kwargs={'units_override': overrides})
-
->>>>>>> master
