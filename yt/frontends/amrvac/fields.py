@@ -130,12 +130,3 @@ class AMRVACFieldInfo(FieldInfoContainer):
                             units=us["velocity"],
                             dimensions=dimensions.velocity,
                             sampling_type="cell")
-
-            # mach number depends on sound speed
-            def _mach(field, data):
-                return data["gas", "velocity_magnitude"] / data["sound_speed"]
-
-            self.add_field(("gas", "mach"), function=_mach,
-                            units="auto",
-                            dimensions=dimensions.dimensionless,
-                            sampling_type="cell")
