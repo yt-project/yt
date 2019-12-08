@@ -11,7 +11,7 @@ AMRVAC-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from numpy import sqrt
+from numpy import sqrt, zeros_like
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
@@ -90,7 +90,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
         # magnetic energy
         def _magnetic_energy_density(field, data):
-            emag = 0
+            emag = zeros_like(data["density"]) # todo: replace this with "zeros like b1"
             for idim in '123':
                 if not ('amrvac', 'b%s' % idim) in self.field_list:
                     break
