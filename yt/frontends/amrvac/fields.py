@@ -76,10 +76,11 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
         # fields with nested dependencies are defined thereafter by increasing level of complexity
 
-        # kinetic energy depends on velocities
+
+        # kinetic energy density depends on velocities
         def _kinetic_energy_density(field, data):
             # devnote : have a look at issue 1301
-            return 0.5 * data["gas", "density"] * data["gas", "velocity_amplitude"]**2
+            return 0.5 * data['gas', 'density'] * data['gas', 'velocity_magnitude']**2
 
         self.add_field(("gas", "kinetic_energy_density"), function=_kinetic_energy_density,
                         units=us["density"]*us["velocity"]**2,
@@ -87,41 +88,65 @@ class AMRVACFieldInfo(FieldInfoContainer):
                         sampling_type="cell")
 
 
-        # thermal pressure depends kinetic energy and equation of state
+        # magnetic energy
+        def _magnetic_energy_density(field, data):
+            emag = 0
+            for idim in '123':
+                if not ('amrvac', 'b%s' % idim) in self.field_list:
+                    break
+                emag += 0.5 * data['gas', 'magnetic_%s' % idim]**2
+            return emag
+
+        if ('amrvac', 'b1') in self.field_list:
+            self.add_field(('gas', 'magnetic_energy_density'), function=_magnetic_energy_density,
+                           units=us['density']*us['velocity']**2,
+                           dimensions=dimensions.density*dimensions.velocity**2,
+                           sampling_type='cell')
+
+
+        # Adding the thermal pressure field.
+        # In AMRVAC we have multiple physics possibilities:
+        # - if HD/MHD + energy equation, pressure is (gamma-1)*(e - ekin (- emag)) for (M)HD
+        # - if HD/MHD but solve_internal_e is true in parfile, pressure is (gamma-1)*e for both
+        # - if (m)hd_energy is false in parfile (isothermal), pressure is c_adiab * rho**gamma
         def _full_thermal_pressure(field, data):
             # important note : energy density and pressure are actually expressed in the same unit
-            return (data.ds.gamma - 1) * (data["gas", "energy_density"] - data["gas", "kinetic_energy_density"])
+            pthermal = (data.ds.gamma - 1) * (data['gas', 'energy_density'] - data['gas', 'kinetic_energy_density'])
+            if ('amrvac', 'b1') in self.field_list:
+                pthermal -= (data.ds.gamma - 1) * data['gas', 'magnetic_energy_density']
+            return pthermal
+
+        def _polytropic_thermal_pressure(field, data):
+            return (data.ds.gamma - 1) * data['gas', 'energy_density']
 
         def _adiabatic_thermal_pressure(field, data):
             return data.ds._c_adiab * data["gas", "density"]**data.ds.gamma
 
         pressure_is_defined = False
+        pressure_equation = None
         if ("amrvac", "e") in self.field_list:
-            if ("amrvac", "b1") in self.field_list:
-                #Not implemented yet
-                mylog.warning("Magnetic fields are not yet taken into account to setup thermal pressure !")
+            if self.ds.namelist and self.ds.namelist['solve_internal_e']:
+                pressure_equation = _polytropic_thermal_pressure
+                mylog.info('Using polytropic EoS for thermal pressure.')
             else:
-                self.add_field(("gas", "thermal_pressure"), function=_full_thermal_pressure,
-                                units=us["density"]*us["velocity"]**2,
-                                dimensions=dimensions.density*dimensions.velocity**2,
-                                sampling_type="cell")
-                pressure_is_defined = True
-
+                pressure_equation = _full_thermal_pressure
+                mylog.info('Using full (M)HD energy for thermal pressure.')
         elif self.ds._c_adiab is not None:
-            mylog.warning("Assuming an adiabatic equation of state since no energy density was found. " \
-                          "If your simulation used usr_set_pthermal you should redefine the thermal_pressure field.")
-            self.add_field(("gas", "thermal_pressure"), function=_adiabatic_thermal_pressure,
-                            units=us["density"]*us["velocity"]**2,
-                            dimensions=dimensions.density*dimensions.velocity**2,
-                            sampling_type="cell")
+            pressure_equation = _adiabatic_thermal_pressure
+            mylog.info('Using adiabatic EoS for thermal pressure (isothermal).')
+            mylog.warning('If you used usr_set_pthermal you should redefine the thermal_pressure field.')
+
+        if pressure_equation:
+            self.add_field(('gas', 'thermal_pressure'), function=pressure_equation,
+                           units=us['density']*us['velocity']**2,
+                           dimensions=dimensions.density*dimensions.velocity**2,
+                           sampling_type='cell')
             pressure_is_defined = True
-
         else:
-            mylog.warning("Energy density field not found and parfiles were not passed: " \
-                          "can not setup adiabatic thermal_pressure")
+            mylog.warning("e not found and no parfile passed, can not set thermal_pressure.")
 
 
-        # sound speed depends on thermal pressure
+        # fields that depend on thermal pressure
         if pressure_is_defined:
             def _sound_speed(field, data):
                 return sqrt(data.ds.gamma * data["thermal_pressure"] / data["gas", "density"])
@@ -130,3 +155,10 @@ class AMRVACFieldInfo(FieldInfoContainer):
                             units=us["velocity"],
                             dimensions=dimensions.velocity,
                             sampling_type="cell")
+
+            # temperature depends on thermal pressure through T = p/rho
+            def _temperature(field, data):
+                return data['thermal_pressure'] / data['density']
+
+            self.add_field(('gas', 'temperature'), function=_temperature,
+                           units=us['temperature'], dimensions=dimensions.temperature, sampling_type='cell')
