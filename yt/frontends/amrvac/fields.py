@@ -122,32 +122,26 @@ class AMRVACFieldInfo(FieldInfoContainer):
         def _adiabatic_thermal_pressure(field, data):
             return data.ds._c_adiab * data["gas", "density"]**data.ds.gamma
 
-        pressure_is_defined = False
-        pressure_equation = None
+        pressure_recipe = None
         if ("amrvac", "e") in self.field_list:
-            if self.ds.namelist and self.ds.namelist['solve_internal_e']:
-                pressure_equation = _polytropic_thermal_pressure
+            if self.ds._e_is_internal:
+                pressure_recipe = _polytropic_thermal_pressure
                 mylog.info('Using polytropic EoS for thermal pressure.')
             else:
-                pressure_equation = _full_thermal_pressure
+                pressure_recipe = _full_thermal_pressure
                 mylog.info('Using full (M)HD energy for thermal pressure.')
         elif self.ds._c_adiab is not None:
-            pressure_equation = _adiabatic_thermal_pressure
+            pressure_recipe = _adiabatic_thermal_pressure
             mylog.info('Using adiabatic EoS for thermal pressure (isothermal).')
             mylog.warning('If you used usr_set_pthermal you should redefine the thermal_pressure field.')
 
-        if pressure_equation:
+        if pressure_recipe is not None:
             self.add_field(('gas', 'thermal_pressure'), function=pressure_equation,
                            units=us['density']*us['velocity']**2,
                            dimensions=dimensions.density*dimensions.velocity**2,
                            sampling_type='cell')
-            pressure_is_defined = True
-        else:
-            mylog.warning("e not found and no parfile passed, can not set thermal_pressure.")
 
-
-        # fields that depend on thermal pressure
-        if pressure_is_defined:
+            # sound speed and temperature depend on thermal pressure
             def _sound_speed(field, data):
                 return sqrt(data.ds.gamma * data["thermal_pressure"] / data["gas", "density"])
 
@@ -156,9 +150,5 @@ class AMRVACFieldInfo(FieldInfoContainer):
                             dimensions=dimensions.velocity,
                             sampling_type="cell")
 
-            # temperature depends on thermal pressure through T = p/rho
-            def _temperature(field, data):
-                return data['thermal_pressure'] / data['density']
-
-            self.add_field(('gas', 'temperature'), function=_temperature,
-                           units=us['temperature'], dimensions=dimensions.temperature, sampling_type='cell')
+        else:
+            mylog.warning("e not found and no parfile passed, can not set thermal_pressure.")
