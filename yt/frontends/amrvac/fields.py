@@ -11,7 +11,7 @@ AMRVAC-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from numpy import sqrt, zeros_like
+import numpy as np
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
@@ -150,7 +150,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
             # sound speed and temperature depend on thermal pressure
             def _sound_speed(field, data):
-                return sqrt(data.ds.gamma * data["gas", "thermal_pressure"] / data["gas", "density"])
+                return np.sqrt(data.ds.gamma * data["gas", "thermal_pressure"] / data["gas", "density"])
 
             self.add_field(("gas", "sound_speed"), function=_sound_speed,
                             units=us["velocity"],
