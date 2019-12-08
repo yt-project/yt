@@ -77,7 +77,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         # fields with nested dependencies are defined thereafter by increasing level of complexity
 
 
-        # kinetic energy density depends on velocities
+        # kinetic pressure is given by 0.5 * rho * v**2
         def _kinetic_energy_density(field, data):
             # devnote : have a look at issue 1301
             return 0.5 * data['gas', 'density'] * data['gas', 'velocity_magnitude']**2
@@ -88,27 +88,19 @@ class AMRVACFieldInfo(FieldInfoContainer):
                         sampling_type="cell")
 
 
-        # magnetic energy density and pressure
+        # magnetic energy density
         if ('amrvac', 'b1') in self.field_list:
             def _magnetic_energy_density(field, data):
-                emag = zeros_like(data["density"]) # todo: replace this with "zeros like b1"
-                for idim in '123':
+                emag = 0.5 * data['gas', 'magnetic_1']**2
+                for idim in '23':
                     if not ('amrvac', 'b%s' % idim) in self.field_list:
                         break
                     emag += 0.5 * data['gas', 'magnetic_%s' % idim]**2
                 return emag
 
             self.add_field(('gas', 'magnetic_energy_density'), function=_magnetic_energy_density,
-                           units=us['density']*us['velocity']**2,
-                           dimensions=dimensions.density*dimensions.velocity**2,
-                           sampling_type='cell')
-
-            def _magnetic_pressure(field, data):
-                return (data.ds.gamma - 1) * data['gas', 'magnetic_energy_density']
-
-            self.add_field(('gas', 'magnetic_pressure'), function=_magnetic_pressure,
-                           units=us['density']*us['velocity']**2,
-                           dimensions=dimensions.density*dimensions.velocity**2,
+                           units=us['magnetic_field']**2,
+                           dimensions=dimensions.magnetic_field**2,
                            sampling_type='cell')
 
         # Adding the thermal pressure field.
@@ -121,12 +113,12 @@ class AMRVACFieldInfo(FieldInfoContainer):
         def _full_thermal_pressure_HD(field, data):
             # important note : energy density and pressure are actually expressed in the same unit
             pthermal = (data.ds.gamma - 1) * (data['gas', 'energy_density'] - data['gas', 'kinetic_energy_density'])
-            if ('amrvac', 'b1') in self.field_list:
-                pthermal -= (data.ds.gamma - 1) * data['gas', 'magnetic_energy_density']
             return pthermal
 
         def _full_thermal_pressure_MHD(field, data):
-            return _full_thermal_pressure_HD(field, data) - data["magnetic_pressure"]
+            pthermal = _full_thermal_pressure_HD(field, data) \
+                       - (data.ds.gamma - 1) * data["gas", "magnetic_energy_density"]
+            return pthermal
 
         def _polytropic_thermal_pressure(field, data):
             return (data.ds.gamma - 1) * data['gas', 'energy_density']
@@ -142,9 +134,9 @@ class AMRVACFieldInfo(FieldInfoContainer):
             elif ('amrvac', 'b1') in self.field_list:
                 pressure_recipe = _full_thermal_pressure_MHD
                 mylog.info('Using full MHD energy for thermal pressure.')
-            else ('amrvac', 'b1') in self.field_list:
+            else:
                 pressure_recipe = _full_thermal_pressure_HD
-                mylog.info('Using full MHD energy for thermal pressure.')
+                mylog.info('Using full HD energy for thermal pressure.')
         elif self.ds._c_adiab is not None:
             pressure_recipe = _adiabatic_thermal_pressure
             mylog.info('Using adiabatic EoS for thermal pressure (isothermal).')
@@ -158,12 +150,11 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
             # sound speed and temperature depend on thermal pressure
             def _sound_speed(field, data):
-                return sqrt(data.ds.gamma * data["thermal_pressure"] / data["gas", "density"])
+                return sqrt(data.ds.gamma * data["gas", "thermal_pressure"] / data["gas", "density"])
 
             self.add_field(("gas", "sound_speed"), function=_sound_speed,
                             units=us["velocity"],
                             dimensions=dimensions.velocity,
                             sampling_type="cell")
-
         else:
             mylog.warning("e not found and no parfile passed, can not set thermal_pressure.")
