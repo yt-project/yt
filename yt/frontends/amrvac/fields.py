@@ -136,7 +136,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             mylog.warning('If you used usr_set_pthermal you should redefine the thermal_pressure field.')
 
         if pressure_recipe is not None:
-            self.add_field(('gas', 'thermal_pressure'), function=pressure_equation,
+            self.add_field(('gas', 'thermal_pressure'), function=pressure_recipe,
                            units=us['density']*us['velocity']**2,
                            dimensions=dimensions.density*dimensions.velocity**2,
                            sampling_type='cell')
