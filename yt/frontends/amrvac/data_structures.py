@@ -175,6 +175,7 @@ class AMRVACDataset(Dataset):
         namelist = None
         namelist_gamma = None
         c_adiab = None
+        e_is_internal = None
         if parfiles is not None:
             namelist = read_amrvac_namelist(parfiles)
             if "hd_list" in namelist:
@@ -187,12 +188,16 @@ class AMRVACDataset(Dataset):
             if namelist_gamma is not None and self.gamma != namelist_gamma:
                 mylog.error("Inconsistent values in gamma: datfile {}, parfiles {}".format(self.gamma, namelist_gamma))
 
+            if "method_list" in namelist:
+                e_is_internal = namelist["method_list"].get("solve_internal_e", False)
+
         if c_adiab is not None:
             # this complicated unit is required for the adiabatic equation of state to make physical sense
             c_adiab *= self.mass_unit**(1-self.gamma) * self.length_unit**(2+3*(self.gamma-1)) / self.time_unit**2
 
         self.namelist = namelist
         self._c_adiab = c_adiab
+        self._e_is_internal = e_is_internal
 
         self.fluid_types += ('amrvac',)
         # refinement factor between a grid and its subgrid
