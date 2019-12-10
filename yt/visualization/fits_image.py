@@ -220,7 +220,13 @@ class FITSImageData(object):
             if name not in exclude_fields:
                 this_img = img_data[field]
                 if hasattr(img_data[field], "units"):
-                    self.field_units[name] = str(this_img.units)
+                    if this_img.units.is_code_unit:
+                        mylog.warning("Cannot generate an image with code "
+                                      "units. Converting to units in CGS.")
+                        funits = this_img.units.get_base_equivalent("cgs")
+                    else:
+                        funits = this_img.units
+                    self.field_units[name] = str(funits)
                 else:
                     self.field_units[name] = "dimensionless"
                 mylog.info("Making a FITS image of field %s" % name)
