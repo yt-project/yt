@@ -1,5 +1,5 @@
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.utilities.physical_constants import mh, boltzmann_constant_cgs
+from yt.utilities.physical_constants import mh, kb
 
 b_units   = "code_magnetic"
 pre_units = "code_mass / (code_length*code_time**2)"
@@ -115,8 +115,8 @@ class GAMERFieldInfo(FieldInfoContainer):
 
         # temperature
         def _temperature(field, data):
-            return data.ds.mu*mh*data["gas","pressure"] / \
-                   (data["gas","density"]*boltzmann_constant_cgs)
+            return data.ds.mu*data["gas","pressure"]*mh / \
+                   (data["gas","density"]*kb)
         self.add_field(("gas","temperature"),
                        sampling_type="cell",
                        function = _temperature,
