@@ -635,7 +635,7 @@ class FITSImageData(object):
             The name of the file to open.
         """
         f = _astropy.pyfits.open(filename, lazy_load_hdus=False)
-        return cls(f)
+        return cls(f, current_time=f[0].header["TIME"])
 
     @classmethod
     def from_images(cls, image_list):
@@ -664,7 +664,7 @@ class FITSImageData(object):
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
         data = _astropy.pyfits.HDUList(data)
-        return cls(data)
+        return cls(data, current_time=image_list[0].current_time)
 
     def create_sky_wcs(self, sky_center, sky_scale,
                        ctype=None, crota=None, cd=None,
