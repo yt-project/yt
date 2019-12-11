@@ -32,12 +32,14 @@ class AMRVACIOHandler(BaseIOHandler):
         self.block_shape = np.append(header["block_nx"], header["nw"])
 
     def _read_particle_coords(self, chunks, ptf):
+        """Not implemented yet."""
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
         raise NotImplementedError
 
     def _read_particle_fields(self, chunks, ptf, selector):
+        """Not implemented yet."""
         # This gets called after the arrays have been allocated.  It needs to
         # yield ((ptype, field), data) where data is the masked results of
         # reading ptype, field and applying the selector to the data read in.
@@ -46,6 +48,21 @@ class AMRVACIOHandler(BaseIOHandler):
         raise NotImplementedError
 
     def _read_data(self, grid, field):
+        """Retrieve field data from a grid.
+
+        Parameters
+        ----------
+        grid : yt.frontends.amrvac.data_structures.AMRVACGrid
+            The grid from which data is to be read.
+        field : str
+            A field name.
+
+        Returns
+        -------
+        data : np.ndarray
+            A 3D array of float64 type representing grid data.
+
+        """
         ileaf = grid.id
         offset = grid._index.block_offsets[ileaf]
         field_idx = self.ds.parameters['w_names'].index(field)
@@ -58,26 +75,35 @@ class AMRVACIOHandler(BaseIOHandler):
         return data
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        # This needs to allocate a set of arrays inside a dictionary, where the
-        # keys are the (ftype, fname) tuples and the values are arrays that
-        # have been masked using whatever selector method is appropriate.  The
-        # dict gets returned at the end and it should be flat, with selected
-        # data.  Note that if you're reading grid data, you might need to
-        # special-case a grid selector object.
-        # Also note that "chunks" is a generator for multiple chunks, each of
-        # which contains a list of grids. The returned numpy arrays should be
-        # in 64-bit float and contiguous along the z direction. Therefore, for
-        # a C-like input array with the dimension [x][y][z] or a
-        # Fortran-like input array with the dimension (z,y,x), a matrix
-        # transpose is required (e.g., using np_array.transpose() or
-        # np_array.swapaxes(0,2)).
-        '''
-        @Notes from Niels:
-        The chunks list has YTDataChunk objects containing the different grids.
-        The list of grids can be obtained by doing eg. grids_list = chunks[0].objs or chunks[1].objs etc.
-        Every element in "grids_list" is then an AMRVACGrid object, and has hence all attributes of a grid
-            (Level, ActiveDimensions, LeftEdge, etc.)
-        '''
+        """Retrieve field(s) data in a selected region of space.
+
+        Parameters
+        ----------
+        chunks : generator
+            A generator for multiple chunks, each of which contains a list of grids.
+
+        selector : yt.geometry.selection_routines.SelectorObject
+            A spatial region selector.
+
+        fields : list
+            A list of tuples (ftype, fname).
+
+        size : np.int64
+            The cumulative number of objs contained in all chunks.
+
+        Returns
+        -------
+        data_dict : dict
+            keys are the (ftype, fname) tuples and values are arrays that have been masked using
+            whatever selector method is appropriate. Arrays have dtype float64. 
+        """
+
+        #@Notes from Niels:
+        #The chunks list has YTDataChunk objects containing the different grids.
+        #The list of grids can be obtained by doing eg. grids_list = chunks[0].objs or chunks[1].objs etc.
+        #Every element in "grids_list" is then an AMRVACGrid object, and has hence all attributes of a grid
+        #    (Level, ActiveDimensions, LeftEdge, etc.)
+
         chunks = list(chunks)
         data_dict = {} # <- return variable
         if isinstance(selector, GridSelector):
@@ -110,6 +136,7 @@ class AMRVACIOHandler(BaseIOHandler):
 
 
     def _read_chunk_data(self, chunk, fields):
+        """Not implemented yet."""
         # This reads the data from a single chunk without doing any selection,
         # and is only used for caching data that might be used by multiple
         # different selectors later. For instance, this can speed up ghost zone
