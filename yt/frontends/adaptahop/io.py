@@ -54,12 +54,11 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files,key=attrgetter("filename")):
-            pcount = data_file.header['num_halos']
+            pcount = data_file.ds.parameters['nhalos'] + data_file.ds.parameters['nsubs']
             if pcount == 0:
                 continue
-            with open(data_file.filename, "rb") as f:
-                pos = data_file._get_particle_positions(ptype, f=f)
-                yield "halos", (pos[:, i] for i in range(3))
+            pos = self._get_particle_positions()
+            yield "halos", (pos[:, i] for i in range(3))
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
@@ -71,22 +70,45 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files,key=attrgetter("filename")):
-            pcount = data_file.header['num_halos']
+        for data_file in sorted(data_files, key=attrgetter("filename")):
+            pcount = data_file.ds.parameters['nhalos'] + data_file.ds.parameters['nsubs']
             if pcount == 0:
                 continue
-            with open(data_file.filename, "rb") as f:
-                for ptype, field_list in sorted(ptf.items()):
-                    pos = data_file._get_particle_positions(ptype, f=f)
-                    x, y, z = (pos[:, i] for i in range(3))
-                    mask = selector.select_points(x, y, z, 0.0)
-                    del x, y, z
-                    f.seek(data_file._position_offset, os.SEEK_SET)
-                    halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
-                    if mask is None: continue
-                    for field in field_list:
-                        data = halos[field][mask].astype("float64")
-                        yield (ptype, field), data
+            ptype = 'halos'
+            field_list0 = sorted(ptf[ptype], key=_find_attr_position)
+            field_list_pos = ['particle_position_%s' % k for k in 'xyz']
+            field_list = sorted(
+                set(field_list0 + field_list_pos),
+                key=_find_attr_position
+            )
+
+            with FortranFile(self.ds.parameter_filename) as fpu:
+                params = fpu.read_attrs(HEADER_ATTRIBUTES)
+
+                todo = _todo_from_attributes(
+                    field_list
+                )
+
+                attr2pos = {f: i for i, f in enumerate(field_list)}
+
+                nhalos = params['nhalos'] + params['nsubs']
+                data = np.zeros((nhalos, len(field_list)))
+                for ihalo in range(nhalos):
+                    for it in todo:
+                        if isinstance(it, int):
+                            fpu.skip(it)
+                        else:
+                            for k, v in fpu.read_attrs(it).items():
+                                data[ihalo, attr2pos[k]] = v
+            ipos = [field_list.index(k) for k in field_list_pos]
+            x, y, z = (data[:, i] for i in ipos)
+            mask = selector.select_points(x, y, z, 0.0)
+            del x, y, z
+
+            if mask is None: continue
+            for field in field_list0:
+                i = field_list.index(field)
+                yield (ptype, field), data[mask, i].astype('float64')
 
     def _initialize_index(self, data_file, regions):
         pcount = data_file.ds.parameters['nhalos'] + data_file.ds.parameters['nsubs']
@@ -96,12 +118,8 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         if pcount == 0:
             return morton
         ind = 0
-        ptype = 'halos'
 
         pos = self._get_particle_positions()
-        print(pos.min(axis=0), pos.max(axis=0))
-        pos = data_file.ds.arr(pos, "cm") + self.ds.domain_width.to('Mpc') / 2  # FIXME
-        pos = pos.to('code_length')
         print(pos.min(axis=0), pos.max(axis=0), self.ds.domain_width.to('Mpc'))
         if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
             np.any(pos.max(axis=0) > self.ds.domain_right_edge):
@@ -114,8 +132,9 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
             pos[:,0], pos[:,1], pos[:,2],
             data_file.ds.domain_left_edge,
             data_file.ds.domain_right_edge)
-    
+
         return morton
+
 
     def _count_particles(self, data_file):
         nhalos = data_file.ds.parameters['nhalos'] + data_file.ds.parameters['nsubs']
@@ -131,13 +150,15 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                     fields.append(('halos', a))
         return fields, {}
 
-
+    #-----------------------------------------------------
     # Specific to AdaptaHOP
     def _get_particle_positions(self):
+        """Read the particles and return them in code_units"""
         with FortranFile(self.ds.parameter_filename) as fpu:
             params = fpu.read_attrs(HEADER_ATTRIBUTES)
 
-            todo = _todo_from_attributes(('x', 'y', 'z'))
+            todo = _todo_from_attributes(
+                ('particle_position_x', 'particle_position_y', 'particle_position_z'))
 
             nhalos = params['nhalos'] + params['nsubs']
             data = np.zeros((nhalos, 3))
@@ -146,15 +167,21 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                     if isinstance(it, int):
                         fpu.skip(it)
                     else:
-                        dt = fpu.read_attrs(it)
-                        data[ihalo, 0] = dt['x']
-                        data[ihalo, 1] = dt['y']
-                        data[ihalo, 2] = dt['z']
+                        # Small optimisation here: we can read as vector
+                        # dt = fpu.read_attrs(it)
+                        # data[ihalo, 0] = dt['particle_position_x']
+                        # data[ihalo, 1] = dt['particle_position_y']
+                        # data[ihalo, 2] = dt['particle_position_z']
+                        data[ihalo, :] = fpu.read_vector(it[0][-1])
 
-        return data * 3.08e24
+        data = self.ds.arr(data, "code_length") + self.ds.domain_width / 2  # FIXME
+        return data
 
-            
+
 def _todo_from_attributes(attributes):
+    # Helper function to generate a list of read-skip instructions given a list of
+    # attributes. This is used to skip fields most of the fields when reading
+    # the tree_brick files.
     iskip = 0
     todo = []
 
@@ -189,3 +216,14 @@ def _todo_from_attributes(attributes):
         todo.append(iskip)
 
     return todo
+
+def _find_attr_position(key):
+    j = 0
+    for attrs, l, k in HALO_ATTRIBUTES:
+        if not isinstance(attrs, tuple):
+            attrs = (attrs, )
+        for a in attrs:
+            if key == a:
+                return j
+            j += 1
+    raise KeyError
