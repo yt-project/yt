@@ -48,6 +48,7 @@ _frontends = [
     'stream',
     'tipsy',
     'ytdata',
+    'adaptahop'
 ]
 
 class _frontend_container:
