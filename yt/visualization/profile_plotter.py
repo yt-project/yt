@@ -684,7 +684,7 @@ class ProfilePlot(object):
         >>> pp.save()
 
         """
-        if field is 'all':
+        if field == 'all':
             fields = list(self.axes.keys())
         else:
             fields = ensure_list(field)
@@ -770,7 +770,7 @@ class ProfilePlot(object):
                                 ["temperature", "dark_matter_density"])
 
         """
-        if field is 'all':
+        if field == 'all':
             fields = list(self.axes.keys())
         else:
             fields = ensure_list(field)
@@ -823,7 +823,7 @@ class ProfilePlot(object):
         >>>  plot.save()
 
         """
-        if field is 'all':
+        if field == 'all':
             fields = list(self.axes.keys())
         else:
             fields = ensure_list(field)
@@ -986,7 +986,7 @@ class PhasePlot(ImagePlotContainer):
             field_name = r'$\rm{'+field_name+r'}$'
         if fractional:
             label = field_name + r'$\rm{\ Probability\ Density}$'
-        elif field_unit is None or field_unit is '':
+        elif field_unit is None or field_unit == '':
             label = field_name
         else:
             label = field_name+r'$\ \ ('+field_unit+r')$'
