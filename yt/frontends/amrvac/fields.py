@@ -16,6 +16,7 @@ from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.units import dimensions
+from yt import mylog
 
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
@@ -49,12 +50,12 @@ code_moment = "code_mass / code_length**2 / code_time"
 code_pressure = "code_mass / code_length / code_time**2"
 
 # for now, define a finite family of dust fields (up to 100 species, should be enough)
-MAXDUST_FLUIDS = 100
+MAXN_DUST_FLUIDS = 100
 known_dust_fields = [("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
-                     for idust in range(1, MAXDUST_FLUIDS)]
+                     for idust in range(1, MAXN_DUST_FLUIDS+1)]
 for idir in range(1, 4):
     known_dust_fields += [("m%dd%d" % (idir, idust), (code_moment, ["dust%d_moment_%d" % (idust, idir)], None))
-                          for idust in range(1, MAXDUST_FLUIDS)]
+                          for idust in range(1, MAXN_DUST_FLUIDS+1)]
 
 class AMRVACFieldInfo(FieldInfoContainer):
 
@@ -102,13 +103,17 @@ class AMRVACFieldInfo(FieldInfoContainer):
         # dust
         idust = 1
         while ("amrvac", "rhod%d" % idust) in self.field_list:
+            if idust > MAXN_DUST_FLUIDS:
+                mylog.error("Only the first %d dust species are currently read by yt. " \
+                            "If you read this, please consider issuing a ticket. " % MAXN_DUST_FLUIDS)
+                break
             self.create_velocity_fields(idust)
             idust += 1
-        n_dust_found = idust
+        n_dust_found = idust - 1
 
         def _total_dust_density(field, data):
             tot = np.zeros_like(data["density"])
-            for idust in range(1, n_dust_found):
+            for idust in range(1, n_dust_found+1):
                 tot += data["dust%d_density" % idust]
             return tot
 
