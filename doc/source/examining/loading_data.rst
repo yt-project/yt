@@ -79,8 +79,9 @@ Appropriate errors are thrown for other combinations.
 
 .. rubric:: Partially supported and unsupported features
 
-* dust fields (e.g. ``rhod1``, ``md1``...), if present, will be detected
-  by yt but no unit is currently attached to them.
+* a maximum of 100 dust fields can be discovered by yt at the moment.
+  If your application needs this limit increased, please report an issue
+  https://github.com/yt-project/yt/issues
 * particle data: currently not supported (but might come later)
 * staggered grids (AMRVAC 2.2 and later): yt logs a warning if you load
   staggered datasets, but the flag is currently ignored.
