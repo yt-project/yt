@@ -53,18 +53,26 @@ class AMRVACFieldInfo(FieldInfoContainer):
         aliases = direction_aliases[self.ds.geometry]
 
         def _velocity(idir):
+            """Generate a velocity function v_idir = m_idir / rho
+
+            Parameters
+            ----------
+            idir : int
+                the direction index (1, 2 or 3)
+            """
             def velocity_idir(field, data):
-                return data["gas", "moment_%s" % idir] / data["gas", "density"]
+                return data["gas", "moment_%d" % idir] / data["gas", "density"]
             return velocity_idir
 
-        for idir, alias in zip("123", aliases):
+        for i, alias in enumerate(aliases):
+            idir = i + 1 # direction index starts at 1 in AMRVAC
             if not ("amrvac", "m%s" % idir) in self.field_list:
                 break
             self.add_field(("gas", "velocity_%s" % alias), function=_velocity(idir),
                             units=unit_system['velocity'], dimensions=dimensions.velocity, sampling_type="cell")
-            self.alias(("gas", "velocity_%s" % idir), ("gas", "velocity_%s" % alias),
+            self.alias(("gas", "velocity_%d" % idir), ("gas", "velocity_%s" % alias),
                         units=unit_system["velocity"])
-            self.alias(("gas", "moment_%s" % alias), ("gas", "moment_%s" % idir),
+            self.alias(("gas", "moment_%s" % alias), ("gas", "moment_%d" % idir),
                         units=unit_system["density"]*unit_system["velocity"])
 
 
