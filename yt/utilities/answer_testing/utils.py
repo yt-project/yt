@@ -3,7 +3,6 @@ Title:   utils.py
 Purpose: Contains utility functions for yt answer tests
 Notes:
 """
-from collections import OrderedDict
 import hashlib
 import os
 
@@ -26,37 +25,133 @@ import yt.visualization.profile_plotter as profile_plotter
 
 
 #============================================
-#               array_to_hash
+#            streamline_for_io
 #============================================
-def array_to_hash(d):
+def streamline_for_io(params):
     """
-    This function loops recursively over each nested dictionary in d
-    and, when it reaches a non-dictionary value, if that value is an
-    array, it converts it to a bytes array.
+    Doc string.
+
+    Parameters:
+    -----------
+        pass
+
+    Raises:
+    -------
+        pass
+
+    Returns:
+    --------
+        pass
     """
-    for k, v in d.items():
-        if k == 'grid_values' or k == 'pixelized_projection_values':
+    streamlined_params = {}
+    for key, value in params.items():
+        # The key can be nested iterables, e.g., 
+        # d = [None, ('sphere', (center, (0.1, 'unitary')))] so we need
+        # to use recursion
+        if not isinstance(key, str) and hasattr(key, '__iter__'):
+            key = iterable_to_string(key)
+        # The value can also be nested iterables
+        if not isinstance(value, str) and hasattr(value, '__iter__'):
+            value = iterable_to_string(value)
+        streamlined_params[key] = value
+    return streamlined_params
+
+#============================================
+#            iterable_to_string
+#============================================
+def iterable_to_string(iterable):
+    """
+    Doc string.
+
+    Parameters:
+    -----------
+        pass
+
+    Raises:
+    -------
+        pass
+
+    Returns:
+    --------
+        pass
+    """
+    result = iterable.__class__.__name__ 
+    for elem in iterable:
+        # Non-string iterables (e.g., lists, tuples, etc.)
+        if not isinstance(elem, str) and hasattr(elem, '__iter__'):
+            result += '_' + iterable_to_string(elem)
+        # Non-string non-iterables (ints, floats, etc.)
+        elif not isinstance(elem, str) and not hasattr(elem, '__iter__'):
+            result += '_' + str(elem)
+        # Strings
+        elif isinstance(elem, str):
+            result += '_' + elem
+    return result
+
+#============================================
+#               hash_results
+#============================================
+def hash_results(results):
+    """
+    Doc string.
+
+    Parameters:
+    -----------
+        pass
+
+    Raises:
+    -------
+        pass
+
+    Returns:
+    --------
+        pass
+    """
+    # Here, results should be comprised of only the tests, not the test
+    # parameters
+    for test_name, test_value in results.items():
+        # These tests have issues with python-specific anchors and so
+        # are already hashed
+        # (see their definitions in yt/utilites/answer_testing/framework.py)
+        if test_name in ['projection_values', 'pixelized_projection_values', 'grid_values']:
             continue
-        if isinstance(v, dict) or isinstance(v, OrderedDict):
-            array_to_hash(v)
         else:
-            d[k] = generate_hash(v)
-            if not isinstance(k, str):
-                d.update({k.__repr__() : d[k]})
-                del d[k]
-    return d
-
+            results[test_name] = generate_hash(test_value)
+    return results
 
 #============================================
-#               generate_hash
+#                hash_dict
+#============================================
+def hash_dict(data):
+    """
+    Doc string.
+
+    Parameters:
+    -----------
+        pass
+
+    Raises:
+    -------
+        pass
+
+    Returns:
+    --------
+        pass
+    """
+    hd = None
+    for key, value in data.items():
+        if hd is None:
+            hd = hashlib.md5(bytes(key.encode('utf8')) + value.tobytes())
+        else:
+            hd.update(bytes(key.encode('utf8')) + value.tobytes())
+    return hd.hexdigest()
+
+#============================================
+#              generate_hash
 #============================================
 def generate_hash(data):
     """
-    Generates an md5 hash from the given data. This function assumes
-    that the data passed with either be a dataset object or else the
-    result of a particular test. It assumes that the test result has
-    already been put into a hashable form, since the data returned by
-    each test is different.
+    Doc string.
 
     Parameters:
     -----------
@@ -73,42 +168,25 @@ def generate_hash(data):
     if isinstance(data, np.ndarray):
         # Sometimes md5 complains that the data is not contiguous
         data = np.ascontiguousarray(data)
+    # Try to hash. Some tests return hashable types (like ndarrays) and
+    # others don't (such as dictionaries)
     try:
         hd = hashlib.md5(data).hexdigest()
+    # Handle those tests that return non-hashable types. This is done
+    # here instead of in the tests themselves to try and reduce boilerplate
+    # and provide a central location where all of this is done in case it needs
+    # to be changed
     except TypeError:
-        hd = data.__repr__()
+        if isinstance(data, dict):
+            hd = hash_dict(data)
+        else:
+            raise TypeError
     return hd
 
-
 #============================================
-#               log_test_error
+#                 save_result
 #============================================
-def log_test_error(func_name, val, param, saved_hashes, e):
-    """
-    Logs the answer test error by saving the relevant information for
-    both the saved and obtained tests.
-
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
-    """
-    msg = "Error: {} in {} with value {} differs from saved value of {}".format(
-        param, func_name, val, saved_hashes[func_name][param])
-    pytest.fail(msg)
-
-
-#============================================
-#                 check_vals
-#============================================
-def check_vals(newVals, savedVals):
+def save_result(data, outputFile):
     """
     Doc string.
 
@@ -124,20 +202,15 @@ def check_vals(newVals, savedVals):
     --------
         pass
     """
-    for key, value in newVals.items():
-        if isinstance(value, dict):
-            check_vals(value, savedVals[key])
-        else:
-            assert value == savedVals[key]
-
+    with open(outputFile, 'a') as f:
+        yaml.dump(data, f)
 
 #============================================
-#               handle_hashes
+#               compare_result
 #============================================
-def handle_hashes(save_dir_name, fname, hashes, answer_store):
+def compare_result(data, outputFile):
     """
-    Either saves the answers for later comparison or loads in the saved
-    answers and does the comparison.
+    Doc string.
 
     Parameters:
     -----------
@@ -151,29 +224,46 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
     --------
         pass
     """
-    fname = os.path.join(save_dir_name, fname)
-    # Save answer
+    # Load the saved data
+    with open(outputFile, 'r') as f:
+        savedData = yaml.safe_load(f)
+    # Define the comparison function
+    def check_vals(newVals, oldVals):
+        for key, value in newVals.items():
+            if isinstance(value, dict):
+                check_vals(value, oldVals[key])
+            else:
+                assert value == oldVals[key]
+    # Compare
+    check_vals(data, savedData)
+
+#============================================
+#               handle_hashes
+#============================================
+def handle_hashes(save_dir_name, fname, hashes, answer_store):
+    """
+    Doc string.
+
+    Parameters:
+    -----------
+        pass
+
+    Raises:
+    -------
+        pass
+
+    Returns:
+    --------
+        pass
+    """
+    # Set up the answer file in the answer directory
+    answer_file = os.path.join(save_dir_name, fname)
+    # Save the result
     if answer_store:
-        with open(fname, 'a') as f:
-            yaml.dump(hashes, f, default_flow_style=False, Dumper=yaml.Dumper)
-    # Compare to already saved answer
+        save_result(hashes, answer_file)
+    # Compare to already saved results
     else:
-        with open(fname, 'r') as f:
-            saved_hashes = yaml.load(f, Loader=yaml.Loader)
-        # The layout of the answer file is:
-        # {functionName : {param1 : val1, param2 : val2, ...}, functionName2 : {...}}
-        # Since dicts are being used we can't bank on the test parameters being in
-        # the same order in the file and the hashes dict. OrderedDicts are not used
-        # because there's a bug in pyyaml with duplicate anchors. It's also harder
-        # to read
-        import pdb; pdb.set_trace()
-        check_vals(hashes, saved_hashes)
-        # for func_name, test_vals in hashes.items():
-        #     for test_param, val in test_vals.items():
-        #         try:
-        #             assert val == saved_hashes[func_name][test_param]
-        #         except (AssertionError, KeyError) as e:
-        #             log_test_error(func_name, val, test_param, saved_hashes, e)
+        compare_result(hashes, answer_file)
 
 
 #============================================
@@ -273,8 +363,8 @@ def requires_ds(ds_fn, file_check = False):
     """
     def ffalse(func):
         def skip(*args, **kwargs):
-            print("{} not found, skipping {}.".format(ds_fn, func.__name__))
-            assert False
+            msg = "{} not found, skipping {}.".format(ds_fn, func.__name__)
+            pytest.fail(msg)
         return skip
     def ftrue(func):
         return func
@@ -289,8 +379,8 @@ def requires_ds(ds_fn, file_check = False):
 def requires_sim(sim_fn, sim_type, file_check = False):
     def ffalse(func):
         def skip(*args, **kwargs):
-            print("{} not found, skipping {}.".format(sim_fn, func.__name__))
-            assert False
+            msg = "{} not found, skipping {}.".format(sim_fn, func.__name__)
+            pytest.fail(msg)
         return skip
     def ftrue(func):
         return func
