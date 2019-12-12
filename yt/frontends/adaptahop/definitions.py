@@ -26,7 +26,7 @@ HEADER_ATTRIBUTES = (
 HALO_ATTRIBUTES = (
     ('npart', 1, 'i'),
     ('particle_identities', -1, 'i'),
-    ('particle_identity', 1, 'i'),
+    ('particle_identifier', 1, 'i'),
     ('timestep', 1 , 'i'),
     (('level', 'host_id', 'first_subhalo_id', 'n_subhalos', 'next_subhalo_id'), 5, 'i'),
     ('particle_mass', 1, 'f'),
@@ -36,6 +36,6 @@ HALO_ATTRIBUTES = (
     (('r', 'a', 'b', 'c'), 4, 'f'),
     (('ek', 'ep', 'etot'), 3, 'f'),
     ('spin', 1 , 'f'),
-    (('rvir', 'mvir', 'Tvir', 'vvir'), 4, 'f'),
+    (('virial_radius', 'virial_mass', 'virial_temperature', 'virial_velocity'), 4, 'f'),
     (('rho0', 'R_c'), 2, 'f')
 )

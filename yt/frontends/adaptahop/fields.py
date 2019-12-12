@@ -49,10 +49,10 @@ class AdaptaHOPFieldInfo(FieldInfoContainer):
         ("ek", (e_units, [], "Halo Total Energy")),
         ("spin", ("", [], "Halo Spin")),
         # Virial parameters
-        ("rvir", (r_units, [], "Halo Virial Radius")),
-        ("mvir", (m_units, [], "Halo Virial Mass")),
-        ("Tvir", ("K", [], "Halo Virial Temperature")),
-        ("vvir", (v_units, [], "Halo Virial Velocity")),
+        ("virial_radius", (r_units, [], "Halo Virial Radius")),
+        ("virial_mass", (m_units, [], "Halo Virial Mass")),
+        ("virial_temperature", ("K", [], "Halo Virial Temperature")),
+        ("virial_velocity", (v_units, [], "Halo Virial Velocity")),
         # NFW parameters
         ("rho0", (dens_units, [], "Halo NFW Density")),
         ("R_c", (dens_units, [], "Halo NFW Scale Radius")),
