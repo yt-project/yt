@@ -11,6 +11,7 @@ AMRVAC-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
@@ -93,13 +94,33 @@ class AMRVACFieldInfo(FieldInfoContainer):
                         units=unit_system["density"]*unit_system["velocity"])
 
     def setup_fluid_fields(self):
+
+        setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
         self.create_velocity_fields() # gas
 
+        unit_system = self.ds.unit_system
         # dust
         idust = 1
         while ("amrvac", "rhod%d" % idust) in self.field_list:
             self.create_velocity_fields(idust)
             idust += 1
+        n_dust_found = idust
 
+        def _total_dust_density(field, data):
+            tot = np.zeros_like(data["density"])
+            for idust in range(1, n_dust_found):
+                tot += data["dust%d_density" % idust]
+            return tot
 
-        setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
+        self.add_field(("gas", "total_dust_density"), function=_total_dust_density,
+                       dimensions=dimensions.density,
+                       units=unit_system["density"], sampling_type="cell", force_override=True)
+
+        def dust_to_gas_ratio(field, data):
+            return data["total_dust_density"] / data["density"]
+
+        self.add_field(("gas", "dust_to_gas_ratio"), function=dust_to_gas_ratio,
+                        dimensions=dimensions.dimensionless,
+                        #units="auto",
+                        sampling_type="cell", force_override=True)
+
