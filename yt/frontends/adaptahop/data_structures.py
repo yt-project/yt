@@ -67,7 +67,7 @@ class AdaptaHOPDataset(Dataset):
                                               unit_system=unit_system)
 
     def _set_code_unit_attributes(self):
-        setdefaultattr(self, 'length_unit', self.quan(1/self._code_length_to_Mpc, "Mpc"))
+        setdefaultattr(self, 'length_unit', self.quan(self._code_length_to_Mpc, "Mpc"))
         setdefaultattr(self, 'mass_unit', self.quan(1e11, "Msun"))
         setdefaultattr(self, 'velocity_unit', self.quan(1.0, "km / s"))
         setdefaultattr(self, 'time_unit', self.length_unit / self.velocity_unit)
@@ -104,7 +104,7 @@ class AdaptaHOPDataset(Dataset):
             setattr(self, k, getattr(self.parent_ds, k))
 
         self.domain_left_edge = np.array([0., 0., 0.])
-        self.domain_right_edge = self.parent_ds.domain_right_edge.to('Mpc').value / \
+        self.domain_right_edge = self.parent_ds.domain_right_edge.to('Mpc').value * \
             self._code_length_to_Mpc
 
         self.parameters.update(params)
