@@ -38,8 +38,6 @@ from .definitions import \
 
 class AdaptaHOPBinaryFile(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
-        print('Here')
-
         super(AdaptaHOPBinaryFile, self).__init__(ds, io, filename, file_id)
 
     def _read_particle_positions(self, ptype, f=None):
@@ -49,7 +47,6 @@ class AdaptaHOPDataset(Dataset):
     _index_class = ParticleIndex
     _file_class = AdaptaHOPBinaryFile
     _field_info_class = AdaptaHOPFieldInfo
-    _suffix = ".bin"
 
     _code_length_to_Mpc = Mpc.to('cm').value / 3.08e24
 
