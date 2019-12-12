@@ -27,6 +27,18 @@ direction_aliases = {
     "spherical": ("r", "theta", "phi")
 }
 
+def _velocity(idir):
+    """Generate a velocity function v_idir = m_idir / rho
+
+    Parameters
+    ----------
+    idir : int
+        the direction index (1, 2 or 3)
+    """
+    def velocity_idir(field, data):
+        return data["gas", "moment_%d" % idir] / data["gas", "density"]
+    return velocity_idir
+
 class AMRVACFieldInfo(FieldInfoContainer):
     code_density = "code_mass / code_length**3"
     code_moment = "code_mass / code_length**2 / code_time"
@@ -53,33 +65,32 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     known_particle_fields = ()
 
-    def setup_fluid_fields(self):
+    def create_velocity_fields(self, idust=None):
+        if idust is None:
+            dust_flag = dust_label = ""
+        else:
+            return # temp
+            dust_flag = "d%d" % idust
+            dust_label = "dust%d_" % idust
 
         unit_system = self.ds.unit_system
-        aliases = direction_aliases[self.ds.geometry]
-
-        def _velocity(idir):
-            """Generate a velocity function v_idir = m_idir / rho
-
-            Parameters
-            ----------
-            idir : int
-                the direction index (1, 2 or 3)
-            """
-            def velocity_idir(field, data):
-                return data["gas", "moment_%d" % idir] / data["gas", "density"]
-            return velocity_idir
-
-        for i, alias in enumerate(aliases):
-            idir = i + 1 # direction index starts at 1 in AMRVAC
-            if not ("amrvac", "m%s" % idir) in self.field_list:
+        for i_, alias in enumerate(direction_aliases[self.ds.geometry]):
+            idir = i_ + 1 # direction index starts at 1 in AMRVAC
+            if not ("amrvac", "m%d%s" % (idir, dust_flag)) in self.field_list:
                 break
-            self.add_field(("gas", "velocity_%s" % alias), function=_velocity(idir),
+            self.add_field(("gas", "%svelocity_%s" % (dust_label, alias)), function=_velocity(idir),
                             units=unit_system['velocity'], dimensions=dimensions.velocity, sampling_type="cell")
             self.alias(("gas", "velocity_%d" % idir), ("gas", "velocity_%s" % alias),
                         units=unit_system["velocity"])
             self.alias(("gas", "moment_%s" % alias), ("gas", "moment_%d" % idir),
                         units=unit_system["density"]*unit_system["velocity"])
+    def setup_fluid_fields(self):
+
+
+
+
+        unit_system = self.ds.unit_system
+        self.create_velocity_fields() # gas
 
         # dust
         idust = 1
