@@ -65,7 +65,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     # format: (native(?) field, (units, [aliases], display_name))
     # note: aliases will correspond to "gas" typed fields, whereas the native ones are "amrvac" typed
-    known_other_fields = (
+    known_other_fields = tuple(list((
         ("rho", (code_density, ["density"], None)),
         ("m1", (code_moment, ["moment_1"], None)),
         ("m2", (code_moment, ["moment_2"], None)),
@@ -73,8 +73,10 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("e", (code_pressure, ["energy_density"], None)),
         ("b1", ("code_magnetic", ["magnetic_1"], None)),
         ("b2", ("code_magnetic", ["magnetic_2"], None)),
-        ("b3", ("code_magnetic", ["magnetic_3"], None)),
-        *known_dust_fields
+        ("b3", ("code_magnetic", ["magnetic_3"], None))
+        )) + known_dust_fields
+        # in python3, there is no need for this tuple+list conversion, it suffices to write
+        # known_other_fields = (..., *known_dust_fields)
     )
 
     known_particle_fields = ()
