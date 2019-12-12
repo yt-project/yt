@@ -177,7 +177,6 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                         # data[ihalo, 1] = dt['particle_position_y']
                         # data[ihalo, 2] = dt['particle_position_z']
                         data[ihalo, :] = fpu.read_vector(it[0][-1])
-
         data = self.ds.arr(data, "code_length") + self.ds.domain_width / 2  # FIXME
         return data
 
