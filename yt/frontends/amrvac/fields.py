@@ -52,7 +52,7 @@ MAXDUST_FLUIDS = 100
 known_dust_fields = [("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
                      for idust in range(1, MAXDUST_FLUIDS)]
 for idir in range(1, 4):
-    known_dust_fields += [("m%dd%d" % (idir, idust), (code_moment, ["dust%d_moment" % idust], None))
+    known_dust_fields += [("m%dd%d" % (idir, idust), (code_moment, ["dust%d_moment_%d" % (idust, idir)], None))
                           for idust in range(1, MAXDUST_FLUIDS)]
 
 class AMRVACFieldInfo(FieldInfoContainer):
