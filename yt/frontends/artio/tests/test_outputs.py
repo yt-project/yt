@@ -41,7 +41,7 @@ class TestArtIo(fw.AnswerTest):
         fv_hd = self.field_values_test(ds_sizmbhloz, f, d)
         self.hashes.update({'field_values_test' : fv_hd}) 
         ppv_hd = self.pixelized_projection_values_test(ds_sizmbhloz, a, f, w, d)
-        self.hashes.update({'pixelized_projection_values_test' : ppv_hd}) 
+        self.hashes.update({'pixelized_projection_values' : ppv_hd}) 
         dobj = utils.create_obj(ds_sizmbhloz, d)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
