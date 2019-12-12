@@ -21,6 +21,18 @@ def read_amrvac_namelist(parfiles):
 
     This function replicates the patching logic of MPI-AMRVAC where redundant parameters
     only retain last-in-line values EXCEPT `&filelist:base_filename`, which is accumulated.
+    When passed a single file, this function acts as a mere wrapper of f90nml.read().
+
+    Parameters
+    ----------
+    parfiles : str or list
+        A file path, or a list of file paths to MPI-AMRVAC configuration parfiles.
+
+    Returns
+    -------
+    unified_namelist : f90nml.Namelist
+        A single namelist object. The class inherits from ordereddict.
+
     """
     # typechecking
     if isinstance(parfiles, string_types):

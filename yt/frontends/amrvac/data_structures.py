@@ -44,7 +44,7 @@ ALLOWED_UNIT_COMBINATIONS = [{'numberdensity_unit', 'temperature_unit', 'length_
 
 
 class AMRVACGrid(AMRGridPatch):
-    """A class to populate AMRVACHierarchy.grids, setting parent/children relations """
+    """A class to populate AMRVACHierarchy.grids, setting parent/children relations."""
     _id_offset = 0
 
     def __init__(self, id, index, level):
@@ -58,10 +58,11 @@ class AMRVACGrid(AMRGridPatch):
         return "AMRVACGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
     def get_global_startindex(self):
-        """
-        Return the integer starting index for each dimension at the current
-        level.
+        """Refresh and retrieve the starting index for each dimension at current level.
 
+        Returns
+        -------
+        self.start_index : int
         """
         start_index = (self.LeftEdge - self.ds.domain_left_edge)/self.dds
         self.start_index = np.rint(start_index).astype('int64').ravel()
@@ -138,6 +139,31 @@ class AMRVACDataset(Dataset):
                 units_override=None, unit_system="cgs",
                 geometry_override=None,
                 parfiles=None):
+        """Instanciate AMRVACDataset.
+
+        Parameters
+        ----------
+        filename : str
+            Path to a datfile.
+
+        dataset_type : str, optional
+            This should always be 'amrvac'.
+
+        units_override : dict, optional
+            A dictionnary of physical normalisation factors to interpret on disk data.
+
+        unit_system : str, optional
+            Either "cgs" (default), "mks" or "code"
+
+        geometry_override : str, optional
+            A geometry flag formatted either according to either AMRVAC's or yt's standards.
+            When this parameter is passed along with v5 or more newer datfiles, will precede over
+            their internal "geometry" tag.
+
+        parfiles : str or list, optional
+            One or more parfiles to be passed to yt.frontends.amrvac.read_amrvac_parfiles()
+
+        """
         # note: geometry_override and parfiles are specific to this frontend
 
         self._geometry_override = geometry_override
@@ -180,15 +206,39 @@ class AMRVACDataset(Dataset):
                 pass
         return validation
 
-    def parse_geometry(self, geometry_string):
-        """Transform a string such as "Polar_2D" or "Cartesian_1.75D" to yt's standard equivalent (i.e. respectively "polar", "cartesian")."""
+    def _parse_geometry(self, geometry_tag):
+        """Translate AMRVAC's geometry tag to yt's format.
+
+        Parameters
+        ----------
+        geometry_tag : str
+            A geometry tag as read from AMRVAC's datfile from v5.
+
+        Returns
+        -------
+        geometry_yt : str
+            Lower case geometry tag among "cartesian", "polar", "cylindrical", "spherical"
+
+        Raises
+        ------
+        ValueError
+            In case the tag is not properly formatted or recognized.
+
+        Examples
+        --------
+        >>> print(self._parse_geometry("Polar_2.5D"))
+        "polar"
+        >>> print(self._parse_geometry("Cartesian_2.5D"))
+
+        """
         # frontend specific method
-        geom = geometry_string.split("_")[0].lower()
-        if geom not in ("cartesian", "polar", "cylindrical", "spherical"):
+        geometry_yt = geometry_tag.split("_")[0].lower()
+        if geometry_yt not in ("cartesian", "polar", "cylindrical", "spherical"):
             raise ValueError
-        return geom
+        return geometry_yt
 
     def _parse_parameter_file(self):
+        """Parse input datfile's header. Apply geometry_override if specified."""
         # required method
         self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
@@ -221,11 +271,11 @@ class AMRVACDataset(Dataset):
         if amrvac_geom is None:
             mylog.warning("Could not find a 'geometry' parameter in source file.")
         else:
-            geom_candidates.update({"param": self.parse_geometry(amrvac_geom)})
+            geom_candidates.update({"param": self._parse_geometry(amrvac_geom)})
 
         if self._geometry_override is not None:
             try:
-                geom_candidates.update({"override": self.parse_geometry(self._geometry_override)})
+                geom_candidates.update({"override": self._parse_geometry(self._geometry_override)})
             except ValueError:
                 mylog.error("Unknown value for geometry_override (will be ignored).")
     
@@ -263,6 +313,7 @@ class AMRVACDataset(Dataset):
 
     # units stuff ===============================================================================
     def _set_code_unit_attributes(self):
+        """Reproduce how AMRVAC internally set up physical normalisation factors."""
         # required method
         # devnote: this method is never defined in the parent abstract class Dataset
         # but it is called in Dataset.set_code_units(), which is part of Dataset.__init__()
@@ -333,11 +384,16 @@ class AMRVACDataset(Dataset):
 
 
     def _override_code_units(self):
+        """Add a check step to the base class' method (Dataset)."""
         self._check_override_consistency()
         super(AMRVACDataset, self)._override_code_units()
 
 
     def _check_override_consistency(self):
+        """Check that keys in units_override are consistent with respect to AMRVAC's internal way to
+        set up normalisations factors.
+
+        """
         # frontend specific method
         # YT supports overriding other normalisations, this method ensures consistency between
         # supplied 'units_override' items and those used by AMRVAC.
