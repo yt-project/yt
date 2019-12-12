@@ -45,11 +45,11 @@ code_pressure = "code_mass / code_length / code_time**2"
 
 # for now, define a finite family of dust fields (up to 100 species, should be enough)
 MAXDUST_FLUIDS = 100
-dust_fields = [("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
-                for idust in range(1, MAXDUST_FLUIDS)]
+known_dust_fields = [("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
+                     for idust in range(1, MAXDUST_FLUIDS)]
 for idir in range(1, 4):
-    dust_fields += [("m%dd%d" % (idir, idust), (code_moment, ["dust%d_moment" % idust], None))
-                    for idust in range(1, MAXDUST_FLUIDS)]
+    known_dust_fields += [("m%dd%d" % (idir, idust), (code_moment, ["dust%d_moment" % idust], None))
+                          for idust in range(1, MAXDUST_FLUIDS)]
 
 class AMRVACFieldInfo(FieldInfoContainer):
 
@@ -69,7 +69,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("b1", ("code_magnetic", ["magnetic_1"], None)),
         ("b2", ("code_magnetic", ["magnetic_2"], None)),
         ("b3", ("code_magnetic", ["magnetic_3"], None)),
-        *dust_fields
+        *known_dust_fields
     )
 
 
