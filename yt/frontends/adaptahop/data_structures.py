@@ -75,7 +75,6 @@ class AdaptaHOPDataset(Dataset):
     def _parse_parameter_file(self):
         with FortranFile(self.parameter_filename) as fpu:
             params = fpu.read_attrs(HEADER_ATTRIBUTES)
-
         self.dimensionality = 3
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])

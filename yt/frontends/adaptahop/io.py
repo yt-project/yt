@@ -76,7 +76,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                 continue
             ptype = 'halos'
             field_list0 = sorted(ptf[ptype], key=_find_attr_position)
-            field_list_pos = ['particle_position_%s' % k for k in 'xyz']
+            field_list_pos = ['raw_position_%s' % k for k in 'xyz']
             field_list = sorted(
                 set(field_list0 + field_list_pos),
                 key=_find_attr_position
@@ -104,14 +104,15 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                                 data[ihalo, jj] = v
                                 jj += 1
             ipos = [field_list.index(k) for k in field_list_pos]
-            x, y, z = (data[:, i] for i in ipos)
+            w = self.ds.domain_width.to('code_length')[0].value /2
+            x, y, z = (data[:, i] + w for i in ipos)
             mask = selector.select_points(x, y, z, 0.0)
             del x, y, z
 
             if mask is None: continue
             for field in field_list0:
                 i = field_list.index(field)
-                yield (ptype, field), data[mask, i].astype('float64')
+                yield (ptype, field), data[mask, i]
 
     def _initialize_index(self, data_file, regions):
         pcount = data_file.ds.parameters['nhalos'] + data_file.ds.parameters['nsubs']
@@ -161,7 +162,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
             params = fpu.read_attrs(HEADER_ATTRIBUTES)
 
             todo = _todo_from_attributes(
-                ('particle_position_x', 'particle_position_y', 'particle_position_z'))
+                ('raw_position_x', 'raw_position_y', 'raw_position_z'))
 
             nhalos = params['nhalos'] + params['nsubs']
             data = np.zeros((nhalos, 3))
