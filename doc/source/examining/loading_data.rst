@@ -1783,18 +1783,61 @@ Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 Halo Catalog Data
 -----------------
 
-yt has support for reading halo catalogs produced by the Amiga Halo Finder (AHF), Rockstar and the inline
-FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as
-particle datasets where each particle represents a single halo.  For example,
-this means that the `particle_mass` field refers to the mass of the halos.  For
-Gadget FOF/SUBFIND catalogs, the member particles for a given halo can be
-accessed by creating `halo` data containers.  See :ref:`halo_containers` for
-more information.
+yt has support for reading halo catalogs produced by the AdaptaHOP, Amiga Halo
+Finder (AHF), Rockstar and the inline FOF/SUBFIND halo finders of Gadget and
+OWLS.  The halo catalogs are treated as particle datasets where each particle
+represents a single halo.  For example, this means that the `particle_mass`
+field refers to the mass of the halos.  For Gadget FOF/SUBFIND catalogs, the
+member particles for a given halo can be accessed by creating `halo` data
+containers.  See :ref:`halo_containers` for more information.
 
 If you have access to both the halo catalog and the simulation snapshot from
 the same redshift, additional analysis can be performed for each halo using
 :ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
 to the other halo catalogs shown here.
+
+.. _adaptahop:
+AdataHOP
+^^^^^^^^
+
+`AdaptaHOP <https://ascl.net/1305.004>`_ halo catalogs are loaded by providing
+the path to the `tree_bricksXXX` file. As the halo catalog does not contain
+all the information about the simulation (for example the cosmological
+parameters), you also need to pass the parent dataset for it to load correctly.
+Some fields of note available from AdaptaHOP are:
+
++---------------------+---------------------------+
+| Rockstar field      | yt field name             |
++=====================+===========================+
+| halo id             | particle_identifier       |
++---------------------+---------------------------+
+| halo mass           | particle_mass             |
++---------------------+---------------------------+
+| virial mass         | virial_mass               |
++---------------------+---------------------------+
+| virial radius       | virial_radius             |
++---------------------+---------------------------+
+| virial temperature  | virial_temperature        |
++---------------------+---------------------------+
+| halo position       | particle_position_(x,y,z) |
++---------------------+---------------------------+
+| halo velocity       | particle_velocity_(x,y,z) |
++---------------------+---------------------------+
+
+Numerous other AdataHOP fields exist.  To see them, check the field list by
+typing `ds.field_list` for a dataset loaded as `ds`.  Like all other datasets,
+fields must be accessed through :ref:`Data-objects`.
+
+.. code-block:: python
+
+   import yt
+   parent_ds = yt.load("output_00080/info_00080.txt")
+   ds = yt.load("output_00080_halos/tree_bricks080", parent_ds=parent_ds)
+   ad = ds.all_data()
+   # halo masses
+   print(ad["halos", "particle_mass"])
+   # halo radii
+   print(ad["halos", "virial_radius"])
 
 .. _ahf:
 
