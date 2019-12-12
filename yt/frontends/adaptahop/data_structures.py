@@ -30,7 +30,6 @@ from yt.funcs import \
     setdefaultattr
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
-from yt.utilities.cosmology import Cosmology
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.units import Mpc
 

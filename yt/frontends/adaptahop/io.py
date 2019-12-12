@@ -15,7 +15,6 @@ AdaptaHOP data-file handling function
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import os
 
 from yt.funcs import mylog
 
