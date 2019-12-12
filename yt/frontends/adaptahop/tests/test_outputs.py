@@ -20,7 +20,7 @@ from yt.utilities.answer_testing.framework import \
 from yt.frontends.adaptahop.data_structures import AdaptaHOPDataset
 
 r0 = "output_00080/info_00080.txt"
-r1 = "output_00080/Halos/tree_bricks080"
+r1 = "output_00080_halos/tree_bricks080"
 
 @requires_file(r0)
 @requires_file(r1)
