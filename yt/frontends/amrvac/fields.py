@@ -48,19 +48,19 @@ class AMRVACFieldInfo(FieldInfoContainer):
     known_particle_fields = ()
 
     def setup_fluid_fields(self):
-        def _v1(field, data):
-            return data["gas", "moment_1"] / data["gas", "density"]
-        def _v2(field, data):
-            return data["gas", "moment_2"] / data["gas", "density"]
-        def _v3(field, data):
-            return data["gas", "moment_3"] / data["gas", "density"]
 
         unit_system = self.ds.unit_system
         aliases = direction_aliases[self.ds.geometry]
-        for idir, alias, func in zip("123", aliases, (_v1, _v2, _v3)):
+
+        def _velocity(idir):
+            def velocity_idir(field, data):
+                return data["gas", "moment_%s" % idir] / data["gas", "density"]
+            return velocity_idir
+
+        for idir, alias in zip("123", aliases):
             if not ("amrvac", "m%s" % idir) in self.field_list:
                 break
-            self.add_field(("gas", "velocity_%s" % alias), function=func,
+            self.add_field(("gas", "velocity_%s" % alias), function=_velocity(idir),
                             units=unit_system['velocity'], dimensions=dimensions.velocity, sampling_type="cell")
             self.alias(("gas", "velocity_%s" % idir), ("gas", "velocity_%s" % alias),
                         units=unit_system["velocity"])
