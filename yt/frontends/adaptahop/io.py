@@ -192,15 +192,21 @@ def _todo_from_attributes(attributes):
 
     for i, (attrs, l, k) in enumerate(HALO_ATTRIBUTES):
         if not isinstance(attrs, tuple):
-            attrs = (attrs, )
+            attrs_list = (attrs, )
+        else:
+            attrs_list = attrs
         ok = False
-        for attr in attrs:
+        for attr in attrs_list:
             if attr in attributes:
                 ok = True
                 break
 
         if i == 0:
-            state = 'read' if ok else 'skip'
+            if ok:
+                state = 'read'
+                todo.append([])
+            else:
+                state = 'skip'
 
         if ok:
             if state == 'skip':
