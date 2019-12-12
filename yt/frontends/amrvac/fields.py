@@ -34,6 +34,10 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     # format: (native(?) field, (units, [aliases], display_name))
     # note: aliases will correspond to "gas" typed fields, whereas the native ones are "amrvac" typed
+
+    # for now, define a finite family of dust fields (up to 100 species, should be enough)
+    dust_fields = [("rhod%d" % idust, ("code_mass / code_length**3", ["dust%d_density" % idust], None))
+                   for idust in range(1, 100)]
     known_other_fields = (
         ("rho", (code_density, ["density"], None)),
         ("m1", (code_moment, ["moment_1"], None)),
@@ -42,8 +46,10 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("e", (code_pressure, ["energy_density"], None)),
         ("b1", ("code_magnetic", ["magnetic_1"], None)),
         ("b2", ("code_magnetic", ["magnetic_2"], None)),
-        ("b3", ("code_magnetic", ["magnetic_3"], None))
+        ("b3", ("code_magnetic", ["magnetic_3"], None)),
+        *dust_fields
     )
+
 
     known_particle_fields = ()
 
@@ -74,6 +80,13 @@ class AMRVACFieldInfo(FieldInfoContainer):
                         units=unit_system["velocity"])
             self.alias(("gas", "moment_%s" % alias), ("gas", "moment_%d" % idir),
                         units=unit_system["density"]*unit_system["velocity"])
+
+        # dust
+        idust = 1
+        while ("amrvac", "rhod%d" % idust) in self.field_list:
+        #    self.add_field(("gas", "dust%d_density" % idust), function=_density(idust),
+        #                    units=unit_system['density'], dimensions=dimensions.density, sampling_type="cell")
+            idust += 1
 
 
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
