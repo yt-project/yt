@@ -45,4 +45,4 @@ def test_field_access():
     def test_access(ptype, field):
         ad[ptype, field]
     for (ptype, field) in fields:
-        yield test_access, ptype, field
+        test_access(ptype, field)
