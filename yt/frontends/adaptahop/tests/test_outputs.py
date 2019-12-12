@@ -1,5 +1,5 @@
 """
-Rockstar frontend tests using rockstar_halos dataset
+AdaptaHOP frontend tests
 
 
 
@@ -18,9 +18,6 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load
 
 from yt.frontends.adaptahop.data_structures import AdaptaHOPDataset
-
-_fields = ("particle_position_x", "particle_position_y",
-           "particle_position_z", "particle_mass")
 
 r0 = "output_00080/info_00080.txt"
 r1 = "output_00080/Halos/tree_bricks080"

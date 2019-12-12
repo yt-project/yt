@@ -1,5 +1,5 @@
 """
-Data structures for Rockstar
+Data structures for AdaptaHOP
 
 
 
