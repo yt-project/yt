@@ -1954,7 +1954,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self.coords = None
         self._grids = None
    
-    def cut_region(self, field_cuts, field_parameters=None):
+    def cut_region(self, field_cuts, field_parameters=None, locals={}):
         """
         Return a YTCutRegion, where the a cell is identified as being inside
         the cut region based on the value of one or more fields.  Note that in
@@ -1972,6 +1972,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         field_parameters : dictionary
            A dictionary of field parameters to be used when applying the field
            cuts.
+        locals : dictionary
+            A dictionary of local variables to use when defining the cut region.
 
         Examples
         --------
@@ -1981,10 +1983,11 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
         >>> cr = ad.cut_region(["obj['temperature'] > 1e6"])
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> print(cr.quantities.total_quantity("cell_mass").in_units('Msun'))
         """
         cr = self.ds.cut_region(self, field_cuts,
-                                field_parameters=field_parameters)
+                                field_parameters=field_parameters,
+                                locals=locals)
         return cr
    
     def exclude_above(self, field, value, units=None):
