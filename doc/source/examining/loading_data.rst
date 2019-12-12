@@ -79,7 +79,7 @@ Appropriate errors are thrown for other combinations.
 
 .. rubric:: Partially supported and unsupported features
 
-* a maximum of 100 dust fields can be discovered by yt at the moment.
+* a maximum of 100 dust species can be read by yt at the moment.
   If your application needs this limit increased, please report an issue
   https://github.com/yt-project/yt/issues
 * particle data: currently not supported (but might come later)
