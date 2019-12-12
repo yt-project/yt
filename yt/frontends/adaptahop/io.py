@@ -58,7 +58,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
             if pcount == 0:
                 continue
             pos = self._get_particle_positions()
-            yield "halos", (pos[:, i] for i in range(3))
+            yield ptype, (pos[:, i] for i in range(3))
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
