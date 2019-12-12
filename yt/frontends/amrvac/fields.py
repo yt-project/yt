@@ -32,10 +32,14 @@ direction_aliases = {
 def _velocity(idir, idust=None):
     """Generate a velocity function v_idir = m_idir / rho
 
+    If idust is not used, the "gas" velocity function is returned.
+
     Parameters
     ----------
     idir : int
         the direction index (1, 2 or 3)
+    idust : int, optional
+        the dust species index (AMRVAC). idust >= 1
     """
     if idust is None:
         dust_label = ""
@@ -75,7 +79,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     known_particle_fields = ()
 
-    def create_velocity_fields(self, idust=None):
+    def _create_velocity_fields(self, idust=None):
         if idust is None:
             dust_flag = dust_label = ""
         else:
@@ -97,17 +101,17 @@ class AMRVACFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
 
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
-        self.create_velocity_fields() # gas
+        self._create_velocity_fields() # gas velocity
 
+        # dust derived fields
         unit_system = self.ds.unit_system
-        # dust
         idust = 1
         while ("amrvac", "rhod%d" % idust) in self.field_list:
             if idust > MAXN_DUST_FLUIDS:
                 mylog.error("Only the first %d dust species are currently read by yt. " \
                             "If you read this, please consider issuing a ticket. " % MAXN_DUST_FLUIDS)
                 break
-            self.create_velocity_fields(idust)
+            self._create_velocity_fields(idust)
             idust += 1
         n_dust_found = idust - 1
 
