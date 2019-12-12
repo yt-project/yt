@@ -39,17 +39,27 @@ def _velocity(idir):
         return data["gas", "moment_%d" % idir] / data["gas", "density"]
     return velocity_idir
 
+code_density = "code_mass / code_length**3"
+code_moment = "code_mass / code_length**2 / code_time"
+code_pressure = "code_mass / code_length / code_time**2"
+
+# for now, define a finite family of dust fields (up to 100 species, should be enough)
+MAXDUST_FLUIDS = 100
+dust_fields = [("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
+                for idust in range(1, MAXDUST_FLUIDS)]
+for idir in range(1, 4):
+    dust_fields += [("m%dd%d" % (idir, idust), (code_moment, ["dust%d_moment" % idust], None))
+                    for idust in range(1, MAXDUST_FLUIDS)]
+
 class AMRVACFieldInfo(FieldInfoContainer):
-    code_density = "code_mass / code_length**3"
-    code_moment = "code_mass / code_length**2 / code_time"
-    code_pressure = "code_mass / code_length / code_time**2"
+
 
     # format: (native(?) field, (units, [aliases], display_name))
     # note: aliases will correspond to "gas" typed fields, whereas the native ones are "amrvac" typed
 
-    # for now, define a finite family of dust fields (up to 100 species, should be enough)
-    dust_fields = [("rhod%d" % idust, ("code_mass / code_length**3", ["dust%d_density" % idust], None))
-                   for idust in range(1, 100)]
+
+
+
     known_other_fields = (
         ("rho", (code_density, ["density"], None)),
         ("m1", (code_moment, ["moment_1"], None)),
@@ -84,19 +94,15 @@ class AMRVACFieldInfo(FieldInfoContainer):
                         units=unit_system["velocity"])
             self.alias(("gas", "moment_%s" % alias), ("gas", "moment_%d" % idir),
                         units=unit_system["density"]*unit_system["velocity"])
+
     def setup_fluid_fields(self):
-
-
-
-
         unit_system = self.ds.unit_system
         self.create_velocity_fields() # gas
 
         # dust
         idust = 1
         while ("amrvac", "rhod%d" % idust) in self.field_list:
-        #    self.add_field(("gas", "dust%d_density" % idust), function=_density(idust),
-        #                    units=unit_system['density'], dimensions=dimensions.density, sampling_type="cell")
+            #self.create_velocity_fields(idust)
             idust += 1
 
 
