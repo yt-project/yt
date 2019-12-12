@@ -89,17 +89,20 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                     field_list
                 )
 
-                attr2pos = {f: i for i, f in enumerate(field_list)}
-
                 nhalos = params['nhalos'] + params['nsubs']
                 data = np.zeros((nhalos, len(field_list)))
                 for ihalo in range(nhalos):
+                    jj = 0
                     for it in todo:
                         if isinstance(it, int):
                             fpu.skip(it)
                         else:
-                            for k, v in fpu.read_attrs(it).items():
-                                data[ihalo, attr2pos[k]] = v
+                            tmp = fpu.read_attrs(it)
+                            for k, v in tmp.items():
+                                if k not in field_list:
+                                    continue
+                                data[ihalo, jj] = v
+                                jj += 1
             ipos = [field_list.index(k) for k in field_list_pos]
             x, y, z = (data[:, i] for i in ipos)
             mask = selector.select_points(x, y, z, 0.0)
