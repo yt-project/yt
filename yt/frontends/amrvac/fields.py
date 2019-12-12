@@ -54,12 +54,12 @@ code_moment = "code_mass / code_length**2 / code_time"
 code_pressure = "code_mass / code_length / code_time**2"
 
 # for now, define a finite family of dust fields (up to 100 species, should be enough)
-MAXN_DUST_FLUIDS = 100
+MAXN_DUST_SPECIES = 100
 known_dust_fields = [("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
-                     for idust in range(1, MAXN_DUST_FLUIDS+1)]
+                     for idust in range(1, MAXN_DUST_SPECIES+1)]
 for idir in range(1, 4):
     known_dust_fields += [("m%dd%d" % (idir, idust), (code_moment, ["dust%d_moment_%d" % (idust, idir)], None))
-                          for idust in range(1, MAXN_DUST_FLUIDS+1)]
+                          for idust in range(1, MAXN_DUST_SPECIES+1)]
 
 class AMRVACFieldInfo(FieldInfoContainer):
 
@@ -109,9 +109,9 @@ class AMRVACFieldInfo(FieldInfoContainer):
         unit_system = self.ds.unit_system
         idust = 1
         while ("amrvac", "rhod%d" % idust) in self.field_list:
-            if idust > MAXN_DUST_FLUIDS:
+            if idust > MAXN_DUST_SPECIES:
                 mylog.error("Only the first %d dust species are currently read by yt. " \
-                            "If you read this, please consider issuing a ticket. " % MAXN_DUST_FLUIDS)
+                            "If you read this, please consider issuing a ticket. " % MAXN_DUST_SPECIES)
                 break
             self._create_velocity_fields(idust)
             idust += 1
