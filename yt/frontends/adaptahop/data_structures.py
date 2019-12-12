@@ -113,3 +113,39 @@ class AdaptaHOPDataset(Dataset):
         if not fname.startswith('tree_bricks') or not re.match('^tree_bricks\d{3}$', fname):
             return False
         return True
+
+    def get_halo(self, halo_id, ptype='DM'):
+        """
+        Returns the smallest sphere that contains all the particle of the halo.
+        """
+        parent_ds = self.parent_ds
+        ad = self.all_data()
+        halo_ids = ad['halos', 'particle_identifier'].astype(int)
+        ihalo = np.searchsorted(halo_ids, halo_id)
+        assert halo_ids[ihalo] == halo_id
+
+        halo_pos = ad['halos', 'particle_position'][ihalo, :].to('Mpc').value
+        halo_vel = ad['halos', 'particle_velocity'][ihalo, :]
+        halo_radius = ad['halos', 'r'][ihalo].to('Mpc').value
+
+        members = self.index.io.members(ihalo)
+        ok = False
+        f = 1/1.1
+        while not ok:
+            f *= 1.1
+            sph = parent_ds.sphere(
+                parent_ds.arr(halo_pos, 'Mpc'),
+                parent_ds.arr(f * halo_radius, 'Mpc'))
+
+            part_ids = sph[ptype, 'particle_identity'].astype(int)
+
+            ok = len(np.lib.arraysetops.setdiff1d(members, part_ids)) == 0
+
+        # Set bulk velocity
+        sph.set_field_parameter('bulk_velocity', (halo_vel.to('km/s').value, 'km/s'))
+
+        # Build subregion that only contains halo particles
+        reg = sph.cut_region(
+            ['np.in1d(obj["io", "particle_identity"].astype(int), members)'],
+            locals=dict(members=members, np=np))
+        return (members, sph, reg)

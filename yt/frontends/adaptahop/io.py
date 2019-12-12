@@ -35,6 +35,9 @@ from .definitions import \
 class IOHandlerAdaptaHOPBinary(BaseIOHandler):
     _dataset_type = "adaptahop_binary"
 
+    _offsets = None              # Location of halos in the file
+    _particle_positions = None   # Buffer of halo position
+
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
@@ -123,7 +126,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         ind = 0
 
         pos = self._get_particle_positions()
-        print(pos.min(axis=0), pos.max(axis=0), self.ds.domain_width.to('Mpc'))
+
         if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
             np.any(pos.max(axis=0) > self.ds.domain_right_edge):
             raise YTDomainOverflow(pos.min(axis=0),
@@ -157,27 +160,55 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
     # Specific to AdaptaHOP
     def _get_particle_positions(self):
         """Read the particles and return them in code_units"""
+        data = getattr(self, '_particle_positions', None)
+        if data is not None:
+            return data
+
         with FortranFile(self.ds.parameter_filename) as fpu:
             params = fpu.read_attrs(HEADER_ATTRIBUTES)
 
             todo = _todo_from_attributes(
-                ('raw_position_x', 'raw_position_y', 'raw_position_z'))
+                ('particle_identifier',
+                 'raw_position_x', 'raw_position_y', 'raw_position_z'))
 
             nhalos = params['nhalos'] + params['nsubs']
             data = np.zeros((nhalos, 3))
+            offset_map = np.zeros((nhalos, 2), dtype=int)
             for ihalo in range(nhalos):
+                ipos = fpu.tell()
                 for it in todo:
                     if isinstance(it, int):
                         fpu.skip(it)
-                    else:
+                    elif it[0][0] != 'particle_identifier':
                         # Small optimisation here: we can read as vector
                         # dt = fpu.read_attrs(it)
                         # data[ihalo, 0] = dt['particle_position_x']
                         # data[ihalo, 1] = dt['particle_position_y']
                         # data[ihalo, 2] = dt['particle_position_z']
                         data[ihalo, :] = fpu.read_vector(it[0][-1])
+                    else:
+                        halo_id = fpu.read_int()
+                        offset_map[ihalo, 0] = halo_id
+                        offset_map[ihalo, 1] = ipos
         data = self.ds.arr(data, "code_length") + self.ds.domain_width / 2  # FIXME
+
+        # Make sure halos are loaded in increasing halo_id order
+        assert np.all(np.diff(offset_map[:, 0]) > 0)
+
+        # Cache particle positions as one do not expect a (very) large number of halos anyway
+        self._particle_positions = data
+        self._offsets = offset_map
         return data
+
+    def members(self, ihalo):
+        offset = self._offsets[ihalo, 1]
+        todo = _todo_from_attributes(('particle_identities', ))
+        with FortranFile(self.ds.parameter_filename) as fpu:
+            fpu.seek(offset)
+            if isinstance(todo[0], int):
+                fpu.skip(todo.pop(0))
+            members = fpu.read_attrs(todo.pop(0))['particle_identities']
+        return members
 
 
 def _todo_from_attributes(attributes):
