@@ -123,7 +123,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
         self.add_field(("gas", "total_dust_density"), function=_total_dust_density,
                        dimensions=dimensions.density,
-                       units=unit_system["density"], sampling_type="cell", force_override=True)
+                       units=unit_system["density"], sampling_type="cell")
 
         def dust_to_gas_ratio(field, data):
             return data["total_dust_density"] / data["density"]
@@ -131,5 +131,5 @@ class AMRVACFieldInfo(FieldInfoContainer):
         self.add_field(("gas", "dust_to_gas_ratio"), function=dust_to_gas_ratio,
                         dimensions=dimensions.dimensionless,
                         #units="auto",
-                        sampling_type="cell", force_override=True)
+                        sampling_type="cell")
 
