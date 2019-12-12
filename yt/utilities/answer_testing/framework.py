@@ -19,7 +19,6 @@ import tempfile
 import hashlib
 import matplotlib.image as mpimg
 import numpy as np
-import pytest
 
 from yt.analysis_modules.cosmological_observation.api import \
      LightCone
@@ -34,7 +33,6 @@ import yt.visualization.plot_window as pw
 #============================================
 #                 AnswerTest
 #============================================
-@pytest.mark.usefixtures("cli_testing_opts")
 class AnswerTest():
     #-----
     # grid_hierarchy_test
@@ -70,10 +68,12 @@ class AnswerTest():
     # grid_values_test
     #-----
     def grid_values_test(self, ds, field):
-        # result = {}
+        # The hashing is done here so that there is only one entry for
+        # the test that contains info about all of the grids as opposed
+        # to having a separate 'grid_id : grid_hash' pair for each grid
+        # since that makes the answer file much larger
         result = None
         for g in ds.index.grids:
-            # result[g.id] = g[field]
             if result is None:
                 result = hashlib.md5(bytes(g.id) + g[field].tobytes())
             else:
@@ -104,11 +104,18 @@ class AnswerTest():
         # from dict and does nothing else. As such, it gets converted
         # to a dict here to remove the python-specific anchor in the
         # yaml answer file
-        fd_dict = {}
+        # This is to try and remove python-specific anchors in the yaml
+        # answer file. Also, using __repr__() results in weird strings
+        # of strings that make comparison fail even though the data is
+        # the same
+        result = None 
         for k, v in proj.field_data.items():
-            fd_dict[k] = v
-        # return proj.field_data
-        return fd_dict
+            k = k.__repr__().encode('utf8')
+            if result is None:
+                result = hashlib.md5(k + v.tobytes())
+            else:
+                result.update(k + v.tobytes())
+        return result.hexdigest()
 
     def field_values_test(self, ds, field, obj_type=None, particle_type=False):
         # If needed build an instance of the dataset type
@@ -145,10 +152,18 @@ class AnswerTest():
         for f in proj.field_data:
             # Sometimes f will be a tuple.
             d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
-        result = {}
+        # This is to try and remove python-specific anchors in the yaml
+        # answer file. Also, using __repr__() results in weird strings
+        # of strings that make comparison fail even though the data is
+        # the same
+        result = None 
         for k, v in d.items():
-            result[k.__repr__()] = hashlib.md5(v).hexdigest()
-        return result 
+            k = k.__repr__().encode('utf8')
+            if result is None:
+                result = hashlib.md5(k + v.tobytes())
+            else:
+                result.update(k + v.tobytes())
+        return result.hexdigest()
 
     #-----
     # check_color
