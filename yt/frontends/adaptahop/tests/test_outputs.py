@@ -13,6 +13,8 @@ AdaptaHOP frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
+
 from yt.testing import requires_file
 from yt.utilities.answer_testing.framework import \
     data_dir_load
@@ -46,3 +48,21 @@ def test_field_access():
         ad[ptype, field]
     for (ptype, field) in fields:
         test_access(ptype, field)
+
+@requires_file(r0)
+@requires_file(r1)
+def test_get_halo():
+    ds_parent = data_dir_load(r0)
+    ds = data_dir_load(r1, kwargs=dict(parent_ds=ds_parent))
+
+    members, sphere, region = ds.get_halo(1, ptype='io')
+
+    members = np.sort(members)
+    # Check sphere contains all the members
+    id_sphere = sphere['io', 'particle_identity'].astype(int)
+    assert len(np.lib.arraysetops.setdiff1d(members, id_sphere)) == 0
+
+    # Check region contains *only* halo particles
+    id_reg = np.sort(region['io', 'particle_identity'].astype(int))
+
+    np.testing.assert_equal(members, id_reg)
