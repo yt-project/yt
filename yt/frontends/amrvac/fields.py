@@ -130,6 +130,5 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
         self.add_field(("gas", "dust_to_gas_ratio"), function=dust_to_gas_ratio,
                         dimensions=dimensions.dimensionless,
-                        #units="auto",
                         sampling_type="cell")
 
