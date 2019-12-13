@@ -17,11 +17,6 @@ import yt.utilities.answer_testing.framework as fw
 from yt.utilities.answer_testing import utils
 
 
-def setup():
-    """Test specific setup."""
-    from yt.config import ytcfg
-    ytcfg["yt", "__withintesting"] = "True"
-
 raw_fields = "Laser/plt00015"
 
 @pytest.mark.answer_test
