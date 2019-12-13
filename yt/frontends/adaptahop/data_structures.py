@@ -111,7 +111,7 @@ class AdaptaHOPDataset(Dataset):
             return False
         return True
 
-    def get_halo(self, halo_id, ptype='DM'):
+    def halo(self, halo_id, ptype='DM'):
         """
         Returns the smallest sphere that contains all the particle of the halo.
         """
