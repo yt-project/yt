@@ -2365,7 +2365,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         else:
             field_cuts = ('~np.isnan(obj["' + field + '"].in_units("' + units + 
                 '"))')
-        cr = self.cut_region(field_cuts)
+        cr = self.cut_region(field_cuts, locals={'np': np})
         return cr
 
     def include_below(self, field, value, units=None):
