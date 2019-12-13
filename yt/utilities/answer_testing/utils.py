@@ -4,6 +4,7 @@ Purpose: Contains utility functions for yt answer tests
 Notes:
 """
 import hashlib
+import inspect
 import os
 
 import numpy as np
@@ -45,6 +46,11 @@ def streamline_for_io(params):
     """
     streamlined_params = {}
     for key, value in params.items():
+        # Check for user-defined functions
+        if inspect.isfunction(key):
+            key = key.__name__
+        if inspect.isfunction(value):
+            value = value.__name__
         # The key can be nested iterables, e.g., 
         # d = [None, ('sphere', (center, (0.1, 'unitary')))] so we need
         # to use recursion
@@ -77,8 +83,11 @@ def iterable_to_string(iterable):
     """
     result = iterable.__class__.__name__ 
     for elem in iterable:
+        # Check for user-defined functions
+        if inspect.isfunction(elem):
+            result += '_' + elem.__name__
         # Non-string iterables (e.g., lists, tuples, etc.)
-        if not isinstance(elem, str) and hasattr(elem, '__iter__'):
+        elif not isinstance(elem, str) and hasattr(elem, '__iter__'):
             result += '_' + iterable_to_string(elem)
         # Non-string non-iterables (ints, floats, etc.)
         elif not isinstance(elem, str) and not hasattr(elem, '__iter__'):
