@@ -18,6 +18,7 @@ riemann_cartesian_175D = "amrvac/R_1d0005.dat"
 blastwave_cartesian_3D = "amrvac/bw_3d0000.dat"
 blastwave_polar_2D = "amrvac/bw_polar_2D0000.dat"
 blastwave_cylindrical_3D = "amrvac/bw_cylindrical_3D0000.dat"
+rmi_cartesian_dust_2D = "amrvac/Richtmyer_Meshkov_dust_2D/RM2D_dust_Kwok0000.dat"
 
 @requires_file(khi_cartesian_2D)
 def test_AMRVACDataset():
@@ -198,3 +199,18 @@ def test_normalisations_vel_and_length():
     with assert_raises(ValueError):
         data_dir_load(khi_cartesian_2D, kwargs={'units_override': overrides})
 
+@requires_file(rmi_cartesian_dust_2D)
+def test_dust_fields():
+    # Check all dust fields are correctly setup and can be retrieved
+    ds = data_dir_load(rmi_cartesian_dust_2D)
+    fields = ["total_dust_density", "dust_to_gas_ratio"]
+    for idust in range(1, 5):
+        fields.append("dust%d_density" % idust)
+        for _i, alias in enumerate("xy"):
+            fields += ["dust%d_velocity_%d" % (idust, _i+1),
+                       "dust%d_velocity_%s" % (idust, alias)]
+
+    ad = ds.all_data()
+    for fieldname in fields:
+        assert ("gas", fieldname) in ds.derived_field_list
+        ad[fieldname]
