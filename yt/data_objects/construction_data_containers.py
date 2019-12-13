@@ -2626,28 +2626,19 @@ class YTOctree(YTSelectionContainer3D):
 
     _spatial = True
     _type_name = "octree"
-    _con_args = ("left_edge", "right_edge", "n_ref")
-    _container_fields = (
-        ("index", "dx"),
-        ("index", "dy"),
-        ("index", "dz"),
-        ("index", "x"),
-        ("index", "y"),
-        ("index", "z"),
-    )
+    _con_args = ('left_edge', 'right_edge', 'n_ref')
+    _container_fields = (("index", "dx"),
+                         ("index", "dy"),
+                         ("index", "dz"),
+                         ("index", "x"),
+                         ("index", "y"),
+                         ("index", "z"),
+                         ("index", "refined"),
+                         ("index", "sizes"),
+                         ("index", "coordinates"))
 
-    def __init__(
-        self,
-        left_edge=None,
-        right_edge=None,
-        n_ref=32,
-        over_refine_factor=1,
-        density_factor=1,
-        ptypes=None,
-        force_build=False,
-        ds=None,
-        field_parameters=None,
-    ):
+    def __init__(self, left_edge=None, right_edge=None, n_ref=32, ptypes=None,
+                 ds=None, field_parameters=None):
         if field_parameters is None:
             center = None
         else:
@@ -2657,17 +2648,12 @@ class YTOctree(YTSelectionContainer3D):
         self.left_edge = self._sanitize_edge(left_edge, ds.domain_left_edge)
         self.right_edge = self._sanitize_edge(right_edge, ds.domain_right_edge)
         self.n_ref = n_ref
-        self.density_factor = density_factor
-        self.over_refine_factor = over_refine_factor
         self.ptypes = self._sanitize_ptypes(ptypes)
 
         self._setup_data_source()
         self.tree
 
-    def __eq__(self, other):
-        return self.tree == other.tree
-
-    def _generate_tree(self, fname=None):
+    def _generate_tree(self):
         positions = []
         for ptype in self.ptypes:
             positions.append(
@@ -2681,58 +2667,37 @@ class YTOctree(YTSelectionContainer3D):
             self._octree = None
             return
 
-        mylog.info("Allocating Octree for %s particles", positions.shape[0])
-        self.loaded = False
+        mylog.info('Allocating Octree for %s particles' % positions.shape[0])
         self._octree = CyOctree(
-            positions.astype("float64", copy=False),
+            positions,
             left_edge=self.ds.domain_left_edge.in_units("code_length"),
             right_edge=self.ds.domain_right_edge.in_units("code_length"),
             n_ref=self.n_ref,
-            over_refine_factor=self.over_refine_factor,
-            density_factor=self.density_factor,
-            data_version=self.ds._file_hash,
         )
-
-        if fname is not None:
-            mylog.info("Saving octree to file %s", os.path.basename(fname))
-            self._octree.save(fname)
+        mylog.info('Allocated %s nodes in octree' % self._octree.num_nodes)
 
     @property
     def tree(self):
-        self.ds.index
-
-        # Chose _octree as _tree seems to be used
-        if hasattr(self, "_octree"):
+        if hasattr(self, '_octree'):
             return self._octree
 
         ds = self.ds
-        if getattr(ds, "tree_filename", None) is None:
-            if os.path.exists(ds.parameter_filename):
-                fname = ds.parameter_filename + ".octree"
-            else:
-                # we don't want to write to disk for in-memory data
-                fname = None
-        else:
-            fname = ds.tree_filename
+        self.ds.index
 
-        if fname is None:
-            self._generate_tree(fname)
-        elif not os.path.exists(fname):
-            self._generate_tree(fname)
-        else:
-            self.loaded = True
-            mylog.info("Loading octree from %s", os.path.basename(fname))
-            self._octree = CyOctree()
-            self._octree.load(fname)
-            if self._octree.data_version != self.ds._file_hash:
-                mylog.info("Detected hash mismatch, regenerating Octree")
-                self._generate_tree(fname)
+        self._generate_tree()
 
-        pos = ds.arr(self._octree.cell_positions, "code_length")
-        self[("index", "coordinates")] = pos
-        self[("index", "x")] = pos[:, 0]
-        self[("index", "y")] = pos[:, 1]
-        self[("index", "z")] = pos[:, 2]
+        pos = ds.arr(self._octree.node_positions, "code_length")
+        self[('index', 'coordinates')] = pos
+        self[('index', 'x')] = pos[:, 0]
+        self[('index', 'y')] = pos[:, 1]
+        self[('index', 'z')] = pos[:, 2]
+        self[('index', 'refined')] = self._octree.node_refined
+
+        sizes = ds.arr(self._octree.node_sizes, "code_length")
+        self[('index', 'sizes')] = sizes
+        self[('index', 'dx')] = sizes[:, 0]
+        self[('index', 'dy')] = sizes[:, 1]
+        self[('index', 'dz')] = sizes[:, 2]
 
         return self._octree
 
@@ -2794,6 +2759,7 @@ class YTOctree(YTSelectionContainer3D):
                 self.gather_smooth(fields, units, normalize)
         elif fields[0] == "index":
             return self[fields]
+
         else:
             raise NotImplementedError
 
