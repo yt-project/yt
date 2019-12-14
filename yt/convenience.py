@@ -14,7 +14,10 @@ Some convenience functions, objects, and iterators
 #-----------------------------------------------------------------------------
 
 import os
-from pathlib import PosixPath
+try:
+    from pathlib import PosixPath
+except ImportError: # python2
+    from pathlib2 import PosixPath
 
 # Named imports
 from yt.extern.six import string_types
