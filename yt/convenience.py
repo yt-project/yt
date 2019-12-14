@@ -14,6 +14,7 @@ Some convenience functions, objects, and iterators
 #-----------------------------------------------------------------------------
 
 import os
+from pathlib import PosixPath
 
 # Named imports
 from yt.extern.six import string_types
@@ -37,7 +38,7 @@ def load(*args ,**kwargs):
     :class:`yt.data_objects.static_output.Dataset` subclass.
     """
     candidates = []
-    args = [os.path.expanduser(arg) if isinstance(arg, string_types)
+    args = [os.path.expanduser(arg) if isinstance(arg, (PosixPath, *string_types))
             else arg for arg in args]
     valid_file = []
     for argno, arg in enumerate(args):
