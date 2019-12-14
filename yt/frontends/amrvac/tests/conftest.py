@@ -9,7 +9,7 @@ from yt.utilities.answer_testing import utils
 
 # Data files
 blastwave_spherical_2D = "amrvac/bw_2d0000.dat"
-khi_cartesian_2D = "amrvac/kh_2D0000.dat"
+khi_cartesian_2D = "amrvac/kh_2d0000.dat"
 khi_cartesian_3D = "amrvac/kh_3D0000.dat"
 jet_cylindrical_25D = "amrvac/Jet0003.dat"
 riemann_cartesian_175D = "amrvac/R_1d0005.dat"
@@ -29,7 +29,7 @@ weights = [None, "density"]
 hash_tests = [
     'test_bw_polar_2d',
     'test_blastwave_cartesian_3D',
-    'test_blaswave_spherical_2D',
+    'test_blastwave_spherical_2D',
     'test_blastwave_cylindrical_3D',
     'test_khi_cartesian_2D',
     'test_khi_cartesian_3D',
@@ -50,7 +50,7 @@ def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ == 'test_khi_cartesian_2D':
         fields = utils.data_dir_load(khi_cartesian_2D).field_list
     if metafunc.function.__name__ == 'test_khi_cartesian_3D':
-        fields = utils.data_Dir_load(khi_cartesian_3D).field_list
+        fields = utils.data_dir_load(khi_cartesian_3D).field_list
     if metafunc.function.__name__ == 'test_jet_cylindrical_25D':
         fields = utils.data_dir_load(jet_cylindrical_25D).field_list
     if metafunc.function.__name__ == 'test_riemann_cartesian_175D':

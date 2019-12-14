@@ -9,7 +9,7 @@ from yt.utilities.answer_testing import utils
 
 
 blastwave_spherical_2D = "amrvac/bw_2d0000.dat"
-khi_cartesian_2D = "amrvac/kh_2D0000.dat"
+khi_cartesian_2D = "amrvac/kh_2d0000.dat"
 khi_cartesian_3D = "amrvac/kh_3D0000.dat"
 jet_cylindrical_25D = "amrvac/Jet0003.dat"
 riemann_cartesian_175D = "amrvac/R_1d0005.dat"
@@ -52,7 +52,7 @@ class TestAMRVac(fw.AnswerTest):
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(blastwave_polar_2D)
     def test_bw_polar_2d(self, a, d, w, f, ds_bw_polar_2D):
-        self.hashes.update(self.small_patch_amr(ds_bw_polar_2d, f, w, a, d))
+        self.hashes.update(self.small_patch_amr(ds_bw_polar_2D, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(blastwave_cartesian_3D)
