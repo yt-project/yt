@@ -14,13 +14,9 @@ Some convenience functions, objects, and iterators
 #-----------------------------------------------------------------------------
 
 import os
-try:
-    from pathlib import PosixPath
-except ImportError: # python2
-    from pathlib2 import PosixPath
 
 # Named imports
-from yt.extern.six import string_types
+from yt.extern.six import string_types, PY3
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.utilities.parameter_file_storage import \
@@ -41,7 +37,12 @@ def load(*args ,**kwargs):
     :class:`yt.data_objects.static_output.Dataset` subclass.
     """
     candidates = []
-    args = [os.path.expanduser(arg) if isinstance(arg, tuple((list(string_types) + [PosixPath])))
+
+    acceptable_input_types = list(string_types)
+    if PY3:
+        from pathlib import PosixPath
+        acceptable_input_types.append(PosixPath)
+    args = [os.path.expanduser(arg) if isinstance(arg, tuple(acceptable_input_types))
             else arg for arg in args]
     valid_file = []
     for argno, arg in enumerate(args):
