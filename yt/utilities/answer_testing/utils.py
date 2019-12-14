@@ -13,6 +13,7 @@ import yaml
 
 from yt.config import ytcfg
 from yt.convenience import load, simulation
+from yt.data_objects.selection_data_containers import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
 from yt.units.yt_array import \
@@ -23,6 +24,7 @@ from yt.utilities.exceptions import \
 import yt.visualization.particle_plots as particle_plots
 import yt.visualization.plot_window as pw
 import yt.visualization.profile_plotter as profile_plotter
+from yt.visualization.volume_rendering.scene import Scene
 
 
 #============================================
@@ -59,6 +61,11 @@ def streamline_for_io(params):
         # The value can also be nested iterables
         if not isinstance(value, str) and hasattr(value, '__iter__'):
             value = iterable_to_string(value)
+        # Scene objects need special treatment to make them more IO friendly
+        if isinstance(value, Scene):
+            value = 'Scene' 
+        elif isinstance(value, YTRegion):
+            value = 'Region'
         streamlined_params[key] = value
     return streamlined_params
 
