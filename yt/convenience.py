@@ -38,7 +38,7 @@ def load(*args ,**kwargs):
     :class:`yt.data_objects.static_output.Dataset` subclass.
     """
     candidates = []
-    args = [os.path.expanduser(arg) if isinstance(arg, (PosixPath, *string_types))
+    args = [os.path.expanduser(arg) if isinstance(arg, tuple((list(string_types) + [PosixPath])))
             else arg for arg in args]
     valid_file = []
     for argno, arg in enumerate(args):
