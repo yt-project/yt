@@ -6,13 +6,6 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
