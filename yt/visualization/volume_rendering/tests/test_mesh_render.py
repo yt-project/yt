@@ -4,7 +4,7 @@ Test Surface Mesh Rendering
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
+# Copyright (c) 2015-2020, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #

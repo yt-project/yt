@@ -5,7 +5,7 @@ openPMD data structures
 """
 
 # -----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2013-2020, yt Development Team.
 # Copyright (c) 2015, Daniel Grassinger (HZDR)
 # Copyright (c) 2016, Fabian Koller (HZDR)
 #

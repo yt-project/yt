@@ -6,7 +6,7 @@ Enzo-P-specific IO functions
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2017, yt Development Team.
+# Copyright (c) 2017-2020, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #

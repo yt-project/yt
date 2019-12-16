@@ -2,7 +2,7 @@
 Tests for yt.testing
 """
 #-----------------------------------------------------------------------------
-# Copyright (c) 2018, yt Development Team.
+# Copyright (c) 2018-2020, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #

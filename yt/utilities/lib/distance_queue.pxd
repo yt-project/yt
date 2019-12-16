@@ -7,7 +7,7 @@ A queue for evaluating distances to discrete points
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
+# Copyright (c) 2016-2020, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #

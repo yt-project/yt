@@ -3,7 +3,7 @@ Tests for setting camera and scene attributes
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
+# Copyright (c) 2014-2020, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #

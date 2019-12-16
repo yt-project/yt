@@ -7,7 +7,7 @@ the namespace and getting the last argument on the command line.
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2013-2020, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #

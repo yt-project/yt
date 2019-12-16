@@ -7,7 +7,7 @@ Particle-only geometry handler
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2013-2020, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #

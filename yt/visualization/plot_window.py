@@ -7,7 +7,7 @@ A plotting mechanism based on the idea of a "window" into the data.
 from __future__ import print_function
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2013-2020, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #

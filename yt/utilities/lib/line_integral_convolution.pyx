@@ -6,7 +6,7 @@ Utilities for line integral convolution annotation
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
+# Copyright (c) 2015-2020, yt Development Team.
 #
 # Code originally from Scipy Cookbook (http://wiki.scipy.org/Cookbook/LineIntegralConvolution),
 # with bug fixed which leads to crash when non equal-size vector field in two
