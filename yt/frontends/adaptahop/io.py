@@ -72,6 +72,15 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
+
+        def iterate_over_attributes(attr_list):
+            for attr, length, dtype in attr_list:
+                if isinstance(attr, tuple):
+                    for a in attr:
+                        yield a
+                else:
+                    yield attr
+
         for data_file in sorted(data_files, key=attrgetter("filename")):
             pcount = data_file.ds.parameters['nhalos'] + data_file.ds.parameters['nsubs']
             if pcount == 0:
@@ -100,8 +109,9 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                             fpu.skip(it)
                         else:
                             tmp = fpu.read_attrs(it)
-                            for k, v in tmp.items():
-                                if k not in field_list:
+                            for key in iterate_over_attributes(it):
+                                v = tmp[key]
+                                if key not in field_list:
                                     continue
                                 data[ihalo, jj] = v
                                 jj += 1
