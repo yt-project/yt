@@ -19,9 +19,8 @@ import stat
 import os
 import re
 
-from .fields import \
-    AdaptaHOPFieldInfo
-
+from yt.data_objects.data_containers import \
+    YTSelectionContainer
 from yt.data_objects.static_output import \
     Dataset
 from yt.frontends.halo_catalog.data_structures import \
@@ -35,6 +34,8 @@ from yt.units import Mpc
 
 from .definitions import \
     HEADER_ATTRIBUTES
+from .fields import \
+    AdaptaHOPFieldInfo
 
 class AdaptaHOPBinaryFile(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
@@ -113,21 +114,151 @@ class AdaptaHOPDataset(Dataset):
 
     def halo(self, halo_id, ptype='DM'):
         """
-        Returns the smallest sphere that contains all the particle of the halo.
+        Create a data container to get member particles and individual
+        values from halos. Halo properties are set as attributes.
+        Halo IDs are accessible through the field, "member_ids".
         """
-        parent_ds = self.parent_ds
-        ad = self.all_data()
-        halo_ids = ad['halos', 'particle_identifier'].astype(int)
-        ihalo = np.searchsorted(halo_ids, halo_id)
-        assert halo_ids[ihalo] == halo_id
+        return AdaptaHOPHaloContainer(
+            ptype, halo_id, parent_ds=self.parent_ds, halo_ds=self)
 
-        halo_pos = ad['halos', 'particle_position'][ihalo, :].to('Mpc').value
-        halo_vel = ad['halos', 'particle_velocity'][ihalo, :]
-        halo_radius = ad['halos', 'r'][ihalo].to('Mpc').value
+class AdaptaHOPHaloContainer(YTSelectionContainer):
+    """
+    Create a data container to get member particles and individual
+    values from halos. Halo mass, position, and velocity are set as attributes.
+    Halo IDs are accessible through the field, "member_ids".  Other fields that
+    are one value per halo are accessible as normal.  The field list for
+    halo objects can be seen in `ds.halos_field_list`.
 
-        members = self.index.io.members(ihalo)
+    Parameters
+    ----------
+    ptype : string
+        The type of halo, either "Group" for the main halo or
+        "Subhalo" for subhalos.
+    particle_identifier : int or tuple of ints
+        The halo or subhalo id.  If requesting a subhalo, the id
+        can also be given as a tuple of the main halo id and
+        subgroup id, such as (1, 4) for subgroup 4 of halo 1.
+
+    Attributes
+    ----------
+    particle_identifier : int
+        The id of the halo or subhalo.
+    group_identifier : int
+        For subhalos, the id of the enclosing halo.
+    subgroup_identifier : int
+        For subhalos, the relative id of the subhalo within
+        the enclosing halo.
+    particle_number : int
+        Number of particles in the halo.
+    mass : float
+        Halo mass.
+    position : array of floats
+        Halo position.
+    velocity : array of floats
+        Halo velocity.
+
+    Note
+    ----
+    Relevant Fields:
+
+     * particle_number - number of particles
+     * subhalo_number - number of subhalos
+     * group_identifier - id of parent group for subhalos
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5")
+    >>>
+    >>> halo = ds.halo("Group", 0)
+    >>> print(halo.mass)
+    13256.5517578 code_mass
+    >>> print(halo.position)
+    [ 16.18603706   6.95965052  12.52694607] code_length
+    >>> print(halo.velocity)
+    [ 6943694.22793569  -762788.90647454  -794749.63819757] cm/s
+    >>> print(halo["Group_R_Crit200"])
+    [ 0.79668683] code_length
+    >>>
+    >>> # particle ids for this halo
+    >>> print(halo["member_ids"])
+    [  723631.   690744.   854212. ...,   608589.   905551.  1147449.] dimensionless
+    >>>
+    >>> # get the first subhalo of this halo
+    >>> subhalo = ds.halo("Subhalo", (0, 0))
+    """
+
+    _type_name = "halo"
+    _con_args = ("ptype", "particle_identifier", "parent_ds", "halo_ds")
+    _spatial = False
+    # Do not register it to prevent .halo from being attached to all datasets
+    _skip_add = True
+
+    def __init__(self, ptype, particle_identifier, parent_ds, halo_ds):
+        if ptype not in parent_ds.particle_types_raw:
+            raise RuntimeError("Possible halo types are %s, supplied \"%s\"." %
+                               (parent_ds.particle_types_raw, ptype))
+
+        # Setup required fields
+        self._dimensionality = 3
+        self.ds = parent_ds
+
+        # Halo-specific 
+        self.halo_ds = halo_ds
+        self.ptype = ptype
+        self.particle_identifier = particle_identifier
+
+        # Set halo particles data
+        self._set_halo_properties()
+        self._set_halo_member_data()
+
+        # Call constructor
+        super(AdaptaHOPHaloContainer, self).__init__(
+            parent_ds, {})
+
+
+    def __repr__(self):
+        return "%s_%s_%09d" % \
+          (self.ds, self.ptype, self.particle_identifier)
+
+    
+    def __getitem__(self, key):
+        return self.reg[key]
+
+    @property
+    def ihalo(self):
+        """The index in the catalog of the halo"""
+        ihalo = getattr(self, '_ihalo', None)
+        if ihalo:
+            return ihalo
+        else:
+            halo_id = self.particle_identifier
+            halo_ids = self.halo_ds.r['halos', 'particle_identifier'].astype(int)
+            ihalo = np.searchsorted(halo_ids, halo_id)
+            
+            assert halo_ids[ihalo] == halo_id
+
+            self._ihalo = ihalo
+            return self._ihalo
+        
+
+    def _set_halo_member_data(self):
+        ptype = self.ptype
+        halo_ds = self.halo_ds
+        parent_ds = self.ds
+        ihalo = self.ihalo
+
+        # Note: convert to physical units to prevent errors when jumping
+        # from halo_ds to parent_ds
+        halo_pos = halo_ds.r['halos', 'particle_position'][ihalo, :].to('Mpc').value
+        halo_vel = halo_ds.r['halos', 'particle_velocity'][ihalo, :].to('km/s').value
+        halo_radius = halo_ds.r['halos', 'r'][ihalo].to('Mpc').value
+
+        members = self.members
         ok = False
         f = 1/1.1
+        # Find smallest sphere containing all particles
         while not ok:
             f *= 1.1
             sph = parent_ds.sphere(
@@ -139,10 +270,21 @@ class AdaptaHOPDataset(Dataset):
             ok = len(np.lib.arraysetops.setdiff1d(members, part_ids)) == 0
 
         # Set bulk velocity
-        sph.set_field_parameter('bulk_velocity', (halo_vel.to('km/s').value, 'km/s'))
+        sph.set_field_parameter('bulk_velocity', (halo_vel, 'km/s'))
 
         # Build subregion that only contains halo particles
         reg = sph.cut_region(
             ['np.in1d(obj["io", "particle_identity"].astype(int), members)'],
             locals=dict(members=members, np=np))
-        return (members, sph, reg)
+
+        self.sphere = sph
+        self.reg = reg
+
+    def _set_halo_properties(self):
+        ihalo = self.ihalo
+        ds = self.halo_ds
+        # Add position, mass, velocity member functions
+        for attr_name in ('mass', 'position', 'velocity'):
+            setattr(self, attr_name, ds.r['halos', 'particle_%s' % attr_name][ihalo])
+        # Add members
+        self.members = self.halo_ds.index.io.members(ihalo).astype(np.int64)
