@@ -224,7 +224,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
 
     
     def __getitem__(self, key):
-        return self.reg[key]
+        return self.region[key]
 
     @property
     def ihalo(self):
@@ -278,7 +278,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
             locals=dict(members=members, np=np))
 
         self.sphere = sph
-        self.reg = reg
+        self.region = reg
 
     def _set_halo_properties(self):
         ihalo = self.ihalo
