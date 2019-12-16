@@ -58,7 +58,7 @@ def test_get_halo():
     halo = ds.halo(1, ptype='io')
 
     # Check halo objet has position, velocity, mass and members attributes
-    for attr_name in ('mass', 'position', 'velocity', 'members'):
+    for attr_name in ('mass', 'position', 'velocity', 'member_ids'):
         getattr(halo, attr_name)
 
     members = np.sort(halo.member_ids)
