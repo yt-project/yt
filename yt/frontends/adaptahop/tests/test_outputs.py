@@ -55,14 +55,19 @@ def test_get_halo():
     ds_parent = data_dir_load(r0)
     ds = data_dir_load(r1, kwargs=dict(parent_ds=ds_parent))
 
-    members, sphere, region = ds.get_halo(1, ptype='io')
+    halo = ds.halo(1, ptype='io')
 
-    members = np.sort(members)
+    # Check halo objet has position, velocity, mass and members attributes
+    for attr_name in ('mass', 'position', 'velocity', 'members'):
+        getattr(halo, attr_name)
+
+    members = np.sort(halo.members)
+
     # Check sphere contains all the members
-    id_sphere = sphere['io', 'particle_identity'].astype(int)
+    id_sphere = halo.sphere['io', 'particle_identity'].astype(int)
     assert len(np.lib.arraysetops.setdiff1d(members, id_sphere)) == 0
 
     # Check region contains *only* halo particles
-    id_reg = np.sort(region['io', 'particle_identity'].astype(int))
+    id_reg = np.sort(halo['io', 'particle_identity'].astype(int))
 
     np.testing.assert_equal(members, id_reg)
