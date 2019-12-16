@@ -1797,6 +1797,7 @@ the same redshift, additional analysis can be performed for each halo using
 to the other halo catalogs shown here.
 
 .. _adaptahop:
+
 AdataHOP
 ^^^^^^^^
 
@@ -1838,6 +1839,37 @@ fields must be accessed through :ref:`Data-objects`.
    print(ad["halos", "particle_mass"])
    # halo radii
    print(ad["halos", "virial_radius"])
+
+Halo Data Containers
+""""""""""""""""""""
+
+Halo member particles are accessed by creating halo data containers with the
+the halo id and the type of the particles.  Scalar values for halos
+can be accessed in the same way.  Halos also have mass, position, velocity, and
+member ids attributes.
+
+.. code-block:: python
+
+   halo = ds.halo(1, ptype='io')
+   # member particles for this halo
+   print(halo.member_ids)
+   # masses of the halo particles
+   print(halo["io", "particle_mass"])
+   # halo mass
+   print(halo.mass)
+
+In addition, the halo container contains a sphere container. This is the smallest
+sphere that contains all the halos' particles
+
+.. code-block:: python
+
+  halo = ds.halo(1, ptype='io')
+  sp = halo.sphere
+  # Density in halo
+  sp['gas', 'density']
+  # Entropy in halo
+  sp['gas', 'entropy']
+
 
 .. _ahf:
 
@@ -1978,7 +2010,7 @@ underscore and the index.
 .. _halo_containers:
 
 Halo Data Containers
-^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""
 
 Halo member particles are accessed by creating halo data containers with the
 type of halo ("Group" or "Subhalo") and the halo id.  Scalar values for halos
