@@ -255,7 +255,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         halo_vel = halo_ds.r['halos', 'particle_velocity'][ihalo, :].to('km/s').value
         halo_radius = halo_ds.r['halos', 'r'][ihalo].to('Mpc').value
 
-        members = self.members
+        members = self.member_ids
         ok = False
         f = 1/1.1
         # Find smallest sphere containing all particles
@@ -287,4 +287,4 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         for attr_name in ('mass', 'position', 'velocity'):
             setattr(self, attr_name, ds.r['halos', 'particle_%s' % attr_name][ihalo])
         # Add members
-        self.members = self.halo_ds.index.io.members(ihalo).astype(np.int64)
+        self.member_ids = self.halo_ds.index.io.members(ihalo).astype(np.int64)

@@ -61,7 +61,7 @@ def test_get_halo():
     for attr_name in ('mass', 'position', 'velocity', 'members'):
         getattr(halo, attr_name)
 
-    members = np.sort(halo.members)
+    members = np.sort(halo.member_ids)
 
     # Check sphere contains all the members
     id_sphere = halo.sphere['io', 'particle_identity'].astype(int)
