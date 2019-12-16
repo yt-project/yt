@@ -233,7 +233,7 @@ cdef class FortranFile:
                 tmp = self.read_vector(dtype)
                 if len(tmp) == 0 and optional:
                     continue
-                elif len(tmp) == 1:
+                elif (len(tmp) == 1) or (n == -1):
                     data[key] = tmp[0]
                 else:
                     raise ValueError("Expected a record of length %s, got %s (%s)" % (n, len(tmp), key))
