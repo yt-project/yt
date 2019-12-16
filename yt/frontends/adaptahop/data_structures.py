@@ -169,24 +169,22 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
     --------
 
     >>> import yt
-    >>> ds = yt.load("gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5")
+    >>> ds = yt.load('output_00080_halos/tree_bricks080', parent_ds=yt.load('output_00080/info_00080.txt'))
     >>>
-    >>> halo = ds.halo("Group", 0)
+    >>> ds.halo(1, ptype='io')
     >>> print(halo.mass)
-    13256.5517578 code_mass
+    119.22804260253906 100000000000.0*Msun
     >>> print(halo.position)
-    [ 16.18603706   6.95965052  12.52694607] code_length
+    [26.80901299 24.35978484  5.45388672] code_length
     >>> print(halo.velocity)
-    [ 6943694.22793569  -762788.90647454  -794749.63819757] cm/s
-    >>> print(halo["Group_R_Crit200"])
-    [ 0.79668683] code_length
+    [3306394.95849609 8584366.60766602 9982682.80029297] cm/s
+    >>> print(halo["io", "particle_mass"])
+    [3.19273578e-06 3.19273578e-06 ... 3.19273578e-06 3.19273578e-06] code_mass
     >>>
     >>> # particle ids for this halo
-    >>> print(halo["member_ids"])
-    [  723631.   690744.   854212. ...,   608589.   905551.  1147449.] dimensionless
+    >>> print(halo.member_ids)
+    [     48      64     176 ... 999947 1005471 1006779]
     >>>
-    >>> # get the first subhalo of this halo
-    >>> subhalo = ds.halo("Subhalo", (0, 0))
     """
 
     _type_name = "halo"
