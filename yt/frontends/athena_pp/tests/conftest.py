@@ -12,25 +12,29 @@ disk = "KeplerianDisk/disk.out1.00000.athdf"
 AM06 = "AM06/AM06.out1.00400.athdf"
 
 
+# Test parameters. Format:
+# {test1: {param1 : [(val1, val2,...), (id1, id2,...)], param2 : ...}, test2: ...}
+test_params = {
+    'test_disk' : {
+        'field' : [('density', 'velocity_r'), ('density', 'velocity_r')]
+    },
+    'test_AM06' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [('temperature', 'density', 'velocity_magnitude', 'magnetic_field_x'),
+                ('temperature', 'density', 'velocity_magnitude', 'magnetic_field_x')]
+    }
+}
+
+
 def pytest_generate_tests(metafunc):
-    if metafunc.function.__name__ == 'test_disk':
-        fields = ('density', 'velocity_r')
-        metafunc.parametrize('field', fields, ids=['density', 'velocity_r'])
-    if metafunc.function.__name__ == 'test_AM06':
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        fields = ("temperature",
-            "density",
-            "velocity_magnitude",
-            "magnetic_field_x"
-        )
-        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
-        metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None', 'density'])
-        metafunc.parametrize('f', fields, ids=['temperature', 'density',
-            'velocity_magnitude', 'magnetic_field_x'])
+    # Loop over each test in test_params
+    for test_name, params in test_params.items():
+        if metafunc.function.__name__ == test_name:
+            # Parametrize
+            for param_name, param_vals in params.items():
+                metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])
 
 
 @pytest.fixture(scope='class')

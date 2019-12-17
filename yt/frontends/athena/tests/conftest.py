@@ -19,21 +19,39 @@ ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
 weights = [None, "density"]
 
 
+# Test parameters. Format:
+# {test1: {param1 : [(val1, val2,...), (id1, id2,...)], param2 : ...}, test2: ...}
+test_params = {
+    'test_cloud' : {
+        'f' : [('scalar[0]', 'density', 'total_energy'), ('scalar0', 'density', 'total_energy')],
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')]
+    },
+    'test_blast' : {
+        'f' : [('temperature', 'density', 'velocity_magnitude'),
+                ('temperature', 'density', 'velocity_magnitude')],
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')]
+    },
+    'test_stripping' : {
+        'f' : [('temperature', 'density', 'specific_scalar[0]'),
+                ('temperature', 'density', 'specific_scalar0')],
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')]
+    }
+}
+
+
 def pytest_generate_tests(metafunc):
-    param_tests = ['test_cloud', 'test_blast', 'test_stripping']
-    if metafunc.function.__name__ == 'test_cloud':
-        fields = ("scalar[0]", "density", "total_energy")
-        metafunc.parametrize('f', fields, ids=['scalar0', 'density', 'total_energy'])
-    if metafunc.function.__name__ == 'test_blast':
-        fields = ("temperature", "density", "velocity_magnitude")
-        metafunc.parametrize('f', fields, ids=['temperature', 'density', 'velocity_magnitude'])
-    if metafunc.function.__name__ == 'test_stripping':
-        fields = ("temperature", "density", "specific_scalar[0]")
-        metafunc.parametrize('f', fields, ids=['temperature', 'density', 'specific_scalar0'])
-    if metafunc.function.__name__ in param_tests:
-        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
-        metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None', 'density'])
+    # Loop over each test in test_params
+    for test_name, params in test_params.items():
+        if metafunc.function.__name__ == test_name:
+            # Parametrize
+            for param_name, param_vals in params.items():
+                metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])
 
 
 @pytest.fixture(scope='class')

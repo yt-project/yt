@@ -14,36 +14,43 @@ fid_1to3_b1 = "fiducial_1to3_b1/fiducial_1to3_b1_hdf5_part_0080"
 dens_turb_mag = 'DensTurbMag/DensTurbMag_hdf5_plt_cnt_0015'
 
 
+# Test parameters. Format:
+# {test1: {param1 : [(val1, val2,...), (id1, id2,...)], param2 : ...}, test2: ...}
+test_params = {
+    'test_sloshing' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary'))), ('None' , 'sphere')],
+        'w' : [(None, 'density'), ('None' , 'density')],
+        'f' : [('temperature', 'density', 'velocity_magnitude'),
+                ('temperature', 'density', 'velocity_magnitude')]
+    },
+    'test_wind_tunnel' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary'))), ('None' , 'sphere')],
+        'w' : [(None, 'density'), ('None' , 'density')],
+        'f' : [('temperature', 'density'), ('temperature', 'density')]
+    },
+    'test_fid_1to3_b1' : {
+        'f, w' : [((("deposit", "all_density") , None),
+                    (("deposit", "all_count") , None),
+                    (("deposit", "all_cic") , None),
+                    (("deposit", "all_cic_velocity_x") , ("deposit", "all_cic")),
+                    (("deposit", "all_cic_velocity_y") , ("deposit", "all_cic")),
+                    (("deposit", "all_cic_velocity_z") , ("deposit", "all_cic"))),
+                    ('all_dens', 'all_count', 'all_cic', 'all_cic_vx', 'all_cic_vy', 'all_cic_vz')],
+        'd' : [(None, ('sphere', ('c', (0.1, 'unitary')))), ('None' ,'sphere')],
+        'a' : [(0, 1, 2), ('0', '1', '2')]
+    }
+}
 
 
 def pytest_generate_tests(metafunc):
-    if metafunc.function.__name__ == 'test_sloshing':
-        fields = ("temperature", "density", "velocity_magnitude")
-    if metafunc.function.__name__ == 'test_wind_tunnel':
-        fields = ("temperature", "density")
-    if metafunc.function.__name__ in ['test_sloshing', 'test_wind_tunnel']:
-        axes = [0, 1, 2]
-        center = "max"
-        ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-        weights = [None, "density"]
-        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
-        metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None', 'density'])
-        metafunc.parametrize('f', fields, ids=[str(i) for i in range(len(fields))])
-    if metafunc.function.__name__ == 'test_fid_1to3_b1':
-        fid_1to3_b1_fields = [ 
-                [("deposit", "all_density") , None],
-                [("deposit", "all_count") , None],
-                [("deposit", "all_cic") , None],
-                [("deposit", "all_cic_velocity_x") , ("deposit", "all_cic")],
-                [("deposit", "all_cic_velocity_y") , ("deposit", "all_cic")],
-                [("deposit", "all_cic_velocity_z") , ("deposit", "all_cic")]
-        ]
-        dso = [None, ('sphere', ('c', (0.1, 'unitary')))]
-        metafunc.parametrize('f, w', [(pair[0], pair[1]) for pair in fid_1to3_b1_fields],
-            ids=['all_dens', 'all_count', 'all_cic', 'all_cic_vx', 'all_cic_vy', 'all_cic_vz'])
-        metafunc.parametrize('d', dso, ids=['None', 'sphere'])
-        metafunc.parametrize('a', [0, 1, 2], ids=['0', '1', '2'])
+    # Loop over each test in test_params
+    for test_name, params in test_params.items():
+        if metafunc.function.__name__ == test_name:
+            # Parametrize
+            for param_name, param_vals in params.items():
+                metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])
 
 
 @pytest.fixture(scope='class')

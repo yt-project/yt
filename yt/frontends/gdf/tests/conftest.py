@@ -11,20 +11,25 @@ from yt.utilities.answer_testing import utils
 sedov = "sedov/sedov_tst_0004.h5"
 
 
-axes = [0, 1, 2]
-center = "max"
-ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-weights = [None, "density"]
-fields = ("density", "velocity_x")
+# Test parameters. Format:
+# {test1: {param1 : [(val1, val2,...), (id1, id2,...)], param2 : ...}, test2: ...}
+test_params = {
+    'test_sedov_tunnel' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [('density', 'velocity_x'), ('density', 'vx')]
+    }
+}
 
 
 def pytest_generate_tests(metafunc):
-    if metafunc.function.__name__ == 'test_sedov_tunnel':
-        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
-        metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None', 'density'])
-        metafunc.parametrize('f', fields, ids=['density', 'vx'])
-
+    # Loop over each test in test_params
+    for test_name, params in test_params.items():
+        if metafunc.function.__name__ == test_name:
+            # Parametrize
+            for param_name, param_vals in params.items():
+                metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])
 
 @pytest.fixture(scope='class')
 def ds_sedov():

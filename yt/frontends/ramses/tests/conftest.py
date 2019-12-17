@@ -17,18 +17,28 @@ ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
 ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
 
 
+# Test parameters. Format:
+# {test1: {param1 : [(val1, val2,...), (id1, id2,...)], param2 : ...}, test2: ...}
+test_params = {
+    'test_output_00080' : {
+        'a' : [(0, 1, 2,), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'dneisty')],
+        'f' : [('temperature', 'density', 'velocity_magnitude',
+                ('deposit', 'all_density'), ('deposit', 'all_count')),
+                ('temperature', 'density', 'velocity_magnitude', 'dep_all_density',
+                'dep_all_count')]
+    }
+}
+
+
 def pytest_generate_tests(metafunc):
-    if metafunc.function.__name__ == 'test_output_00080':
-        dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
-        axes = [0, 1, 2]
-        weight_fields = [None, "density"]
-        fields = ("temperature", "density", "velocity_magnitude",
-                   ("deposit", "all_density"), ("deposit", "all_count"))
-        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
-        metafunc.parametrize('d', dso, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weight_fields, ids=['None', 'density'])
-        metafunc.parametrize('f', fields, ids=['temperature', 'density',
-            'velocity_magnitude', 'dep_all_density', 'dep_all_count'])
+    # Loop over each test in test_params
+    for test_name, params in test_params.items():
+        if metafunc.function.__name__ == test_name:
+            # Parametrize
+            for param_name, param_vals in params.items():
+                metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])
 
 
 @pytest.fixture(scope='class')

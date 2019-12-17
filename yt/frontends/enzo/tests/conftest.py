@@ -21,39 +21,53 @@ dnz = "DeeplyNestedZoom/DD0025/data0025"
 p3mini = "PopIII_mini/DD0034/DD0034"
 
 
-axes = [0, 1, 2]
-center = "max"
-ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-weights = [None, "density"]
+# Test parameters. Format:
+# {test1: {param1 : [(val1, val2,...), (id1, id2,...)], param2 : ...}, test2: ...}
+test_params = {
+    'test_toro1d' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [utils.data_dir_load(toro1d).field_list,
+            (str(i) for i in range(len(utils.data_dir_load(toro1d).field_list)))]  
+    },
+    'test_kh2d' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [utils.data_dir_load(kh2d).field_list,
+            (str(i) for i in range(len(utils.data_dir_load(kh2d).field_list)))]  
+    },
+    'test_moving7' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [('temperature', 'density', 'velocity_magnitude', 'velocity_divergence'),
+            ('temperature', 'density', 'velocity_magnitude', 'velocity_divergence')]
+    },
+    'test_galaxy0030' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [('temperature', 'density', 'velocity_magnitude', 'velocity_divergence'),
+            ('temperature', 'density', 'velocity_magnitude', 'velocity_divergence')]
+    },
+    'test_simulated_halo_mass_function' : {
+        'finder' : [('fof', 'hop'), ('fof', 'hop')]
+    },
+    'test_analytic_halo_mass_function' : {
+        'fit' : [(i for i in range(1,6)), (str(i) for i in range(1,6))]
+    }
+}
 
 
 def pytest_generate_tests(metafunc):
-    amr_tests = ['test_toro1d', 'test_kh2d', 'test_moving7', 'test_galaxy0030']
-    if metafunc.function.__name__ == 'test_toro1d':
-        ds = utils.data_dir_load(toro1d)
-        fields = ds.field_list
-    if metafunc.function.__name__ == 'test_kh2d':
-        ds = utils.data_dir_load(kh2d)
-        fields = ds.field_list
-    if metafunc.function.__name__ == 'test_moving7':
-        fields = ("temperature", "density", "velocity_magnitude",
-            "velocity_divergence"
-        )
-    if metafunc.function.__name__ == 'test_galaxy0030':
-        fields = ("temperature", "density", "velocity_magnitude",
-                   "velocity_divergence")
-    if metafunc.function.__name__ == 'test_simulated_halo_mass_function':
-        finders = ['fof', 'hop']
-        metafunc.parametrize('finder', finders, ids=['fof', 'hop'])
-    if metafunc.function.__name__ == 'test_analytic_halo_mass_function':
-        fits = [i for i in range(1,6)]
-        metafunc.parametrize('fit', fits, ids=[str(i) for i in range(1,6)])
-    if metafunc.function.__name__ in amr_tests:
-        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
-        metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None', 'density'])
-        metafunc.parametrize('f', fields, ids=[str(i) for i in range(len(fields))])
-
+    # Loop over each test in test_params
+    for test_name, params in test_params.items():
+        if metafunc.function.__name__ == test_name:
+            # Parametrize
+            for param_name, param_vals in params.items():
+                metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])
 
 @pytest.fixture(scope='class')
 def ds_toro1d():

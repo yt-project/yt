@@ -27,22 +27,37 @@ tg_fields = [
     ]
 
 
+# Test parameters. Format:
+# {test1: {param1 : [(val1, val2,...), (id1, id2,...)], param2 : ...}, test2: ...}
+test_params = {
+    'tes_pkdgrav' : {
+        'f' : [_fields, ('all_density', 'all_count', 'DM_density')],
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('c', (0.3, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None,), ('None',)]
+    },
+    'tes_gasoline_dmonly' : {
+        'f' : [_fields, ('all_density', 'all_count', 'DM_density')],
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('c', (0.3, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None,), ('None',)]
+    },
+    'test_tipsy_galaxy' : {
+        'f, w' : [((pair[0], pair[1]) for pair in tg_fields), ('dens', 'temp-None',
+                    'temp_dens', 'velocity_magnitude', 'Fe_fraction', 'Metals')],
+        'd' : [(None, ('sphere', ('c', (0.1, 'unitary')))), ('None', 'sphere')],
+        'a' : [(0, 1, 2), ('0', '1', '2')]
+    }
+}
+
+
 def pytest_generate_tests(metafunc):
-    if metafunc.function.__name__ in ['test_pkdgrav', 'test_gasoline_dmonly']:
-        dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
-        axes = [0, 1, 2]
-        weights = [None]
-        metafunc.parametrize('f', _fields, ids=['all_density', 'all_count', 'DM_density'])
-        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
-        metafunc.parametrize('d', dso, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None'])
-    if metafunc.function.__name__ == 'test_tipsy_galaxy':
-        dso = [None, ('sphere', ('c', (0.1, 'unitary')))]
-        metafunc.parametrize('f,w', [(pair[0], pair[1]) for pair in tg_fields],
-            ids=['dens', 'temp-None', 'temp-dens', 'velocity_magnitude',
-            'Fe_fraction', 'Metals'])
-        metafunc.parametrize('d', dso, ids=['None', 'sphere'])
-        metafunc.parametrize('a', [0, 1, 2], ids=['0', '1', '2'])
+    # Loop over each test in test_params
+    for test_name, params in test_params.items():
+        if metafunc.function.__name__ == test_name:
+            # Parametrize
+            for param_name, param_vals in params.items():
+                metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])
 
 
 @pytest.fixture(scope='function')
