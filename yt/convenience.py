@@ -34,7 +34,7 @@ def _sanitize_load_args(*args):
     if PY3:
         from pathlib import PosixPath
         acceptable_input_types.append(PosixPath)
-    args = [os.path.expanduser(arg) if isinstance(arg, tuple(acceptable_input_types))
+    args = [os.path.expanduser(str(arg)) if isinstance(arg, tuple(acceptable_input_types))
             else arg for arg in args]
     return args
 
