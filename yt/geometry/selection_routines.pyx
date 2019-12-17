@@ -959,8 +959,8 @@ cdef class RegionSelector(SelectorObject):
         cdef np.float64_t[:] DW = _ensure_code(dobj.ds.domain_width)
         cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
         cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
-        le_all = (np.array(LE) == dobj.ds.domain_left_edge).all()
-        re_all = (np.array(RE) == dobj.ds.domain_right_edge).all()
+        le_all = (np.array(LE) == _ensure_code(dobj.ds.domain_left_edge)).all()
+        re_all = (np.array(RE) == _ensure_code(dobj.ds.domain_right_edge)).all()
         if le_all and re_all:
             self.is_all_data = True
         else:
