@@ -90,20 +90,15 @@ class AnswerTest():
         else:
             dobj = None
         if ds.domain_dimensions[axis] == 1:
-            # This original returned None, but None can't be converted
-            # to a bytes array, so use -1 as a string, since ints can't
-            # be converted to bytes either
+            # This originally returned None, but None can't be converted
+            # to a bytes array (for hashing), so use -1 as a string,
+            # since ints can't be converted to bytes either
             return bytes(str(-1).encode('utf-8'))
         proj = ds.proj(field,
                     axis,
                     weight_field=weight_field,
                     data_source=dobj
                 )
-        # proj.field_data is an instance of the YTFieldData class,
-        # which is basically just an alias for dict, as it inherits
-        # from dict and does nothing else. As such, it gets converted
-        # to a dict here to remove the python-specific anchor in the
-        # yaml answer file
         # This is to try and remove python-specific anchors in the yaml
         # answer file. Also, using __repr__() results in weird strings
         # of strings that make comparison fail even though the data is
@@ -117,6 +112,9 @@ class AnswerTest():
                 result.update(k + v.tobytes())
         return result.hexdigest()
 
+    #-----
+    # field_values_test
+    #-----
     def field_values_test(self, ds, field, obj_type=None, particle_type=False):
         # If needed build an instance of the dataset type
         obj = utils.create_obj(ds, obj_type)
@@ -134,6 +132,7 @@ class AnswerTest():
         minimum, maximum = obj.quantities.extrema(field)
         # Return as a hashable bytestring
         return np.array([avg, minimum, maximum])
+
     #-----
     # pixelized_projection_values_test
     #-----

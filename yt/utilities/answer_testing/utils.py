@@ -31,20 +31,31 @@ from yt.visualization.volume_rendering.scene import Scene
 #            streamline_for_io
 #============================================
 def streamline_for_io(params):
-    """
-    Doc string.
+    r"""
+    Put test results in a more io-friendly format.
+
+    Many of yt's tests use objects such as tuples as test parameters
+    (fields, for instance), but when these objects are written to a
+    yaml file, yaml includes python specific anchors that make the file
+    harder to read and less portable. The goal of this function is to
+    convert these objects to strings (using __repr__() has it's own
+    issues) in order to solve this problem.
 
     Parameters:
     -----------
-        pass
+        params : dict
+            The dictionary of test parameters in the form
+            {param_name : param_value}.
 
     Raises:
     -------
-        pass
+        None
 
     Returns:
     --------
-        pass
+        streamlined_params : dict
+            The dictionary of parsed and converted
+            {param_name : param_value} pairs.
     """
     streamlined_params = {}
     for key, value in params.items():
@@ -73,20 +84,23 @@ def streamline_for_io(params):
 #            iterable_to_string
 #============================================
 def iterable_to_string(iterable):
-    """
-    Doc string.
+    r"""
+    An extension of streamline_for_io that does the work of making an
+    iterable more io-friendly.
 
     Parameters:
     -----------
-        pass
+        iterable : python iterable
+            The object to be parsed and converted.
 
     Raises:
     -------
-        pass
+        None 
 
     Returns:
     --------
-        pass
+        result : str
+            The io-friendly version of the passed iterable.
     """
     result = iterable.__class__.__name__ 
     for elem in iterable:
@@ -108,20 +122,23 @@ def iterable_to_string(iterable):
 #               hash_results
 #============================================
 def hash_results(results):
-    """
-    Doc string.
+    r"""
+    Driver function for hashing the test result.
 
     Parameters:
     -----------
-        pass
+        results : dict
+            Dictionary of {test_name : test_result} pairs.
 
     Raises:
     -------
-        pass
+        None 
 
     Returns:
     --------
-        pass
+        results : dict
+            Same as the passed results, but the test_results are now
+            hex digests of the hashed test_result.
     """
     # Here, results should be comprised of only the tests, not the test
     # parameters
@@ -139,20 +156,22 @@ def hash_results(results):
 #                hash_dict
 #============================================
 def hash_dict(data):
-    """
-    Doc string.
+    r"""
+    Specifically handles hashing a dictionary object. 
 
     Parameters:
     -----------
-        pass
+        data : dict
+            The dictionary to be hashed.
 
     Raises:
     -------
-        pass
+        None 
 
     Returns:
     --------
-        pass
+        hd.hexdigest : str
+            The hex digest of the hashed dictionary.
     """
     hd = None
     for key, value in data.items():
@@ -166,23 +185,26 @@ def hash_dict(data):
 #              generate_hash
 #============================================
 def generate_hash(data):
-    """
-    Doc string.
+    r"""
+    Actually performs the hash operation. 
 
     Parameters:
     -----------
-        pass
+        data : python object 
+            Data to be hashed.
 
     Raises:
     -------
-        pass
+        None 
 
     Returns:
     --------
-        pass
+        hd : str
+            Hex digest of the hashed data.
     """
+    # Sometimes md5 complains that the data is not contiguous, so we
+    # make it so here
     if isinstance(data, np.ndarray):
-        # Sometimes md5 complains that the data is not contiguous
         data = np.ascontiguousarray(data)
     # Try to hash. Some tests return hashable types (like ndarrays) and
     # others don't (such as dictionaries)
@@ -203,20 +225,24 @@ def generate_hash(data):
 #                 save_result
 #============================================
 def save_result(data, outputFile):
-    """
-    Doc string.
+    r"""
+    Saves the test results to the desired answer file. 
 
     Parameters:
     -----------
-        pass
+        data : dict
+            Test results to be saved.
+
+        outputFile : str
+            Name of file to save results to.
 
     Raises:
     -------
-        pass
+        None 
 
     Returns:
     --------
-        pass
+        None 
     """
     with open(outputFile, 'a') as f:
         yaml.dump(data, f)
@@ -225,20 +251,25 @@ def save_result(data, outputFile):
 #               compare_result
 #============================================
 def compare_result(data, outputFile):
-    """
-    Doc string.
+    r"""
+    Compares the just-generated test results to those that are already
+    saved.
 
     Parameters:
     -----------
-        pass
+        data : dict
+            Just-generated test results.
+
+        outputFile : str
+            Name of file where answers are already saved.
 
     Raises:
     -------
-        pass
+        None 
 
     Returns:
     --------
-        pass
+        None 
     """
     # Load the saved data
     with open(outputFile, 'r') as f:
@@ -257,20 +288,34 @@ def compare_result(data, outputFile):
 #               handle_hashes
 #============================================
 def handle_hashes(save_dir_name, fname, hashes, answer_store):
-    """
-    Doc string.
+    r"""
+    Driver function for deciding whether to save the test results or
+    compare them to already saved results.
 
     Parameters:
     -----------
-        pass
+        save_dir_name : str
+            Name of the directory to save results or where results are
+            already saved.
+
+        fname : str
+            Name of the file to either save results to or where results
+            are already saved.
+
+        hashes : dict
+            The just-generated test results.
+
+        answer_store : bool
+            If true, save the just-generated test results, otherwise,
+            compare them to the previously saved results.
 
     Raises:
     -------
-        pass
+        None 
 
     Returns:
     --------
-        pass
+        None 
     """
     # Set up the answer file in the answer directory
     answer_file = os.path.join(save_dir_name, fname)
@@ -286,17 +331,6 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
 #                 can_run_ds
 #============================================
 def can_run_ds(ds_fn, file_check = False):
-    """
-    Checks to see if the given file name is a valid data set.
-
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        returns
-    """
     if isinstance(ds_fn, Dataset):
         return True
     path = ytcfg.get("yt", "test_data_dir")
@@ -329,21 +363,6 @@ def can_run_sim(sim_fn, sim_type, file_check = False):
 #                data_dir_load
 #============================================
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
-    """
-    Loads the given data set.
-
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
-    """
     args = args or ()
     kwargs = kwargs or {}
     path = ytcfg.get("yt", "test_data_dir")
@@ -361,21 +380,9 @@ def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
 #                 requires_ds
 #============================================
 def requires_ds(ds_fn, file_check = False):
-    """
+    r"""
     Meta-wrapper for specifying required data for a test and
     checking if said data exists.
-
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
     """
     def ffalse(func):
         def skip(*args, **kwargs):
@@ -410,21 +417,6 @@ def requires_sim(sim_fn, sim_type, file_check = False):
 #                create_obj
 #============================================
 def create_obj(ds, obj_type):
-    """
-    Builds a dataset object of the desired type.
-
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
-    """
     # obj_type should be tuple of
     #  ( obj_name, ( args ) )
     if obj_type is None:
@@ -438,19 +430,6 @@ def create_obj(ds, obj_type):
 #          compare_unit_attributes
 #============================================
 def compare_unit_attributes(ds1, ds2):
-    """
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
-    """
     attrs = ('length_unit', 'mass_unit', 'time_unit',
              'velocity_unit', 'magnetic_unit')
     for attr in attrs:
@@ -463,22 +442,6 @@ def compare_unit_attributes(ds1, ds2):
 #              fake_halo_catalog
 #============================================
 def fake_halo_catalog(data):
-    """
-    Helper function to create and save a mock halo catalog for use
-    in testing.
-
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
-    """
     filename = "catalog.0.h5"
     ftypes = dict((field, '.') for field in data)
     extra_attrs = {"data_type": "halo_catalog",
@@ -501,19 +464,6 @@ def fake_halo_catalog(data):
 #                 create_plot
 #+===========================================
 def create_plot(ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
-    """
-    Parameters:
-    -----------
-        pass
-
-    Raises:
-    -------
-        pass
-
-    Returns:
-    --------
-        pass
-    """
     # plot_type should be a string
     # plot_kwargs should be a dict
     if plot_type is None:
