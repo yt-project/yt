@@ -28,7 +28,7 @@ from yt.utilities.exceptions import \
     YTSimulationNotIdentified
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 
-def _sanitize_load_args(args):
+def _sanitize_load_args(*args):
     """Filter out non-string-like arguments and replace "~" with user name"""
     acceptable_input_types = list(string_types)
     if PY3:
@@ -48,7 +48,7 @@ def load(*args ,**kwargs):
     """
     candidates = []
 
-    args = _sanitize_load_args(args)
+    args = _sanitize_load_args(*args)
     valid_file = []
     for argno, arg in enumerate(args):
         if isinstance(arg, string_types):
