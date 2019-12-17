@@ -96,11 +96,18 @@ class AMRVACFieldInfo(FieldInfoContainer):
                     if not ('amrvac', 'b%s' % idim) in self.field_list:
                         break
                     emag += 0.5 * data['gas', 'magnetic_%s' % idim]**2
+                # important note: in AMRVAC the magnetic field is defined in units where mu0 = 1, such that
+                # Emag = 0.5*B**2 instead of Emag = 0.5*B**2 / mu0
+                # To correctly transform the dimensionality from gauss**2 -> rho*v**2, we have to take mu0 into account.
+                # If we divide here, units when adding the field should be us["density"]*us["velocity"]**2
+                # If not, they should be us["magnetic_field"]**2 and division should happen elsewhere.
+                emag /= 4 * np.pi
+                # divided by mu0 = 4pi in cgs, yt handles 'mks' and 'code' unit systems internally.
                 return emag
 
             self.add_field(('gas', 'magnetic_energy_density'), function=_magnetic_energy_density,
-                           units=us['magnetic_field']**2,
-                           dimensions=dimensions.magnetic_field**2,
+                           units=us["density"] * us["velocity"] ** 2,
+                           dimensions=dimensions.density * dimensions.velocity ** 2,
                            sampling_type='cell')
 
         # Adding the thermal pressure field.
