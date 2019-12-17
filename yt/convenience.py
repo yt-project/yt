@@ -28,6 +28,16 @@ from yt.utilities.exceptions import \
     YTSimulationNotIdentified
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 
+def _sanitize_load_args(args):
+    """Filter out non-string-like arguments and replace "~" with user name"""
+    acceptable_input_types = list(string_types)
+    if PY3:
+        from pathlib import PosixPath
+        acceptable_input_types.append(PosixPath)
+    args = [os.path.expanduser(arg) if isinstance(arg, tuple(acceptable_input_types))
+            else arg for arg in args]
+    return args
+
 def load(*args ,**kwargs):
     """
     This function attempts to determine the base data type of a filename or
@@ -38,12 +48,7 @@ def load(*args ,**kwargs):
     """
     candidates = []
 
-    acceptable_input_types = list(string_types)
-    if PY3:
-        from pathlib import PosixPath
-        acceptable_input_types.append(PosixPath)
-    args = [os.path.expanduser(arg) if isinstance(arg, tuple(acceptable_input_types))
-            else arg for arg in args]
+    args = _sanitize_load_args(args)
     valid_file = []
     for argno, arg in enumerate(args):
         if isinstance(arg, string_types):
