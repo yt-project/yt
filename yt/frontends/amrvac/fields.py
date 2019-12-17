@@ -88,17 +88,17 @@ class AMRVACFieldInfo(FieldInfoContainer):
             dust_flag = "d%d" % idust
             dust_label = "dust%d_" % idust
 
-        unit_system = self.ds.unit_system
+        us = self.ds.unit_system
         for i_, alias in enumerate(direction_aliases[self.ds.geometry]):
             idir = i_ + 1 # direction index starts at 1 in AMRVAC
             if not ("amrvac", "m%d%s" % (idir, dust_flag)) in self.field_list:
                 break
             self.add_field(("gas", "%svelocity_%s" % (dust_label, alias)), function=_velocity(idir, idust),
-                            units=unit_system['velocity'], dimensions=dimensions.velocity, sampling_type="cell")
+                            units=us['velocity'], dimensions=dimensions.velocity, sampling_type="cell")
             self.alias(("gas", "%svelocity_%d" % (dust_label, idir)), ("gas", "%svelocity_%s" % (dust_label, alias)),
-                        units=unit_system["velocity"])
+                        units=us["velocity"])
             self.alias(("gas", "%smoment_%s" % (dust_label, alias)), ("gas", "%smoment_%d" % (dust_label, idir)),
-                        units=unit_system["density"]*unit_system["velocity"])
+                        units=us["density"]*us["velocity"])
 
     def setup_fluid_fields(self):
 
@@ -106,7 +106,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         self._create_velocity_fields() # gas velocity
 
         # dust derived fields
-        unit_system = self.ds.unit_system
+        us = self.ds.unit_system
         idust = 1
         while ("amrvac", "rhod%d" % idust) in self.field_list:
             if idust > MAXN_DUST_SPECIES:
@@ -125,7 +125,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
         self.add_field(("gas", "total_dust_density"), function=_total_dust_density,
                        dimensions=dimensions.density,
-                       units=unit_system["density"], sampling_type="cell")
+                       units=us["density"], sampling_type="cell")
 
         def dust_to_gas_ratio(field, data):
             return data["total_dust_density"] / data["density"]
