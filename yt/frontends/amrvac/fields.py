@@ -81,7 +81,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     known_particle_fields = ()
 
-    def _create_velocity_fields(self, idust=None):
+    def _setup_velocity_fields(self, idust=None):
         if idust is None:
             dust_flag = dust_label = ""
         else:
@@ -100,39 +100,42 @@ class AMRVACFieldInfo(FieldInfoContainer):
             self.alias(("gas", "%smoment_%s" % (dust_label, alias)), ("gas", "%smoment_%d" % (dust_label, idir)),
                         units=us["density"]*us["velocity"])
 
-    def setup_fluid_fields(self):
-
-        setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
-        self._create_velocity_fields() # gas velocity
-
-        # dust derived fields
-        us = self.ds.unit_system
+    def _setup_dust_fluids(self):
         idust = 1
         while ("amrvac", "rhod%d" % idust) in self.field_list:
             if idust > MAXN_DUST_SPECIES:
                 mylog.error("Only the first %d dust species are currently read by yt. " \
                             "If you read this, please consider issuing a ticket. " % MAXN_DUST_SPECIES)
                 break
-            self._create_velocity_fields(idust)
+            self._setup_velocity_fields(idust)
             idust += 1
         n_dust_found = idust - 1
 
-        def _total_dust_density(field, data):
-            tot = np.zeros_like(data["density"])
-            for idust in range(1, n_dust_found+1):
-                tot += data["dust%d_density" % idust]
-            return tot
+        us = self.ds.unit_system
+        if n_dust_found > 0:
+            def _total_dust_density(field, data):
+                tot = np.zeros_like(data["density"])
+                for idust in range(1, n_dust_found+1):
+                    tot += data["dust%d_density" % idust]
+                return tot
 
-        self.add_field(("gas", "total_dust_density"), function=_total_dust_density,
-                       dimensions=dimensions.density,
-                       units=us["density"], sampling_type="cell")
+            self.add_field(("gas", "total_dust_density"), function=_total_dust_density,
+                           dimensions=dimensions.density,
+                           units=us["density"], sampling_type="cell")
 
-        def dust_to_gas_ratio(field, data):
-            return data["total_dust_density"] / data["density"]
+            def dust_to_gas_ratio(field, data):
+                return data["total_dust_density"] / data["density"]
 
-        self.add_field(("gas", "dust_to_gas_ratio"), function=dust_to_gas_ratio,
-                        dimensions=dimensions.dimensionless,
-                        sampling_type="cell")
+            self.add_field(("gas", "dust_to_gas_ratio"), function=dust_to_gas_ratio,
+                            dimensions=dimensions.dimensionless,
+                            sampling_type="cell")
+
+    def setup_fluid_fields(self):
+
+        us = self.ds.unit_system
+        setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
+        self._setup_velocity_fields() # gas velocities
+        self._setup_dust_fluids() # dust derived fields (including velocities)
 
 
         # fields with nested dependencies are defined thereafter by increasing level of complexity
