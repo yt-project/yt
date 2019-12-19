@@ -132,16 +132,14 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
 
-        us = self.ds.unit_system
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
         self._setup_velocity_fields() # gas velocities
         self._setup_dust_fluids() # dust derived fields (including velocities)
 
 
         # fields with nested dependencies are defined thereafter by increasing level of complexity
+        us = self.ds.unit_system
 
-
-        # kinetic pressure is given by 0.5 * rho * v**2
         def _kinetic_energy_density(field, data):
             # devnote : have a look at issue 1301
             return 0.5 * data['gas', 'density'] * data['gas', 'velocity_magnitude']**2
@@ -160,11 +158,13 @@ class AMRVACFieldInfo(FieldInfoContainer):
                     if not ('amrvac', 'b%s' % idim) in self.field_list:
                         break
                     emag += 0.5 * data['gas', 'magnetic_%s' % idim]**2
-                # important note: in AMRVAC the magnetic field is defined in units where mu0 = 1, such that
+                # important note: in AMRVAC the magnetic field is defined in units where mu0 = 1,
+                # such that
                 # Emag = 0.5*B**2 instead of Emag = 0.5*B**2 / mu0
-                # To correctly transform the dimensionality from gauss**2 -> rho*v**2, we have to take mu0 into account.
-                # If we divide here, units when adding the field should be us["density"]*us["velocity"]**2
-                # If not, they should be us["magnetic_field"]**2 and division should happen elsewhere.
+                # To correctly transform the dimensionality from gauss**2 -> rho*v**2, we have to
+                # take mu0 into account. If we divide here, units when adding the field should be
+                # us["density"]*us["velocity"]**2. If not, they should be us["magnetic_field"]**2
+                # and division should happen elsewhere.
                 emag /= 4 * np.pi
                 # divided by mu0 = 4pi in cgs, yt handles 'mks' and 'code' unit systems internally.
                 return emag
