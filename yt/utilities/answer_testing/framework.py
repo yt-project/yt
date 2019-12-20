@@ -343,7 +343,7 @@ class AnswerTest():
         return img_data
 
     def axial_pixelization_test(self, ds):
-        """
+        r"""
         This test is typically used once per geometry or coordinates type.
         Feed it a dataset, and it checks that the results of basic pixelization
         don't change.

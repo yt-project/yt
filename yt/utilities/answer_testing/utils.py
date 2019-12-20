@@ -417,8 +417,17 @@ def fake_halo_catalog(data):
 
 
 def create_plot(ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
-    # plot_type should be a string
-    # plot_kwargs should be a dict
+    r"""
+    Convenience function used in plot_window_attribute_test.
+
+    Parameters:
+    -----------
+        plot_type : string
+            Type of plot to make (e.g., SlicePlot).
+            
+        plot_kwargs : dict
+            Any keywords to be passed when creating the plot.
+    """
     if plot_type is None:
         raise RuntimeError('Must explicitly request a plot type')
     cls = getattr(pw, plot_type, None)
@@ -430,8 +439,17 @@ def create_plot(ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
 
 def create_plot2(data_source, x_field, y_field, z_field,
                 plot_type, plot_kwargs=None):
-    # plot_type should be a string
-    # plot_kwargs should be a dict
+    r"""
+    Convenience function used in phase_plot_attribute_test.
+
+    Parameters:
+    -----------
+        plot_type : string
+            Type of plot to make (e.g., SlicePlot).
+            
+        plot_kwargs : dict
+            Any keywords to be passed when creating the plot.
+    """
     if plot_type is None:
         raise RuntimeError('Must explicitly request a plot type')
     cls = getattr(profile_plotter, plot_type, None)

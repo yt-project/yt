@@ -48,7 +48,7 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-    """
+    r"""
     Reads in the tests/tests.yaml file. This file contains a list of
     each answer test's answer file (including the changeset number).
     """
@@ -66,7 +66,7 @@ def pytest_configure(config):
 
 
 def pytest_collection_modifyitems(config, items):
-    """
+    r"""
     Decide which tests to skip based on command-line options.
     """
     # Set up the skip marks
@@ -86,7 +86,7 @@ def pytest_collection_modifyitems(config, items):
 
 @pytest.fixture(scope='function')
 def temp_dir():
-    """
+    r"""
     Creates a temporary directory needed by certain tests.
     """
     curdir = os.getcwd()
@@ -123,7 +123,7 @@ def answer_file(request):
 #                param_list
 #============================================
 def param_list(request):
-    """
+    r"""
     Saves the non-ds, non-fixture function arguments for saving to
     the answer file.
     """
@@ -149,7 +149,7 @@ def param_list(request):
 
 @pytest.fixture(scope='function')
 def hashing(request):
-    """
+    r"""
     This fixture reduces answer test boilerplate by handling the
     initialization of the hashes, the actual hashing of the arrays
     returned by the tests, and performing the writing/comparison.
