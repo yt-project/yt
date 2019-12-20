@@ -83,14 +83,7 @@ _url_path = ytcfg.get("yt", "answer_tests_url")
 
 
 # New AnswerTestclass
-
-#============================================
-#                 AnswerTest
-#============================================
 class AnswerTest():
-    #-----
-    # grid_hierarchy_test
-    #-----
     def grid_hierarchy_test(self, ds):
         result = {}
         result['grid_dimensions'] = ds.index.grid_dimensions
@@ -100,9 +93,6 @@ class AnswerTest():
         result['grid_particle_count'] = ds.index.grid_particle_count
         return result
 
-    #-----
-    # parentage_relationships_test
-    #-----
     def parentage_relationships_test(self, ds):
         parents = []
         children = []
@@ -118,9 +108,6 @@ class AnswerTest():
         result = np.array(parents + children)
         return result 
 
-    #-----
-    # grid_values_test
-    #-----
     def grid_values_test(self, ds, field):
         # The hashing is done here so that there is only one entry for
         # the test that contains info about all of the grids as opposed
@@ -135,9 +122,6 @@ class AnswerTest():
             g.clear_data()
         return result.hexdigest()
 
-    #-----
-    # projection_values_test
-    #-----
     def projection_values_test(self, ds, axis, field, weight_field, dobj_type):
         if dobj_type is not None:
             dobj = utils.create_obj(ds, dobj_type)
@@ -166,9 +150,6 @@ class AnswerTest():
                 result.update(k + v.tobytes())
         return result.hexdigest()
 
-    #-----
-    # field_values_test
-    #-----
     def field_values_test(self, ds, field, obj_type=None, particle_type=False):
         # If needed build an instance of the dataset type
         obj = utils.create_obj(ds, obj_type)
@@ -187,9 +168,6 @@ class AnswerTest():
         # Return as a hashable bytestring
         return np.array([avg, minimum, maximum])
 
-    #-----
-    # pixelized_projection_values_test
-    #-----
     def pixelized_projection_values_test(self, ds, axis, field,
         weight_field=None, dobj_type=None):
         if dobj_type is not None:
@@ -218,9 +196,6 @@ class AnswerTest():
                 result.update(k + v.tobytes())
         return result.hexdigest()
 
-    #-----
-    # check_color
-    #-----
     def color_conservation_test(self, ds):
         species_names = ds.field_info.species_names
         dd = ds.all_data()
@@ -246,9 +221,6 @@ class AnswerTest():
         delta_enzo = np.abs(dens_enzo / dd["Density"])
         np.testing.assert_almost_equal(delta_yt, delta_enzo)
 
-    #-----
-    # simulated_halo_mass_function_test
-    #-----
     def simulated_halo_mass_function_test(self, ds, finder):
         hc = HaloCatalog(data_ds=ds, finder_method=finder)
         hc.create()
@@ -258,8 +230,6 @@ class AnswerTest():
         result[1] = hmf.n_cumulative_sim.d
         return result
 
-    #-----
-    # analytic_halo_mass_function_test
     def analytic_halo_mass_function_test(self, ds, fit):
         hmf = HaloMassFcn(simulation_ds=ds, fitting_function=fit)
         result = np.empty((2, hmf.masses_analytic.size))
@@ -267,9 +237,6 @@ class AnswerTest():
         result[1] = hmf.n_cumulative_analytic.d
         return result
 
-    #-----
-    # small_patch_amr
-    #-----
     def small_patch_amr(self, ds, field, weight, axis, ds_obj):
         hex_digests = {} 
         # Grid hierarchy test
@@ -287,9 +254,6 @@ class AnswerTest():
         hex_digests['projection_values'] = pv_hd
         return hex_digests
 
-    #-----
-    # big_patch_amr
-    #-----
     def big_patch_amr(self, ds, field, weight, axis, ds_obj):
         hex_digests = {} 
         # Grid hierarchy test
@@ -305,9 +269,6 @@ class AnswerTest():
         hex_digests['pixelized_projection_values'] = ppv_hd 
         return hex_digests
 
-    #-----
-    # generic_array_test
-    #-----
     def generic_array_test(self, func, args=None, kwargs=None):
         if args is None:
             args = []
@@ -315,9 +276,6 @@ class AnswerTest():
             kwargs = {}
         return func(*args, **kwargs)
 
-    #-----
-    # sph_answer
-    #-----
     def sph_answer(self, ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
         # Make sure we're dealing with the right dataset
         assert str(ds) == ds_str_repr
@@ -344,9 +302,6 @@ class AnswerTest():
         hex_digests['field_values'] = fv_hd
         return hex_digests
 
-    #-----
-    # yt_field_test
-    #-----
     def yt_field_test(self, ds, field, geometric):
         if geometric:
             obj = ds.all_data()
@@ -354,9 +309,6 @@ class AnswerTest():
             obj = ds.data
         return np.array([obj[field].size, obj[field].mean()])
 
-    #-----
-    # plot_window_attribute_test
-    #-----
     def plot_window_attribute_test(self, ds, plot_field, plot_axis, attr_name,
         attr_args, plot_type='SlicePlot', callback_id='', callback_runners=[]):
         plot = utils.create_plot(ds, plot_type, plot_field, plot_axis, {})
@@ -371,9 +323,6 @@ class AnswerTest():
         os.remove(tmpname)
         return image
 
-    #-----
-    # phase_plot_attribute_test
-    #-----
     def phase_plot_attribute_test(self, ds_fn, x_field, y_field, z_field,
                  attr_name, attr_args, plot_type='PhasePlot',
                  plot_kwargs={}):
@@ -389,16 +338,10 @@ class AnswerTest():
         os.remove(tmpname)
         return image
 
-    #-----
-    # generic_image_test
-    #-----
     def generic_image_test(self, img_fname):
         img_data = mpimg.imread(img_fname)
         return img_data
 
-    #-----
-    # axial_pixelization_test
-    #-----
     def axial_pixelization_test(self, ds):
         """
         This test is typically used once per geometry or coordinates type.
@@ -420,9 +363,6 @@ class AnswerTest():
             pix_y
         return pix_x, pix_y 
 
-    #-----
-    # light_cone_projection_test
-    #-----
     def light_cone_projection_test(self, parameter_file, simulation_type):
         lc = LightCone(
             parameter_file, simulation_type, 0., 0.1,
@@ -442,9 +382,6 @@ class AnswerTest():
         ma = data.max()
         return np.array([mean, mi, ma])
 
-    #-----
-    # extract_connected_sets_test
-    #-----
     def extract_connected_sets_test(self, ds_fn, data_source, field, num_levels, min_val, max_val):
         n, all_sets = data_source.extract_connected_sets(
             field, num_levels, min_val, max_val)
@@ -456,9 +393,6 @@ class AnswerTest():
         result = np.array(result)
         return result
 
-    #-----
-    # VR_image_comparison_test
-    #-----
     def VR_image_comparison_test(self, scene):
         tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
         os.close(tmpfd)

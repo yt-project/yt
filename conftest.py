@@ -26,9 +26,6 @@ answer_file_list = 'tests/tests.yaml'
 answer_dir = os.path.join(ytcfg.get('yt', 'test_data_dir'), 'answers')
 
 
-#============================================
-#             pytest_addoption
-#============================================
 def pytest_addoption(parser):
     """
     Lets options be passed to test functions.
@@ -50,9 +47,6 @@ def pytest_addoption(parser):
     )
 
 
-#============================================
-#             pytest_configure
-#============================================
 def pytest_configure(config):
     """
     Reads in the tests/tests.yaml file. This file contains a list of
@@ -71,9 +65,6 @@ def pytest_configure(config):
         ' large data files.')
 
 
-#============================================
-#     pytest_collection_modifyitems
-#============================================
 def pytest_collection_modifyitems(config, items):
     """
     Decide which tests to skip based on command-line options.
@@ -93,9 +84,6 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_big)
 
 
-#============================================
-#                   temp_dir
-#============================================
 @pytest.fixture(scope='function')
 def temp_dir():
     """
@@ -113,9 +101,6 @@ def temp_dir():
         shutil.rmtree(tmpdir)
 
 
-#============================================
-#                answer_file
-#============================================
 @pytest.fixture(scope='class')
 def answer_file(request):
     if request.cls.__name__ in pytest.answer_files:
@@ -162,9 +147,6 @@ def param_list(request):
     return test_params
 
 
-#============================================
-#                  hashing
-#============================================
 @pytest.fixture(scope='function')
 def hashing(request):
     """

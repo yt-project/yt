@@ -27,9 +27,6 @@ import yt.visualization.profile_plotter as profile_plotter
 from yt.visualization.volume_rendering.scene import Scene
 
 
-#============================================
-#            streamline_for_io
-#============================================
 def streamline_for_io(params):
     r"""
     Put test results in a more io-friendly format.
@@ -80,9 +77,6 @@ def streamline_for_io(params):
         streamlined_params[key] = value
     return streamlined_params
 
-#============================================
-#            iterable_to_string
-#============================================
 def iterable_to_string(iterable):
     r"""
     An extension of streamline_for_io that does the work of making an
@@ -118,9 +112,6 @@ def iterable_to_string(iterable):
             result += '_' + elem
     return result
 
-#============================================
-#               hash_results
-#============================================
 def hash_results(results):
     r"""
     Driver function for hashing the test result.
@@ -152,9 +143,6 @@ def hash_results(results):
             results[test_name] = generate_hash(test_value)
     return results
 
-#============================================
-#                hash_dict
-#============================================
 def hash_dict(data):
     r"""
     Specifically handles hashing a dictionary object. 
@@ -181,9 +169,6 @@ def hash_dict(data):
             hd.update(bytes(key.encode('utf8')) + value.tobytes())
     return hd.hexdigest()
 
-#============================================
-#              generate_hash
-#============================================
 def generate_hash(data):
     r"""
     Actually performs the hash operation. 
@@ -221,9 +206,6 @@ def generate_hash(data):
             raise TypeError
     return hd
 
-#============================================
-#                 save_result
-#============================================
 def save_result(data, outputFile):
     r"""
     Saves the test results to the desired answer file. 
@@ -247,9 +229,6 @@ def save_result(data, outputFile):
     with open(outputFile, 'a') as f:
         yaml.dump(data, f)
 
-#============================================
-#               compare_result
-#============================================
 def compare_result(data, outputFile):
     r"""
     Compares the just-generated test results to those that are already
@@ -284,9 +263,6 @@ def compare_result(data, outputFile):
     # Compare
     check_vals(data, savedData)
 
-#============================================
-#               handle_hashes
-#============================================
 def handle_hashes(save_dir_name, fname, hashes, answer_store):
     r"""
     Driver function for deciding whether to save the test results or
@@ -327,9 +303,6 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
         compare_result(hashes, answer_file)
 
 
-#============================================
-#                 can_run_ds
-#============================================
 def can_run_ds(ds_fn, file_check = False):
     if isinstance(ds_fn, Dataset):
         return True
@@ -344,9 +317,7 @@ def can_run_ds(ds_fn, file_check = False):
     except YTOutputNotIdentified:
         return False
 
-#============================================
-#                can_run_sim
-#============================================
+
 def can_run_sim(sim_fn, sim_type, file_check = False):
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
@@ -359,9 +330,7 @@ def can_run_sim(sim_fn, sim_type, file_check = False):
         return False
     return True 
 
-#============================================
-#                data_dir_load
-#============================================
+
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     args = args or ()
     kwargs = kwargs or {}
@@ -376,9 +345,7 @@ def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     ds.index
     return ds
 
-#============================================-
-#                 requires_ds
-#============================================
+
 def requires_ds(ds_fn, file_check = False):
     r"""
     Meta-wrapper for specifying required data for a test and
@@ -396,9 +363,7 @@ def requires_ds(ds_fn, file_check = False):
     else:
         return ftrue
 
-#============================================
-# requires_sim
-#============================================
+
 def requires_sim(sim_fn, sim_type, file_check = False):
     def ffalse(func):
         def skip(*args, **kwargs):
@@ -413,9 +378,6 @@ def requires_sim(sim_fn, sim_type, file_check = False):
         return ftrue
 
 
-#============================================
-#                create_obj
-#============================================
 def create_obj(ds, obj_type):
     # obj_type should be tuple of
     #  ( obj_name, ( args ) )
@@ -426,9 +388,6 @@ def create_obj(ds, obj_type):
     return obj
 
 
-#============================================
-#          compare_unit_attributes
-#============================================
 def compare_unit_attributes(ds1, ds2):
     attrs = ('length_unit', 'mass_unit', 'time_unit',
              'velocity_unit', 'magnetic_unit')
@@ -438,9 +397,6 @@ def compare_unit_attributes(ds1, ds2):
         assert u1 == u2
 
 
-#============================================
-#              fake_halo_catalog
-#============================================
 def fake_halo_catalog(data):
     filename = "catalog.0.h5"
     ftypes = dict((field, '.') for field in data)
@@ -460,9 +416,6 @@ def fake_halo_catalog(data):
     return filename
 
 
-#============================================
-#                 create_plot
-#+===========================================
 def create_plot(ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
     # plot_type should be a string
     # plot_kwargs should be a dict
@@ -475,9 +428,6 @@ def create_plot(ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
     return plot
 
 
-#============================================
-#               create_plot2
-#============================================
 def create_plot2(data_source, x_field, y_field, z_field,
                 plot_type, plot_kwargs=None):
     # plot_type should be a string
