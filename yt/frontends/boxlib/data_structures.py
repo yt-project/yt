@@ -1114,6 +1114,8 @@ class CastroDataset(BoxlibDataset):
             # skip the "====..." line
             line = next(f)
             for line in f:
+                if line.strip() == "" or "fortin parameters" in line:
+                    continue
                 p, v = line.strip().split("=")
                 self.parameters[p] = v.strip()
 
