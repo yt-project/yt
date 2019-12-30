@@ -71,32 +71,47 @@ class EnzoEFieldInfo(FieldInfoContainer):
             deprecate=("4.0.0", "4.1.0"),
         )
 
+    def uses_dual_energy_formalism(self):
+        for name in ["ppm", "mhd_vlct"]:
+            param = nested_dict_get(self.ds.parameters, ('Method', name), None)
+            if ((param is not None) and param.get("dual_energy",False)):
+                return True
+        return False
+
     def setup_energy_field(self):
         unit_system = self.ds.unit_system
         # check if we need to include magnetic energy
         has_magnetic = ('bfield_x' in self.ds.parameters['Field']['list'])
 
-        def _tot_minus_kin(field, data):
-            return data["enzoe", "total_energy"] - 0.5 * data["gas", "velocity_magnitude"] ** 2.0
-
-        if not has_magnetic:
-            # thermal energy = total energy - kinetic energy
-            self.add_field(("gas", "specific_thermal_energy"),
-                           sampling_type="cell",
-                           function = _tot_minus_kin,
-                           units = unit_system["specific_energy"])
+        # identify if the dual energy formalism is in use:
+        if self.uses_dual_energy_formalism():
+            self.alias(("gas", "specific_thermal_energy"),
+                       ("enzop", "specific_internal_energy"))
         else:
-            # thermal energy = total energy - kinetic energy - magnetic energy
-            def _sub_b(field, data):
-                ret = _tot_minus_kin(field, data)
-                ret -= (
-                    data["gas", "magnetic_energy_density"] / data["gas", "density"]
-                )
-                return ret
-            self.add_field(("gas", "specific_thermal_energy"),
-                           sampling_type="cell",
-                           function=_sub_b,
-                           units = unit_system["specific_energy"])
+
+            def _tot_minus_kin(field, data):
+                return data["enzoe", "total_energy"] - 0.5 * data["gas", "velocity_magnitude"] ** 2.0
+
+            # check if we need to include magnetic energy
+            has_magnetic = ('bfield_x' in self.ds.parameters['Field']['list'])
+
+            if not has_magnetic:
+                # thermal energy = total energy - kinetic energy
+                self.add_field(("gas", "specific_thermal_energy"),
+                               sampling_type="cell",
+                               function = _tot_minus_kin,
+                               units = unit_system["specific_energy"])
+            else:
+                # thermal energy = total energy - kinetic energy - magnetic energy
+                def _sub_b(field, data):
+                    ret = _tot_minus_kin(field, data)
+                    ret -= (data["gas", "magnetic_energy_density"]
+                            / data["gas", "density"])
+                    return ret
+                self.add_field(("gas", "specific_thermal_energy"),
+                               sampling_type="cell",
+                               function=_sub_b,
+                               units = unit_system["specific_energy"])
         
     def setup_particle_fields(self, ptype, ftype="gas", num_neighbors=64):
         super().setup_particle_fields(ptype, ftype=ftype, num_neighbors=num_neighbors)
