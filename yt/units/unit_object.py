@@ -130,7 +130,7 @@ def get_latex_representation(expr, registry):
     prefix = None
     if isinstance(expr, Mul):
         coeffs = expr.as_coeff_Mul()
-        if coeffs[0] == 1 or not isinstance(coeffs[0], Float):
+        if coeffs[0] == 1 or not isinstance(coeffs[0], Number):
             pass
         else:
             expr = coeffs[1]
@@ -146,7 +146,7 @@ def get_latex_representation(expr, registry):
     else:
         return latex_repr
 
-unit_text_transform = (auto_positive_symbol, rationalize, auto_number)
+unit_text_transform = (auto_positive_symbol, auto_number, rationalize)
 
 class Unit(Expr):
     """
