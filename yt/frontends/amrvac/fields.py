@@ -11,6 +11,7 @@ AMRVAC-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import functools
 import numpy as np
 from yt.fields.field_info_container import \
     FieldInfoContainer
@@ -29,25 +30,17 @@ direction_aliases = {
     "spherical": ("r", "theta", "phi")
 }
 
-def _velocity(idir, idust=None):
-    """Generate a velocity function v_idir = m_idir / rho
-
-    If idust is not used, the "gas" velocity function is returned.
-
-    Parameters
-    ----------
-    idir : int
-        the direction index (1, 2 or 3)
-    idust : int, optional
-        the dust species index (AMRVAC). idust >= 1
-    """
-    if idust is None:
-        dust_label = ""
-    else:
-        dust_label = "dust%d_" % idust
-    def velocity_idir(field, data):
-        return data["gas", "%smoment_%d" % (dust_label, idir)] / data["gas", "%sdensity" % dust_label]
-    return velocity_idir
+def _velocity(field, data, idir, prefix=None):
+    """Velocity = linear momentum / density"""
+    # This is meant to be used with functools.partial to produce
+    # functions with only 2 arguments (field, data)
+    # idir : int
+    #    the direction index (1, 2 or 3)
+    # prefix : str
+    #    used to generalize to dust fields
+    if prefix is None:
+        prefix = ""
+    return data["gas", "%smoment_%d" % (prefix, idir)] / data["gas", "%sdensity" % prefix]
 
 code_density = "code_mass / code_length**3"
 code_moment = "code_mass / code_length**2 / code_time"
@@ -93,14 +86,21 @@ class AMRVACFieldInfo(FieldInfoContainer):
             idir = i_ + 1 # direction index starts at 1 in AMRVAC
             if not ("amrvac", "m%d%s" % (idir, dust_flag)) in self.field_list:
                 break
-            self.add_field(("gas", "%svelocity_%s" % (dust_label, alias)), function=_velocity(idir, idust),
-                            units=us['velocity'], dimensions=dimensions.velocity, sampling_type="cell")
-            self.alias(("gas", "%svelocity_%d" % (dust_label, idir)), ("gas", "%svelocity_%s" % (dust_label, alias)),
-                        units=us["velocity"])
-            self.alias(("gas", "%smoment_%s" % (dust_label, alias)), ("gas", "%smoment_%d" % (dust_label, idir)),
-                        units=us["density"]*us["velocity"])
+            velocity_fn = functools.partial(_velocity, idir=idir, prefix=dust_label)
+            functools.update_wrapper(velocity_fn, _velocity)
+            self.add_field(("gas", "%svelocity_%s" % (dust_label, alias)),
+                           function=velocity_fn,
+                           units=us['velocity'],
+                           dimensions=dimensions.velocity,
+                           sampling_type="cell")
+            self.alias(("gas", "%svelocity_%d" % (dust_label, idir)),
+                       ("gas", "%svelocity_%s" % (dust_label, alias)),
+                       units=us["velocity"])
+            self.alias(("gas", "%smoment_%s" % (dust_label, alias)),
+                       ("gas", "%smoment_%d" % (dust_label, idir)),
+                       units=us["density"]*us["velocity"])
 
-    def _setup_dust_fluids(self):
+    def _setup_dust_fields(self):
         idust = 1
         while ("amrvac", "rhod%d" % idust) in self.field_list:
             if idust > MAXN_DUST_SPECIES:
@@ -133,8 +133,8 @@ class AMRVACFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
 
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
-        self._setup_velocity_fields() # gas velocities
-        self._setup_dust_fluids() # dust derived fields (including velocities)
+        self._setup_velocity_fields()  # gas velocities
+        self._setup_dust_fields()  # dust derived fields (including velocities)
 
 
         # fields with nested dependencies are defined thereafter by increasing level of complexity
