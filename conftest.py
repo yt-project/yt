@@ -103,6 +103,47 @@ def temp_dir():
 
 @pytest.fixture(scope='class')
 def answer_file(request):
+    r"""
+    Assigns the name of the appropriate answer file as an attribute of
+    the calling answer test class.
+
+    The answer file is the file that either already contains previously
+    generated answers or else is going to contain newly generated
+    answers. If an answer file already exists, then it cannot be used
+    to hold newly generated answers; a fresh file must be used instead.
+
+    Each class that performs answer tests (e.g., TestEnzo) has a
+    corresponding answer file. These answer files are stored in
+    test_data_dir/answers. The names of the files and their
+    corresponding answer class are in ./tests/tests.yaml.
+
+    Parameters:
+    -----------
+        request : pytest.FixtureRequest
+            Provides access to the requesting test context. For
+            example, if an answer class uses this fixture, such as
+            TestEnzo, then request provides access to all of the
+            methods and attributes of the TestEnzo class, since
+            that class is the user of this fixture (the calling
+            context).
+
+    Raises:
+    -------
+        None
+
+    Returns:
+    --------
+        None
+
+    Example:
+    --------
+        # This fixture should be used whenever a new answer class is
+        # defined
+        >>> @pytest.mark.usefixtures('answer_file')
+        >>> class TestNewFrontend:
+        >>>     def test1(self):
+                    ...
+    """
     if request.cls.__name__ in answer_files:
         answer_file = answer_files[request.cls.__name__]
         # Make sure we're not overwriting an existing answer set
