@@ -41,7 +41,7 @@ class FITSImageData(object):
     def __init__(self, data, fields=None, length_unit=None, width=None,
                  img_ctr=None, wcs=None, current_time=None, time_unit=None,
                  mass_unit=None, velocity_unit=None, magnetic_unit=None,
-                 ds=None, **kwargs):
+                 ds=None, unit_header=None, **kwargs):
         r""" Initialize a FITSImageData object.
 
         FITSImageData contains a collection of FITS ImageHDU instances and
@@ -132,8 +132,11 @@ class FITSImageData(object):
         self.fields = []
         self.field_units = {}
 
-        self._set_units(ds, [length_unit, mass_unit, time_unit, velocity_unit,
-                             magnetic_unit])
+        if unit_header is None:
+            self._set_units(ds, [length_unit, mass_unit, time_unit, velocity_unit,
+                                 magnetic_unit])
+        else:
+            self._set_units_from_header(unit_header)
 
         wcs_unit = str(self.length_unit.units)
 
@@ -257,7 +260,7 @@ class FITSImageData(object):
                         hdu.header[key] = float(value.value)
                         hdu.header.comments[key] = "[%s]" % value.units
                 if self.current_time is not None:
-                    hdu.header["time"] = self.current_time
+                    hdu.header["time"] = float(self.current_time.value)
                 self.hdulist.append(hdu)
 
         self.dimensionality = len(self.shape)
@@ -315,7 +318,7 @@ class FITSImageData(object):
             current_time = YTQuantity(current_time, tunit)
         elif isinstance(current_time, tuple):
             current_time = YTQuantity(current_time[0], current_time[1])
-        self.current_time = current_time.to_value(tunit)
+        self.current_time = current_time.to(tunit)
 
     def _set_units(self, ds, base_units):
         attrs = ('length_unit', 'mass_unit', 'time_unit', 
@@ -358,6 +361,17 @@ class FITSImageData(object):
                 uq = YTQuantity(1.0, uq.units)
 
             setattr(self, attr, uq)
+
+    def _set_units_from_header(self, header):
+        for unit in ["length", "time", "mass", "velocity", "magnetic_field"]:
+            if unit == "magnetic_field":
+                key = "BFUNIT"
+            else:
+                key = unit[0].upper()+"UNIT"
+            if key not in header:
+                continue
+            u = YTQuantity(header[key], header.comments[key].strip("[]"))
+            setattr(self, unit+"_unit", u)
 
     def set_wcs(self, wcs, wcsname=None, suffix=None):
         """
@@ -625,7 +639,7 @@ class FITSImageData(object):
         self.field_units.pop(key)
         self.fields.remove(key)
         return FITSImageData(_astropy.pyfits.PrimaryHDU(im.data, header=im.header))
- 
+         
     def close(self):
         self.hdulist.close()
 
@@ -641,7 +655,7 @@ class FITSImageData(object):
             The name of the file to open.
         """
         f = _astropy.pyfits.open(filename, lazy_load_hdus=False)
-        return cls(f, current_time=f[0].header["TIME"])
+        return cls(f, current_time=f[0].header["TIME"], unit_header=f[0].header)
 
     @classmethod
     def from_images(cls, image_list):
