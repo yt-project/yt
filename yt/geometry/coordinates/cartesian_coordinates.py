@@ -347,30 +347,31 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                 if smoothing_style == 'scatter':
                     buff = np.zeros(size, dtype='float64')
-
+                    bnds = data_source.ds.arr(
+                        bounds, 'code_length').in_units('cm').tolist()
                     if normalize:
                         buff_den = np.zeros(size, dtype='float64')
 
                     for chunk in data_source.chunks([], 'io'):
                         pixelize_sph_kernel_slice(
                             buff,
-                            chunk[ptype, px_name].to('code_length'),
-                            chunk[ptype, py_name].to('code_length'),
-                            chunk[ptype, 'smoothing_length'].to('code_length'),
-                            chunk[ptype, 'mass'],
-                            chunk[ptype, 'density'],
+                            chunk[ptype, px_name].to('cm'),
+                            chunk[ptype, py_name].to('cm'),
+                            chunk[ptype, 'smoothing_length'].to('cm'),
+                            chunk[ptype, 'mass'].to('g'),
+                            chunk[ptype, 'density'].to('g/cm**3'),
                             chunk[field].in_units(ounits),
-                            bounds)
+                            bnds)
                         if normalize:
                             pixelize_sph_kernel_slice(
                                 buff_den,
-                                chunk[ptype, px_name].to('code_length'),
-                                chunk[ptype, py_name].to('code_length'),
-                                chunk[ptype, 'smoothing_length'].to('code_length'),
-                                chunk[ptype, 'mass'],
-                                chunk[ptype, 'density'],
+                                chunk[ptype, px_name].to('cm'),
+                                chunk[ptype, py_name].to('cm'),
+                                chunk[ptype, 'smoothing_length'].to('cm'),
+                                chunk[ptype, 'mass'].to('g'),
+                                chunk[ptype, 'density'].to('g/cm**3'),
                                 np.ones(chunk[ptype, 'density'].shape[0]),
-                                bounds)
+                                bnds)
 
                     if normalize:
                         normalization_2d_utility(buff, buff_den)
