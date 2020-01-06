@@ -19,7 +19,7 @@ from yt.utilities.answer_testing import utils
 
 
 # Global variables can be added to the pytest namespace
-pytest.answer_files = {}
+answer_files = {}
 
 # List of answer files
 answer_file_list = 'tests/tests.yaml'
@@ -58,7 +58,7 @@ def pytest_configure(config):
     # Read the list of answer test classes and their associated answer
     # file
     with open(answer_file_list, 'r') as f:
-        pytest.answer_files = yaml.safe_load(f)
+        answer_files = yaml.safe_load(f)
     # Register custom marks for answer tests and big data
     config.addinivalue_line('markers', 'answer_test: Run the answer tests.')
     config.addinivalue_line('markers', 'big_data: Run answer tests that require'
@@ -103,8 +103,8 @@ def temp_dir():
 
 @pytest.fixture(scope='class')
 def answer_file(request):
-    if request.cls.__name__ in pytest.answer_files:
-        answer_file = pytest.answer_files[request.cls.__name__]
+    if request.cls.__name__ in answer_files:
+        answer_file = answer_files[request.cls.__name__]
         # Make sure we're not overwriting an existing answer set
         if os.path.isfile(os.path.join(answer_dir, answer_file)):
             if request.config.getoption('--answer-store'):
