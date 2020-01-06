@@ -110,7 +110,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 g = f["/%s" % ptype]
-                if getattr(selector, 'is_all_data', False):
+                if getattr(selector, 'is_all_data', True):
                     mask = slice(None, None, None)
                     mask_sum = data_file.total_particles[ptype]
                     hsmls = None
@@ -315,7 +315,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             for ptype, field_list in sorted(ptf.items()):
                 if tp[ptype] == 0:
                     continue
-                if getattr(selector, 'is_all_data', False):
+                if getattr(selector, 'is_all_data', True):
                     mask = slice(None, None, None)
                 else:
                     f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)

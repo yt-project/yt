@@ -211,7 +211,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                     hsml = self._read_smoothing_length(data_file, count)
                 else:
                     hsml = 0.
-                if getattr(selector, 'is_all_data', False):
+                if getattr(selector, 'is_all_data', True):
                     mask = slice(None, None, None)
                 else:
                     x = p["Coordinates"]['x'].astype("float64")
