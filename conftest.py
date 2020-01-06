@@ -160,9 +160,6 @@ def answer_file(request):
     request.cls.answer_file = answer_file
 
 
-#============================================
-#                param_list
-#============================================
 def param_list(request):
     r"""
     Saves the non-ds, non-fixture function arguments for saving to
