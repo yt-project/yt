@@ -17,7 +17,7 @@ class IOHandlerSPH(BaseIOHandler):
     """
 
     def _count_particles_chunks(self, psize, chunks, ptf, selector):
-        if getattr(selector, 'is_all_data', False):
+        if getattr(selector, 'is_all_data', True):
             chunks = list(chunks)
             data_files = set([])
             for chunk in chunks:
