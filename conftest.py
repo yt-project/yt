@@ -188,10 +188,58 @@ def param_list(request):
 @pytest.fixture(scope='function')
 def hashing(request):
     r"""
-    This fixture reduces answer test boilerplate by handling the
-    initialization of the hashes, the actual hashing of the arrays
-    returned by the tests, and performing the writing/comparison.
-    It also handles saving the values and names of the test parameters.
+    Handles initialization, generation, and saving of answer test
+    result hashes.
+
+    Answer tests that require generated data to be saved to disk
+    have that data hashed. This fixture creates an empty dictionary
+    as an attribute of the answer class of which the current answer
+    test is a method.
+
+    Once the test has been run and the raw data has been saved to this
+    hashes dictionary, this fixture hashes the raw data and prepares
+    an entry to the answer file containing the test name as well as the
+    test parameter names and values to accompany the hash(es).
+
+    These entries are then either compared to an existing entry or
+    saved in the new answer file.
+
+    Parameters:
+    -----------
+        request : pytest.FixtureRequest
+            Provides access to the requesting test context. For
+            example, if an answer class uses this fixture, such as
+            TestEnzo, then request provides access to all of the
+            methods and attributes of the TestEnzo class, since
+            that class is the user of this fixture (the calling
+            context).
+
+    Raises:
+    -------
+        None
+
+    Returns:
+    --------
+        None
+
+    Example:
+    --------
+        # If every method of an answer class saves data then the
+        # fixture can be applied to each method like so:
+        >>> @pytest.mark.usefixtures('hashing')
+        >>> class TestNewFrontend:
+        >>>     def test1(self):
+        >>>         ...
+        >>>     def test2(self):
+        >>>         ...
+        # If only certain methods save data, then it must be applied
+        # directly to those methods, like so:
+        >>> class TestNewFrontend:
+        >>>     @pytest.mark.usefixtures('hashing')
+        >>>     def test1(self):
+        >>>         ...
+        >>>     def test2(self):
+        >>>         ...
     """
     # Set up hashes dictionary
     if request.cls is not None:
