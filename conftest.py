@@ -152,7 +152,7 @@ def answer_file(request):
     request.cls.answer_file = answer_file
 
 
-def param_list(request):
+def _param_list(request):
     r"""
     Saves the non-ds, non-fixture function arguments for saving to
     the answer file.
@@ -173,7 +173,7 @@ def param_list(request):
     # Convert python-specific data objects (such as tuples) to a more
     # io-friendly format (in order to not have python-specific anchors
     # in the answer yaml file)
-    test_params = utils.streamline_for_io(test_params)
+    test_params = utils._streamline_for_io(test_params)
     return test_params
 
 
@@ -233,13 +233,13 @@ def hashing(request):
     # Yield to the caller in order to actually perform the tests
     yield
     # Get param list
-    params = param_list(request)
+    params = _param_list(request)
     # Hash the test results
-    hashes = utils.hash_results(request.cls.hashes)
+    hashes = utils._hash_results(request.cls.hashes)
     # Add the other test parameters
     hashes.update(params)
     # Add the function name as the "master" key to the hashes dict
     hashes = {request.node.name : hashes}
     # Either save or compare
-    utils.handle_hashes(answer_dir, request.cls.answer_file, hashes,
+    utils._handle_hashes(answer_dir, request.cls.answer_file, hashes,
         request.config.getoption('--answer-store'))

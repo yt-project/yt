@@ -28,7 +28,7 @@ import yt.visualization.profile_plotter as profile_plotter
 from yt.visualization.volume_rendering.scene import Scene
 
 
-def streamline_for_io(params):
+def _streamline_for_io(params):
     r"""
     Put test results in a more io-friendly format.
 
@@ -62,10 +62,10 @@ def streamline_for_io(params):
         # d = [None, ('sphere', (center, (0.1, 'unitary')))] so we need
         # to use recursion
         if not isinstance(key, str) and hasattr(key, '__iter__'):
-            key = iterable_to_string(key)
+            key = _iterable_to_string(key)
         # The value can also be nested iterables
         if not isinstance(value, str) and hasattr(value, '__iter__'):
-            value = iterable_to_string(value)
+            value = _iterable_to_string(value)
         # Scene objects need special treatment to make them more IO friendly
         if isinstance(value, Scene):
             value = 'Scene' 
@@ -74,7 +74,7 @@ def streamline_for_io(params):
         streamlined_params[key] = value
     return streamlined_params
 
-def iterable_to_string(iterable):
+def _iterable_to_string(iterable):
     r"""
     An extension of streamline_for_io that does the work of making an
     iterable more io-friendly.
@@ -96,7 +96,7 @@ def iterable_to_string(iterable):
             result += '_' + elem.__name__
         # Non-string iterables (e.g., lists, tuples, etc.)
         elif not isinstance(elem, str) and hasattr(elem, '__iter__'):
-            result += '_' + iterable_to_string(elem)
+            result += '_' + _iterable_to_string(elem)
         # Non-string non-iterables (ints, floats, etc.)
         elif not isinstance(elem, str) and not hasattr(elem, '__iter__'):
             result += '_' + str(elem)
@@ -105,7 +105,7 @@ def iterable_to_string(iterable):
             result += '_' + elem
     return result
 
-def hash_results(results):
+def _hash_results(results):
     r"""
     Driver function for hashing the test result.
 
@@ -132,7 +132,7 @@ def hash_results(results):
             results[test_name] = generate_hash(test_value)
     return results
 
-def hash_dict(data):
+def _hash_dict(data):
     r"""
     Specifically handles hashing a dictionary object. 
 
@@ -182,12 +182,12 @@ def generate_hash(data):
     # to be changed
     except TypeError:
         if isinstance(data, dict):
-            hd = hash_dict(data)
+            hd = _hash_dict(data)
         else:
             raise TypeError
     return hd
 
-def save_result(data, outputFile):
+def _save_result(data, outputFile):
     r"""
     Saves the test results to the desired answer file. 
 
@@ -206,7 +206,7 @@ def save_result(data, outputFile):
     with open(outputFile, 'a') as f:
         yaml.dump(data, f)
 
-def compare_result(data, outputFile):
+def _compare_result(data, outputFile):
     r"""
     Compares the just-generated test results to those that are already
     saved.
@@ -223,16 +223,16 @@ def compare_result(data, outputFile):
     with open(outputFile, 'r') as f:
         savedData = yaml.safe_load(f)
     # Define the comparison function
-    def check_vals(newVals, oldVals):
+    def _check_vals(newVals, oldVals):
         for key, value in newVals.items():
             if isinstance(value, dict):
-                check_vals(value, oldVals[key])
+                _check_vals(value, oldVals[key])
             else:
                 assert value == oldVals[key]
     # Compare
-    check_vals(data, savedData)
+    _check_vals(data, savedData)
 
-def handle_hashes(save_dir_name, fname, hashes, answer_store):
+def _handle_hashes(save_dir_name, fname, hashes, answer_store):
     r"""
     Driver function for deciding whether to save the test results or
     compare them to already saved results.
@@ -258,13 +258,17 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
     answer_file = os.path.join(save_dir_name, fname)
     # Save the result
     if answer_store:
-        save_result(hashes, answer_file)
+        _save_result(hashes, answer_file)
     # Compare to already saved results
     else:
-        compare_result(hashes, answer_file)
+        _compare_result(hashes, answer_file)
 
 
 def can_run_ds(ds_fn, file_check = False):
+    r"""
+    Validates whether or not a given input can be loaded and used as a
+    Dataset object.
+    """
     if isinstance(ds_fn, Dataset):
         return True
     path = ytcfg.get("yt", "test_data_dir")
@@ -280,6 +284,10 @@ def can_run_ds(ds_fn, file_check = False):
 
 
 def can_run_sim(sim_fn, sim_type, file_check = False):
+    r"""
+    Validates whether or not a given input can be used as a simulation
+    time-series object.
+    """
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
@@ -293,6 +301,10 @@ def can_run_sim(sim_fn, sim_type, file_check = False):
 
 
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
+    r"""
+    Loads a sample dataset from the designated test_data_dir for use in
+    testing.
+    """
     args = args or ()
     kwargs = kwargs or {}
     path = ytcfg.get("yt", "test_data_dir")
@@ -330,6 +342,10 @@ def requires_ds(ds_fn, file_check = False):
 
 
 def requires_sim(sim_fn, sim_type, file_check = False):
+    r"""
+    Meta-wrapper for specifying a required simulation for a test and
+    checking if said simulation exists.
+    """
     def ffalse(func):
         @functools.wraps(func)
         def skip(*args, **kwargs):
@@ -358,6 +374,10 @@ def create_obj(ds, obj_type):
 
 
 def compare_unit_attributes(ds1, ds2):
+    r"""
+    Checks to make sure that the length, mass, time, velocity, and
+    magnetic units are the same for two different dataset objects.
+    """
     attrs = ('length_unit', 'mass_unit', 'time_unit',
              'velocity_unit', 'magnetic_unit')
     for attr in attrs:
