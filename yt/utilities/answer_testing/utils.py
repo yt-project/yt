@@ -405,34 +405,55 @@ def fake_halo_catalog(data):
     return filename
 
 
-def create_plot(ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
+def _create_plot_window_attribute_plot(ds, ptype, field, axis, pkwargs = None):
     r"""
     Convenience function used in plot_window_attribute_test.
 
     Parameters:
     -----------
-        plot_type : string
+        ds : Dataset
+            The Dataset object from which the plotting data is taken.
+
+        ptype : string
             Type of plot to make (e.g., SlicePlot).
+
+        field : yt field
+            The field (e.g, density) to plot.
+
+        axis : int
+            The plot axis to plot or project along.
             
-        plot_kwargs : dict
+        pkwargs : dict
             Any keywords to be passed when creating the plot.
     """
-    if plot_type is None:
+    if ptype is None:
         raise RuntimeError('Must explicitly request a plot type')
-    cls = getattr(pw, plot_type, None)
+    cls = getattr(pw, ptype, None)
     if cls is None:
-        cls = getattr(particle_plots, plot_type)
-    plot = cls(*(ds, plot_axis, plot_field), **plot_kwargs)
+        cls = getattr(particle_plots, ptype)
+    plot = cls(*(ds, axis, field), **pkwargs)
     return plot
 
 
-def create_plot2(data_source, x_field, y_field, z_field,
+def _create_phase_plot_attribute_plot(data_source, x_field, y_field, z_field,
                 plot_type, plot_kwargs=None):
     r"""
     Convenience function used in phase_plot_attribute_test.
 
     Parameters:
     -----------
+        data_source : Dataset object
+            The Dataset object from which the plotting data is taken.
+        
+        x_field : yt field
+            Field to plot on x-axis.
+        
+        y_field : yt field
+            Field to plot on y-axis.
+
+        z_field : yt field
+            Field to plot on z-axis.
+
         plot_type : string
             Type of plot to make (e.g., SlicePlot).
             
