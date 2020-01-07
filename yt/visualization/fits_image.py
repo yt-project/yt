@@ -312,7 +312,7 @@ class FITSImageData(object):
             if ds is not None:
                 current_time = ds.current_time
             else:
-                self.current_time = 0.0
+                self.current_time = YTQuantity(0.0, 's')
                 return
         elif isinstance(current_time, numeric_type):
             current_time = YTQuantity(current_time, tunit)
@@ -363,8 +363,8 @@ class FITSImageData(object):
             setattr(self, attr, uq)
 
     def _set_units_from_header(self, header):
-        for unit in ["length", "time", "mass", "velocity", "magnetic_field"]:
-            if unit == "magnetic_field":
+        for unit in ["length", "time", "mass", "velocity", "magnetic"]:
+            if unit == "magnetic":
                 key = "BFUNIT"
             else:
                 key = unit[0].upper()+"UNIT"
