@@ -127,14 +127,6 @@ def answer_file(request):
             that class is the user of this fixture (the calling
             context).
 
-    Raises:
-    -------
-        None
-
-    Returns:
-    --------
-        None
-
     Example:
     --------
         # This fixture should be used whenever a new answer class is
@@ -213,14 +205,6 @@ def hashing(request):
             methods and attributes of the TestEnzo class, since
             that class is the user of this fixture (the calling
             context).
-
-    Raises:
-    -------
-        None
-
-    Returns:
-    --------
-        None
 
     Example:
     --------

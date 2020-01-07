@@ -44,10 +44,6 @@ def streamline_for_io(params):
             The dictionary of test parameters in the form
             {param_name : param_value}.
 
-    Raises:
-    -------
-        None
-
     Returns:
     --------
         streamlined_params : dict
@@ -87,10 +83,6 @@ def iterable_to_string(iterable):
         iterable : python iterable
             The object to be parsed and converted.
 
-    Raises:
-    -------
-        None 
-
     Returns:
     --------
         result : str
@@ -121,10 +113,6 @@ def hash_results(results):
         results : dict
             Dictionary of {test_name : test_result} pairs.
 
-    Raises:
-    -------
-        None 
-
     Returns:
     --------
         results : dict
@@ -152,10 +140,6 @@ def hash_dict(data):
         data : dict
             The dictionary to be hashed.
 
-    Raises:
-    -------
-        None 
-
     Returns:
     --------
         hd.hexdigest : str
@@ -177,10 +161,6 @@ def generate_hash(data):
     -----------
         data : python object 
             Data to be hashed.
-
-    Raises:
-    -------
-        None 
 
     Returns:
     --------
@@ -218,10 +198,6 @@ def save_result(data, outputFile):
         outputFile : str
             Name of file to save results to.
 
-    Raises:
-    -------
-        None 
-
     Returns:
     --------
         None 
@@ -241,14 +217,6 @@ def compare_result(data, outputFile):
 
         outputFile : str
             Name of file where answers are already saved.
-
-    Raises:
-    -------
-        None 
-
-    Returns:
-    --------
-        None 
     """
     # Load the saved data
     with open(outputFile, 'r') as f:
@@ -284,14 +252,6 @@ def handle_hashes(save_dir_name, fname, hashes, answer_store):
         answer_store : bool
             If true, save the just-generated test results, otherwise,
             compare them to the previously saved results.
-
-    Raises:
-    -------
-        None 
-
-    Returns:
-    --------
-        None 
     """
     # Set up the answer file in the answer directory
     answer_file = os.path.join(save_dir_name, fname)
