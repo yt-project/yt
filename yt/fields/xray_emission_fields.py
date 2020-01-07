@@ -29,7 +29,7 @@ def _get_data_file(table_type, data_dir=None):
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
         msg = "Failed to find emissivity data file %s! " % data_file + \
-            "Please download from http://yt-project.org/data!"
+              "Please download from %s!" % data_url
         mylog.error(msg)
         raise IOError(msg)
     return data_path
