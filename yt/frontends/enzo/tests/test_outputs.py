@@ -7,6 +7,7 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
+import numpy as np
 import pytest
 
 from yt.frontends.enzo.api import EnzoDataset
@@ -35,6 +36,35 @@ active_particle_cosmology = 'ActiveParticleCosmology/DD0046/DD0046'
 mhdctot = "MHDCTOrszagTang/DD0004/data0004"
 dnz = "DeeplyNestedZoom/DD0025/data0025"
 p3mini = "PopIII_mini/DD0034/DD0034"
+
+
+#============================================
+#         color_conservation_test
+#============================================
+def color_conservation_test(ds):
+    species_names = ds.field_info.species_names
+    dd = ds.all_data()
+    dens_yt = dd["density"].copy()
+    # Enumerate our species here
+    for s in sorted(species_names):
+        if s == "El": continue
+        dens_yt -= dd["%s_density" % s]
+    dens_yt -= dd["metal_density"]
+    delta_yt = np.abs(dens_yt / dd["density"])
+    # Now we compare color conservation to Enzo's color conservation
+    dd = ds.all_data()
+    dens_enzo = dd["Density"].copy()
+    for f in sorted(ds.field_list):
+        ff = f[1]
+        if not ff.endswith("_Density"):
+            continue
+        start_strings = ["Electron_", "SFR_", "Forming_Stellar_",
+                         "Dark_Matter", "Star_Particle_"]
+        if any([ff.startswith(ss) for ss in start_strings]):
+            continue
+        dens_enzo -= dd[f]
+    delta_enzo = np.abs(dens_enzo / dd["Density"])
+    np.testing.assert_almost_equal(delta_yt, delta_enzo)
 
 
 #============================================
@@ -78,7 +108,7 @@ class TestEnzo(fw.AnswerTest):
     @utils.requires_ds(g30)
     def test_galaxy0030(self, a, d, w, f, ds_g30):
         # Color conservation test
-        self.color_conservation_test(ds_g30)
+        color_conservation_test(ds_g30)
         # Run the big patch amr test suite
         self.hashes.update(self.big_patch_amr(ds_g30, f, w, a, d))
 
@@ -106,7 +136,7 @@ class TestEnzo(fw.AnswerTest):
     @pytest.mark.big_data
     @utils.requires_ds(ecp)
     def test_ecp(self, ds_ecp):
-        self.color_conservation_test(ds_ecp)
+        color_conservation_test(ds_ecp)
 
     #-----
     # test_units_override
