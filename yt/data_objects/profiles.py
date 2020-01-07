@@ -249,9 +249,9 @@ been deprecated, use profile.standard_deviation instead."""
         bin_fields = [chunk[bf] for bf in self.bin_fields]
         for i in range(1, len(bin_fields)):
             if bin_fields[0].shape != bin_fields[i].shape:
-                    raise YTProfileDataShape(
-                        self.bin_fields[0], bin_fields[0].shape,
-                        self.bin_fields[i], bin_fields[i].shape)
+                raise YTProfileDataShape(
+                    self.bin_fields[0], bin_fields[0].shape,
+                    self.bin_fields[i], bin_fields[i].shape)
         # We want to make sure that our fields are within the bounds of the
         # binning
         pfilter, bin_fields = self._filter(bin_fields)
