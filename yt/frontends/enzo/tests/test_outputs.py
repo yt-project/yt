@@ -48,6 +48,33 @@ mhdctot = "MHDCTOrszagTang/DD0004/data0004"
 dnz = "DeeplyNestedZoom/DD0025/data0025"
 p3mini = "PopIII_mini/DD0034/DD0034"
 
+
+def color_conservation_test(ds):
+    species_names = ds.field_info.species_names
+    dd = ds.all_data()
+    dens_yt = dd["density"].copy()
+    # Enumerate our species here
+    for s in sorted(species_names):
+        if s == "El": continue
+        dens_yt -= dd["%s_density" % s]
+    dens_yt -= dd["metal_density"]
+    delta_yt = np.abs(dens_yt / dd["density"])
+    # Now we compare color conservation to Enzo's color conservation
+    dd = ds.all_data()
+    dens_enzo = dd["Density"].copy()
+    for f in sorted(ds.field_list):
+        ff = f[1]
+        if not ff.endswith("_Density"):
+            continue
+        start_strings = ["Electron_", "SFR_", "Forming_Stellar_",
+                         "Dark_Matter", "Star_Particle_"]
+        if any([ff.startswith(ss) for ss in start_strings]):
+            continue
+        dens_enzo -= dd[f]
+    delta_enzo = np.abs(dens_enzo / dd["Density"])
+    np.testing.assert_almost_equal(delta_yt, delta_enzo)
+
+
 def check_color_conservation(ds):
     species_names = ds.field_info.species_names
     dd = ds.all_data()
