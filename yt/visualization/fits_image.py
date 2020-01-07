@@ -133,8 +133,8 @@ class FITSImageData(object):
         self.field_units = {}
 
         if unit_header is None:
-            self._set_units(ds, [length_unit, mass_unit, time_unit, velocity_unit,
-                                 magnetic_unit])
+            self._set_units(ds, [length_unit, mass_unit, time_unit, 
+                                 velocity_unit, magnetic_unit])
         else:
             self._set_units_from_header(unit_header)
 
