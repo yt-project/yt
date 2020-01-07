@@ -615,9 +615,15 @@ def requires_module(module):
     platform.
     """
     def ffalse(func):
-        return lambda: None
+        @functools.wraps(func)
+        def false_wrapper(*args, **kwargs):
+            return None
+        return false_wrapper
     def ftrue(func):
-        return func
+        @functools.wraps(func)
+        def true_wrapper(*args, **kwargs):
+            return func
+        return true_wrapper
     try:
         importlib.import_module(module)
     except ImportError:
@@ -628,9 +634,15 @@ def requires_module(module):
 def requires_file(req_file):
     path = ytcfg.get("yt", "test_data_dir")
     def ffalse(func):
-        return lambda: None
+        @functools.wraps(func)
+        def false_wrapper(*args, **kwargs):
+            return None
+        return false_wrapper
     def ftrue(func):
-        return func
+        @functools.wraps(func)
+        def true_wrapper(*args, **kwargs):
+            return func
+        return true_wrapper
     if os.path.exists(req_file):
         return ftrue
     else:
@@ -920,6 +932,7 @@ def check_results(func):
 
     """
     def compute_results(func):
+        @functools.wraps(func)
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
@@ -944,6 +957,7 @@ def check_results(func):
         return compute_results(func)
 
     def compare_results(func):
+        @functools.wraps(func)
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
@@ -1138,11 +1152,15 @@ def requires_backend(backend):
 
     """
     def ffalse(func):
-        return lambda: None
-
+        @functools.wraps(func)
+        def false_wrapper(*args, **kwargs):
+            return None
+        return false_wrapper
     def ftrue(func):
-        return func
-
+        @functools.wraps(func)
+        def true_wrapper(*args, **kwargs):
+            return func
+        return true_wrapper
     if backend.lower() == matplotlib.get_backend().lower():
         return ftrue
     return ffalse

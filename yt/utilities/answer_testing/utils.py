@@ -3,6 +3,7 @@ Title:   utils.py
 Purpose: Contains utility functions for yt answer tests
 Notes:
 """
+import functools
 import hashlib
 import inspect
 import os
@@ -312,12 +313,16 @@ def requires_ds(ds_fn, file_check = False):
     checking if said data exists.
     """
     def ffalse(func):
+        @functools.wraps(func)
         def skip(*args, **kwargs):
             msg = "{} not found, skipping {}.".format(ds_fn, func.__name__)
             pytest.fail(msg)
         return skip
     def ftrue(func):
-        return func
+        @functools.wraps(func)
+        def true_wrapper(*args, **kwargs):
+            return func
+        return true_wrapper
     if not can_run_ds(ds_fn, file_check):
         return ffalse
     else:
@@ -326,12 +331,16 @@ def requires_ds(ds_fn, file_check = False):
 
 def requires_sim(sim_fn, sim_type, file_check = False):
     def ffalse(func):
+        @functools.wraps(func)
         def skip(*args, **kwargs):
             msg = "{} not found, skipping {}.".format(sim_fn, func.__name__)
             pytest.fail(msg)
         return skip
     def ftrue(func):
-        return func
+        @functools.wraps(func)
+        def true_wrapper(*args, **kwargs):
+            return func
+        return true_wrapper
     if not can_run_sim(sim_fn, sim_type, file_check):
         return ffalse
     else:
