@@ -280,6 +280,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             px_name = self.axis_name[self.x_axis[dim]]
             py_name = self.axis_name[self.y_axis[dim]]
             ounits = data_source.ds.field_info[field].output_units
+            bnds = data_source.ds.arr(bounds, 'code_length').tolist()
             if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
                 le, re = data_source.data_source.get_bbox()
@@ -292,19 +293,17 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     data_source=data_source.data_source
                 )
                 proj_reg.set_field_parameter("axis", data_source.axis)
-                bnds = data_source.ds.arr(
-                    bounds, 'code_length').in_units('cm').tolist()
                 buff = np.zeros(size, dtype='float64')
                 if weight is None:
                     for chunk in proj_reg.chunks([], 'io'):
                         data_source._initialize_projected_units([field], chunk)
                         pixelize_sph_kernel_projection(
                             buff,
-                            chunk[ptype, px_name].in_units('cm'),
-                            chunk[ptype, py_name].in_units('cm'),
-                            chunk[ptype, 'smoothing_length'].in_units('cm'),
-                            chunk[ptype, 'mass'].in_units('g'),
-                            chunk[ptype, 'density'].in_units('g/cm**3'),
+                            chunk[ptype, px_name].to('code_length'),
+                            chunk[ptype, py_name].to('code_length'),
+                            chunk[ptype, 'smoothing_length'].to('code_length'),
+                            chunk[ptype, 'mass'].to('code_mass'),
+                            chunk[ptype, 'density'].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds)
                 # if there is a weight field, take two projections:
@@ -318,11 +317,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         data_source._initialize_projected_units([weight], chunk)
                         pixelize_sph_kernel_projection(
                             buff,
-                            chunk[ptype, px_name].in_units('cm'),
-                            chunk[ptype, py_name].in_units('cm'),
-                            chunk[ptype, 'smoothing_length'].in_units('cm'),
-                            chunk[ptype, 'mass'].in_units('g'),
-                            chunk[ptype, 'density'].in_units('g/cm**3'),
+                            chunk[ptype, px_name].to('code_length'),
+                            chunk[ptype, py_name].to('code_length'),
+                            chunk[ptype, 'smoothing_length'].to('code_length'),
+                            chunk[ptype, 'mass'].to('code_mass'),
+                            chunk[ptype, 'density'].to('code_density'),
                             chunk[field].in_units(ounits),
                             bnds,
                             weight_field=chunk[weight].in_units(wounits))
@@ -332,11 +331,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
                         data_source._initialize_projected_units([weight], chunk)
                         pixelize_sph_kernel_projection(
                             weight_buff,
-                            chunk[ptype, px_name].in_units('cm'),
-                            chunk[ptype, py_name].in_units('cm'),
-                            chunk[ptype, 'smoothing_length'].in_units('cm'),
-                            chunk[ptype, 'mass'].in_units('g'),
-                            chunk[ptype, 'density'].in_units('g/cm**3'),
+                            chunk[ptype, px_name].to('code_length'),
+                            chunk[ptype, py_name].to('code_length'),
+                            chunk[ptype, 'smoothing_length'].to('code_length'),
+                            chunk[ptype, 'mass'].to('code_mass'),
+                            chunk[ptype, 'density'].to('code_density'),
                             chunk[weight].in_units(wounits),
                             bnds)
                     normalization_2d_utility(buff, weight_buff)
@@ -347,29 +346,27 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                 if smoothing_style == 'scatter':
                     buff = np.zeros(size, dtype='float64')
-                    bnds = data_source.ds.arr(
-                        bounds, 'code_length').in_units('cm').tolist()
                     if normalize:
                         buff_den = np.zeros(size, dtype='float64')
 
                     for chunk in data_source.chunks([], 'io'):
                         pixelize_sph_kernel_slice(
                             buff,
-                            chunk[ptype, px_name].to('cm'),
-                            chunk[ptype, py_name].to('cm'),
-                            chunk[ptype, 'smoothing_length'].to('cm'),
-                            chunk[ptype, 'mass'].to('g'),
-                            chunk[ptype, 'density'].to('g/cm**3'),
+                            chunk[ptype, px_name].to('code_length'),
+                            chunk[ptype, py_name].to('code_length'),
+                            chunk[ptype, 'smoothing_length'].to('code_length'),
+                            chunk[ptype, 'mass'].to('code_mass'),
+                            chunk[ptype, 'density'].to('code_density'),
                             chunk[field].in_units(ounits),
                             bnds)
                         if normalize:
                             pixelize_sph_kernel_slice(
                                 buff_den,
-                                chunk[ptype, px_name].to('cm'),
-                                chunk[ptype, py_name].to('cm'),
-                                chunk[ptype, 'smoothing_length'].to('cm'),
-                                chunk[ptype, 'mass'].to('g'),
-                                chunk[ptype, 'density'].to('g/cm**3'),
+                                chunk[ptype, px_name].to('code_length'),
+                                chunk[ptype, py_name].to('code_length'),
+                                chunk[ptype, 'smoothing_length'].to('code_length'),
+                                chunk[ptype, 'mass'].to('code_mass'),
+                                chunk[ptype, 'density'].to('code_density'),
                                 np.ones(chunk[ptype, 'density'].shape[0]),
                                 bnds)
 
@@ -404,11 +401,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
                     num_neighbors = getattr(self.ds, 'num_neighbors', 32)
                     interpolate_sph_grid_gather(buff_temp,
-                                                all_fields['particle_position'],
+                                                all_fields['particle_position'].to("code_length"),
                                                 buff_bounds,
-                                                all_fields['smoothing_length'],
-                                                all_fields['mass'],
-                                                all_fields['density'],
+                                                all_fields['smoothing_length'].to("code_length"),
+                                                all_fields['mass'].to('code_mass'),
+                                                all_fields['density'].to('code_density'),
                                                 all_fields[field[1]].in_units(ounits),
                                                 self.ds.index.kdtree,
                                                 num_neigh=num_neighbors,
