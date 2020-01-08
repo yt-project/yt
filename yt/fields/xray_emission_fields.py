@@ -205,12 +205,13 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
     if table_type == "cloudy":
         # Cloudy wants to scale by nH**2
-        def _norm_field(field, data):
-            return data[ftype, "H_nuclei_density"]**2
+        other_n = "H_nuclei_density"
     else:
         # APEC wants to scale by nH*ne
-        def _norm_field(field, data):
-            return data[ftype, "H_nuclei_density"]*data[ftype, "El_number_density"]
+        other_n = "El_number_density"
+
+    def _norm_field(field, data):
+        return data[ftype, "H_nuclei_density"]*data[ftype, other_n]
     ds.add_field((ftype, "norm_field"), _norm_field, units="cm**-6",
                  sampling_type='local')
 
