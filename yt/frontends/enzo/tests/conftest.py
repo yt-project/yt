@@ -29,14 +29,14 @@ test_params = {
         'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
         'w' : [(None, 'density'), ('None', 'density')],
         'f' : [utils.data_dir_load(toro1d).field_list,
-            (str(i) for i in range(len(utils.data_dir_load(toro1d).field_list)))]  
+            [str(i) for i in range(len(utils.data_dir_load(toro1d).field_list))]]  
     },
     'test_kh2d' : {
         'a' : [(0, 1, 2), ('0', '1', '2')],
         'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
         'w' : [(None, 'density'), ('None', 'density')],
         'f' : [utils.data_dir_load(kh2d).field_list,
-            (str(i) for i in range(len(utils.data_dir_load(kh2d).field_list)))]  
+            [str(i) for i in range(len(utils.data_dir_load(kh2d).field_list))]]  
     },
     'test_moving7' : {
         'a' : [(0, 1, 2), ('0', '1', '2')],
@@ -56,7 +56,7 @@ test_params = {
         'finder' : [('fof', 'hop'), ('fof', 'hop')]
     },
     'test_analytic_halo_mass_function' : {
-        'fit' : [(i for i in range(1,6)), (str(i) for i in range(1,6))]
+        'fit' : [[i for i in range(1,6)], [str(i) for i in range(1,6)]]
     }
 }
 

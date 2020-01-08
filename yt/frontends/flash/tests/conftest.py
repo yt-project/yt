@@ -19,14 +19,14 @@ dens_turb_mag = 'DensTurbMag/DensTurbMag_hdf5_plt_cnt_0015'
 test_params = {
     'test_sloshing' : {
         'a' : [(0, 1, 2), ('0', '1', '2')],
-        'd' : [(None, ('sphere', ('max', (0.1, 'unitary'))), ('None' , 'sphere')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None' , 'sphere')],
         'w' : [(None, 'density'), ('None' , 'density')],
         'f' : [('temperature', 'density', 'velocity_magnitude'),
                 ('temperature', 'density', 'velocity_magnitude')]
     },
     'test_wind_tunnel' : {
         'a' : [(0, 1, 2), ('0', '1', '2')],
-        'd' : [(None, ('sphere', ('max', (0.1, 'unitary'))), ('None' , 'sphere')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None' , 'sphere')],
         'w' : [(None, 'density'), ('None' , 'density')],
         'f' : [('temperature', 'density'), ('temperature', 'density')]
     },

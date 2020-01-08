@@ -187,16 +187,16 @@ ph_fields = [
 test_params = {
     'test_attributes' : {
         'axis' : [('x', 'y', 'z'), ('x', 'y', 'z')],
-        'attr_name attr_args' : [attr_paris, attr_ids],
+        'attr_name, attr_args' : [attr_pairs, attr_ids],
         'callback' : [CALLBACK_TESTS, callback_ids]
     },
     'test_attributes_wt' : {
-        'attr_name attr_args' : [attr_paris, attr_ids],
+        'attr_name, attr_args' : [attr_pairs, attr_ids],
         'callback' : [CALLBACK_TESTS, callback_ids]
     },
     'test_particle_projection_answers' : {
         'axis' : [('x', 'y', 'z'), ('x', 'y', 'z')],
-        'attr_name attr_args' : [part_attr_paris, attr_ids]
+        'attr_name, attr_args' : [part_attr_pairs, attr_ids]
     },
     'test_particle_projection_filter' : {
         'axis' : [('x', 'y', 'z'), ('x', 'y', 'z')],
@@ -209,14 +209,14 @@ test_params = {
         'field' : [_raw_field_names, ('Bx', 'By', 'Bz', 'Ex', 'Ey', 'Ez', 'jx', 'jy', 'jz')]
     },
     'test_mesh_slices_amr' : {
-        'field' : [fake_amr_ds().field_list, (f.__repr__() for f in fields)]
+        'field' : [fake_amr_ds().field_list, (f.__repr__() for f in fake_amr_ds().field_list)]
     },
     'test_mesh_slices_tetrahedral' : {
-        'field' : [fake_tetrahedral_ds().field_list, (f.__repr__() for f in fields)],
+        'field' : [fake_tetrahedral_ds().field_list, (f.__repr__() for f in fake_amr_ds().field_list)],
         'idir' : [(0, 1, 2), ('0', '1', '2')]
     },
     'test_mesh_slices_hexahedral' : {
-        'field' : [fake_hexahedral_ds().field_list, (f.__repr__() for f in fields)],
+        'field' : [fake_hexahedral_ds().field_list, (f.__repr__() for f in fake_amr_ds().field_list)],
         'idir' : [(0, 1, 2,), ('0', '1', '2')]
     },
     'test_phase_plot_attributes' : {

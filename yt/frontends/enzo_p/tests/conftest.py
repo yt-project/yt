@@ -26,7 +26,7 @@ test_params = {
         'f' : [('particle_position_x', 'particle_position_y', 'particle_position_z',
                 'particle_velocity_x', 'particle_velocity_y', 'particle_velocity_z'),
                 ('x', 'y', 'z', 'vx', 'vy', 'vz')],
-        'd' : [(None, ('sphere', ('max', (0.1, 'unitary'))), ('None', 'sphere')]
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')]
     }
 }
 
