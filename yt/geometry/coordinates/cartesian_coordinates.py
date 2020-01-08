@@ -306,6 +306,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, 'density'].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds)
+                    # We use code length here, but to get the path length right
+                    # we need to multiply by the conversion factor between
+                    # code length and the unit system's length unit
+                    default_path_length_unit = data_source.ds.unit_system['length']
+                    dl_conv = data_source.ds.quan(1.0, "code_length").to(
+                        default_path_length_unit)
+                    buff *= dl_conv.v
                 # if there is a weight field, take two projections:
                 # one of field*weight, the other of just weight, and divide them
                 else:
