@@ -1,0 +1,687 @@
+{
+  "A2052.tar.gz": {
+    "hash": "a6a427750945b36a7b7478e3e301e4aba75e95af11bdda2e9ef759c9bbcde5e5",
+    "load_name": "xray_fits/A2052_merged_0.3-2_match-core_tmap_bgecorr.fits",
+    "url": "https://yt-project.org/data/A2052.tar.gz"
+  },
+  "AM06.tar.gz": {
+    "hash": "d95090c2c65725411ad5c11f1627c311ec144f93ed04a88a4a4e446aeb0420a6",
+    "load_name": "AM06.out1.00400.athdf",
+    "url": "https://yt-project.org/data/AM06.tar.gz"
+  },
+  "ActiveParticleCosmology.tar.gz": {
+    "hash": "6a52b6539db12f29c4e4209705ffa823bb8027f65bf9431cf068d3ffdb28f55e",
+    "load_name": "DD0046/DD0046",
+    "url": "https://yt-project.org/data/ActiveParticleCosmology.tar.gz"
+  },
+  "ActiveParticleTwoSphere.tar.gz": {
+    "hash": "7b056da9180417c9339bb5c3b98f5dfa5ac33f2f6c2a0d5b70c624a41dd60d4e",
+    "load_name": "DD0011/DD0011",
+    "url": "https://yt-project.org/data/ActiveParticleTwoSphere.tar.gz"
+  },
+  "ArepoBullet.tar.gz": {
+    "hash": "17afd084a0e527e9dccf4cf0dc7e9296a61e44faec3bbc1f9efb3609d9df1025",
+    "load_name": "snapshot_150.hdf5",
+    "url": "https://yt-project.org/data/ArepoBullet.tar.gz"
+  },
+  "BigEndianGadgetBinary.tar.gz": {
+    "hash": "0ab8d69b7c0c1a74282c567823916cc947f9ead7ab54b749a38a17c158b371c9",
+    "load_name": "BigEndianGadgetBinary",
+    "url": "https://yt-project.org/data/BigEndianGadgetBinary.tar.gz"
+  },
+  "CfRadialGrid.tar.gz": {
+    "hash": "22a45b322773d4b2864ccab93c521d8e3d637d81c8d8c0852e1a67c7fa883e0c",
+    "load_name": "CfRadialGrid/grid1.nc",
+    "url": "https://yt-project.org/data/CfRadialGrid.tar.gz"
+  },
+  "ClusterMerger.tar.gz": {
+    "hash": "862a537bdecb8de363f20abec751665fd2b9208c29ae66331105cf848e7a0033",
+    "load_name": "Data_000100",
+    "url": "https://yt-project.org/data/ClusterMerger.tar.gz"
+  },
+  "CompactObjects.tar.gz": {
+    "hash": "e24f275d86c95900f62c640c8f5fcc4fec3310e09893b6ed6a9f1e7adc6b9d64",
+    "load_name": null,
+    "url": "https://yt-project.org/data/CompactObjects.tar.gz"
+  },
+  "D9p_500.tar.gz": {
+    "hash": "6d62244dbb4d0974f2e63dd191c3aaf65a8a5ebb90c202e40e871576c3267040",
+    "load_name": "10MpcBox_HartGal_csf_a0.500.d",
+    "url": "https://yt-project.org/data/D9p_500.tar.gz"
+  },
+  "DICEGalaxyDisk.tar.gz": {
+    "hash": "e7cb5255be0b6e712620d337d019239980827ce458585fe5f3141d0f1d910721",
+    "load_name": "output_00001",
+    "url": "https://yt-project.org/data/DICEGalaxyDisk.tar.gz"
+  },
+  "DICEGalaxyDisk_nonCosmological.tar.gz": {
+    "hash": "f95032fc9dc61e760e3919f2c3a59960684d21b9a44cc34cb1a15953de18f30d",
+    "load_name": "output_00002/info_00002.txt",
+    "url": "https://yt-project.org/data/DICEGalaxyDisk_nonCosmological.tar.gz"
+  },
+  "DMonly.tar.gz": {
+    "hash": "45ad285c0df4d7c9e08f497047ac04da373580cd70a8e6fefbe824726235c5c7",
+    "load_name": null,
+    "url": "https://yt-project.org/data/DMonly.tar.gz"
+  },
+  "DeeplyNestedZoom.tar.gz": {
+    "hash": "cf6c33fc9d743624f9ce95b947df18bae6159afc1eb18e65aecc1b57cc9432ed",
+    "load_name": "DD0025/data0025",
+    "url": "https://yt-project.org/data/DeeplyNestedZoom.tar.gz"
+  },
+  "DensTurbMag.tar.gz": {
+    "hash": "43f3e03d1065d233d315c620316ba8fd877a94bd368d911905dbf81861beb47f",
+    "load_name": "DensTurbMag_hdf5_plt_cnt_0015",
+    "url": "https://yt-project.org/data/DensTurbMag.tar.gz"
+  },
+  "EAGLE_6.tar.gz": {
+    "hash": "234309547fdce3f68e0399bc6f565364ec3bdd1887ce4e414071e55654157652",
+    "load_name": "eagle_0005.hdf5",
+    "url": "https://yt-project.org/data/EAGLE_6.tar.gz"
+  },
+  "ENZOP_DD0140.tar.gz": {
+    "hash": "8df14326a82845479398447b8b55bd93d8eea1c5f31657536b390e6703458e0d",
+    "load_name": "ENZOP_DD0140.block_list",
+    "url": "https://yt-project.org/data/ENZOP_DD0140.tar.gz"
+  },
+  "EnzoKelvinHelmholtz.tar.gz": {
+    "hash": "750dcd29a060aee7b5607afdb30a6e3c2b465be60fc5e022c19a78ab04b35a39",
+    "load_name": "DD0011/DD0011",
+    "url": "https://yt-project.org/data/EnzoKelvinHelmholtz.tar.gz"
+  },
+  "Enzo_64.tar.gz": {
+    "hash": "2b17fffb6a2e8e471ef85dbdbfa5568f09f7bdb77715c69b40dfe48be8f71bc9",
+    "load_name": "None",
+    "url": "https://yt-project.org/data/Enzo_64.tar.gz"
+  },
+  "ExodusII_tests.tar.gz": {
+    "hash": "d21c5ef320f2b4705ec4cacf26488a3a59544fab8cc3a9726e8989ad1bd8d177",
+    "load_name": null,
+    "url": "https://yt-project.org/data/ExodusII_tests.tar.gz"
+  },
+  "FIRE_M12i_ref11.tar.gz": {
+    "hash": "74488ca3158810ad76ed65bf43a5769b899b63d3985a9b43ff55bffd04bf3af2",
+    "load_name": "snapshot_600.hdf5",
+    "url": "https://yt-project.org/data/FIRE_M12i_ref11.tar.gz"
+  },
+  "GDFClumps.tar.gz": {
+    "hash": "d9d81f934bdc8e1459bb04471fdcafcea2c2600d326e20a3d922b4c148f7783b",
+    "load_name": "clumps.h5",
+    "url": "https://yt-project.org/data/GDFClumps.tar.gz"
+  },
+  "Gadget3-snap-format2.tar.gz": {
+    "hash": "bedc0f1979f0dd0cc9707c60a806171fe47b4bece0d29b474ff4030b560d5660",
+    "load_name": "Gadget3-snap-format2",
+    "url": "https://yt-project.org/data/Gadget3-snap-format2.tar.gz"
+  },
+  "GadgetDiskGalaxy.tar.gz": {
+    "hash": "262bbd552786c133918a858c8ce09f5348583733fb906f6defbb6375b5a7951e",
+    "load_name": "snapshot_200.hdf5",
+    "url": "https://yt-project.org/data/GadgetDiskGalaxy.tar.gz"
+  },
+  "GalaxyClusterMerger.tar.gz": {
+    "hash": "64d2909369fc0ca7a810734aaa53a6db2f526b101993c401e6b66fc0db597ed7",
+    "load_name": "fiducial_1to3_b0.273d_hdf5_plt_cnt_0175",
+    "url": "https://yt-project.org/data/GalaxyClusterMerger.tar.gz"
+  },
+  "GasSloshing.tar.gz": {
+    "hash": "3e16c5975f310bafd1e859080310de7ca01d5aa055b3504c10138c93154202a4",
+    "load_name": null,
+    "url": "https://yt-project.org/data/GasSloshing.tar.gz"
+  },
+  "GasSloshingLowRes.tar.gz": {
+    "hash": "1eb53d8c0b90e2ebb95aee129046bd230f5296347c90a44558b6f2bdb79951ed",
+    "load_name": "sloshing_low_res_hdf5_plt_cnt_0300",
+    "url": "https://yt-project.org/data/GasSloshingLowRes.tar.gz"
+  },
+  "GaussianBeam.tar.gz": {
+    "hash": "5200448cee1cc03f8ba630c5f88c6a258f9d55cab5672ce8847035d701cfef15",
+    "load_name": "plt03008",
+    "url": "https://yt-project.org/data/GaussianBeam.tar.gz"
+  },
+  "GaussianCloud.tar.gz": {
+    "hash": "edf869828cc14c2f47a389a62bf5a9bec22fba0de7e5c5380c6eb1acca9aa6a1",
+    "load_name": "data.0077.3d.hdf5",
+    "url": "https://yt-project.org/data/GaussianCloud.tar.gz"
+  },
+  "HiresIsolatedGalaxy.tar.gz": {
+    "hash": "1b310a243158dbb9f42b9a71a1c71512a24f1e3cac906713b518555f8bc350c6",
+    "load_name": "DD0044/DD0044",
+    "url": "https://yt-project.org/data/HiresIsolatedGalaxy.tar.gz"
+  },
+  "InteractingJets.tar.gz": {
+    "hash": "e6a0d55df9763842b94fdd453b69b1f2a392f19b4188a9d08c58bf63613c281f",
+    "load_name": "jet_000002",
+    "url": "https://yt-project.org/data/InteractingJets.tar.gz"
+  },
+  "IsolatedGalaxy.tar.gz": {
+    "hash": "fc081bd4420efd02f7ba2db7eaf4bff0299d5cc4da93436be55a30c219daaf18",
+    "load_name": "galaxy0030/galaxy0030",
+    "url": "https://yt-project.org/data/IsolatedGalaxy.tar.gz"
+  },
+  "IsolatedGalaxy_Gravity.tar.gz": {
+    "hash": "2b7faa6a2472d4afe526678775c208242605a8918ace99154bd4ecb6df266505",
+    "load_name": "galaxy0030/galaxy0030",
+    "url": "https://yt-project.org/data/IsolatedGalaxy_Gravity.tar.gz"
+  },
+  "IsothermalCollapse.tar.gz": {
+    "hash": "1420074fdef1c00692bdd4dee31b5b92eaebd668a80510dc554942590b0dae47",
+    "load_name": "snap_505.hdf5",
+    "url": "https://yt-project.org/data/IsothermalCollapse.tar.gz"
+  },
+  "IsothermalSphere.tar.gz": {
+    "hash": "787b0aba3446c62d07caafd7db8e0f225d52b78ce2afe6d86c2535898fc7f4e5",
+    "load_name": "data.0000.3d.hdf5",
+    "url": "https://yt-project.org/data/IsothermalSphere.tar.gz"
+  },
+  "KelvinHelmholtz.tar.gz": {
+    "hash": "a70ccdab287e6b24553881d24a08a4025079b0e40eea9097c7ef686166ce571d",
+    "load_name": "data.0004.hdf5",
+    "url": "https://yt-project.org/data/KelvinHelmholtz.tar.gz"
+  },
+  "KeplerianDisk.tar.gz": {
+    "hash": "488307807a1e53c404b316f28915d614aa6673defd7b2291e3f26b7fc7839506",
+    "load_name": "disk.out1.00000.athdf",
+    "url": "https://yt-project.org/data/KeplerianDisk.tar.gz"
+  },
+  "KeplerianRing.tar.gz": {
+    "hash": "b2e26d9f98319289283e44e4303a3ac0bfc937931290d8aff86e437503634eab",
+    "load_name": "keplerian_ring_0020.hdf5",
+    "url": "https://yt-project.org/data/KeplerianRing.tar.gz"
+  },
+  "LangmuirWave_v2.tar.gz": {
+    "hash": "27ab056b79b598b4b88e8aa4be042282c07899e85206dd42a506639a69e31270",
+    "load_name": "plt00020_v2",
+    "url": "https://yt-project.org/data/LangmuirWave_v2.tar.gz"
+  },
+  "Laser.tar.gz": {
+    "hash": "7850a9f8cba1fcab4712b269fbea707dbfbaf611605e319cefe444bf9a1347f0",
+    "load_name": "plt00015",
+    "url": "https://yt-project.org/data/Laser.tar.gz"
+  },
+  "MHDBlast.tar.gz": {
+    "hash": "fee1139df19448bae966a5396775476935886e69e3898fd7cf71d54548c4e14b",
+    "load_name": "id0/Blast.0100.vtk",
+    "url": "https://yt-project.org/data/MHDBlast.tar.gz"
+  },
+  "MHDCTOrszagTang.tar.gz": {
+    "hash": "90d69d9ed5488051fdbab2ebddf1b45647ab513b19ab0b04bb9ea65b0bbbab26",
+    "load_name": "DD0004/data0004",
+    "url": "https://yt-project.org/data/MHDCTOrszagTang.tar.gz"
+  },
+  "MHDOrszagTangVortex.tar.gz": {
+    "hash": "24c97644ab8620333b0839ac69e0e4021820681eebafe96882fdf3b8fbec1270",
+    "load_name": "Data_000018",
+    "url": "https://yt-project.org/data/MHDOrszagTangVortex.tar.gz"
+  },
+  "MHDSloshing.tar.gz": {
+    "hash": "f0d0b4e26145a2f7445c3afed8ed0294026a2209496c477cc0d1a7a0f022bf38",
+    "load_name": "virgo_low_res.0054.vtk",
+    "url": "https://yt-project.org/data/MHDSloshing.tar.gz"
+  },
+  "MHD_Cyl3d_hdf5_plt_cnt_0100.tar.gz": {
+    "hash": "f3ad1a0d01e44617a2291733cdceb9b7a54a4f3551155e5ec1b14ee012357dc8",
+    "load_name": "MHD_Cyl3d_hdf5_plt_cnt_0100.hdf5",
+    "url": "https://yt-project.org/data/MHD_Cyl3d_hdf5_plt_cnt_0100.tar.gz"
+  },
+  "MOOSE_Sample_data.tar.gz": {
+    "hash": "0a43e40931e25c4a0e4f205b9902666c2d7a89cd5959e2d5eb7819059cabe01f",
+    "load_name": null,
+    "url": "https://yt-project.org/data/MOOSE_Sample_data.tar.gz"
+  },
+  "MoabTest.tar.gz": {
+    "hash": "22609631c0e417964e0247b4ad62199a60c2d7979f38f8587960a9f8b2147fab",
+    "load_name": null,
+    "url": "https://yt-project.org/data/MoabTest.tar.gz"
+  },
+  "MultiRegion.tar.gz": {
+    "hash": "6acf8e21f2b847102cfbb9f6e22b9b919a9b807e22b2176854fead43e3344e9d",
+    "load_name": "two_region_example_out.e",
+    "url": "https://yt-project.org/data/MultiRegion.tar.gz"
+  },
+  "Nyx_LyA.tar.gz": {
+    "hash": "db9fff2e78ac326780d9ba4fcdb0f9fe30440dd9100b6c50cb1f97722f2c8ea8",
+    "load_name": "plt00000",
+    "url": "https://yt-project.org/data/Nyx_LyA.tar.gz"
+  },
+  "Orbit.tar.gz": {
+    "hash": "3df7988b555c5ff17e73f4675167c78baa33993e0c321d56c8da542c5ae03a4b",
+    "load_name": null,
+    "url": "https://yt-project.org/data/Orbit.tar.gz"
+  },
+  "PlasmaAcceleration_v2.tar.gz": {
+    "hash": "45eea2e3b1d9bd796816c1d300e5ccd4db57c9609ad8dc9b93a157a90c3a89a4",
+    "load_name": "plt00030_v2",
+    "url": "https://yt-project.org/data/PlasmaAcceleration_v2.tar.gz"
+  },
+  "Plummer.tar.gz": {
+    "hash": "3ef04dad7aee393a9cb08cf6b8616f271aa733a53a07fdfad34b8effcb550998",
+    "load_name": "plummer_000000",
+    "url": "https://yt-project.org/data/Plummer.tar.gz"
+  },
+  "PopIII_mini.tar.gz": {
+    "hash": "184dfeb09474fad8ec91474d44b75f6a7d33be99c021b76902d91baad98ddca6",
+    "load_name": "DD0034/DD0034",
+    "url": "https://yt-project.org/data/PopIII_mini.tar.gz"
+  },
+  "RT_particles.tar.gz": {
+    "hash": "69f7a96dbc8fad60defc03f1a2e864de4ffbf5d881d7cac2c8727ae317e0a24f",
+    "load_name": "plt00050",
+    "url": "https://yt-project.org/data/RT_particles.tar.gz"
+  },
+  "RadAdvect.tar.gz": {
+    "hash": "0511e8d45cdb9b268089bc4ef4608a58b7218cf0db9da8d83a14cbd34722784b",
+    "load_name": "plt00000",
+    "url": "https://yt-project.org/data/RadAdvect.tar.gz"
+  },
+  "RadTube.tar.gz": {
+    "hash": "43a2f00c435cbaa4708d6e7e5e3ff0784699f5d28bc435ecbd677f64e6351837",
+    "load_name": "plt00500",
+    "url": "https://yt-project.org/data/RadTube.tar.gz"
+  },
+  "RamPressureStripping.tar.gz": {
+    "hash": "4ef4f9f9127668699111091d31ece0fff6e7ab2e9e6af7c547810df31db4a40b",
+    "load_name": "id0/rps.0062.vtk",
+    "url": "https://yt-project.org/data/RamPressureStripping.tar.gz"
+  },
+  "SecondOrderQuads.tar.gz": {
+    "hash": "b00000d4a6ec3907e2f22cbf58c7b582a9a63ca2792a0419fb56a8733b1ec904",
+    "load_name": "lid_driven_out.e",
+    "url": "https://yt-project.org/data/SecondOrderQuads.tar.gz"
+  },
+  "SecondOrderTets.tar.gz": {
+    "hash": "73bbd2bf10d02287f15303215952d560969daab1919001969c29991561e26cb9",
+    "load_name": "tet10_unstructured_out.e",
+    "url": "https://yt-project.org/data/SecondOrderTets.tar.gz"
+  },
+  "SecondOrderTris.tar.gz": {
+    "hash": "d5a4e05117ceb53b31e1ecef077355b05dbd8a43b6773751b48390ef80795165",
+    "load_name": "RZ_p_no_parts_do_nothing_bcs_cone_out.e",
+    "url": "https://yt-project.org/data/SecondOrderTris.tar.gz"
+  },
+  "Sedov3D.tar.gz": {
+    "hash": "4e3220744024333293c707bafe64706d325e1f6ee0914bee4be78c3b48d3f97e",
+    "load_name": null,
+    "url": "https://yt-project.org/data/Sedov3D.tar.gz"
+  },
+  "ShockCloud.tar.gz": {
+    "hash": "5a41fe85c293b5714fa3fb989c7d905ed8b6cc92276c524ec786933081176027",
+    "load_name": "id0/Cloud.0050.vtk",
+    "url": "https://yt-project.org/data/ShockCloud.tar.gz"
+  },
+  "SimbaExample.tar.gz": {
+    "hash": "6770e4d5ead92cfc966bca5b8735903389809885f0f1b50523448f68bc53a5ec",
+    "load_name": null,
+    "url": "https://yt-project.org/data/SimbaExample.tar.gz"
+  },
+  "StarParticles.tar.gz": {
+    "hash": "83fbcb7d520cc49c25430003a9e1f1ca8ffed7ab9f83319aa91faa45494ed485",
+    "load_name": "plrd01000",
+    "url": "https://yt-project.org/data/StarParticles.tar.gz"
+  },
+  "TNGHalo.tar.gz": {
+    "hash": "759b517500362d1ccd6286fe8854b1a303ecbce4678b9ff7ce541cfecda8a604",
+    "load_name": "halo_59.hdf5",
+    "url": "https://yt-project.org/data/TNGHalo.tar.gz"
+  },
+  "TipsyAuxiliary.tar.gz": {
+    "hash": "c27205c3b5f673b9822c76212c59c9632027210a6ee5f3c2e9eac213b805a143",
+    "load_name": null,
+    "url": "https://yt-project.org/data/TipsyAuxiliary.tar.gz"
+  },
+  "TipsyGalaxy.tar.gz": {
+    "hash": "34228eec5d43a8c0465b785efea39e4e963390730919e0bf819f8fca474d3341",
+    "load_name": "galaxy.00300",
+    "url": "https://yt-project.org/data/TipsyGalaxy.tar.gz"
+  },
+  "ToroShockTube.tar.gz": {
+    "hash": "016541e0e600f77b820bfc7281bafc2e3c3a1bd6ae11567a0dce7247032a5f6a",
+    "load_name": "DD0001/data0001",
+    "url": "https://yt-project.org/data/ToroShockTube.tar.gz"
+  },
+  "TurbBoxLowRes.tar.gz": {
+    "hash": "96b9e08dcf007bd4410ed98f9252aad33138515b8e83f4168f4f7bcda5e5bc27",
+    "load_name": "data.0005.3d.hdf5",
+    "url": "https://yt-project.org/data/TurbBoxLowRes.tar.gz"
+  },
+  "UnigridData.tar.gz": {
+    "hash": "8efffc5377c99eaa45c086ac730d056b890c8358f17e8a2f7d8c281384fc2ab7",
+    "load_name": "velocity_field_20.fits",
+    "url": "https://yt-project.org/data/UnigridData.tar.gz"
+  },
+  "WDMerger_hdf5_chk_1000.tar.gz": {
+    "hash": "a3806579f6e25b61ddc918dd6c3004d69cda88a94be3967111702cf7636ba158",
+    "load_name": "WDMerger_hdf5_chk_1000.hdf5",
+    "url": "https://yt-project.org/data/WDMerger_hdf5_chk_1000.tar.gz"
+  },
+  "WaveDarkMatter.tar.gz": {
+    "hash": "4996fbf505ea56a196970d8920e9e46d0da70fecc792355dabaab6be8e5f0172",
+    "load_name": "psiDM_000020",
+    "url": "https://yt-project.org/data/WaveDarkMatter.tar.gz"
+  },
+  "WindTunnel.tar.gz": {
+    "hash": "414b923d59f671196f2185c5216ae241156619b5042854df6236dea9fa10ee2b",
+    "load_name": "windtunnel_4lev_hdf5_plt_cnt_0030",
+    "url": "https://yt-project.org/data/WindTunnel.tar.gz"
+  },
+  "ZeldovichPancake.tar.gz": {
+    "hash": "88467b9babe6886ce393ee9ee01ade9be3842a32cef9946863c68f765b8ebd32",
+    "load_name": "plt32.2d.hdf5",
+    "url": "https://yt-project.org/data/ZeldovichPancake.tar.gz"
+  },
+  "acisf05356N003_evt2.fits.gz": {
+    "hash": "6fc406dd056b525592f704b202dadf52c41024660dbbd96cfbeb830d710a70d8",
+    "load_name": null,
+    "url": "https://yt-project.org/data/acisf05356N003_evt2.fits.gz.tar.gz"
+  },
+  "agora_1e11.00400.tar.gz": {
+    "hash": "3a8820735bcf5067dfbe0fcd90d79121a801ea1a34c7d6de7e09185d3c635e6a",
+    "load_name": "agora_1e11.00400",
+    "url": "https://yt-project.org/data/agora_1e11.00400.tar.gz"
+  },
+  "ahf_halos.tar.gz": {
+    "hash": "66d60ab80520cdeb1510a9c7e48a214d79f2559f7808bc346722028b5b48f8f7",
+    "load_name": null,
+    "url": "https://yt-project.org/data/ahf_halos.tar.gz"
+  },
+  "amrvac_bw_cartesian_3d.tar.gz": {
+    "hash": "d8222eabbcca6e76da53ca88d2e7ef407e4831df5a908770874147326a3d2c89",
+    "load_name": null,
+    "url": "https://yt-project.org/data/amrvac_bw_cartesian_3d.tar.gz"
+  },
+  "amrvac_bw_cylindrical_3d.tar.gz": {
+    "hash": "8b863863423ac56fab413cd345e03f971c717dd4e2fb04c2e2149523673df70e",
+    "load_name": null,
+    "url": "https://yt-project.org/data/amrvac_bw_cylindrical_3d.tar.gz"
+  },
+  "amrvac_bw_polar_2d.tar.gz": {
+    "hash": "ace5437299c4a6192df98f3d3580b8c6c8478ca836774da2e0299f1269c62edd",
+    "load_name": null,
+    "url": "https://yt-project.org/data/amrvac_bw_polar_2d.tar.gz"
+  },
+  "amrvac_bw_spherical_2d.tar.gz": {
+    "hash": "f489c95d753f611b50b5baf9f43b4dfe4f06bb1a3da40b1af13af91971c5dca1",
+    "load_name": null,
+    "url": "https://yt-project.org/data/amrvac_bw_spherical_2d.tar.gz"
+  },
+  "amrvac_kh2d.tar.gz": {
+    "hash": "0a4e00d1480143fd76ac95a3446357d373c84e9a8add8da662a5fed589a092bf",
+    "load_name": null,
+    "url": "https://yt-project.org/data/amrvac_kh2d.tar.gz"
+  },
+  "amrvac_kh3d.tar.gz": {
+    "hash": "288a821300729f7c3d1eb282c3fae8e8f169d0903496d5105f61028fa591b165",
+    "load_name": null,
+    "url": "https://yt-project.org/data/amrvac_kh3d.tar.gz"
+  },
+  "amrvac_mhd_jet.tar.gz": {
+    "hash": "dce37206ef844966a4cff36b367decbf29619ddc033f5c3ac0762acfbecc8d50",
+    "load_name": null,
+    "url": "https://yt-project.org/data/amrvac_mhd_jet.tar.gz"
+  },
+  "amrvac_riemann1d.tar.gz": {
+    "hash": "fb2ddf82f854b42f9cca75871503421c12fe8a082a855f0e9adbcfadbace5d89",
+    "load_name": null,
+    "url": "https://yt-project.org/data/amrvac_riemann1d.tar.gz"
+  },
+  "amrvac_rmi_dust_2d.tar.gz": {
+    "hash": "2827b8670933b1e75e00f5fbe01eb97cd22785dd569aedf4430fdff99eea3c95",
+    "load_name": null,
+    "url": "https://yt-project.org/data/amrvac_rmi_dust_2d.tar.gz"
+  },
+  "arbor.tar.gz": {
+    "hash": "d6c89c6496acdd92ef086736b8644996de58b1f4292b67b01d5db94ce60210fb",
+    "load_name": null,
+    "url": "https://yt-project.org/data/arbor.tar.gz"
+  },
+  "big_tipsy.tar.gz": {
+    "hash": "fe7a5b1b7bb3d960a3ccb77457c039a010c05b5caa10b6891add3274fb9f7e36",
+    "load_name": "g1536.00256",
+    "url": "https://yt-project.org/data/big_tipsy.tar.gz"
+  },
+  "c5.tar.gz": {
+    "hash": "db007304b128472d2439c946a8169f5cc00e0701bbcda18012e1beb8cd30dba6",
+    "load_name": "c5.h5m",
+    "url": "https://yt-project.org/data/c5.tar.gz"
+  },
+  "castro_sedov_2d_cyl_in_cart_plt00150.tar.gz": {
+    "hash": "8b73a37a0503dba593af65f8bf16dfcc11ac825d671f11e5a364a2dee63c9047",
+    "load_name": "",
+    "url": "https://yt-project.org/data/castro_sedov_2d_cyl_in_cart_plt00150.tar.gz"
+  },
+  "castro_sod_x_plt00036.tar.gz": {
+    "hash": "3f0a586b41e7b54fa2b3cddd50f9384feb2efe1fe1a815e7348965ae7bf88f78",
+    "load_name": "",
+    "url": "https://yt-project.org/data/castro_sod_x_plt00036.tar.gz"
+  },
+  "check_pooch.py": {
+    "hash": "d73fa43c3d56b3487ba96d45c0e7198f3d5471475f19105ee4fcd6442e2a3024",
+    "load_name": null,
+    "url": "https://yt-project.org/data/check_pooch.py.tar.gz"
+  },
+  "datafiles.json": {
+    "hash": "56732241ddfe5770d0dacc52c1957a0c8b13ca095fd0d8f029dbd263be714838",
+    "load_name": null,
+    "url": "https://yt-project.org/data/datafiles.json.tar.gz"
+  },
+  "enzo_cosmology_plus.tar.gz": {
+    "hash": "dab1d5cdf30ec6a99b556fe20cc91ba9a3b37c079b608de7cb92a240b2a943c8",
+    "load_name": "DD0046/DD0046",
+    "url": "https://yt-project.org/data/enzo_cosmology_plus.tar.gz"
+  },
+  "enzo_tiny_cosmology.tar.gz": {
+    "hash": "91b04e443dfdafc2de234d7bb6f7ab4a0a970ec43e6ff5c59e0c9ded8fa41fa9",
+    "load_name": "DD0046/DD0046",
+    "url": "https://yt-project.org/data/enzo_tiny_cosmology.tar.gz"
+  },
+  "example-2d.tar.gz": {
+    "hash": "d9f93ec4c83bd2abe14ea7bac447d154f44b86087e62945de8ce8e295f0d231d",
+    "load_name": "hdf5/data00000100.h5",
+    "url": "https://yt-project.org/data/example-2d.tar.gz"
+  },
+  "example-3d.tar.gz": {
+    "hash": "42f860e42e80885d80f4ecfa84f58a8b083bb69d6b9e3b1bae1517003cb163c3",
+    "load_name": "hdf5/data00000100.h5",
+    "url": "https://yt-project.org/data/example-3d.tar.gz"
+  },
+  "fiducial_1to1_b0.tar.gz": {
+    "hash": "1af47a8230addb96055a5c73d1fab9b413f566df191d03c60f0f202df845e7ff",
+    "load_name": null,
+    "url": "https://yt-project.org/data/fiducial_1to1_b0.tar.gz"
+  },
+  "fiducial_1to3_b1.tar.gz": {
+    "hash": "23c9faaa1af084b186f4115662967473b1b5cfe76b9afe232be800b6bd7da941",
+    "load_name": "fiducial_1to3_b1_hdf5_part_0080",
+    "url": "https://yt-project.org/data/fiducial_1to3_b1.tar.gz"
+  },
+  "gadget_fof_halos.tar.gz": {
+    "hash": "77430eaca62ccc0c476d863f0beff5b0c71fa827b7a2fc33aa9cf803e001cc90",
+    "load_name": "groups_042/fof_subhalo_tab_042.0.hdf5",
+    "url": "https://yt-project.org/data/gadget_fof_halos.tar.gz"
+  },
+  "gadget_halos.tar.gz": {
+    "hash": "1eb2c77700fac6eb8f9435549e0613ce38035c9106b295b9d5f6c70c82542842",
+    "load_name": "data/groups_076/fof_subhalo_tab_076.0.hdf5",
+    "url": "https://yt-project.org/data/gadget_halos.tar.gz"
+  },
+  "geos.tar.gz": {
+    "hash": "2fbf9537be8c4f5da84ea22ed0971ded1a9aa71140fddda92f00f20df6fc43d3",
+    "load_name": "GEOS.fp.asm.inst3_3d_aer_Nv.20180822_0900.V01.nc4",
+    "url": "https://yt-project.org/data/geos.tar.gz"
+  },
+  "gizmo_64.tar.gz": {
+    "hash": "11b8f425832bc1579854e013390483c9131ef5f27e3a74c8685a6d6dfcb809e5",
+    "load_name": "output/snap_N64L16_135.hdf5",
+    "url": "https://yt-project.org/data/gizmo_64.tar.gz"
+  },
+  "gizmo_cosmology_plus.tar.gz": {
+    "hash": "73062872b13c6a8c86ac134b18e177c3526250000cef5559ceb0b2383cbaba6b",
+    "load_name": null,
+    "url": "https://yt-project.org/data/gizmo_cosmology_plus.tar.gz"
+  },
+  "gizmo_mhd_mwdisk.tar.gz": {
+    "hash": "6f64248af83f50543173ade9c2c3f33ef1eae762b8e97196da5caf79ba4c5651",
+    "load_name": "gizmo_mhd_mwdisk.hdf5",
+    "url": "https://yt-project.org/data/gizmo_mhd_mwdisk.tar.gz"
+  },
+  "grs-50-cube.fits.gz": {
+    "hash": "1aff152f616d2626c8515c1493e65f07843d9b5f2ba73b7e4271a2dc6a9e6da7",
+    "load_name": null,
+    "url": "https://yt-project.org/data/grs-50-cube.fits.gz.tar.gz"
+  },
+  "halo1e11_run1.00400.tar.gz": {
+    "hash": "414d05f9d5aa2dc2811e55fab59ad2c1426ec51675aaf41db773b24cd2f0aa5f",
+    "load_name": "halo1e11_run1.00400",
+    "url": "https://yt-project.org/data/halo1e11_run1.00400.tar.gz"
+  },
+  "hello-0210.tar.gz": {
+    "hash": "d18964e339c8ddc2a56859edd2cd853648b914e63434a59d4a457a876d9496f3",
+    "load_name": "hello-0210.block_list",
+    "url": "https://yt-project.org/data/hello-0210.tar.gz"
+  },
+  "m33_hi.fits.gz": {
+    "hash": "6a44b6c352a5c98c58f0b2b7498fd87e2430c530971eaff68b843146d82d6609",
+    "load_name": null,
+    "url": "https://yt-project.org/data/m33_hi.fits.gz.tar.gz"
+  },
+  "maestro_subCh_plt00248.tar.gz": {
+    "hash": "6de1b63b63ce9738e4596ccf4cc75087d5029c892c07f40c2c69887e76b8ec1a",
+    "load_name": "maestro_subCh_plt00248",
+    "url": "https://yt-project.org/data/maestro_subCh_plt00248.tar.gz"
+  },
+  "maestro_xrb_lores_23437.tar.gz": {
+    "hash": "a17b63609a2c50a829e26420f093ee898237b1ef8256ef38ee8be56a6f824460",
+    "load_name": "",
+    "url": "https://yt-project.org/data/maestro_xrb_lores_23437.tar.gz"
+  },
+  "medium_tipsy.tar.gz": {
+    "hash": "b77c1802c5ea6cf3ab3a698a741fbfdbbcdb561bf57be2fe7a3c9d00980ff438",
+    "load_name": "g1536.00256",
+    "url": "https://yt-project.org/data/medium_tipsy.tar.gz"
+  },
+  "nyx_sedov_plt00086.tgz": {
+    "hash": "308f6b2a81363c5aada35941c199f149d8688f8ce65803f33d6dedce43a57a1c",
+    "load_name": null,
+    "url": "https://yt-project.org/data/nyx_sedov_plt00086.tgz.tar.gz"
+  },
+  "nyx_small.tar.gz": {
+    "hash": "1eefb443c2de6d9c6f4546bb87e1bde89ae98adb97c860a6065ac3177ecf1127",
+    "load_name": "",
+    "url": "https://yt-project.org/data/nyx_small.tar.gz"
+  },
+  "output_00080.tar.gz": {
+    "hash": "175b18fbf72246c36442d7886f04194e1ea4d9d0b2bac2d5568a887d5f51bf29",
+    "load_name": "info_00080.txt",
+    "url": "https://yt-project.org/data/output_00080.tar.gz"
+  },
+  "output_00080_halos.tar.gz": {
+    "hash": "fb8f573ea7cb183e1531091b3fce91cf7015cfdf5ccbce9ef2742e3135b52d4c",
+    "load_name": null,
+    "url": "https://yt-project.org/data/output_00080_halos.tar.gz"
+  },
+  "output_00101.tar.gz": {
+    "hash": "7ff2287c225d4e68f7ec04efd183732bc7ae5a2686c0d7626b4f9f4b6361f6df",
+    "load_name": "info_00101.txt",
+    "url": "https://yt-project.org/data/output_00101.tar.gz"
+  },
+  "owls_fof_halos.tar.gz": {
+    "hash": "7ed6bd5f2eab16e8614f30676d7a0129c5fda98f994c06000e9fae8275a14c90",
+    "load_name": "groups_008/group_008.0.hdf5",
+    "url": "https://yt-project.org/data/owls_fof_halos.tar.gz"
+  },
+  "ramses_empty_record.tar.gz": {
+    "hash": "1d119d8afa144abce5b980e5ba47c45bdfe5c851de8c7a43823b62524b0bd6e0",
+    "load_name": "output_00003/info_00003.txt",
+    "url": "https://yt-project.org/data/ramses_empty_record.tar.gz"
+  },
+  "ramses_extra_fields.tar.gz": {
+    "hash": "f3cc7b95bd527c33c095e3fff04c083fcb9681629bdfba359deff2871e765e3f",
+    "load_name": "info_00001.txt",
+    "url": "https://yt-project.org/data/ramses_extra_fields.tar.gz"
+  },
+  "ramses_extra_fields_small.tar.gz": {
+    "hash": "8d2dde6e6150f0767ebe3ace84e2e790503154c5d90474008afdfecbac68ffed",
+    "load_name": "output_00001/info_00001.txt",
+    "url": "https://yt-project.org/data/ramses_extra_fields_small.tar.gz"
+  },
+  "ramses_mhd_128.tar.gz": {
+    "hash": "9bb48f090e2fdb795b2be49f571edecdd944c389c62283e5357a226406504d76",
+    "load_name": "output_00027/info_00027.txt",
+    "url": "https://yt-project.org/data/ramses_mhd_128.tar.gz"
+  },
+  "ramses_mhd_amr.tar.gz": {
+    "hash": "bd7e0a11f971e246a3393272be4e4b7e0d84e85351bdd2acac2bd8025cf00774",
+    "load_name": "output_00019/info_00019.txt",
+    "url": "https://yt-project.org/data/ramses_mhd_amr.tar.gz"
+  },
+  "ramses_new_format.tar.gz": {
+    "hash": "6ef426587454846456473c2026229d620e588a1fa9cbe409a0eb0a11517958c6",
+    "load_name": "output_00002/info_00002.txt",
+    "url": "https://yt-project.org/data/ramses_new_format.tar.gz"
+  },
+  "ramses_rt_00088.tar.gz": {
+    "hash": "bdeb1480aa3e669f972af982ad89cd17f45749a90e3ba74dc2370201bdda4b3c",
+    "load_name": "output_00088/info_00088.txt",
+    "url": "https://yt-project.org/data/ramses_rt_00088.tar.gz"
+  },
+  "ramses_sink_00016.tar.gz": {
+    "hash": "e28306c6e6cfc84ac0fcc209bb04b9677efd1916a2a1bcd5cb0b3f1ec90ce83a",
+    "load_name": "output_00016/info_00016.txt",
+    "url": "https://yt-project.org/data/ramses_sink_00016.tar.gz"
+  },
+  "ramses_star_formation.tar.gz": {
+    "hash": "7513bfe14e270de6f643623815d815cf9f4adf0bf7dfb33ff3bc20fcd3f965e6",
+    "load_name": null,
+    "url": "https://yt-project.org/data/ramses_star_formation.tar.gz"
+  },
+  "rockstar_halos.tar.gz": {
+    "hash": "5090052faad3a397ab69d833a15b1779466e1893a024dca55de18bfd9aeae774",
+    "load_name": "halos_0.0.bin",
+    "url": "https://yt-project.org/data/rockstar_halos.tar.gz"
+  },
+  "sedov_1d_sph_plt00120.tar.gz": {
+    "hash": "25e8316a64a747043c2c95bfaaf6092a5aa2748a8e31295fa86a0bb793e7c1af",
+    "load_name": "",
+    "url": "https://yt-project.org/data/sedov_1d_sph_plt00120.tar.gz"
+  },
+  "sedov_tst_0004.tar.gz": {
+    "hash": "f0c592efde0257efea77e743167439da6df44cde71a9917b305751a8818eabb5",
+    "load_name": null,
+    "url": "https://yt-project.org/data/sedov_tst_0004.tar.gz"
+  },
+  "sizmbhloz-clref04SNth-rs9_a0.9011.tar.gz": {
+    "hash": "3fc14b8e48e9b80c4ea4b324c5815eccb4ca04fe90903ce77f1496838ad764d4",
+    "load_name": "sizmbhloz-clref04SNth-rs9_a0.9011.art",
+    "url": "https://yt-project.org/data/sizmbhloz-clref04SNth-rs9_a0.9011.tar.gz"
+  },
+  "snapshot_010.tar.gz": {
+    "hash": "c98fa744de250d02833b643e3250dce2cf2c7a622c42c96b201024ee28582ba9",
+    "load_name": "snapshot_010",
+    "url": "https://yt-project.org/data/snapshot_010.tar.gz"
+  },
+  "snapshot_028_z000p000.tar.gz": {
+    "hash": "35b00963a0b34f315054a7b254854859f626155dc368ac2c83158c15ce73e6d1",
+    "load_name": "snap_028_z000p000.0.hdf5",
+    "url": "https://yt-project.org/data/snapshot_028_z000p000.tar.gz"
+  },
+  "snapshot_033.tar.gz": {
+    "hash": "f15788bd298c1f292548d2773f8232ad1f2e41723e210d200b479cb97c4d21bd",
+    "load_name": "snap_033.0.hdf5",
+    "url": "https://yt-project.org/data/snapshot_033.tar.gz"
+  },
+  "snipshot_399_z000p000.tar.gz": {
+    "hash": "a4009624898d9926a90dffa79f9eaf8fe3bde9ba5adaf40577bc36d932016672",
+    "load_name": "snip_399_z000p000.0.hdf5",
+    "url": "https://yt-project.org/data/snipshot_399_z000p000.tar.gz"
+  },
+  "test_outputs.tar.gz": {
+    "hash": "f7f59ee7e8b9e45d42e005b8116f896ce85ea1ea4a7a1c9b44c6de5b2f09a625",
+    "load_name": null,
+    "url": "https://yt-project.org/data/test_outputs.tar.gz"
+  },
+  "ytdata_test.tar.gz": {
+    "hash": "cafb2b06ab3190ba17909585b58a4724e25f27ac72f11d6dff1a482146eb8958",
+    "load_name": null,
+    "url": "https://yt-project.org/data/ytdata_test.tar.gz"
+  }
+}
