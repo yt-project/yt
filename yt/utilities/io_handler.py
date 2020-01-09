@@ -160,18 +160,14 @@ class BaseIOHandler(metaclass=RegisteredIOHandler):
 
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
-        ind = {}
         # We first need a set of masks for each particle type
         ptf = defaultdict(list)  # ptype -> on-disk fields to read
-        fsize = defaultdict(lambda: 0)  # ptype -> size of return value
-        psize = defaultdict(lambda: 0)  # ptype -> particle count on disk
         field_maps = defaultdict(list)  # ptype -> fields (including unions)
         chunks = list(chunks)
         unions = self.ds.particle_unions
         # What we need is a mapping from particle types to return types
         for field in fields:
             ftype, fname = field
-            fsize[field] = 0
             # We should add a check for p.fparticle_unions or something here
             if ftype in unions:
                 for pt in unions[ftype]:
@@ -180,41 +176,19 @@ class BaseIOHandler(metaclass=RegisteredIOHandler):
             else:
                 ptf[ftype].append(fname)
                 field_maps[field].append(field)
-        # Now we have our full listing
-
-        # psize maps the names of particle types to the number of
-        # particles of each type
-        self._count_particles_chunks(psize, chunks, ptf, selector)
-
-        # Now we allocate
-        for field in fields:
-            if field[0] in unions:
-                for pt in unions[field[0]]:
-                    fsize[field] += psize.get(pt, 0)
-            else:
-                fsize[field] += psize.get(field[0], 0)
-        for field in fields:
-            if field[1] in self._vector_fields:
-                shape = (fsize[field], self._vector_fields[field[1]])
-            elif field[1] in self._array_fields:
-                shape = (fsize[field],) + self._array_fields[field[1]]
-            else:
-                shape = (fsize[field],)
-            rv[field] = np.empty(shape, dtype="float64")
-            ind[field] = 0
+            rv[field] = []
         # Now we read.
         for field_r, vals in self._read_particle_fields(chunks, ptf, selector):
             # Note that we now need to check the mappings
             for field_f in field_maps[field_r]:
-                my_ind = ind[field_f]
-                # mylog.debug("Filling %s from %s to %s with %s",
-                #    field_f, my_ind, my_ind+vals.shape[0], field_r)
-                rv[field_f][my_ind : my_ind + vals.shape[0], ...] = vals
-                ind[field_f] += vals.shape[0]
+                rv[field_f].append(vals)
         # Now we need to truncate all our fields, since we allow for
         # over-estimating.
-        for field_f in ind:
-            rv[field_f] = rv[field_f][: ind[field_f]]
+        for field_f in rv:
+            if len(rv[field_f]) > 0:
+                rv[field_f] = np.concatenate(rv[field_f], axis=0)
+            else:
+                rv[field_f] = np.empty(0, dtype="float64")
         return rv
 
 
