@@ -151,13 +151,6 @@ class BaseIOHandler(metaclass=RegisteredIOHandler):
     def _read_chunk_data(self, chunk, fields):
         return {}
 
-    def _count_particles_chunks(self, psize, chunks, ptf, selector):
-        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
-            # assume particles have zero radius, we break this assumption
-            # in the SPH frontend and override this function there
-            psize[ptype] += selector.count_points(x, y, z, 0.0)
-        return psize
-
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
         # We first need a set of masks for each particle type

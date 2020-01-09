@@ -130,15 +130,6 @@ class StreamParticleIOHandler(BaseIOHandler):
                 data_files.update(obj.data_files)
         return data_files
 
-    def _count_particles_chunks(self, psize, chunks, ptf, selector):
-        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
-            if (ptype, "smoothing_length") in self.ds.field_list:
-                hsml = self._read_smoothing_length(chunks, ptf, ptype)
-            else:
-                hsml = 0.0
-            psize[ptype] += selector.count_points(x, y, z, hsml)
-        return psize
-
     def _read_particle_fields(self, chunks, ptf, selector):
         for data_file in sorted(
             self._get_data_files(chunks), key=lambda x: (x.filename, x.start)
