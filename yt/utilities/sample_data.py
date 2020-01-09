@@ -17,7 +17,7 @@ from yt.config import ytcfg
 ##   'dataset_archive_name.tar.gz': {
 ##          'hash': '...',
 ##          'url': '...',
-##          'kwargs': {},
+##          'load_kwargs': {},
 ##          'load_name': 'supplied_to_load'
 ##   }
 ## }
