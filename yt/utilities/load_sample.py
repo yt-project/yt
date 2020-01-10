@@ -7,11 +7,11 @@ If not, it will download it.
 """
 
 import logging
-from yt.utilities.sample_data import Fido
+import yt.utilities.sample_data as sd
 from yt.funcs import mylog
 from yt.convenience import load
 from pooch import Untar
-import os.path.commonprefix as commonprefix
+from os.path import commonprefix, splitext
 
 def load_sample(name, file=None):
     """
@@ -32,29 +32,37 @@ def load_sample(name, file=None):
         `galaxy0030/galaxy0030`
 
     """
+    fido = sd.Fido()
 
-    base_path = Fido.fido.env
-    fileext, name, extension = _validate_sampledata_name
+    base_path = fido.fido.path
+    fileext, name, extension = _validate_sampledata_name(name)
 
     if extension == "h5":
-        fname = fetch_noncompressed_file(fileext)
+        fname = fetch_noncompressed_file(fileext, fido)
     else:
         # we are going to assume most files that exist on the hub are
         # compressed in .tar folders. Some may not.
-        fname = fetch_compressed_file(fileext)
+        fname = fetch_compressed_file(fileext, fido)
 
+    # The `folder_path` variable is used here to notify the user where the
+    # files have been unpacked to. However, we can't assume this is reliable
+    # because in some cases the common path will overlap with the `load_name`
+    # variable of the file.
     folder_path = commonprefix(fname)
     mylog.info("Files located at %s", folder_path)
 
     # Location of the file to load automatically, registered in the Fido class
-    file_lookup = Fido.fido.filenames[fileext][loadname]
+    info = fido[fileext]
+    file_lookup = info['load_name']
+    optional_args = info['load_kwargs']
 
     if file is None:
-        loaded_file = "%s/%s/%s" %(base_path,name,file_lookup)
+        # right now work on loading only untarred files. build out h5 later
+        loaded_file = "%s/%s.untar/%s/%s" %(base_path,fileext,name,file_lookup)
     else:
-        loaded_file = "%s/%s/%s" %(base_path,name,file)
+        loaded_file = "%s/%s.untar/%s/%s" %(base_path,fileext,name,file)
 
-    load(loaded_file)
+    load(loaded_file, **optional_args)
 
 def _validate_sampledata_name(name):
     """
@@ -74,10 +82,11 @@ def _validate_sampledata_name(name):
         name of extension of remote sample data
         example: "h5" or "tar"
     """
-    assert(name, str)
+
+    assert isinstance(name, str)
 
     # now get the extension if it exists
-    (base,ext) = os.path.splitext(name)
+    (base,ext) = splitext(name)
     if ext == '':
         fileext = "%s.tar.gz" %name
         basename = name
@@ -86,30 +95,31 @@ def _validate_sampledata_name(name):
         fileext = name
         basename = os.path.splitext(ext)[-1].lower()
         extension = "tar"
-    elif ext == ".h5" or elif ext == ".hdf5":
+    elif ext == ".h5" or ext == ".hdf5":
         fileext = name
         basename = base
         extension = "h5"
     else:
-        mylog.info("extension of %s for dataset %s is unexpected. pooch may not
-                work", %(ext, name))
+        mylog.info(
+            "extension of %s for dataset %s is unexpected. pooch may not work",
+            ext, name )
         extension = ext
         fileext = name
         basename = base
     return fileext, basename, extension
 
 
-def fetch_compressed_file(name):
+def fetch_compressed_file(name, fido):
     """
     Load a large compressed file from the data registry
     """
-    fname = Fido.fido.fetch(name, processor=Untar())
+    fname = fido.fido.fetch(name, processor=Untar())
     return fname
 
-def fetch_noncompressed_file(name):
+def fetch_noncompressed_file(name, fido):
     """
     Load an uncompressed file from the data registry
     """
-    fname = Fido.fido.fetch(name)
+    fname = fido.fido.fetch(name)
     return fname
 
