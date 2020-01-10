@@ -6,7 +6,6 @@ If not, it will download it.
 
 """
 
-import logging
 import yt.utilities.sample_data as sd
 from yt.funcs import mylog
 from yt.convenience import load
@@ -93,7 +92,7 @@ def _validate_sampledata_name(name):
         extension = "tar"
     elif ext == ".gz":
         fileext = name
-        basename = os.path.splitext(ext)[-1].lower()
+        basename = splitext(ext)[-1].lower()
         extension = "tar"
     elif ext == ".h5" or ext == ".hdf5":
         fileext = name
