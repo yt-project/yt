@@ -111,6 +111,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.convenience import \
     load, simulation
 
+from yt.utilities.load_sample import load_sample
+
 from yt.testing import run_nose
 
 # Import some helpful math utilities
