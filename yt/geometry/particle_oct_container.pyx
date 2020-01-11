@@ -355,9 +355,8 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         if mask is None:
             return super(ParticleOctreeContainer,self).domain_ind(selector, domain_id = domain_id)
         # Create mask for octs that are touched by the mask
-        cdef ewah_bool_array *ewah_slct = <ewah_bool_array *> mask.ewah_keys
-        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct[0].begin())
-        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct[0].end())
+        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(mask.ewah_keys.begin())
+        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(mask.ewah_keys.end())
         cdef np.ndarray[np.uint8_t, ndim=1] oct_mask
         oct_mask = np.zeros(self.nocts, 'uint8')
         cdef Oct *o
@@ -1052,8 +1051,7 @@ cdef class ParticleBitmap:
         cdef int ifile
         # Locate all indices with second level refinement
         for ifile in range(self.nfiles):
-            arr = (<ewah_bool_array**> self.bitmasks.ewah_refn)[ifile][0]
-            arr_totref.logicalor(arr,arr_totref)
+            arr_totref.logicalor(self.bitmasks.ewah_refn[ifile], arr_totref)
         # Count collections & second level indices
         vec_totref = arr_totref.toArray()
         it_mi1 = vec_totref.begin()
@@ -1063,11 +1061,10 @@ cdef class ParticleBitmap:
             arr_two.reset()
             for ifile in range(len(self.bitmasks)):
                 if self.bitmasks._isref(ifile, mi1) == 1:
-                    arr = (<map[np.int64_t, ewah_bool_array]**> self.bitmasks.ewah_coll)[ifile][0][mi1]
-                    arr_any.logicaland(arr, arr_two) # Indices in previous files
-                    arr_any.logicalor(arr, arr_swap) # All second level indices
+                    arr_any.logicaland(self.bitmasks.ewah_coll[ifile][mi1], arr_two) # Indices in previous files
+                    arr_any.logicalor(self.bitmasks.ewah_coll[ifile][mi1], arr_swap) # All second level indices
                     arr_any = arr_swap
-                    arr_two.logicalor(arr_tottwo,arr_tottwo)
+                    arr_two.logicalor(arr_tottwo, arr_tottwo)
             nc += arr_tottwo.numberOfOnes()
             nm += arr_any.numberOfOnes()
             preincrement(it_mi1)
@@ -1076,7 +1073,7 @@ cdef class ParticleBitmap:
         print("Total of %s / %s collisions (% 3.5f%%)" % (nc, nm, 100.0*float(nc)/nm))
 
     def primary_indices(self):
-        mi = (<ewah_bool_array*> self.collisions.ewah_keys)[0].toArray()
+        mi = self.collisions.ewah_keys.toArray()
         return np.array(mi,'uint64')
 
     def file_ownership_mask(self, fid):
@@ -1292,17 +1289,13 @@ cdef class ParticleBitmap:
         octree.allocate_domains()
         # Add roots based on the mask
         cdef np.uint64_t croot = 0
-        cdef ewah_bool_array *ewah_slct = <ewah_bool_array *> selector_mask.ewah_keys
-        cdef ewah_bool_array *ewah_base
-        if base_mask is not None:
-            ewah_base = <ewah_bool_array *> base_mask.ewah_keys
-        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct[0].begin())
-        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct[0].end())
+        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(selector_mask.ewah_keys.begin())
+        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(selector_mask.ewah_keys.end())
         cdef np.ndarray[np.uint8_t, ndim=1] slct_arr
         slct_arr = np.zeros((1 << (self.index_order1 * 3)),'uint8')
         while iter_set[0] != iter_end[0]:
             mi = dereference(iter_set[0])
-            if base_mask is not None and ewah_base[0].get(mi) == 0:
+            if base_mask is not None and base_mask.ewah_keys.get(mi) == 0:
                 octree._index_base_roots[croot] = 0
                 slct_arr[mi] = 2
             else:
@@ -1315,7 +1308,7 @@ cdef class ParticleBitmap:
             preincrement(iter_set[0])
         assert(croot == nroot)
         if base_mask is not None:
-            assert(np.sum(octree._index_base_roots) == ewah_base[0].numberOfOnes())
+            assert(np.sum(octree._index_base_roots) == base_mask.ewah_keys.numberOfOnes())
         # Get morton indices for all particles in this file and those
         # contaminating cells it has majority control of.
         files_touched = data_files #+ buffer_files  # datafile object from ID goes here
