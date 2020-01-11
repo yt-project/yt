@@ -6,13 +6,6 @@ Oct container tuned for Particles
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
     SparseOctreeContainer, OctKey, OctAllocationContainer
