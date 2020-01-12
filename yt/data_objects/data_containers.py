@@ -519,6 +519,32 @@ class YTDataContainer(object):
         df = pd.DataFrame(data)
         return df
 
+    def to_astropy_table(self, fields):
+        """
+        Export region data to a :class:~astropy.table.table.QTable,
+        which is a Table object which is unit-aware. The QTable can then
+        be exported to an ASCII file, FITS file, etc.
+
+        See the AstroPy Table docs for more details:
+        http://docs.astropy.org/en/stable/table/
+
+        Parameters
+        ----------
+        fields : list of strings
+            The list of fields to be exported to the QTable.
+
+        Examples
+        --------
+        >>> sp = ds.sphere("c", (1.0, "Mpc"))
+        >>> t = sp.to_astropy_table(["density","temperature"])
+        """
+        from astropy.table import QTable
+        t = QTable()
+        fields = self._determine_fields(fields)
+        for field in fields:
+            t[field[-1]] = self[field].to_astropy()
+        return t
+
     def save_as_dataset(self, filename=None, fields=None):
         r"""Export a data object to a reloadable yt dataset.
 
@@ -1812,32 +1838,6 @@ class YTSelectionContainer1D(YTSelectionContainer):
         self._grids = None
         self._sortkey = None
         self._sorted = {}
-
-    def to_astropy_table(self, fields):
-        """
-        Export region data to a :class:~astropy.table.table.QTable,
-        which is a Table object which is unit-aware. The QTable can then
-        be exported to an ASCII file, FITS file, etc.
-
-        See the AstroPy Table docs for more details:
-        http://docs.astropy.org/en/stable/table/
-
-        Parameters
-        ----------
-        fields : list of strings
-            The list of fields to be exported to the QTable.
-
-        Examples
-        --------
-        >>> sp = ds.sphere("c", (1.0, "Mpc"))
-        >>> t = sp.to_astropy_table(["density","temperature"])
-        """
-        from astropy.table import QTable
-        t = QTable()
-        fields = self._determine_fields(fields)
-        for field in fields:
-            t[field[-1]] = self[field].to_astropy()
-        return t
 
 
 class YTSelectionContainer2D(YTSelectionContainer):
