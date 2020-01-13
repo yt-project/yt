@@ -383,6 +383,7 @@ class TestBadProfiles(unittest.TestCase):
             YTProfileDataShape,
             yt.PhasePlot, ds.data, 'temperature', 'density', 'cell_mass')
 
+
 def test_index_field_units():
     # see #1849
     ds = fake_random_ds(16, length_unit=2)
@@ -396,3 +397,42 @@ def test_index_field_units():
                       weight_field=None)
     assert str(prof['index', 'cell_volume'].units) == 'code_length**3'
     assert str(prof['gas', 'cell_volume'].units) == 'cm**3'
+
+
+def test_export_profiles():
+    from yt.units.yt_array import YTArray
+    ds = fake_random_ds(64)
+    ad = ds.all_data()
+    # export to AstroPy table
+    prof = ad.profile('radius',
+                      [('gas', 'density'), ('gas', 'velocity_x')],
+                      weight_field=('index','ones'), n_bins=32)
+    at1 = prof.to_astropy_table()
+    assert 'radius' in at1.colnames
+    assert 'density' in at1.colnames
+    assert 'velocity_x' in at1.colnames
+    assert_equal(prof.x.d, at1["radius"].value)
+    assert_equal(prof["density"].d, at1["density"].value)
+    assert_equal(prof["velocity_x"].d, at1["velocity_x"].value)
+    assert prof.x.units == YTArray.from_astropy(at1["radius"]).units
+    assert prof["density"].units == YTArray.from_astropy(at1["density"]).units
+    assert prof["velocity_x"].units == YTArray.from_astropy(at1["velocity_x"]).units
+    assert np.all(at1.mask['density'] == prof.used)
+    at2 = prof.to_astropy_table(fields="density", only_used=True)
+    assert 'radius' in at2.colnames
+    assert 'velocity_x' not in at2.colnames
+    assert_equal(prof.x.d[prof.used], at2["radius"].value)
+    assert_equal(prof["density"].d[prof.used], at2["density"].value)
+    # export to pandas DataFrame
+    df1 = prof.to_dataframe()
+    assert 'radius' in df1.columns
+    assert 'density' in df1.columns
+    assert 'velocity_x' in df1.columns
+    assert_equal(prof.x.d, df1["radius"])
+    assert_equal(prof["density"].d, np.nan_to_num(df1["density"]))
+    assert_equal(prof["velocity_x"].d, np.nan_to_num(df1["velocity_x"]))
+    df2 = prof.to_dataframe(fields="density", only_used=True)
+    assert 'radius' in df2.columns
+    assert 'velocity_x' not in df2.columns
+    assert_equal(prof.x.d[prof.used], df2["radius"])
+    assert_equal(prof["density"].d[prof.used], df2["density"])
