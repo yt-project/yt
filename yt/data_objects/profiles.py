@@ -571,8 +571,9 @@ class Profile1D(ProfileND):
             pdata[field[-1]] = self[field][idxs]
         df = pd.DataFrame(pdata)
         if masked:
-            ncols = len(fields)+1
-            df.mask(np.array([~self.used]*ncols).T, inplace=True)
+            mask = np.zeros(df.shape, dtype='bool')
+            mask[~self.used,1:] = True
+            df.mask(mask, inplace=True)
         return df
 
     def to_astropy_table(self, fields=None, only_used=False):
