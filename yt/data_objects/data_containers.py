@@ -512,14 +512,15 @@ class YTDataContainer(object):
         import pandas as pd
         data = {}
         if fields is not None:
-            for f in fields:
-                data[f] = self[f]
+            fields = self._determine_fields(fields)
         else:
-            data.update(self.field_data)
+            fields = self.field_data.keys()
+        for field in fields:
+            data[field[-1]] = self[field]
         df = pd.DataFrame(data)
         return df
 
-    def to_astropy_table(self, fields):
+    def to_astropy_table(self, fields=None):
         """
         Export region data to a :class:~astropy.table.table.QTable,
         which is a Table object which is unit-aware. The QTable can then
@@ -540,7 +541,10 @@ class YTDataContainer(object):
         """
         from astropy.table import QTable
         t = QTable()
-        fields = self._determine_fields(fields)
+        if fields is not None:
+            fields = self._determine_fields(fields)
+        else:
+            fields = self.field_data.keys()
         for field in fields:
             t[field[-1]] = self[field].to_astropy()
         return t
