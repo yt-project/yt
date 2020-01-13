@@ -187,14 +187,35 @@ for each bin field or ``None`` to use the default settings.
                                 override_bins = {("gas", "density"):custom_bins,
                                                  ("gas", "temperature"):None}) 
 
+.. _profile-dataframe-export:
+
+One-dimensional profile data can be exported to a pandas DataFrame object using
+the :meth:`yt.data_objects.profiles.Profile1D.to_dataframe` method. Bins which do
+not have data will have their fields filled with `NaN`s, except for the bin field
+itself. If you only want to export the bins which are used, set `only_used=True`.
+
+.. code-block:: python
+
+    # Adds all of the data to the table, but non-used bins are masked
+    df = profile.to_dataframe()
+    # Only adds the used bins to the table
+    df_used = profile.to_dataframe(only_used=True)
+    # Only adds the density and temperature fields
+    df2 = profile.to_dataframe(fields=["density","temperature"])
+    
+The DataFrame can then analyzed and/or written to disk using pandas methods. Note 
+that unit information is lost in this export.
+
 .. _profile-astropy-export:
 
-One-dimensional profile data can be exported to an AstroPy Table object. This
+One-dimensional profile data also can be exported to an AstroPy Table object. This
 table can then be written to disk in a number of formats, such as ASCII text
-or FITS files, and manipulated in a number of ways. Units are preserved in the
-table by converting the YTArrays to AstroPy Quantity objects as explained here.
+or FITS files, and manipulated in a number of ways. Bins which do not have data 
+will have their mask values set to `False`. If you only want to export the bins 
+which are used, set `only_used=True`. Units are preserved in the table by converting 
+the YTArrays to AstroPy Quantity objects as explained here.
 
-To convert the 1D profile to a Table object, simply call 
+To export the 1D profile to a Table object, simply call 
 :meth:`yt.data_objects.profiles.Profile1D.to_astropy_table`:
 
 .. code-block:: python
@@ -203,6 +224,8 @@ To convert the 1D profile to a Table object, simply call
     t = profile.to_astropy_table()
     # Only adds the used bins to the table
     t_used = profile.to_astropy_table(only_used=True)
+    # Only adds the density and temperature fields
+    t2 = profile.to_astropy_table(fields=["density","temperature"])
 
 .. _generating-line-queries:
 
