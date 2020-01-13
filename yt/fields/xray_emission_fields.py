@@ -16,7 +16,7 @@ from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
 
 data_version = {"cloudy": 2,
-                "apec": 2}
+                "apec": 3}
 
 data_url = "http://yt-project.org/data"
 
@@ -29,7 +29,7 @@ def _get_data_file(table_type, data_dir=None):
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
         msg = "Failed to find emissivity data file %s! " % data_file + \
-            "Please download from http://yt-project.org/data!"
+              "Please download from %s!" % data_url
         mylog.error(msg)
         raise IOError(msg)
     return data_path
@@ -204,11 +204,16 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                                "Perhaps you should specify a constant metallicity instead?")
 
     if table_type == "cloudy":
-        # Cloudy wants to know the total number density of hydrogen
-        H_field = "H_nuclei_density"
+        # Cloudy wants to scale by nH**2
+        other_n = "H_nuclei_density"
     else:
-        # APEC only wants the free proton density
-        H_field = "H_p1_number_density"
+        # APEC wants to scale by nH*ne
+        other_n = "El_number_density"
+
+    def _norm_field(field, data):
+        return data[ftype, "H_nuclei_density"]*data[ftype, other_n]
+    ds.add_field((ftype, "norm_field"), _norm_field, units="cm**-6",
+                 sampling_type='local')
 
     my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, 
                                      redshift=redshift)
@@ -221,7 +226,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
     def _emissivity_field(field, data):
         with np.errstate(all='ignore'):
-            dd = {"log_nH": np.log10(data[ftype, H_field]),
+            dd = {"log_nH": np.log10(data[ftype, "H_nuclei_density"]),
                   "log_T": np.log10(data[ftype, "temperature"])}
 
         my_emissivity = np.power(10, em_0(dd))
@@ -234,7 +239,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
         my_emissivity[np.isnan(my_emissivity)] = 0
 
-        return data[ftype, H_field]**2 * \
+        return data[ftype, "norm_field"] * \
             YTArray(my_emissivity, "erg*cm**3/s")
 
     emiss_name = (ftype, "xray_emissivity_%s_%s_keV" % (e_min, e_max))
@@ -251,7 +256,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                  sampling_type="local", units="erg/s")
 
     def _photon_emissivity_field(field, data):
-        dd = {"log_nH": np.log10(data[ftype, H_field]),
+        dd = {"log_nH": np.log10(data[ftype, "H_nuclei_density"]),
               "log_T": np.log10(data[ftype, "temperature"])}
 
         my_emissivity = np.power(10, emp_0(dd))
@@ -262,7 +267,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
 
-        return data[ftype, H_field]**2 * \
+        return data[ftype, "norm_field"] * \
             YTArray(my_emissivity, "photons*cm**3/s")
 
     phot_name = (ftype, "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max))

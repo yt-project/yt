@@ -50,7 +50,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     def _emission_measure(field, data):
         dV = data[ftype, "mass"]/data[ftype, "density"]
-        nenhdV = data[ftype, "H_p1_number_density"]*dV
+        nenhdV = data[ftype, "H_nuclei_density"]*dV
         nenhdV *= data[ftype, "El_number_density"]
         return nenhdV
 

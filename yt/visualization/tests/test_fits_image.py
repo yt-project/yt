@@ -43,6 +43,12 @@ def test_fits_image():
 
     assert_equal(fid1["density"].data, new_fid1["density"].data)
     assert_equal(fid1["temperature"].data, new_fid1["temperature"].data)
+    assert_equal(fid1.length_unit, new_fid1.length_unit)
+    assert_equal(fid1.time_unit, new_fid1.time_unit)
+    assert_equal(fid1.mass_unit, new_fid1.mass_unit)
+    assert_equal(fid1.velocity_unit, new_fid1.velocity_unit)
+    assert_equal(fid1.magnetic_unit, new_fid1.magnetic_unit)
+    assert_equal(fid1.current_time, new_fid1.current_time)
 
     ds2 = load("fid1.fits")
     ds2.index
@@ -69,9 +75,13 @@ def test_fits_image():
     dens_img = fid2.pop("density")
     temp_img = fid2.pop("temperature")
 
-    # This already has some assertions in it, so we don't need to do anything
-    # with it other than just make one
-    FITSImageData.from_images([dens_img, temp_img])
+    combined_fid = FITSImageData.from_images([dens_img, temp_img])
+    assert_equal(combined_fid.length_unit, dens_img.length_unit)
+    assert_equal(combined_fid.time_unit, dens_img.time_unit)
+    assert_equal(combined_fid.mass_unit, dens_img.mass_unit)
+    assert_equal(combined_fid.velocity_unit, dens_img.velocity_unit)
+    assert_equal(combined_fid.magnetic_unit, dens_img.magnetic_unit)
+    assert_equal(combined_fid.current_time, dens_img.current_time)
 
     cut = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
     cut_frb = cut.to_frb((0.5, "unitary"), 128)
