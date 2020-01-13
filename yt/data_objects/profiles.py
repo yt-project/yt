@@ -540,6 +540,7 @@ class Profile1D(ProfileND):
         if fields is None:
             fields = self.field_data.keys()
         else:
+            fields = ensure_list(fields)
             fields = self.data_source._determine_fields(fields)
         return idxs, masked, fields
 

@@ -542,6 +542,7 @@ class YTDataContainer(object):
         from astropy.table import QTable
         t = QTable()
         if fields is not None:
+            fields = ensure_list(fields)
             fields = self._determine_fields(fields)
         else:
             fields = self.field_data.keys()
