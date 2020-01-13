@@ -528,6 +528,44 @@ class Profile1D(ProfileND):
         from yt.visualization.profile_plotter import ProfilePlot
         return ProfilePlot.from_profiles(self)
 
+    def to_dataframe(self, only_used=False):
+        r"""Export a profile object to a pandas DataFrame.
+
+        This function will take a data object and construct from it and
+        optionally a list of fields a pandas DataFrame object.  If pandas is
+        not importable, this will raise ImportError.
+
+
+        Returns
+        -------
+        df : DataFrame
+            The data contained in the object.
+
+        Examples
+        --------
+
+        >>> dd = ds.all_data()
+        >>> df1 = dd.to_dataframe(["density", "temperature"])
+        >>> dd["velocity_magnitude"]
+        >>> df2 = dd.to_dataframe()
+        """
+        import pandas as pd
+        if only_used:
+            idxs = self.used
+        else:
+            idxs = slice(None, None, None)
+        if not only_used and not np.all(self.used):
+            masked = True
+        else:
+            masked = False
+        data = {self.x_field[-1]: self.x[idxs]}
+        for field, data in self.field_data.items():
+            data[field[-1]] = data[idxs]
+        df = pd.DataFrame(data)
+        if masked:
+            df.mask(~self.used)
+        return df
+
     def to_astropy_table(self, only_used=False):
         """
         Export the profile data to a :class:`~astropy.table.table.QTable`,
@@ -554,13 +592,13 @@ class Profile1D(ProfileND):
             masked = True
         else:
             masked = False
-        t = QTable(masked=masked)
-        t[self.x_field[-1]] = self.x[idxs].to_astropy()
+        qt = QTable(masked=masked)
+        qt[self.x_field[-1]] = self.x[idxs].to_astropy()
         for field, data in self.field_data.items():
-            t[field[-1]] = data[idxs].to_astropy()
+            qt[field[-1]] = data[idxs].to_astropy()
             if masked:
-                t[field[-1]].mask = ~self.used
-        return t
+                qt[field[-1]].mask = ~self.used
+        return qt
 
 
 class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
