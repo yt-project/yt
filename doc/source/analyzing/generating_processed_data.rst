@@ -9,6 +9,40 @@ data by hand and construct plots which can then be combined with other plots,
 modified in some way, or even (gasp) created and modified in some other tool or
 program.
 
+.. _exporting-container-data:
+
+Exporting Container Data
+------------------------
+
+Fields from data containers such as regions, spheres, cylinders, etc. can be exported
+tabular format using either a pandas DataFrame or an AstroPy Table. 
+
+To export to a pandas DataFrame, use `to_dataframe`:
+
+.. code-block:: python
+
+    sp = ds.sphere("c", (0.2, "unitary"))
+    # Adds all of the fields to the DataFrame which have been loaded into memory
+    # already
+    df = sp.to_dataframe()
+    # Only adds the density and temperature fields
+    df2 = sp.to_dataframe(fields=["density","temperature"])
+
+To export to an AstroPy Table, use `to_astropy_table`:
+
+.. code-block:: python
+
+    sp = ds.sphere("c", (0.2, "unitary"))
+    # Adds all of the fields to the Table which have been loaded into memory
+    # already
+    df = sp.to_astropy_table()
+    # Only adds the density and temperature fields
+    df2 = sp.to_astropy_table(fields=["density","temperature"])
+
+For DataFrames, the unit information is lost, but for AstroPy Tables the YTArrays
+are converted to AstroPy Quantity objects and so units are preserved. See here for
+more information. 
+
 .. _generating-2d-image-arrays:
 
 2D Image Arrays
@@ -196,9 +230,9 @@ itself. If you only want to export the bins which are used, set `only_used=True`
 
 .. code-block:: python
 
-    # Adds all of the data to the table, but non-used bins are masked
+    # Adds all of the data to the DataFrame, but non-used bins are filled with NaNs
     df = profile.to_dataframe()
-    # Only adds the used bins to the table
+    # Only adds the used bins to the DataFrame
     df_used = profile.to_dataframe(only_used=True)
     # Only adds the density and temperature fields
     df2 = profile.to_dataframe(fields=["density","temperature"])
@@ -220,9 +254,9 @@ To export the 1D profile to a Table object, simply call
 
 .. code-block:: python
 
-    # Adds all of the data to the table, but non-used bins are masked
+    # Adds all of the data to the Table, but non-used bins are masked
     t = profile.to_astropy_table()
-    # Only adds the used bins to the table
+    # Only adds the used bins to the Table
     t_used = profile.to_astropy_table(only_used=True)
     # Only adds the density and temperature fields
     t2 = profile.to_astropy_table(fields=["density","temperature"])
