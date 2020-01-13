@@ -528,7 +528,7 @@ class Profile1D(ProfileND):
         from yt.visualization.profile_plotter import ProfilePlot
         return ProfilePlot.from_profiles(self)
 
-    def to_dataframe(self, only_used=False):
+    def to_dataframe(self, fields=None, only_used=False):
         r"""Export a profile object to a pandas DataFrame.
 
         This function will take a data object and construct from it and
@@ -558,15 +558,20 @@ class Profile1D(ProfileND):
             masked = True
         else:
             masked = False
-        data = {self.x_field[-1]: self.x[idxs]}
-        for field, data in self.field_data.items():
-            data[field[-1]] = data[idxs]
-        df = pd.DataFrame(data)
+        if fields is None:
+            fields = self.field_data.keys()
+        else:
+            fields = self.data_source._determine_fields(fields)
+        pdata = {self.x_field[-1]: self.x[idxs]}
+        for field in fields:
+            pdata[field[-1]] = self[field][idxs]
+        df = pd.DataFrame(pdata)
         if masked:
-            df.mask(~self.used)
+            ncols = len(fields)+1
+            df.mask(np.array([~self.used]*ncols).T, inplace=True)
         return df
 
-    def to_astropy_table(self, only_used=False):
+    def to_astropy_table(self, fields=None, only_used=False):
         """
         Export the profile data to a :class:`~astropy.table.table.QTable`,
         which is a Table object which is unit-aware. The QTable can then
@@ -592,12 +597,18 @@ class Profile1D(ProfileND):
             masked = True
         else:
             masked = False
+        if fields is None:
+            fields = self.field_data.keys()
+        else:
+            fields = self.data_source._determine_fields(fields)
         qt = QTable(masked=masked)
         qt[self.x_field[-1]] = self.x[idxs].to_astropy()
-        for field, data in self.field_data.items():
-            qt[field[-1]] = data[idxs].to_astropy()
+        if masked:
+            qt[self.x_field[-1]].mask = self.used
+        for field in fields:
+            qt[field[-1]] = self[field][idxs].to_astropy()
             if masked:
-                qt[field[-1]].mask = ~self.used
+                qt[field[-1]].mask = self.used
         return qt
 
 
