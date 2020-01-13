@@ -528,6 +528,21 @@ class Profile1D(ProfileND):
         from yt.visualization.profile_plotter import ProfilePlot
         return ProfilePlot.from_profiles(self)
 
+    def _export_prep(self, fields, only_used):
+        if only_used:
+            idxs = self.used
+        else:
+            idxs = slice(None, None, None)
+        if not only_used and not np.all(self.used):
+            masked = True
+        else:
+            masked = False
+        if fields is None:
+            fields = self.field_data.keys()
+        else:
+            fields = self.data_source._determine_fields(fields)
+        return idxs, masked, fields
+
     def to_dataframe(self, fields=None, only_used=False):
         r"""Export a profile object to a pandas DataFrame.
 
@@ -550,18 +565,7 @@ class Profile1D(ProfileND):
         >>> df2 = dd.to_dataframe()
         """
         import pandas as pd
-        if only_used:
-            idxs = self.used
-        else:
-            idxs = slice(None, None, None)
-        if not only_used and not np.all(self.used):
-            masked = True
-        else:
-            masked = False
-        if fields is None:
-            fields = self.field_data.keys()
-        else:
-            fields = self.data_source._determine_fields(fields)
+        idxs, masked, fields = self._export_prep(fields, only_used)
         pdata = {self.x_field[-1]: self.x[idxs]}
         for field in fields:
             pdata[field[-1]] = self[field][idxs]
@@ -589,18 +593,7 @@ class Profile1D(ProfileND):
             Default: False
         """
         from astropy.table import QTable
-        if only_used:
-            idxs = self.used
-        else:
-            idxs = slice(None, None, None)
-        if not only_used and not np.all(self.used):
-            masked = True
-        else:
-            masked = False
-        if fields is None:
-            fields = self.field_data.keys()
-        else:
-            fields = self.data_source._determine_fields(fields)
+        idxs, masked, fields = self._export_prep(fields, only_used)
         qt = QTable(masked=masked)
         qt[self.x_field[-1]] = self.x[idxs].to_astropy()
         if masked:
