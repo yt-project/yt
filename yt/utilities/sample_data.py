@@ -7,7 +7,7 @@ import pkg_resources
 import json
 import os
 
-import pooch
+from yt.utilities.on_demand_imports import _pooch as pooch
 
 from yt.config import ytcfg
 
