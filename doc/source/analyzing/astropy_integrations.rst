@@ -10,9 +10,32 @@ given documentation links.
 Round-Trip Unit Conversions Between yt and AstroPy
 --------------------------------------------------
 
+AstroPy has a `symbolic units implementation <https://docs.astropy.org/en/stable/units/>`_ 
+similar to that in yt. For this reason, we have implemented "round-trip" 
+conversions between :class:`~yt.units.yt_array.YTArray` objects 
+and AstroPy's :class:`~astropy.units.Quantity` objects. These are implemented 
+in the :meth:`~yt.units.yt_array.YTArray.from_astropy` and 
+:meth:`~yt.units.yt_array.YTArray.to_astropy` methods. See
+:ref:`fields_and_unit_conversion` for more information.
 
-FITS Image File Writing
------------------------
+FITS Image File Reading and Writing
+-----------------------------------
+
+Reading and writing FITS files is supported in yt using 
+`AstroPy's FITS file handling. <https://docs.astropy.org/en/stable/io/fits/>`_
+
+yt has basic support for reading two and three-dimensional image data from FITS
+files. Some limited ability to parse certain types of data (e.g., spectral cubes,
+images with sky coordinates, images written using the 
+:class:`~yt.visualization.fits_image.FITSImageData` class described below) is 
+possible. See :ref:`loading-fits-data` for more information. 
+
+Fixed-resolution two-dimensional images generated from datasets using yt (such as 
+slices or projections) and fixed-resolution three-dimensional grids can be written 
+to FITS files using yt's :class:`~yt.visualization.fits_image.FITSImageData` class 
+and its subclasses. Multiple images can be combined into a single file, operations 
+can be performed on the images and their coordinates, etc. See :ref:`writing_fits_images` 
+for more information. 
 
 Converting Field Container and 1D Profile Data to AstroPy Tables
 ----------------------------------------------------------------
