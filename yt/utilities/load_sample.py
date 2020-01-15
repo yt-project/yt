@@ -5,13 +5,13 @@ This utility will check to see if sample data exists on disc.
 If not, it will download it.
 
 """
-
+import os
 import yt.utilities.sample_data as sd
 from yt.funcs import mylog
 from yt.convenience import load
 from yt.utilities.on_demand_imports import _pooch as pch
 
-def load_sample(name, file=None):
+def load_sample(name, specific_file=None):
     """
     Load sample data with yt. Simple wrapper around yt.load to include fetching
     data with pooch.
@@ -21,13 +21,15 @@ def load_sample(name, file=None):
     name : str
         The name of the sample data to load. This is generally the name of the
         folder of the dataset. For IsolatedGalaxy, the name would be
-        `IsolaatedGalaxy`
+        `IsolatedGalaxy`
 
-    file : str, optionaal
+    specific_file : str, optionaal
         optional argument -- the name of the file to load that is located
-        within sample dataset of `name`. For the file
-        IsolatedGalaxy/galaxy0030/galaxy0030, this variable would be
-        `galaxy0030/galaxy0030`
+        within sample dataset of `name`. For the dataset `enzo_cosmology_plus`,
+        which has a number of timesteps available, one may wish to choose
+        DD0003. The file specifically would be
+        `enzo_cosmology_plus/DD0003/DD0003`, and the argument passed to this
+        variable would be `DD0003/DD0003`
 
     """
     fido = sd.Fido()
@@ -46,7 +48,7 @@ def load_sample(name, file=None):
     # files have been unpacked to. However, we can't assume this is reliable
     # because in some cases the common path will overlap with the `load_name`
     # variable of the file.
-    folder_path = commonprefix(fname)
+    folder_path = os.path.commonprefix(fname)
     mylog.info("Files located at %s", folder_path)
 
     # Location of the file to load automatically, registered in the Fido class
@@ -54,11 +56,15 @@ def load_sample(name, file=None):
     file_lookup = info['load_name']
     optional_args = info['load_kwargs']
 
-    if file is None:
+    if specific_file is None:
         # right now work on loading only untarred files. build out h5 later
-        loaded_file = "%s/%s.untar/%s/%s" %(base_path,fileext,name,file_lookup)
+        mylog.info("Default to loading %s for %s dataset", file_lookup, name)
+        loaded_file = os.path.join(base_path, "%s.untar" %fileext,
+                                   name, file_lookup)
     else:
-        loaded_file = "%s/%s.untar/%s/%s" %(base_path,fileext,name,file)
+        mylog.info("Loading %s for %s dataset", specific_file, name)
+        loaded_file = os.path.join(base_path, "%s.untar" %fileext, name,
+                                   specific_file)
 
     load(loaded_file, **optional_args)
 
@@ -81,17 +87,21 @@ def _validate_sampledata_name(name):
         example: "h5" or "tar"
     """
 
-    assert isinstance(name, str)
+    if not isinstance(name, str):
+        mylog.error("The argument passed to load_sample() is not a string.")
 
     # now get the extension if it exists
-    (base,ext) = splitext(name)
+    base,ext = os.path.splitext(name)
     if ext == '':
+        # Right now we are assuming that any name passed without an explicit
+        # extension is packed in a tarball. This logic can be modified later to
+        # be more flexible.
         fileext = "%s.tar.gz" %name
         basename = name
         extension = "tar"
     elif ext == ".gz":
         fileext = name
-        basename = splitext(ext)[-1].lower()
+        basename = os.path.splitext(ext)[0]
         extension = "tar"
     elif ext == ".h5" or ext == ".hdf5":
         fileext = name
@@ -99,7 +109,8 @@ def _validate_sampledata_name(name):
         extension = "h5"
     else:
         mylog.info(
-            "extension of %s for dataset %s is unexpected. pooch may not work",
+            """extension of %s for dataset %s is unexpected. the `load_data`
+            function  may not work as expected""",
             ext, name )
         extension = ext
         fileext = name
