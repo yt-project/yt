@@ -15,9 +15,10 @@ Exporting Container Data
 ------------------------
 
 Fields from data containers such as regions, spheres, cylinders, etc. can be exported
-tabular format using either a pandas DataFrame or an AstroPy Table. 
+tabular format using either a :class:`~pandas.DataFrame` or an :class:`~astropy.table.QTable`. 
 
-To export to a pandas DataFrame, use `to_dataframe`:
+To export to a :class:`~pandas.DataFrame`, use 
+:meth:`~yt.data_objects.data_containers.YTDataContainer.to_dataframe`:
 
 .. code-block:: python
 
@@ -28,7 +29,8 @@ To export to a pandas DataFrame, use `to_dataframe`:
     # Only adds the density and temperature fields
     df2 = sp.to_dataframe(fields=["density","temperature"])
 
-To export to an AstroPy Table, use `to_astropy_table`:
+To export to a :class:`~astropy.table.QTable`, use 
+:meth:`~yt.data_objects.data_containers.YTDataContainer.to_astropy_table`:
 
 .. code-block:: python
 
@@ -39,9 +41,9 @@ To export to an AstroPy Table, use `to_astropy_table`:
     # Only adds the density and temperature fields
     df2 = sp.to_astropy_table(fields=["density","temperature"])
 
-For DataFrames, the unit information is lost, but for AstroPy Tables the YTArrays
-are converted to AstroPy Quantity objects and so units are preserved. See here for
-more information. 
+For exports to :class:`~pandas.DataFrame` objects, the unit information is lost, but for 
+exports to :class:`~astropy.table.QTable` objects, the :class:`~yt.units.yt_array.YTArray`
+objects are converted to :class:`~astropy.units.Quantity` objects.
 
 .. _generating-2d-image-arrays:
 
@@ -223,9 +225,9 @@ for each bin field or ``None`` to use the default settings.
 
 .. _profile-dataframe-export:
 
-One-dimensional profile data can be exported to a pandas DataFrame object using
-the :meth:`yt.data_objects.profiles.Profile1D.to_dataframe` method. Bins which do
-not have data will have their fields filled with `NaN`s, except for the bin field
+One-dimensional profile data can be exported to a :class:`~pandas.DataFrame` object 
+using the :meth:`yt.data_objects.profiles.Profile1D.to_dataframe` method. Bins which 
+do not have data will have their fields filled with `NaN`s, except for the bin field
 itself. If you only want to export the bins which are used, set `only_used=True`.
 
 .. code-block:: python
@@ -237,17 +239,17 @@ itself. If you only want to export the bins which are used, set `only_used=True`
     # Only adds the density and temperature fields
     df2 = profile.to_dataframe(fields=["density","temperature"])
     
-The DataFrame can then analyzed and/or written to disk using pandas methods. Note 
-that unit information is lost in this export.
+The :class:`~pandas.DataFrame` can then analyzed and/or written to disk using pandas 
+methods. Note that unit information is lost in this export.
 
 .. _profile-astropy-export:
 
-One-dimensional profile data also can be exported to an AstroPy Table object. This
-table can then be written to disk in a number of formats, such as ASCII text
+One-dimensional profile data also can be exported to an AstroPy :class:`~astropy.table.QTable`  
+object. This table can then be written to disk in a number of formats, such as ASCII text
 or FITS files, and manipulated in a number of ways. Bins which do not have data 
 will have their mask values set to `False`. If you only want to export the bins 
 which are used, set `only_used=True`. Units are preserved in the table by converting 
-the YTArrays to AstroPy Quantity objects as explained here.
+each :class:`~yt.units.yt_array.YTArray` to an :class:`~astropy.units.Quantity`.
 
 To export the 1D profile to a Table object, simply call 
 :meth:`yt.data_objects.profiles.Profile1D.to_astropy_table`:

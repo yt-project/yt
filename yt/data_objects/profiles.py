@@ -551,19 +551,28 @@ class Profile1D(ProfileND):
         optionally a list of fields a pandas DataFrame object.  If pandas is
         not importable, this will raise ImportError.
 
+        Parameters
+        ----------
+        fields : list of strings or tuple field names, default None
+            If this is supplied, it is the list of fields to be exported into
+            the DataFrame. If not supplied, whatever fields exist in the 
+            profile, along with the bin field, will be exported.
+        only_used : boolean, default False
+            If True, only the bins which have data will be exported. If False,
+            all of the bins will be exported, but the elements for those bins
+            in the data arrays will be filled with NaNs. 
 
         Returns
         -------
-        df : DataFrame
-            The data contained in the object.
+        df : :class:`~pandas.DataFrame`
+            The data contained in the profile.
 
         Examples
         --------
-
-        >>> dd = ds.all_data()
-        >>> df1 = dd.to_dataframe(["density", "temperature"])
-        >>> dd["velocity_magnitude"]
-        >>> df2 = dd.to_dataframe()
+        >>> sp = ds.sphere("c", (0.1, "unitary"))
+        >>> p = sp.profile("radius", ["density", "temperature"])
+        >>> df1 = p.to_dataframe()
+        >>> df2 = p.to_dataframe(fields="density", only_used=True)
         """
         import pandas as pd
         idxs, masked, fields = self._export_prep(fields, only_used)
@@ -588,11 +597,27 @@ class Profile1D(ProfileND):
 
         Parameters
         ----------
+        fields : list of strings or tuple field names, default None
+            If this is supplied, it is the list of fields to be exported into
+            the DataFrame. If not supplied, whatever fields exist in the 
+            profile, along with the bin field, will be exported.
         only_used : boolean, optional
             If True, only the bins which are used are copied
             to the QTable as rows. If False, all bins are
             copied, but the bins which are not used are masked.
             Default: False
+
+        Returns
+        -------
+        df : :class:`~astropy.table.QTable`
+            The data contained in the profile.
+
+        Examples
+        --------
+        >>> sp = ds.sphere("c", (0.1, "unitary"))
+        >>> p = sp.profile("radius", ["density", "temperature"])
+        >>> qt1 = p.to_astropy_table()
+        >>> qt2 = p.to_astropy_table(fields="density", only_used=True)
         """
         from astropy.table import QTable
         idxs, masked, fields = self._export_prep(fields, only_used)
@@ -614,6 +639,7 @@ class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
 
     def __init(self, ds):
         ProfileNDFromDataset.__init__(self, ds)
+
 
 class Profile2D(ProfileND):
     """An object that represents a 2D profile.

@@ -483,27 +483,26 @@ class YTDataContainer(object):
             self.index.save_object(self, name)
 
     def to_dataframe(self, fields=None):
-        r"""Export a data object to a pandas DataFrame.
+        r"""Export a data object to a :class:`~pandas.DataFrame`.
 
-        This function will take a data object and construct from it and
-        optionally a list of fields a pandas DataFrame object.  If pandas is
-        not importable, this will raise ImportError.
+        This function will take a data object and an optional list of fields
+        and export them to a :class:`~pandas.DataFrame` object.
+        If pandas is not importable, this will raise ImportError.
 
         Parameters
         ----------
         fields : list of strings or tuple field names, default None
             If this is supplied, it is the list of fields to be exported into
-            the data frame.  If not supplied, whatever fields presently exist
+            the DataFrame. If not supplied, whatever fields presently exist
             will be used.
 
         Returns
         -------
-        df : DataFrame
+        df : :class:`~pandas.DataFrame`
             The data contained in the object.
 
         Examples
         --------
-
         >>> dd = ds.all_data()
         >>> df1 = dd.to_dataframe(["density", "temperature"])
         >>> dd["velocity_magnitude"]
@@ -531,13 +530,15 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        fields : list of strings
-            The list of fields to be exported to the QTable.
+        fields : list of strings or tuple field names, default None
+            If this is supplied, it is the list of fields to be exported into
+            the QTable. If not supplied, whatever fields presently exist
+            will be used.
 
         Examples
         --------
         >>> sp = ds.sphere("c", (1.0, "Mpc"))
-        >>> t = sp.to_astropy_table(["density","temperature"])
+        >>> t = sp.to_astropy_table(fields=["density","temperature"])
         """
         from astropy.table import QTable
         t = QTable()
