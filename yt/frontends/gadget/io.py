@@ -46,12 +46,11 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
                     continue
-                x = f["/%s/Coordinates" % ptype][si:ei, 0].astype("float64")
-                y = f["/%s/Coordinates" % ptype][si:ei, 1].astype("float64")
-                z = f["/%s/Coordinates" % ptype][si:ei, 2].astype("float64")
+                c = f["/%s/Coordinates" % ptype][si:ei, :].astype("float64")
+                x, y, z = (np.squeeze(_) for _ in np.split(c, 3, axis=1))
                 if ptype == self.ds._sph_ptypes[0]:
-                    pdtype = f["/%s/Coordinates" % ptype].dtype
-                    pshape = f["/%s/Coordinates" % ptype].shape
+                    pdtype = c.dtype
+                    pshape = c.shape
                     hsml = self._get_smoothing_length(data_file, pdtype, pshape)
                 else:
                     hsml = 0.0
