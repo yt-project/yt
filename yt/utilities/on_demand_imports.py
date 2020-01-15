@@ -193,50 +193,16 @@ _cartopy = cartopy_imports()
 class pooch_imports(object):
     _name = "pooch"
 
-    _os_cache = None
+    _pooch = None
     @property
-    def os_cache(self):
-        if self._os_cache is None:
+    def pooch(self):
+        if self._pooch is None:
             try:
-                import pooch.os_cache as os_cache
+                import pooch as pooch
             except ImportError:
-                os_cache = NotAModule(self._name)
-            self._os_cache = os_cache
-        return self._os_cache
-
-    _untar = None
-    @property
-    def Untar(self):
-        if self._untar is None:
-            try:
-                import pooch.Untar as Untar
-            except ImportError:
-                Untar = NotAModule(self._name)
-            self._untar = Untar
-        return self._untar
-
-    _create = None
-    @property
-    def create(self):
-        if self._crs is None:
-            try:
-                import pooch.create as create
-            except ImportError:
-                create = NotAModule(self._name)
-            self._create = create
-        return self._create
-
-    _version = None
-    @property
-    def __version__(self):
-        if self._version is None:
-            try:
-                import pooch
-                version = pooch.__version__
-            except ImportError:
-                version = NotAModule(self._name)
-            self._version = version
-        return self._version
+                pooch = NotAModule(self._name)
+            self._pooch = pooch
+        return self._pooch
 
 _pooch = pooch_imports()
 

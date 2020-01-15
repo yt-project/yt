@@ -9,8 +9,7 @@ If not, it will download it.
 import yt.utilities.sample_data as sd
 from yt.funcs import mylog
 from yt.convenience import load
-from yt.utilities.on_demand_imports import _pooch as pooch
-from os.path import commonprefix, splitext
+from yt.utilities.on_demand_imports import _pooch as pch
 
 def load_sample(name, file=None):
     """
@@ -112,7 +111,7 @@ def fetch_compressed_file(name, fido):
     """
     Load a large compressed file from the data registry
     """
-    fname = fido.fido.fetch(name, processor=pooch.Untar())
+    fname = fido.fido.fetch(name, processor=pch.pooch.Untar())
     return fname
 
 def fetch_noncompressed_file(name, fido):

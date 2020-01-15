@@ -7,7 +7,7 @@ import pkg_resources
 import json
 import os
 
-from yt.utilities.on_demand_imports import _pooch as pooch
+from yt.utilities.on_demand_imports import _pooch as pch
 
 from yt.config import ytcfg
 
@@ -34,8 +34,8 @@ class Fido:
             if os.path.isdir(ytcfg.get("yt", "test_data_dir")):
                 cache_dir = ytcfg.get("yt", "test_data_dir")
             else:
-                cache_dir = pooch.os_cache("yt")
-        self.fido = pooch.create(
+                cache_dir = pch.pooch.os_cache("yt")
+        self.fido = pch.pooch.create(
             path=cache_dir,
             registry={_: self._registry[_]['hash'] for _ in self._registry},
             urls={_: self._registry[_]['url'] for _ in self._registry},
