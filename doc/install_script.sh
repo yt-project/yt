@@ -38,7 +38,7 @@ INST_ASTROPY=0  # Install astropy?
 INST_CARTOPY=0  # Install cartopy?
 INST_NOSE=1     # Install nose?
 INST_NETCDF4=1  # Install netcdf4 and its python bindings?
-INST_POOCH=0    # Install pooch?
+INST_POOCH=1    # Install pooch?
 INST_HG=0       # Install Mercurial or not?
 
 # This is the branch we will install from for INST_YT_SOURCE=1
