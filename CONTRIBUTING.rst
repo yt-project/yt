@@ -50,9 +50,17 @@ outdated section, contributing typo or grammatical fixes, adding a FAQ, or
 increasing coverage of functionality, it would be very helpful if you wanted to
 help out.
 
-The easiest way to help out is to fork the main yt repository (where the
-documentation lives in the ``doc`` directory in the root of the yt git
-repository) and then make your changes in your own fork.  When you are done,
+The easiest way to help out is to fork the main yt repository and make changes
+in it to contribute back to the ``yt-project``. A fork is a copy
+of a repository; in this case the fork will live in the space under your
+username on github, rather than the ``yt-project``. If you have never made a
+fork of a repository on github, or are unfamiliar with this process, here is a
+short article about how to do so:
+https://help.github.com/en/github/getting-started-with-github/fork-a-repo . 
+The documentation for
+``yt`` lives in the ``doc`` directory in the root of the yt git
+repository. To make a contribution to the yt documentation you will 
+make your changes in your own fork of ``yt``.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes. See :ref:`sharing-changes` for
 more information about contributing your changes to yt on GitHub.
