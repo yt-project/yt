@@ -91,7 +91,8 @@ usually we end up accepting.
 
 For more information, see :ref:`contributing-code`, where we spell out how to
 get up and running with a development environment, how to commit, and how to
-use GitHub.
+use GitHub. When you're ready to share your changes with the community, refer to 
+:ref:`sharing-changes` to see how to contribute them back upstream.
 
 Online Presence
 ---------------
