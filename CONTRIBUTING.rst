@@ -516,6 +516,14 @@ the ins and outs:
 
 * https://git-scm.com/
 
+There also exist a number of step-by-step git tutorials to help you get used to
+version controlling files with git. Here are a few resources that you may find
+helpful:
+
+* http://swcarpentry.github.io/git-novice/
+* https://git-scm.com/docs/gittutorial
+* https://try.github.io/
+
 The commands that are essential for using git include:
 
 * ``git <command> --help`` which provides help for any git command. For example, you
