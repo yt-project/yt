@@ -325,6 +325,19 @@ code (a previous changeset or version) by executing the command:
 
    $ git checkout revision_specifier
 
+You can always return to the most recent version of the code by executing the
+same command as above with the most recent revision specifier in the
+repository. However, using ``git log`` when you're checked out to an older
+revision specifier will not show more recent changes to the repository. An
+alternative option is to use ``checkout`` on a branch. In yt the ``master``
+branch is our primary development branch, so checking out ``master`` should
+return you to the tip (or most up-to-date revision specifier) on the ``master``
+branch. 
+
+.. code-block:: bash
+   
+   $ git checkout master
+   
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
 you run yt from the command line or the one that is loaded when you do ``import
