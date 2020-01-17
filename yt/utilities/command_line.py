@@ -24,6 +24,7 @@ from yt.funcs import \
     enable_plugins, \
     download_file
 import urllib
+import urllib.request
 from urllib.parse import urlparse
 from yt.extern.tqdm import tqdm
 from yt.convenience import load

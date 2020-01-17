@@ -1200,6 +1200,7 @@ class StreamParticlesDataset(StreamDataset):
         # Add fields
         self._sph_ptypes = (sph_ptype,)
         self.index.update_data(data)
+        self.num_neighbors = n_neighbors
 
 def load_particles(data, length_unit=None, bbox=None,
                    sim_time=None, mass_unit=None, time_unit=None,

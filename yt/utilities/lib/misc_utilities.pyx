@@ -5,13 +5,6 @@ Simple utilities that don't fit anywhere else
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 from yt.funcs import get_pbar
 import numpy as np
