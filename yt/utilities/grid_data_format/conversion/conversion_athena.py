@@ -208,7 +208,7 @@ class AthenaDistributedConverter(Converter):
             f = open(fn,'rb')
             #print 'Reading data from %s' % fn
             line = f.readline()
-            while line is not '':
+            while line != '':
                 if len(line) == 0: break
                 splitup = line.strip().split()
 
@@ -231,7 +231,7 @@ class AthenaDistributedConverter(Converter):
                     del line
                     line = f.readline()
             read_table = False
-            while line is not '':
+            while line != '':
                 if len(line) == 0: break
                 splitup = line.strip().split()
                 if 'SCALARS' in splitup:
@@ -340,10 +340,10 @@ class AthenaConverter(Converter):
         grid['read_type'] = None
         table_read=False
         line = f.readline()
-        while line is not '':
+        while line != '':
             while grid['read_field'] is None:
                 self.parse_line(line, grid)
-                if grid['read_type'] is 'vector':
+                if grid['read_type'] == 'vector':
                     break
                 if table_read is False:             
                     line = f.readline()
@@ -359,11 +359,11 @@ class AthenaConverter(Converter):
                       (np.prod(grid['dimensions']), grid['ncells']))
                 raise TypeError
 
-            if grid['read_type'] is 'scalar':
+            if grid['read_type'] == 'scalar':
                 grid[grid['read_field']] = \
                     np.fromfile(f, dtype='>f4', count=grid['ncells']).reshape(grid['dimensions'],order='F')
                 self.fields.append(grid['read_field'])
-            elif grid['read_type'] is 'vector':
+            elif grid['read_type'] == 'vector':
                 data = np.fromfile(f, dtype='>f4', count=3*grid['ncells'])
                 grid[grid['read_field']+'_x'] = data[0::3].reshape(grid['dimensions'],order='F')
                 grid[grid['read_field']+'_y'] = data[1::3].reshape(grid['dimensions'],order='F')

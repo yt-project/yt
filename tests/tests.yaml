@@ -1,5 +1,4 @@
-answer_tests:
-  local_amrvac_002:
+  local_amrvac_003:
     - yt/frontends/amrvac/tests/test_outputs.py
     
   local_arepo_002:
