@@ -101,7 +101,7 @@ def _validate_sampledata_name(name):
         extension = "tar"
     elif ext == ".gz":
         fileext = name
-        basename = os.path.splitext(ext)[0]
+        basename = os.path.splitext(base)[0]
         extension = "tar"
     elif ext == ".h5" or ext == ".hdf5":
         fileext = name
