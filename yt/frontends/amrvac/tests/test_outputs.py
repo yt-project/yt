@@ -206,8 +206,8 @@ def test_dust_fields():
     fields = ["total_dust_density", "dust_to_gas_ratio"]
     for idust in range(1, 5):
         fields.append("dust%d_density" % idust)
-        for _i, alias in enumerate("xy"):
-            fields += ["dust%d_velocity_%d" % (idust, _i+1),
+        for idir, alias in enumerate("xy", start=1):
+            fields += ["dust%d_velocity_%d" % (idust, idir),
                        "dust%d_velocity_%s" % (idust, alias)]
 
     ad = ds.all_data()
