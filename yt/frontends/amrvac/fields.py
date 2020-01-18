@@ -40,7 +40,17 @@ def _velocity(field, data, idir, prefix=None):
     #    used to generalize to dust fields
     if prefix is None:
         prefix = ""
-    return data["gas", "%smoment_%d" % (prefix, idir)] / data["gas", "%sdensity" % prefix]
+    moment = data["gas", "%smoment_%d" % (prefix, idir)]
+    rho = data["gas", "%sdensity" % prefix]
+
+    idx1 = np.where(rho == 0)[0]
+    if idx1.size > 0:
+        mylog.info("zeros found in %sdensity, patching them to compute corresponding velocity field." % prefix)
+        idx2 = np.where(moment == 0)[0]
+        if not np.all(np.in1d(idx1, idx2, assume_unique=True)):
+            raise RuntimeError
+        rho[idx1] = 1
+    return moment / rho
 
 code_density = "code_mass / code_length**3"
 code_moment = "code_mass / code_length**2 / code_time"
