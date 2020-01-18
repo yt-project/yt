@@ -82,8 +82,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             dust_label = "dust%d_" % idust
 
         us = self.ds.unit_system
-        for i_, alias in enumerate(direction_aliases[self.ds.geometry]):
-            idir = i_ + 1 # direction index starts at 1 in AMRVAC
+        for idir, alias in enumerate(direction_aliases[self.ds.geometry], start=1):
             if not ("amrvac", "m%d%s" % (idir, dust_flag)) in self.field_list:
                 break
             velocity_fn = functools.partial(_velocity, idir=idir, prefix=dust_label)
