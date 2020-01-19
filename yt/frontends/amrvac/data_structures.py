@@ -295,9 +295,9 @@ class AMRVACDataset(Dataset):
                     mylog.info("geometry_override is identical to datfile parameter.")
                 else:
                     self.geometry = new_geometry
-                    mylog.warning("Overriding geometry, this may lead to surprising results for inappropriate values.")
+                    mylog.warning("Overriding geometry, this may lead to surprising results.")
             except ValueError:
-                mylog.error("Unable to parse geometry_override %s (will be ignored)." % self._geometry_override)
+                mylog.error("Unable to parse geometry_override '%s' (will be ignored)." % self._geometry_override)
 
         if self.geometry is None:
             mylog.warning("No geometry parameter supplied or found, defaulting to cartesian.")
