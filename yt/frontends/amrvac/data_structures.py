@@ -290,8 +290,12 @@ class AMRVACDataset(Dataset):
         if self._geometry_override is not None:
             # py38: walrus here
             try:
-                self.geometry = self._parse_geometry(self._geometry_override)
-                mylog.warning("Overriding geometry, this may lead to surprising results for inappropriate values.")
+                new_geometry = self._parse_geometry(self._geometry_override)
+                if new_geometry == self.geometry:
+                    mylog.info("geometry_override is identical to datfile parameter.")
+                else:
+                    self.geometry = new_geometry
+                    mylog.warning("Overriding geometry, this may lead to surprising results for inappropriate values.")
             except ValueError:
                 mylog.error("Unable to parse geometry_override %s (will be ignored)." % self._geometry_override)
 
