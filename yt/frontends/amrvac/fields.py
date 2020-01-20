@@ -43,13 +43,13 @@ def _velocity(field, data, idir, prefix=None):
     moment = data["gas", "%smoment_%d" % (prefix, idir)]
     rho = data["gas", "%sdensity" % prefix]
 
-    idx1 = np.where(rho == 0)[0]
-    if idx1.size > 0:
+    mask1 = (rho == 0)
+    if mask1.any():
         mylog.info("zeros found in %sdensity, patching them to compute corresponding velocity field." % prefix)
-        idx2 = np.where(moment == 0)[0]
-        if not np.all(np.in1d(idx1, idx2, assume_unique=True)):
+        mask2 = (moment == 0)
+        if not ((mask1 & mask2) == mask1).all():
             raise RuntimeError
-        rho[idx1] = 1
+        rho[mask1] = 1
     return moment / rho
 
 code_density = "code_mass / code_length**3"
