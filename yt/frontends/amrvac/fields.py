@@ -60,7 +60,7 @@ code_pressure = "code_mass / code_length / code_time**2"
 MAXN_DUST_SPECIES = 100
 known_dust_fields = [("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
                      for idust in range(1, MAXN_DUST_SPECIES+1)]
-for idir in range(1, 4):
+for idir in (1, 2, 3):
     known_dust_fields += [("m%dd%d" % (idir, idust), (code_moment, ["dust%d_moment_%d" % (idust, idir)], None))
                           for idust in range(1, MAXN_DUST_SPECIES+1)]
 
