@@ -13,11 +13,11 @@ from oct_visitors cimport cind
 import numpy as np
 cimport cython
 
-from oct_container cimport Oct, RAMSESOctreeContainer
+from oct_container cimport Oct, SparseOctreeContainer
 
 # Create a balanced octree by a random walk that recursively
 # subdivides
-def create_fake_octree(RAMSESOctreeContainer oct_handler,
+def create_fake_octree(SparseOctreeContainer oct_handler,
                        long max_noct,
                        long max_level,
                        np.ndarray[np.int32_t, ndim=1] ndd,
@@ -44,7 +44,7 @@ def create_fake_octree(RAMSESOctreeContainer oct_handler,
     return cur_leaf
 
 
-cdef long subdivide(RAMSESOctreeContainer oct_handler,
+cdef long subdivide(SparseOctreeContainer oct_handler,
                     Oct *parent,
                     int ind[3], int dd[3],
                     long cur_leaf, long cur_level,

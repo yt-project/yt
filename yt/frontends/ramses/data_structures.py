@@ -26,7 +26,7 @@ from .hilbert import get_cpu_list
 from .particle_handlers import get_particle_handlers
 from .field_handlers import get_field_handlers
 from yt.utilities.cython_fortran_utils import FortranFile as fpu
-from yt.geometry.oct_container import \
+from yt.geometry.ramses_oct_container import \
     RAMSESOctreeContainer
 from yt.arraytypes import blankRecordArray
 
