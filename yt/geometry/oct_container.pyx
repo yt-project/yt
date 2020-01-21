@@ -210,7 +210,7 @@ cdef class OctreeContainer:
             ind32[i] = ind[i]
         self.get_root(ind32, &next)
         # We want to stop recursing when there's nowhere else to go
-        while next != NULL and level <= max_level:
+        while next != NULL and level < max_level:
             level += 1
             for i in range(3):
                 ipos[i] = (ipos[i] << 1) + ind[i]
@@ -887,9 +887,6 @@ cdef class SparseOctreeContainer(OctreeContainer):
         # This gets called BEFORE the superclass deallocation.  But, both get
         # called.
         if self.root_nodes != NULL: free(self.root_nodes)
-
-cdef class RAMSESOctreeContainer(SparseOctreeContainer):
-    pass
 
 cdef class ARTOctreeContainer(OctreeContainer):
     def __init__(self, oct_domain_dimensions, domain_left_edge,
