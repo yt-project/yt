@@ -181,7 +181,9 @@ class RAMSESDomainSubset(OctreeSubset):
     _domain_offset = 1
     _block_reorder = "F"
 
-    def fill(self, fd, fields, selector, file_handler):
+    _base_grid = None
+
+    def _fill_no_ghostzones(self, fd, fields, selector, file_handler):
         ndim = self.ds.dimensionality
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
@@ -197,12 +199,72 @@ class RAMSESDomainSubset(OctreeSubset):
         # Initializing data container
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
-
         fill_hydro(fd, file_handler.offset,
                    file_handler.level_count, levels, cell_inds,
                    file_inds, ndim, all_fields, fields, tr,
                    oct_handler)
         return tr
+
+    def _fill_with_ghostzones(self, fd, fields, selector, file_handler, num_ghost_zones):
+        ndim = self.ds.dimensionality
+        # Here we get a copy of the file, which we skip through and read the
+        # bits we want.
+        oct_handler = self.oct_handler
+        all_fields = [f for ft, f in file_handler.field_list]
+        fields = [f for ft, f in fields]
+
+        oct_count = selector.count_octs(self.oct_handler, self.domain_id)
+        cell_count = oct_count * self._num_zones**ndim
+        iwidth = self._num_zones + num_ghost_zones * 2
+
+        tr = {}
+        tr_all = {}
+        for field in fields:
+            tr_all[field] = np.zeros((oct_count, iwidth, iwidth, iwidth), 'float64')
+            tr[field] = np.zeros(cell_count, 'float64')
+
+        # Compute the index to read with a positive and negative shift in all dimensions
+        for idim in range(ndim):
+            ishift_all = [num_ghost_zones]*ndim
+            for shift in range(-num_ghost_zones, num_ghost_zones+1, 2):
+                ishift_all[idim] = num_ghost_zones + shift
+                import yt
+                new_selector = yt.geometry.selection_routines.OctreeSubsetSelector(self)
+                if shift == 0:
+                    continue
+                levels, cell_inds, file_inds = self.oct_handler.file_index_octs_with_shift(
+                    new_selector, self.domain_id, cell_count, idim, shift)
+
+                # Initializing data container
+                for field in fields:
+                    tr[field][:] = 0
+
+                fill_hydro(fd, file_handler.offset,
+                        file_handler.level_count, levels, cell_inds,
+                        file_inds, ndim, all_fields, fields, tr,
+                        oct_handler)
+                _slice = tuple(
+                    [slice(None)] +
+                    [slice(i, i+self._num_zones) for i in ishift_all])
+                for field in fields:
+                    tr_all[field][_slice] = \
+                            tr[field].reshape(oct_count, 2, 2, 2)
+        for field in fields:
+            tr_all[field] = tr_all[field].reshape(-1)
+        return tr_all
+
+    def fill(self, fd, fields, selector, file_handler):
+        if self._num_ghost_zones == 0:
+            return self._fill_no_ghostzones(fd, fields, selector, file_handler)
+        else:
+            return self._fill_with_ghostzones(fd, fields, selector, file_handler, self._num_ghost_zones)
+
+    def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
+        new_subset = RAMSESDomainSubset(self.base_region, self.domain, self.ds, num_ghost_zones=ngz)
+        new_subset._base_grid = self
+
+        return new_subset
+
 
 class RAMSESIndex(OctreeIndex):
 
@@ -254,13 +316,14 @@ class RAMSESIndex(OctreeIndex):
         self.field_list = self.particle_field_list + self.fluid_field_list
 
     def _identify_base_chunk(self, dobj):
+        ngz = dobj._num_ghost_zones
         if getattr(dobj, "_chunk_info", None) is None:
             domains = [dom for dom in self.domains if
                        dom.included(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
             if len(domains) > 1:
                 mylog.debug("Identified %s intersecting domains", len(domains))
-            subsets = [RAMSESDomainSubset(base_region, domain, self.dataset)
+            subsets = [RAMSESDomainSubset(base_region, domain, self.dataset, num_ghost_zones=ngz)
                        for domain in domains]
             dobj._chunk_info = subsets
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
