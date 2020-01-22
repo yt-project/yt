@@ -728,14 +728,13 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int i
-        cdef np.int64_t local_filled = 0
+        cdef str key
         for key in dest_fields:
             dest = dest_fields[key]
             source = source_fields[key]
             for i in range(levels.shape[0]):
                 if levels[i] != level: continue
                 dest[i + offset] = source[file_inds[i], cell_inds[i]]
-                local_filled += 1
 
     def finalize(self):
         cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
