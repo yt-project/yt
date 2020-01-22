@@ -11,5 +11,5 @@ from yt.utilities.lib.fp_utils cimport *
 cimport numpy as np
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
-    cdef Oct neighbor_in_direction(self, OctInfo *oinfo, np.int64_t *nneighbors,
+    cdef Oct neighbour_in_direction(self, OctInfo *oinfo, np.int64_t *nneighbors,
                                     Oct *o, bint periodicity[3])
