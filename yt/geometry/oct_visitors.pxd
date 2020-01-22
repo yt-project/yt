@@ -16,6 +16,7 @@ cdef struct Oct:
     np.int64_t domain_ind   # index within the global set of domains
     np.int64_t domain       # (opt) addl int index
     Oct **children          # Up to 8 long
+    Oct *parent
 
 cdef struct OctInfo:
     np.float64_t left_edge[3]
@@ -154,7 +155,7 @@ cdef class BaseNeighbourVisitor(OctVisitor):
     cdef OctreeContainer octree
     cdef OctInfo oi
 
-    cdef void set_neighbour_oct(self)
+    cdef void set_neighbour_oct(self, Oct* o)
     cdef void get_neighbour_cell_index(self, Oct* o, np.uint8_t selected)
 
     cdef inline np.uint8_t neighbour_rind(self):
