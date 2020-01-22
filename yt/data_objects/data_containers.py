@@ -352,13 +352,11 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                         rv = self.ds.arr(np.empty(wogz.ires.size,
                                 dtype="float64"), units)
                         outputs.append(rv)
-                    if gz._type_name == 'octree_subset':
-                        raise NotImplementedError
-                    else:
-                        ind += wogz.select(
-                            self.selector,
-                            gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
-                            rv, ind)
+                    data = gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz]
+                    ind += wogz.select(
+                        self.selector,
+                        data,
+                        rv, ind)
         if accumulate:
             rv = uconcatenate(outputs)
         return rv
