@@ -56,6 +56,7 @@ def get_block_info(block, min_dim=3):
         block, min_dim=min_dim)
     left = np.zeros(dim)
     right = np.ones(dim)
+    level = 0
     for i, myb in enumerate(mybs):
         if myb == '': continue
         level, left[i], right[i] = bdecode(myb)

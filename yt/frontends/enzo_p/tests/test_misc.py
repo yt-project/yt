@@ -51,6 +51,11 @@ def test_get_block_info():
         assert left == float(n) / max_n
         assert right == float(n+1) / max_n
 
+    level, left, right = get_block_info("B__")
+    assert level == 0
+    assert (left == np.zeros(3)).all()
+    assert (right == np.ones(3)).all()
+
 def test_root_blocks():
     rs = np.random.RandomState(45652)
     for i in range(2, 6):

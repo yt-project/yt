@@ -207,12 +207,18 @@ class EnzoPHierarchy(GridIndex):
                 line = buff[bnl:nnl]
                 block_name, block_file = line.split()
 
-                # The B__ block is a negative refinement level
-                # that cannot be used.
                 if "0" not in block_name and "1" not in block_name:
-                    level = -1
-                    left = self.ds.domain_left_edge.d
-                    right = self.ds.domain_right_edge.d
+                    if self.num_grids == 1:
+                        # Because the B__ block is the only block in the grid,
+                        # it has a refinement level of 0
+                        level = 0
+                        rbid = 0
+                    else:
+                        # The B__ block is a negative refinement level
+                        # that cannot be used.
+                        level = -1
+                    left = np.zeros(self.ds.dimensionality)
+                    right = np.ones(self.ds.dimensionality)
                 else:
                     level, left, right = get_block_info(block_name)
                     rbindex = get_root_block_id(block_name)
