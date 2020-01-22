@@ -14,12 +14,11 @@ cdef class FillFileIndices(oct_visitors.OctVisitor):
         self.cell_inds[o.domain_ind, self.ind[2], self.ind[1], self.ind[0]] = self.index
         self.index += 1
     
-cdef class NeighborVisitor(oct_visitors.OctVisitor):
-    cdef np.int64_t[:,:,:,:] cell_inds
-    cdef np.int64_t[:,:,:,:] neigh_cell_inds
+cdef class BaseNeighbourVisitor(oct_visitors.OctVisitor):
     cdef int idim      # 0,1,2 for x,y,z
     cdef int direction # +1 for +x, -1 for -x
     cdef np.uint8_t neigh_ind[3]
+    cdef np.int64_t[:,:,:,:] cell_inds
     cdef RAMSESOctreeContainer octree
     cdef OctInfo oi
     cdef Oct *neighbour
@@ -51,8 +50,6 @@ cdef class NeighborVisitor(oct_visitors.OctVisitor):
                 ipos = (((self.pos[i] << self.oref) + self.ind[i])) >> 1
                 if i == self.idim:
                     ipos += self.direction
-                #print('oi.level=%s level=%s oi.ipos[%s]<<2=%s ipos=%s' % (
-                #    self.oi.level, self.level, i, self.oi.ipos[i]<<2, ipos))
                 if (self.oi.ipos[i] << 1) == ipos:
                     self.oi.ipos[i] = 0
                 else:
@@ -62,13 +59,13 @@ cdef class NeighborVisitor(oct_visitors.OctVisitor):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.initializedcheck(False)
-    cdef void visit(self, Oct* o, np.uint8_t selected):
+    cdef np.int64_t get_neighbour_cell_index(self, Oct* o, np.uint8_t selected):
         cdef int i
         cdef np.int64_t cell_ind
         cdef bint other_oct  # True if the neighbouring cell lies in another oct
 
         # Note that we provide an index even if the cell is not selected.
-        if selected == 0: return
+        # if selected == 0: return -1
         # Index of neighbouring cell within its oct
         for i in range(3):
             if i == self.idim:
@@ -89,47 +86,83 @@ cdef class NeighborVisitor(oct_visitors.OctVisitor):
                 self.last = o.domain_ind
 
             if self.neighbour != NULL:
-                if self.oi.level == self.level -1:
-                    # Need to find cell position in neighbouring oct
+                if self.oi.level == self.level - 1:
+                    # Position within neighbouring oct is stored in oi.ipos
                     for i in range(3):
                         self.neigh_ind[i] = self.oi.ipos[i]
                 elif self.oi.level != self.level:
-                    print('FUUUUUCK %s %s' % (self.oi.level, self.level))
+                    print('This should not happen! %s %s' % (self.oi.level, self.level))
+                    return -1
                 cell_ind = self.cell_inds[self.neighbour.domain_ind, self.neigh_ind[2], self.neigh_ind[1], self.neigh_ind[0]]
             else:
                 cell_ind = -1
-        self.neigh_cell_inds[o.domain_ind, self.ind[2], self.ind[1], self.ind[0]] = cell_ind
-                
+        return cell_ind
 
+    cdef inline np.uint8_t neighbour_rind(self):
+        cdef int d = (1 << self.oref)
+        return (((self.neigh_ind[2]*d)+self.neigh_ind[1])*d+self.neigh_ind[0])
+
+cdef class NeighbourVisitor(BaseNeighbourVisitor):
+    cdef np.int64_t[:,:,:,:] neigh_cell_inds
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        cdef np.int64_t cell_ind
+        cell_ind = self.get_neighbour_cell_index(o, selected)
+        self.neigh_cell_inds[o.domain_ind, self.ind[2], self.ind[1], self.ind[0]] = cell_ind
+
+cdef class FillFileIndicesRNeighbour(BaseNeighbourVisitor):
+    cdef np.uint8_t[:] shifted_levels
+    cdef np.int64_t[:] shifted_file_inds
+    cdef np.uint8_t[:] shifted_cell_inds
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        cdef np.int64_t neigbour_cell_index
+        if selected == 0: return
+        # Note: only selected items have an index
+        neighbour_index = self.get_neighbour_cell_index(o, selected)
+        self.shifted_levels[self.index] = self.oi.level
+        self.shifted_file_inds[self.index] = self.neighbour.file_ind
+        self.shifted_cell_inds[self.index] = self.neighbour_rind()
+        self.index += 1
+        # if neighbour_index > -1:
+        #     self.shifted_levels[neighbour_index] = self.level
+        #     self.shifted_file_inds[neighbour_index] = o.file_ind
+        #     self.shifted_cell_inds[neighbour_index] = self.rind()
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Oct neighbor_in_direction(self, OctInfo *oi, np.int64_t *nneighbors, Oct *o,
+    cdef Oct neighbour_in_direction(self, OctInfo *oi, np.int64_t *nneighbours, Oct *o,
                                   bint periodicity[3]):
         pass
 
-    def neighbors_in_direction(self, int idim, int direction, SelectorObject selector = AlwaysSelector(None)):
-        """Return index on file of all neighbors in a given direction"""
+    def neighbours_in_direction(self, int idim, int direction, SelectorObject selector = AlwaysSelector(None)):
+        """Return index on file of all neighbours in a given direction"""
         cdef SelectorObject always_selector = AlwaysSelector(None)
-        cdef FillFileIndices visitor
 
         cdef int num_cells = selector.count_oct_cells(self, -1)
 
         # Get the on-file index of each cell
-        cdef np.ndarray[np.int64_t, ndim=4] cell_inds = np.zeros((num_cells//8, 2, 2, 2), dtype="int64")
-        cdef np.ndarray[np.int64_t, ndim=4] neigh_cell_inds = np.empty_like(cell_inds)
+        cdef FillFileIndices visitor
+        cdef np.ndarray[np.int64_t, ndim=4] cell_inds = np.zeros((self.nocts, 2, 2, 2), dtype="int64")
+
         visitor = FillFileIndices(self, -1)
         visitor.cell_inds = cell_inds
 
         self.visit_all_octs(selector, visitor)
 
-        # Revisit the tree, now querying the neighbour in a given direction
-        cdef NeighborVisitor n_visitor
-        n_visitor = NeighborVisitor(self, -1)
+        # Store the index of the neighbour
+        cdef NeighbourVisitor n_visitor
+        cdef np.ndarray[np.int64_t, ndim=4] neigh_cell_inds = np.empty_like(cell_inds)
+        n_visitor = NeighbourVisitor(self, -1)
         n_visitor.idim = idim
-        n_visitor.direction = -direction
+        n_visitor.direction = direction
         n_visitor.cell_inds = cell_inds
         n_visitor.neigh_cell_inds = neigh_cell_inds
         n_visitor.octree = self
