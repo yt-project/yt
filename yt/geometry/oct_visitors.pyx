@@ -12,7 +12,7 @@ cimport numpy
 import numpy
 from yt.utilities.lib.fp_utils cimport *
 from libc.stdlib cimport malloc, free
-from yt.geometry.oct_container cimport OctreeContainer
+from yt.geometry.oct_container cimport OctreeContainer, OctInfo
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit
 
 # Now some visitor functions
@@ -335,4 +335,121 @@ cdef class MortonIndexOcts(OctVisitor):
                 np.uint64(coord[0]),
                 np.uint64(coord[1]),
                 np.uint64(coord[2]))
+        self.index += 1
+
+
+cdef class BaseNeighbourVisitor(OctVisitor):
+    # cdef OctInfo oi
+    # cdef OctreeContainer octree 
+
+    def __init__(self, OctreeContainer octree, int domain_id = -1):
+        self.octree = octree
+        super(BaseNeighbourVisitor, self).__init__(octree, domain_id)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
+    cdef void set_neighbour_oct(self):
+        cdef int i
+        cdef np.float64_t c, dx
+        cdef np.int64_t ipos
+        cdef np.float64_t fcoords[3]
+        cdef Oct *neighbour
+        dx = 1.0 / ((1 << self.oref) << self.level)
+        # Compute position of neighbouring cell
+        for i in range(3):
+            c = <np.float64_t> ((self.pos[i] << self.oref) + self.ind[i])
+            if i == self.idim:
+                fcoords[i] = (c + 0.5 + self.direction) * dx / self.octree.nn[i]
+            else:
+                fcoords[i] = (c + 0.5) * dx / self.octree.nn[i]
+
+        # Use octree to find neighbour
+        neighbour = self.octree.get(fcoords, &self.oi, max_level=self.level)
+
+        # Extra step - compute cell position in neighbouring oct (and store in oi.ipos)
+        if self.oi.level == self.level - 1:
+            for i in range(3):
+                ipos = (((self.pos[i] << self.oref) + self.ind[i])) >> 1
+                if i == self.idim:
+                    ipos += self.direction
+                if (self.oi.ipos[i] << 1) == ipos:
+                    self.oi.ipos[i] = 0
+                else:
+                    self.oi.ipos[i] = 1
+        self.neighbour = neighbour
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
+    @cython.cdivision(True)
+    cdef void get_neighbour_cell_index(self, Oct* o, np.uint8_t selected):
+        cdef int i
+        # cdef np.int64_t cell_ind
+        cdef bint other_oct  # True if the neighbouring cell lies in another oct
+
+        # Note that we provide an index even if the cell is not selected.
+        # if selected == 0: return -1
+        # Index of neighbouring cell within its oct
+        for i in range(3):
+            if i == self.idim:
+                self.neigh_ind[i] = (self.ind[i] + self.direction)
+                other_oct = self.neigh_ind[i] < 0 or self.neigh_ind[i] > 1
+                if other_oct:
+                    self.neigh_ind[i] %= 2
+            else:
+                self.neigh_ind[i] = self.ind[i]
+
+        if not other_oct:
+            # Simple case: the neighbouring cell is within the oct
+            # cell_ind = self.cell_inds[o.domain_ind, self.neigh_ind[2], self.neigh_ind[1], self.neigh_ind[0]]
+            self.neighbour = o
+        else:
+            # Complicated case: the cell is in a neighbouring oct
+            if self.last != o.domain_ind:
+                self.set_neighbour_oct()
+                self.last = o.domain_ind
+
+            if self.neighbour != NULL:
+                if self.oi.level == self.level - 1:
+                    # Position within neighbouring oct is stored in oi.ipos
+                    for i in range(3):
+                        self.neigh_ind[i] = self.oi.ipos[i]
+                        if not ( 0<= self.oi.ipos[i] <= 1):
+                            print('WHAAAAT?!', self.oi.ipos[i])
+                elif self.oi.level != self.level:
+                    print('This should not happen! %s %s' % (self.oi.level, self.level))
+                    return # -1
+                # cell_ind = self.cell_inds[self.neighbour.domain_ind, self.neigh_ind[2], self.neigh_ind[1], self.neigh_ind[0]]
+            # else:
+            #     cell_ind = -1
+        # return cell_ind
+
+# cdef class NeighbourVisitor(BaseNeighbourVisitor):
+#     @cython.boundscheck(False)
+#     @cython.wraparound(False)
+#     @cython.initializedcheck(False)
+#     cdef void visit(self, Oct* o, np.uint8_t selected):
+#         cdef np.int64_t cell_ind
+#         # cell_ind = self.get_neighbour_cell_index(o, selected)
+#         cell_ind = 0
+#         self.neigh_cell_inds[o.domain_ind, self.ind[2], self.ind[1], self.ind[0]] = cell_ind
+
+cdef class FillFileIndicesRNeighbour(BaseNeighbourVisitor):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        cdef np.int64_t neigbour_cell_index
+        if selected == 0: return
+        # Note: only selected items have an index
+        neighbour_index = self.get_neighbour_cell_index(o, selected)
+        self.shifted_levels[self.index] = self.level
+        if self.neighbour != NULL:
+            # Note: we store the local level, not the remote one
+            self.shifted_file_inds[self.index] = self.neighbour.file_ind
+            self.shifted_cell_inds[self.index] = self.neighbour_rind()
+        else:
+            self.shifted_file_inds[self.index] = -1
+            self.shifted_cell_inds[self.index] = 255  # -1 on uint8
         self.index += 1
