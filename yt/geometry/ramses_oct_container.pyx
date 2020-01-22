@@ -13,7 +13,7 @@ cdef class FillFileIndices(oct_visitors.OctVisitor):
         if selected == 0: return
         self.cell_inds[o.domain_ind, self.ind[2], self.ind[1], self.ind[0]] = self.index
         self.index += 1
-    
+
 cdef class BaseNeighbourVisitor(oct_visitors.OctVisitor):
     cdef int idim      # 0,1,2 for x,y,z
     cdef int direction # +1 for +x, -1 for -x
@@ -125,14 +125,15 @@ cdef class FillFileIndicesRNeighbour(BaseNeighbourVisitor):
         if selected == 0: return
         # Note: only selected items have an index
         neighbour_index = self.get_neighbour_cell_index(o, selected)
-        self.shifted_levels[self.index] = self.oi.level
-        self.shifted_file_inds[self.index] = self.neighbour.file_ind
-        self.shifted_cell_inds[self.index] = self.neighbour_rind()
+        self.shifted_levels[self.index] = self.level
+        if self.neighbour != NULL:
+            # Note: we store the local level, not the remote one
+            self.shifted_file_inds[self.index] = self.neighbour.file_ind
+            self.shifted_cell_inds[self.index] = self.neighbour_rind()
+        else:
+            self.shifted_file_inds[self.index] = -1
+            self.shifted_cell_inds[self.index] = 255  # -1 on uint8
         self.index += 1
-        # if neighbour_index > -1:
-        #     self.shifted_levels[neighbour_index] = self.level
-        #     self.shifted_file_inds[neighbour_index] = o.file_ind
-        #     self.shifted_cell_inds[neighbour_index] = self.rind()
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     @cython.boundscheck(False)
@@ -170,3 +171,71 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
         self.visit_all_octs(always_selector, n_visitor)
 
         return np.asarray(cell_inds), np.asarray(neigh_cell_inds)
+
+    def file_index_octs_with_shift(self, SelectorObject selector, int domain_id,
+                                   int idim, int direction, int num_cells = -1):
+        """Return index on file of all neighbours in a given direction"""
+                # We create oct arrays of the correct size
+        cdef np.int64_t i
+        if num_cells < 0:
+            num_cells = selector.count_oct_cells(self, domain_id)
+
+        # TODO remove this requirement
+        cdef np.ndarray[np.int64_t, ndim=4] cell_inds
+        cell_inds = np.zeros((self.nocts, 2, 2, 2), dtype="int64") - 1
+
+        # Fill value of each cell with its neighbouring value
+        cdef FillFileIndicesRNeighbour neigh_visitor
+        cdef np.ndarray[np.uint8_t, ndim=1] shifted_levels
+        cdef np.ndarray[np.uint8_t, ndim=1] shifted_cell_inds
+        cdef np.ndarray[np.int64_t, ndim=1] shifted_file_inds
+        shifted_levels = np.zeros(num_cells, dtype="uint8")
+        shifted_file_inds = np.zeros(num_cells, dtype="int64")
+        shifted_cell_inds = np.zeros(num_cells, dtype="uint8")
+
+        if self.fill_style == "r":
+            neigh_visitor = FillFileIndicesRNeighbour(self, domain_id)
+            # input: index of neighbouring cells
+            neigh_visitor.cell_inds = cell_inds
+            # output: level, file_ind and cell_ind of the neighbouring cells
+            neigh_visitor.shifted_levels = shifted_levels
+            neigh_visitor.shifted_file_inds = shifted_file_inds
+            neigh_visitor.shifted_cell_inds = shifted_cell_inds
+            # direction to explore and extra parameters of the visitor
+            neigh_visitor.idim = idim
+            neigh_visitor.direction = direction
+            neigh_visitor.octree = self
+            neigh_visitor.last = -1
+        elif self.fill_style == "o":
+            raise NotImplementedError('C-style filling with spatial offset has not been implemented.')
+        else:
+            raise RuntimeError
+        self.visit_all_octs(selector, neigh_visitor)
+        return shifted_levels, shifted_cell_inds, shifted_file_inds
+
+    def file_index_octs(self, SelectorObject selector, int domain_id,
+                        num_cells = -1, spatial_offset=(0, 0, 0)):
+
+
+        cdef int i, idim, direction
+        cdef bint do_spatial_offset
+        cdef np.ndarray[np.int64_t, ndim=4] neigh_cell_inds
+        cdef np.ndarray source_shifted
+
+        do_spatial_offset = False
+        for i in range(3):
+            if spatial_offset[i] == 1 or spatial_offset[i] == -1:
+                idim = i
+                direction = spatial_offset[i]
+                if do_spatial_offset:
+                    raise Exception(
+                        'ERROR: You can only specify one spatial offset direction, got [%s, %s, %s]!' %
+                        (spatial_offset[0], spatial_offset[1], spatial_offset[2]))
+                do_spatial_offset = True
+
+        if not do_spatial_offset:
+            return super(RAMSESOctreeContainer, self).file_index_octs(
+                selector, domain_id, num_cells)
+        else:
+            return self.file_index_octs_with_shift(
+                selector, domain_id, idim, direction, num_cells)
