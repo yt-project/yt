@@ -10,6 +10,8 @@ from yt.funcs import \
     setdefaultattr
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
+from yt.geometry.selection_routines import OctreeSubsetSelector
+
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.data_objects.static_output import \
@@ -181,7 +183,18 @@ class RAMSESDomainSubset(OctreeSubset):
     _domain_offset = 1
     _block_reorder = "F"
 
-    _base_grid = None
+    _base_domain = None
+
+    def __init__(self, base_region, domain, ds, over_refine_factor=1, num_ghost_zones=0,
+                 base_grid=None):
+        super(RAMSESDomainSubset, self).__init__(base_region, domain, ds, over_refine_factor, num_ghost_zones)
+
+        self._base_grid = base_grid
+
+        if num_ghost_zones > 0:
+            # Create a base domain *with no self._base_domain.fwidth
+            base_domain = RAMSESDomainSubset(ds.all_data(), domain, ds, over_refine_factor)
+            self._base_domain = base_domain
 
     def _fill_no_ghostzones(self, fd, fields, selector, file_handler):
         ndim = self.ds.dimensionality
@@ -220,7 +233,7 @@ class RAMSESDomainSubset(OctreeSubset):
         tr = {}
         tr_all = {}
         for field in fields:
-            tr_all[field] = np.zeros((oct_count, iwidth, iwidth, iwidth), 'float64')
+            tr_all[field] = np.full((oct_count, iwidth, iwidth, iwidth), np.nan, 'float64')
             tr[field] = np.zeros(cell_count, 'float64')
 
         # Compute the index to read with a positive and negative shift in all dimensions
@@ -228,12 +241,10 @@ class RAMSESDomainSubset(OctreeSubset):
             ishift_all = [num_ghost_zones]*ndim
             for shift in range(-num_ghost_zones, num_ghost_zones+1, 2):
                 ishift_all[idim] = num_ghost_zones + shift
-                import yt
-                new_selector = yt.geometry.selection_routines.OctreeSubsetSelector(self)
                 if shift == 0:
                     continue
                 levels, cell_inds, file_inds = self.oct_handler.file_index_octs_with_shift(
-                    new_selector, self.domain_id, cell_count, idim, shift)
+                    selector, self.domain_id, idim, shift, cell_count)
 
                 # Initializing data container
                 for field in fields:
@@ -253,6 +264,55 @@ class RAMSESDomainSubset(OctreeSubset):
             tr_all[field] = tr_all[field].reshape(-1)
         return tr_all
 
+    @property
+    def fwidth(self):
+        fwidth = super(RAMSESDomainSubset, self).fwidth
+        if self._num_ghost_zones > 0:
+            fwidth = super(RAMSESDomainSubset, self).fwidth.reshape(-1, 8, 3)
+            n_oct = fwidth.shape[0]
+            new_fwidth = np.zeros((n_oct, self.nz**3, 3), dtype=fwidth.dtype)
+            new_fwidth[:, :, :] = fwidth[:, 0:1, :]
+            fwidth = new_fwidth.reshape(-1, 3)
+        return fwidth
+
+    @property
+    def fcoords(self):
+        fcoords = super(RAMSESDomainSubset, self).fcoords
+        num_ghost_zones = self._num_ghost_zones
+        if num_ghost_zones == 0:
+            return fcoords
+
+        fcoords_base = self._base_domain.fcoords
+        oct_selector = OctreeSubsetSelector(self)
+        oh = self.oct_handler
+
+        n_oct = fcoords_base.size // 3 // 8
+        new_fcoords = np.full((n_oct, 4, 4, 4, 3), np.nan)
+
+        icell = oh.fill_index(oct_selector)
+        Ncell = icell.size
+
+        for idim in range(3):
+            for idir in (-1, 1):
+                ishift_all = [1, 1, 1]
+                ishift_all[idim] += idir
+
+                nicell = oh.neighbours_in_direction(idim, idir, icell).reshape(-1)
+
+                tmp = np.full((n_oct * 2 * 2 * 2, 3), np.nan)
+
+                oh.copy_neighbour_data(
+                    icell.reshape(-1), nicell,
+                    fcoords_base, tmp, Ncell)
+
+                _slice = tuple([slice(None)] +
+                            [slice(i, i+2) for i in ishift_all] +
+                            [slice(None)])
+                new_fcoords[_slice] = tmp.reshape(n_oct, 2, 2, 2, -1)
+        new_fcoords = self.ds.arr(new_fcoords, fcoords_base.units)
+        return new_fcoords
+
+
     def fill(self, fd, fields, selector, file_handler):
         if self._num_ghost_zones == 0:
             return self._fill_no_ghostzones(fd, fields, selector, file_handler)
@@ -260,8 +320,7 @@ class RAMSESDomainSubset(OctreeSubset):
             return self._fill_with_ghostzones(fd, fields, selector, file_handler, self._num_ghost_zones)
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
-        new_subset = RAMSESDomainSubset(self.base_region, self.domain, self.ds, num_ghost_zones=ngz)
-        new_subset._base_grid = self
+        new_subset = RAMSESDomainSubset(self.base_region, self.domain, self.ds, num_ghost_zones=ngz, base_grid=self)
 
         return new_subset
 

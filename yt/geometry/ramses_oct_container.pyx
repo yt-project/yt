@@ -1,5 +1,5 @@
 cimport cython
-from oct_visitors cimport FillFileIndicesRNeighbour
+from oct_visitors cimport FillFileIndicesRNeighbour, StoreIndex, NeighbourVisitor
 from selection_routines cimport SelectorObject, AlwaysSelector
 cimport numpy as np
 import numpy as np
@@ -22,34 +22,51 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
                                   bint periodicity[3]):
         pass
 
-    # def neighbours_in_direction(self, int idim, int direction, SelectorObject selector = AlwaysSelector(None)):
-    #     """Return index on file of all neighbours in a given direction"""
-    #     cdef SelectorObject always_selector = AlwaysSelector(None)
+    def fill_index(self, SelectorObject selector = AlwaysSelector(None)):
+        # Get the on-file index of each cell
+        cdef StoreIndex visitor
 
-    #     cdef int num_cells = selector.count_oct_cells(self, -1)
+        cdef np.int64_t[:, :, :, :] cell_inds,
 
-    #     # Get the on-file index of each cell
-    #     cdef FillFileIndices visitor
-    #     cdef np.ndarray[np.int64_t, ndim=4] cell_inds = np.zeros((self.nocts, 2, 2, 2), dtype="int64")
+        cell_inds = np.full((self.nocts, 2, 2, 2), -1, dtype=np.int64)
 
-    #     visitor = FillFileIndices(self, -1)
-    #     visitor.cell_inds = cell_inds
+        visitor = StoreIndex(self, -1)
+        visitor.cell_inds = cell_inds
 
-    #     self.visit_all_octs(selector, visitor)
- 
-    #     # Store the index of the neighbour
-    #     cdef NeighbourVisitor n_visitor
-    #     cdef np.ndarray[np.int64_t, ndim=4] neigh_cell_inds = np.empty_like(cell_inds)
-    #     n_visitor = NeighbourVisitor(self, -1)
-    #     n_visitor.idim = idim
-    #     n_visitor.direction = direction
-    #     n_visitor.cell_inds = cell_inds
-    #     n_visitor.neigh_cell_inds = neigh_cell_inds
-    #     n_visitor.octree = self
-    #     n_visitor.last = -1
-    #     self.visit_all_octs(always_selector, n_visitor)
+        self.visit_all_octs(selector, visitor)
 
-    #     return np.asarray(cell_inds), np.asarray(neigh_cell_inds)
+        return np.asarray(cell_inds)
+
+    def neighbours_in_direction(self, int idim, int direction,
+                                np.int64_t[:, :, :, :] cell_inds):
+        """Return index on file of all neighbours in a given direction"""
+        cdef SelectorObject always_selector = AlwaysSelector(None)
+
+        # Store the index of the neighbour
+        cdef NeighbourVisitor n_visitor
+        cdef np.ndarray[np.int64_t, ndim=4] neigh_cell_inds = np.full_like(cell_inds, -1)
+        n_visitor = NeighbourVisitor(self, -1)
+        n_visitor.idim = idim
+        n_visitor.direction = direction
+        n_visitor.cell_inds = cell_inds
+        n_visitor.neigh_cell_inds = neigh_cell_inds
+        n_visitor.octree = self
+        n_visitor.last = -1
+        self.visit_all_octs(always_selector, n_visitor)
+
+        return np.asarray(neigh_cell_inds)
+
+    #@cython.boundscheck(False)
+    @cython.wraparound(False)
+    def copy_neighbour_data(self,
+                            np.int64_t[:] icell, np.int64_t[:] nicell,
+                            np.float64_t[:, :] input, np.float64_t[:, :] output,
+                            int N,):
+        cdef int i
+
+        for i in range(N):
+            if nicell[i] > -1 and icell[i] > -1:
+                output[icell[i], :] = input[nicell[i], :]
 
     def file_index_octs_with_shift(self, SelectorObject selector, int domain_id,
                                    int idim, int direction, int num_cells = -1):
@@ -83,9 +100,7 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
             raise NotImplementedError('C-style filling with spatial offset has not been implemented.')
         else:
             raise RuntimeError
-        print('visiting all octs')
         self.visit_all_octs(selector, neigh_visitor)
-        print('visited')
         return shifted_levels, shifted_cell_inds, shifted_file_inds
 
     def file_index_octs(self, SelectorObject selector, int domain_id,

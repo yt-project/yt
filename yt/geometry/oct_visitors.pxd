@@ -146,11 +146,15 @@ cdef inline int cind(int i, int j, int k):
 
 from oct_container cimport OctreeContainer
 
+cdef class StoreIndex(OctVisitor):
+    cdef np.int64_t[:,:,:,:] cell_inds
+
 # cimport oct_container
 cdef class BaseNeighbourVisitor(OctVisitor):
     cdef int idim      # 0,1,2 for x,y,z
     cdef int direction # +1 for +x, -1 for -x
     cdef np.int8_t[:] neigh_ind
+    cdef bint other_oct
     cdef Oct *neighbour
     cdef OctreeContainer octree
     cdef OctInfo oi
@@ -162,8 +166,9 @@ cdef class BaseNeighbourVisitor(OctVisitor):
         cdef int d = (1 << self.oref)
         return (((self.neigh_ind[2]*d)+self.neigh_ind[1])*d+self.neigh_ind[0])
 
-# # # cdef class NeighbourVisitor(BaseNeighbourVisitor):
-# # #     cdef np.int64_t[:,:,:,:] neigh_cell_inds
+cdef class NeighbourVisitor(BaseNeighbourVisitor):
+    cdef np.int64_t[:,:,:,:] cell_inds
+    cdef np.int64_t[:,:,:,:] neigh_cell_inds
 
 cdef class FillFileIndicesRNeighbour(BaseNeighbourVisitor):
     cdef np.uint8_t[:] shifted_levels
