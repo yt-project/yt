@@ -456,16 +456,25 @@ cdef class FillFileIndicesRNeighbour(BaseNeighbourVisitor):
     @cython.wraparound(False)
     @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
-        cdef np.int64_t neigbour_cell_index
+        cdef np.int64_t neigh_file_ind
+        cdef np.uint8_t neigh_cell_ind
+
         if selected == 0: return
         # Note: only selected items have an index
         self.get_neighbour_cell_index(o, selected)
-        self.shifted_levels[self.index] = self.level
-        if self.neighbour != NULL:
-            # Note: we store the local level, not the remote one
-            self.shifted_file_inds[self.index] = self.neighbour.file_ind
-            self.shifted_cell_inds[self.index] = self.neighbour_rind()
+        if not self.other_oct:
+            neigh_file_ind = o.file_ind
+            neigh_cell_ind = self.neighbour_rind()
+        elif self.neighbour != NULL:
+            neigh_file_ind = self.neighbour.file_ind
+            neigh_cell_ind = self.neighbour_rind()
         else:
-            self.shifted_file_inds[self.index] = -1
-            self.shifted_cell_inds[self.index] = 255  # -1 on uint8
+            neigh_file_ind = -1
+            neigh_cell_ind = 255
+
+        self.shifted_levels[self.index] = self.level
+        # Note: we store the local level, not the remote one
+        self.shifted_file_inds[self.index] = neigh_file_ind
+        self.shifted_cell_inds[self.index] = neigh_cell_ind
+
         self.index += 1
