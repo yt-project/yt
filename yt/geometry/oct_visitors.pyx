@@ -337,6 +337,7 @@ cdef class MortonIndexOcts(OctVisitor):
                 np.uint64(coord[2]))
         self.index += 1
 
+# Store cell index
 cdef class StoreIndex(OctVisitor):
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -425,6 +426,7 @@ cdef class BaseNeighbourVisitor(OctVisitor):
                     print('This should not happen! %s %s' % (self.oi.level, self.level))
                     self.neighbour = NULL
 
+# Store neighbouring cell index in current cell
 cdef class NeighbourVisitor(BaseNeighbourVisitor):
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -451,6 +453,7 @@ cdef class NeighbourVisitor(BaseNeighbourVisitor):
 
         self.neigh_cell_inds[o.domain_ind, self.ind[2], self.ind[1], self.ind[0]] = cell_ind
 
+# Store file position + cell of neighbouring cell in current cell
 cdef class FillFileIndicesRNeighbour(BaseNeighbourVisitor):
     @cython.boundscheck(False)
     @cython.wraparound(False)
