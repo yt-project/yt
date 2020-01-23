@@ -212,8 +212,9 @@ class RAMSESDomainSubset(OctreeSubset):
         # Initializing data container
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
-        fill_hydro(fd, file_handler.offset,
-                   file_handler.level_count, levels, cell_inds,
+        fill_hydro(fd, file_handler.offset[self.domain_id-1:self.domain_id],
+                   file_handler.level_count[self.domain_id-1:self.domain_id],
+                   levels, cell_inds,
                    file_inds, ndim, all_fields, fields, tr,
                    oct_handler)
         return tr
@@ -250,10 +251,13 @@ class RAMSESDomainSubset(OctreeSubset):
                 for field in fields:
                     tr[field][:] = 0
 
-                fill_hydro(fd, file_handler.offset,
-                        file_handler.level_count, levels, cell_inds,
-                        file_inds, ndim, all_fields, fields, tr,
-                        oct_handler)
+                fill_hydro(
+                    fd,
+                    file_handler.offset, file_handler.level_count,
+                    levels, cell_inds,
+                    file_inds, ndim, all_fields, fields, tr,
+                    oct_handler
+                )
                 _slice = tuple(
                     [slice(None)] +
                     [slice(i, i+self._num_zones) for i in ishift_all])
@@ -323,7 +327,6 @@ class RAMSESDomainSubset(OctreeSubset):
         new_subset = RAMSESDomainSubset(self.base_region, self.domain, self.ds, num_ghost_zones=ngz, base_grid=self)
 
         return new_subset
-
 
 class RAMSESIndex(OctreeIndex):
 
