@@ -60,7 +60,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     def _sound_speed(field, data):
         tr = data.ds.gamma * data[ftype, "pressure"] / data[ftype, "density"]
         return np.sqrt(tr)
-    
+
     registry.add_field((ftype, "sound_speed"),
                        sampling_type="local",
                        function=_sound_speed,
@@ -70,7 +70,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         """ Radial component of M{|v|/c_sound} """
         tr = data[ftype, "radial_velocity"] / data[ftype, "sound_speed"]
         return np.abs(tr)
-    
+
     registry.add_field((ftype, "radial_mach_number"),
                        sampling_type="local",
                        function=_radial_mach_number,
@@ -88,7 +88,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     def _mach_number(field, data):
         """ M{|v|/c_sound} """
         return data[ftype, "velocity_magnitude"] / data[ftype, "sound_speed"]
-    
+
     registry.add_field((ftype, "mach_number"),
                        sampling_type="local",
                        function=_mach_number,
@@ -195,11 +195,19 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi+1:]
         slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
         def func(field, data):
-            ds = div_fac * data[ftype, "d%s" % ax]
-            f  = data[grad_field][slice_3dr]/ds[slice_3d]
-            f -= data[grad_field][slice_3dl]/ds[slice_3d]
+            ds = data[ftype, "d%s" % ax]
+            vl = data[grad_field][slice_3dl]
+            vc = data[grad_field][slice_3d]
+            vr = data[grad_field][slice_3dr]
+
+            okl = np.isfinite(vl)
+            okrl = okl & np.isfinite(vr)
+
+            f = np.where(okrl, (vr - vl) / 2,
+                np.where(okl, vc - vl, vr - vc)) / ds[slice_3d]
+
             new_field = np.zeros_like(data[grad_field], dtype=np.float64)
-            new_field = data.ds.arr(new_field, f.units)
+            new_field = data.ds.arr(new_field, vr.units / ds.units)
             new_field[slice_3d] = f
             return new_field
         return func
