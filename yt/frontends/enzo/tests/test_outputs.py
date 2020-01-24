@@ -49,7 +49,7 @@ dnz = "DeeplyNestedZoom/DD0025/data0025"
 p3mini = "PopIII_mini/DD0034/DD0034"
 
 
-def color_conservation_test(ds):
+def color_conservation(ds):
     species_names = ds.field_info.species_names
     dd = ds.all_data()
     dens_yt = dd["density"].copy()

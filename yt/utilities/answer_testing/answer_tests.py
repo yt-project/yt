@@ -19,7 +19,7 @@ from . import utils
 import yt.visualization.plot_window as pw
 
 
-def grid_hierarchy_test(ds):
+def grid_hierarchy(ds):
     result = {}
     result['grid_dimensions'] = ds.index.grid_dimensions
     result['grid_left_edge'] = ds.index.grid_left_edge
@@ -28,7 +28,7 @@ def grid_hierarchy_test(ds):
     result['grid_particle_count'] = ds.index.grid_particle_count
     return result
 
-def parentage_relationships_test(ds):
+def parentage_relationships(ds):
     parents = []
     children = []
     for g in ds.index.grids:
@@ -43,7 +43,7 @@ def parentage_relationships_test(ds):
     result = np.array(parents + children)
     return result 
 
-def grid_values_test(ds, field):
+def grid_values(ds, field):
     # The hashing is done here so that there is only one entry for
     # the test that contains info about all of the grids as opposed
     # to having a separate 'grid_id : grid_hash' pair for each grid
@@ -57,7 +57,7 @@ def grid_values_test(ds, field):
         g.clear_data()
     return result.hexdigest()
 
-def projection_values_test(ds, axis, field, weight_field, dobj_type):
+def projection_values(ds, axis, field, weight_field, dobj_type):
     if dobj_type is not None:
         dobj = utils.create_obj(ds, dobj_type)
     else:
@@ -85,7 +85,7 @@ def projection_values_test(ds, axis, field, weight_field, dobj_type):
             result.update(k + v.tobytes())
     return result.hexdigest()
 
-def field_values_test(ds, field, obj_type=None, particle_type=False):
+def field_values(ds, field, obj_type=None, particle_type=False):
     # If needed build an instance of the dataset type
     obj = utils.create_obj(ds, obj_type)
     determined_field = obj._determine_fields(field)[0]
@@ -103,7 +103,7 @@ def field_values_test(ds, field, obj_type=None, particle_type=False):
     # Return as a hashable bytestring
     return np.array([avg, minimum, maximum])
 
-def pixelized_projection_values_test(ds, axis, field,
+def pixelized_projection_values(ds, axis, field,
     weight_field=None, dobj_type=None):
     if dobj_type is not None:
         obj = utils.create_obj(ds, dobj_type)
@@ -132,7 +132,7 @@ def pixelized_projection_values_test(ds, axis, field,
     return result.hexdigest()
 
 
-def simulated_halo_mass_function_test(ds, finder):
+def simulated_halo_mass_function(ds, finder):
     hc = HaloCatalog(data_ds=ds, finder_method=finder)
     hc.create()
     hmf = HaloMassFcn(halos_ds=hc.halos_ds)
@@ -141,7 +141,7 @@ def simulated_halo_mass_function_test(ds, finder):
     result[1] = hmf.n_cumulative_sim.d
     return result
 
-def analytic_halo_mass_function_test(ds, fit):
+def analytic_halo_mass_function(ds, fit):
     hmf = HaloMassFcn(simulation_ds=ds, fitting_function=fit)
     result = np.empty((2, hmf.masses_analytic.size))
     result[0] = hmf.masses_analytic.d
@@ -151,36 +151,36 @@ def analytic_halo_mass_function_test(ds, fit):
 def small_patch_amr(ds, field, weight, axis, ds_obj):
     hex_digests = {} 
     # Grid hierarchy test
-    gh_hd = grid_hierarchy_test(ds)
+    gh_hd = grid_hierarchy(ds)
     hex_digests['grid_hierarchy'] = gh_hd
     # Parentage relationships test
-    pr_hd = parentage_relationships_test(ds)
+    pr_hd = parentage_relationships(ds)
     hex_digests['parentage_relationships'] = pr_hd
     # Grid values, projection values, and field values tests
-    gv_hd = grid_values_test(ds, field)
+    gv_hd = grid_values(ds, field)
     hex_digests['grid_values'] = gv_hd
-    fv_hd = field_values_test(ds, field, ds_obj)
+    fv_hd = field_values(ds, field, ds_obj)
     hex_digests['field_values'] = fv_hd
-    pv_hd = projection_values_test(ds, axis, field, weight, ds_obj)
+    pv_hd = projection_values(ds, axis, field, weight, ds_obj)
     hex_digests['projection_values'] = pv_hd
     return hex_digests
 
 def big_patch_amr(ds, field, weight, axis, ds_obj):
     hex_digests = {} 
     # Grid hierarchy test
-    gh_hd = grid_hierarchy_test(ds)
+    gh_hd = grid_hierarchy(ds)
     hex_digests['grid_hierarchy'] = gh_hd
     # Parentage relationships test
-    pr_hd = parentage_relationships_test(ds)
+    pr_hd = parentage_relationships(ds)
     hex_digests['parentage_relationships'] = pr_hd
     # Grid values, projection values, and field values tests
-    gv_hd = grid_values_test(ds, field)
+    gv_hd = grid_values(ds, field)
     hex_digests['grid_values'] = gv_hd
-    ppv_hd = pixelized_projection_values_test(ds, axis, field, weight, ds_obj)
+    ppv_hd = pixelized_projection_values(ds, axis, field, weight, ds_obj)
     hex_digests['pixelized_projection_values'] = ppv_hd 
     return hex_digests
 
-def generic_array_test(func, args=None, kwargs=None):
+def generic_array(func, args=None, kwargs=None):
     if args is None:
         args = []
     if kwargs is None:
@@ -207,9 +207,9 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
     else:
         particle_type = False
     if particle_type is False:
-        ppv_hd = pixelized_projection_values_test(ds, axis, field, weight, ds_obj)
+        ppv_hd = pixelized_projection_values(ds, axis, field, weight, ds_obj)
         hex_digests['pixelized_projection_values'] = ppv_hd
-    fv_hd = field_values_test(ds, field, ds_obj, particle_type=particle_type)
+    fv_hd = field_values(ds, field, ds_obj, particle_type=particle_type)
     hex_digests['field_values'] = fv_hd
     return hex_digests
 
@@ -220,7 +220,7 @@ def test_field_size_and_mean(ds, field, geometric):
         obj = ds.data
     return np.array([obj[field].size, obj[field].mean()])
 
-def plot_window_attribute_test(ds, plot_field, plot_axis, attr_name,
+def plot_window_attribute(ds, plot_field, plot_axis, attr_name,
     attr_args, plot_type='SlicePlot', callback_id='', callback_runners=[]):
     plot = utils._create_plot_window_attribute_plot(ds, plot_type, plot_field, plot_axis, {})
     for r in callback_runners:
@@ -234,7 +234,7 @@ def plot_window_attribute_test(ds, plot_field, plot_axis, attr_name,
     os.remove(tmpname)
     return image
 
-def phase_plot_attribute_test(ds_fn, x_field, y_field, z_field,
+def phase_plot_attribute(ds_fn, x_field, y_field, z_field,
              attr_name, attr_args, plot_type='PhasePlot',
              plot_kwargs={}):
     data_source = ds_fn.all_data()
@@ -249,11 +249,11 @@ def phase_plot_attribute_test(ds_fn, x_field, y_field, z_field,
     os.remove(tmpname)
     return image
 
-def generic_image_test(img_fname):
+def generic_image(img_fname):
     img_data = mpimg.imread(img_fname)
     return img_data
 
-def axial_pixelization_test(ds):
+def axial_pixelization(ds):
     r"""
     This test is typically used once per geometry or coordinates type.
     Feed it a dataset, and it checks that the results of basic pixelization
@@ -274,7 +274,7 @@ def axial_pixelization_test(ds):
         pix_y
     return pix_x, pix_y 
 
-def light_cone_projection_test(parameter_file, simulation_type):
+def light_cone_projection(parameter_file, simulation_type):
     lc = LightCone(
         parameter_file, simulation_type, 0., 0.1,
         observer_redshift=0.0, time_data=False)
@@ -293,7 +293,7 @@ def light_cone_projection_test(parameter_file, simulation_type):
     ma = data.max()
     return np.array([mean, mi, ma])
 
-def extract_connected_sets_test(ds_fn, data_source, field, num_levels, min_val, max_val):
+def extract_connected_sets(ds_fn, data_source, field, num_levels, min_val, max_val):
     n, all_sets = data_source.extract_connected_sets(
         field, num_levels, min_val, max_val)
     result = []
@@ -304,7 +304,7 @@ def extract_connected_sets_test(ds_fn, data_source, field, num_levels, min_val, 
     result = np.array(result)
     return result
 
-def VR_image_comparison_test(scene):
+def VR_image_comparison(scene):
     tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
     os.close(tmpfd)
     scene.render()
