@@ -137,7 +137,5 @@ answer_tests:
 other_tests:
   unittests:
      - '--exclude=test_mesh_slices'  # disable randomly failing test
-     # Disable tests running under pytest until that infrastructure is fully merged
-     - '--exclude=answer_tests'
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
