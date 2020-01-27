@@ -271,10 +271,6 @@ class AMRVACDataset(Dataset):
         dd[:self.dimensionality] = self.parameters['domain_nx']
         self.domain_dimensions = dd
 
-        # the following parameters may not be present in the datfile,
-        # dependending on format version
-        if self.parameters["datfile_version"] < 5:
-            mylog.warning("This data format does not contain geometry or periodicity info")
         if self.parameters.get("staggered", False):
             mylog.warning("'staggered' flag was found, but is currently ignored (unsupported)")
 
@@ -283,26 +279,27 @@ class AMRVACDataset(Dataset):
         # - geometry_override
         # - "geometry" parameter from datfile
         # - if all fails, default to "cartesian"
-        geom_candidates = {"param": None, "override": None}
+        self.geometry = None
         amrvac_geom = self.parameters.get("geometry", None)
-        if amrvac_geom is None:
-            mylog.warning("Could not find a 'geometry' parameter in source file.")
-        else:
-            geom_candidates.update({"param": self._parse_geometry(amrvac_geom)})
+        if amrvac_geom is not None:
+            self.geometry = self._parse_geometry(amrvac_geom)
+        elif self.parameters["datfile_version"] > 4:
+            # py38: walrus here
+            mylog.error("No 'geometry' flag found in datfile with version %d >4." % self.parameters["datfile_version"])
 
         if self._geometry_override is not None:
+            # py38: walrus here
             try:
-                geom_candidates.update({"override": self._parse_geometry(self._geometry_override)})
+                new_geometry = self._parse_geometry(self._geometry_override)
+                if new_geometry == self.geometry:
+                    mylog.info("geometry_override is identical to datfile parameter.")
+                else:
+                    self.geometry = new_geometry
+                    mylog.warning("Overriding geometry, this may lead to surprising results.")
             except ValueError:
-                mylog.error("Unknown value for geometry_override (will be ignored).")
-    
-        if geom_candidates["override"] is not None:
-            mylog.warning("Using override geometry, this may lead to surprising results for inappropriate values.")
-            self.geometry = geom_candidates["override"]
-        elif geom_candidates["param"] is not None:
-            mylog.info("Using parameter geometry")
-            self.geometry = geom_candidates["param"]
-        else:
+                mylog.error("Unable to parse geometry_override '%s' (will be ignored)." % self._geometry_override)
+
+        if self.geometry is None:
             mylog.warning("No geometry parameter supplied or found, defaulting to cartesian.")
             self.geometry = "cartesian"
 
