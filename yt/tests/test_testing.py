@@ -25,5 +25,5 @@ def test_requires_backend():
     def plot_b():
         return True
 
-    assert_equal(plot_a(), None)
-    assert_equal(plot_b(), True)
+    assert_equal(plot_a()(), None)
+    assert_equal(plot_b()(), True)
