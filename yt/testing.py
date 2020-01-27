@@ -1152,15 +1152,11 @@ def requires_backend(backend):
 
     """
     def ffalse(func):
-        @functools.wraps(func)
-        def false_wrapper(*args, **kwargs):
-            return None
-        return false_wrapper
+        return lambda: None
+
     def ftrue(func):
-        @functools.wraps(func)
-        def true_wrapper(*args, **kwargs):
-            return func
-        return true_wrapper
+        return func
+
     if backend.lower() == matplotlib.get_backend().lower():
         return ftrue
     return ffalse
