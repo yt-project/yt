@@ -134,29 +134,34 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
 def fill_hydro(FortranFile f,
                np.ndarray[np.int64_t, ndim=2] offsets,
                np.ndarray[np.int64_t, ndim=2] level_count,
+               list cpu_enumerator,
                np.ndarray[np.uint8_t, ndim=1] levels,
                np.ndarray[np.uint8_t, ndim=1] cell_inds,
                np.ndarray[np.int64_t, ndim=1] file_inds,
                INT64_t ndim, list all_fields, list fields,
                dict tr,
-               RAMSESOctreeContainer oct_handler):
+               RAMSESOctreeContainer oct_handler,
+               np.ndarray[np.int64_t, ndim=1] domains=np.array([], dtype='int64'),
+               int domain=-1):
     cdef INT64_t offset
     cdef dict tmp
     cdef str field
     cdef INT64_t twotondim
-    cdef int ilevel, icpu, ifield, nfields, noffset, nc
+    cdef int ilevel, icpu, ifield, nfields, noffset, nc, ncpu_selected
     cdef np.ndarray[np.uint8_t, ndim=1] mask
 
     twotondim = 2**ndim
     nfields = len(all_fields)
     ncpu = offsets.shape[0]
     noffset = offsets.shape[1]
+    ncpu_selected = len(cpu_enumerator)
 
     mask = np.array([(field in fields) for field in all_fields], dtype=np.uint8)
 
     # Loop over levels
     for ilevel in range(noffset):
-        for icpu in range(ncpu):
+        # Loop over cpu domains
+        for icpu in cpu_enumerator:
             offset = offsets[icpu, ilevel]
             if offset == -1:
                 continue
@@ -174,5 +179,9 @@ def fill_hydro(FortranFile f,
                         f.skip()
                     else:
                         tmp[all_fields[ifield]][:, i] = f.read_vector('d') # i-th cell
-
-            oct_handler.fill_level(ilevel, levels, cell_inds, file_inds, tr, tmp)
+            if ncpu_selected > 1:
+                oct_handler.fill_level_with_domain(
+                    ilevel, levels, cell_inds, file_inds, domains, tr, tmp, domain=icpu)
+            else:
+                oct_handler.fill_level(
+                    ilevel, levels, cell_inds, file_inds, tr, tmp)

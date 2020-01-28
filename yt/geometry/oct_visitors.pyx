@@ -461,23 +461,28 @@ cdef class FillFileIndicesRNeighbour(BaseNeighbourVisitor):
     cdef void visit(self, Oct* o, np.uint8_t selected):
         cdef np.int64_t neigh_file_ind
         cdef np.uint8_t neigh_cell_ind
+        cdef np.int32_t neigh_domain
 
         if selected == 0: return
         # Note: only selected items have an index
         self.get_neighbour_cell_index(o, selected)
         if not self.other_oct:
-            neigh_file_ind = o.file_ind
+            neigh_domain   = 0
+            neigh_file_ind = o.domain
             neigh_cell_ind = self.neighbour_rind()
         elif self.neighbour != NULL:
+            neigh_domain     = self.neighbour.domain
             neigh_file_ind = self.neighbour.file_ind
             neigh_cell_ind = self.neighbour_rind()
         else:
+            neigh_domain   = -1
             neigh_file_ind = -1
-            neigh_cell_ind = 255
+            neigh_cell_ind = 8
 
         self.shifted_levels[self.index] = self.level
         # Note: we store the local level, not the remote one
         self.shifted_file_inds[self.index] = neigh_file_ind
         self.shifted_cell_inds[self.index] = neigh_cell_ind
+        self.neigh_domain[self.index] = neigh_domain
 
         self.index += 1
