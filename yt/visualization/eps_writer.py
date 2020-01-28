@@ -106,10 +106,10 @@ class DualEPS(object):
             (x,y) position in centimeters of the origin in the figure
         xaxis_side : integer
             Set to 0 for the x-axis annotations to be on the left.  Set
-            to 1 to print(them on the right side.)
+            to 1 to print them on the right side.
         yaxis_side : integer
             Set to 0 for the y-axis annotations to be on the bottom.  Set
-            to 1 to print(them on the top.)
+            to 1 to print them on the top.
         size : tuple of floats
             Size of axis box in units of figsize
 
