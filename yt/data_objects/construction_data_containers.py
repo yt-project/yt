@@ -418,7 +418,7 @@ class YTQuadTreeProj(YTProj):
 
     >>> ds = load("RedshiftOutput0005")
     >>> prj = ds.proj("density", 0)
-    >>> print proj["density"]
+    >>> print(proj["density"])
     """
     _type_name = "quad_proj"
     def __init__(self, field, axis, weight_field=None, center=None, ds=None,
@@ -1273,8 +1273,8 @@ class YTSurface(YTSelectionContainer3D):
     >>> from yt.units import kpc
     >>> sp = ds.sphere("max", (10, "kpc")
     >>> surf = ds.surface(sp, "density", 5e-27)
-    >>> print surf["temperature"]
-    >>> print surf.vertices
+    >>> print(surf["temperature"])
+    >>> print(surf.vertices)
     >>> bounds = [(sp.center[i] - 5.0*kpc,
     ...            sp.center[i] + 5.0*kpc) for i in range(3)]
     >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
@@ -1908,8 +1908,8 @@ class YTSurface(YTSelectionContainer3D):
         >>> from yt.units import kpc
         >>> sp = ds.sphere("max", (10, "kpc")
         >>> surf = ds.surface(sp, "density", 5e-27)
-        >>> print surf["temperature"]
-        >>> print surf.vertices
+        >>> print(surf["temperature"])
+        >>> print(surf.vertices)
         >>> bounds = [(sp.center[i] - 5.0*kpc,
         ...            sp.center[i] + 5.0*kpc) for i in range(3)]
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)

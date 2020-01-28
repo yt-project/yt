@@ -531,15 +531,15 @@ cdef class OctreeContainer:
         visitor.dims = dims
         self.visit_all_octs(selector, visitor)
         if (visitor.global_index + 1) * visitor.nz * visitor.dims > source.size:
-            print "GLOBAL INDEX RAN AHEAD.",
+            print("GLOBAL INDEX RAN AHEAD.",)
             print (visitor.global_index + 1) * visitor.nz * visitor.dims - source.size
-            print dest.size, source.size, num_cells
+            print(dest.size, source.size, num_cells)
             raise RuntimeError
         if visitor.index > dest.size:
-            print "DEST INDEX RAN AHEAD.",
-            print visitor.index - dest.size
+            print("DEST INDEX RAN AHEAD.",)
+            print(visitor.index - dest.size)
             print (visitor.global_index + 1) * visitor.nz * visitor.dims, source.size
-            print num_cells
+            print(num_cells)
             raise RuntimeError
         if num_cells >= 0:
             return dest
@@ -858,10 +858,10 @@ cdef class SparseOctreeContainer(OctreeContainer):
         if next != NULL: return next
         cdef OctAllocationContainer *cont = self.domains.get_cont(domain_id - 1)
         if cont.n_assigned >= cont.n:
-            print "Too many assigned."
+            print("Too many assigned.")
             return NULL
         if self.num_root >= self.max_root:
-            print "Too many roots."
+            print("Too many roots.")
             return NULL
         next = &cont.my_objs[cont.n_assigned]
         cont.n_assigned += 1

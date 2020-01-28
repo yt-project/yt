@@ -145,7 +145,7 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
 
     >>> ds = yt.load("m33_hi.fits")
     >>> circle_region = ds9_region(ds, "circle.reg")
-    >>> print circle_region.quantities.extrema("flux")
+    >>> print(circle_region.quantities.extrema("flux"))
     """
     import pyregion
     from yt.frontends.fits.api import EventsFITSDataset

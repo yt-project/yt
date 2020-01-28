@@ -67,7 +67,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             for g in chunk.objs:
                 if g.filename is None: continue
                 if f is None:
-                    #print "Opening (read) %s" % g.filename
+                    #print("Opening (read) %s" % g.filename)
                     f = h5py.File(g.filename, "r")
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
@@ -307,7 +307,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             f = None
             for g in chunk.objs:
                 if f is None:
-                    #print "Opening (count) %s" % g.filename
+                    #print("Opening (count) %s" % g.filename)
                     f = h5py.File(g.filename, "r")
                 gds = f.get("/Grid%08i" % g.id)
                 if gds is None:

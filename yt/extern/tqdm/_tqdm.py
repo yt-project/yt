@@ -240,7 +240,7 @@ class tqdm(object):
             dynamically resizes the progressbar to stay within this bound.
             If [default: None], attempts to use environment width. The
             fallback is a meter width of 10 and no limit for the counter and
-            statistics. If 0, will not print any meter (only stats).
+            statistics. If 0, will not print(any meter (only stats).)
         mininterval  : float, optional
             Minimum progress update interval, in seconds [default: 0.1].
         maxinterval  : float, optional

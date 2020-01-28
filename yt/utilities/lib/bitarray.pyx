@@ -39,7 +39,7 @@ cdef class bitarray:
         >>> arr_in2 = np.array([False, True, True])
         >>> a = ba.bitarray(arr = arr_in1)
         >>> b = ba.bitarray(arr = arr_in2)
-        >>> print a & b
+        >>> print(a & b)
         >>> print (a & b).as_bool_array()
 
         """
@@ -134,7 +134,7 @@ cdef class bitarray:
 
         >>> arr_in = np.array([True, True, False])
         >>> a = ba.bitarray(arr = arr_in)
-        >>> print a.set_value(2, 1)
+        >>> print(a.set_value(2, 1))
 
         """
         ba_set_value(self.buf, ind, val)
@@ -157,7 +157,7 @@ cdef class bitarray:
 
         >>> arr_in = np.array([True, True, False])
         >>> a = ba.bitarray(arr = arr_in)
-        >>> print a.query_value(2)
+        >>> print(a.query_value(2))
 
         """
         return ba_get_value(self.buf, ind)

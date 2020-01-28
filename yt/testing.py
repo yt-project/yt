@@ -608,14 +608,14 @@ def expand_keywords(keywords, full=False):
     >>> keywords['dpi'] = (50, 100, 200)
     >>> keywords['cmap'] = ('arbre', 'kelp')
     >>> list_of_kwargs = expand_keywords(keywords)
-    >>> print list_of_kwargs
+    >>> print(list_of_kwargs)
 
     array([{'cmap': 'arbre', 'dpi': 50},
            {'cmap': 'kelp', 'dpi': 100},
            {'cmap': 'arbre', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
-    >>> print list_of_kwargs
+    >>> print(list_of_kwargs)
 
     array([{'cmap': 'arbre', 'dpi': 50},
            {'cmap': 'arbre', 'dpi': 100},

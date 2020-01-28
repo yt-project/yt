@@ -455,7 +455,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     ...     sto.result = sp.quantities["AngularMomentumVector"]()
     ...
     >>> for sphere_id, L in sorted(storage.items()):
-    ...     print centers[sphere_id], L
+    ...     print(centers[sphere_id], L)
     ...
 
     """
@@ -555,7 +555,7 @@ def parallel_ring(objects, generator_func, mutable = False):
     ...
     >>> obj = range(8)
     >>> for obj, arr in parallel_ring(obj, gfunc):
-    ...     print arr['x'].sum(), arr['y'].sum(), arr['z'].sum()
+    ...     print(arr['x'].sum(), arr['y'].sum(), arr['z'].sum())
     ...
 
     """
@@ -960,14 +960,14 @@ class Communicator(object):
         while mask < size:
             if (mask & rank) != 0:
                 target = (rank & ~mask) % size
-                #print "SENDING FROM %02i to %02i" % (rank, target)
+                #print("SENDING FROM %02i to %02i" % (rank, target))
                 buf = qt.tobuffer()
                 self.send_quadtree(target, buf, tgd, args)
                 #qt = self.recv_quadtree(target, tgd, args)
             else:
                 target = (rank | mask)
                 if target < size:
-                    #print "RECEIVING FROM %02i on %02i" % (target, rank)
+                    #print("RECEIVING FROM %02i on %02i" % (target, rank))
                     buf = self.recv_quadtree(target, tgd, args)
                     qto = QuadTree(tgd, args[2], qt.bounds)
                     qto.frombuffer(buf[0], buf[1], buf[2], merge_style)

@@ -214,7 +214,7 @@ cdef class SelectorObject:
             sdds[i] = dds[i]/2.0
             LE[i] = pos[i] - dds[i]/2.0
             RE[i] = pos[i] + dds[i]/2.0
-        #print LE[0], RE[0], LE[1], RE[1], LE[2], RE[2]
+        #print(LE[0], RE[0], LE[1], RE[1], LE[2], RE[2])
         res = self.select_grid(LE, RE, level, root)
         if res == 1 and visitor.domain > 0 and root.domain != visitor.domain:
             res = -1
@@ -1790,7 +1790,7 @@ cdef class RaySelector(SelectorObject):
                         dtr[ni] = dt[i, j, k]
                         ni += 1
         if not (ni == ia.hits):
-            print ni, ia.hits
+            print(ni, ia.hits)
         free(ia)
         return dtr, tr
 

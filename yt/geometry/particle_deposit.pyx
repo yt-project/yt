@@ -310,7 +310,7 @@ cdef class StdParticleField(ParticleDepositOperation):
         k = self.i[ii[2], ii[1], ii[0], offset]
         mk = self.mk[ii[2], ii[1], ii[0], offset]
         qk = self.qk[ii[2], ii[1], ii[0], offset]
-        #print k, mk, qk, cell_index
+        #print(k, mk, qk, cell_index)
         if k == 0.0:
             # Initialize cell values
             self.mk[ii[2], ii[1], ii[0], offset] = fields[0]

@@ -41,12 +41,12 @@ cdef class Node:
 
 
     def print_me(self):
-        print 'Node %i' % self.node_id
-        print '\t le: %e %e %e' % (self.left_edge[0], self.left_edge[1],
-                                   self.left_edge[2])
-        print '\t re: %e %e %e' % (self.right_edge[0], self.right_edge[1],
-                                   self.right_edge[2])
-        print '\t grid: %i' % self.grid
+        print('Node %i' % self.node_id)
+        print('\t le: %e %e %e' % (self.left_edge[0], self.left_edge[1],
+                                   self.left_edge[2]))
+        print('\t re: %e %e %e' % (self.right_edge[0], self.right_edge[1],
+                                   self.right_edge[2]))
+        print('\t grid: %i' % self.grid)
 
     def get_split_dim(self):
         if self.split != NULL:
@@ -228,8 +228,8 @@ cdef class Node:
                 greater_ids[ngreater] = i
                 ngreater += 1
 
-        #print 'nless: %i' % nless
-        #print 'ngreater: %i' % ngreater
+        #print('nless: %i' % nless)
+        #print('ngreater: %i' % ngreater)
 
         if nless > 0:
             less_gles = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
@@ -298,7 +298,7 @@ cdef class Node:
                 contained *= gres[0,i] >= self.right_edge[i]
 
             if contained == 1:
-                # print 'Node fully contained, setting to grid: %i' % gids[0]
+                # print('Node fully contained, setting to grid: %i' % gids[0])
                 self.grid = gids[0]
                 assert(self.grid != -1)
                 return
@@ -349,13 +349,13 @@ cdef class Node:
         self.divide(split)
 
         # Populate Left Node
-        #print 'Inserting left node', self.left_edge, self.right_edge
+        #print('Inserting left node', self.left_edge, self.right_edge)
         if nless == 1:
             self.left.insert_grid(gle, gre,
                          gid, rank, size)
 
         # Populate Right Node
-        #print 'Inserting right node', self.left_edge, self.right_edge
+        #print('Inserting right node', self.left_edge, self.right_edge)
         if ngreater == 1:
             self.right.insert_grid(gle, gre,
                          gid, rank, size)
@@ -396,7 +396,7 @@ cdef class Node:
         # If best_dim is -1, then we have found a place where there are no choices.
         # Exit out and set the node to None.
         if best_dim == -1:
-            print 'Failed to split grids.'
+            print('Failed to split grids.')
             return -1
 
         split = <Split *> malloc(sizeof(Split))
@@ -433,7 +433,7 @@ cdef class Node:
                     less_gres[i,j] = gres[index,j]
 
             # Populate Left Node
-            #print 'Inserting left node', self.left_edge, self.right_edge
+            #print('Inserting left node', self.left_edge, self.right_edge)
             self.left.insert_grids(nless, less_gles, less_gres,
                          l_ids, rank, size)
 
@@ -450,7 +450,7 @@ cdef class Node:
                     greater_gres[i,j] = gres[index,j]
 
             # Populate Right Node
-            #print 'Inserting right node', self.left_edge, self.right_edge
+            #print('Inserting right node', self.left_edge, self.right_edge)
             self.right.insert_grids(ngreater, greater_gles, greater_gres,
                          g_ids, rank, size)
 
@@ -494,13 +494,13 @@ cdef class Node:
 
         #lnew_gre[big_dim] = new_pos
         # Populate Left Node
-        #print 'Inserting left node', self.left_edge, self.right_edge
+        #print('Inserting left node', self.left_edge, self.right_edge)
         self.left.insert_grid(lnew_gle, lnew_gre,
                 grid_id, rank, size)
 
         #rnew_gle[big_dim] = new_pos
         # Populate Right Node
-        #print 'Inserting right node', self.left_edge, self.right_edge
+        #print('Inserting right node', self.left_edge, self.right_edge)
         self.right.insert_grid(rnew_gle, rnew_gre,
                 grid_id, rank, size)
         return
@@ -777,17 +777,17 @@ cdef kdtree_get_choices(int n_grids,
         for i in range(n_grids):
             # Check for disqualification
             for j in range(2):
-                # print "Checking against", i,j,dim,data[i,j,dim]
+                # print("Checking against", i,j,dim,data[i,j,dim])
                 if not (l_corner[dim] < data[i][j][dim] and
                         data[i][j][dim] < r_corner[dim]):
-                    # print "Skipping ", data[i,j,dim], l_corner[dim], r_corner[dim]
+                    # print("Skipping ", data[i,j,dim], l_corner[dim], r_corner[dim])
                     continue
                 skipit = 0
                 # Add our left ...
                 for k in range(n_unique):
                     if uniques[k] == data[i][j][dim]:
                         skipit = 1
-                        # print "Identified", uniques[k], data[i,j,dim], n_unique
+                        # print("Identified", uniques[k], data[i,j,dim], n_unique)
                         break
                 if skipit == 0:
                     uniques[n_unique] = data[i][j][dim]
@@ -801,7 +801,7 @@ cdef kdtree_get_choices(int n_grids,
     # I recognize how lame this is.
     cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
     for i in range(my_max):
-        # print "Setting tarr: ", i, uniquedims[best_dim][i]
+        # print("Setting tarr: ", i, uniquedims[best_dim][i])
         tarr[i] = uniquedims[best_dim][i]
     tarr.sort()
     split = tarr[my_split]

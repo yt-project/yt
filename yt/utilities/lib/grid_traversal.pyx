@@ -317,7 +317,7 @@ def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
     #             for l in range(3):
     #                 v0[k] += v1[l] * irotation[l,k]
     #         healpix_interface.vec2pix_nest(nside, v0, &ipix)
-    #         #print "Rotated", v0[0], v0[1], v0[2], v1[0], v1[1], v1[2], ipix, pix_image[ipix]
+    #         #print("Rotated", v0[0], v0[1], v0[2], v1[0], v1[1], v1[2], ipix, pix_image[ipix])
     #         image[j, i] = pix_image[ipix]
 
 def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
