@@ -114,9 +114,9 @@ class WeightedAverageQuantity(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.weighted_average_quantity([("gas", "density"),)
+    >>> print(ad.quantities.weighted_average_quantity([("gas", "density"),
     ...                                                ("gas", "temperature")],
-    ...                                               ("gas", "cell_mass"))
+    ...                                                ("gas", "cell_mass")))
 
     """
     def count_values(self, fields, weight):
@@ -370,9 +370,9 @@ class WeightedVariance(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.weighted_variance([("gas", "density"),)
+    >>> print(ad.quantities.weighted_variance([("gas", "density"),
     ...                                        ("gas", "temperature")],
-    ...                                       ("gas", "cell_mass"))
+    ...                                        ("gas", "cell_mass")))
 
     """
     def count_values(self, fields, weight):
@@ -517,8 +517,8 @@ class Extrema(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.extrema([("gas", "density"),)
-    ...                              ("gas", "temperature")])
+    >>> print(ad.quantities.extrema([("gas", "density"),
+    ...                              ("gas", "temperature")]))
 
     """
     def count_values(self, fields, non_zero):
@@ -566,8 +566,8 @@ class SampleAtMaxFieldValues(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.sample_at_max_field_values(("gas", "density"),)
-    ...         ["temperature", "velocity_magnitude"])
+    >>> print(ad.quantities.sample_at_max_field_values(("gas", "density"),
+    ...         ["temperature", "velocity_magnitude"]))
 
     """
     def count_values(self, field, sample_fields):
@@ -642,8 +642,8 @@ class SampleAtMinFieldValues(SampleAtMaxFieldValues):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print(ad.quantities.sample_at_min_field_values(("gas", "density"),)
-    ...         ["temperature", "velocity_magnitude"])
+    >>> print(ad.quantities.sample_at_min_field_values(("gas", "density"),
+    ...         ["temperature", "velocity_magnitude"]))
 
     """
     def _func(self, arr):
