@@ -81,9 +81,11 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
         cdef np.ndarray[np.uint8_t, ndim=1] shifted_levels
         cdef np.ndarray[np.uint8_t, ndim=1] shifted_cell_inds
         cdef np.ndarray[np.int64_t, ndim=1] shifted_file_inds
-        shifted_levels = np.zeros(num_cells, dtype="uint8")
-        shifted_file_inds = np.zeros(num_cells, dtype="int64")
-        shifted_cell_inds = np.zeros(num_cells, dtype="uint8")
+        cdef np.ndarray[np.int32_t, ndim=1] neigh_domain
+        shifted_levels = np.full(num_cells, 255, dtype="uint8")
+        shifted_file_inds = np.full(num_cells, -1, dtype="int64")
+        shifted_cell_inds = np.full(num_cells, 8, dtype="uint8")
+        neigh_domain = np.full(num_cells, -1, dtype="int32")
 
         if self.fill_style == "r":
             neigh_visitor = FillFileIndicesRNeighbour(self, domain_id)
@@ -91,6 +93,7 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
             neigh_visitor.shifted_levels = shifted_levels
             neigh_visitor.shifted_file_inds = shifted_file_inds
             neigh_visitor.shifted_cell_inds = shifted_cell_inds
+            neigh_visitor.neigh_domain = neigh_domain
             # direction to explore and extra parameters of the visitor
             neigh_visitor.idim = idim
             neigh_visitor.direction = direction
@@ -101,7 +104,7 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
         else:
             raise RuntimeError
         self.visit_all_octs(selector, neigh_visitor)
-        return shifted_levels, shifted_cell_inds, shifted_file_inds
+        return shifted_levels, shifted_cell_inds, shifted_file_inds, neigh_domain
 
     def file_index_octs(self, SelectorObject selector, int domain_id,
                         num_cells = -1, spatial_offset=(0, 0, 0)):
@@ -129,3 +132,30 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
         else:
             return self.file_index_octs_with_shift(
                 selector, domain_id, idim, direction, num_cells)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_level_with_domain(
+                   self, int level,
+                   np.uint8_t[:] levels,
+                   np.uint8_t[:] cell_inds,
+                   np.int64_t[:] file_inds,
+                   np.int64_t[:] domains,
+                   dest_fields, source_fields,
+                   np.int64_t domain,
+                   np.int64_t offset = 0
+                   ):
+        cdef np.ndarray[np.float64_t, ndim=2] source
+        cdef np.ndarray[np.float64_t, ndim=1] dest
+        cdef int i
+        cdef str key
+        for key in dest_fields:
+            dest = dest_fields[key]
+            source = source_fields[key]
+            for i in range(levels.shape[0]):
+                if levels[i] != level or domains[i] != domain: continue
+                if file_inds[i] < 0:
+                    dest[i + offset] = np.nan
+                else:
+                    dest[i + offset] = source[file_inds[i], cell_inds[i]]

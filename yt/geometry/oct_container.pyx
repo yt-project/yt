@@ -669,9 +669,9 @@ cdef class OctreeContainer:
         file_inds = np.zeros(num_cells, dtype="int64")
         cell_inds = np.zeros(num_cells, dtype="uint8")
         for i in range(num_cells):
-            levels[i] = 100
+            levels[i] = 255
             file_inds[i] = -1
-            cell_inds[i] = 9
+            cell_inds[i] = 8
         cdef oct_visitors.FillFileIndicesO visitor_o
         cdef oct_visitors.FillFileIndicesR visitor_r
         if self.fill_style == "r":
