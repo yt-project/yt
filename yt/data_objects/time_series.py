@@ -127,7 +127,7 @@ class DatasetSeries(object):
     ...     SlicePlot(ds, "x", "Density").save()
     ...
     >>> def print_time(ds):
-    ...     print ds.current_time
+    ...     print(ds.current_time)
     ...
     >>> ts = DatasetSeries(
     ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
@@ -235,7 +235,7 @@ class DatasetSeries(object):
         This demonstrates how one might store results:
 
         >>> def print_time(ds):
-        ...     print ds.current_time
+        ...     print(ds.current_time)
         ...
         >>> ts = DatasetSeries("DD*/DD*.index",
         ...             setup_function = print_time )
@@ -246,7 +246,7 @@ class DatasetSeries(object):
         ...     sto.result = (v, c)
         ...
         >>> for i, (v, c) in sorted(my_storage.items()):
-        ...     print "% 4i  %0.3e" % (i, v)
+        ...     print("% 4i  %0.3e" % (i, v))
         ...
 
         This shows how to dispatch 4 processors to each dataset:
@@ -341,7 +341,7 @@ class DatasetSeries(object):
         --------
 
         >>> def print_time(ds):
-        ...     print ds.current_time
+        ...     print(ds.current_time)
         ...
         >>> ts = DatasetSeries.from_filenames(
         ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
@@ -422,7 +422,7 @@ class DatasetSeries(object):
         >>> ts = DatasetSeries(my_fns)
         >>> trajs = ts.particle_trajectories(indices, fields=fields)
         >>> for t in trajs :
-        >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
+        >>>     print(t["particle_velocity_x"].max(), t["particle_velocity_x"].min())
 
         Note
         ----

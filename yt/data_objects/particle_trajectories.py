@@ -46,7 +46,7 @@ class ParticleTrajectories(object):
     >>> ts = DatasetSeries(my_fns)
     >>> trajs = ts.particle_trajectories(indices, fields=fields)
     >>> for t in trajs :
-    >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
+    >>>     print(t["particle_velocity_x"].max(), t["particle_velocity_x"].min())
     """
     def __init__(self, outputs, indices, fields=None, suppress_logging=False, ptype=None):
 

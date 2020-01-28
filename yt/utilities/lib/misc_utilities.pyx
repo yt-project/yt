@@ -461,17 +461,17 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         for i in range(n_grids):
             # Check for disqualification
             for j in range(2):
-                #print "Checking against", i,j,dim,data[i,j,dim]
+                #print("Checking against", i,j,dim,data[i,j,dim])
                 if not (l_corner[dim] < data[i, j, dim] and
                         data[i, j, dim] < r_corner[dim]):
-                    #print "Skipping ", data[i,j,dim]
+                    #print("Skipping ", data[i,j,dim])
                     continue
                 skipit = 0
                 # Add our left ...
                 for k in range(n_unique):
                     if uniques[k] == data[i, j, dim]:
                         skipit = 1
-                        #print "Identified", uniques[k], data[i,j,dim], n_unique
+                        #print("Identified", uniques[k], data[i,j,dim], n_unique)
                         break
                 if skipit == 0:
                     uniques[n_unique] = data[i, j, dim]
@@ -483,7 +483,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
     # I recognize how lame this is.
     cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
     for i in range(my_max):
-        #print "Setting tarr: ", i, uniquedims[best_dim][i]
+        #print("Setting tarr: ", i, uniquedims[best_dim][i])
         tarr[i] = uniquedims[best_dim][i]
     tarr.sort()
     if my_split < 0:

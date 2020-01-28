@@ -335,7 +335,7 @@ def march_cubes_grid_flux(
                                 point[m] = (current.p[n][m]-cell_pos[m])*idds[m]
                             # Now we calculate the value at this point
                             temp = offset_interpolate(dims, point, intdata)
-                            #print "something", temp, point[0], point[1], point[2]
+                            #print("something", temp, point[0], point[1], point[2])
                             wval += temp
                             for m in range(3):
                                 center[m] += temp * point[m]

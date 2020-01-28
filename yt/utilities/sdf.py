@@ -280,8 +280,8 @@ class SDFRead(dict):
         --------
 
         >>> sdf = SDFRead("data.sdf", header="data.hdr")
-        >>> print sdf.parameters
-        >>> print sdf['x']
+        >>> print(sdf.parameters)
+        >>> print(sdf['x'])
 
         """
         self.filename = filename
@@ -453,8 +453,8 @@ class HTTPSDFRead(SDFRead):
     --------
 
     >>> sdf = SDFRead("data.sdf", header="data.hdr")
-    >>> print sdf.parameters
-    >>> print sdf['x']
+    >>> print(sdf.parameters)
+    >>> print(sdf['x'])
 
     """
 
@@ -515,8 +515,8 @@ def load_sdf(filename, header=None):
     --------
 
     >>> sdf = SDFRead("data.sdf", header="data.hdr")
-    >>> print sdf.parameters
-    >>> print sdf['x']
+    >>> print(sdf.parameters)
+    >>> print(sdf['x'])
 
     """
     if 'http' in filename:
@@ -752,7 +752,7 @@ class SDFIndex(object):
         Given left and right indicies, return a mask and
         set of offsets+lengths into the sdf data.
         """
-        #print 'Getting data from ileft to iright:',  ileft, iright
+        #print('Getting data from ileft to iright:',  ileft, iright)
 
         ix, iy, iz = (iright-ileft)*1j
         mylog.debug('MIDX IBBOX: %s %s %s %s %s' % (ileft, iright, ix, iy, iz))
@@ -779,7 +779,7 @@ class SDFIndex(object):
             dinds = self.get_keyv([X[dmask], Y[dmask], Z[dmask]])
             dinds = dinds[dinds < self._max_key]
             dinds = dinds[self.indexdata['len'][dinds] > 0]
-            #print 'Getting boundary layers for wanderers, cells: %i' % dinds.size
+            #print('Getting boundary layers for wanderers, cells: %i' % dinds.size)
 
         # Correct For periodicity
         X[X < self.domain_buffer] += self.domain_active_dims
@@ -789,7 +789,7 @@ class SDFIndex(object):
         Y[Y >= self.domain_buffer + self.domain_active_dims] -= self.domain_active_dims
         Z[Z >= self.domain_buffer + self.domain_active_dims] -= self.domain_active_dims
 
-        #print 'periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max()
+        #print('periodic:',  X.min(), X.max(), Y.min(), Y.max(), Z.min(), Z.max())
 
         indices = self.get_keyv([X, Y, Z])
         # Only mask out if we are actually getting data rather than getting indices into
@@ -851,7 +851,7 @@ class SDFIndex(object):
             stop = self._max_key
         while key < stop:
             if self.indexdata['len'][key] == 0:
-                #print 'Squeezing keys, incrementing'
+                #print('Squeezing keys, incrementing')
                 key += 1
             else:
                 break
@@ -864,7 +864,7 @@ class SDFIndex(object):
             stop = self.indexdata['index'][0]
         while key > stop:
             if self.indexdata['len'][key] == 0:
-                #print 'Squeezing keys, decrementing'
+                #print('Squeezing keys, decrementing')
                 key -= 1
             else:
                 break
@@ -884,7 +884,7 @@ class SDFIndex(object):
             combined = 0
             while nexti < num_inds:
                 nextind = inds[nexti]
-                #        print 'b: %i l: %i end: %i  next: %i' % ( base, length, base + length, self.indexdata['base'][nextind] )
+                #        print('b: %i l: %i end: %i  next: %i' % ( base, length, base + length, self.indexdata['base'][nextind] ))
                 if combined < 1024 and base + length == self.indexdata['base'][nextind]:
                     length += self.indexdata['len'][nextind]
                     i += 1
@@ -933,7 +933,7 @@ class SDFIndex(object):
 
             # Now get all particles that are within the bbox
             mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
-            #print 'Mask shape, sum:', mask.shape, mask.sum()
+            #print('Mask shape, sum:', mask.shape, mask.sum())
 
             mylog.debug("Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0]))
 
@@ -947,7 +947,7 @@ class SDFIndex(object):
                 filtered[f] = data[f][mask]
 
             #for i, ax in enumerate('xyz'):
-            #    #print left, right
+            #    #print(left, right)
             #    assert np.all(filtered[ax] >= left[i])
             #    assert np.all(filtered[ax] < right[i])
 
@@ -1020,7 +1020,7 @@ class SDFIndex(object):
             for f in fields:
                 if f in pos_fields:
                     continue
-                # print 'yielding nonpos field', f
+                # print('yielding nonpos field', f)
                 yield f, data[f][mask]
 
     def iter_bbox_data(self, left, right, fields):
@@ -1121,8 +1121,8 @@ class SDFIndex(object):
         level_rk = self.get_key(cell_iarr + level_buff) + 1
         lmax_lk = (level_lk << shift*3)
         lmax_rk = (((level_rk) << shift*3) -1)
-        #print "Level ", level, np.binary_repr(level_lk, width=self.level*3), np.binary_repr(level_rk, width=self.level*3)
-        #print "Level ", self.level, np.binary_repr(lmax_lk, width=self.level*3), np.binary_repr(lmax_rk, width=self.level*3)
+        #print("Level ", level, np.binary_repr(level_lk, width=self.level*3), np.binary_repr(level_rk, width=self.level*3))
+        #print("Level ", self.level, np.binary_repr(lmax_lk, width=self.level*3), np.binary_repr(lmax_rk, width=self.level*3))
         return lmax_lk, lmax_rk
 
     def find_max_cell(self):
@@ -1189,7 +1189,7 @@ class SDFIndex(object):
         for chunk in midx.iter_padded_bbox_data(
             6, np.array([128]*3), 8.0, ['x','y','z','ident']):
 
-            print chunk['x'].max()
+            print(chunk['x'].max())
 
         """
 

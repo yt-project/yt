@@ -114,9 +114,9 @@ class WeightedAverageQuantity(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.weighted_average_quantity([("gas", "density"),
+    >>> print(ad.quantities.weighted_average_quantity([("gas", "density"),
     ...                                                ("gas", "temperature")],
-    ...                                               ("gas", "cell_mass"))
+    ...                                                ("gas", "cell_mass")))
 
     """
     def count_values(self, fields, weight):
@@ -153,7 +153,7 @@ class TotalQuantity(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.total_quantity([("gas", "cell_mass")])
+    >>> print(ad.quantities.total_quantity([("gas", "cell_mass")]))
 
     """
     def count_values(self, fields):
@@ -185,7 +185,7 @@ class TotalMass(TotalQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.total_mass()
+    >>> print(ad.quantities.total_mass())
 
     """
     def __call__(self):
@@ -228,7 +228,7 @@ class CenterOfMass(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.center_of_mass()
+    >>> print(ad.quantities.center_of_mass())
 
     """
     def count_values(self, use_gas = True, use_particles = False, particle_type="nbody"):
@@ -302,7 +302,7 @@ class BulkVelocity(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.bulk_velocity()
+    >>> print(ad.quantities.bulk_velocity())
 
     """
     def count_values(self, use_gas=True, use_particles=False, particle_type="nbody"):
@@ -370,9 +370,9 @@ class WeightedVariance(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.weighted_variance([("gas", "density"),
+    >>> print(ad.quantities.weighted_variance([("gas", "density"),
     ...                                        ("gas", "temperature")],
-    ...                                       ("gas", "cell_mass"))
+    ...                                        ("gas", "cell_mass")))
 
     """
     def count_values(self, fields, weight):
@@ -443,13 +443,13 @@ class AngularMomentumVector(DerivedQuantity):
     # Find angular momentum vector of galaxy in grid-based isolated galaxy dataset
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.angular_momentum_vector()
+    >>> print(ad.quantities.angular_momentum_vector())
 
     # Find angular momentum vector of gas disk in particle-based dataset
     >>> ds = load("FIRE_M12i_ref11/snapshot_600.hdf5")
     >>> _, c = ds.find_max(('gas', 'density'))
     >>> sp = ds.sphere(c, (10, 'kpc'))
-    >>> print sp.quantities.angular_momentum_vector(use_gas=False, use_particles=True, particle_type='PartType0')
+    >>> print(sp.quantities.angular_momentum_vector(use_gas=False, use_particles=True, particle_type='PartType0'))
 
     """
     def count_values(self, use_gas=True, use_particles=True, particle_type='all'):
@@ -517,8 +517,8 @@ class Extrema(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.extrema([("gas", "density"),
-    ...                              ("gas", "temperature")])
+    >>> print(ad.quantities.extrema([("gas", "density"),
+    ...                              ("gas", "temperature")]))
 
     """
     def count_values(self, fields, non_zero):
@@ -566,8 +566,8 @@ class SampleAtMaxFieldValues(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.sample_at_max_field_values(("gas", "density"),
-    ...         ["temperature", "velocity_magnitude"])
+    >>> print(ad.quantities.sample_at_max_field_values(("gas", "density"),
+    ...         ["temperature", "velocity_magnitude"]))
 
     """
     def count_values(self, field, sample_fields):
@@ -612,7 +612,7 @@ class MaxLocation(SampleAtMaxFieldValues):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.max_location(("gas", "density"))
+    >>> print(ad.quantities.max_location(("gas", "density")))
 
     """
     def __call__(self, field):
@@ -642,8 +642,8 @@ class SampleAtMinFieldValues(SampleAtMaxFieldValues):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.sample_at_min_field_values(("gas", "density"),
-    ...         ["temperature", "velocity_magnitude"])
+    >>> print(ad.quantities.sample_at_min_field_values(("gas", "density"),
+    ...         ["temperature", "velocity_magnitude"]))
 
     """
     def _func(self, arr):
@@ -664,7 +664,7 @@ class MinLocation(SampleAtMinFieldValues):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.min_location(("gas", "density"))
+    >>> print(ad.quantities.min_location(("gas", "density")))
 
     """
     def __call__(self, field):
@@ -710,7 +710,7 @@ class SpinParameter(DerivedQuantity):
 
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> ad = ds.all_data()
-    >>> print ad.quantities.spin_parameter()
+    >>> print(ad.quantities.spin_parameter())
 
     """
     def count_values(self, **kwargs):

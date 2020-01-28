@@ -30,11 +30,11 @@ def parse_unit_dimension(unit_dimension):
     Examples
     --------
     >>> velocity = [1., 0., -1., 0., 0., 0., 0.]
-    >>> print parse_unit_dimension(velocity)
+    >>> print(parse_unit_dimension(velocity))
     'm**1*s**-1'
 
     >>> magnetic_field = [0., 1., -2., -1., 0., 0., 0.]
-    >>> print parse_unit_dimension(magnetic_field)
+    >>> print(parse_unit_dimension(magnetic_field))
     'kg**1*s**-2*A**-1'
     """
     if len(unit_dimension) is not 7:

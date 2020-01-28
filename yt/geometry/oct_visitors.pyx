@@ -300,7 +300,7 @@ cdef class LoadOctree(OctVisitor):
                 self.nfinest[0] += 1
         elif self.ref_mask[self.index] > 0:
             if self.ref_mask[self.index] != 1 and self.ref_mask[self.index] != 8:
-                print "ARRAY CLUE: ", self.ref_mask[self.index], "UNKNOWN"
+                print("ARRAY CLUE: ", self.ref_mask[self.index], "UNKNOWN")
                 raise RuntimeError
             if o.children == NULL:
                 o.children = <Oct **> malloc(sizeof(Oct *) * 8)
@@ -314,7 +314,7 @@ cdef class LoadOctree(OctVisitor):
                 o.children[ii + i].children = NULL
                 self.nocts[0] += 1
         else:
-            print "SOMETHING IS AMISS", self.index
+            print("SOMETHING IS AMISS", self.index)
             raise RuntimeError
         self.index += 1
 
