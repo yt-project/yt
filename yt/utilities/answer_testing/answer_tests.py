@@ -213,7 +213,7 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
     hex_digests['field_values'] = fv_hd
     return hex_digests
 
-def test_field_size_and_mean(ds, field, geometric):
+def get_field_size_and_mean(ds, field, geometric):
     if geometric:
         obj = ds.all_data()
     else:
