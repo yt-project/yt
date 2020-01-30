@@ -28,6 +28,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
                              ("GFM_Metals_06", ("", ["Mg_fraction"], None)),
                              ("GFM_Metals_07", ("", ["Si_fraction"], None)),
                              ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
+                             ("GFM_StellarFormationTime",("code_length/code_velocity",["stellar_age"], None))
                              )
 
     def setup_particle_fields(self, ptype):
