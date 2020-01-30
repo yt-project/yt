@@ -183,6 +183,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
     _domain_offset = 1
     _block_reorder = "F"
+    _gradient_swap_axes = True
 
     _base_domain = None
 

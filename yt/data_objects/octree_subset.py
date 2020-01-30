@@ -36,6 +36,7 @@ class OctreeSubset(YTSelectionContainer):
     _domain_offset = 0
     _cell_count = -1
     _block_reorder = None
+    _gradient_swap_axes = False  # Set to True if one should swap the axes when computing gradient
 
     def __init__(self, base_region, domain, ds, over_refine_factor = 1, num_ghost_zones = 0):
         super(OctreeSubset, self).__init__(ds, None)
