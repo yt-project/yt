@@ -50,9 +50,17 @@ outdated section, contributing typo or grammatical fixes, adding a FAQ, or
 increasing coverage of functionality, it would be very helpful if you wanted to
 help out.
 
-The easiest way to help out is to fork the main yt repository (where the
-documentation lives in the ``doc`` directory in the root of the yt git
-repository) and then make your changes in your own fork.  When you are done,
+The easiest way to help out is to fork the main yt repository and make changes
+in it to contribute back to the ``yt-project``. A fork is a copy
+of a repository; in this case the fork will live in the space under your
+username on github, rather than the ``yt-project``. If you have never made a
+fork of a repository on github, or are unfamiliar with this process, here is a
+short article about how to do so:
+https://help.github.com/en/github/getting-started-with-github/fork-a-repo . 
+The documentation for
+``yt`` lives in the ``doc`` directory in the root of the yt git
+repository. To make a contribution to the yt documentation you will 
+make your changes in your own fork of ``yt``.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes. See :ref:`sharing-changes` for
 more information about contributing your changes to yt on GitHub.
@@ -83,7 +91,8 @@ usually we end up accepting.
 
 For more information, see :ref:`contributing-code`, where we spell out how to
 get up and running with a development environment, how to commit, and how to
-use GitHub.
+use GitHub. When you're ready to share your changes with the community, refer to 
+:ref:`sharing-changes` to see how to contribute them back upstream.
 
 Online Presence
 ---------------
@@ -325,6 +334,19 @@ code (a previous changeset or version) by executing the command:
 
    $ git checkout revision_specifier
 
+You can always return to the most recent version of the code by executing the
+same command as above with the most recent revision specifier in the
+repository. However, using ``git log`` when you're checked out to an older
+revision specifier will not show more recent changes to the repository. An
+alternative option is to use ``checkout`` on a branch. In yt the ``master``
+branch is our primary development branch, so checking out ``master`` should
+return you to the tip (or most up-to-date revision specifier) on the ``master``
+branch. 
+
+.. code-block:: bash
+   
+   $ git checkout master
+   
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
 you run yt from the command line or the one that is loaded when you do ``import
@@ -502,6 +524,14 @@ If you're new to git, the following resource is pretty great for learning
 the ins and outs:
 
 * https://git-scm.com/
+
+There also exist a number of step-by-step git tutorials to help you get used to
+version controlling files with git. Here are a few resources that you may find
+helpful:
+
+* http://swcarpentry.github.io/git-novice/
+* https://git-scm.com/docs/gittutorial
+* https://try.github.io/
 
 The commands that are essential for using git include:
 
