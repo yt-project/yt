@@ -170,7 +170,7 @@ def fill_hydro(FortranFile f,
             tmp = {}
             # Initalize temporary data container for io
             for field in all_fields:
-                tmp[field] = np.empty((nc, twotondim), dtype="float64")
+                tmp[field] = np.empty((nc, twotondim), dtype="float64", order='F')
 
             for i in range(twotondim):
                 # Read the selected fields
