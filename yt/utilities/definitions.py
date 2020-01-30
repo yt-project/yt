@@ -37,8 +37,6 @@ formatted_length_unit_names = {'au'      : 'AU',
                                'rsun'    : 'R_\odot',
                                'code_length': 'code\ length'}
 
-formatted_time_unit_names = {'code_time' : 'code\ time'}
-
 # How many seconds are in each thing
 sec_conversion = {'Gyr'   : sec_per_Gyr,
                   'Myr'   : sec_per_Myr,
