@@ -200,7 +200,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
                 field_data = data[grad_field].swapaxes(0, 2)
             else:
                 field_data = data[grad_field]
-            ds = data[ftype, "d%s" % ax]
+            dt = data[ftype, "d%s" % ax]
             vl = field_data[slice_3dl]
             vc = field_data[slice_3d]
             vr = field_data[slice_3dr]
@@ -209,10 +209,10 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
             okrl = okl & np.isfinite(vr)
 
             f = np.where(okrl, (vr - vl) / 2,
-                np.where(okl, vc - vl, vr - vc)) / ds[slice_3d]
+                np.where(okl, vc - vl, vr - vc)) / dt[slice_3d]
 
             new_field = np.zeros_like(data[grad_field], dtype=np.float64)
-            new_field = data.ds.arr(new_field, vr.units / ds.units)
+            new_field = data.ds.arr(new_field, vr.units / dt.units)
             new_field[slice_3d] = f
 
             if reorder:
