@@ -184,7 +184,7 @@ def fill_hydro(FortranFile f,
                         tmp[all_fields[ifield]][:, i] = f.read_vector('d') # i-th cell
             if ncpu_selected > 1:
                 oct_handler.fill_level_with_domain(
-                    ilevel, levels, cell_inds, file_inds, domains, tr, tmp, domain=icpu)
+                    ilevel, levels, cell_inds, file_inds, domains, tr, tmp, domain=icpu+1)
             else:
                 oct_handler.fill_level(
                     ilevel, levels, cell_inds, file_inds, tr, tmp)
