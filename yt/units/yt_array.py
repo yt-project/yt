@@ -49,6 +49,7 @@ from yt.utilities.exceptions import \
     YTInvalidUnitEquivalence, YTEquivalentDimsError, \
     YTArrayTooLargeToDisplay
 from yt.utilities.lru_cache import lru_cache
+from yt.utilities.on_demand_imports import _h5py as h5py
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 try:
@@ -949,7 +950,6 @@ class YTArray(np.ndarray):
         >>> a.write_hdf5('test_array_data.h5', dataset_name='dinosaurs',
         ...              info=myinfo)
         """
-        from yt.utilities.on_demand_imports import _h5py as h5py
         from yt.extern.six.moves import cPickle as pickle
         if info is None:
             info = {}
@@ -1004,7 +1004,6 @@ class YTArray(np.ndarray):
             arrays are datasets at the top level by default.
 
         """
-        from yt.utilities.on_demand_imports import _h5py as h5py
         from yt.extern.six.moves import cPickle as pickle
 
         if dataset_name is None:
