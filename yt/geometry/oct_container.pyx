@@ -800,7 +800,7 @@ cdef class OctreeContainer:
                    np.int64_t offset = 0
                    ):
         """Similar to fill_level but accepts a domain argument.
-        
+
         This is particularly useful for frontends that have buffer zones at CPU boundaries.
         These buffer oct cells have a different domain than the local one and
         are usually not read, but one has to read them e.g. to compute ghost zones.
@@ -828,7 +828,7 @@ cdef class OctreeContainer:
     def file_index_octs_with_ghost_zones(
             self, SelectorObject selector, int domain_id,
             int num_cells = -1):
-        """Similar as file_index_octs, but return as well the level, cell index, 
+        """Similar as file_index_octs, but return as well the level, cell index,
         file index and domain of the neighbouring cells.
 
         Arguments
@@ -838,11 +838,30 @@ cdef class OctreeContainer:
         domain_id : int
             The domain to select. Set to -1 to select all domains.
         num_cells : int, optional
-            The total number of cells (accounting for the ghost zones)
+            The total number of cells (accounting for a 1-cell thick ghost zone layer).
 
         Returns
         -------
-        shifted
+        levels : uint8, shape (num_cells,)
+            The level of each cell of the super oct
+        cell_inds : uint8, shape (num_cells, )
+            The index of each cell of the super oct within its own oct
+        file_inds : int64, shape (num_cells, )
+            The on-file position of the cell. See notes below.
+        domains : int32, shape (num_cells)
+            The domain to which the cells belongs. See notes below.
+
+        Notes
+        -----
+
+        The algorithm constructs a "super-oct" around each oct (see sketch below,
+        where the original oct cells are marked with an x).
+
+        Note that for sparse octrees (such as RAMSES'), the neighbouring cells
+        may belong to another domain (this is stored in `domains`). If the dataset
+        provides buffer zones between domains (such as RAMSES), this may be stored
+        locally and can be accessed directly.
+
 
         +---+---+---+---+
         |   |   |   |   |
