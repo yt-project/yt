@@ -141,32 +141,33 @@ def fill_hydro(FortranFile f,
                INT64_t ndim, list all_fields, list fields,
                dict tr,
                RAMSESOctreeContainer oct_handler,
-               np.ndarray[np.int64_t, ndim=1] domains=np.array([], dtype='int64'),
-               int domain=-1):
+               np.ndarray[np.int32_t, ndim=1] domains=np.array([], dtype='int32')):
     cdef INT64_t offset
     cdef dict tmp
     cdef str field
     cdef INT64_t twotondim
-    cdef int ilevel, icpu, ifield, nfields, noffset, nc, ncpu_selected
+    cdef int ilevel, icpu, ifield, nfields, nlevels, nc, ncpu_selected
     cdef np.ndarray[np.uint8_t, ndim=1] mask
 
     twotondim = 2**ndim
     nfields = len(all_fields)
     ncpu = offsets.shape[0]
-    noffset = offsets.shape[1]
+    nlevels = offsets.shape[1]
     ncpu_selected = len(cpu_enumerator)
 
     mask = np.array([(field in fields) for field in all_fields], dtype=np.uint8)
 
     # Loop over levels
-    for ilevel in range(noffset):
+    for ilevel in range(nlevels):
         # Loop over cpu domains
         for icpu in cpu_enumerator:
+            nc = level_count[icpu, ilevel]
+            if nc == 0:
+                continue
             offset = offsets[icpu, ilevel]
             if offset == -1:
                 continue
             f.seek(offset)
-            nc = level_count[icpu, ilevel]
             tmp = {}
             # Initalize temporary data container for io
             for field in all_fields:

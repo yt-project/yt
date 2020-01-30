@@ -227,65 +227,24 @@ class RAMSESDomainSubset(OctreeSubset):
         oct_handler = self.oct_handler
         all_fields = [f for ft, f in file_handler.field_list]
         fields = [f for ft, f in fields]
-
-        # Select all cells, including those in *other domain*
-        selector = OctreeSubsetSelector(self)
-        selector_with_edge = OctreeSubsetSelector(self)
-        selector_with_edge.domain_id = -1
-
-        oct_count = selector_with_edge.count_octs(self.oct_handler, -1)
-        cell_count = oct_count * self._num_zones**ndim
-        iwidth = self._num_zones + num_ghost_zones * 2
-
-        oct_count0 = selector.count_octs(self.oct_handler, self.domain_id)
-        cell_count0 = oct_count0 * self._num_zones**ndim
-        ncpus = file_handler.offset.shape[0]
-
         tr = {}
-        tr_all = {}
+
+        cell_count = selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
+
+        levels, cell_inds, file_inds, domains = self.oct_handler.compute_domain_mapper(
+            selector, self.domain_id, cell_count)
+
+        # Initializing data container
         for field in fields:
-            tr_all[field] = np.full((oct_count, iwidth, iwidth, iwidth), np.nan, 'float64')
             tr[field] = np.zeros(cell_count, 'float64')
-
-        # Compute the index to read with a positive and negative shift in all dimensions
-        for idim in range(ndim):
-            ishift_all = [num_ghost_zones]*ndim
-            for shift in range(-num_ghost_zones, num_ghost_zones+1, 2):
-                ishift_all[idim] = num_ghost_zones + shift
-                if shift == 0:
-                    continue
-                levels0, cell_inds0, file_inds0, domain0 = \
-                    self.oct_handler.file_index_octs_with_shift(
-                        selector, self.domain_id, idim, shift, cell_count0)
-
-                levels, cell_inds, file_inds, domain = \
-                    self.oct_handler.file_index_octs_with_shift(
-                        selector_with_edge, -1, idim, shift, cell_count)
-
-                # import ipdb; ipdb.set_trace()
-                # Initializing data container
-                for field in fields:
-                    tr[field][:] = 0
-
-                fill_hydro(
-                    fd,
-                    file_handler.offset, file_handler.level_count,
-                    #file_handler.offset, file_handler.level_count,
-                    list(range(ncpus)),
-                    levels, cell_inds,
-                    file_inds, ndim, all_fields, fields, tr,
-                    oct_handler,
-                    domains=domain.astype(np.int64)
-                )
-                _slice = tuple(
-                    [slice(None)] +
-                    [slice(i, i+self._num_zones) for i in ishift_all])
-                for field in fields:
-                    tr_all[field][_slice] = \
-                            tr[field].reshape(oct_count, 2, 2, 2)
-        for field in fields:
-            tr_all[field] = tr_all[field].reshape(-1)
-        return tr_all
+        fill_hydro(fd, file_handler.offset,
+                   file_handler.level_count,
+                   [self.domain_id-1],
+                   levels, cell_inds,
+                   file_inds, ndim, all_fields, fields, tr,
+                   oct_handler,
+                   domains=domains)
+        return tr
 
     @property
     def fwidth(self):
