@@ -222,6 +222,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
     def _fill_with_ghostzones(self, fd, fields, selector, file_handler, num_ghost_zones):
         ndim = self.ds.dimensionality
+        ncpu = self.ds.parameters['ncpu']
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
@@ -239,7 +240,7 @@ class RAMSESDomainSubset(OctreeSubset):
             tr[field] = np.zeros(cell_count, 'float64')
         fill_hydro(fd, file_handler.offset,
                    file_handler.level_count,
-                   [self.domain_id-1],
+                   list(range(ncpu)),
                    levels, cell_inds,
                    file_inds, ndim, all_fields, fields, tr,
                    oct_handler,
