@@ -178,7 +178,12 @@ class BaseIOHandler(metaclass = RegisteredIOHandler):
             if len(rv[field_f]) > 0:
                 rv[field_f] = np.concatenate(rv[field_f], axis=0)
             else:
-                rv[field_f] = np.empty(0, dtype="float64")
+                shape = (0,)
+                if field[1] in self._vector_fields:
+                    shape += (self._vector_fields[field[1]],)
+                elif field[1] in self._array_fields:
+                    shape += self._array_fields[field[1]]
+                rv[field_f] = np.empty(shape, dtype="float64")
         return rv
 
 class IOHandlerExtracted(BaseIOHandler):
