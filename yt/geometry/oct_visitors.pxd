@@ -181,3 +181,5 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
     cdef np.int64_t[:] shifted_file_inds
     cdef np.uint8_t[:] shifted_cell_inds
     cdef np.int32_t[:] neigh_domain
+
+    cdef void set_neighbour_info(self, Oct *o, int ishift[3])

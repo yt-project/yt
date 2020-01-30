@@ -488,7 +488,7 @@ cdef class FillFileIndicesRNeighbour(BaseNeighbourVisitor):
         self.index += 1
 
 # Store file position + cell of neighbouring cell in current cell
-cdef class NeighbourCellNeighbourCellVisitor(BaseNeighbourVisitor):
+cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.initializedcheck(False)
