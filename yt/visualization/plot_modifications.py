@@ -48,7 +48,9 @@ from yt.funcs import \
 from yt.geometry.geometry_handler import \
     is_curvilinear
 from yt.extern.six import add_metaclass
+from yt.units import dimensions
 from yt.units.yt_array import YTQuantity, YTArray, uhstack
+from yt.units.unit_object import Unit
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import \
@@ -187,8 +189,8 @@ class PlotCallback(object):
 
     def _sanitize_coord_system(self, plot, coord, coord_system):
         """
-        Given a set of one or more x,y (and z) coordinates and a coordinate 
-        system, convert the coordinates (and transformation) ready for final 
+        Given a set of one or more x,y (and z) coordinates and a coordinate
+        system, convert the coordinates (and transformation) ready for final
         plotting.
 
         Parameters
@@ -359,7 +361,7 @@ class VelocityCallback(PlotCallback):
                 xv = "velocity_cartesian_x"
                 yv = "velocity_cartesian_y"
             else:
-                # for other cases (even for cylindrical geometry), 
+                # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
                 xv = "velocity_%s" % axis_names[xax]
                 yv = "velocity_%s" % axis_names[yax]
@@ -417,7 +419,7 @@ class MagFieldCallback(PlotCallback):
                 xv = "magnetic_field_cartesian_x"
                 yv = "magnetic_field_cartesian_y"
             else:
-                # for other cases (even for cylindrical geometry), 
+                # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
                 xv = "magnetic_field_%s" % axis_names[xax]
                 yv = "magnetic_field_%s" % axis_names[yax]
@@ -1575,7 +1577,7 @@ class HaloCatalogCallback(PlotCallback):
         be used to find the fields containing the coordinates
         of the center of each halo. Ex: 'particle_position'
         will result in the fields 'particle_position_x' for x
-        'particle_position_y' for y, and 'particle_position_z' 
+        'particle_position_y' for y, and 'particle_position_z'
         for z. Default: 'particle_position'.
     text_args : dict
         Contains the arguments controlling the text
@@ -2162,12 +2164,18 @@ class TimestampCallback(PlotCallback):
 
         # If we're annotating the time, put it in the correct format
         if self.time:
-
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
-                self.time_unit = plot.ds.get_smallest_appropriate_unit( \
-                                            plot.ds.current_time,
-                                            quantity='time')
+                if plot.ds.unit_system.name.startswith("us"):
+                    # if the unit system name startswith "us", that means it is
+                    # in code units and we should not convert to seconds for
+                    # the plot.
+                    self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
+                else:
+                    # in the case of non- code units then we
+                    self.time_unit = plot.ds.get_smallest_appropriate_unit( \
+                                                plot.ds.current_time,
+                                                quantity='time')
             t = plot.ds.current_time.in_units(self.time_unit)
             if self.time_offset is not None:
                 if isinstance(self.time_offset, tuple):
