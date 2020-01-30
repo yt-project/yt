@@ -122,7 +122,7 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def file_index_octs_with_shift(
+    def file_index_octs_with_ghost_zones(
             self, SelectorObject selector, int domain_id,
             int num_cells = -1):
         cdef np.int64_t i

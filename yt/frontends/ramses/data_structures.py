@@ -231,7 +231,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
         cell_count = selector.count_octs(self.oct_handler, self.domain_id) * self.nz**ndim
 
-        levels, cell_inds, file_inds, domains = self.oct_handler.compute_domain_mapper(
+        levels, cell_inds, file_inds, domains = self.oct_handler.file_index_octs_with_ghost_zones(
             selector, self.domain_id, cell_count)
 
         # Initializing data container
