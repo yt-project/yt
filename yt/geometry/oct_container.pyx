@@ -566,7 +566,6 @@ cdef class OctreeContainer:
         cdef int ind[3]
         cdef int nb = 0
         cdef Oct *cur
-        cdef Oct *parent
         cdef np.float64_t pp[3]
         cdef np.float64_t cp[3]
         cdef np.float64_t dds[3]
@@ -575,7 +574,6 @@ cdef class OctreeContainer:
         cdef OctAllocationContainer *cont = self.domains.get_cont(curdom - 1)
         cdef int initial = cont.n_assigned
         cdef int in_boundary = 0
-        parent = NULL
         # How do we bootstrap ourselves?
         for p in range(no):
             #for every oct we're trying to add find the
@@ -608,12 +606,10 @@ cdef class OctreeContainer:
                         ind[i] = 1
                         cp[i] += dds[i]/2.0
                 # Check if it has not been allocated
-                parent = cur
                 cur = self.next_child(curdom, ind, cur)
             # Now we should be at the right level
             cur.domain = curdom
             cur.file_ind = p
-            cur.parent = parent
         return cont.n_assigned - initial + nb
 
     def allocate_domains(self, domain_counts):
