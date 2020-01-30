@@ -2,7 +2,7 @@ cimport cython
 cimport numpy as np
 import numpy as np
 from yt.utilities.cython_fortran_utils cimport FortranFile
-from yt.geometry.ramses_oct_container cimport RAMSESOctreeContainer
+from yt.geometry.oct_container cimport RAMSESOctreeContainer
 from yt.utilities.exceptions import YTIllDefinedAMRData
 
 ctypedef np.int32_t INT32_t

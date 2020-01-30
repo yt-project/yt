@@ -585,26 +585,9 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
                         neigh_file_ind = -1
                         neigh_cell_ind = 8
 
-                    self.shifted_levels[self.index]    = neigh_level
-                    self.shifted_file_inds[self.index] = neigh_file_ind
-                    self.shifted_cell_inds[self.index] = neigh_cell_ind
-                    self.neigh_domain[self.index]      = neigh_domain
+                    self.levels[self.index]    = neigh_level
+                    self.file_inds[self.index] = neigh_file_ind
+                    self.cell_inds[self.index] = neigh_cell_ind
+                    self.domains[self.index]   = neigh_domain
 
-                    self.index += 1# Compute mapping from index in domain to index in domain with buffer zones
-cdef class DomainMapper(BaseNeighbourVisitor):
-    # Intended to map all octs ids to only octs in local domain
-    # Should be used in conjunction with OctreeSubsetSelector
-    def __init__(self, OctreeContainer octree, int domain_id):
-        super(DomainMapper, self).__init__(octree, domain_id)
-        self.index_in = 0
-
-    #@cython.boundscheck(False)
-    #@cython.wraparound(False)
-    #@cython.initializedcheck(False)
-    cdef void visit(self, Oct* o, np.uint8_t selected):
-        if self.last != o.domain_ind:
-            self.last = o.domain_ind
-            if self.marked[self.index]:
-                self.mapping[self.index] = self.index_in
-                self.index_in += 1
-            self.index += 1
+                    self.index += 1
