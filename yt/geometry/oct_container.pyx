@@ -732,7 +732,7 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
         cdef int i
-        cdef str key
+
         for key in dest_fields:
             dest = dest_fields[key]
             source = source_fields[key]
