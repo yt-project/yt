@@ -94,9 +94,10 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
     def _ones(field, data):
         """Returns one for all cells"""
         arr = np.ones(data.ires.shape, dtype="float64")
+        tmp = data.apply_units(arr, field.units)
         if data._spatial:
-            return data._reshape_vals(arr)
-        return data.apply_units(arr, field.units)
+            return data._reshape_vals(tmp)
+        return tmp
 
     registry.add_field(("index", "ones"),
                        sampling_type="cell",
