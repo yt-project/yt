@@ -1,18 +1,9 @@
 cimport cython
-from oct_visitors cimport FillFileIndicesRNeighbour, StoreIndex, NeighbourVisitor
-from selection_routines cimport SelectorObject, AlwaysSelector
+from oct_visitors cimport StoreIndex, NeighbourVisitor, NeighbourCellVisitor
+from selection_routines cimport SelectorObject, AlwaysSelector, OctreeSubsetSelector
 cimport numpy as np
 import numpy as np
 
-# cdef class FillFileIndices(oct_visitors.OctVisitor):
-#     cdef np.int64_t[:,:,:,:] cell_inds
-#     @cython.boundscheck(False)
-#     @cython.wraparound(False)
-#     @cython.initializedcheck(False)
-#     cdef void visit(self, Oct* o, np.uint8_t selected):
-#         if selected == 0: return
-#         self.cell_inds[o.domain_ind, self.ind[2], self.ind[1], self.ind[0]] = self.index
-#         self.index += 1
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     @cython.boundscheck(False)
@@ -68,44 +59,6 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
             if nicell[i] > -1 and icell[i] > -1:
                 output[icell[i], :] = input[nicell[i], :]
 
-    def file_index_octs_with_shift(self, SelectorObject selector, int domain_id,
-                                   int idim, int direction, int num_cells = -1):
-        """Return index on file of all neighbours in a given direction"""
-                # We create oct arrays of the correct size
-        cdef np.int64_t i
-        if num_cells < 0:
-            num_cells = selector.count_oct_cells(self, domain_id)
-
-        # Fill value of each cell with its neighbouring value
-        cdef FillFileIndicesRNeighbour neigh_visitor
-        cdef np.ndarray[np.uint8_t, ndim=1] shifted_levels
-        cdef np.ndarray[np.uint8_t, ndim=1] shifted_cell_inds
-        cdef np.ndarray[np.int64_t, ndim=1] shifted_file_inds
-        cdef np.ndarray[np.int32_t, ndim=1] neigh_domain
-        shifted_levels = np.full(num_cells, 255, dtype="uint8")
-        shifted_file_inds = np.full(num_cells, -1, dtype="int64")
-        shifted_cell_inds = np.full(num_cells, 8, dtype="uint8")
-        neigh_domain = np.full(num_cells, -1, dtype="int32")
-
-        if self.fill_style == "r":
-            neigh_visitor = FillFileIndicesRNeighbour(self, domain_id)
-            # output: level, file_ind and cell_ind of the neighbouring cells
-            neigh_visitor.shifted_levels = shifted_levels
-            neigh_visitor.shifted_file_inds = shifted_file_inds
-            neigh_visitor.shifted_cell_inds = shifted_cell_inds
-            neigh_visitor.neigh_domain = neigh_domain
-            # direction to explore and extra parameters of the visitor
-            neigh_visitor.idim = idim
-            neigh_visitor.direction = direction
-            neigh_visitor.octree = self
-            neigh_visitor.last = -1
-        elif self.fill_style == "o":
-            raise NotImplementedError('C-style filling with spatial offset has not been implemented.')
-        else:
-            raise RuntimeError
-        self.visit_all_octs(selector, neigh_visitor)
-        return shifted_levels, shifted_cell_inds, shifted_file_inds, neigh_domain
-
     def file_index_octs(self, SelectorObject selector, int domain_id,
                         num_cells = -1, spatial_offset=(0, 0, 0)):
 
@@ -142,20 +95,63 @@ cdef class RAMSESOctreeContainer(SparseOctreeContainer):
                    np.uint8_t[:] cell_inds,
                    np.int64_t[:] file_inds,
                    np.int64_t[:] domains,
-                   dest_fields, source_fields,
-                   np.int64_t domain,
+                   dict dest_fields, dict source_fields,
+                   np.int32_t domain,
                    np.int64_t offset = 0
                    ):
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef int i
+        cdef np.float64_t tmp
+        cdef int i, count
         cdef str key
         for key in dest_fields:
             dest = dest_fields[key]
             source = source_fields[key]
+            count = 0
             for i in range(levels.shape[0]):
                 if levels[i] != level or domains[i] != domain: continue
+                count += 1
                 if file_inds[i] < 0:
                     dest[i + offset] = np.nan
                 else:
-                    dest[i + offset] = source[file_inds[i], cell_inds[i]]
+                    # print(f'\t{i}: Accessing source {file_inds[i]}:{cell_inds[i]} source.shape=({source.shape[0]},{source.shape[1]})')
+                    tmp =source[file_inds[i], cell_inds[i]]
+                    dest[i + offset] = tmp # source[file_inds[i], cell_inds[i]]
+        return count
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def file_index_octs_with_shift(
+            self, SelectorObject selector, int domain_id,
+            int num_cells = -1):
+        cdef np.int64_t i
+        cdef int num_octs
+        if num_cells < 0:
+            num_octs = selector.count_octs(self, domain_id)
+            num_cells = num_octs * 4**3
+        cdef NeighbourCellVisitor visitor
+
+        cdef np.ndarray[np.uint8_t, ndim=1] shifted_levels
+        cdef np.ndarray[np.uint8_t, ndim=1] shifted_cell_inds
+        cdef np.ndarray[np.int64_t, ndim=1] shifted_file_inds
+        cdef np.ndarray[np.int32_t, ndim=1] neigh_domain
+        shifted_levels = np.full(num_cells, 255, dtype="uint8")
+        shifted_file_inds = np.full(num_cells, -1, dtype="int64")
+        shifted_cell_inds = np.full(num_cells, 8, dtype="uint8")
+        neigh_domain = np.full(num_cells, -1, dtype="int32")
+
+        visitor = NeighbourCellVisitor(self, -1)
+        # output: level, file_ind and cell_ind of the neighbouring cells
+        visitor.shifted_levels = shifted_levels
+        visitor.shifted_file_inds = shifted_file_inds
+        visitor.shifted_cell_inds = shifted_cell_inds
+        visitor.neigh_domain = neigh_domain
+        # direction to explore and extra parameters of the visitor
+        visitor.octree = self
+        visitor.last = -1
+
+        # Compute indices
+        self.visit_all_octs(selector, visitor)
+
+        return shifted_levels, shifted_cell_inds, shifted_file_inds, neigh_domain
