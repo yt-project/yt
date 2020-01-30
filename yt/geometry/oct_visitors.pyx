@@ -467,8 +467,8 @@ cdef class FillFileIndicesRNeighbour(BaseNeighbourVisitor):
         # Note: only selected items have an index
         self.get_neighbour_cell_index(o, selected)
         if not self.other_oct:
-            neigh_domain   = 0
-            neigh_file_ind = o.domain
+            neigh_domain   = o.domain
+            neigh_file_ind = o.file_ind
             neigh_cell_ind = self.neighbour_rind()
         elif self.neighbour != NULL:
             neigh_domain   = self.neighbour.domain
