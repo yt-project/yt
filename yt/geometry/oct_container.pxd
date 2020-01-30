@@ -88,6 +88,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
     cdef void key_to_ipos(self, np.int64_t key, np.int64_t pos[3])
     cdef np.int64_t ipos_to_key(self, int pos[3]) nogil
 
+cdef class RAMSESOctreeContainer(OctreeContainer):
+    pass
 
 cdef extern from "tsearch.h" nogil:
     void *tsearch(const void *key, void **rootp,

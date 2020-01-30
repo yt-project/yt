@@ -10,10 +10,10 @@ Oct container
 cimport cython
 cimport numpy as np
 import numpy as np
-from selection_routines cimport SelectorObject
+from selection_routines cimport SelectorObject, AlwaysSelector
 from libc.math cimport floor, ceil
-cimport selection_routines
-from yt.geometry.oct_visitors cimport OctPadded
+from yt.geometry.oct_visitors cimport OctPadded, NeighbourCellVisitor, StoreIndex, NeighbourVisitor
+
 
 ORDER_MAX = 20
 _ORDER_MAX = ORDER_MAX
@@ -76,7 +76,7 @@ cdef class OctreeContainer:
                 header['right_edge'], over_refine = header['over_refine'],
                 partial_coverage = header['partial_coverage'])
         # NOTE: We do not allow domain/file indices to be specified.
-        cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
+        cdef SelectorObject selector = AlwaysSelector(None)
         cdef oct_visitors.LoadOctree visitor
         visitor = oct_visitors.LoadOctree(obj, -1)
         cdef int i, j, k, n
@@ -471,7 +471,7 @@ cdef class OctreeContainer:
                       right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]),
                       over_refine = self.oref,
                       partial_coverage = self.partial_coverage)
-        cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
+        cdef SelectorObject selector = AlwaysSelector(None)
         # domain_id = -1 here, because we want *every* oct
         cdef oct_visitors.StoreOctree visitor
         visitor = oct_visitors.StoreOctree(self, -1)
@@ -743,8 +743,155 @@ cdef class OctreeContainer:
                 else:
                     dest[i + offset] = source[file_inds[i], cell_inds[i]]
 
+    def fill_index(self, SelectorObject selector = AlwaysSelector(None)):
+        """Get the on-file index of each cell"""
+        cdef StoreIndex visitor
+
+        cdef np.int64_t[:, :, :, :] cell_inds,
+
+        cell_inds = np.full((self.nocts, 2, 2, 2), -1, dtype=np.int64)
+
+        visitor = StoreIndex(self, -1)
+        visitor.cell_inds = cell_inds
+
+        self.visit_all_octs(selector, visitor)
+
+        return np.asarray(cell_inds)
+
+    def neighbours_in_direction(self, int idim, int direction,
+                                np.int64_t[:, :, :, :] cell_inds):
+        """Return index on file of all neighbours in a given direction"""
+        cdef SelectorObject always_selector = AlwaysSelector(None)
+
+        # Store the index of the neighbour
+        cdef NeighbourVisitor n_visitor
+        cdef np.ndarray[np.int64_t, ndim=4] neigh_cell_inds = np.full_like(cell_inds, -1)
+        n_visitor = NeighbourVisitor(self, -1)
+        n_visitor.idim = idim
+        n_visitor.direction = direction
+        n_visitor.cell_inds = cell_inds
+        n_visitor.neigh_cell_inds = neigh_cell_inds
+        n_visitor.octree = self
+        n_visitor.last = -1
+        self.visit_all_octs(always_selector, n_visitor)
+
+        return np.asarray(neigh_cell_inds)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    def copy_neighbour_data(self,
+                            np.int64_t[:] icell, np.int64_t[:] nicell,
+                            np.float64_t[:, :] input, np.float64_t[:, :] output,
+                            int N):
+        """Copy data from neighbouring cell into current one"""
+        cdef int i
+
+        for i in range(N):
+            if nicell[i] > -1 and icell[i] > -1:
+                output[icell[i], :] = input[nicell[i], :]
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def fill_level_with_domain(
+                   self, int level,
+                   np.uint8_t[:] levels,
+                   np.uint8_t[:] cell_inds,
+                   np.int64_t[:] file_inds,
+                   np.int32_t[:] domains,
+                   dict dest_fields, dict source_fields,
+                   np.int32_t domain,
+                   np.int64_t offset = 0
+                   ):
+        """Similar to fill_level but accepts a domain argument.
+        
+        This is particularly useful for frontends that have buffer zones at CPU boundaries.
+        These buffer oct cells have a different domain than the local one and
+        are usually not read, but one has to read them e.g. to compute ghost zones.
+        """
+        cdef np.ndarray[np.float64_t, ndim=2] source
+        cdef np.ndarray[np.float64_t, ndim=1] dest
+        cdef int i, count
+
+        for key in dest_fields:
+            dest = dest_fields[key]
+            source = source_fields[key]
+            count = 0
+            for i in range(levels.shape[0]):
+                if levels[i] != level or domains[i] != domain: continue
+                count += 1
+                if file_inds[i] < 0:
+                    dest[i + offset] = np.nan
+                else:
+                    dest[i + offset] = source[file_inds[i], cell_inds[i]]
+        return count
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def file_index_octs_with_ghost_zones(
+            self, SelectorObject selector, int domain_id,
+            int num_cells = -1):
+        """Similar as file_index_octs, but return as well the level, cell index, 
+        file index and domain of the neighbouring cells.
+
+        Arguments
+        ---------
+        selector : SelectorObject
+            The selector object. It is expected to select all cells for a selected oct.
+        domain_id : int
+            The domain to select. Set to -1 to select all domains.
+        num_cells : int, optional
+            The total number of cells (accounting for the ghost zones)
+
+        Returns
+        -------
+        shifted
+
+        +---+---+---+---+
+        |   |   |   |   |
+        |---+---+---+---|
+        |   | x | x |   |
+        |---+---+---+---|
+        |   | x | x |   |
+        |---+---+---+---|
+        |   |   |   |   |
+        +---+---+---+---+
+
+        """
+        cdef np.int64_t i
+        cdef int num_octs
+        if num_cells < 0:
+            num_octs = selector.count_octs(self, domain_id)
+            num_cells = num_octs * 4**3
+        cdef NeighbourCellVisitor visitor
+
+        cdef np.ndarray[np.uint8_t, ndim=1] levels
+        cdef np.ndarray[np.uint8_t, ndim=1] cell_inds
+        cdef np.ndarray[np.int64_t, ndim=1] file_inds
+        cdef np.ndarray[np.int32_t, ndim=1] domains
+        levels = np.full(num_cells, 255, dtype="uint8")
+        file_inds = np.full(num_cells, -1, dtype="int64")
+        cell_inds = np.full(num_cells, 8, dtype="uint8")
+        domains = np.full(num_cells, -1, dtype="int32")
+
+        visitor = NeighbourCellVisitor(self, -1)
+        # output: level, file_ind and cell_ind of the neighbouring cells
+        visitor.levels = levels
+        visitor.file_inds = file_inds
+        visitor.cell_inds = cell_inds
+        visitor.domains = domains
+        # direction to explore and extra parameters of the visitor
+        visitor.octree = self
+        visitor.last = -1
+
+        # Compute indices
+        self.visit_all_octs(selector, visitor)
+
+        return levels, cell_inds, file_inds, domains
+
     def finalize(self):
-        cdef SelectorObject selector = selection_routines.AlwaysSelector(None)
+        cdef SelectorObject selector = AlwaysSelector(None)
         cdef oct_visitors.AssignDomainInd visitor
         visitor = oct_visitors.AssignDomainInd(self, 1)
         self.visit_all_octs(selector, visitor)
