@@ -17,7 +17,7 @@ import os
 import yt
 import numpy as np
 
-_fields = ("temperature", "density", "velocity_magnitude")
+_fields = ("temperature", "density", "velocity_magnitude", "pressure_gradient_magnitude")
 
 output_00080 = "output_00080/info_00080.txt"
 @requires_ds(output_00080)
