@@ -74,6 +74,8 @@ def read_amr(FortranFile f, dict headers,
                                     count_boundary = 1)
                 if n > 0:
                     max_level = max(ilevel - min_level, max_level)
+                if n != ng:
+                    raise Exception('Expected %s octs, got %s' % (ng, n))
 
     return max_level
 
