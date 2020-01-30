@@ -289,7 +289,7 @@ class FixedResolutionBuffer(object):
         fields : list of strings
             These fields will be pixelized and output.
         """
-        import h5py
+        from yt.utilities.on_demand_imports import _h5py as h5py
         if fields is None: fields = list(self.data.keys())
         output = h5py.File(filename, "a")
         for field in fields:

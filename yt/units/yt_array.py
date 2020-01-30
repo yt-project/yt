@@ -1004,7 +1004,7 @@ class YTArray(np.ndarray):
             arrays are datasets at the top level by default.
 
         """
-        import h5py
+        from yt.utilities.on_demand_imports import _h5py as h5py
         from yt.extern.six.moves import cPickle as pickle
 
         if dataset_name is None:
