@@ -622,7 +622,7 @@ def requires_module(module):
     def ftrue(func):
         @functools.wraps(func)
         def true_wrapper(*args, **kwargs):
-            return func
+            return func(*args, **kwargs)
         return true_wrapper
     try:
         importlib.import_module(module)
