@@ -349,9 +349,15 @@ class RAMSESDomainSubset(OctreeSubset):
             )
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
+        if smoothed:
+            raise NotImplementedError
+
         new_subset = RAMSESDomainSubset(
             self.base_region, self.domain, self.ds, num_ghost_zones=ngz, base_grid=self
         )
+
+        # Cache the fields
+        new_subset.get_data(fields)
 
         return new_subset
 
