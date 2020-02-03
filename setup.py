@@ -1,5 +1,6 @@
 import os
 import multiprocessing
+import platform
 from concurrent.futures import ThreadPoolExecutor as Pool
 import glob
 import sys
@@ -19,11 +20,8 @@ import pkg_resources
 
 
 def _get_cpu_count():
-    try:
-        nthreads = os.cpu_count()
-    except AttributeError:
-        nthreads = multiprocessing.cpu_count()
-    return nthreads
+    if platform.system() != "Windows":
+        return os.cpu_count()
 
 def _compile(
     self, sources, output_dir=None, macros=None, include_dirs=None,
@@ -378,8 +376,11 @@ package manager for your python environment.""" %
     def build_extensions(self):
         self.check_extensions_list(self.extensions)
 
-        with Pool(_get_cpu_count()) as pool:
-            pool.map(self.build_extension, self.extensions)
+        if _get_cpu_count():
+            with Pool(_get_cpu_count()) as pool:
+                pool.map(self.build_extension, self.extensions)
+        else:
+            super().build_extensions()
 
 
 class sdist(_sdist):
