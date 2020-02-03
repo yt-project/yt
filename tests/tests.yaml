@@ -1,3 +1,5 @@
+answer_tests:
+
   local_amrvac_003:
     - yt/frontends/amrvac/tests/test_outputs.py
     
