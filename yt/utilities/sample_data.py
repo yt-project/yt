@@ -22,6 +22,8 @@ from yt.config import ytcfg
 ##   }
 ## }
 
+_extensions_to_strip = (".tgz", ".tar.gz", ".gz")
+
 class Fido:
     r"""
     Container for a pooch object used to fetch remote data that isn't
@@ -48,6 +50,7 @@ class Fido:
     def __getitem__(self, item):
         if item in self._registry:
             return self._registry[item]
-        if item + ".tar.gz" in self._registry:
-            return self._registry[item + ".tar.gz"]
+        for ext in _extensions_to_strip:
+            if item + ext in self._registry:
+                return self._registry[item + ext]
         raise KeyError(item)

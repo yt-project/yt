@@ -11,17 +11,18 @@ from yt.funcs import mylog
 from yt.convenience import load
 from yt.utilities.on_demand_imports import _pooch as pch
 
-def load_sample(name, specific_file=None):
+def load_sample(name=None, specific_file=None):
     """
     Load sample data with yt. Simple wrapper around yt.load to include fetching
     data with pooch.
 
     Parameters
     ----------
-    name : str
+    name : str or None
         The name of the sample data to load. This is generally the name of the
         folder of the dataset. For IsolatedGalaxy, the name would be
-        `IsolatedGalaxy`
+        `IsolatedGalaxy`.  If `None` is supplied, the return vaqlue
+        will be a list of all known datasets (by name).
 
     specific_file : str, optionaal
         optional argument -- the name of the file to load that is located
@@ -33,6 +34,13 @@ def load_sample(name, specific_file=None):
 
     """
     fido = sd.Fido()
+    if name is None:
+        keys = []
+        for key in fido._registry:
+            for ext in sd._extensions_to_strip:
+                if key.endswith(ext): key = key[:-len(ext)]
+            keys.append(key)
+        return keys
 
     base_path = fido.fido.path
     fileext, name, extension = _validate_sampledata_name(name)
