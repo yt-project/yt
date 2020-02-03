@@ -9,6 +9,7 @@ from yt.utilities.answer_testing.framework import \
     PixelizedProjectionValuesTest, \
     FieldValuesTest, \
     create_obj
+from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.config import ytcfg
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
@@ -426,7 +427,6 @@ def test_ramses_empty_record():
 @requires_ds(ramses_new_format)
 @requires_module('f90nml')
 def test_namelist_reading():
-    import f90nml
     ds = data_dir_load(ramses_new_format)
     namelist_fname = os.path.join(ds.directory, 'namelist.txt')
     with open(namelist_fname, 'r') as f:

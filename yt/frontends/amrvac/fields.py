@@ -11,6 +11,7 @@ AMRVAC-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import functools
 import numpy as np
 from yt.fields.field_info_container import \
     FieldInfoContainer
@@ -29,14 +30,45 @@ direction_aliases = {
     "spherical": ("r", "theta", "phi")
 }
 
+def _velocity(field, data, idir, prefix=None):
+    """Velocity = linear momentum / density"""
+    # This is meant to be used with functools.partial to produce
+    # functions with only 2 arguments (field, data)
+    # idir : int
+    #    the direction index (1, 2 or 3)
+    # prefix : str
+    #    used to generalize to dust fields
+    if prefix is None:
+        prefix = ""
+    moment = data["gas", "%smoment_%d" % (prefix, idir)]
+    rho = data["gas", "%sdensity" % prefix]
+
+    mask1 = (rho == 0)
+    if mask1.any():
+        mylog.info("zeros found in %sdensity, patching them to compute corresponding velocity field." % prefix)
+        mask2 = (moment == 0)
+        if not ((mask1 & mask2) == mask1).all():
+            raise RuntimeError
+        rho[mask1] = 1
+    return moment / rho
+
+code_density = "code_mass / code_length**3"
+code_moment = "code_mass / code_length**2 / code_time"
+code_pressure = "code_mass / code_length / code_time**2"
+
+# for now, define a finite family of dust fields (up to 100 species, should be enough)
+MAXN_DUST_SPECIES = 100
+known_dust_fields = [("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
+                     for idust in range(1, MAXN_DUST_SPECIES+1)]
+for idir in (1, 2, 3):
+    known_dust_fields += [("m%dd%d" % (idir, idust), (code_moment, ["dust%d_moment_%d" % (idust, idir)], None))
+                          for idust in range(1, MAXN_DUST_SPECIES+1)]
+
 class AMRVACFieldInfo(FieldInfoContainer):
-    code_density = "code_mass / code_length**3"
-    code_moment = "code_mass / code_length**2 / code_time"
-    code_pressure = "code_mass / code_length / code_time**2"
 
     # format: (native(?) field, (units, [aliases], display_name))
     # note: aliases will correspond to "gas" typed fields, whereas the native ones are "amrvac" typed
-    known_other_fields = (
+    known_other_fields = tuple(list((
         ("rho", (code_density, ["density"], None)),
         ("m1", (code_moment, ["moment_1"], None)),
         ("m2", (code_moment, ["moment_2"], None)),
@@ -45,39 +77,78 @@ class AMRVACFieldInfo(FieldInfoContainer):
         ("b1", ("code_magnetic", ["magnetic_1"], None)),
         ("b2", ("code_magnetic", ["magnetic_2"], None)),
         ("b3", ("code_magnetic", ["magnetic_3"], None))
+        )) + known_dust_fields
+        # in python3, there is no need for this tuple+list conversion, it suffices to write
+        # known_other_fields = (..., *known_dust_fields)
     )
 
     known_particle_fields = ()
 
-    def setup_fluid_fields(self):
-        def _v1(field, data):
-            return data["gas", "moment_1"] / data["gas", "density"]
-        def _v2(field, data):
-            return data["gas", "moment_2"] / data["gas", "density"]
-        def _v3(field, data):
-            return data["gas", "moment_3"] / data["gas", "density"]
+    def _setup_velocity_fields(self, idust=None):
+        if idust is None:
+            dust_flag = dust_label = ""
+        else:
+            dust_flag = "d%d" % idust
+            dust_label = "dust%d_" % idust
 
         us = self.ds.unit_system
-        aliases = direction_aliases[self.ds.geometry]
-        for idir, alias, func in zip("123", aliases, (_v1, _v2, _v3)):
-            if not ("amrvac", "m%s" % idir) in self.field_list:
+        for idir, alias in enumerate(direction_aliases[self.ds.geometry], start=1):
+            if not ("amrvac", "m%d%s" % (idir, dust_flag)) in self.field_list:
                 break
-            self.add_field(("gas", "velocity_%s" % alias), function=func,
-                            units=us['velocity'],
-                            dimensions=dimensions.velocity,
+            velocity_fn = functools.partial(_velocity, idir=idir, prefix=dust_label)
+            functools.update_wrapper(velocity_fn, _velocity)
+            self.add_field(("gas", "%svelocity_%s" % (dust_label, alias)),
+                           function=velocity_fn,
+                           units=us['velocity'],
+                           dimensions=dimensions.velocity,
+                           sampling_type="cell")
+            self.alias(("gas", "%svelocity_%d" % (dust_label, idir)),
+                       ("gas", "%svelocity_%s" % (dust_label, alias)),
+                       units=us["velocity"])
+            self.alias(("gas", "%smoment_%s" % (dust_label, alias)),
+                       ("gas", "%smoment_%d" % (dust_label, idir)),
+                       units=us["density"]*us["velocity"])
+
+    def _setup_dust_fields(self):
+        idust = 1
+        while ("amrvac", "rhod%d" % idust) in self.field_list:
+            if idust > MAXN_DUST_SPECIES:
+                mylog.error("Only the first %d dust species are currently read by yt. " \
+                            "If you read this, please consider issuing a ticket. " % MAXN_DUST_SPECIES)
+                break
+            self._setup_velocity_fields(idust)
+            idust += 1
+        n_dust_found = idust - 1
+
+        us = self.ds.unit_system
+        if n_dust_found > 0:
+            def _total_dust_density(field, data):
+                tot = np.zeros_like(data["density"])
+                for idust in range(1, n_dust_found+1):
+                    tot += data["dust%d_density" % idust]
+                return tot
+
+            self.add_field(("gas", "total_dust_density"), function=_total_dust_density,
+                           dimensions=dimensions.density,
+                           units=us["density"], sampling_type="cell")
+
+            def dust_to_gas_ratio(field, data):
+                return data["total_dust_density"] / data["density"]
+
+            self.add_field(("gas", "dust_to_gas_ratio"), function=dust_to_gas_ratio,
+                            dimensions=dimensions.dimensionless,
                             sampling_type="cell")
-            self.alias(("gas", "velocity_%s" % idir), ("gas", "velocity_%s" % alias),
-                        units=us["velocity"])
-            self.alias(("gas", "moment_%s" % alias), ("gas", "moment_%s" % idir),
-                        units=us["density"]*us["velocity"])
+
+    def setup_fluid_fields(self):
 
         setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
+        self._setup_velocity_fields()  # gas velocities
+        self._setup_dust_fields()  # dust derived fields (including velocities)
 
 
         # fields with nested dependencies are defined thereafter by increasing level of complexity
+        us = self.ds.unit_system
 
-
-        # kinetic pressure is given by 0.5 * rho * v**2
         def _kinetic_energy_density(field, data):
             # devnote : have a look at issue 1301
             return 0.5 * data['gas', 'density'] * data['gas', 'velocity_magnitude']**2
@@ -96,11 +167,13 @@ class AMRVACFieldInfo(FieldInfoContainer):
                     if not ('amrvac', 'b%s' % idim) in self.field_list:
                         break
                     emag += 0.5 * data['gas', 'magnetic_%s' % idim]**2
-                # important note: in AMRVAC the magnetic field is defined in units where mu0 = 1, such that
+                # important note: in AMRVAC the magnetic field is defined in units where mu0 = 1,
+                # such that
                 # Emag = 0.5*B**2 instead of Emag = 0.5*B**2 / mu0
-                # To correctly transform the dimensionality from gauss**2 -> rho*v**2, we have to take mu0 into account.
-                # If we divide here, units when adding the field should be us["density"]*us["velocity"]**2
-                # If not, they should be us["magnetic_field"]**2 and division should happen elsewhere.
+                # To correctly transform the dimensionality from gauss**2 -> rho*v**2, we have to
+                # take mu0 into account. If we divide here, units when adding the field should be
+                # us["density"]*us["velocity"]**2. If not, they should be us["magnetic_field"]**2
+                # and division should happen elsewhere.
                 emag /= 4 * np.pi
                 # divided by mu0 = 4pi in cgs, yt handles 'mks' and 'code' unit systems internally.
                 return emag
