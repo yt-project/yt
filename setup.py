@@ -1,4 +1,6 @@
 import os
+import multiprocessing
+from concurrent.futures import ThreadPoolExecutor as Pool
 import glob
 import sys
 from sys import platform as _platform
@@ -12,8 +14,38 @@ from setupext import \
     read_embree_location, \
     in_conda_env
 from distutils.version import LooseVersion
+from distutils.ccompiler import CCompiler
 import pkg_resources
 
+
+def _get_cpu_count():
+    try:
+        nthreads = os.cpu_count()
+    except AttributeError:
+        nthreads = multiprocessing.cpu_count()
+    return nthreads
+
+def _compile(
+    self, sources, output_dir=None, macros=None, include_dirs=None,
+    debug=0, extra_preargs=None, extra_postargs=None, depends=None,
+):
+    """Function to monkey-patch distutils.ccompiler.CCompiler"""
+    macros, objects, extra_postargs, pp_opts, build = self._setup_compile(
+        output_dir, macros, include_dirs, sources, depends, extra_postargs
+    )
+    cc_args = self._get_cc_args(pp_opts, debug, extra_preargs)
+
+    for obj in objects:
+        try:
+            src, ext = build[obj]
+        except KeyError:
+            continue
+        self._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
+
+    # Return *all* object filenames, not just the ones we just built.
+    return objects
+
+CCompiler.compile = _compile
 
 if sys.version_info < (3, 5):
     print("yt currently supports versions newer than Python 3.5")
@@ -328,7 +360,9 @@ package manager for your python environment.""" %
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
             self.distribution.ext_modules,
-            compiler_directives={'language_level': 2})
+            compiler_directives={'language_level': 2},
+            nthreads=_get_cpu_count(),
+        )
         _build_ext.finalize_options(self)
         # Prevent numpy from thinking it is still in its setup process
         # see http://stackoverflow.com/a/21621493/1382869
@@ -341,6 +375,13 @@ package manager for your python environment.""" %
         import numpy
         self.include_dirs.append(numpy.get_include())
 
+    def build_extensions(self):
+        self.check_extensions_list(self.extensions)
+
+        with Pool(_get_cpu_count()) as pool:
+            pool.map(self.build_extension, self.extensions)
+
+
 class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython
     # generated C files are included in source distribution.
@@ -351,6 +392,7 @@ class sdist(_sdist):
         cythonize(
             cython_extensions,
             compiler_directives={'language_level': 2},
+            nthreads=_get_cpu_count(),
         )
         _sdist.run(self)
 
