@@ -43,7 +43,7 @@ def ray_step(SparseOctreeContainer octree, Ray r):
         o[i] = 0  # origin
         d[i] = 0  # direction
     
-    ii = 4
+    ii = 1
     for i in range(3):
         if r.direction[i] < 0:
             o[i] = octree.DRE[i] - r.origin[i]
@@ -52,7 +52,7 @@ def ray_step(SparseOctreeContainer octree, Ray r):
         else:
             o[i] = r.origin[i]
             d[i] = max(1e-99, r.direction[i])
-        ii >>= 1
+        ii <<= 1
 
     print('a=%s' % a)
     # Compute interesections with all 6 planes of node
@@ -68,9 +68,13 @@ def ray_step(SparseOctreeContainer octree, Ray r):
 
     rr = r.at(tmin)
     # TODO: call for all roots
+    ii = 1
     for i in range(3):
         dds[i] = (octree.DRE[i] - octree.DLE[i])/octree.nn[i]
         ind[i] = <int> (floor((rr[i] - octree.DLE[i])/dds[i]))
+        if a & ii:
+            ind[i] = octree.nn[i] - ind[i]
+        ii <<= 1
     octree.get_root(ind, &oct)
 
     if oct == NULL:
@@ -177,6 +181,8 @@ cdef inline np.uint8_t next_Node(np.uint8_t currNode,
 cdef inline bool isLeaf(const Oct *o):
     return o.children == NULL
 
+# TODO: support negative directions
+# TODO: support ray length
 cdef void proc_subtree(
         np.float64_t tx0, np.float64_t ty0, np.float64_t tz0,
         np.float64_t tx1, np.float64_t ty1, np.float64_t tz1,
