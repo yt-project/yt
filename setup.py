@@ -254,6 +254,10 @@ cython_extensions = [
     Extension("yt.utilities.cython_fortran_utils",
               ["yt/utilities/cython_fortran_utils.pyx"],
               libraries=std_libs),
+    Extension("yt.utilities.lib.octree_raytracing",
+              ["yt/utilities/lib/octree_raytracing.pyx"],
+              language='c++',
+              libraries=std_libs),
 ]
 
 lib_exts = [
