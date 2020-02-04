@@ -178,8 +178,8 @@ cdef inline np.uint8_t next_Node(np.uint8_t currNode,
         else:
             return currNode + 4
 
-cdef inline bool isLeaf(const Oct *o):
-    return o.children == NULL
+cdef inline bool isLeaf(const Oct *o, np.uint8_t currNode):
+    return (o.children == NULL) or (o.children[currNode] == NULL)
 
 # TODO: support negative directions
 # TODO: support ray length
@@ -194,8 +194,6 @@ cdef void proc_subtree(
     if tx1 < 0 or ty1 < 0 or tz1 < 0:
         return
 
-    leaf = isLeaf(oct)
-
     # Compute midpoints
     txM = (tx0 + tx1) / 2.
     tyM = (ty0 + ty1) / 2.
@@ -209,6 +207,7 @@ cdef void proc_subtree(
     # print('%s[%s]@lvl=%s' % ('\t'*level, oct.domain_ind, currNode, level))
 
     while True:
+        leaf = isLeaf(oct, currNode^a)
         # print('%scurrNode=%s' %('\t'*level, currNode))
         # print('%scurrNode=%s %s %.2f %.2f %.2f %.2f %.2f %.2f' % ('\t'*level, currNode, a, txM, tyM, tzM, tx1, ty1, tz1))
 
