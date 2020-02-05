@@ -219,15 +219,15 @@ cdef np.uint8_t find_firstNode(
         if tyM < tx0:
             first_node |= 0b010
         if tzM < tx0:
-            first_node |= 0b100
+            first_node |= 0b001
     elif tmax == ty0:  # XZ plane
         if txM < ty0:
-            first_node |= 0b001
-        if tzM < ty0:
             first_node |= 0b100
+        if tzM < ty0:
+            first_node |= 0b001
     elif tmax == tz0:  # XY plane
         if txM < tz0:
-            first_node |= 0b001
+            first_node |= 0b100
         if tyM < tz0:
             first_node |= 0b010
 
