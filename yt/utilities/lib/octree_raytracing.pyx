@@ -79,6 +79,37 @@ cdef class Uint64VectorHolder:
     def __releasebuffer__(self, Py_buffer *buffer):
         pass
 
+cdef class Float64VectorHolder:
+    # See https://cython.readthedocs.io/en/latest/src/userguide/buffer.html#a-matrix-class
+    cdef vector[np.float64_t] v
+    cdef Py_ssize_t shape[1]
+    cdef Py_ssize_t strides[1]
+    def __getbuffer__(self, Py_buffer *buffer, int flags):
+        cdef Py_ssize_t itemsize = sizeof(self.v[0])
+
+        self.shape[0] = self.v.size()
+
+        # Stride 1 is the distance, in bytes, between two items in a row;
+        # this is the distance between two adjacent items in the vector.
+        # Stride 0 is the distance between the first elements of adjacent rows.
+        self.strides[0] = <Py_ssize_t>(  <char *>&(self.v[1])
+                                       - <char *>&(self.v[0]))
+
+        buffer.buf = <char *>&(self.v[0])
+        buffer.format = 'd'                     # float
+        buffer.internal = NULL                  # see References
+        buffer.itemsize = itemsize
+        buffer.len = self.v.size() * itemsize   # product(shape) * itemsize
+        buffer.ndim = 1
+        buffer.obj = self
+        buffer.readonly = 0
+        buffer.shape = self.shape
+        buffer.strides = self.strides
+        buffer.suboffsets = NULL
+
+    def __releasebuffer__(self, Py_buffer *buffer):
+        pass
+
 cdef class Ray(object):
     def __init__(self, np.ndarray origin, np.ndarray direction, np.float64_t length):
         self.origin = np.asarray(origin)
@@ -152,10 +183,11 @@ def ray_step(SparseOctreeContainer octree, Ray r):
     # Hits, so process subtree
     cdef Uint64VectorHolder octList = Uint64VectorHolder()
     cdef Uint8VectorHolder cellList = Uint8VectorHolder()
+    cdef Float64VectorHolder tList = Float64VectorHolder()
 
     if (tmin < tmax) and (tmax > 0):
-        proc_subtree(tx0, ty0, tz0, tx1, ty1, tz1, oct, a, octList.v, cellList.v)
-    return np.asarray(octList), np.asarray(cellList)
+        proc_subtree(tx0, ty0, tz0, tx1, ty1, tz1, oct, a, octList.v, cellList.v, tList.v)
+    return np.asarray(octList), np.asarray(cellList), np.asarray(tList)
 
 cdef np.uint8_t YZ = 0
 cdef np.uint8_t XZ = 1
@@ -232,7 +264,8 @@ cdef inline bool isLeaf(const Oct *o, np.uint8_t currNode):
 cdef void proc_subtree(
         const np.float64_t tx0, const np.float64_t ty0, const np.float64_t tz0,
         const np.float64_t tx1, const np.float64_t ty1, const np.float64_t tz1,
-        const Oct* oct, const int a, vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, int level=0):
+        const Oct* oct, const int a, vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList, 
+        int level=0):
     cdef np.uint8_t currNode
     cdef np.float64_t txM, tyM, tzM
     cdef np.uint8_t entry_plane, exit_plane
@@ -255,30 +288,31 @@ cdef void proc_subtree(
         if leaf:
             octList.push_back(oct.domain_ind)
             cellList.push_back(currNode^a)
+            tList.push_back(max(tx0,ty0,tz0))  # not correct !
 
         if currNode == 0:
-            if not leaf: proc_subtree(tx0, ty0, tz0, txM, tyM, tzM, oct.children[  a], a, octList, cellList, level+1)
+            if not leaf: proc_subtree(tx0, ty0, tz0, txM, tyM, tzM, oct.children[  a], a, octList, cellList, tList, level+1)
             currNode = next_node(currNode, txM, tyM, tzM)
         elif currNode == 1:
-            if not leaf: proc_subtree(tx0, ty0, tzM, txM, tyM, tz1, oct.children[1^a], a, octList, cellList, level+1)
+            if not leaf: proc_subtree(tx0, ty0, tzM, txM, tyM, tz1, oct.children[1^a], a, octList, cellList, tList, level+1)
             currNode = next_node(currNode, txM, tyM, tz1)
         elif currNode == 2:
-            if not leaf: proc_subtree(tx0, tyM, tz0, txM, ty1, tzM, oct.children[2^a], a, octList, cellList, level+1)
+            if not leaf: proc_subtree(tx0, tyM, tz0, txM, ty1, tzM, oct.children[2^a], a, octList, cellList, tList, level+1)
             currNode = next_node(currNode, txM, ty1, tzM)
         elif currNode == 3:
-            if not leaf: proc_subtree(tx0, tyM, tzM, txM, ty1, tz1, oct.children[3^a], a, octList, cellList, level+1)
+            if not leaf: proc_subtree(tx0, tyM, tzM, txM, ty1, tz1, oct.children[3^a], a, octList, cellList, tList, level+1)
             currNode = next_node(currNode, txM, ty1, tz1)
         elif currNode == 4:
-            if not leaf: proc_subtree(txM, ty0, tz0, tx1, tyM, tzM, oct.children[4^a], a, octList, cellList, level+1)
+            if not leaf: proc_subtree(txM, ty0, tz0, tx1, tyM, tzM, oct.children[4^a], a, octList, cellList, tList, level+1)
             currNode = next_node(currNode, tx1, tyM, tzM)
         elif currNode == 5:
-            if not leaf: proc_subtree(txM, ty0, tzM, tx1, tyM, tz1, oct.children[5^a], a, octList, cellList, level+1)
+            if not leaf: proc_subtree(txM, ty0, tzM, tx1, tyM, tz1, oct.children[5^a], a, octList, cellList, tList, level+1)
             currNode = next_node(currNode, tx1, tyM, tz1)
         elif currNode == 6:
-            if not leaf: proc_subtree(txM, tyM, tz0, tx1, ty1, tzM, oct.children[6^a], a, octList, cellList, level+1)
+            if not leaf: proc_subtree(txM, tyM, tz0, tx1, ty1, tzM, oct.children[6^a], a, octList, cellList, tList, level+1)
             currNode = next_node(currNode, tx1, ty1, tzM)
         elif currNode == 7:
-            if not leaf: proc_subtree(txM, tyM, tzM, tx1, ty1, tz1, oct.children[7  ], a, octList, cellList, level+1)
+            if not leaf: proc_subtree(txM, tyM, tzM, tx1, ty1, tz1, oct.children[7  ], a, octList, cellList, tList, level+1)
             currNode = 8
 
         # Break when hitting 8'th node
