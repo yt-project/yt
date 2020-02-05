@@ -105,8 +105,7 @@ def ray_step(SparseOctreeContainer octree, Ray r):
     cdef Oct *oct
     cdef int i
     cdef int ind[3]
-    cdef np.float64_t dds[3], 
-    cdef list octList, cellList
+    cdef np.float64_t dds[3]
     oct = NULL
 
     for i in range(3):
@@ -180,74 +179,50 @@ cdef np.uint8_t find_firstNode(
 
     cdef np.float64_t tmax
     cdef np.uint8_t entry_plane
-    # Find entry plane
-    tmax = max(tx0, ty0, tz0)
-    if tmax == tx0:
-        entry_plane = YZ
-    elif tmax == ty0:
-        entry_plane = XZ
-    elif tmax == tz0:
-        entry_plane = XY
     cdef np.uint8_t first_node
-
-    # Now find first node
     first_node = 0
-    if entry_plane == XY:
-        if txM < tz0:
-            first_node |= 0b001
-        if tyM < tz0:
-            first_node |= 0b010
-    elif entry_plane == YZ:
+
+    tmax = max(tx0, ty0, tz0)
+    if tmax == tx0:    # YZ plane
         if tyM < tx0:
             first_node |= 0b010
         if tzM < tx0:
             first_node |= 0b100
-    elif entry_plane == XZ:
+    elif tmax == ty0:  # XZ plane
         if txM < ty0:
             first_node |= 0b001
         if tzM < ty0:
             first_node |= 0b100
+    elif tmax == tz0:  # XY plane
+        if txM < tz0:
+            first_node |= 0b001
+        if tyM < tz0:
+            first_node |= 0b010
+
     return first_node
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline np.uint8_t next_Node(np.uint8_t currNode,
-        np.float64_t txM, np.float64_t tyM, np.float64_t tzM,
+cdef inline np.uint8_t next_node(np.uint8_t currNode,
         np.float64_t tx1, np.float64_t ty1, np.float64_t tz1):
-    cdef np.float64_t tmin, tx, ty, tz
+    cdef np.float64_t tmin
+    tmin = min(tx1, ty1, tz1)
 
-    if currNode & 0b001:
-        tx = tx1
-    else:
-        tx = txM
-
-    if currNode & 0b010:
-        ty = ty1
-    else:
-        ty = tyM
-
-    if currNode & 0b100:
-        tz = tz1
-    else:
-        tz = tzM
-
-    tmin = min(tx, ty, tz)
-
-    if tmin == tx:    # Next node in x direction
-        if currNode & 0b001:
-            return 8
-        else:
-            return currNode + 1
-    elif tmin == ty:  # Next node in y direction
-        if currNode & 0b010:
-            return 8
-        else:
-            return currNode + 2
-    else:             # Next node in z direction
+    if tmin == tx1:    # YZ plane, increase x
         if currNode & 0b100:
             return 8
         else:
             return currNode + 4
+    elif tmin == ty1:  # XZ plane, increase y
+        if currNode & 0b010:
+            return 8
+        else:
+            return currNode + 2
+    else:             # XY plane, increase z
+        if currNode & 0b001:
+            return 8
+        else:
+            return currNode + 1
 
 cdef inline bool isLeaf(const Oct *o, np.uint8_t currNode):
     return (o.children == NULL) or (o.children[currNode] == NULL)
@@ -270,40 +245,41 @@ cdef void proc_subtree(
     tyM = (ty0 + ty1) / 2.
     tzM = (tz0 + tz1) / 2.
 
-    # Compute entry/exit planes
-    # entry_plane = find_entry_plane(tx0, ty0, tz0)
-
     currNode = find_firstNode(tx0, ty0, tz0, txM, tyM, tzM)
-
-    # print('%s[%s]@lvl=%s' % ('\t'*level, oct.domain_ind, currNode, level))
 
     while True:
         leaf = isLeaf(oct, currNode^a)
         # print('%scurrNode=%s' %('\t'*level, currNode))
-        # print('%scurrNode=%s %s %.2f %.2f %.2f %.2f %.2f %.2f' % ('\t'*level, currNode, a, txM, tyM, tzM, tx1, ty1, tz1))
+        print('%scurrNode=%s %s (%.2f %.2f %.2f) (%.2f %.2f %.2f)' % ('\t'*level, currNode, a, txM, tyM, tzM, tx1, ty1, tz1))
 
         if leaf:
-            octList.append(oct.domain_ind)
-            cellList.append(currNode^a)
-        else:
-            if currNode == 0:
-                proc_subtree(tx0, ty0, tz0, txM, tyM, tzM, oct.children[a], a, octList, cellList, level+1)
-            elif currNode == 1:
-                proc_subtree(txM, ty0, tz0, tx1, tyM, tzM, oct.children[4^a], a, octList, cellList, level+1)
-            elif currNode == 2:
-                proc_subtree(tx0, tyM, tz0, txM, ty1, tzM, oct.children[2^a], a, octList, cellList, level+1)
-            elif currNode == 3:
-                proc_subtree(txM, tyM, tz0, tx1, ty1, tzM, oct.children[6^a], a, octList, cellList, level+1)
-            elif currNode == 4:
-                proc_subtree(tx0, ty0, tzM, txM, tyM, tz1, oct.children[1^a], a, octList, cellList, level+1)
-            elif currNode == 5:
-                proc_subtree(txM, ty0, tzM, tx1, tyM, tz1, oct.children[5^a], a, octList, cellList, level+1)
-            elif currNode == 6:
-                proc_subtree(tx0, tyM, tzM, txM, ty1, tz1, oct.children[3^a], a, octList, cellList, level+1)
-            elif currNode == 7:
-                proc_subtree(txM, tyM, tzM, tx1, ty1, tz1, oct.children[7], a, octList, cellList, level+1)
-            
-        currNode = next_Node(currNode, txM, tyM, tzM, tx1, ty1, tz1)
+            octList.push_back(oct.domain_ind)
+            cellList.push_back(currNode^a)
+
+        if currNode == 0:
+            if not leaf: proc_subtree(tx0, ty0, tz0, txM, tyM, tzM, oct.children[  a], a, octList, cellList, level+1)
+            currNode = next_node(currNode, txM, tyM, tzM)
+        elif currNode == 1:
+            if not leaf: proc_subtree(tx0, ty0, tzM, txM, tyM, tz1, oct.children[1^a], a, octList, cellList, level+1)
+            currNode = next_node(currNode, txM, tyM, tz1)
+        elif currNode == 2:
+            if not leaf: proc_subtree(tx0, tyM, tz0, txM, ty1, tzM, oct.children[2^a], a, octList, cellList, level+1)
+            currNode = next_node(currNode, txM, ty1, tzM)
+        elif currNode == 3:
+            if not leaf: proc_subtree(tx0, tyM, tzM, txM, ty1, tz1, oct.children[3^a], a, octList, cellList, level+1)
+            currNode = next_node(currNode, txM, ty1, tz1)
+        elif currNode == 4:
+            if not leaf: proc_subtree(txM, ty0, tz0, tx1, tyM, tzM, oct.children[4^a], a, octList, cellList, level+1)
+            currNode = next_node(currNode, tx1, tyM, tzM)
+        elif currNode == 5:
+            if not leaf: proc_subtree(txM, ty0, tzM, tx1, tyM, tz1, oct.children[5^a], a, octList, cellList, level+1)
+            currNode = next_node(currNode, tx1, tyM, tz1)
+        elif currNode == 6:
+            if not leaf: proc_subtree(txM, tyM, tz0, tx1, ty1, tzM, oct.children[6^a], a, octList, cellList, level+1)
+            currNode = next_node(currNode, tx1, ty1, tzM)
+        elif currNode == 7:
+            if not leaf: proc_subtree(txM, tyM, tzM, tx1, ty1, tz1, oct.children[7  ], a, octList, cellList, level+1)
+            currNode = 8
 
         # Break when hitting 8'th node
         if currNode == 8:
