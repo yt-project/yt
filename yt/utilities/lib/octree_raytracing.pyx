@@ -178,7 +178,7 @@ def ray_step(SparseOctreeContainer octree, Ray r):
     octree.get_root(ind, &oct)
 
     if oct == NULL:
-        return np.array([], dtype=np.int64), np.array([], dtype=np.int64)
+        return np.array([], dtype=np.int64), np.array([], dtype=np.int64), np.array([], dtype=np.float64)
 
     # Hits, so process subtree
     cdef Uint64VectorHolder octList = Uint64VectorHolder()
