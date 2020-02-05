@@ -187,6 +187,7 @@ def ray_step(SparseOctreeContainer octree, Ray r):
 
     if (tmin < tmax) and (tmax > 0):
         proc_subtree(tx0, ty0, tz0, tx1, ty1, tz1, oct, a, octList.v, cellList.v, tList.v)
+
     return np.asarray(octList), np.asarray(cellList), np.asarray(tList)
 
 cdef np.uint8_t YZ = 0
@@ -259,6 +260,10 @@ cdef inline np.uint8_t next_node(np.uint8_t currNode,
 cdef inline bool isLeaf(const Oct *o, np.uint8_t currNode):
     return (o.children == NULL) or (o.children[currNode] == NULL)
 
+cdef inline np.uint8_t swap3bits(const np.uint8_t lev):
+    # Swap little-endian to big-endian (C to F ordering)
+    return ((lev & 0b100) >> 2) + (lev & 0b010) + ((lev & 0b001) << 2)
+
 # TODO: support negative directions
 # TODO: support ray length
 cdef void proc_subtree(
@@ -287,7 +292,8 @@ cdef void proc_subtree(
 
         if leaf:
             octList.push_back(oct.domain_ind)
-            cellList.push_back(currNode^a)
+            # Need to swap bits before storing as octree is C-style in memory and F-style on file
+            cellList.push_back(swap3bits(currNode^a))
 
         if currNode == 0:
             if not leaf: proc_subtree(tx0, ty0, tz0, txM, tyM, tzM, oct.children[  a], a, octList, cellList, tList, level+1)
