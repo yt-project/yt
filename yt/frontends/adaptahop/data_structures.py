@@ -59,7 +59,10 @@ class AdaptaHOPDataset(Dataset):
                  ):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
+        if parent_ds is None:
+            raise RuntimeError('The AdaptaHOP frontend requires a parent dataset to be passed as `parent_ds`.')
         self.parent_ds = parent_ds
+
         super(AdaptaHOPDataset, self).__init__(filename, dataset_type,
                                               units_override=units_override,
                                               unit_system=unit_system)
@@ -93,12 +96,11 @@ class AdaptaHOPDataset(Dataset):
         self.particle_types = ("halos")
         self.particle_types_raw = ("halos")
 
-        # Inherit stuff from parent ds
-        if not self.parent_ds:
-            raise Exception
-
+        # Inherit stuff from parent ds -- if they exist
         for k in ('omega_lambda', 'hubble_constant', 'omega_matter', 'omega_radiation'):
-            setattr(self, k, getattr(self.parent_ds, k))
+            v = getattr(self.parent_ds, k, None)
+            if v is not None:
+                setattr(self, k, v)
 
         self.domain_left_edge = np.array([0., 0., 0.])
         self.domain_right_edge = self.parent_ds.domain_right_edge.to('Mpc').value * \
@@ -108,7 +110,7 @@ class AdaptaHOPDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        dirname, fname = os.path.split(args[0])
+        fname = os.path.split(args[0])[1]
         if not fname.startswith('tree_bricks') or not re.match('^tree_bricks\d{3}$', fname):
             return False
         return True
@@ -116,8 +118,17 @@ class AdaptaHOPDataset(Dataset):
     def halo(self, halo_id, ptype='DM'):
         """
         Create a data container to get member particles and individual
-        values from halos. Halo properties are set as attributes.
-        Halo IDs are accessible through the field, "member_ids".
+        values from halos. Halo mass, position, and velocity are set as attributes.
+        Halo IDs are accessible through the field, "member_ids".  Other fields that
+        are one value per halo are accessible as normal.  The field list for
+        halo objects can be seen in `ds.halos_field_list`.
+
+        Parameters
+        ----------
+        halo_id : int
+            The id of the halo or group
+        ptype : str, default DM
+            The type of particles the halo is made of.
         """
         return AdaptaHOPHaloContainer(
             ptype, halo_id, parent_ds=self.parent_ds, halo_ds=self)
@@ -257,12 +268,14 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         members = self.member_ids
         ok = False
         f = 1/1.1
+        center = parent_ds.arr(halo_pos, 'Mpc')
+        radius = parent_ds.arr(halo_radius, 'Mpc')
         # Find smallest sphere containing all particles
         while not ok:
             f *= 1.1
             sph = parent_ds.sphere(
-                parent_ds.arr(halo_pos, 'Mpc'),
-                parent_ds.arr(f * halo_radius, 'Mpc'))
+                center,
+                f*radius)
 
             part_ids = sph[ptype, 'particle_identity'].astype(int)
 

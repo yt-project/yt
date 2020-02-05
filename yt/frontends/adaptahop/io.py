@@ -200,7 +200,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                         halo_id = fpu.read_int()
                         offset_map[ihalo, 0] = halo_id
                         offset_map[ihalo, 1] = ipos
-        data = self.ds.arr(data, "code_length") + self.ds.domain_width / 2  # FIXME
+        data = self.ds.arr(data, "code_length") + self.ds.domain_width / 2
 
         # Make sure halos are loaded in increasing halo_id order
         assert np.all(np.diff(offset_map[:, 0]) > 0)
