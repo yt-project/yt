@@ -1,5 +1,4 @@
 import os
-import multiprocessing
 import platform
 from concurrent.futures import ThreadPoolExecutor as Pool
 import glob
@@ -22,6 +21,8 @@ import pkg_resources
 def _get_cpu_count():
     if platform.system() != "Windows":
         return os.cpu_count()
+    return 0
+
 
 def _compile(
     self, sources, output_dir=None, macros=None, include_dirs=None,
@@ -376,8 +377,9 @@ package manager for your python environment.""" %
     def build_extensions(self):
         self.check_extensions_list(self.extensions)
 
-        if _get_cpu_count():
-            with Pool(_get_cpu_count()) as pool:
+        ncpus = _get_cpu_count()
+        if ncpus > 0:
+            with Pool(ncpus) as pool:
                 pool.map(self.build_extension, self.extensions)
         else:
             super().build_extensions()
