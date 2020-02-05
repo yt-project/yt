@@ -281,7 +281,7 @@ class FITSImageData:
                 hdu.header["time"] = float(self.current_time.value)
                 if hasattr(self, "redshift"):
                     hdu.header["HUBBLE"] = self.hubble_constant
-                    hdu.header["REDSHIFT"] = self.redshift
+                    hdu.header["REDSHIFT"] = self.current_redshift
                 self.hdulist.append(hdu)
 
         self.dimensionality = len(self.shape)
@@ -354,7 +354,7 @@ class FITSImageData:
         if ds is not None:
             if getattr(ds, "cosmological_simulation", False):
                 self.hubble_constant = ds.hubble_constant
-                self.redshift = ds.redshift
+                self.current_redshift = ds.current_redshift
         attrs = (
             "length_unit",
             "mass_unit",
@@ -416,7 +416,7 @@ class FITSImageData:
     def _set_units_from_header(self, header):
         if "hubble" in header:
             self.hubble_constant = header["HUBBLE"]
-            self.redshift = header["REDSHIFT"]
+            self.current_redshift = header["REDSHIFT"]
         for unit in ["length", "time", "mass", "velocity", "magnetic"]:
             if unit == "magnetic":
                 key = "BFUNIT"
