@@ -132,16 +132,12 @@ def ray_step(SparseOctreeContainer octree, Ray r):
     cdef np.float64_t o[3]
     cdef np.float64_t rr[3]
     cdef np.float64_t d[3]
-    cdef np.float64_t tx0, tx1, ty0, ty1, tz0, tz1, tmin, tmax
+    cdef np.float64_t tx0, tx1, ty0, ty1, tz0, tz1, tmin_domain, tmax_domain
     cdef Oct *oct
     cdef int i
     cdef int ind[3]
     cdef np.float64_t dds[3]
     oct = NULL
-
-    for i in range(3):
-        o[i] = 0  # origin
-        d[i] = 0  # direction
 
     ii = 1
     for i in range(3):
@@ -154,12 +150,6 @@ def ray_step(SparseOctreeContainer octree, Ray r):
             d[i] = max(1e-99, r.direction[i])
         ii <<= 1
 
-
-    # Containers
-    cdef Uint64VectorHolder octList = Uint64VectorHolder()
-    cdef Uint8VectorHolder cellList = Uint8VectorHolder()
-    cdef Float64VectorHolder tList = Float64VectorHolder()
-
     # Compute intersections with all 6 planes of octree
     tx0 = (octree.DLE[0] - o[0]) / d[0]
     ty0 = (octree.DLE[1] - o[1]) / d[1]
@@ -169,69 +159,68 @@ def ray_step(SparseOctreeContainer octree, Ray r):
     ty1 = (octree.DRE[1] - o[1]) / d[1]
     tz1 = (octree.DRE[2] - o[2]) / d[2]
 
-    tmin = max(tx0, ty0, tz0)
-    tmax = min(tx1, ty1, tz1)
+    tmin_domain = max(tx0, ty0, tz0)
+    tmax_domain = min(tx1, ty1, tz1)
 
-    cdef np.float64_t txin, tyin, tzin, dtx, dty, dtz, tin, tout, txout, tyout, tzout
+    # No hit at all, early break
+    if (tmin_domain > tmax_domain) or (tmax_domain < 0):
+        return np.array([], dtype=np.int64), np.array([], dtype=np.int64), np.array([], dtype=np.float64)
+
+    # Containers
+    cdef Uint64VectorHolder octList = Uint64VectorHolder()
+    cdef Uint8VectorHolder cellList = Uint8VectorHolder()
+    cdef Float64VectorHolder tList = Float64VectorHolder()
+
+    cdef np.float64_t txin, tyin, tzin, dtx, dty, dtz, tmin, tmax, txout, tyout, tzout
 
     # Locate first node
     # FIXME: add small epsilon ?
-    rr = r.at(tmin)
+    rr = r.at(tmin_domain)
 
-    ii = 1
     for i in range(3):
         dds[i] = (octree.DRE[i] - octree.DLE[i])/octree.nn[i]
         ind[i] = <int> (floor((rr[i] - octree.DLE[i])/dds[i]))
-        if a & ii:
-            ind[i] = octree.nn[i] - ind[i]
-        ii <<= 1
 
     # Compute local in/out t
-    txin = tx0
-    tyin = ty0
-    tzin = tz0
+    dtx = dds[0]/d[0]
+    dty = dds[1]/d[1]
+    dtz = dds[2]/d[2]
 
-    dtx = (tx1-tx0)/octree.nn[0]
-    dty = (ty1-ty0)/octree.nn[1]
-    dtz = (tz1-tz0)/octree.nn[2]
+    txin = tx0+ind[0]*dtx
+    tyin = ty0+ind[1]*dty
+    tzin = tz0+ind[2]*dtz
 
     txout = txin+dtx
     tyout = tyin+dty
     tzout = tzin+dtz
-    tin = max(txin, tyin, tzin)
-    tout = min(txout, tyout, tzout)
-    # No hit at all, early break
-    if (tmin > tmax) or (tmax > 0):
-        return np.array([], dtype=np.int64), np.array([], dtype=np.int64), np.array([], dtype=np.float64)
+
+    tmin = max(txin, tyin, tzin)
+    tmax = min(txout, tyout, tzout)
 
     # Loop over all cells until reaching the out face
-    while tout < tmin:
+    while tmax < tmax_domain:
         octree.get_root(ind, &oct)
 
-        if oct == NULL:
-            continue
-            # return np.array([], dtype=np.int64), np.array([], dtype=np.int64), np.array([], dtype=np.float64)
-        else:
+        if oct != NULL:
             # Hits, so process subtree
             proc_subtree(txin, tyin, tzin, txout, tyout, tzout,
                 oct, a, octList.v, cellList.v, tList.v)
-
-        if tout == txout:    # Next x
+        if tmax == txout:    # Next x
             ind[0] += 1
             txin = txout
             txout += dtx
-        elif tout == tyout:  # Next y
+        elif tmax == tyout:  # Next y
             ind[1] += 1
             tyin = tyout
             tyout += dty
-        elif tout == tzout:  # Next z
+        elif tmax == tzout:  # Next z
             ind[2] += 1
             tzin = tzout
             tzout += dtz
 
         # Local in/out ts
-        tin = max(txin, tyin, tzin)
-        tout = min(txout, tyout, tzout)
+        tmin = max(txin, tyin, tzin)
+        tmax = min(txout, tyout, tzout)
 
     return np.asarray(octList), np.asarray(cellList), np.asarray(tList)
 
@@ -321,6 +310,10 @@ cdef void proc_subtree(
     cdef np.uint8_t entry_plane, exit_plane
     cdef bool leaf
     if tx1 < 0 or ty1 < 0 or tz1 < 0:
+        return
+
+    if oct == NULL:
+        print('This should not happen!')
         return
 
     # Compute midpoints
