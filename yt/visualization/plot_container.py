@@ -931,7 +931,7 @@ class ImagePlotContainer(PlotContainer):
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            if state == 'on':
+            if state in ('on', True):
                 self._cbar_minorticks[field] = True
             else:
                 self._cbar_minorticks[field] = False
