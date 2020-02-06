@@ -142,7 +142,7 @@ def ray_step(SparseOctreeContainer octree, Ray r):
     for i in range(3):
         o[i] = 0  # origin
         d[i] = 0  # direction
-    
+
     ii = 1
     for i in range(3):
         if r.direction[i] < 0:
@@ -154,20 +154,30 @@ def ray_step(SparseOctreeContainer octree, Ray r):
             d[i] = max(1e-99, r.direction[i])
         ii <<= 1
 
-    print('a=%s' % a)
-    # Compute interesections with all 6 planes of node
+
+    # Containers
+    cdef Uint64VectorHolder octList = Uint64VectorHolder()
+    cdef Uint8VectorHolder cellList = Uint8VectorHolder()
+    cdef Float64VectorHolder tList = Float64VectorHolder()
+
+    # Compute intersections with all 6 planes of octree
     tx0 = (octree.DLE[0] - o[0]) / d[0]
-    tx1 = (octree.DRE[0] - o[0]) / d[0]
     ty0 = (octree.DLE[1] - o[1]) / d[1]
-    ty1 = (octree.DRE[1] - o[1]) / d[1]
     tz0 = (octree.DLE[2] - o[2]) / d[2]
+
+    tx1 = (octree.DRE[0] - o[0]) / d[0]
+    ty1 = (octree.DRE[1] - o[1]) / d[1]
     tz1 = (octree.DRE[2] - o[2]) / d[2]
 
     tmin = max(tx0, ty0, tz0)
     tmax = min(tx1, ty1, tz1)
 
+    cdef np.float64_t txin, tyin, tzin, dtx, dty, dtz, tin, tout, txout, tyout, tzout
+
+    # Locate first node
+    # FIXME: add small epsilon ?
     rr = r.at(tmin)
-    # TODO: call for all roots
+
     ii = 1
     for i in range(3):
         dds[i] = (octree.DRE[i] - octree.DLE[i])/octree.nn[i]
@@ -175,18 +185,53 @@ def ray_step(SparseOctreeContainer octree, Ray r):
         if a & ii:
             ind[i] = octree.nn[i] - ind[i]
         ii <<= 1
-    octree.get_root(ind, &oct)
 
-    if oct == NULL:
+    # Compute local in/out t
+    txin = tx0
+    tyin = ty0
+    tzin = tz0
+
+    dtx = (tx1-tx0)/octree.nn[0]
+    dty = (ty1-ty0)/octree.nn[1]
+    dtz = (tz1-tz0)/octree.nn[2]
+
+    txout = txin+dtx
+    tyout = tyin+dty
+    tzout = tzin+dtz
+    tin = max(txin, tyin, tzin)
+    tout = min(txout, tyout, tzout)
+    # No hit at all, early break
+    if (tmin > tmax) or (tmax > 0):
         return np.array([], dtype=np.int64), np.array([], dtype=np.int64), np.array([], dtype=np.float64)
 
-    # Hits, so process subtree
-    cdef Uint64VectorHolder octList = Uint64VectorHolder()
-    cdef Uint8VectorHolder cellList = Uint8VectorHolder()
-    cdef Float64VectorHolder tList = Float64VectorHolder()
+    # Loop over all cells until reaching the out face
+    while tout < tmin:
+        octree.get_root(ind, &oct)
 
-    if (tmin < tmax) and (tmax > 0):
-        proc_subtree(tx0, ty0, tz0, tx1, ty1, tz1, oct, a, octList.v, cellList.v, tList.v)
+        if oct == NULL:
+            continue
+            # return np.array([], dtype=np.int64), np.array([], dtype=np.int64), np.array([], dtype=np.float64)
+        else:
+            # Hits, so process subtree
+            proc_subtree(txin, tyin, tzin, txout, tyout, tzout,
+                oct, a, octList.v, cellList.v, tList.v)
+
+        if tout == txout:    # Next x
+            ind[0] += 1
+            txin = txout
+            txout += dtx
+        elif tout == tyout:  # Next y
+            ind[1] += 1
+            tyin = tyout
+            tyout += dty
+        elif tout == tzout:  # Next z
+            ind[2] += 1
+            tzin = tzout
+            tzout += dtz
+
+        # Local in/out ts
+        tin = max(txin, tyin, tzin)
+        tout = min(txout, tyout, tzout)
 
     return np.asarray(octList), np.asarray(cellList), np.asarray(tList)
 
@@ -269,7 +314,7 @@ cdef inline np.uint8_t swap3bits(const np.uint8_t lev):
 cdef void proc_subtree(
         const np.float64_t tx0, const np.float64_t ty0, const np.float64_t tz0,
         const np.float64_t tx1, const np.float64_t ty1, const np.float64_t tz1,
-        const Oct* oct, const int a, vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList, 
+        const Oct* oct, const int a, vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList,
         int level=0):
     cdef np.uint8_t currNode, nextNode
     cdef np.float64_t txM, tyM, tzM
@@ -288,7 +333,7 @@ cdef void proc_subtree(
     while True:
         leaf = isLeaf(oct, currNode^a)
         # print('%scurrNode=%s' %('\t'*level, currNode))
-        print('%scurrNode=%s %s (%.2f %.2f %.2f) (%.2f %.2f %.2f)' % ('\t'*level, currNode, a, txM, tyM, tzM, tx1, ty1, tz1))
+        # print('%scurrNode=%s %s (%.2f %.2f %.2f) (%.2f %.2f %.2f)' % ('\t'*level, currNode, a, txM, tyM, tzM, tx1, ty1, tz1))
 
         if leaf:
             octList.push_back(oct.domain_ind)
@@ -340,11 +385,10 @@ cpdef domain2ind(SparseOctreeContainer octree, SelectorObject selector,
     cdef np.ndarray[np.int64_t, ndim=4] cell_inds
 
     cell_inds = np.empty((octree.nocts, 2, 2, 2), dtype=np.int64)
-    
+
     visitor = StoreIndex(octree, domain_id)
     visitor.cell_inds = cell_inds
 
     octree.visit_all_octs(selector, visitor)
 
     return cell_inds
-
