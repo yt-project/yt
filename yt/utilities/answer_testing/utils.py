@@ -147,11 +147,11 @@ def _hash_dict(data):
             The hex digest of the hashed dictionary.
     """
     hd = None
-    for key, value in data.items():
+    for key, value in sorted(data.items()):
         if hd is None:
-            hd = hashlib.md5(bytes(key.encode('utf8')) + value.tobytes())
+            hd = hashlib.md5(bytearray(key.encode('utf8')) + bytearray(value))
         else:
-            hd.update(bytes(key.encode('utf8')) + value.tobytes())
+            hd.update(bytearray(key.encode('utf8')) + bytearray(value))
     return hd.hexdigest()
 
 def generate_hash(data):
