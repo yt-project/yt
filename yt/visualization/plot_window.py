@@ -307,6 +307,8 @@ class PlotWindow(ImagePlotContainer):
     @invalidate_data
     def zoom(self, factor):
         r"""This zooms the window by *factor* > 0.
+        - zoom out with *factor* < 1
+        - zoom in with *factor* > 1
 
         Parameters
         ----------
