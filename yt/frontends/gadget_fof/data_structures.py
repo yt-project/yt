@@ -554,6 +554,8 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
     _type_name = "halo"
     _con_args = ("ptype", "particle_identifier")
     _spatial = False
+    # Do not register it to prevent .halo from being attached to all datasets
+    _skip_add = True
 
     def __init__(self, ptype, particle_identifier, ds=None):
         if ptype not in ds.particle_types_raw:
