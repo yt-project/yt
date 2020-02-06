@@ -906,10 +906,17 @@ class ImagePlotContainer(PlotContainer):
 
     @invalidate_plot
     def set_cbar_minorticks(self, field, state):
+        """Deprecated alias, kept for backward compatibility."""
+        from yt.funcs import mylog
+        mylog.warning("Deprecated alias, use set_colorbar_minorticks instead.")
+        return self.set_colorbar_minorticks(field, state)
+
+    @invalidate_plot
+    def set_colorbar_minorticks(self, field, state):
         """turn colorbar minor ticks on or off in the current plot
 
         Displaying minor ticks reduces performance; turn them off
-        using set_cbar_minorticks('all', 'off') if drawing speed is a problem.
+        using set_colorbar_minorticks('all', 'off') if drawing speed is a problem.
 
         Parameters
         ----------
