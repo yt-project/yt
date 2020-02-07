@@ -164,7 +164,7 @@ class RAMSESDomainFile(object):
         f.seek(self.amr_offset)
 
         min_level = self.ds.min_level
-        max_level = read_amr(f, self.amr_header, self.ngridbound, min_level, self.oct_handler)
+        max_level = read_amr(f, self.amr_header, self.ngridbound, min_level, self.oct_handler, self.domain_id)
 
         self.max_level = max_level
         self.oct_handler.finalize()

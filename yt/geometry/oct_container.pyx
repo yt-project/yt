@@ -561,7 +561,8 @@ cdef class OctreeContainer:
     def add(self, int curdom, int curlevel,
             np.ndarray[np.float64_t, ndim=2] pos,
             int skip_boundary = 1,
-            int count_boundary = 0):
+            int count_boundary = 0,
+            int default_dom = -1):
         cdef int no, p, i
         cdef int ind[3]
         cdef int nb = 0
@@ -591,6 +592,9 @@ cdef class OctreeContainer:
                 continue
             cur = self.next_root(curdom, ind)
             if cur == NULL: raise RuntimeError
+            # Set right domain for the roots as well
+            if curdom == default_dom and cur.domain != default_dom:
+                cur.domain = default_dom
             # Now we find the location we want
             # Note that RAMSES I think 1-findiceses levels, but we don't.
             for _ in range(curlevel):
@@ -607,8 +611,12 @@ cdef class OctreeContainer:
                         cp[i] += dds[i]/2.0
                 # Check if it has not been allocated
                 cur = self.next_child(curdom, ind, cur)
-            # Now we should be at the right level
-            cur.domain = curdom
+
+            # Each oct may contain octs from other domains. If that is the case, we want the parent oct
+            # to be marked as belonging to the default domain
+            if curdom == default_dom and cur.domain != default_dom:
+                cur.domain = default_dom
+
             cur.file_ind = p
         return cont.n_assigned - initial + nb
 
@@ -631,6 +639,7 @@ cdef class OctreeContainer:
         cont.n_assigned += 1
         self.root_mesh[ind[0]][ind[1]][ind[2]] = next
         self.nocts += 1
+        next.domain = domain_id
         return next
 
     cdef Oct* next_child(self, int domain_id, int ind[3], Oct *parent):
@@ -650,6 +659,7 @@ cdef class OctreeContainer:
         cont.n_assigned += 1
         parent.children[cind(ind[0],ind[1],ind[2])] = next
         self.nocts += 1
+        next.domain = domain_id
         return next
 
     def file_index_octs(self, SelectorObject selector, int domain_id,
@@ -1052,6 +1062,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         tsearch(<void*>ikey, &self.tree_root, root_node_compare)
         self.num_root += 1
         self.nocts += 1
+        next.domain = domain_id
         return next
 
     def allocate_domains(self, domain_counts, int root_nodes):

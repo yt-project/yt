@@ -15,7 +15,7 @@ ctypedef np.float64_t DOUBLE_t
 @cython.nonecheck(False)
 def read_amr(FortranFile f, dict headers,
              np.ndarray[np.int64_t, ndim=1] ngridbound, INT64_t min_level,
-             RAMSESOctreeContainer oct_handler):
+             RAMSESOctreeContainer oct_handler, int default_dom):
 
     cdef INT64_t ncpu, nboundary, max_level, nlevelmax, ncpu_and_bound
     cdef DOUBLE_t nx, ny, nz
@@ -71,7 +71,7 @@ def read_amr(FortranFile f, dict headers,
             # Note that we're adding *grids*, not individual cells.
             if ilevel >= min_level:
                 n = oct_handler.add(icpu + 1, ilevel - min_level, pos[:ng, :],
-                                    count_boundary = 1)
+                                    count_boundary=1, default_dom=default_dom)
                 if n > 0:
                     max_level = max(ilevel - min_level, max_level)
                 if n != ng:
