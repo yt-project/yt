@@ -7,18 +7,18 @@ import yt
 
 def test_hilbert3d():
     # 8 different cases, checked against RAMSES' own implementation
-    inputs = [[0, 0, 0],
-              [1, 0, 0],
-              [0, 1, 0],
-              [1, 1, 0],
-              [0, 0, 1],
-              [1, 0, 1],
-              [0, 1, 1],
-              [1, 1, 1]]
+    inputs = np.array(
+        [[0, 0, 0],
+         [1, 0, 0],
+         [0, 1, 0],
+         [1, 1, 0],
+         [0, 0, 1],
+         [1, 0, 1],
+         [0, 1, 1],
+         [1, 1, 1]])
     outputs = [0, 1, 7, 6, 3, 2, 4, 5]
 
-    for i, o in zip(inputs, outputs):
-        assert_equal(int(hilbert3d(i, 3)), o)
+    assert_equal(hilbert3d(inputs, 3), outputs)
 
 
 output_00080 = "output_00080/info_00080.txt"
