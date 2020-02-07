@@ -15,7 +15,7 @@ from cpython cimport Py_buffer
 from yt.geometry.oct_container cimport SparseOctreeContainer, OctInfo
 from yt.geometry.oct_visitors cimport Oct, IndexOcts, StoreIndex
 from yt.geometry.selection_routines cimport SelectorObject, AlwaysSelector
-
+from yt.frontends.ramses.io_utils cimport hilbert3d_single
 
 cdef np.float64_t epsilon = 1.e-10  # TODO: find better size of epsilon. This corresponds to levelmax=33
 
@@ -130,10 +130,11 @@ cdef class Ray(object):
             out[i] = self.origin[i] + t * self.direction[i]
         return out
 
-cpdef ray_step_multioctrees(dict octrees, Ray r, int nextDom=1):
+
+cpdef ray_step_multioctrees(dict octrees, Ray r, ds):
     # Find entry sparse octree
     cdef SparseOctreeContainer octree
-    cdef int count
+    cdef int count, nextDom
 
     # Cell info containers -- preallocate size of domain
     octree = octrees[next(iter(octrees))]
@@ -146,10 +147,35 @@ cpdef ray_step_multioctrees(dict octrees, Ray r, int nextDom=1):
     cdef Uint64VectorHolder countPerDomain = Uint64VectorHolder(count)
     cdef Uint64VectorHolder domainList = Uint64VectorHolder(count)
 
-    # Other variables
-    cdef int nextDom, nAdded
-    cdef np.float64_t tmin, tin
+    # Find first domain using hilbert curve
+    cdef int bit_length, i
+    cdef np.float64_t tmin, tin, bscale
+    cdef np.float64_t[:] pos, hilbert_keys
+    cdef np.uint64_t ix, iy, iz
+    cdef np.uint64_t ihilbert
 
+    tin = max((octree.DLE[0] - r.origin[0]) / r.direction[0],
+              (octree.DLE[1] - r.origin[1]) / r.direction[1],
+              (octree.DLE[2] - r.origin[2]) / r.direction[2],
+              0)
+
+    bscale = ds.hilbert['bscale']
+    keys = ds.hilbert['keys']
+    bit_length = ds.hilbert['bit_length']
+    pos = r.at(tin)
+
+    ix = <np.uint64_t> (pos[0]*bscale)
+    iy = <np.uint64_t> (pos[1]*bscale)
+    iz = <np.uint64_t> (pos[2]*bscale)
+    ihilbert = hilbert3d_single(ix, iy, iz, bit_length)
+
+    # after the loop, nextDom contains the id of the first domain
+    for nextDom in range(1, ds.parameters['ncpu']+1):
+        if ihilbert < keys[nextDom]:
+            break
+
+    # Other variables
+    cdef int nAdded
     tmin = 0
     count = 0
     nAdded = 0
@@ -221,8 +247,8 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
         return -1
 
     cdef np.float64_t txin, tyin, tzin, dtx, dty, dtz, tmin, tmax, txout, tyout, tzout
-    # Locate first node
 
+    # Locate first node
     rr = r.at(tmin_domain+epsilon)
 
     for i in range(3):

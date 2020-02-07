@@ -172,6 +172,7 @@ class RAMSESDomainFile(object):
         # Close AMR file
         f.close()
 
+
     def included(self, selector):
         if getattr(selector, "domain_id", None) is not None:
             return selector.domain_id == self.domain_id
@@ -500,6 +501,40 @@ class RAMSESDataset(Dataset):
 
         self.storage_filename = storage_filename
 
+    @property
+    def hilbert(self):
+        _hilbert = getattr(self, '_hilbert', None)
+        if _hilbert:
+            return _hilbert
+        # Compute hilbert keys
+        levelmax = self.parameters['levelmax']
+        boxlen = self.parameters['boxlen']
+
+        # Get number of bits to encode position
+        scale = boxlen  # TODO: support non periodic boundaries
+        nx_loc = 1
+        bscale = 2**(levelmax+1) / scale
+        ncode = nx_loc*int(bscale)
+        for bit_length in range(1, 32+1):
+            ncode /= 2
+            if ncode < 1:
+                break
+
+        if bit_length == 32:
+            raise Exception('This is not supported by RAMSES.')
+
+        hilbert_keys = np.zeros(self.parameters['ncpu']+1)
+        hilbert_keys[0] = self.hilbert_indices[1][0]
+        for i in range(self.parameters['ncpu']):
+            hilbert_keys[i+1] = self.hilbert_indices[i+1][1]
+
+        self._hilbert = {
+            'bit_length': bit_length,
+            'bscale': bscale,
+            'keys': hilbert_keys
+        }
+
+        return self._hilbert
 
     def create_field_info(self, *args, **kwa):
         """Extend create_field_info to add the particles types."""

@@ -251,7 +251,7 @@ cdef integral hilbert3d_single(integral x, integral y, integral z, int bit_lengt
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-def hilbert3d(integral[:, :] x, int bit_length):
+cpdef np.ndarray hilbert3d(integral[:, :] x, int bit_length):
     cdef int i
     cdef np.int64_t[:] ret = np.zeros(len(x), dtype='l')
     for i in range(len(x)):
