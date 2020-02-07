@@ -227,7 +227,7 @@ state_diagram[7][1][:] = [ 5,  5,  5,  7,  1,  3,  1,  3,  7,  7,  1,  3]
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cpdef integral hilbert3d_single(integral x, integral y, integral z, int bit_length):
+cdef integral hilbert3d_single(integral x, integral y, integral z, int bit_length):
     cdef integral i_bit_mask, mask, b0, b1, b2, nstate, hdigit
     cdef int i, sdigit, cstate
     global state_diagram

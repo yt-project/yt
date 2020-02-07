@@ -130,7 +130,7 @@ cdef class Ray(object):
             out[i] = self.origin[i] + t * self.direction[i]
         return out
 
-cpdef ray_step_multioctrees(dict octrees, Ray r):
+cpdef ray_step_multioctrees(dict octrees, Ray r, int nextDom=1):
     # Find entry sparse octree
     cdef SparseOctreeContainer octree
     cdef int count
@@ -150,7 +150,6 @@ cpdef ray_step_multioctrees(dict octrees, Ray r):
     cdef int nextDom, nAdded
     cdef np.float64_t tmin, tin
 
-    nextDom = 1
     tmin = 0
     count = 0
     nAdded = 0

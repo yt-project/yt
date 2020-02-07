@@ -1,5 +1,49 @@
 import numpy as np
+import unyt
 from .io_utils import hilbert3d
+
+def get_cpu(ds, X):
+    '''
+    For each position, return the CPU that contains it.
+
+    Parameters
+    ----------
+    ds : Dataset
+    X : (N, ndim) float array
+    '''
+    if isinstance(X, (unyt.array.unit_array)):
+        X = X.to('unitary').value
+    X = np.atleast_2d(X)
+
+    levelmax = ds.parameters['levelmax']
+    boxlen = ds.parameters['boxlen']
+
+    # Get number of bits to encode position
+    scale = boxlen  # TODO: support non periodic boundaries
+    nx_loc = 1
+    bscale = 2**(levelmax+1) / scale
+    ncode = nx_loc*int(bscale)
+    for bit_length in range(1, 32+1):
+        ncode /= 2
+        if ncode < 1:
+            break
+
+    if bit_length == 32:
+        raise Exception('This is not supported by RAMSES.')
+
+    iX = np.array(X*bscale, dtype=np.int64)
+    order = hilbert3d(iX, bit_length)
+
+    hilbert_keys = np.zeros(ds.parameters['ncpu']+1)
+    hilbert_keys[0] = ds.hilbert_indices[1][0]
+    for i in range(ds.parameters['ncpu']):
+        hilbert_keys[i+1] = ds.hilbert_indices[i+1][1]
+
+    # This is slightly costly in memory for N*ncpus, but at least it is fast
+    idom = np.argmax(order[:, None] < hilbert_keys, axis=1)
+
+    return idom
+
 
 def get_cpu_list(ds, X):
     '''
