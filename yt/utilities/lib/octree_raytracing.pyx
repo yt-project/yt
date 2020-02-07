@@ -133,21 +133,43 @@ cpdef ray_step_multioctrees(dict octrees, Ray r):
     cdef Uint64VectorHolder octList = Uint64VectorHolder()
     cdef Uint8VectorHolder cellList = Uint8VectorHolder()
     cdef Float64VectorHolder tList = Float64VectorHolder()
+    cdef Uint64VectorHolder countPerDomain = Uint64VectorHolder()
+    cdef Uint64VectorHolder domainList = Uint64VectorHolder()
+    cdef int nextDom, count, nAdded
+    cdef np.float64_t tmin
 
-    cdef int nextDom
     nextDom = 1
+    tmin = 0
+    count = 0
+    nAdded = 0
     while nextDom > 0:
-        octree = octrees[1]
-        nextDom = ray_step(octree, r, octList.v, cellList.v, tList.v, nextDom)
+        # Add domain to list of domains
+        domainList.v.push_back(nextDom)
 
-    return np.asarray(octList), np.asarray(cellList), np.asarray(tList)
+        # Call ray traversal on domain
+        octree = octrees[nextDom]
+        nextDom = ray_step(octree, r, octList.v, cellList.v, tList.v, tmin, nextDom)
+
+        # Update number of cells crossed
+        nAdded = tList.v.size() - count
+        count = tList.v.size()
+
+        # Store this number
+        countPerDomain.v.push_back(nAdded)
+
+        # Next starting point
+        if tList.v.size() > 0:
+            tmin = tList.v.back()
+
+    return np.asarray(octList), np.asarray(cellList), np.asarray(tList), np.asarray(domainList), np.asarray(countPerDomain)
 
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef int ray_step(SparseOctreeContainer octree, Ray r,
-                   vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList, const int curDom):
+                   vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList,
+                   np.float64_t t0, const int curDom):
     cdef np.uint8_t a = 0
     cdef np.int8_t ii
     cdef np.float64_t o[3]
@@ -180,7 +202,7 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
     ty1 = (octree.DRE[1] - o[1]) / d[1]
     tz1 = (octree.DRE[2] - o[2]) / d[2]
 
-    tmin_domain = max(tx0, ty0, tz0)
+    tmin_domain = max(tx0, ty0, tz0, t0)
     tmax_domain = min(tx1, ty1, tz1)
 
     # No hit at all, early break
@@ -188,10 +210,10 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
         return -1
 
     cdef np.float64_t txin, tyin, tzin, dtx, dty, dtz, tmin, tmax, txout, tyout, tzout
-
+    cdef np.float64_t epsilon
     # Locate first node
-    # FIXME: add small epsilon ?
-    rr = r.at(tmin_domain)
+    epsilon = 1.e-10  # TODO: find better size of epsilon. This corresponds to levelmax=33
+    rr = r.at(tmin_domain+epsilon)
 
     for i in range(3):
         dds[i] = (octree.DRE[i] - octree.DLE[i])/octree.nn[i]
@@ -237,7 +259,11 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
         # Local in/out ts
         tmin = max(txin, tyin, tzin)
         tmax = min(txout, tyout, tzout)
-    return nextDom
+
+    if tmax >= tmax_domain:  # Return -1 to stop if reached the right edge
+        return -1
+    else:                    # Return next domain otherwise
+        return nextDom
 
 cdef np.uint8_t find_firstNode(
         const np.float64_t tx0, const np.float64_t ty0, const np.float64_t tz0,
