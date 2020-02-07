@@ -156,12 +156,12 @@ class RenderingContext(pyglet.window.Window):
 
     def on_draw(self):
         if self.scene is not None:
-            #self.scene.render()
+            self.scene.render()
             if self.image_widget is not None:
                 self.image_widget.value = write_bitmap(
                         self.scene.image[:,:,:3], None)
         self.label.draw()
-        #self.flip()
+        self.flip()
 
     def set_position(self, xpos, ypos):
         if xpos < 0 or ypos < 0:
