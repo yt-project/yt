@@ -360,8 +360,8 @@ cdef int proc_subtree(
     if tx1 < 0 or ty1 < 0 or tz1 < 0:
         return oct.domain
 
-    if nextDom != curDom:
-        return nextDom
+    if oct.domain != curDom:
+        return oct.domain
 
     # Compute midpoints
     txM = (tx0 + tx1) / 2.
@@ -369,38 +369,50 @@ cdef int proc_subtree(
     tzM = (tz0 + tz1) / 2.
 
     currNode = find_firstNode(tx0, ty0, tz0, txM, tyM, tzM)
+    nextNode = currNode
 
     while currNode < 8:
+        currNode = nextNode
         leaf = isLeaf(oct, currNode^a)
         # print('%scurrNode=%s %s (%.2f %.2f %.2f) (%.2f %.2f %.2f)' % ('\t'*level, currNode, a, txM, tyM, tzM, tx1, ty1, tz1))
         # Note: there is a bit of code repetition down there (nextNode = ...) but couldn't find a clever way that also efficient
         if leaf:  # Store information about cell + go to next one
             # Need to swap bits before storing as octree is C-style in memory and F-style on file
-            octList.push_back(oct.domain_ind)
-            cellList.push_back(swap3bits(currNode^a))
+
+            if curDom == nextDom:
+                octList.push_back(oct.domain_ind)
+                cellList.push_back(swap3bits(currNode^a))
+                if currNode == 0:
+                    tList.push_back(min(txM, tyM, tzM))
+                elif currNode == 1:
+                    tList.push_back(min(txM, tyM, tz1))
+                elif currNode == 2:
+                    tList.push_back(min(txM, ty1, tzM))
+                elif currNode == 3:
+                    tList.push_back(min(txM, ty1, tz1))
+                elif currNode == 4:
+                    tList.push_back(min(tx1, tyM, tzM))
+                elif currNode == 5:
+                    tList.push_back(min(tx1, tyM, tz1))
+                elif currNode == 6:
+                    tList.push_back(min(tx1, ty1, tzM))
+                else:#currNode == 7:
+                    tList.push_back(min(tx1, ty1, tz1))
             if currNode == 0:
-                tList.push_back(min(txM, tyM, tzM))
                 nextNode = next_node(currNode, txM, tyM, tzM)
             elif currNode == 1:
-                tList.push_back(min(txM, tyM, tz1))
                 nextNode = next_node(currNode, txM, tyM, tz1)
             elif currNode == 2:
-                tList.push_back(min(txM, ty1, tzM))
                 nextNode = next_node(currNode, txM, ty1, tzM)
             elif currNode == 3:
-                tList.push_back(min(txM, ty1, tz1))
                 nextNode = next_node(currNode, txM, ty1, tz1)
             elif currNode == 4:
-                tList.push_back(min(tx1, tyM, tzM))
                 nextNode = next_node(currNode, tx1, tyM, tzM)
             elif currNode == 5:
-                tList.push_back(min(tx1, tyM, tz1))
                 nextNode = next_node(currNode, tx1, tyM, tz1)
             elif currNode == 6:
-                tList.push_back(min(tx1, ty1, tzM))
                 nextNode = next_node(currNode, tx1, ty1, tzM)
             else:#currNode == 7:
-                tList.push_back(min(tx1, ty1, tz1))
                 nextNode = 8
 
         else:  # Go down the tree
@@ -429,7 +441,6 @@ cdef int proc_subtree(
                 nextDom = proc_subtree(txM, tyM, tzM, tx1, ty1, tz1, oct.children[7  ], a, octList, cellList, tList, curDom, level+1)
                 nextNode = 8
 
-        currNode = nextNode
     return nextDom
 
 cpdef domain2ind(SparseOctreeContainer octree, SelectorObject selector,
