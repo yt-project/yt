@@ -126,7 +126,28 @@ cdef class Ray(object):
             out[i] = self.origin[i] + t * self.direction[i]
         return out
 
-def ray_step(SparseOctreeContainer octree, Ray r):
+cpdef ray_step_multioctrees(dict octrees, Ray r):
+    # Find entry sparse octree
+    cdef SparseOctreeContainer octree
+    # Containers
+    cdef Uint64VectorHolder octList = Uint64VectorHolder()
+    cdef Uint8VectorHolder cellList = Uint8VectorHolder()
+    cdef Float64VectorHolder tList = Float64VectorHolder()
+
+    cdef int nextDom
+    nextDom = 1
+    while nextDom > 0:
+        octree = octrees[1]
+        nextDom = ray_step(octree, r, octList.v, cellList.v, tList.v, nextDom)
+
+    return np.asarray(octList), np.asarray(cellList), np.asarray(tList)
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef int ray_step(SparseOctreeContainer octree, Ray r,
+                   vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList, const int curDom):
     cdef np.uint8_t a = 0
     cdef np.int8_t ii
     cdef np.float64_t o[3]
@@ -134,11 +155,11 @@ def ray_step(SparseOctreeContainer octree, Ray r):
     cdef np.float64_t d[3]
     cdef np.float64_t tx0, tx1, ty0, ty1, tz0, tz1, tmin_domain, tmax_domain
     cdef Oct *oct
-    cdef int i
+    cdef int i, nextDom
     cdef int ind[3]
     cdef np.float64_t dds[3]
+    nextDom = curDom
     oct = NULL
-
     ii = 1
     for i in range(3):
         if r.direction[i] < 0:
@@ -164,12 +185,7 @@ def ray_step(SparseOctreeContainer octree, Ray r):
 
     # No hit at all, early break
     if (tmin_domain > tmax_domain) or (tmax_domain < 0):
-        return np.array([], dtype=np.int64), np.array([], dtype=np.int64), np.array([], dtype=np.float64)
-
-    # Containers
-    cdef Uint64VectorHolder octList = Uint64VectorHolder()
-    cdef Uint8VectorHolder cellList = Uint8VectorHolder()
-    cdef Float64VectorHolder tList = Float64VectorHolder()
+        return -1
 
     cdef np.float64_t txin, tyin, tzin, dtx, dty, dtz, tmin, tmax, txout, tyout, tzout
 
@@ -198,13 +214,13 @@ def ray_step(SparseOctreeContainer octree, Ray r):
     tmax = min(txout, tyout, tzout)
 
     # Loop over all cells until reaching the out face
-    while tmax < tmax_domain:
+    while tmax < tmax_domain and nextDom == curDom:
         octree.get_root(ind, &oct)
 
         if oct != NULL and tmax > 0:  # no need to check tmin < tmax, as dtx,dty,dtz > 0
             # Hits, so process subtree
-            proc_subtree(txin, tyin, tzin, txout, tyout, tzout,
-                oct, a, octList.v, cellList.v, tList.v)
+            nextDom = proc_subtree(txin, tyin, tzin, txout, tyout, tzout,
+                oct, a, octList, cellList, tList, curDom)
         if tmax == txout:    # Next x
             ind[0] += 1
             txin = txout
@@ -221,28 +237,11 @@ def ray_step(SparseOctreeContainer octree, Ray r):
         # Local in/out ts
         tmin = max(txin, tyin, tzin)
         tmax = min(txout, tyout, tzout)
-
-    return np.asarray(octList), np.asarray(cellList), np.asarray(tList)
-
-cdef np.uint8_t YZ = 0
-cdef np.uint8_t XZ = 1
-cdef np.uint8_t XY = 2
-
-cdef np.uint8_t find_entry_plane(np.float64_t tx0, np.float64_t ty0, np.float64_t tz0):
-    cdef np.float64_t tmax
-    # Find entry plane
-    tmax = max(tx0, ty0, tz0)
-    if tmax == tx0:
-        return YZ
-    elif tmax == ty0:
-        return XZ
-    elif tmax == tz0:
-        return XY
-
+    return nextDom
 
 cdef np.uint8_t find_firstNode(
-        np.float64_t tx0, np.float64_t ty0, np.float64_t tz0,
-        np.float64_t txM,np.float64_t tyM, np.float64_t tzM):
+        const np.float64_t tx0, const np.float64_t ty0, const np.float64_t tz0,
+        const np.float64_t txM, const np.float64_t tyM, const np.float64_t tzM):
 
     cdef np.float64_t tmax
     cdef np.uint8_t entry_plane
@@ -270,8 +269,8 @@ cdef np.uint8_t find_firstNode(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline np.uint8_t next_node(np.uint8_t currNode,
-        np.float64_t tx1, np.float64_t ty1, np.float64_t tz1):
+cdef inline np.uint8_t next_node(const np.uint8_t currNode,
+        const np.float64_t tx1, const np.float64_t ty1, const np.float64_t tz1):
     cdef np.float64_t tmin
     tmin = min(tx1, ty1, tz1)
 
@@ -301,21 +300,23 @@ cdef inline np.uint8_t swap3bits(const np.uint8_t lev):
 # TODO: support negative directions
 # TODO: support ray length
 @cython.cdivision(True)
-cdef void proc_subtree(
+cdef int proc_subtree(
         const np.float64_t tx0, const np.float64_t ty0, const np.float64_t tz0,
         const np.float64_t tx1, const np.float64_t ty1, const np.float64_t tz1,
         const Oct* oct, const int a, vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList,
-        int level=0):
+        const int curDom, int level=0):
     cdef np.uint8_t currNode, nextNode
     cdef np.float64_t txM, tyM, tzM
     cdef np.uint8_t entry_plane, exit_plane
     cdef bool leaf
+    cdef int nextDom
     if tx1 < 0 or ty1 < 0 or tz1 < 0:
-        return
+        return -1
 
     if oct == NULL:
         print('This should not happen!')
-        return
+        return -1
+    nextDom = oct.domain
 
     # Compute midpoints
     txM = (tx0 + tx1) / 2.
@@ -324,54 +325,67 @@ cdef void proc_subtree(
 
     currNode = find_firstNode(tx0, ty0, tz0, txM, tyM, tzM)
 
-    while True:
+    while currNode < 8 and nextDom == curDom:
         leaf = isLeaf(oct, currNode^a)
-        # print('%scurrNode=%s' %('\t'*level, currNode))
         # print('%scurrNode=%s %s (%.2f %.2f %.2f) (%.2f %.2f %.2f)' % ('\t'*level, currNode, a, txM, tyM, tzM, tx1, ty1, tz1))
-
-        if leaf:
-            octList.push_back(oct.domain_ind)
+        # Note: there is a bit of code repetition down there (nextNode = ...) but couldn't find a clever way that also efficient
+        if leaf:  # Store information about cell + go to next one
             # Need to swap bits before storing as octree is C-style in memory and F-style on file
+            octList.push_back(oct.domain_ind)
             cellList.push_back(swap3bits(currNode^a))
+            if currNode == 0:
+                tList.push_back(min(txM, tyM, tzM))
+                nextNode = next_node(currNode, txM, tyM, tzM)
+            elif currNode == 1:
+                tList.push_back(min(txM, tyM, tz1))
+                nextNode = next_node(currNode, txM, tyM, tz1)
+            elif currNode == 2:
+                tList.push_back(min(txM, ty1, tzM))
+                nextNode = next_node(currNode, txM, ty1, tzM)
+            elif currNode == 3:
+                tList.push_back(min(txM, ty1, tz1))
+                nextNode = next_node(currNode, txM, ty1, tz1)
+            elif currNode == 4:
+                tList.push_back(min(tx1, tyM, tzM))
+                nextNode = next_node(currNode, tx1, tyM, tzM)
+            elif currNode == 5:
+                tList.push_back(min(tx1, tyM, tz1))
+                nextNode = next_node(currNode, tx1, tyM, tz1)
+            elif currNode == 6:
+                tList.push_back(min(tx1, ty1, tzM))
+                nextNode = next_node(currNode, tx1, ty1, tzM)
+            else:#currNode == 7:
+                tList.push_back(min(tx1, ty1, tz1))
+                nextNode = 8
 
-        if currNode == 0:
-            if not leaf: proc_subtree(tx0, ty0, tz0, txM, tyM, tzM, oct.children[  a], a, octList, cellList, tList, level+1)
-            else: tList.push_back(min(txM, tyM, tzM))
-            nextNode = next_node(currNode, txM, tyM, tzM)
-        elif currNode == 1:
-            if not leaf: proc_subtree(tx0, ty0, tzM, txM, tyM, tz1, oct.children[1^a], a, octList, cellList, tList, level+1)
-            else: tList.push_back(min(txM, tyM, tz1))
-            nextNode = next_node(currNode, txM, tyM, tz1)
-        elif currNode == 2:
-            if not leaf: proc_subtree(tx0, tyM, tz0, txM, ty1, tzM, oct.children[2^a], a, octList, cellList, tList, level+1)
-            else: tList.push_back(min(txM, ty1, tzM))
-            nextNode = next_node(currNode, txM, ty1, tzM)
-        elif currNode == 3:
-            if not leaf: proc_subtree(tx0, tyM, tzM, txM, ty1, tz1, oct.children[3^a], a, octList, cellList, tList, level+1)
-            else: tList.push_back(min(txM, ty1, tz1))
-            nextNode = next_node(currNode, txM, ty1, tz1)
-        elif currNode == 4:
-            if not leaf: proc_subtree(txM, ty0, tz0, tx1, tyM, tzM, oct.children[4^a], a, octList, cellList, tList, level+1)
-            else: tList.push_back(min(tx1, tyM, tzM))
-            nextNode = next_node(currNode, tx1, tyM, tzM)
-        elif currNode == 5:
-            if not leaf: proc_subtree(txM, ty0, tzM, tx1, tyM, tz1, oct.children[5^a], a, octList, cellList, tList, level+1)
-            else: tList.push_back(min(tx1, tyM, tz1))
-            nextNode = next_node(currNode, tx1, tyM, tz1)
-        elif currNode == 6:
-            if not leaf: proc_subtree(txM, tyM, tz0, tx1, ty1, tzM, oct.children[6^a], a, octList, cellList, tList, level+1)
-            else: tList.push_back(min(tx1, ty1, tzM))
-            nextNode = next_node(currNode, tx1, ty1, tzM)
-        elif currNode == 7:
-            if not leaf: proc_subtree(txM, tyM, tzM, tx1, ty1, tz1, oct.children[7  ], a, octList, cellList, tList, level+1)
-            else: tList.push_back(min(tx1, ty1, tz1))
-            nextNode = 8
+        else:  # Go down the tree
+            if currNode == 0:
+                nextDom = proc_subtree(tx0, ty0, tz0, txM, tyM, tzM, oct.children[  a], a, octList, cellList, tList, curDom, level+1)
+                nextNode = next_node(currNode, txM, tyM, tzM)
+            elif currNode == 1:
+                nextDom = proc_subtree(tx0, ty0, tzM, txM, tyM, tz1, oct.children[1^a], a, octList, cellList, tList, curDom, level+1)
+                nextNode = next_node(currNode, txM, tyM, tz1)
+            elif currNode == 2:
+                nextDom = proc_subtree(tx0, tyM, tz0, txM, ty1, tzM, oct.children[2^a], a, octList, cellList, tList, curDom, level+1)
+                nextNode = next_node(currNode, txM, ty1, tzM)
+            elif currNode == 3:
+                nextDom = proc_subtree(tx0, tyM, tzM, txM, ty1, tz1, oct.children[3^a], a, octList, cellList, tList, curDom, level+1)
+                nextNode = next_node(currNode, txM, ty1, tz1)
+            elif currNode == 4:
+                nextDom = proc_subtree(txM, ty0, tz0, tx1, tyM, tzM, oct.children[4^a], a, octList, cellList, tList, curDom, level+1)
+                nextNode = next_node(currNode, tx1, tyM, tzM)
+            elif currNode == 5:
+                nextDom = proc_subtree(txM, ty0, tzM, tx1, tyM, tz1, oct.children[5^a], a, octList, cellList, tList, curDom, level+1)
+                nextNode = next_node(currNode, tx1, tyM, tz1)
+            elif currNode == 6:
+                nextDom = proc_subtree(txM, tyM, tz0, tx1, ty1, tzM, oct.children[6^a], a, octList, cellList, tList, curDom, level+1)
+                nextNode = next_node(currNode, tx1, ty1, tzM)
+            else:#currNode == 7:
+                nextDom = proc_subtree(txM, tyM, tzM, tx1, ty1, tz1, oct.children[7  ], a, octList, cellList, tList, curDom, level+1)
+                nextNode = 8
 
         currNode = nextNode
-
-        # Break when hitting 8'th node
-        if currNode == 8:
-            break
+    return nextDom
 
 cpdef domain2ind(SparseOctreeContainer octree, SelectorObject selector,
             int domain_id=-1):
