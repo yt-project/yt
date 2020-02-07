@@ -1440,7 +1440,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         super(YTSelectionContainer, self).__init__(ds, field_parameters)
         self._data_source = data_source
         if data_source is not None:
-            if data_source.ds is not self.ds:
+            if data_source.ds != self.ds:
                 raise RuntimeError("Attempted to construct a DataContainer with a data_source "
                                    "from a different Dataset", ds, data_source.ds)
             if data_source._dimensionality < self._dimensionality:
@@ -1991,7 +1991,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self.coords = None
         self._grids = None
    
-    def cut_region(self, field_cuts, field_parameters=None):
+    def cut_region(self, field_cuts, field_parameters=None, locals={}):
         """
         Return a YTCutRegion, where the a cell is identified as being inside
         the cut region based on the value of one or more fields.  Note that in
@@ -2009,6 +2009,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         field_parameters : dictionary
            A dictionary of field parameters to be used when applying the field
            cuts.
+        locals : dictionary
+            A dictionary of local variables to use when defining the cut region.
 
         Examples
         --------
@@ -2018,10 +2020,11 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
         >>> cr = ad.cut_region(["obj['temperature'] > 1e6"])
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
+        >>> print(cr.quantities.total_quantity("cell_mass").in_units('Msun'))
         """
         cr = self.ds.cut_region(self, field_cuts,
-                                field_parameters=field_parameters)
+                                field_parameters=field_parameters,
+                                locals=locals)
         return cr
    
     def exclude_above(self, field, value, units=None):
@@ -2399,7 +2402,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         else:
             field_cuts = ('~np.isnan(obj["' + field + '"].in_units("' + units + 
                 '"))')
-        cr = self.cut_region(field_cuts)
+        cr = self.cut_region(field_cuts, locals={'np': np})
         return cr
 
     def include_below(self, field, value, units=None):

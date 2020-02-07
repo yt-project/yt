@@ -1,6 +1,7 @@
 import sys, types, os, glob, time, importlib
 
 _frontends = [
+    'adaptahop',
     'ahf',
     'amrvac',
     'art',
@@ -11,8 +12,8 @@ _frontends = [
     'boxlib',
     'chombo',
     'eagle',
-    'enzo',
     'enzo_p',
+    'enzo',
     'exodus_ii',
     'fits',
     'flash',

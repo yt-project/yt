@@ -59,7 +59,7 @@ cdef class FortranFile:
 
             if s1 != s2:
                 raise IOError('Sizes do not agree in the header and footer for '
-                              'this record - check header dtype')
+                              'this record - check header dtype. Got %s and %s' % (s1, s2))
 
         return 0
 
@@ -91,8 +91,8 @@ cdef class FortranFile:
         elif dtype == 'l':
             return 8
         else:
-            # Fallback to (slow) struct to compute the size
-            return struct.calcsize(dtype)
+            # Fallback to (slow) numpy-based to compute the size
+            return np.dtype(dtype).itemsize
 
     cpdef np.ndarray read_vector(self, str dtype):
         """Reads a record from the file and return it as numpy array.
@@ -216,6 +216,7 @@ cdef class FortranFile:
         cdef dict data
         cdef key
         cdef np.ndarray tmp
+        cdef bint optional
 
         if self._closed:
             raise ValueError("I/O operation on closed file.")
@@ -232,16 +233,16 @@ cdef class FortranFile:
                 tmp = self.read_vector(dtype)
                 if len(tmp) == 0 and optional:
                     continue
-                elif len(tmp) == 1:
+                elif (len(tmp) == 1) or (n == -1):
                     data[key] = tmp[0]
                 else:
-                    raise ValueError("Expected a record of length %s, got %s" % (n, len(tmp)))
+                    raise ValueError("Expected a record of length %s, got %s (%s)" % (n, len(tmp), key))
             else:
                 tmp = self.read_vector(dtype)
-                if len(tmp) == 0 and optional:
+                if (len(tmp) == 0 and optional):
                     continue
-                elif len(tmp) != n:
-                    raise ValueError("Expected a record of length %s, got %s" % (n, len(tmp)))
+                elif (len(tmp) != n) and (n != -1):
+                    raise ValueError("Expected a record of length %s, got %s (%s)" % (n, len(tmp), key))
 
                 if isinstance(key, tuple):
                     # There are multiple keys
