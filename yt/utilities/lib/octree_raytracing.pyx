@@ -247,7 +247,7 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
     tmax = min(txout, tyout, tzout)
 
     # Loop over all cells until reaching the out face
-    while tmax < tmax_domain and nextDom == curDom:
+    while tmax < tmax_domain:
         octree.get_root(ind, &oct)
 
         if oct != NULL and tmax > 0:  # no need to check tmin < tmax, as dtx,dty,dtz > 0
@@ -270,6 +270,10 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
         # Local in/out ts
         tmin = max(txin, tyin, tzin)
         tmax = min(txout, tyout, tzout)
+
+        # When coming from other domain, this is not necessarily true so we want at least one step.
+        if nextDom != curDom:
+            break
 
     if tmax >= tmax_domain:  # Return -1 to stop if reached the right edge
         return -1
@@ -347,13 +351,17 @@ cdef int proc_subtree(
     cdef np.uint8_t entry_plane, exit_plane
     cdef bool leaf
     cdef int nextDom
-    if tx1 < 0 or ty1 < 0 or tz1 < 0:
-        return -1
 
     if oct == NULL:
         print('This should not happen!')
         return -1
     nextDom = oct.domain
+
+    if tx1 < 0 or ty1 < 0 or tz1 < 0:
+        return oct.domain
+
+    if nextDom != curDom:
+        return nextDom
 
     # Compute midpoints
     txM = (tx0 + tx1) / 2.
@@ -362,7 +370,7 @@ cdef int proc_subtree(
 
     currNode = find_firstNode(tx0, ty0, tz0, txM, tyM, tzM)
 
-    while currNode < 8 and nextDom == curDom:
+    while currNode < 8:
         leaf = isLeaf(oct, currNode^a)
         # print('%scurrNode=%s %s (%.2f %.2f %.2f) (%.2f %.2f %.2f)' % ('\t'*level, currNode, a, txM, tyM, tzM, tx1, ty1, tz1))
         # Note: there is a bit of code repetition down there (nextNode = ...) but couldn't find a clever way that also efficient
