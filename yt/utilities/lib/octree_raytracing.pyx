@@ -469,11 +469,11 @@ cdef int proc_subtree(
     return nextDom
 
 cpdef domain2ind(SparseOctreeContainer octree, SelectorObject selector,
-            int domain_id=-1):
+                 np.ndarray[np.int64_t, ndim=2] cell_inds_in, int domain_id=-1):
     cdef StoreIndex visitor
     cdef np.ndarray[np.int64_t, ndim=4] cell_inds
 
-    cell_inds = np.empty((octree.nocts, 2, 2, 2), dtype=np.int64)
+    cell_inds = cell_inds_in.reshape(octree.nocts, 2, 2, 2)
 
     visitor = StoreIndex(octree, domain_id)
     visitor.cell_inds = cell_inds
