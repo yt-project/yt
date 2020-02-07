@@ -1467,6 +1467,27 @@ class Dataset(object):
         _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr,
                      offset=offset, prefixable=prefixable)
 
+    def rotate_frame_by(self, shift_angle, deg=False):
+        """
+        (experimental)
+        Shift azimuth coordinates by *shift_angle*, counter-clockwise, and in radians by default.
+
+        Parameters
+        ----------
+        shift_angle : float
+            angle by which coordinates should be shifted
+        deg : bool, optional
+            state that shift_angle is in degrees
+        """
+        if not self.geometry == "polar":
+            raise ValueError("This feature is only available for polar geometries (for now).")
+        if deg:
+            shift_angle = np.deg2rad(shift_angle)
+
+        for edge in [self.index.grid_left_edge[:, 1], self.index.grid_right_edge[:, 1]]:
+            edge += shift_angle * self.length_unit
+            edge %= 2*np.pi * self.length_unit
+
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
     ds = datasets.get_ds_hash(*args)
