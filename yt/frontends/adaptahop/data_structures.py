@@ -50,7 +50,7 @@ class AdaptaHOPDataset(Dataset):
     _field_info_class = AdaptaHOPFieldInfo
 
     # AdaptaHOP internally assumes 1Mpc == 3.0824cm
-    _code_length_to_Mpc = Mpc.to('cm').value / 3.08e24
+    _code_length_to_Mpc = (1.0 * Mpc).to('cm').value / 3.08e24
 
     def __init__(self, filename, dataset_type="adaptahop_binary",
                  n_ref = 16, over_refine_factor = 1,
