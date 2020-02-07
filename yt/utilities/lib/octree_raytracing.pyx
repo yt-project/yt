@@ -201,7 +201,7 @@ def ray_step(SparseOctreeContainer octree, Ray r):
     while tmax < tmax_domain:
         octree.get_root(ind, &oct)
 
-        if oct != NULL:
+        if oct != NULL and tmax > 0:  # no need to check tmin < tmax, as dtx,dty,dtz > 0
             # Hits, so process subtree
             proc_subtree(txin, tyin, tzin, txout, tyout, tzout,
                 oct, a, octList.v, cellList.v, tList.v)
@@ -300,6 +300,7 @@ cdef inline np.uint8_t swap3bits(const np.uint8_t lev):
 
 # TODO: support negative directions
 # TODO: support ray length
+@cython.cdivision(True)
 cdef void proc_subtree(
         const np.float64_t tx0, const np.float64_t ty0, const np.float64_t tz0,
         const np.float64_t tx1, const np.float64_t ty1, const np.float64_t tz1,
