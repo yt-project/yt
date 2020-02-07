@@ -17,11 +17,18 @@ from yt.geometry.oct_visitors cimport Oct, IndexOcts, StoreIndex
 from yt.geometry.selection_routines cimport SelectorObject, AlwaysSelector
 
 
+cdef np.float64_t epsilon = 1.e-10  # TODO: find better size of epsilon. This corresponds to levelmax=33
+
+
+
 cdef class Uint8VectorHolder:
     # See https://cython.readthedocs.io/en/latest/src/userguide/buffer.html#a-matrix-class
     cdef vector[np.uint8_t] v
     cdef Py_ssize_t shape[1]
     cdef Py_ssize_t strides[1]
+    def __cinit__(self, int size):
+        self.v.reserve(size)
+
     def __getbuffer__(self, Py_buffer *buffer, int flags):
         cdef Py_ssize_t itemsize = sizeof(self.v[0])
 
@@ -45,14 +52,14 @@ cdef class Uint8VectorHolder:
         buffer.strides = self.strides
         buffer.suboffsets = NULL
 
-    def __releasebuffer__(self, Py_buffer *buffer):
-        pass
-
 cdef class Uint64VectorHolder:
     # See https://cython.readthedocs.io/en/latest/src/userguide/buffer.html#a-matrix-class
     cdef vector[np.uint64_t] v
     cdef Py_ssize_t shape[1]
     cdef Py_ssize_t strides[1]
+    def __cinit__(self, int size):
+        self.v.reserve(size)
+
     def __getbuffer__(self, Py_buffer *buffer, int flags):
         cdef Py_ssize_t itemsize = sizeof(self.v[0])
 
@@ -76,14 +83,14 @@ cdef class Uint64VectorHolder:
         buffer.strides = self.strides
         buffer.suboffsets = NULL
 
-    def __releasebuffer__(self, Py_buffer *buffer):
-        pass
-
 cdef class Float64VectorHolder:
     # See https://cython.readthedocs.io/en/latest/src/userguide/buffer.html#a-matrix-class
     cdef vector[np.float64_t] v
     cdef Py_ssize_t shape[1]
     cdef Py_ssize_t strides[1]
+    def __cinit__(self, int size):
+        self.v.reserve(size)
+
     def __getbuffer__(self, Py_buffer *buffer, int flags):
         cdef Py_ssize_t itemsize = sizeof(self.v[0])
 
@@ -107,9 +114,6 @@ cdef class Float64VectorHolder:
         buffer.strides = self.strides
         buffer.suboffsets = NULL
 
-    def __releasebuffer__(self, Py_buffer *buffer):
-        pass
-
 cdef class Ray(object):
     def __init__(self, np.ndarray origin, np.ndarray direction, np.float64_t length):
         self.origin = np.asarray(origin)
@@ -129,14 +133,22 @@ cdef class Ray(object):
 cpdef ray_step_multioctrees(dict octrees, Ray r):
     # Find entry sparse octree
     cdef SparseOctreeContainer octree
-    # Containers
-    cdef Uint64VectorHolder octList = Uint64VectorHolder()
-    cdef Uint8VectorHolder cellList = Uint8VectorHolder()
-    cdef Float64VectorHolder tList = Float64VectorHolder()
-    cdef Uint64VectorHolder countPerDomain = Uint64VectorHolder()
-    cdef Uint64VectorHolder domainList = Uint64VectorHolder()
-    cdef int nextDom, count, nAdded
-    cdef np.float64_t tmin
+    cdef int count
+
+    # Cell info containers -- preallocate size of domain
+    octree = octrees[next(iter(octrees))]
+    count = <int> (octree.nn[0] * np.sqrt(3))
+    cdef Uint64VectorHolder octList = Uint64VectorHolder(count)
+    cdef Uint8VectorHolder cellList = Uint8VectorHolder(count)
+    cdef Float64VectorHolder tList = Float64VectorHolder(count)
+    # Domain info containers -- preallocate number of domains
+    count = <int> len(octrees)
+    cdef Uint64VectorHolder countPerDomain = Uint64VectorHolder(count)
+    cdef Uint64VectorHolder domainList = Uint64VectorHolder(count)
+
+    # Other variables
+    cdef int nextDom, nAdded
+    cdef np.float64_t tmin, tin
 
     nextDom = 1
     tmin = 0
@@ -210,9 +222,8 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
         return -1
 
     cdef np.float64_t txin, tyin, tzin, dtx, dty, dtz, tmin, tmax, txout, tyout, tzout
-    cdef np.float64_t epsilon
     # Locate first node
-    epsilon = 1.e-10  # TODO: find better size of epsilon. This corresponds to levelmax=33
+
     rr = r.at(tmin_domain+epsilon)
 
     for i in range(3):
