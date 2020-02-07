@@ -385,4 +385,22 @@ cpdef domain2ind(SparseOctreeContainer octree, SelectorObject selector,
 
     octree.visit_all_octs(selector, visitor)
 
-    return cell_inds
+    return cell_inds.reshape(-1, 8)
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cpdef octcells2ind(np.ndarray[np.int64_t, ndim=2] domain2ind, np.ndarray[np.uint64_t, ndim=1] oct_inds, np.ndarray[np.uint8_t, ndim=1] cell_inds):
+    cdef np.ndarray[np.int64_t, ndim=1] indexes
+
+    cdef np.int64_t[:] indexes_view
+    cdef np.uint64_t[:] oct_inds_view = oct_inds
+    cdef np.uint8_t[:] cell_inds_view = cell_inds
+    cdef int i
+    indexes = np.empty(oct_inds.size, dtype=np.int64)
+
+    indexes_view = indexes
+
+    for i in range(oct_inds.size):
+        indexes_view[i] = domain2ind[oct_inds_view[i], cell_inds_view[i]]
+
+    return indexes
