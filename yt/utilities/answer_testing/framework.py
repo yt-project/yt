@@ -75,9 +75,9 @@ class AnswerTest():
         result = None
         for g in ds.index.grids:
             if result is None:
-                result = hashlib.md5(bytes(g.id) + g[field].tobytes())
+                result = hashlib.md5(bytearray(g.id) + bytearray(g[field]))
             else:
-                result.update(bytes(g.id) + g[field].tobytes())
+                result.update(bytearray(g.id) + bytearray(g[field]))
             g.clear_data()
         return result.hexdigest()
 
@@ -93,7 +93,7 @@ class AnswerTest():
             # This original returned None, but None can't be converted
             # to a bytes array, so use -1 as a string, since ints can't
             # be converted to bytes either
-            return bytes(str(-1).encode('utf-8'))
+            return hashlib.md5(bytearray(str(-1).encode('utf-8'))).hexdigest()
         proj = ds.proj(field,
                     axis,
                     weight_field=weight_field,
@@ -109,12 +109,12 @@ class AnswerTest():
         # of strings that make comparison fail even though the data is
         # the same
         result = None 
-        for k, v in proj.field_data.items():
+        for k, v in sorted(proj.field_data.items(), key=lambda x: str(x)):
             k = k.__repr__().encode('utf8')
             if result is None:
-                result = hashlib.md5(k + v.tobytes())
+                result = hashlib.md5(bytearray(k) + bytearray(v))
             else:
-                result.update(k + v.tobytes())
+                result.update(bytearray(k) + bytearray(v))
         return result.hexdigest()
 
     def field_values_test(self, ds, field, obj_type=None, particle_type=False):
@@ -149,7 +149,7 @@ class AnswerTest():
         if weight_field is not None:
             frb[weight_field]
         d = frb.data
-        for f in proj.field_data:
+        for f in sorted(proj.field_data, key=lambda x: str(x)):
             # Sometimes f will be a tuple.
             d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
         # This is to try and remove python-specific anchors in the yaml
@@ -157,12 +157,12 @@ class AnswerTest():
         # of strings that make comparison fail even though the data is
         # the same
         result = None 
-        for k, v in d.items():
+        for k, v in sorted(d.items(), key=lambda x: str(x)):
             k = k.__repr__().encode('utf8')
             if result is None:
-                result = hashlib.md5(k + v.tobytes())
+                result = hashlib.md5(bytearray(k) + bytearray(v.tobytes()))
             else:
-                result.update(k + v.tobytes())
+                result.update(bytearray(k) + bytearray(v.tobytes()))
         return result.hexdigest()
 
     #-----
@@ -181,7 +181,7 @@ class AnswerTest():
         # Now we compare color conservation to Enzo's color conservation
         dd = ds.all_data()
         dens_enzo = dd["Density"].copy()
-        for f in sorted(ds.field_list):
+        for f in sorted(ds.field_list, key=lambda x: str(x)):
             ff = f[1]
             if not ff.endswith("_Density"):
                 continue
