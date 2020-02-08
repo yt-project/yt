@@ -1479,12 +1479,16 @@ class Dataset(object):
         deg : bool, optional
             state that shift_angle is in degrees
         """
-        if not self.geometry == "polar":
-            raise ValueError("This feature is only available for polar geometries (for now).")
+        rotating_axes = {"polar": 1, "cylindrical": 2}
+        if self.geometry not in rotating_axes.keys():
+            raise ValueError("Unsuported geometry %s" % self.geometry)
+        raxis = rotating_axes[self.geometry]
+        if self.dimensionality < raxis - 1:
+            raise ValueError("How did we get here ?")
         if deg:
             shift_angle = np.deg2rad(shift_angle)
 
-        for edge in [self.index.grid_left_edge[:, 1], self.index.grid_right_edge[:, 1]]:
+        for edge in [self.index.grid_left_edge[..., raxis], self.index.grid_right_edge[..., raxis]]:
             edge += shift_angle * self.length_unit
             edge %= 2*np.pi * self.length_unit
 
