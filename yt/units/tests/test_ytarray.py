@@ -866,7 +866,7 @@ def binary_ufunc_comparison(ufunc, a, b):
         assert isinstance(out, tuple)
         assert len(out) == len(ret)
         for o, r in zip(out, ret):
-            assert_array_equal(r, o)
+            assert_array_equal(o, r)
     else:
         assert_array_equal(ret, out)
     if (ufunc in (np.divide, np.true_divide, np.arctan2) and
