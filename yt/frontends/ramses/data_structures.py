@@ -260,10 +260,9 @@ class RAMSESDomainSubset(OctreeSubset):
 
     @property
     def fcoords(self):
-        fcoords = super(RAMSESDomainSubset, self).fcoords
         num_ghost_zones = self._num_ghost_zones
         if num_ghost_zones == 0:
-            return fcoords
+            return super(RAMSESDomainSubset, self).fcoords
 
         fcoords_base = self._base_domain.fcoords
         oct_selector = OctreeSubsetSelector(self)
