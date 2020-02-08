@@ -208,8 +208,8 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
             okl = np.isfinite(vl)
             okrl = okl & np.isfinite(vr)
 
-            f = np.where(okrl, (vr - vl) / 2,
-                np.where(okl, vc - vl, vr - vc)) / dt[slice_3d]
+            f = np.where(okrl, (vr - vl),
+                np.where(okl, 2*(vc - vl), 2*(vr - vc))) / dt[slice_3d] / div_fac
 
             new_field = np.zeros_like(data[grad_field], dtype=np.float64)
             new_field = data.ds.arr(new_field, vr.units / dt.units)
