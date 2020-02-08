@@ -1470,26 +1470,29 @@ class Dataset(object):
     def rotate_frame_by(self, shift_angle, deg=False):
         """
         (experimental)
-        Shift azimuth coordinates by *shift_angle*, counter-clockwise, and in radians by default.
+        Shift azimuth coordinate 'theta' by *shift_angle*, counter-clockwise, and in radians by default.
+        This method is supported for polar and cylindrical geometries, not for spherical.
 
         Parameters
         ----------
         shift_angle : float
             angle by which coordinates should be shifted
         deg : bool, optional
-            state that shift_angle is in degrees
+            set to True to use a *shift_angle* in degrees
         """
         rotating_axes = {"polar": 1, "cylindrical": 2}
         if self.geometry not in rotating_axes.keys():
-            raise ValueError("Unsupported geometry '%s'" % self.geometry)
-        raxis = rotating_axes[self.geometry]
+            raise ValueError("Unsupported geometry '%s'." % self.geometry)
 
-        if self.dimensionality < raxis - 1:
-            raise ValueError("Unsupported dimensionality '%s' with geometry '%s'" % (self.dimensionality, self.geometry))
+        theta_axis = rotating_axes[self.geometry]
+
+        if self.dimensionality < theta_axis - 1:
+            raise ValueError("Unsupported dimensionality '%s' with geometry '%s'." % (self.dimensionality, self.geometry))
         if deg:
             shift_angle = np.deg2rad(shift_angle)
 
-        for edge in [self.index.grid_left_edge[..., raxis], self.index.grid_right_edge[..., raxis]]:
+        theta_edges = [self.index.grid_left_edge[..., theta_axis], self.index.grid_right_edge[..., theta_axis]]
+        for edge in theta_edges:
             edge += shift_angle * self.length_unit
             edge %= 2*np.pi * self.length_unit
 
