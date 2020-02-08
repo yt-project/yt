@@ -1481,10 +1481,11 @@ class Dataset(object):
         """
         rotating_axes = {"polar": 1, "cylindrical": 2}
         if self.geometry not in rotating_axes.keys():
-            raise ValueError("Unsuported geometry %s" % self.geometry)
+            raise ValueError("Unsupported geometry '%s'" % self.geometry)
         raxis = rotating_axes[self.geometry]
+
         if self.dimensionality < raxis - 1:
-            raise ValueError("How did we get here ?")
+            raise ValueError("Unsupported dimensionality '%s' with geometry '%s'" % (self.dimensionality, self.geometry))
         if deg:
             shift_angle = np.deg2rad(shift_angle)
 
