@@ -58,6 +58,12 @@ install:
       if [[ $MINIMAL == 1 ]]; then
         $PIP install numpy==1.10.4 cython==0.24
         $PIP install -r tests/test_minimal_requirements.txt
+      elif [[ $MINIMAL == 2 ]]; then
+        # it seems that the first version of numpy that explicitly supported 
+        # python 3.6 was 1.12 so we have different numpy versions for py2 and py3
+        # minimal dependency answer tests
+        $PIP install numpy==1.12.1 cython==0.24
+        $PIP install -r tests/test_minimal_requirements.txt
       else
         # Getting cartopy installed requires getting cython and numpy installed
         # first; this is potentially going to be fixed with the inclusion of
@@ -89,6 +95,12 @@ jobs:
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
+      name: "Python: 3.6 Minimal Dependency Unit Tests"
+      python: 3.6
+      env: MINIMAL=2
+      script: coverage run $(which nosetests) -c nose_unit.cfg
+
+    - stage: tests
       name: "Python: 3.5 Unit Tests"
       python: 3.5
       script: coverage run $(which nosetests) -c nose_unit.cfg
@@ -102,6 +114,13 @@ jobs:
       name: "Python: 2.7 Minimal Dependency Answer Tests"
       python: 2.7
       env: MINIMAL=1
+      script: coverage run $(which nosetests) -c nose_answer.cfg
+      after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
+
+    - stage: tests
+      name: "Python: 3.6 Minimal Dependency Answer Tests"
+      python: 3.6
+      env: MINIMAL=2
       script: coverage run $(which nosetests) -c nose_answer.cfg
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 
