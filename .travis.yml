@@ -83,14 +83,9 @@ jobs:
       script: flake8 yt/
 
     - stage: tests
-      name: "Python: 2.7 Unit Tests"
+      name: "Python: 2.7 Minimal Dependency Unit Tests"
       python: 2.7
       env: MINIMAL=1
-      script: coverage run $(which nosetests) -c nose_unit.cfg
-
-    - stage: tests
-      name: "Python: 2.7 Unit Tests"
-      python: 2.7
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
