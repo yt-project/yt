@@ -29,6 +29,24 @@ ctypedef void sampler_function(
                 int index[3],
                 void *data) nogil
 
+#-----------------------------------------------------------------------------
+# walk_volume(VolumeContainer *vc,  np.float64_t v_pos[3], np.float64_t v_dir[3], sampler_function *sample,
+#             void *data, np.float64_t *return_t = NULL, np.float64_t max_t = 1.0)
+#      vc        VolumeContainer*  : Pointer to the volume container to be traversed.
+#      v_pos     np.float64_t[3]   : The x,y,z coordinates of the ray's origin.
+#      v_dir     np.float64_t[3]   : The x,y,z coordinates of the ray's direction.
+#      sample    sampler_function* : Pointer to the sample function to be used.
+#      return_t  np.float64_t*     : # TODO: Unsure of behavior. Defaulted to NULL.
+#      max_t     np.float64_t      : # TODO: Unsure of behavior. Defaulted to 1.0.
+#
+# Written by the yt Development Team.
+# Encapsulates the Amanatides & Woo "Fast Traversal Voxel Algorithm" to walk over a volume container 'vc'
+# The function occurs in two phases, initialization and traversal. 
+# See: https://www.researchgate.net/publication/2611491_A_Fast_Voxel_Traversal_Algorithm_for_Ray_Tracing
+#
+# TODO: Add more to this. walk_volume is a LARGE function. Breaking this function up into sub-components
+# may lead to better readability and maintenance as well.
+#-----------------------------------------------------------------------------
 cdef int walk_volume(VolumeContainer *vc,
                      np.float64_t v_pos[3],
                      np.float64_t v_dir[3],
@@ -36,4 +54,3 @@ cdef int walk_volume(VolumeContainer *vc,
                      void *data,
                      np.float64_t *return_t = *,
                      np.float64_t max_t = *) nogil
-
