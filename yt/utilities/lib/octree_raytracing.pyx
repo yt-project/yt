@@ -130,6 +130,36 @@ cdef class Ray(object):
             out[i] = self.origin[i] + t * self.direction[i]
         return out
 
+cdef class DomainFinder:
+    cdef np.uint64_t[:] keys
+    cdef np.float64_t bscale
+    cdef int ncpu
+    cdef int bit_length
+
+    def __cinit__(self, ds):
+        self.keys = ds.hilbert['keys'].astype(np.uint64)
+        self.bscale = ds.hilbert['bscale']
+        self.ncpu = ds.parameters['ncpu']
+        self.bit_length = ds.hilbert['bit_length']
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int find_domain(self, np.float64_t[:] pos):
+        cdef int nextDom
+        cdef np.uint64_t ihilbert
+        cdef np.int64_t ix, iy, iz
+
+        ix = <np.uint64_t> (pos[0]*self.bscale)
+        iy = <np.uint64_t> (pos[1]*self.bscale)
+        iz = <np.uint64_t> (pos[2]*self.bscale)
+        ihilbert = hilbert3d_single(ix, iy, iz, self.bit_length)
+
+        # after the loop, nextDom contains the id of the first domain
+        for nextDom in range(1, self.ncpu+1):
+            if ihilbert < self.keys[nextDom]:
+                break
+        return nextDom
+
 
 cpdef ray_step_multioctrees(dict octrees, Ray r, ds):
     # Find entry sparse octree
@@ -148,11 +178,10 @@ cpdef ray_step_multioctrees(dict octrees, Ray r, ds):
     cdef Uint64VectorHolder domainList = Uint64VectorHolder(count)
 
     # Find first domain using hilbert curve
-    cdef int bit_length, i
-    cdef np.float64_t tmin, tin, bscale
-    cdef np.float64_t[:] pos, hilbert_keys
-    cdef np.uint64_t ix, iy, iz
-    cdef np.uint64_t ihilbert
+    cdef int i
+    cdef np.float64_t tmin, tin
+    cdef np.float64_t[:] pos
+    cdef DomainFinder df = DomainFinder(ds)
 
     tin = 0
     for i in range(3):
@@ -161,20 +190,9 @@ cpdef ray_step_multioctrees(dict octrees, Ray r, ds):
         else:
             tin = max(tin, octree.DLE[i] - r.origin[i]) / r.direction[i]
 
-    bscale = ds.hilbert['bscale']
-    keys = ds.hilbert['keys']
-    bit_length = ds.hilbert['bit_length']
     pos = r.at(tin)
 
-    ix = <np.uint64_t> (pos[0]*bscale)
-    iy = <np.uint64_t> (pos[1]*bscale)
-    iz = <np.uint64_t> (pos[2]*bscale)
-    ihilbert = hilbert3d_single(ix, iy, iz, bit_length)
-
-    # after the loop, nextDom contains the id of the first domain
-    for nextDom in range(1, ds.parameters['ncpu']+1):
-        if ihilbert < keys[nextDom]:
-            break
+    nextDom = df.find_domain(pos)
 
     # Other variables
     cdef int nAdded
