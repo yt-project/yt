@@ -43,9 +43,7 @@ ctypedef void sampler_function(
 # Encapsulates the Amanatides & Woo "Fast Traversal Voxel Algorithm" to walk over a volume container 'vc'
 # The function occurs in two phases, initialization and traversal. 
 # See: https://www.researchgate.net/publication/2611491_A_Fast_Voxel_Traversal_Algorithm_for_Ray_Tracing
-#
-# TODO: Add more to this. walk_volume is a LARGE function. Breaking this function up into sub-components
-# may lead to better readability and maintenance as well.
+# Returns: The number of voxels hit during the traversal phase. If the traversal phase is not reached, returns 0.
 #-----------------------------------------------------------------------------
 cdef int walk_volume(VolumeContainer *vc,
                      np.float64_t v_pos[3],
