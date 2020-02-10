@@ -931,10 +931,10 @@ class ImagePlotContainer(PlotContainer):
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            if state in ('on', True):
-                self._cbar_minorticks[field] = True
+            if isinstance(state, str):
+                self._cbar_minorticks[field] = {"on": True, "off": False}[state.lower()]
             else:
-                self._cbar_minorticks[field] = False
+                self._cbar_minorticks[field] = bool(state)
         return self
 
     @invalidate_plot
