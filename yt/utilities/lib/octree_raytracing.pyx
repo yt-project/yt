@@ -154,10 +154,12 @@ cpdef ray_step_multioctrees(dict octrees, Ray r, ds):
     cdef np.uint64_t ix, iy, iz
     cdef np.uint64_t ihilbert
 
-    tin = max((octree.DLE[0] - r.origin[0]) / r.direction[0],
-              (octree.DLE[1] - r.origin[1]) / r.direction[1],
-              (octree.DLE[2] - r.origin[2]) / r.direction[2],
-              0)
+    tin = 0
+    for i in range(3):
+        if r.direction[i] < 0:
+            tin = max(tin, octree.DRE[i] - r.origin[i]) / r.direction[i]
+        else:
+            tin = max(tin, octree.DLE[i] - r.origin[i]) / r.direction[i]
 
     bscale = ds.hilbert['bscale']
     keys = ds.hilbert['keys']
