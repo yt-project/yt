@@ -7,8 +7,9 @@ environment:
       PYTHON: "C:\\Miniconda36-x64"
 
   matrix:
-      - PYTHON_VERSION: "2.7"
       - PYTHON_VERSION: "3.6"
+      - PYTHON_VERSION: "3.7"
+      - PYTHON_VERSION: "3.8"
 
 platform:
     -x64
