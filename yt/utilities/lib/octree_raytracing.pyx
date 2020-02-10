@@ -362,7 +362,7 @@ cdef inline np.uint8_t next_node(const np.uint8_t currNode,
         else:
             return currNode + 1
 
-cdef inline bool isLeaf(const Oct *o, np.uint8_t currNode):
+cdef inline bool isLeaf(const Oct *o, const np.uint8_t currNode):
     return (o.children == NULL) or (o.children[currNode] == NULL)
 
 cdef inline np.uint8_t swap3bits(const np.uint8_t lev):
