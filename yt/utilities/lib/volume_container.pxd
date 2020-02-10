@@ -41,7 +41,7 @@ cdef struct VolumeContainer:
 
 #-----------------------------------------------------------------------------
 # vc_index(VolumeContainer *vc, int i, int j, int k)
-#    vc   VolumeContainer* : Pointer to the volume container to be traversed.
+#    vc   VolumeContainer* : Pointer to the volume container to be indexed.
 #    i    int              : TODO
 #    j    int              : TODO
 #    k    int              : TODO
@@ -53,7 +53,7 @@ cdef inline int vc_index(VolumeContainer *vc, int i, int j, int k):
 
 #-----------------------------------------------------------------------------
 # vc_pos_index(VolumeContainer *vc, np.float64_t *spos)
-#    vc    VolumeContainer* : Pointer to the volume container to be traversed.
+#    vc    VolumeContainer* : Pointer to the volume container to be indexed.
 #    spos  np.float64_t*    : TODO
 #
 # TODO
