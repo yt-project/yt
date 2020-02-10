@@ -56,10 +56,9 @@ install:
     # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       if [[ $MINIMAL == 1 ]]; then
-        # it seems that the first version of numpy that explicitly supported 
-        # python 3.6 was 1.12 so we have different numpy versions for py2 and py3
-        # minimal dependency answer tests
-        $PIP install numpy==1.12.1 cython==0.24
+        # The first numpy to support py3.6 is 1.12, but numpy 1.13 matches 
+        # unyt so we'll match it here. 
+        $PIP install numpy==1.13.3 cython==0.24
         $PIP install -r tests/test_minimal_requirements.txt
       else
         # Getting cartopy installed requires getting cython and numpy installed
