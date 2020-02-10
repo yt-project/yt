@@ -227,19 +227,19 @@ cpdef ray_step_multioctrees(dict octrees, Ray r, ds):
 cpdef int ray_step(SparseOctreeContainer octree, Ray r,
                    vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList,
                    np.float64_t t0, const int curDom):
-    cdef np.uint8_t a = 0
-    cdef np.uint8_t[3] aind
+    cdef np.uint8_t a
     cdef np.int8_t ii
     cdef np.float64_t[3] o, rr, d
     cdef np.float64_t tx0, tx1, ty0, ty1, tz0, tz1, tmin_domain, tmax_domain
     cdef Oct *oct
     cdef int i, nextDom
-    cdef int[3] ind, idx
+    cdef int[3] ind, idx, aind
     cdef np.float64_t[3] dds
 
     nextDom = curDom
     oct = NULL
-    ii = 1
+    ii = 0b100
+    a = 0b000
     for i in range(3):
         if r.direction[i] < 0:
             o[i] = octree.DRE[i] - r.origin[i]
@@ -252,7 +252,7 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
             d[i] = max(1e-99, r.direction[i])
             idx[i] = +1
             aind[i] = 0
-        ii <<= 1
+        ii >>= 1
 
     # Compute intersections with all 6 planes of octree
     tx0 = (octree.DLE[0] - o[0]) / d[0]
