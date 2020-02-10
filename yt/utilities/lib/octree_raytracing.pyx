@@ -274,7 +274,7 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
     tyout = tyin+dty
     tzout = tzin+dtz
 
-    tmin = max(txin, tyin, tzin)
+    tmin = max(txin, tyin, tzin, t0)
     tmax = min(txout, tyout, tzout)
 
     # Loop over all cells until reaching the out face
@@ -283,7 +283,7 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
 
         if oct != NULL and tmax > 0:  # no need to check tmin < tmax, as dtx,dty,dtz > 0
             # Hits, so process subtree
-            nextDom = proc_subtree(txin, tyin, tzin, txout, tyout, tzout,
+            nextDom = proc_subtree(txin, tyin, tzin, txout, tyout, tzout, tmin,
                 oct, a, octList, cellList, tList, curDom)
         if tmax == txout:    # Next x
             ind[0] += idx[0]
@@ -299,8 +299,11 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
             tzout += dtz
 
         # Local in/out ts
-        tmin = max(txin, tyin, tzin)
         tmax = min(txout, tyout, tzout)
+        if tList.size() > 0:
+            tmin = tList.back()
+        else:
+            tmin = max(txin, tyin, tzin, t0)
 
         # When coming from other domain, this is not necessarily true so we want at least one step.
         if nextDom != curDom:
@@ -375,6 +378,7 @@ cdef inline np.uint8_t swap3bits(const np.uint8_t lev):
 cdef int proc_subtree(
         const np.float64_t tx0, const np.float64_t ty0, const np.float64_t tz0,
         const np.float64_t tx1, const np.float64_t ty1, const np.float64_t tz1,
+        const np.float64_t t0,
         const Oct* oct, const int a, vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList,
         const int curDom, int level=0):
     cdef np.uint8_t currNode, nextNode
@@ -385,10 +389,10 @@ cdef int proc_subtree(
 
     if oct == NULL:
         print('This should not happen!')
-        return -1
+        raise Exception()
     nextDom = oct.domain
 
-    if tx1 < 0 or ty1 < 0 or tz1 < 0:
+    if tx1 < t0 or ty1 < t0 or tz1 < t0:
         return oct.domain
 
     if oct.domain != curDom:
