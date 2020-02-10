@@ -210,15 +210,15 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
                    vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList,
                    np.float64_t t0, const int curDom):
     cdef np.uint8_t a = 0
+    cdef np.uint8_t[3] aind
     cdef np.int8_t ii
-    cdef np.float64_t o[3]
-    cdef np.float64_t rr[3]
-    cdef np.float64_t d[3]
+    cdef np.float64_t[3] o, rr, d
     cdef np.float64_t tx0, tx1, ty0, ty1, tz0, tz1, tmin_domain, tmax_domain
     cdef Oct *oct
     cdef int i, nextDom
-    cdef int ind[3]
-    cdef np.float64_t dds[3]
+    cdef int[3] ind, idx
+    cdef np.float64_t[3] dds
+
     nextDom = curDom
     oct = NULL
     ii = 1
@@ -227,9 +227,13 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
             o[i] = octree.DRE[i] - r.origin[i]
             d[i] = max(1e-99, -r.direction[i])
             a |= ii
+            idx[i] = -1
+            aind[i] = octree.nn[i]-1
         else:
             o[i] = r.origin[i]
             d[i] = max(1e-99, r.direction[i])
+            idx[i] = +1
+            aind[i] = 0
         ii <<= 1
 
     # Compute intersections with all 6 planes of octree
@@ -262,9 +266,9 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
     dty = dds[1]/d[1]
     dtz = dds[2]/d[2]
 
-    txin = tx0+ind[0]*dtx
-    tyin = ty0+ind[1]*dty
-    tzin = tz0+ind[2]*dtz
+    txin = tx0+(ind[0]^aind[0])*dtx
+    tyin = ty0+(ind[1]^aind[1])*dty
+    tzin = tz0+(ind[2]^aind[2])*dtz
 
     txout = txin+dtx
     tyout = tyin+dty
@@ -282,15 +286,15 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
             nextDom = proc_subtree(txin, tyin, tzin, txout, tyout, tzout,
                 oct, a, octList, cellList, tList, curDom)
         if tmax == txout:    # Next x
-            ind[0] += 1
+            ind[0] += idx[0]
             txin = txout
             txout += dtx
         elif tmax == tyout:  # Next y
-            ind[1] += 1
+            ind[1] += idx[1]
             tyin = tyout
             tyout += dty
         elif tmax == tzout:  # Next z
-            ind[2] += 1
+            ind[2] += idx[2]
             tzin = tzout
             tzout += dtz
 
