@@ -383,6 +383,7 @@ cdef inline np.uint8_t next_node(const np.uint8_t currNode,
         else:
             return currNode + 1
 
+# Checks if a *cell* is a leaf: either its parent oct has no children, or the cell is not an oct itself
 cdef inline bool isLeaf(const Oct *o, const np.uint8_t currNode):
     return (o.children == NULL) or (o.children[currNode] == NULL)
 
@@ -406,15 +407,14 @@ cdef int proc_subtree(
     cdef int nextDom
 
     if oct == NULL:
-        print('This should not happen!')
-        raise Exception()
+        raise Exception('proc_subtree received a NULL oct. This is likely a bug.')
     nextDom = oct.domain
 
     if tx1 < t0 or ty1 < t0 or tz1 < t0:
         return oct.domain
 
-    if oct.domain != curDom:
-        return oct.domain
+    # Note: we cannot break early if the domain is the wrong one, as leaf cells may point to yet another domain
+    # so we have to explore the octree down to leaf cells and find the first *leaf* that's not in the current domain
 
     # Compute midpoints
     txM = (tx0 + tx1) / 2.
@@ -429,64 +429,69 @@ cdef int proc_subtree(
         leaf = isLeaf(oct, currNode^a)
         # print('%scurrNode=%s %s (%.2f %.2f %.2f) (%.2f %.2f %.2f)' % ('\t'*level, currNode, a, txM, tyM, tzM, tx1, ty1, tz1))
         # Note: there is a bit of code repetition down there (nextNode = ...) but couldn't find a clever way that also efficient
-        if leaf:  # Store information about cell + go to next one
+        if leaf:
             # Need to swap bits before storing as octree is C-style in memory and F-style on file
+            if curDom == nextDom:
+                octList.push_back(oct.domain_ind)
+                cellList.push_back(swap3bits(currNode^a))
 
-            if curDom != nextDom:
-                # print(' =(')
-                raise Exception()
-
-            octList.push_back(oct.domain_ind)
-            cellList.push_back(swap3bits(currNode^a))
             if currNode == 0:
-                tList.push_back(min(txM, tyM, tzM))
+                if curDom == nextDom:
+                    tList.push_back(min(txM, tyM, tzM))
                 nextNode = next_node(currNode, txM, tyM, tzM)
             elif currNode == 1:
-                tList.push_back(min(txM, tyM, tz1))
+                if curDom == nextDom:
+                    tList.push_back(min(txM, tyM, tz1))
                 nextNode = next_node(currNode, txM, tyM, tz1)
             elif currNode == 2:
-                tList.push_back(min(txM, ty1, tzM))
+                if curDom == nextDom:
+                    tList.push_back(min(txM, ty1, tzM))
                 nextNode = next_node(currNode, txM, ty1, tzM)
             elif currNode == 3:
-                tList.push_back(min(txM, ty1, tz1))
+                if curDom == nextDom:
+                    tList.push_back(min(txM, ty1, tz1))
                 nextNode = next_node(currNode, txM, ty1, tz1)
             elif currNode == 4:
-                tList.push_back(min(tx1, tyM, tzM))
+                if curDom == nextDom:
+                    tList.push_back(min(tx1, tyM, tzM))
                 nextNode = next_node(currNode, tx1, tyM, tzM)
             elif currNode == 5:
-                tList.push_back(min(tx1, tyM, tz1))
+                if curDom == nextDom:
+                    tList.push_back(min(tx1, tyM, tz1))
                 nextNode = next_node(currNode, tx1, tyM, tz1)
             elif currNode == 6:
-                tList.push_back(min(tx1, ty1, tzM))
+                if curDom == nextDom:
+                    tList.push_back(min(tx1, ty1, tzM))
                 nextNode = next_node(currNode, tx1, ty1, tzM)
             else:#currNode == 7:
-                tList.push_back(min(tx1, ty1, tz1))
+                if curDom == nextDom:
+                    tList.push_back(min(tx1, ty1, tz1))
                 nextNode = 8
 
         else:  # Go down the tree
             if currNode == 0:
-                nextDom = proc_subtree(tx0, ty0, tz0, txM, tyM, tzM, oct.children[  a], a, octList, cellList, tList, curDom, level+1)
+                nextDom = proc_subtree(tx0, ty0, tz0, txM, tyM, tzM, t0, oct.children[  a], a, octList, cellList, tList, curDom, level+1)
                 nextNode = next_node(currNode, txM, tyM, tzM)
             elif currNode == 1:
-                nextDom = proc_subtree(tx0, ty0, tzM, txM, tyM, tz1, oct.children[1^a], a, octList, cellList, tList, curDom, level+1)
+                nextDom = proc_subtree(tx0, ty0, tzM, txM, tyM, tz1, t0, oct.children[1^a], a, octList, cellList, tList, curDom, level+1)
                 nextNode = next_node(currNode, txM, tyM, tz1)
             elif currNode == 2:
-                nextDom = proc_subtree(tx0, tyM, tz0, txM, ty1, tzM, oct.children[2^a], a, octList, cellList, tList, curDom, level+1)
+                nextDom = proc_subtree(tx0, tyM, tz0, txM, ty1, tzM, t0, oct.children[2^a], a, octList, cellList, tList, curDom, level+1)
                 nextNode = next_node(currNode, txM, ty1, tzM)
             elif currNode == 3:
-                nextDom = proc_subtree(tx0, tyM, tzM, txM, ty1, tz1, oct.children[3^a], a, octList, cellList, tList, curDom, level+1)
+                nextDom = proc_subtree(tx0, tyM, tzM, txM, ty1, tz1, t0, oct.children[3^a], a, octList, cellList, tList, curDom, level+1)
                 nextNode = next_node(currNode, txM, ty1, tz1)
             elif currNode == 4:
-                nextDom = proc_subtree(txM, ty0, tz0, tx1, tyM, tzM, oct.children[4^a], a, octList, cellList, tList, curDom, level+1)
+                nextDom = proc_subtree(txM, ty0, tz0, tx1, tyM, tzM, t0, oct.children[4^a], a, octList, cellList, tList, curDom, level+1)
                 nextNode = next_node(currNode, tx1, tyM, tzM)
             elif currNode == 5:
-                nextDom = proc_subtree(txM, ty0, tzM, tx1, tyM, tz1, oct.children[5^a], a, octList, cellList, tList, curDom, level+1)
+                nextDom = proc_subtree(txM, ty0, tzM, tx1, tyM, tz1, t0, oct.children[5^a], a, octList, cellList, tList, curDom, level+1)
                 nextNode = next_node(currNode, tx1, tyM, tz1)
             elif currNode == 6:
-                nextDom = proc_subtree(txM, tyM, tz0, tx1, ty1, tzM, oct.children[6^a], a, octList, cellList, tList, curDom, level+1)
+                nextDom = proc_subtree(txM, tyM, tz0, tx1, ty1, tzM, t0, oct.children[6^a], a, octList, cellList, tList, curDom, level+1)
                 nextNode = next_node(currNode, tx1, ty1, tzM)
             else:#currNode == 7:
-                nextDom = proc_subtree(txM, tyM, tzM, tx1, ty1, tz1, oct.children[7  ], a, octList, cellList, tList, curDom, level+1)
+                nextDom = proc_subtree(txM, tyM, tzM, tx1, ty1, tz1, t0, oct.children[7  ], a, octList, cellList, tList, curDom, level+1)
                 nextNode = 8
 
     return nextDom
