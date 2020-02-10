@@ -124,11 +124,74 @@ cdef class Ray(object):
     def end(self):
         return self.at(self.length)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     cpdef np.ndarray[np.float64_t, ndim=1] at(self, np.float64_t t):
         cdef np.ndarray[np.float64_t, ndim=1] out = np.empty(3)
         for i in range(3):
             out[i] = self.origin[i] + t * self.direction[i]
         return out
+
+    @cython.boundscheck(False) # turn of bounds-checking for entire function
+    @cython.wraparound(False)  # turn of bounds-checking for entire function
+    cpdef void trilinear(self, const np.float64_t tmin, const np.float64_t tmax,
+                         const np.float64_t[:, :, :] data_in, 
+                         np.float64_t[:, :, :] data_out,
+                         const np.float64_t[:] DLE,
+                         const np.float64_t Deltax,
+                         const int npt):
+        """Interpolate npoint between tin and tout, given vertex-centred data.
+        
+        Parameters
+        ----------
+        tmin, tmax : float
+        DLE : array (3,)
+            The origin of the cell
+        Deltax : float
+            The size of the cell
+        data_in : array (2, 2, 2)
+            Vertex-centred data around the cell of interest
+        data_out : array (npt, )
+            The data (modified in-place)
+        """
+        cdef int i
+        cdef np.float64_t dt
+        cdef np.float64_t x0, y0, z0, x1, y1, z1, dx, dy, dz
+
+        dt = (tmax-tmin)/npt
+
+        dx = self.direction[0]/Deltax
+        dy = self.direction[1]/Deltax
+        dz = self.direction[2]/Deltax
+
+        x0 = (self.origin[0]-DLE[0]) / Deltax + tmin*dx
+        y0 = (self.origin[1]-DLE[1]) / Deltax + tmin*dy
+        z0 = (self.origin[2]-DLE[2]) / Deltax + tmin*dz
+
+        x1 = 1-x0
+        y1 = 1-y0
+        z1 = 1-z0
+
+        for i in range(npt):
+            # Tri-linear interpolation
+            data_out[i] = (
+                data_in[0,0,0] * x1 * y1 * z1 +
+                data_in[1,0,0] * x0 * y1 * z1 +
+                data_in[0,1,0] * x1 * y0 * z1 +
+                data_in[1,1,0] * x0 * y0 * z1 +
+                data_in[0,0,1] * x1 * y1 * z0 +
+                data_in[1,0,1] * x0 * y1 * z0 +
+                data_in[0,1,1] * x1 * y0 * z0 +
+                data_in[1,1,1] * x0 * y0 * z0
+            )
+
+            x0 += dt*dx
+            y0 += dt*dy
+            z0 += dt*dz
+
+            x1 = 1-x0
+            y1 = 1-y0
+            z1 = 1-z0
 
 cdef class DomainFinder:
     cdef np.uint64_t[:] keys
