@@ -104,6 +104,16 @@ jobs:
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
+      name: "Python: 3.7 Unit Tests"
+      python: 3.7
+      script: coverage run $(which nosetests) -c nose_unit.cfg
+
+    - stage: tests
+      name: "Python: 3.8 Unit Tests"
+      python: 3.8
+      script: coverage run $(which nosetests) -c nose_unit.cfg
+
+    - stage: tests
       name: "Python: 2.7 Minimal Dependency Answer Tests"
       python: 2.7
       env: MINIMAL=1
