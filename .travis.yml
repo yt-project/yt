@@ -97,13 +97,6 @@ jobs:
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
-      name: "Python: 3.6 Minimal Dependency Answer Tests"
-      python: 3.6
-      env: MINIMAL=1
-      script: coverage run $(which nosetests) -c nose_answer.cfg
-      after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
-
-    - stage: tests
       name: "Python: 3.6 Answer Tests"
       python: 3.6
       script: coverage run $(which nosetests) -c nose_answer.cfg
