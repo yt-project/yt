@@ -135,13 +135,13 @@ cdef class Ray(object):
     @cython.boundscheck(False) # turn of bounds-checking for entire function
     @cython.wraparound(False)  # turn of bounds-checking for entire function
     cpdef void trilinear(self, const np.float64_t tmin, const np.float64_t tmax,
-                         const np.float64_t[:, :, :] data_in, 
-                         np.float64_t[:, :, :] data_out,
+                         const np.float64_t[:, :, :] data_in,
+                         np.float64_t[:] data_out,
                          const np.float64_t[:] DLE,
                          const np.float64_t Deltax,
                          const int npt):
         """Interpolate npoint between tin and tout, given vertex-centred data.
-        
+
         Parameters
         ----------
         tmin, tmax : float
