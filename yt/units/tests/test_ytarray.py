@@ -828,7 +828,10 @@ def unary_ufunc_comparison(ufunc, a):
 
 
 def binary_ufunc_comparison(ufunc, a, b):
-    out = a.copy()
+    if ufunc in [np.divmod]:
+        out = (a.copy(), a.copy())
+    else:
+        out = a.copy()
     if ufunc in yield_np_ufuncs([
             'add', 'subtract', 'remainder', 'fmod', 'mod', 'arctan2', 'hypot',
             'greater', 'greater_equal', 'less', 'less_equal', 'equal',
@@ -860,7 +863,10 @@ def binary_ufunc_comparison(ufunc, a, b):
         assert_true(not isinstance(ret, YTArray) and
                     isinstance(ret, np.ndarray))
     if isinstance(ret, tuple):
-        assert_array_equal(ret[0], out)
+        assert isinstance(out, tuple)
+        assert len(out) == len(ret)
+        for o, r in zip(out, ret):
+            assert_array_equal(o, r)
     else:
         assert_array_equal(ret, out)
     if (ufunc in (np.divide, np.true_divide, np.arctan2) and
