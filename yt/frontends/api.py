@@ -17,6 +17,7 @@ import sys, types, os, glob, time, importlib
 from yt.extern.six.moves import cPickle as pickle
 
 _frontends = [
+    'adaptahop',
     'ahf',
     'amrvac',
     'art',
@@ -26,8 +27,8 @@ _frontends = [
     'boxlib',
     'chombo',
     'eagle',
-    'enzo',
     'enzo_p',
+    'enzo',
     'exodus_ii',
     'fits',
     'flash',
