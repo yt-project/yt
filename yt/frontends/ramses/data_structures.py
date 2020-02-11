@@ -2,6 +2,7 @@ import os
 import numpy as np
 import stat
 import weakref
+import warnings
 from collections import defaultdict
 from glob import glob
 
@@ -193,6 +194,8 @@ class RAMSESDomainSubset(OctreeSubset):
         self._base_grid = base_grid
 
         if num_ghost_zones > 0:
+            if not all(ds.periodicity):
+                warnings.warn('Ghost zones will wrongly assume the domain to be periodic.')
             # Create a base domain *with no self._base_domain.fwidth
             base_domain = RAMSESDomainSubset(ds.all_data(), domain, ds, over_refine_factor)
             self._base_domain = base_domain
