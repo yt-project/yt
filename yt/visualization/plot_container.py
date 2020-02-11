@@ -906,17 +906,9 @@ class ImagePlotContainer(PlotContainer):
 
     @invalidate_plot
     def set_cbar_minorticks(self, field, state):
-        """Deprecated alias, kept for backward compatibility."""
-        from yt.funcs import mylog
-        mylog.warning("Deprecated alias, use set_colorbar_minorticks instead.")
-        return self.set_colorbar_minorticks(field, state)
+        """Deprecated alias, kept for backward compatibility.
 
-    @invalidate_plot
-    def set_colorbar_minorticks(self, field, state):
-        """turn colorbar minor ticks on or off in the current plot
-
-        Displaying minor ticks reduces performance; turn them off
-        using set_colorbar_minorticks('all', 'off') if drawing speed is a problem.
+        turn colorbar minor ticks "on" or "off" in the current plot, according to *state*
 
         Parameters
         ----------
@@ -924,17 +916,33 @@ class ImagePlotContainer(PlotContainer):
             the field to remove colorbar minorticks
         state : string
             the state indicating 'on' or 'off'
+        """
+        from yt.funcs import mylog
+        mylog.warning("Deprecated alias, use set_colorbar_minorticks instead.")
 
+        boolstate = {"on": True, "off": False}[state.lower()]
+        return self.set_colorbar_minorticks(field, boolstate)
+
+    @invalidate_plot
+    def set_colorbar_minorticks(self, field, state):
+        """turn colorbar minor ticks on or off in the current plot
+
+        Displaying minor ticks reduces performance; turn them off
+        using set_colorbar_minorticks('all', False) if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove colorbar minorticks
+        state : bool
+            the state indicating 'on' (True) or 'off' (False)
         """
         if field == 'all':
             fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            if isinstance(state, str):
-                self._cbar_minorticks[field] = {"on": True, "off": False}[state.lower()]
-            else:
-                self._cbar_minorticks[field] = bool(state)
+            self._cbar_minorticks[field] = state
         return self
 
     @invalidate_plot
