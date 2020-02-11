@@ -308,6 +308,8 @@ trigonometric_operators = (
     sin, cos, tan,
 )
 
+multiple_output_operators = {modf: 2, frexp: 2, divmod_: 2}
+
 class YTArray(np.ndarray):
     """
     An ndarray subclass that attaches a symbolic unit object to the array data.
@@ -1370,9 +1372,25 @@ class YTArray(np.ndarray):
             func = getattr(ufunc, method)
             if 'out' in kwargs:
                 out_orig = kwargs.pop('out')
-                out = np.asarray(out_orig[0])
+                if ufunc in multiple_output_operators:
+                    outs = []
+                    for arr in out_orig:
+                        outs.append(arr.view(np.ndarray))
+                    out = tuple(outs)
+                else:
+                    out_element = out_orig[0]
+                    if out_element.dtype.kind in ("u", "i"):
+                        new_dtype = "f" + str(out_element.dtype.itemsize)
+                        float_values = out_element.astype(new_dtype)
+                        out_element.dtype = new_dtype
+                        np.copyto(out_element, float_values)
+                    out = out_element.view(np.ndarray)
             else:
-                out = None
+                if ufunc in multiple_output_operators:
+                    num_outputs = multiple_output_operators[ufunc]
+                    out = (None,) * num_outputs
+                else:
+                    out = None
             if len(inputs) == 1:
                 _, inp, u = get_inp_u_unary(ufunc, inputs)
                 out_arr = func(np.asarray(inp), out=out, **kwargs)
@@ -1439,14 +1457,15 @@ class YTArray(np.ndarray):
                 else:
                     out_arr = ret_class(np.asarray(out_arr), unit)
             if out is not None:
-                out_orig[0].flat[:] = out.flat[:]
-                if isinstance(out_orig[0], YTArray):
-                    out_orig[0].units = unit
+                if ufunc not in multiple_output_operators:
+                    out_orig[0].flat[:] = out.flat[:]
+                    if isinstance(out_orig[0], YTArray):
+                        out_orig[0].units = unit
             return out_arr
 
         def copy(self, order='C'):
             return type(self)(np.copy(np.asarray(self)), self.units)
-    
+
     def __array_finalize__(self, obj):
         if obj is None and hasattr(self, 'units'):
             return
