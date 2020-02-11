@@ -372,6 +372,12 @@ cdef class BaseNeighbourVisitor(OctVisitor):
             else:
                 fcoords[i] = (c + 0.5) * dx / self.octree.nn[i]
 
+            # Assuming periodicity
+            if fcoords[i] < 0:
+                fcoords[i] += 1
+            elif fcoords[i] > 1:
+                fcoords[i] -= 1
+
         # Use octree to find neighbour
         neighbour = self.octree.get(fcoords, &self.oi, max_level=self.level)
 
@@ -507,6 +513,11 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
         for i in range(3):
             c = <np.float64_t> (self.pos[i] << self.oref)
             fcoords[i] = (c + 0.5 + ishift[i]) * dx / self.octree.nn[i]
+            # Assuming periodicity
+            if fcoords[i] < 0:
+                fcoords[i] += 1
+            elif fcoords[i] > 1:
+                fcoords[i] -= 1
             local_oct &= (0 <= ishift[i] <= 1)
         other_oct = not local_oct
 
