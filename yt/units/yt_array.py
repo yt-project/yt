@@ -1517,6 +1517,12 @@ class YTArray(np.ndarray):
             lut.update(default_unit_symbol_lut)
             for k, v in [(k, v) for k, v in lut.items() if len(v) == 2]:
                 lut[k] = v + (0.0, r'\rm{' + k.replace('_', '\ ') + '}')
+        # sympy 1.5 added new assumptions, making dimensions not compare
+        # as equal, so we update the loaded assumptions based on the assumptions
+        # for angle. I could have used any dimension, angle just
+        # happened to already be imported in this file
+        for v in lut.values():
+            v[1]._assumptions.update(angle._assumptions)
         registry = UnitRegistry(lut=lut, add_default_symbols=False)
         self.units = Unit(unit, registry=registry)
 
