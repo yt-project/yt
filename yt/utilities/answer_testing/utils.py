@@ -286,8 +286,8 @@ def _save_arrays(save_dir_name, fbasename, arrays, answer_store):
         answer_store : bool
             If true, save the just-generated test results, otherwise,
             compare them to the previously saved results.
-        """
-        pass
+    """
+    pass
 
 
 def can_run_ds(ds_fn, file_check = False):
