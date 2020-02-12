@@ -21,10 +21,10 @@ def load_sample(name=None, specific_file=None):
     name : str or None
         The name of the sample data to load. This is generally the name of the
         folder of the dataset. For IsolatedGalaxy, the name would be
-        `IsolatedGalaxy`.  If `None` is supplied, the return vaqlue
+        `IsolatedGalaxy`.  If `None` is supplied, the return value
         will be a list of all known datasets (by name).
 
-    specific_file : str, optionaal
+    specific_file : str, optional
         optional argument -- the name of the file to load that is located
         within sample dataset of `name`. For the dataset `enzo_cosmology_plus`,
         which has a number of timesteps available, one may wish to choose
