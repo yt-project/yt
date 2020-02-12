@@ -158,16 +158,15 @@ cdef class BaseNeighbourVisitor(OctVisitor):
     cdef OctreeContainer octree
     cdef OctInfo oi
 
-    cdef void set_neighbour_oct(self, Oct* o)
-    cdef void get_neighbour_cell_index(self, Oct* o, np.uint8_t selected)
+    cdef void set_neighbour_info(self, Oct *o, int ishift[3])
 
     cdef inline np.uint8_t neighbour_rind(self):
         cdef int d = (1 << self.oref)
         return (((self.neigh_ind[2]*d)+self.neigh_ind[1])*d+self.neigh_ind[0])
 
-cdef class NeighbourVisitor(BaseNeighbourVisitor):
-    cdef np.int64_t[:,:,:,:] cell_inds
-    cdef np.int64_t[:,:,:,:] neigh_cell_inds
+cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
+    cdef np.uint8_t[:] cell_inds
+    cdef np.int64_t[:] domain_inds
 
 cdef class FillFileIndicesRNeighbour(BaseNeighbourVisitor):
     cdef np.uint8_t[:] shifted_levels
@@ -181,4 +180,3 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
     cdef np.uint8_t[:] cell_inds
     cdef np.int32_t[:] domains
 
-    cdef void set_neighbour_info(self, Oct *o, int ishift[3])

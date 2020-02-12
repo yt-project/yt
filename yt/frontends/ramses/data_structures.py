@@ -267,36 +267,21 @@ class RAMSESDomainSubset(OctreeSubset):
         if num_ghost_zones == 0:
             return super(RAMSESDomainSubset, self).fcoords
 
-        fcoords_base = self._base_domain.fcoords
-        oct_selector = OctreeSubsetSelector(self)
         oh = self.oct_handler
 
-        n_oct = fcoords_base.size // 3 // 8
-        new_fcoords = np.full((n_oct, 4, 4, 4, 3), np.nan)
+        indices = oh.fill_index(self.selector).reshape(-1, 8)
+        oinds, cinds = oh.fill_octcellindex_neighbours(self.selector)
 
-        icell = oh.fill_index(oct_selector)
-        Ncell = icell.size
+        oinds = oinds.reshape(-1, 64)
+        cinds = cinds.reshape(-1, 64)
 
-        for idim in range(3):
-            for idir in (-1, 1):
-                ishift_all = [1, 1, 1]
-                ishift_all[idim] += idir
+        inds = indices[oinds, cinds]
 
-                nicell = oh.neighbours_in_direction(idim, idir, icell).reshape(-1)
+        fcoords = self.ds.arr(
+            oh.fcoords(self.selector)[inds].reshape(-1, 3),
+            'unitary')
 
-                tmp = np.full((n_oct * 2 * 2 * 2, 3), np.nan)
-
-                oh.copy_neighbour_data(
-                    icell.reshape(-1), nicell,
-                    fcoords_base, tmp, Ncell)
-
-                _slice = tuple([slice(None)] +
-                            [slice(i, i+2) for i in ishift_all] +
-                            [slice(None)])
-                new_fcoords[_slice] = tmp.reshape(n_oct, 2, 2, 2, -1)
-        new_fcoords = self.ds.arr(new_fcoords, fcoords_base.units)
-        return new_fcoords
-
+        return fcoords
 
     def fill(self, fd, fields, selector, file_handler):
         if self._num_ghost_zones == 0:

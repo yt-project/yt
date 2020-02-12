@@ -12,7 +12,7 @@ cimport numpy as np
 import numpy as np
 from selection_routines cimport SelectorObject, AlwaysSelector
 from libc.math cimport floor, ceil
-from yt.geometry.oct_visitors cimport OctPadded, NeighbourCellVisitor, StoreIndex, NeighbourVisitor
+from yt.geometry.oct_visitors cimport OctPadded, NeighbourCellVisitor, StoreIndex, NeighbourCellIndexVisitor
 
 
 ORDER_MAX = 20
@@ -743,7 +743,7 @@ cdef class OctreeContainer:
         """Get the on-file index of each cell"""
         cdef StoreIndex visitor
 
-        cdef np.int64_t[:, :, :, :] cell_inds,
+        cdef np.int64_t[:, :, :, :] cell_inds
 
         cell_inds = np.full((self.nocts, 2, 2, 2), -1, dtype=np.int64)
 
@@ -754,24 +754,48 @@ cdef class OctreeContainer:
 
         return np.asarray(cell_inds)
 
-    def neighbours_in_direction(self, int idim, int direction,
-                                np.int64_t[:, :, :, :] cell_inds):
-        """Return index on file of all neighbours in a given direction"""
-        cdef SelectorObject always_selector = AlwaysSelector(None)
+    def fill_octcellindex_neighbours(self, SelectorObject selector, int num_octs = -1, domain_id = -1):
+        """Compute the oct and cell indices of all the cells within all selected octs, extended
+        by one cell in all directions (for ghost zones computations).
 
-        # Store the index of the neighbour
-        cdef NeighbourVisitor n_visitor
-        cdef np.ndarray[np.int64_t, ndim=4] neigh_cell_inds = np.full_like(cell_inds, -1)
-        n_visitor = NeighbourVisitor(self, -1)
-        n_visitor.idim = idim
-        n_visitor.direction = direction
-        n_visitor.cell_inds = cell_inds
-        n_visitor.neigh_cell_inds = neigh_cell_inds
-        n_visitor.octree = self
-        n_visitor.last = -1
-        self.visit_all_octs(always_selector, n_visitor)
+        Parameters
+        ----------
+        selector : SelectorObject
+            Selector for the octs to compute neighbour of
+        num_octs : int, optional
+            The number of octs to read in
+        domain_id : int, optional
+            The domain to perform the selection over
 
-        return np.asarray(neigh_cell_inds)
+        Returns
+        -------
+        oct_inds : int64 ndarray (nocts*8, )
+            The on-domain index of the octs containing each cell
+        cell_inds : uint8 array (nocts*8, )
+            The index of the cell in its parent oct
+
+        Note
+        ----
+        oct_inds/cell_inds
+        """
+        if num_octs == -1:
+            num_octs = selector.count_octs(self, domain_id)
+
+        cdef NeighbourCellIndexVisitor visitor
+
+        cdef np.uint8_t[:] cell_inds
+        cdef np.int64_t[:] oct_inds
+
+        cell_inds = np.full(num_octs*4**3, 8, dtype=np.uint8)
+        oct_inds = np.full(num_octs*4**3, -1, dtype=np.int64)
+
+        visitor = NeighbourCellIndexVisitor(self, -1)
+        visitor.cell_inds = cell_inds
+        visitor.domain_inds = oct_inds
+
+        self.visit_all_octs(selector, visitor)
+
+        return np.asarray(oct_inds), np.asarray(cell_inds)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
