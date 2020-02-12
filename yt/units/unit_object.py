@@ -440,7 +440,7 @@ class Unit(Expr):
         # test first for 'is' equality to avoid expensive sympy operation
         if self.dimensions is other_unit.dimensions:
             return True
-        return (self.dimensions / other_unit.dimensions) == sympy_one
+        return self.dimensions == other_unit.dimensions
 
     @property
     def is_dimensionless(self):
