@@ -11,7 +11,6 @@ from yt.funcs import \
     setdefaultattr
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
-from yt.geometry.selection_routines import OctreeSubsetSelector
 
 from yt.geometry.geometry_handler import \
     YTDataChunk
