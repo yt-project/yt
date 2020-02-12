@@ -125,7 +125,7 @@ def _hash_results(results):
     for test_name, test_value in results.items():
         # These tests have issues with python-specific anchors and so
         # are already hashed
-        # (see their definitions in yt/utilites/answer_testing/framework.py)
+        # (see their definitions in yt/utilites/answer_testing/answer_tests.py)
         if test_name in ['projection_values', 'pixelized_projection_values', 'grid_values']:
             continue
         else:
@@ -262,6 +262,32 @@ def _handle_hashes(save_dir_name, fname, hashes, answer_store):
     # Compare to already saved results
     else:
         _compare_result(hashes, answer_file)
+
+
+def _save_arrays(save_dir_name, fbasename, arrays, answer_store):
+    r"""
+    Driver routine for either saving the raw arrays resulting from the
+    tests, or compare them to previously saved results.
+
+    Parameters:
+    -----------
+        save_dir_name : str
+            Name of the directory to save results or where results are
+            already saved.
+
+        fbasename : str
+            Base name (no extension) of the file to either save results
+            to or where results are already saved.
+
+        arrays : dict
+            The raw arrays generated from the tests, with the test name
+            as a key.
+
+        answer_store : bool
+            If true, save the just-generated test results, otherwise,
+            compare them to the previously saved results.
+        """
+        pass
 
 
 def can_run_ds(ds_fn, file_check = False):
