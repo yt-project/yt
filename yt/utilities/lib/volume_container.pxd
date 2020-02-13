@@ -52,17 +52,17 @@ cdef struct VolumeContainer:
 # and then simplified (as shown below) by combining one multiplication operation.
 #
 # 2-dimensional example:
-#       A 3 x 3 array may be represented as: 
-#                                  [1, 2, 3
-#                                   4, 5, 6
-#                                   7, 8, 9]
-#       or similarly, in a flat container as:
-#                [1, 2, 3, 4, 5, 6, 7, 8, 9]
+#       A 4 x 3 array may be represented as: 
+#                                      a = [0,  1,  2,  3,
+#                                           4,  5,  6,  7,
+#                                           8,  9,  10, 11]
+#       or similarly, in a flat container in row-successive order as:
+#                          a = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 #
-# To access the middle coordinate (5) in the flat container, we'd input the (i, j) coordinates as: (1, 1)
-#       This gives us:    i * dims[0] * dims[1] + j
-#                       = 1 *   2     *    2    + 1
-#                       = 5
+# To access the coordinate at (1,1) in the flat container:
+#                         i * dims[1] + j
+#                       = 1 *   3     + 1
+#                       = 4
 # The 3-dimensional case (presented below) is similar.
 #-----------------------------------------------------------------------------
 cdef inline int vc_index(VolumeContainer *vc, int i, int j, int k):
