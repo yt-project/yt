@@ -96,10 +96,11 @@ def _validate_sampledata_name(name):
     """
 
     if not isinstance(name, str):
-        mylog.error("The argument passed to load_sample() is not a string.")
+        mylog.error("The argument {} passed to ".format(name) + \
+                    "load_sample() is not a string.")
 
     # now get the extension if it exists
-    base,ext = os.path.splitext(name)
+    base, ext = os.path.splitext(name)
     if ext == '':
         # Right now we are assuming that any name passed without an explicit
         # extension is packed in a tarball. This logic can be modified later to
@@ -111,7 +112,7 @@ def _validate_sampledata_name(name):
         fileext = name
         basename = os.path.splitext(base)[0]
         extension = "tar"
-    elif ext == ".h5" or ext == ".hdf5":
+    elif ext in [".h5", ".hdf5"]:
         fileext = name
         basename = base
         extension = "h5"

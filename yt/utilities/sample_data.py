@@ -29,7 +29,7 @@ class Fido:
     Container for a pooch object used to fetch remote data that isn't
     already stored locally.
     """
-    def __init__(self, filename = "sample_data_registry.json", cache_dir = None):
+    def __init__(self, filename="sample_data_registry.json", cache_dir=None):
         self.filename = filename
         self._registry = json.load(pkg_resources.resource_stream("yt", self.filename))
         if cache_dir is None:
