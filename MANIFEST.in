@@ -10,4 +10,5 @@ include doc/extensions/README doc/Makefile
 prune doc/source/reference/api/generated
 prune doc/build
 recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
+include yt/sample_data_registry.json
 prune yt/frontends/_skeleton

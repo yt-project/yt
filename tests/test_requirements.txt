@@ -22,3 +22,4 @@ mpi4py==3.0.0
 unyt==2.2.2
 pyyaml>=4.2b1
 MiniballCpp>=0.2.1
+pooch>=0.7.0

@@ -38,6 +38,7 @@ INST_ASTROPY=0  # Install astropy?
 INST_CARTOPY=0  # Install cartopy?
 INST_NOSE=1     # Install nose?
 INST_NETCDF4=1  # Install netcdf4 and its python bindings?
+INST_POOCH=1    # Install pooch?
 INST_HG=0       # Install Mercurial or not?
 
 # This is the branch we will install from for INST_YT_SOURCE=1
@@ -139,6 +140,7 @@ function write_config
     echo INST_ASTROPY=${INST_ASTROPY} >> ${CONFIG_FILE}
     echo INST_CARTOPY=${INST_CARTOPY} >> ${CONFIG_FILE}
     echo INST_NOSE=${INST_NOSE} >> ${CONFIG_FILE}
+    echo INST_POOCH=${INST_POOCH} >> ${CONFIG_FILE}
 
     echo YT_DIR=${YT_DIR} >> ${CONFIG_FILE}
 }
@@ -333,6 +335,10 @@ printf "%-18s = %s so I " "INST_NOSE" "${INST_NOSE}"
 get_willwont ${INST_NOSE}
 echo "be installing nose"
 
+printf "%-18s = %s so I " "INST_POOCH" "${INST_POOCH}"
+get_willwont ${INST_POOCH}
+echo "be installing pooch"
+
 echo
 
 echo
@@ -504,6 +510,10 @@ fi
 if [ $INST_CARTOPY -ne 0 ]
 then
     YT_DEPS+=('cartopy')
+fi
+if [ $INST_POOCH -ne 0 ]
+then
+    YT_DEPS+=('pooch')
 fi
 YT_DEPS+=('conda-build')
 if [ $INST_PY3 -eq 0 ] && [ $INST_HG -eq 1 ]
