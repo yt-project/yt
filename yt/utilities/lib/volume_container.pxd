@@ -16,22 +16,21 @@ A volume container
 
 cimport numpy as np
 
-
 #-----------------------------------------------------------------------------
 # Encapsulates a volume container used for volume rendering.
 #
-#    n_fields       int              : TODO
-#    data           np.float65_t**   : TODO
-#    mask           np.uint8_t*      : TODO
-#    left_edge      np.float64_t[3]  : The left edge of the volume container.
-#    right_edge     np.float64_t[3]  : The right edge of the volume container.
-#    np.float64_t   dds[3]           : TODO
-#    dims           int[3]           : TODO
+#    n_fields       int              : The number of fields within the volume container.
+#    data           np.float64_t**   : The data within the volume container.
+#    mask           np.uint8_t*      : The mask of the volume container. It has dimensions one fewer in each direction than data.
+#    left_edge      np.float64_t[3]  : The left edge of the volume container's bounding box.
+#    right_edge     np.float64_t[3]  : The right edge of the volume container's bounding box.
+#    np.float64_t   dds[3]           : The delta dimensions, such that dds[0] = ddx, dds[1] = ddy, dds[2] = ddz.
+#    np.float64_t   idds[3]          : The inverse delta dimensions. Same as dds pattern, but the inverse. i.e. dds[0] = inv_ddx.
+#    dims           int[3]           : The dimensions of the volume container. dims[0] = x, dims[1] = y, dims[2] = z.
 #-----------------------------------------------------------------------------
 cdef struct VolumeContainer:
     int n_fields
     np.float64_t **data
-    # The mask has dimensions one fewer in each direction than data
     np.uint8_t *mask
     np.float64_t left_edge[3]
     np.float64_t right_edge[3]
@@ -42,26 +41,36 @@ cdef struct VolumeContainer:
 #-----------------------------------------------------------------------------
 # vc_index(VolumeContainer *vc, int i, int j, int k)
 #    vc   VolumeContainer* : Pointer to the volume container to be indexed.
-#    i    int              : TODO
-#    j    int              : TODO
-#    k    int              : TODO
+#    i    int              : The first dimension coordinate.
+#    j    int              : The second dimension coordinate.
+#    k    int              : The third dimension coordinates.
 #
-# TODO
+# Returns the 3-dimensional index in the volume container given coordinates i, j, k.
+# This is used for 3-dimensional access in a flat container using C-ordering.
+# This is calculated by: 
+#       vc_index = i * vc.dim[1] * vc.dims[2] + j * vc.dims[2] + k
+# and then simplified (as shown below) by combining one multiplication operation.
+#
+# 2-dimensional example:
+#       A 3 x 3 array may be represented as: 
+#                                  [1, 2, 3
+#                                   4, 5, 6
+#                                   7, 8, 9]
+#       or similarly, in a flat container as:
+#                [1, 2, 3, 4, 5, 6, 7, 8, 9]
+#
+# To access the middle coordinate (5) in the flat container, we'd input the (i, j) coordinates as: (1, 1)
+#       This gives us:    i * dims[0] * dims[1] + j
+#                       = 1 *   2     *    2    + 1
+#                       = 5
+# The 3-dimensional case (presented below) is similar.
 #-----------------------------------------------------------------------------
 cdef inline int vc_index(VolumeContainer *vc, int i, int j, int k):
     return (i*vc.dims[1]+j)*vc.dims[2]+k
 
-#-----------------------------------------------------------------------------
-# vc_pos_index(VolumeContainer *vc, np.float64_t *spos)
-#    vc    VolumeContainer* : Pointer to the volume container to be indexed.
-#    spos  np.float64_t*    : TODO
-#
-# TODO
-#-----------------------------------------------------------------------------
 cdef inline int vc_pos_index(VolumeContainer *vc, np.float64_t *spos):
     cdef int index[3]
     cdef int i
     for i in range(3):
         index[i] = <int> ((spos[i] - vc.left_edge[i]) * vc.idds[i])
     return vc_index(vc, index[0], index[1], index[2])
-
