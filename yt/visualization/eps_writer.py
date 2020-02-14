@@ -1375,7 +1375,7 @@ def return_colormap(cmap=None, label="", crange=(0,1), log=False):
 
     Examples
     --------
-    >>> cb = return_cmap("arbre", "Density [cm$^{-3}$]", (0,10), False)
+    >>> cb = return_colormap("arbre", "Density [cm$^{-3}$]", (0,10), False)
     """
     if cmap is None:
         cmap = ytcfg.get("yt", "default_colormap")
