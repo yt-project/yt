@@ -12,7 +12,12 @@ cimport cython
 from libc.stdlib cimport malloc, calloc, free, abs
 from libc.math cimport exp, floor, log2, \
     fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
+from libcpp.vector cimport vector
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
+from yt.utilities.lib.octree_raytracing cimport ray_step, DomainDecomposition_find_domain
+from yt.geometry.oct_container cimport SparseOctreeContainer
+from yt.frontends.ramses.io_utils cimport hilbert3d_single
+
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
@@ -174,6 +179,130 @@ cdef class ImageSampler:
             free(idata)
             free(v_pos)
             free(v_dir)
+        return hit
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def call_octrees(self, ds, dict octrees, int num_threads = 0):
+        cdef int vi, vj, hit, i, j
+        cdef np.int64_t iter[4]
+        cdef VolumeContainer *vc = NULL # TODO
+        # self.setup(pg) # TODO
+        cdef np.float64_t *v_pos
+        cdef np.float64_t *v_dir
+        cdef np.float64_t max_t
+        hit = 0
+        cdef np.int64_t nx, ny, size
+        self.extent_function(self, vc, iter)
+        iter[0] = i64clip(iter[0]-1, 0, self.nv[0])
+        iter[1] = i64clip(iter[1]+1, 0, self.nv[0])
+        iter[2] = i64clip(iter[2]-1, 0, self.nv[1])
+        iter[3] = i64clip(iter[3]+1, 0, self.nv[1])
+        nx = (iter[1] - iter[0])
+        ny = (iter[3] - iter[2])
+        size = nx * ny
+        cdef ImageAccumulator *idata
+        cdef np.float64_t width[3]
+        cdef int chunksize = 100
+
+        # Domain decomposition information
+        cdef np.float64_t bscale
+        cdef int bit_length
+        cdef int ncpu
+        cdef np.uint64_t[:] keys
+        cdef SparseOctreeContainer octree
+        cdef np.float64_t[3] DLE, DRE
+        # Get the first one for DLE and DRE, this will be overriden below
+        octree = <SparseOctreeContainer> octrees[1]
+
+        DLE = octree.DLE
+        DRE = octree.DRE
+        bscale = ds.hilbert['bscale']
+        bit_length = ds.hilbert['bit_length']
+        ncpu = ds.parameters['ncpu']
+        keys = ds.hilbert['keys'].astype(np.uint64)
+
+        cdef int nAdded, count, nextDom
+        cdef np.float64_t tmin, tin
+        cdef np.float64_t[3] pos
+
+        # Containers
+        cdef vector[np.uint64_t] octList, countPerDomain, domainList
+        cdef vector[np.uint8_t] cellList
+        cdef vector[np.float64_t] tList
+
+        for i in range(3):
+            width[i] = self.width[i]
+        with nogil, parallel(num_threads = num_threads):
+            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+            idata.supp_data = self.supp_data
+            v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+            v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+            for j in prange(size, schedule="static", chunksize=chunksize):
+                octList.clear()
+                cellList.clear()
+                tList.clear()
+                countPerDomain.clear()
+                domainList.clear()
+
+                vj = j % ny
+                vi = (j - vj) / ny + iter[0]
+                vj = vj + iter[2]
+                # Dynamically calculate the position
+                self.vector_function(self, vi, vj, width, v_dir, v_pos)
+                for i in range(Nch):
+                    idata.rgba[i] = self.image[vi, vj, i]
+                max_t = fclip(self.zbuffer[vi, vj], 0.0, 1.0)
+                # Find entrance hit node
+                tin = 0
+                for i in range(3):
+                    if v_dir[i] < 0:
+                        tin = max(tin, DRE[i] - v_pos[i]) / v_dir[i]
+                    else:
+                        tin = max(tin, DLE[i] - v_pos[i]) / v_dir[i]
+                    pos[i] = v_pos[i] + tin * v_dir[i]
+
+                with gil:
+                    # For some reason, cannot do that w/o the gil...
+                    nextDom = DomainDecomposition_find_domain(bscale, bit_length, ncpu, keys, pos)
+
+                tmin = 0
+                count = 0
+                nAdded = 0
+                while nextDom > 0:
+                    # Add domain to list of domains
+                    domainList.push_back(nextDom)
+
+                    # Call ray traversal on domain
+                    with gil:
+                        octree = <SparseOctreeContainer> octrees[nextDom]
+                    nextDom = ray_step(octree, v_pos, v_dir, octList, cellList, tList, tmin, nextDom)
+
+                    # Update number of cells crossed
+                    nAdded = tList.size() - count
+                    count = tList.size()
+
+                    # Store this number
+                    countPerDomain.push_back(nAdded)
+
+                    # Next starting point
+                    if tList.size() > 0:
+                        tmin = tList.back()
+
+                    # Call sample function on each oct
+
+                if (j % (10*chunksize)) == 0:
+                    with gil:
+                        PyErr_CheckSignals()
+                for i in range(Nch):
+                    self.image[vi, vj, i] = idata.rgba[i]
+            idata.supp_data = NULL
+            free(idata)
+            free(v_pos)
+            free(v_dir)
+
+        # release gil
         return hit
 
     cdef void setup(self, PartitionedGrid pg):
