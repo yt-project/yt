@@ -98,15 +98,29 @@ class OpaqueSource(RenderSource):
     def set_zbuffer(self, zbuffer):
         self.zbuffer = zbuffer
 
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.geometry.oct_geometry_handler import OctreeIndex
 
-class VolumeSource(RenderSource):
+
+def VolumeSource(data_source, field):
+    data_source = data_source_or_all(data_source)
+    if isinstance(data_source.ds.index, GridIndex):
+        print('Here')
+        return PatchVolumeSource(data_source, field)
+    elif isinstance(data_source.ds.index, OctreeIndex):
+        print('There')
+        return OctreeVolumeSource(data_source, field)
+    else:
+        raise Exception()
+
+class BaseVolumeSource(RenderSource):
     """A class for rendering data from a volumetric data source
 
     Examples of such sources include a sphere, cylinder, or the
     entire computational domain.
 
     A :class:`VolumeSource` provides the framework to decompose an arbitrary
-    yt data source into bricks that can be traversed and volume rendered.
+    patch-based yt data source into bricks that can be traversed and volume rendered.
 
     Parameters
     ----------
@@ -148,7 +162,7 @@ class VolumeSource(RenderSource):
 
     def __init__(self, data_source, field):
         r"""Initialize a new volumetric source for rendering."""
-        super(VolumeSource, self).__init__()
+        super(BaseVolumeSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
         self.current_image = None
@@ -172,7 +186,7 @@ class VolumeSource(RenderSource):
 
     @property
     def transfer_function(self):
-        """The transfer function associated with this VolumeSource"""
+        """The transfer function associated with this BaseVolumeSource"""
         if self._transfer_function is not None:
             return self._transfer_function
 
@@ -207,34 +221,6 @@ class VolumeSource(RenderSource):
         self._transfer_function = value
 
     @property
-    def volume(self):
-        """The abstract volume associated with this VolumeSource
-
-        This object does the heavy lifting to access data in an efficient manner
-        using a KDTree
-        """
-        if self._volume is None:
-            mylog.info("Creating volume")
-            volume = AMRKDTree(self.data_source.ds, data_source=self.data_source)
-            self._volume = volume
-
-        return self._volume
-
-    @volume.setter
-    def volume(self, value):
-        assert(isinstance(value, AMRKDTree))
-        del self._volume
-        self._field = value.fields
-        self._log_field = value.log_fields
-        self._volume = value
-        self._volume_valid is True
-
-    @volume.deleter
-    def volume(self):
-        del self._volume
-        self._volume = None
-
-    @property
     def field(self):
         """The field to be rendered"""
         return self._field
@@ -245,7 +231,7 @@ class VolumeSource(RenderSource):
         field = self.data_source._determine_fields(value)
         if len(field) > 1:
             raise RuntimeError(
-                "VolumeSource.field can only be a single field but received "
+                "BaseVolumeSource.field can only be a single field but received "
                 "multiple fields: %s") % field
         field = field[0]
         if self._field != field:
@@ -304,11 +290,6 @@ class VolumeSource(RenderSource):
         """Make sure that all dependencies have been met"""
         if self.data_source is None:
             raise RuntimeError("Data source not initialized")
-
-    def set_volume(self, volume):
-        """Associates an AMRKDTree with the VolumeSource"""
-        self.volume = volume
-        return self
 
     def set_field(self, field):
         """Set the source's field to render
@@ -375,7 +356,7 @@ class VolumeSource(RenderSource):
         """Sets a volume render sampler
 
         The type of sampler is determined based on the ``sampler_type`` attribute
-        of the VolumeSource. Currently the ``volume_render`` and ``projection``
+        of the BaseVolumeSource. Currently the ``volume_render`` and ``projection``
         sampler types are supported.
 
         The 'interpolated' argument is only meaningful for projections. If True,
@@ -395,6 +376,62 @@ class VolumeSource(RenderSource):
             NotImplementedError("%s not implemented yet" % self.sampler_type)
         self.sampler = sampler
         assert(self.sampler is not None)
+
+    @validate_volume
+    def render(self, camera, zbuffer=None):
+        raise NotImplementedError()
+
+    def finalize_image(self, camera, image):
+        """Parallel reduce the image.
+
+        Parameters
+        ----------
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+            The camera used to produce the volume rendering image.
+        image: :class:`yt.data_objects.image_array.ImageArray` instance
+            A reference to an image to fill
+        """
+        raise NotImplementedError()
+
+    def set_volume(self, volume):
+        """Associates a volume object with the BaseVolumeSource"""
+        self.volume = volume
+        return self
+
+    def __repr__(self):
+        disp = "<Volume Source>:%s " % str(self.data_source)
+        disp += "transfer_function:%s" % str(self._transfer_function)
+        return disp
+
+class PatchVolumeSource(BaseVolumeSource):
+
+    @property
+    def volume(self):
+        """The abstract volume associated with this PatchVolumeSource
+
+        This object does the heavy lifting to access data in an efficient manner
+        using a KDTree
+        """
+        if self._volume is None:
+            mylog.info("Creating volume")
+            volume = AMRKDTree(self.data_source.ds, data_source=self.data_source)
+            self._volume = volume
+
+        return self._volume
+
+    @volume.setter
+    def volume(self, value):
+        assert(isinstance(value, AMRKDTree))
+        del self._volume
+        self._field = value.fields
+        self._log_field = value.log_fields
+        self._volume = value
+        self._volume_valid is True
+
+    @volume.deleter
+    def volume(self):
+        del self._volume
+        self._volume = None
 
     @validate_volume
     def render(self, camera, zbuffer=None):
@@ -462,11 +499,45 @@ class VolumeSource(RenderSource):
             image[:, :, 3] = 1
         return image
 
-    def __repr__(self):
-        disp = "<Volume Source>:%s " % str(self.data_source)
-        disp += "transfer_function:%s" % str(self._transfer_function)
-        return disp
 
+class OctreeVolumeSource(BaseVolumeSource):
+    @property
+    def volume(self):
+        """The abstract volume associated with this OctreeVolumeSource
+
+        This object does the heavy lifting to access data in an efficient manner
+        directly using the octrees.
+        """
+        if getattr(self, '_volume', None) is None:
+            mylog.info("Creating volume")
+            volume = AMRKDTree(self.data_source.ds, data_source=self.data_source)
+            self._volume = volume
+
+        return self._volume
+
+    @volume.setter
+    def volume(self, value):
+        assert(isinstance(value, AMRKDTree))
+        del self._volume
+        self._field = value.fields
+        self._log_field = value.log_fields
+        self._volume = value
+        self._volume_valid is True
+
+    @volume.deleter
+    def volume(self):
+        del self._volume
+        self._volume = None
+
+    @validate_volume
+    def render(self, camera, zbuffer=None):
+        pass
+
+    def finalize_image(self, camera, image):
+        image.shape = camera.resolution[0], camera.resolution[1], 4
+        if self.transfer_function.grey_opacity is False:
+            image[:, :, 3] = 1
+        return image
 
 class MeshSource(OpaqueSource):
     """A source for unstructured mesh data.
@@ -836,7 +907,7 @@ class PointSource(OpaqueSource):
                 radii = np.zeros(positions.shape[0], dtype='int64')
         else:
             assert(radii.ndim == 1)
-            assert(radii.shape[0] == positions.shape[0]) 
+            assert(radii.shape[0] == positions.shape[0])
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -878,7 +949,7 @@ class PointSource(OpaqueSource):
         # DRAW SOME POINTS
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-        
+
         zpoints(empty, z, px, py, dz, self.colors, self.radii, self.color_stride)
 
         self.zbuffer = zbuffer
@@ -1195,9 +1266,9 @@ class CoordinateVectorSource(OpaqueSource):
     Parameters
     ----------
     colors: array-like of shape (3,4), optional
-        The RGBA values to use to draw the x, y, and z vectors. The default is 
+        The RGBA values to use to draw the x, y, and z vectors. The default is
         [[1, 0, 0, alpha], [0, 1, 0, alpha], [0, 0, 1, alpha]]  where ``alpha``
-        is set by the parameter below. If ``colors`` is set then ``alpha`` is 
+        is set by the parameter below. If ``colors`` is set then ``alpha`` is
         ignored.
     alpha : float, optional
         The opacity of the vectors.

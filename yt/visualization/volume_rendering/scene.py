@@ -20,7 +20,8 @@ from .render_source import \
     GridSource, \
     RenderSource, \
     MeshSource, \
-    VolumeSource, \
+    PatchVolumeSource, \
+    OctreeVolumeSource, \
     PointSource, \
     LineSource
 from .zbuffer_array import ZBuffer
@@ -131,7 +132,7 @@ class Scene(object):
         if keyname is None:
             keyname = 'source_%02i' % len(self.sources)
 
-        data_sources = (VolumeSource, MeshSource, GridSource)
+        data_sources = (PatchVolumeSource, OctreeVolumeSource, MeshSource, GridSource)
 
         if isinstance(render_source, data_sources):
             self._set_new_unit_registry(
