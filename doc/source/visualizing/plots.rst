@@ -813,8 +813,8 @@ function for the colorbar axis.
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
-   slc.set_minorticks('all', 'off')
-   slc.set_cbar_minorticks('all', 'off')
+   slc.set_minorticks('all', False)
+   slc.set_cbar_minorticks('all', False)
    slc.save()
 
 
