@@ -114,117 +114,27 @@ cdef class Float64VectorHolder:
         buffer.strides = self.strides
         buffer.suboffsets = NULL
 
-cdef class Ray(object):
-    def __init__(self, np.ndarray origin, np.ndarray direction, np.float64_t length):
-        self.origin = np.asarray(origin)
-        self.direction = direction / np.linalg.norm(direction)
-        self.length = length
 
-    @property
-    def end(self):
-        return self.at(self.length)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int DomainDecomposition_find_domain(np.float64_t bscale, int bit_length, int ncpu, np.uint64_t[:] keys, np.float64_t[:] pos) nogil:
+    cdef int nextDom
+    cdef np.uint64_t ihilbert
+    cdef np.int64_t ix, iy, iz
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cpdef np.ndarray[np.float64_t, ndim=1] at(self, np.float64_t t):
-        cdef np.ndarray[np.float64_t, ndim=1] out = np.empty(3)
-        for i in range(3):
-            out[i] = self.origin[i] + t * self.direction[i]
-        return out
+    ix = <np.uint64_t> (pos[0]*bscale)
+    iy = <np.uint64_t> (pos[1]*bscale)
+    iz = <np.uint64_t> (pos[2]*bscale)
+    ihilbert = hilbert3d_single(ix, iy, iz, bit_length)
 
-    @cython.boundscheck(False) # turn of bounds-checking for entire function
-    @cython.wraparound(False)  # turn of bounds-checking for entire function
-    cpdef void trilinear(self, const np.float64_t tmin, const np.float64_t tmax,
-                         const np.float64_t[:, :, :] data_in,
-                         np.float64_t[:] data_out,
-                         const np.float64_t[:] DLE,
-                         const np.float64_t Deltax,
-                         const int npt):
-        """Interpolate npoint between tin and tout, given vertex-centred data.
-
-        Parameters
-        ----------
-        tmin, tmax : float
-        DLE : array (3,)
-            The origin of the cell
-        Deltax : float
-            The size of the cell
-        data_in : array (2, 2, 2)
-            Vertex-centred data around the cell of interest
-        data_out : array (npt, )
-            The data (modified in-place)
-        """
-        cdef int i
-        cdef np.float64_t dt
-        cdef np.float64_t x0, y0, z0, x1, y1, z1, dx, dy, dz
-
-        dt = (tmax-tmin)/npt
-
-        dx = self.direction[0]/Deltax
-        dy = self.direction[1]/Deltax
-        dz = self.direction[2]/Deltax
-
-        x0 = (self.origin[0]-DLE[0]) / Deltax + tmin*dx
-        y0 = (self.origin[1]-DLE[1]) / Deltax + tmin*dy
-        z0 = (self.origin[2]-DLE[2]) / Deltax + tmin*dz
-
-        x1 = 1-x0
-        y1 = 1-y0
-        z1 = 1-z0
-
-        for i in range(npt):
-            # Tri-linear interpolation
-            data_out[i] = (
-                data_in[0,0,0] * x1 * y1 * z1 +
-                data_in[1,0,0] * x0 * y1 * z1 +
-                data_in[0,1,0] * x1 * y0 * z1 +
-                data_in[1,1,0] * x0 * y0 * z1 +
-                data_in[0,0,1] * x1 * y1 * z0 +
-                data_in[1,0,1] * x0 * y1 * z0 +
-                data_in[0,1,1] * x1 * y0 * z0 +
-                data_in[1,1,1] * x0 * y0 * z0
-            )
-
-            x0 += dt*dx
-            y0 += dt*dy
-            z0 += dt*dz
-
-            x1 = 1-x0
-            y1 = 1-y0
-            z1 = 1-z0
-
-cdef class DomainFinder:
-    cdef np.uint64_t[:] keys
-    cdef np.float64_t bscale
-    cdef int ncpu
-    cdef int bit_length
-
-    def __cinit__(self, ds):
-        self.keys = ds.hilbert['keys'].astype(np.uint64)
-        self.bscale = ds.hilbert['bscale']
-        self.ncpu = ds.parameters['ncpu']
-        self.bit_length = ds.hilbert['bit_length']
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef int find_domain(self, np.float64_t[:] pos):
-        cdef int nextDom
-        cdef np.uint64_t ihilbert
-        cdef np.int64_t ix, iy, iz
-
-        ix = <np.uint64_t> (pos[0]*self.bscale)
-        iy = <np.uint64_t> (pos[1]*self.bscale)
-        iz = <np.uint64_t> (pos[2]*self.bscale)
-        ihilbert = hilbert3d_single(ix, iy, iz, self.bit_length)
-
-        # after the loop, nextDom contains the id of the first domain
-        for nextDom in range(1, self.ncpu+1):
-            if ihilbert < self.keys[nextDom]:
-                break
-        return nextDom
+    # after the loop, nextDom contains the id of the first domain
+    for nextDom in range(1, ncpu+1):
+        if ihilbert < keys[nextDom]:
+            break
+    return nextDom
 
 
-cpdef ray_step_multioctrees(dict octrees, Ray r, ds):
+cdef ray_step_multioctrees(dict octrees, np.float64_t[3] origin, np.float64_t[3] direction, int ioct_entry):
     # Find entry sparse octree
     cdef SparseOctreeContainer octree
     cdef int count, nextDom
@@ -243,19 +153,18 @@ cpdef ray_step_multioctrees(dict octrees, Ray r, ds):
     # Find first domain using hilbert curve
     cdef int i
     cdef np.float64_t tmin, tin
-    cdef np.float64_t[:] pos
-    cdef DomainFinder df = DomainFinder(ds)
+    cdef np.float64_t[3] pos
 
     tin = 0
     for i in range(3):
-        if r.direction[i] < 0:
-            tin = max(tin, octree.DRE[i] - r.origin[i]) / r.direction[i]
+        if direction[i] < 0:
+            tin = max(tin, octree.DRE[i] - origin[i]) / direction[i]
         else:
-            tin = max(tin, octree.DLE[i] - r.origin[i]) / r.direction[i]
+            tin = max(tin, octree.DLE[i] - origin[i]) / direction[i]
 
-    pos = r.at(tin)
+    Ray_at(origin, direction, tin, pos)
 
-    nextDom = df.find_domain(pos)
+    nextDom = 1  # TODO DomainDecomposition_find_domain(ddd, pos)
 
     # Other variables
     cdef int nAdded
@@ -267,8 +176,8 @@ cpdef ray_step_multioctrees(dict octrees, Ray r, ds):
         domainList.v.push_back(nextDom)
 
         # Call ray traversal on domain
-        octree = octrees[nextDom]
-        nextDom = ray_step(octree, r, octList.v, cellList.v, tList.v, tmin, nextDom)
+        octree = <SparseOctreeContainer> octrees[nextDom]
+        nextDom = ray_step(octree, origin, direction, octList.v, cellList.v, tList.v, tmin, nextDom)
 
         # Update number of cells crossed
         nAdded = tList.v.size() - count
@@ -283,13 +192,24 @@ cpdef ray_step_multioctrees(dict octrees, Ray r, ds):
 
     return np.asarray(octList), np.asarray(cellList), np.asarray(tList), np.asarray(domainList), np.asarray(countPerDomain)
 
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline void Ray_at(
+    np.float64_t[3] origin, np.float64_t[3] direction, np.float64_t t,
+    np.float64_t[3] pos) nogil:
+    cdef int i
+    cdef np.float64_t[3] out
+    for i in range(3):
+        pos[i] = origin[i] + direction[i]*t
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef int ray_step(SparseOctreeContainer octree, Ray r,
-                   vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList,
-                   np.float64_t t0, const int curDom):
+cdef int ray_step(SparseOctreeContainer octree,
+                  np.float64_t* origin, np.float64_t* direction,
+                  vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList,
+                  np.float64_t t0, const int curDom) nogil:
     cdef np.uint8_t a
     cdef np.int8_t ii
     cdef np.float64_t[3] o, rr, d
@@ -304,15 +224,15 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
     ii = 0b100
     a = 0b000
     for i in range(3):
-        if r.direction[i] < 0:
-            o[i] = octree.DRE[i] - r.origin[i]
-            d[i] = max(1e-99, -r.direction[i])
+        if direction[i] < 0:
+            o[i] = octree.DRE[i] - origin[i]
+            d[i] = max(1e-99, -direction[i])
             a |= ii
             idx[i] = -1
             aind[i] = octree.nn[i]-1
         else:
-            o[i] = r.origin[i]
-            d[i] = max(1e-99, r.direction[i])
+            o[i] = origin[i]
+            d[i] = max(1e-99, direction[i])
             idx[i] = +1
             aind[i] = 0
         ii >>= 1
@@ -336,7 +256,7 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
     cdef np.float64_t txin, tyin, tzin, dtx, dty, dtz, tmin, tmax, txout, tyout, tzout
 
     # Locate first node
-    rr = r.at(tmin_domain+epsilon)
+    Ray_at(origin, direction, tmin_domain+epsilon, &rr[0])
 
     for i in range(3):
         dds[i] = (octree.DRE[i] - octree.DLE[i])/octree.nn[i]
