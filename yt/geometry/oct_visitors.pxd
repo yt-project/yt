@@ -47,11 +47,11 @@ cdef class OctVisitor:
 
     cdef void visit(self, Oct*, np.uint8_t selected)
 
-    cdef inline int oind(self):
+    cdef inline int oind(self) nogil:
         cdef int d = (1 << self.oref)
         return (((self.ind[0]*d)+self.ind[1])*d+self.ind[2])
 
-    cdef inline int rind(self):
+    cdef inline int rind(self) nogil:
         cdef int d = (1 << self.oref)
         return (((self.ind[2]*d)+self.ind[1])*d+self.ind[0])
 
@@ -139,7 +139,7 @@ cdef class MortonIndexOcts(OctVisitor):
     cdef np.uint64_t[:] morton_ind
 
 
-cdef inline int cind(int i, int j, int k):
+cdef inline int cind(int i, int j, int k) nogil:
     # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.
     return (((i*2)+j)*2+k)
 

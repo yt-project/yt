@@ -397,7 +397,7 @@ cpdef int ray_step(SparseOctreeContainer octree, Ray r,
 
 cdef np.uint8_t find_firstNode(
         const np.float64_t tx0, const np.float64_t ty0, const np.float64_t tz0,
-        const np.float64_t txM, const np.float64_t tyM, const np.float64_t tzM):
+        const np.float64_t txM, const np.float64_t tyM, const np.float64_t tzM) nogil:
 
     cdef np.float64_t tmax
     cdef np.uint8_t entry_plane
@@ -426,7 +426,7 @@ cdef np.uint8_t find_firstNode(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef inline np.uint8_t next_node(const np.uint8_t currNode,
-        const np.float64_t tx1, const np.float64_t ty1, const np.float64_t tz1):
+        const np.float64_t tx1, const np.float64_t ty1, const np.float64_t tz1) nogil:
     cdef np.float64_t tmin
     tmin = min(tx1, ty1, tz1)
 
@@ -447,22 +447,23 @@ cdef inline np.uint8_t next_node(const np.uint8_t currNode,
             return currNode + 1
 
 # Checks if a *cell* is a leaf: either its parent oct has no children, or the cell is not an oct itself
-cdef inline bool isLeaf(const Oct *o, const np.uint8_t currNode):
+cdef inline bool isLeaf(const Oct *o, const np.uint8_t currNode) nogil:
     return (o.children == NULL) or (o.children[currNode] == NULL)
 
-cdef inline np.uint8_t swap3bits(const np.uint8_t lev):
+cdef inline np.uint8_t swap3bits(const np.uint8_t lev) nogil:
     # Swap little-endian to big-endian (C to F ordering)
     return ((lev & 0b100) >> 2) + (lev & 0b010) + ((lev & 0b001) << 2)
 
 # TODO: support negative directions
 # TODO: support ray length
 @cython.cdivision(True)
+@cython.boundscheck(False)
 cdef int proc_subtree(
         const np.float64_t tx0, const np.float64_t ty0, const np.float64_t tz0,
         const np.float64_t tx1, const np.float64_t ty1, const np.float64_t tz1,
         const np.float64_t t0,
         const Oct* oct, const int a, vector[np.uint64_t] &octList, vector[np.uint8_t] &cellList, vector[np.float64_t] &tList,
-        const int curDom, int level=0):
+        const int curDom, int level=0) nogil:
     cdef np.uint8_t currNode, nextNode
     cdef np.float64_t txM, tyM, tzM
     cdef np.uint8_t entry_plane, exit_plane

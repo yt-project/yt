@@ -35,5 +35,5 @@ state_diagram[7][0][:] = [ 5,  7, 11,  8,  7,  6, 11, 10,  9,  3,  5,  4]
 state_diagram[7][1][:] = [ 5,  5,  5,  7,  1,  3,  1,  3,  7,  7,  1,  3]
 
 
-cdef integral hilbert3d_single(integral x, integral y, integral z, int bit_length)
+cdef integral hilbert3d_single(integral x, integral y, integral z, int bit_length) nogil
 cpdef np.ndarray hilbert3d(integral[:, :] x, int bit_length)

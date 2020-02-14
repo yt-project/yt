@@ -62,8 +62,8 @@ cdef class OctreeContainer:
     cdef public np.int64_t nocts
     cdef public int num_domains
     cdef Oct *get(self, np.float64_t ppos[3], OctInfo *oinfo = ?,
-                  int max_level = ?)
-    cdef int get_root(self, int ind[3], Oct **o)
+                  int max_level = ?) nogil
+    cdef int get_root(self, int ind[3], Oct **o) nogil
     cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors,
                          Oct *o, bint periodicity[3])
     # This function must return the offset from global-to-local domains; i.e.,
@@ -85,8 +85,8 @@ cdef class SparseOctreeContainer(OctreeContainer):
     cdef void *tree_root
     cdef int num_root
     cdef int max_root
-    cdef void key_to_ipos(self, np.int64_t key, np.int64_t pos[3])
-    cdef np.int64_t ipos_to_key(self, int pos[3])
+    cdef void key_to_ipos(self, np.int64_t key, np.int64_t pos[3]) nogil
+    cdef np.int64_t ipos_to_key(self, int pos[3]) nogil
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     pass

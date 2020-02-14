@@ -193,7 +193,7 @@ def fill_hydro(FortranFile f,
 @cython.wraparound(False)
 @cython.boundscheck(False)
 @cython.cdivision(True)
-cdef integral hilbert3d_single(integral x, integral y, integral z, int bit_length):
+cdef integral hilbert3d_single(integral x, integral y, integral z, int bit_length) nogil:
     cdef integral i_bit_mask, mask, b0, b1, b2, nstate, hdigit
     cdef int i, sdigit, cstate
     global state_diagram
