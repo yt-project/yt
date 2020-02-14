@@ -264,7 +264,7 @@ class PlotContainer(object):
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
         return self
-        
+
     @invalidate_plot
     def set_minorticks(self, field, state):
         """Turn minor ticks on or off in the current plot.
