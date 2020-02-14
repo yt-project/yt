@@ -1,6 +1,5 @@
 language: python
 dist: xenial
-sudo: required
 cache:
   pip: true
   directories:
@@ -15,10 +14,6 @@ addons:
       - proj-bin
       - libgeos-dev
       - libopenmpi-dev
-
-env:
-  global:
-    PIP=pip
 
 env:
   global:
