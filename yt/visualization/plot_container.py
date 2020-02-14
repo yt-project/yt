@@ -264,22 +264,27 @@ class PlotContainer(object):
             raise KeyError(name)
         self._field_transform[field] = field_transforms[name]
         return self
-
+        
     @invalidate_plot
     def set_minorticks(self, field, state):
-        """turn minor ticks on or off in the current plot
+        """Turn minor ticks on or off in the current plot.
 
         Displaying minor ticks reduces performance; turn them off
-        using set_minorticks('all', 'off') if drawing speed is a problem.
+        using set_minorticks('all', False) if drawing speed is a problem.
 
         Parameters
         ----------
         field : string
             the field to remove minorticks
-        state : string
-            the state indicating 'on' or 'off'
+        state : bool
+            the state indicating 'on' (True) or 'off' (False)
 
         """
+        if isinstance(state, str):
+            from yt import mylog
+            mylog.warning("Deprecated api, use bools for *state*.")
+            state = {"on": True, "off": False}[state.lower()]
+
         if field == 'all':
             fields = list(self.plots.keys())
         else:
