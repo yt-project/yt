@@ -13,6 +13,7 @@ from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler, new_mesh_sampler, \
     new_interpolated_projection_sampler
 from yt.utilities.lib.bounding_volume_hierarchy import BVH
+from yt.utilities.lib.octree_raytracing import OctreeDescriptor
 from yt.visualization.image_writer import apply_colormap
 from yt.data_objects.image_array import ImageArray
 from .zbuffer_array import ZBuffer
@@ -531,7 +532,24 @@ class OctreeVolumeSource(BaseVolumeSource):
 
     @validate_volume
     def render(self, camera, zbuffer=None):
-        pass
+        octree_descriptors = {}
+        src = self.data_source
+
+        # Load data
+        for i, chunk in enumerate(src.index._chunk(src, "spatial", ngz=1)):
+            with src._chunked_read(chunk):
+                gz = src._current_chunk.objs[0]
+
+                data = gz.get_vertex_centered_data(self.field)
+                DLE = np.array((gz['x'] - gz['dx']*3/2).to('unitary'))
+                ddd = gz['dx'].to('unitary').value
+                od = OctreeDescriptor(gz.oct_handler, DLE, ddd, gz.domain_id)
+                od.set_data(data)
+                octree_descriptors[gz.domain_id] = od
+
+        # Cast rays
+        self.sampler.call_octrees(src, octree_descriptors, num_threads=self.num_threads)
+
 
     def finalize_image(self, camera, image):
         image.shape = camera.resolution[0], camera.resolution[1], 4
