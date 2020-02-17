@@ -34,7 +34,7 @@ def check_color(name):
 
 yt_colormaps = {}
 
-def add_cbar(name, cdict):
+def add_cmap(name, cdict):
     """Deprecated alias, kept for backwards compatibility."""
     from yt.funcs import mylog
     mylog.warning("Deprecated alias. Use add_colormap instead.")

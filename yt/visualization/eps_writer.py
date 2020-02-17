@@ -1358,7 +1358,7 @@ def return_cmap(cmap=None, label="", range=(0,1), log=False):
     mylog.warning("Deprecated alias. Use return_colormap instead.")
     return return_colormap(cmap=cmap, label=label, crange=range, log=log)
 
-def return_colormap(cmap=None, label="", crange=(0,1), log=False):
+def return_colormap(cmap=None, label="", range=(0,1), log=False):
     r"""Returns a dict that describes a colorbar.  Exclusively for use with
     multiplot.
 
@@ -1368,7 +1368,7 @@ def return_colormap(cmap=None, label="", crange=(0,1), log=False):
         name of the (matplotlib) colormap to use
     label : string
         colorbar label
-    crange : tuple of floats
+    range : tuple of floats
         min and max of the colorbar's range
     log : boolean
         Flag to use a logarithmic scale
@@ -1379,5 +1379,5 @@ def return_colormap(cmap=None, label="", crange=(0,1), log=False):
     """
     if cmap is None:
         cmap = ytcfg.get("yt", "default_colormap")
-    return {'cmap': cmap, 'name': label, 'range': crange, 'log': log}
+    return {'cmap': cmap, 'name': label, 'range': range, 'log': log}
     
