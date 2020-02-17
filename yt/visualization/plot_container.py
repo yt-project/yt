@@ -281,8 +281,8 @@ class PlotContainer(object):
 
         """
         if isinstance(state, str):
-            from yt import mylog
-            mylog.warning("Deprecated api, use bools for *state*.")
+            from yt.funcs import issue_deprecation_warning
+            issue_deprecation_warning("Deprecated api, use bools for *state*.")
             state = {"on": True, "off": False}[state.lower()]
 
         if field == 'all':
@@ -922,8 +922,8 @@ class ImagePlotContainer(PlotContainer):
         state : string
             the state indicating 'on' or 'off'
         """
-        from yt.funcs import mylog
-        mylog.warning("Deprecated alias, use set_colorbar_minorticks instead.")
+        from yt.funcs import issue_deprecation_warning
+        issue_deprecation_warning("Deprecated alias, use set_colorbar_minorticks instead.")
 
         boolstate = {"on": True, "off": False}[state.lower()]
         return self.set_colorbar_minorticks(field, boolstate)

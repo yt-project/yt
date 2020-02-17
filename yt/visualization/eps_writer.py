@@ -1355,7 +1355,8 @@ def single_plot(plot, field=None, figsize=(12,12), cb_orient="right",
 
 #=============================================================================
 def return_cmap(cmap=None, label="", range=(0,1), log=False):
-    mylog.warning("Deprecated alias. Use return_colormap instead.")
+    from yt.funcs import issue_deprecation_warning
+    issue_deprecation_warning("Deprecated alias. Use return_colormap instead.")
     return return_colormap(cmap=cmap, label=label, crange=range, log=log)
 
 def return_colormap(cmap=None, label="", range=(0,1), log=False):
