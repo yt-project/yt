@@ -115,6 +115,51 @@ cdef class Float64VectorHolder:
         buffer.suboffsets = NULL
 
 
+
+cdef class OctreesDescriptor:
+
+    def __cinit__(self, ds, data_source):
+        self.ds = ds
+        self.data_source = data_source
+
+        cdef int ncpu = len(ds.index.domains)
+        cdef np.float64_t[:, ::1] DLE, ddd, data
+        cdef int i
+
+        self.oct_descs = <OctreeDescriptor *> malloc(sizeof(OctreeDescriptor)*ncpu)
+        self.octrees = {}
+
+        # Load data
+        for i, chunk in enumerate(data_source.index._chunk(data_source, "spatial", ngz=1)):
+            with data_source._chunked_read(chunk):
+                gz = data_source._current_chunk.objs[0]
+
+                # FIXME: first dimension == nocts
+                data = gz.get_vertex_centered_data(self.field)
+                # FIXME: get xyz
+                DLE = np.array((gz['x'] - gz['dx']*3/2).to('unitary'))
+                # FIXME: reshape to right size
+                ddd = gz['dx'].to('unitary').value
+                # self.oct_descs[i].octree = gz.oct_handler
+                self.oct_descs[i].oct_LE = &DLE[::, ::1][0, 0]
+                self.oct_descs[i].oct_ddd = &ddd[::, ::1][0, 0]
+                self.oct_descs[i].domain_id = gz.domain_id
+                self.oct_descs[i].data = &data[::, ::1][0, 0]
+                self.oct_descs[i].nfields = 1
+                self.oct_descs[i].nocts = (<SparseOctreeContainer> gz.oct_container).nocts
+                self.octrees[gz.domain_id] = gz.oct_container
+                self.dom2ind[gz.domain_id] = i
+
+    cdef OctreeDescriptor* get_descriptor(self, int domain_id) nogil:
+        cdef OctreeDescriptor *ret
+        with gil:
+            ret = &self.oct_descs[self.dom2ind[domain_id]]
+        return ret
+
+    def __dealloc__(self):
+        free(self.oct_descs)
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int DomainDecomposition_find_domain(np.float64_t bscale, int bit_length, int ncpu, np.uint64_t[:] keys, np.float64_t[:] pos) nogil:
