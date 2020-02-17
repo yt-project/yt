@@ -10,8 +10,11 @@ Definitions for image samplers
 import numpy as np
 cimport numpy as np
 cimport cython
+from libcpp.vector cimport vector
+
 from .volume_container cimport VolumeContainer
 from .partitioned_grid cimport PartitionedGrid
+from yt.utilities.lib.octree_raytracing cimport OctreesDescriptor
 
 DEF Nch = 4
 
@@ -53,6 +56,7 @@ cdef class ImageSampler:
     cdef void *supp_data
     cdef np.float64_t width[3]
     cdef public object lens_type
+    cdef OctreesDescriptor octrees_descriptor
     cdef calculate_extent_function *extent_function
     cdef generate_vector_info_function *vector_function
     cdef void setup(self, PartitionedGrid pg)
@@ -64,6 +68,25 @@ cdef class ImageSampler:
                 np.float64_t exit_t,
                 int index[3],
                 void *data) nogil
+    cdef void octree_cast_single_ray(
+            self,
+            VolumeContainer* vc,
+            vector[np.uint64_t] octList,
+            vector[np.uint64_t] countPerDomain,
+            vector[np.uint64_t] domainList,
+            vector[np.uint8_t] cellList,
+            vector[np.float64_t] tList,
+            np.float64_t* v_pos,
+            np.float64_t* v_dir,
+            np.float64_t* DLE,
+            np.float64_t* DRE,
+            np.float64_t bscale,
+            int bit_length,
+            int ncpu,
+            np.uint64_t[:] keys,
+            void *idata
+            ) nogil
+
 
 cdef class ProjectionSampler(ImageSampler):
     pass
