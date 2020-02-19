@@ -799,19 +799,6 @@ cdef class OctreeContainer:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
-    def copy_neighbour_data(self,
-                            np.int64_t[:] icell, np.int64_t[:] nicell,
-                            np.float64_t[:, :] input, np.float64_t[:, :] output,
-                            int N):
-        """Copy data from neighbouring cell into current one"""
-        cdef int i
-
-        for i in range(N):
-            if nicell[i] > -1 and icell[i] > -1:
-                output[icell[i], :] = input[nicell[i], :]
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_level_with_domain(
                    self, int level,
