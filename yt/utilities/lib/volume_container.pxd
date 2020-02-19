@@ -19,9 +19,9 @@ cimport numpy as np
 #-----------------------------------------------------------------------------
 # Encapsulates a volume container used for volume rendering.
 #
-#    n_fields       int              : The number of fields within the volume container.
+#    n_fields       int              : The number of fields available to the volume renderer.
 #    data           np.float64_t**   : The data within the volume container.
-#    mask           np.uint8_t*      : The mask of the volume container. It has dimensions one fewer in each direction than data.
+#    mask           np.uint8_t*      : The mask of the volume container. It has dimensions one fewer in each direction than data.       
 #    left_edge      np.float64_t[3]  : The left edge of the volume container's bounding box.
 #    right_edge     np.float64_t[3]  : The right edge of the volume container's bounding box.
 #    np.float64_t   dds[3]           : The delta dimensions, such that dds[0] = ddx, dds[1] = ddy, dds[2] = ddz.
