@@ -532,7 +532,7 @@ Possible deposition methods are:
 * ``count`` - counts the number of particles in each cell.
 
 In addition, the :meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
-returns the name of the newly created field
+returns the name of the newly created field.
 
 
 .. _mesh-sampling-particle-fields:
