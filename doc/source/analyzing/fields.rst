@@ -530,6 +530,7 @@ Possible deposition methods are:
   the field passed into ``weight_field`` (by default, it uses the particle
   mass).
 * ``count`` - counts the number of particles in each cell.
+* ``nearest`` - assign to each cell the value of the closest particle.
 
 In addition, the :meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
 returns the name of the newly created field.
