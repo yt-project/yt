@@ -1219,6 +1219,9 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
             elif not particle_field and ftype not in self.ds.fluid_types:
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
+            while finfo.alias_field:
+                finfo = self.ds.field_info[finfo.alias_name]
+                ftype, fname = finfo.name
             explicit_fields.append((ftype, fname))
         return explicit_fields
 
