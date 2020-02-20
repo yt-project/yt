@@ -263,14 +263,15 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                 fi = self.ds._get_field_info(*f)
             elif isinstance(f, bytes):
                 fi = self.ds._get_field_info("unknown", f)
-            rv = self.ds.arr(self.field_data[key], fi.units)
+            rv = self.ds.arr(self.field_data[f], fi.units)
         return rv
 
     def __setitem__(self, key, val):
         """
         Sets a field to be some other value.
         """
-        self.field_data[key] = val
+        f = self._determine_fields(key)[0]
+        self.field_data[f] = val
 
     def __delitem__(self, key):
         """
