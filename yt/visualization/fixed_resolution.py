@@ -107,6 +107,7 @@ class FixedResolutionBuffer(object):
         del self.data[item]
 
     def __getitem__(self, item):
+        item = self.data_source._determine_fields(item)[0]
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
@@ -541,6 +542,7 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
             ds.plots.append(weakref.proxy(self))
 
     def __getitem__(self, item) :
+        item = self.data_source._determine_fields(item)[0]
         if item in self.data: return self.data[item]
         buff = np.zeros(self.buff_size, dtype="f8")
         pixelize_cylinder(buff, self.data_source["r"], self.data_source["dr"],
@@ -561,6 +563,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         FixedResolutionBuffer.__init__(self, data_source, bounds, buff_size, antialias, periodic)
 
     def __getitem__(self, item):
+        item = self.data_source._determine_fields(item)[0]
         if item in self.data: return self.data[item]
         mylog.info("Making a fixed resolution buffer of (%s) %d by %d" % \
             (item, self.buff_size[0], self.buff_size[1]))
@@ -604,6 +607,8 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         self.y_field = ax_field_template % self.ds.coordinates.axis_name[yax]
 
     def __getitem__(self, item):
+        item = self.data_source._determine_fields(item)[0]
+
         if item in self.data:
             return self.data[item]
 
