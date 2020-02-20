@@ -788,8 +788,11 @@ class Dataset(metaclass = RegisteredDataset):
             if field not in self.field_info.field_aliases.values():
                 return self._last_finfo
         if field in self.field_info:
-            self._last_freq = field
-            self._last_finfo = self.field_info[(ftype, fname)]
+            finfo = self.field_info[field]
+            while finfo.alias_field:
+                finfo = self.field_info[finfo.alias_name]
+            self._last_freq = finfo.name
+            self._last_finfo = finfo
             return self._last_finfo
         if fname in self.field_info:
             # Sometimes, if guessing_type == True, this will be switched for
@@ -814,8 +817,11 @@ class Dataset(metaclass = RegisteredDataset):
             to_guess +=  list(self.fluid_types) + list(self.particle_types)
             for ftype in to_guess:
                 if (ftype, fname) in self.field_info:
-                    self._last_freq = (ftype, fname)
-                    self._last_finfo = self.field_info[(ftype, fname)]
+                    finfo = self.field_info[ftype, fname]
+                    while finfo.alias_field:
+                        finfo = self.field_info[finfo.alias_name]
+                    self._last_freq = finfo.name
+                    self._last_finfo = finfo
                     return self._last_finfo
         raise YTFieldNotFound((ftype, fname), self)
 
