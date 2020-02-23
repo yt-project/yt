@@ -301,7 +301,9 @@ add_cmap("turbo", _turbo_data)
 
 # Add colormaps from cmocean, if it's installed
 if cmocean is not None:
-    for cmname in cmocean.cm.cmapnames:
+    cmo_cmapnames = cmocean.cm.cmapnames
+    cmo_cmapnames += ["%s_r" % name for name in cmo_cmapnames]
+    for cmname in cmo_cmapnames:
         cm = getattr(cmocean.cm, cmname)
         # cmocean has a colormap named 'algae', so let's avoid overwriting
         # yt's algae or any other colormap we've already added
@@ -546,10 +548,10 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
 
         # Interpolate the R, G, and B channels from one color to the next
         # Use np.round to make sure you're on a discrete index
-        interval = np.round(next_index)-np.round(rolling_index)
+        interval = int(np.round(next_index)-np.round(rolling_index))
         for j in np.arange(3):
             cmap[int(np.rint(rolling_index)):int(np.rint(next_index)), j] = \
-                np.linspace(color[j], next_color[j], interval)
+                np.linspace(color[j], next_color[j], num=interval)
 
         rolling_index = next_index
 

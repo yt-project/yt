@@ -198,7 +198,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
     attrs = ( ('ncpu', 1, 'i'),
               ('ndim', 1, 'i'),
               ('npart', 1, 'i'),
-              ('localseed', 4, 'i'),
+              ('localseed', -1, 'i'),
               ('nstar_tot', 1, 'i'),
               ('mstar_tot', 1, 'd'),
               ('mstar_lost', 1, 'd'),

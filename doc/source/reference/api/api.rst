@@ -179,6 +179,18 @@ Frontends
 
 .. autosummary::
 
+AMRVAC
+^^^^^^
+
+.. autosummary::
+
+   ~yt.frontends.amrvac.data_structures.AMRVACGrid
+   ~yt.frontends.amrvac.data_structures.AMRVACHierarchy
+   ~yt.frontends.amrvac.data_structures.AMRVACDataset
+   ~yt.frontends.amrvac.fields.AMRVACFieldInfo
+   ~yt.frontends.amrvac.io.AMRVACIOHandler
+   ~yt.frontends.amrvac.read_amrvac_namelist
+
 ARTIO
 ^^^^^
 

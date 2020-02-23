@@ -384,9 +384,13 @@ class ImageArray(YTArray):
 
         """
         if png:
+            if not filename.endswith('.png'):
+                filename = filename + '.png'
             if len(self.shape) > 2:
-                self.write_png("%s.png" % filename)
+                self.write_png(filename)
             else:
-                self.write_image("%s.png" % filename)
+                self.write_image(filename)
         if hdf5:
-            self.write_hdf5("%s.h5" % filename, dataset_name)
+            if not filename.endswith('.h5'):
+                filename = filename + '.h5'
+            self.write_hdf5(filename, dataset_name)
