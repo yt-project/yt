@@ -1254,7 +1254,7 @@ class Dataset(object):
         method : string
            This is the "method name" which will be looked up in the
            `particle_deposit` namespace as `methodname_deposit`.  Current
-           methods include `simple_smooth`, `sum`, `std`, `cic`, `weighted_mean` 
+           methods include `simple_smooth`, `sum`, `std`, `cic`, `weighted_mean`,
            `nearest` and `count`.
         kernel_name : string, default 'cubic'
            This is the name of the smoothing kernel to use. It is only used for
