@@ -747,7 +747,7 @@ class SceneGraph(ColorBarSceneComponent):
         # Clean up old FB and Texture
         if self.fb_texture is not None and \
             GL.glIsTexture(self.fb_texture):
-                GL.glDeleteTextures([self.fb_texture])
+            GL.glDeleteTextures([self.fb_texture])
         if self.fbo is not None and GL.glIsFramebuffer(self.fbo):
             GL.glDeleteFramebuffers(1, [self.fbo])
 

@@ -251,10 +251,10 @@ class HaloMassFcn():
     """
     def set_mass_from_halos(self, which_limit):
         data_source = self.halos_ds.all_data()
-        if which_limit is "min_mass":
+        if which_limit == "min_mass":
             self.log_mass_min = \
               int(np.log10(np.amin(data_source["particle_mass"].in_units("Msun"))))
-        if which_limit is "max_mass":
+        if which_limit == "max_mass":
             self.log_mass_max = \
               int(np.log10(np.amax(data_source["particle_mass"].in_units("Msun"))))+1
     
