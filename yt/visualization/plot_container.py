@@ -33,7 +33,8 @@ from yt.funcs import \
     get_image_suffix, \
     iterable, \
     ensure_dir, \
-    ensure_list
+    ensure_list, \
+    issue_deprecation_warning
 from yt.units.unit_lookup_table import \
     prefixable_units, latex_prefixes
 from yt.units.unit_object import \
@@ -922,7 +923,6 @@ class ImagePlotContainer(PlotContainer):
         state : string
             the state indicating 'on' or 'off'
         """
-        from yt.funcs import issue_deprecation_warning
         issue_deprecation_warning("Deprecated alias, use set_colorbar_minorticks instead.")
 
         boolstate = {"on": True, "off": False}[state.lower()]

@@ -25,6 +25,7 @@ from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot, ProfilePlot
 from yt.units.yt_array import YTQuantity
 from yt.units.unit_object import Unit
+from yt.funcs import issue_deprecation_warning
 
 def convert_frac_to_tex(string):
     frac_pos = string.find(r'\frac')
@@ -1355,7 +1356,6 @@ def single_plot(plot, field=None, figsize=(12,12), cb_orient="right",
 
 #=============================================================================
 def return_cmap(cmap=None, label="", range=(0,1), log=False):
-    from yt.funcs import issue_deprecation_warning
     issue_deprecation_warning("Deprecated alias. Use return_colormap instead.")
     return return_colormap(cmap=cmap, label=label, crange=range, log=log)
 
