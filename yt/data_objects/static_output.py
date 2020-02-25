@@ -1253,7 +1253,7 @@ class Dataset(object):
            This is the "method name" which will be looked up in the
            `particle_deposit` namespace as `methodname_deposit`.  Current
            methods include `simple_smooth`, `sum`, `std`, `cic`, `weighted_mean`,
-           `mesh_id`, and `nearest`.
+           `nearest` and `count`.
         kernel_name : string, default 'cubic'
            This is the name of the smoothing kernel to use. It is only used for
            the `simple_smooth` method and is otherwise ignored. Current
@@ -1275,7 +1275,7 @@ class Dataset(object):
 
         units = self.field_info[ptype, deposit_field].units
         take_log = self.field_info[ptype, deposit_field].take_log
-        name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
+        name_map = {"sum": "sum", "std": "std", "cic": "cic", "weighted_mean": "avg",
                     "nearest": "nn", "simple_smooth": "ss", "count": "count"}
         field_name = "%s_" + name_map[method] + "_%s"
         field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
