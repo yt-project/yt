@@ -925,7 +925,7 @@ class LinePlotCallback(PlotCallback):
 
     """
     _type_name = "line"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
     def __init__(self, p1, p2, data_coords=False, coord_system="data",
                  plot_args=None):
         PlotCallback.__init__(self)
@@ -1372,7 +1372,7 @@ class SphereCallback(PlotCallback):
 
     """
     _type_name = "sphere"
-    _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+    _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
     def __init__(self, center, radius, circle_args=None,
                  text=None, coord_system='data', text_args=None):
         def_text_args = {'color':'white'}
