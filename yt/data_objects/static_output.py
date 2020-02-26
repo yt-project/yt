@@ -1480,12 +1480,10 @@ class Dataset(object):
         deg : bool, optional
             set to True to use a *shift_angle* in degrees
         """
-        rotating_axes = {"polar": 1, "cylindrical": 2}
-
-        if self.geometry not in rotating_axes.keys():
+        if self.geometry not in ("polar", "cylindrical"):
             raise ValueError("Unsupported geometry '%s'." % self.geometry)
 
-        theta_axis = rotating_axes[self.geometry]
+        theta_axis = self.coordinates.axis_id["theta"]
 
         if self.dimensionality < theta_axis - 1:
             raise ValueError("Unsupported dimensionality '%s' with geometry '%s'." % (self.dimensionality, self.geometry))
