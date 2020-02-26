@@ -221,7 +221,7 @@ class PlotCallback(object):
                 to (1,1) in upper right.  Same as matplotlib figure coords.
         """
         # Assure coords are either a YTArray or numpy array
-        coord = np.asanyarray(coord)
+        coord = np.asanyarray(coord, dtype="float64")
         # if in data coords, project them to plot coords
         if coord_system == "data":
             if len(coord) < 3:
