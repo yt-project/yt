@@ -37,7 +37,7 @@ from .contour_finder import \
 def add_contour_field(ds, contour_key):
     def _contours(field, data):
         fd = data.get_field_parameter("contour_slices_%s" % contour_key)
-        vals = data["index", "ones"] * -1
+        vals = np.full_like(data["index", "ones"], -1.0)
         if fd is None or fd == 0.0:
             return vals
         for sl, v in fd.get(data.id, []):
