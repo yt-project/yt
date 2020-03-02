@@ -13,6 +13,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import pytest
 import hashlib
 import matplotlib
 from yt.extern.six import string_types
@@ -1152,7 +1153,10 @@ def requires_backend(backend):
 
     """
     def ffalse(func):
-        return lambda: None
+        def skip(*args, **kwargs):
+            msg = "`{}` backend not found, skipping: `{}`".format(backend, func.__name__)
+            pytest.skip(msg)
+        return skip
 
     def ftrue(func):
         return func
