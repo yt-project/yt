@@ -6,6 +6,35 @@ Loading Data
 This section contains information on how to load data into yt, as well as
 some important caveats about different data formats.
 
+:: _loading-sample-data:
+
+Sample Data
+-----------
+
+The `yt` community has provided a large number of sample datasets, which are
+accessible from https://yt-project.org/data/ .  `yt` also provides a helper
+function, `yt.load_sample`, that can load from a set of sample datasets.  The
+quickstart notebooks in this documentation utilize this.
+
+The files are, in general, named identically to their listings on the data
+catalog page.  For instance, you can load `IsolatedGalaxy` by executing:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load_sample("IsolatedGalaxy")
+
+To find a list of all available datasets, you can call `load_sample` without any arguments, and it will return a list of the names that can be supplied:
+
+.. code-block:: python
+
+   import yt
+
+   yt.load_sample()
+
+This will return a list of possible filenames; more information can be accessed on the data catalog.
+
 .. _loading-amrvac-data
 
 AMRVAC Data
@@ -114,8 +143,6 @@ Appropriate errors are thrown for other combinations.
 
 .. note
    Ghost cells exist in .dat files but never read by yt.
-
-
 
 .. _loading-art-data:
 

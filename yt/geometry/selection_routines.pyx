@@ -214,7 +214,7 @@ cdef class SelectorObject:
             sdds[i] = dds[i]/2.0
             LE[i] = pos[i] - dds[i]/2.0
             RE[i] = pos[i] + dds[i]/2.0
-        #print LE[0], RE[0], LE[1], RE[1], LE[2], RE[2]
+        #print(LE[0], RE[0], LE[1], RE[1], LE[2], RE[2])
         res = self.select_grid(LE, RE, level, root)
         if res == 1 and visitor.domain > 0 and root.domain != visitor.domain:
             res = -1
@@ -952,8 +952,8 @@ cdef class RegionSelector(SelectorObject):
         cdef np.float64_t[:] DW = _ensure_code(dobj.ds.domain_width)
         cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
         cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
-        le_all = (np.array(LE) == dobj.ds.domain_left_edge).all()
-        re_all = (np.array(RE) == dobj.ds.domain_right_edge).all()
+        le_all = (np.array(LE) == _ensure_code(dobj.ds.domain_left_edge)).all()
+        re_all = (np.array(RE) == _ensure_code(dobj.ds.domain_right_edge)).all()
         if le_all and re_all:
             self.is_all_data = True
         else:
@@ -1793,7 +1793,7 @@ cdef class RaySelector(SelectorObject):
                         dtr[ni] = dt[i, j, k]
                         ni += 1
         if not (ni == ia.hits):
-            print ni, ia.hits
+            print(ni, ia.hits)
         free(ia)
         return dtr, tr
 

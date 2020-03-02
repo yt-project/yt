@@ -115,7 +115,7 @@ class YTOrthoRay(YTSelectionContainer1D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> oray = ds.ortho_ray(0, (0.2, 0.74))
-    >>> print oray["Density"]
+    >>> print(oray["Density"])
 
     Note: The low-level data representation for rays are not guaranteed to be 
     spatially ordered.  In particular, with AMR datasets, higher resolution 
@@ -197,7 +197,7 @@ class YTRay(YTSelectionContainer1D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> ray = ds.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
-    >>> print ray["Density"], ray["t"], ray["dts"]
+    >>> print(ray["Density"], ray["t"], ray["dts"])
 
     Note: The low-level data representation for rays are not guaranteed to be 
     spatially ordered.  In particular, with AMR datasets, higher resolution 
@@ -323,7 +323,7 @@ class YTSlice(YTSelectionContainer2D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> slice = ds.slice(0, 0.25)
-    >>> print slice["Density"]
+    >>> print(slice["Density"])
     """
     _top_node = "/Slices"
     _type_name = "slice"
@@ -446,7 +446,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> cp = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
-    >>> print cp["Density"]
+    >>> print(cp["Density"])
     """
     _plane = None
     _top_node = "/CuttingPlanes"

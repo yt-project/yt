@@ -28,7 +28,7 @@ def write_docstring(f, name, cls):
     sig = sig.replace("**kwargs", "**field_parameters")
     clsproxy = "yt.visualization.plot_modifications.%s" % (cls.__name__)
     #docstring = "\n".join(["   %s" % line for line in docstring.split("\n")])
-    #print docstring
+    #print(docstring)
     f.write(template % dict(clsname = clsname, sig = sig, clsproxy=clsproxy,
                             docstring = "\n".join(tw.wrap(docstring))))
                             #docstring = docstring))

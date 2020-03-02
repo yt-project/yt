@@ -185,8 +185,8 @@ def bitwise_addition(np.uint64_t x, np.int64_t y0,
                 mstr[i] = '1'
                 m = int(''.join(mstr[::-1]), 2)
             # Invert portion in mask
-            # print mstr[::-1]
-            # print y,p,(pstart,end+1),bin(m),bin(out),bin(~out)
+            # print(mstr[::-1])
+            # print(y,p,(pstart,end+1),bin(m),bin(out),bin(~out))
             out = masked_merge_64bit(out, ~out, m)
         # Move to next bit
         p += 1
@@ -887,7 +887,7 @@ def compare_morton(np.ndarray[floating, ndim=1] p0, np.ndarray[floating, ndim=1]
         q[j] = q0[j]
         # imp = ifrexp(p[j],&iep)
         # imq = ifrexp(q[j],&ieq)
-        # print j,p[j],q[j],xor_msb(p[j],q[j]),'m=',imp,imq,'e=',iep,ieq
+        # print(j,p[j],q[j],xor_msb(p[j],q[j]),'m=',imp,imq,'e=',iep,ieq)
     return compare_floats_morton(p,q)
 
 @cython.cdivision(True)
@@ -956,7 +956,7 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
                 pos_x, pos_y, pos_z, dds, DLE, DRE, ind,
                 filter)
     else:
-        print "Could not identify dtype.", pos_x.dtype
+        print("Could not identify dtype.", pos_x.dtype)
         raise NotImplementedError
     if rv < pos_x.shape[0]:
         mis = (pos_x.min(), pos_y.min(), pos_z.min())
@@ -1130,7 +1130,7 @@ def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
     cbox_hl = np.zeros(3,dtype=np.float64)
     rbox_hl = quadtree_box(P[l,:],P[h,:],order,DLE,DRE,cbox_hl)
     if dist_to_box(cbox_sol,cbox_hl,rbox_hl) >= 1.5*rbox_sol:
-        print '{} outside: rad = {}, rbox = {}, dist = {}'.format(m,rad_Ai,rbox_sol,dist_to_box(P[i,:],cbox_hl,rbox_hl))
+        print('{} outside: rad = {}, rbox = {}, dist = {}'.format(m,rad_Ai,rbox_sol,dist_to_box(P[i,:],cbox_hl,rbox_hl)))
         return Ai
     # Expand search to lower/higher indicies as needed 
     if i < m: # They are already sorted...

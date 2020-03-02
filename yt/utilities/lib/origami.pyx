@@ -24,8 +24,8 @@ def run_origami(np.ndarray[np.float64_t, ndim=1] pos_x,
     # C-contiguous.
     global printed_citation
     if printed_citation == 0:
-        print "ORIGAMI was developed by Bridget Falck and Mark Neyrinck."
-        print "Please cite Falck, Neyrinck, & Szalay 2012, ApJ, 754, 2, 125."
+        print("ORIGAMI was developed by Bridget Falck and Mark Neyrinck.")
+        print("Please cite Falck, Neyrinck, & Szalay 2012, ApJ, 754, 2, 125.")
         printed_citation = 1
     cdef int npart = pos_x.size
     if npart == 1:

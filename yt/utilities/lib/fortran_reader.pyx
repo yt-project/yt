@@ -61,11 +61,11 @@ def count_art_octs(char *fn, long offset,
     for _ in range(min_level + 1, max_level + 1):
         fread(dummy_records, sizeof(int), 2, f);
         fread(&nLevel, sizeof(int), 1, f); FIX_LONG(nLevel)
-        print level_info
+        print(level_info)
         level_info.append(nLevel)
         fread(dummy_records, sizeof(int), 2, f);
         fread(&next_record, sizeof(int), 1, f); FIX_LONG(next_record)
-        print "Record size is:", next_record
+        print("Record size is:", next_record)
         # Offset for one record header we just read
         next_record = (nLevel * (next_record + 2*sizeof(int))) - sizeof(int)
         fseek(f, next_record, SEEK_CUR)
@@ -78,7 +78,7 @@ def count_art_octs(char *fn, long offset,
         next_record = (2*sizeof(int) + readin) * (nLevel * nchild)
         next_record -= sizeof(int)
         fseek(f, next_record, SEEK_CUR)
-    print "nhvars",nhydro_vars
+    print("nhvars",nhydro_vars)
     fclose(f)
 
 def read_art_tree(char *fn, long offset,
@@ -115,11 +115,11 @@ def read_art_tree(char *fn, long offset,
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
         iOct = iHOLL[Level] - 1
         nLevel = iNOLL[Level]
-        #print "Reading Hierarchy for Level", Lev, Level, nLevel, iOct
-        #print ftell(f)
+        #print("Reading Hierarchy for Level", Lev, Level, nLevel, iOct)
+        #print(ftell(f))
         for ic1 in range(nLevel):
             iOctMax = max(iOctMax, iOct)
-            #print readin, iOct, nLevel, sizeof(int)
+            #print(readin, iOct, nLevel, sizeof(int))
             next_record = ftell(f)
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
             assert readin==52
@@ -147,11 +147,11 @@ def read_art_tree(char *fn, long offset,
 
         #skip over the hydro variables
         #find the length of one child section
-        #print 'measuring child record ',
+        #print('measuring child record ',)
         fread(&next_record, sizeof(int), 1, f);
-        #print next_record,
+        #print(next_record,)
         FIX_LONG(next_record)
-        #print next_record
+        #print(next_record)
         fseek(f,ftell(f)-sizeof(int),SEEK_SET) #rewind
         #This is a sloppy fix; next_record is 64bit
         #and I don't think FIX_LONG(next_record) is working
@@ -162,7 +162,7 @@ def read_art_tree(char *fn, long offset,
 
         #find the length of all of the children section
         child_record = ftell(f) +  (next_record+2*sizeof(int))*nLevel*nchild
-        #print 'Skipping over hydro vars', ftell(f), child_record
+        #print('Skipping over hydro vars', ftell(f), child_record)
         fseek(f, child_record, SEEK_SET)
 
         # for ic1 in range(nLevel * nchild):
@@ -187,7 +187,7 @@ def read_art_root_vars(char *fn, long root_grid_offset,
     fseek(f, root_grid_offset, SEEK_SET)
     # Now we seet out the cell we want
     cdef int my_offset = (((iz * ny) + iy) * nx + ix)
-    #print cell_record_size, my_offset, ftell(f)
+    #print(cell_record_size, my_offset, ftell(f))
     fseek(f, cell_record_size * my_offset, SEEK_CUR)
     #(((C)*GridDimension[1]+(B))*GridDimension[0]+A)
     for j in range(nhydro_vars):
@@ -216,11 +216,11 @@ cdef void read_art_vars(FILE *f,
     for j in range(8): #iterate over the children
         l = 0
         fread(padding, sizeof(int), 3, f); FIX_LONG(padding[0])
-        #print "Record Size", padding[0]
+        #print("Record Size", padding[0])
         # This should be replaced by an fread of nhydro_vars length
         for k in range(nhydro_vars): #iterate over the record
             fread(&temp, sizeof(float), 1, f); FIX_FLOAT(temp)
-            #print k, temp
+            #print(k, temp)
             if k in fields:
                 var[j,l] = temp
                 l += 1
@@ -272,9 +272,9 @@ def read_art_grid(int varindex,
                     offi = di - start_index[0]
                     offj = dj - start_index[1]
                     offk = dk - start_index[2]
-                    #print offi, filled.shape[0],
-                    #print offj, filled.shape[1],
-                    #print offk, filled.shape[2]
+                    #print(offi, filled.shape[0],)
+                    #print(offj, filled.shape[1],)
+                    #print(offk, filled.shape[2])
                     if filled[offi, offj, offk] == 1: continue
                     if level > 0:
                         odind = (kr*2 + jr)*2 + ir

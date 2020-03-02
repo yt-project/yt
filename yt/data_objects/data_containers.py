@@ -1297,9 +1297,9 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         >>> sp = ds.sphere("c", 0.1)
         >>> sp_clone = sp.clone()
         >>> sp["density"]
-        >>> print sp.field_data.keys()
+        >>> print(sp.field_data.keys())
         [("gas", "density")]
-        >>> print sp_clone.field_data.keys()
+        >>> print(sp_clone.field_data.keys())
         []
         """
         args = self.__reduce__()

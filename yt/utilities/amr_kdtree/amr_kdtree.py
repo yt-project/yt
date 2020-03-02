@@ -97,7 +97,7 @@ class Tree(object):
             assert(np.all(grid.LeftEdge <= nle))
             assert(np.all(grid.RightEdge >= nre))
             assert(np.all(dims > 0))
-            # print grid, dims, li, ri
+            # print(grid, dims, li, ri)
 
         # Calculate the Volume
         vol = self.trunk.kd_sum_volume()

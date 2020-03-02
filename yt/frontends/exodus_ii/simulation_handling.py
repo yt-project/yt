@@ -32,7 +32,7 @@ class ExodusIISimulation(DatasetSeries, metaclass = RegisteredSimulationTimeSeri
     >>> sim = yt.simulation("demo_second", "ExodusII")
     >>> sim.get_time_series()
     >>> for ds in sim:
-    ...     print ds.current_time
+    ...     print(ds.current_time)
 
     """
 

@@ -234,7 +234,7 @@ class Keyframes(object):
                     current = next
                     self.current_score = next_score
                     if self.current_score > self.best_score:
-                        #print num_eval, self.current_score, self.best_score, current
+                        #print(num_eval, self.current_score, self.best_score, current)
                         self.best_score = self.current_score
                         self.best = current
                     break

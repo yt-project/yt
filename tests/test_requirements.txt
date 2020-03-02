@@ -25,3 +25,4 @@ xarray==0.12.3 ; python_version >= '3.0'
 firefly_api>=0.0.2
 MiniballCpp>=0.2.1
 f90nml>=1.1.2
+pooch>=0.7.0

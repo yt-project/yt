@@ -614,7 +614,7 @@ cdef class FileBitmasks:
             nchk = tmp2.numberOfOnes()
             if nchk > 0:
                 msg = "File {}: There are {} refined cells that are not set on coarse level.".format(ifile,nchk)
-                print msg
+                print(msg)
                 return 0
                 # raise Exception(msg)
         return 1
@@ -745,8 +745,8 @@ cdef class BoolArrayCollection:
                 raise RuntimeError
             self._set(ids[i])
             last = ids[i]
-        print "Set from %s array and ended up with %s bytes" % (
-            ids.size, ewah_keys[0].sizeInBytes())
+        print("Set from %s array and ended up with %s bytes" % (
+            ids.size, ewah_keys[0].sizeInBytes()))
 
     cdef void _set_coarse(self, np.uint64_t i1):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
@@ -1296,7 +1296,7 @@ cdef class BoolArrayCollection:
         nchk = tmp2.numberOfOnes()
         if nchk > 0:
             msg = "There are {} refined cells that are not set on coarse level.".format(nchk)
-            print msg
+            print(msg)
             return 0
             # raise Exception(msg)
         return 1

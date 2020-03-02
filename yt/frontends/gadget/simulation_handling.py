@@ -53,7 +53,7 @@ class GadgetSimulation(SimulationTimeSeries):
     >>> gs = yt.simulation("my_simulation.par", "Gadget")
     >>> gs.get_time_series()
     >>> for ds in gs:
-    ...     print ds.current_time
+    ...     print(ds.current_time)
 
     """
 
@@ -189,7 +189,7 @@ class GadgetSimulation(SimulationTimeSeries):
 
         >>> # An example using the setup_function keyword
         >>> def print_time(ds):
-        ...     print ds.current_time
+        ...     print(ds.current_time)
         >>> gs.get_time_series(setup_function=print_time)
         >>> for ds in gs:
         ...     SlicePlot(ds, "x", "Density").save()

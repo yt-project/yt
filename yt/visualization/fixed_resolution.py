@@ -61,9 +61,9 @@ class FixedResolutionBuffer(object):
     >>> proj = ds.proj(0, "density")
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
     ...                              (1024, 1024))
-    >>> print frb1["density"].max()
+    >>> print(frb1["density"].max())
     1.0914e-9 g/cm**3
-    >>> print frb1["temperature"].max()
+    >>> print(frb1["temperature"].max())
     104923.1 K
     """
     _exclude_fields = ('pz','pdz','dx','x','y','z',

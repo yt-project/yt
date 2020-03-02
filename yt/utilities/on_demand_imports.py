@@ -190,6 +190,22 @@ class cartopy_imports(object):
 
 _cartopy = cartopy_imports()
 
+class pooch_imports(object):
+    _name = "pooch"
+
+    _pooch = None
+    @property
+    def pooch(self):
+        if self._pooch is None:
+            try:
+                import pooch as pooch
+            except ImportError:
+                pooch = NotAModule(self._name)
+            self._pooch = pooch
+        return self._pooch
+
+_pooch = pooch_imports()
+
 class scipy_imports(object):
     _name = "scipy"
     _integrate = None

@@ -29,7 +29,7 @@ class OWLSSimulation(GadgetSimulation):
     >>> es = yt.simulation("my_simulation.par", "OWLS")
     >>> es.get_time_series()
     >>> for ds in es:
-    ...     print ds.current_time
+    ...     print(ds.current_time)
 
     """
 

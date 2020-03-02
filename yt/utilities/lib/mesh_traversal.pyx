@@ -24,9 +24,9 @@ rtc.rtcInit(NULL)
 rtc.rtcSetErrorFunction(error_printer)
 
 cdef void error_printer(const rtc.RTCError code, const char *_str):
-    print "ERROR CAUGHT IN EMBREE"
+    print("ERROR CAUGHT IN EMBREE")
     rtc.print_error(code)
-    print "ERROR MESSAGE:", _str
+    print("ERROR MESSAGE:", _str)
 
 cdef class YTEmbreeScene:
 

@@ -836,11 +836,11 @@ def get_output_filename(name, keyword, suffix):
     Examples
     --------
 
-    >>> print get_output_filename(None, "Projection_x", ".png")
+    >>> print(get_output_filename(None, "Projection_x", ".png"))
     Projection_x.png
-    >>> print get_output_filename("my_file", "Projection_x", ".png")
+    >>> print(get_output_filename("my_file", "Projection_x", ".png"))
     my_file.png
-    >>> print get_output_filename("my_file/", "Projection_x", ".png")
+    >>> print(get_output_filename("my_file/", "Projection_x", ".png"))
     my_file/Projection_x.png
     
     """

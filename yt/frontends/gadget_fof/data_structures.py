@@ -510,22 +510,22 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
     >>> ds = yt.load("gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5")
     >>>
     >>> halo = ds.halo("Group", 0)
-    >>> print halo.mass
+    >>> print(halo.mass)
     13256.5517578 code_mass
-    >>> print halo.position
+    >>> print(halo.position)
     [ 16.18603706   6.95965052  12.52694607] code_length
-    >>> print halo.velocity
+    >>> print(halo.velocity)
     [ 6943694.22793569  -762788.90647454  -794749.63819757] cm/s
-    >>> print halo["Group_R_Crit200"]
+    >>> print(halo["Group_R_Crit200"])
     [ 0.79668683] code_length
     >>>
     >>> # particle ids for this halo
-    >>> print halo["member_ids"]
+    >>> print(halo["member_ids"])
     [  723631.   690744.   854212. ...,   608589.   905551.  1147449.] dimensionless
     >>>
     >>> # get the first subhalo of this halo
     >>> subhalo = ds.halo("Subhalo", (0, 0))
-    >>> print subhalo["member_ids"]
+    >>> print(subhalo["member_ids"])
     [  723631.   690744.   854212. ...,   808362.   956359.  1248821.] dimensionless
 
     """

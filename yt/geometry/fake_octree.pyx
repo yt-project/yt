@@ -38,7 +38,7 @@ def create_fake_octree(RAMSESOctreeContainer oct_handler,
     cur_leaf = 8 #we've added one parent...
     mask = np.ones((max_noct,8),dtype='uint8')
     while oct_handler.domains[0].n_assigned < max_noct:
-        print "root: nocts ", oct_handler.domains[0].n_assigned
+        print("root: nocts ", oct_handler.domains[0].n_assigned)
         cur_leaf = subdivide(oct_handler, parent, ind, dd, cur_leaf, 0,
                              max_noct, max_level, fsubdivide, mask)
     return cur_leaf
@@ -50,7 +50,7 @@ cdef long subdivide(RAMSESOctreeContainer oct_handler,
                     long cur_leaf, long cur_level,
                     long max_noct, long max_level, float fsubdivide,
                     np.ndarray[np.uint8_t, ndim=2] mask):
-    print "child", parent.file_ind, ind[0], ind[1], ind[2], cur_leaf, cur_level
+    print("child", parent.file_ind, ind[0], ind[1], ind[2], cur_leaf, cur_level)
     cdef int ddr[3]
     cdef int ii
     cdef long i

@@ -5,7 +5,7 @@ A two-pass contour finding algorithm
 
 """
 
-
+from __future__ import print_function
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -26,7 +26,7 @@ import sys
 cdef inline ContourID *contour_create(np.int64_t contour_id,
                                ContourID *prev = NULL):
     node = <ContourID *> malloc(sizeof(ContourID))
-    #print "Creating contour with id", contour_id
+    #print("Creating contour with id", contour_id)
     node.contour_id = contour_id
     node.next = node.parent = NULL
     node.prev = prev
@@ -147,7 +147,7 @@ cdef class ContourTree:
         n = contour_ids.shape[0]
         cdef ContourID *cur = self.last
         for i in range(n):
-            #print i, contour_ids[i]
+            #print(i, contour_ids[i])
             cur = contour_create(contour_ids[i], cur)
             if self.first == NULL: self.first = cur
         self.last = cur
@@ -228,15 +228,15 @@ cdef class ContourTree:
         cdef ContourID *c1
         cdef ContourID *c2
         n = join_tree.shape[0]
-        #print "Counting"
-        #print "Checking", self.count()
+        #print("Counting")
+        #print("Checking", self.count())
         for i in range(n):
             ins = 0
             cid1 = join_tree[i, 0]
             cid2 = join_tree[i, 1]
             c1 = c2 = NULL
             cur = self.first
-            #print "Looking for ", cid1, cid2
+            #print("Looking for ", cid1, cid2)
             while c1 == NULL or c2 == NULL:
                 if cur.contour_id == cid1:
                     c1 = contour_find(cur)
@@ -246,9 +246,9 @@ cdef class ContourTree:
                 cur = cur.next
                 if cur == NULL: break
             if c1 == NULL or c2 == NULL:
-                if c1 == NULL: print "  Couldn't find ", cid1
-                if c2 == NULL: print "  Couldn't find ", cid2
-                print "  Inspected ", ins
+                if c1 == NULL: print("  Couldn't find ", cid1)
+                if c2 == NULL: print("  Couldn't find ", cid2)
+                print("  Inspected ", ins)
                 raise RuntimeError
             else:
                 c1.count = c2.count = 0
@@ -562,11 +562,11 @@ cdef class ParticleContourTree(ContourTree):
         cdef np.int64_t *nind = <np.int64_t *> malloc(sizeof(np.int64_t)*nsize)
         counter = 0
         cdef np.int64_t frac = <np.int64_t> (doff.shape[0] / 20.0)
-        if verbose == 1: print >> sys.stderr, "Will be outputting every", frac
+        if verbose == 1: print("Will be outputting every", frac, file=sys.stderr)
         for i in range(doff.shape[0]):
             if verbose == 1 and counter >= frac:
                 counter = 0
-                print >> sys.stderr, "FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size)
+                print("FOF-ing % 5.1f%% done" % ((100.0 * i)/doff.size), file=sys.stderr)
             counter += 1
             # Any particles found for this oct?
             if doff[i] < 0: continue

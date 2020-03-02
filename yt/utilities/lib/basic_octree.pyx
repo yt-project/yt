@@ -428,7 +428,7 @@ cdef class Octree:
                 if this_node is NULL: break
             if this_node is NULL: break
             if truncate and potential > kinetic:
-                print 'Truncating...'
+                print('Truncating...')
                 break
             pair_node = this_node.next
             while pair_node is not NULL:
@@ -538,7 +538,7 @@ cdef class Octree:
                     for k in range(2):
                         nline += "%d," % self.node_ID(node.children[i][j][k])
             line += nline
-        print line
+        print(line)
         return
 
     cdef void iterate_print_nodes(self, OctreeNode *node):
@@ -572,7 +572,7 @@ cdef class Octree:
         for i in range(self.nvals):
             line += "val%d\t\t" % i
         line += "weight\t\tchild?\tparent?\tchildren"
-        print line
+        print(line)
         for i in range(self.top_grid_dims[0]):
             for j in range(self.top_grid_dims[1]):
                 for k in range(self.top_grid_dims[2]):

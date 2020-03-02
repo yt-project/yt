@@ -75,7 +75,7 @@ class AthenaDistributedConverter(Converter):
             name = translation_dict[name]
         except:
             pass
-        # print 'Writing %s' % name
+        # print('Writing %s' % name)
         if name not in g.keys():
             g.create_dataset(name,data=data)
         
@@ -84,7 +84,7 @@ class AthenaDistributedConverter(Converter):
     def read_and_write_index(self,basename, ddn, gdf_name):
         """ Read Athena legacy vtk file from multiple cpus """
         proc_names = glob(self.source_dir+'id*')
-        #print 'Reading a dataset from %i Processor Files' % len(proc_names)
+        #print('Reading a dataset from %i Processor Files' % len(proc_names))
         N = len(proc_names)
         grid_dims = np.empty([N,3],dtype='int64')
         grid_left_edges = np.empty([N,3],dtype='float64')
@@ -198,7 +198,7 @@ class AthenaDistributedConverter(Converter):
 
     def read_and_write_data(self, basename, ddn, gdf_name):
         proc_names = glob(self.source_dir+'id*')
-        #print 'Reading a dataset from %i Processor Files' % len(proc_names)
+        #print('Reading a dataset from %i Processor Files' % len(proc_names))
         N = len(proc_names)
         for i in range(N):
             if i == 0:
@@ -206,7 +206,7 @@ class AthenaDistributedConverter(Converter):
             else:
                 fn = self.source_dir+'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
             f = open(fn,'rb')
-            #print 'Reading data from %s' % fn
+            #print('Reading data from %s' % fn)
             line = f.readline()
             while line != '':
                 if len(line) == 0: break
@@ -242,7 +242,7 @@ class AthenaDistributedConverter(Converter):
                     data = np.fromfile(f, dtype='>f4', count=grid_ncells).reshape(grid_dims,order='F')
                     if i == 0:
                         self.fields.append(field)
-                    # print 'writing field %s' % field
+                    # print('writing field %s' % field)
                     self.write_gdf_field(gdf_name, i, field, data)
                     read_table=False
 
@@ -257,7 +257,7 @@ class AthenaDistributedConverter(Converter):
                         self.fields.append(field+'_y')
                         self.fields.append(field+'_z')
 
-                    # print 'writing field %s' % field
+                    # print('writing field %s' % field)
                     self.write_gdf_field(gdf_name, i, field+'_x', data_x)
                     self.write_gdf_field(gdf_name, i, field+'_y', data_y)
                     self.write_gdf_field(gdf_name, i, field+'_z', data_z)
@@ -334,7 +334,7 @@ class AthenaConverter(Converter):
     def read_grid(self, filename):
         """ Read Athena legacy vtk file from single cpu """
         f = open(filename,'rb')
-        #print 'Reading from %s'%filename
+        #print('Reading from %s'%filename)
         grid = {}
         grid['read_field'] = None
         grid['read_type'] = None
