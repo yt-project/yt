@@ -25,7 +25,6 @@ from yt.funcs import \
     validate_width_tuple
 from yt.geometry.geometry_handler import \
     is_curvilinear
-from yt.extern.six import add_metaclass
 from yt.units import dimensions
 from yt.units.yt_array import YTQuantity, YTArray, uhstack
 from yt.units.unit_object import Unit
