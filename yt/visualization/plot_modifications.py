@@ -25,7 +25,10 @@ from yt.funcs import \
     validate_width_tuple
 from yt.geometry.geometry_handler import \
     is_curvilinear
+from yt.extern.six import add_metaclass
+from yt.units import dimensions
 from yt.units.yt_array import YTQuantity, YTArray, uhstack
+from yt.units.unit_object import Unit
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import \
@@ -165,8 +168,8 @@ class PlotCallback(metaclass = RegisteredCallback):
 
     def _sanitize_coord_system(self, plot, coord, coord_system):
         """
-        Given a set of one or more x,y (and z) coordinates and a coordinate 
-        system, convert the coordinates (and transformation) ready for final 
+        Given a set of one or more x,y (and z) coordinates and a coordinate
+        system, convert the coordinates (and transformation) ready for final
         plotting.
 
         Parameters
@@ -199,7 +202,7 @@ class PlotCallback(metaclass = RegisteredCallback):
                 to (1,1) in upper right.  Same as matplotlib figure coords.
         """
         # Assure coords are either a YTArray or numpy array
-        coord = np.asanyarray(coord)
+        coord = np.asanyarray(coord, dtype="float64")
         # if in data coords, project them to plot coords
         if coord_system == "data":
             if len(coord) < 3:
@@ -337,7 +340,7 @@ class VelocityCallback(PlotCallback):
                 xv = "velocity_cartesian_x"
                 yv = "velocity_cartesian_y"
             else:
-                # for other cases (even for cylindrical geometry), 
+                # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
                 xv = "velocity_%s" % axis_names[xax]
                 yv = "velocity_%s" % axis_names[yax]
@@ -395,7 +398,7 @@ class MagFieldCallback(PlotCallback):
                 xv = "magnetic_field_cartesian_x"
                 yv = "magnetic_field_cartesian_y"
             else:
-                # for other cases (even for cylindrical geometry), 
+                # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
                 xv = "magnetic_field_%s" % axis_names[xax]
                 yv = "magnetic_field_%s" % axis_names[yax]
@@ -1557,7 +1560,7 @@ class HaloCatalogCallback(PlotCallback):
         be used to find the fields containing the coordinates
         of the center of each halo. Ex: 'particle_position'
         will result in the fields 'particle_position_x' for x
-        'particle_position_y' for y, and 'particle_position_z' 
+        'particle_position_y' for y, and 'particle_position_z'
         for z. Default: 'particle_position'.
     text_args : dict
         Contains the arguments controlling the text
@@ -2147,12 +2150,18 @@ class TimestampCallback(PlotCallback):
 
         # If we're annotating the time, put it in the correct format
         if self.time:
-
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
-                self.time_unit = plot.ds.get_smallest_appropriate_unit( \
-                                            plot.ds.current_time,
-                                            quantity='time')
+                if plot.ds.unit_system.name.startswith("us"):
+                    # if the unit system name startswith "us", that means it is
+                    # in code units and we should not convert to seconds for
+                    # the plot.
+                    self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
+                else:
+                    # in the case of non- code units then we
+                    self.time_unit = plot.ds.get_smallest_appropriate_unit( \
+                                                plot.ds.current_time,
+                                                quantity='time')
             t = plot.ds.current_time.in_units(self.time_unit)
             if self.time_offset is not None:
                 if isinstance(self.time_offset, tuple):
@@ -2163,8 +2172,17 @@ class TimestampCallback(PlotCallback):
                     raise RuntimeError("'time_offset' must be a float, tuple, or"
                                        "YTQuantity!")
                 t -= toffset.in_units(self.time_unit)
+            if isinstance(self.time_unit, Unit):
+                # here the time unit will be in brackets on the annotation.
+                # This will most likely be in "code_time".
+                un = self.time_unit.latex_representation()
+                time_unit = r'$\ \ ('+un+r')$'
+            else:
+                # the 'smallest_appropriate_unit' function will return a
+                # string, so we shouldn't need to format it further.
+                time_unit = self.time_unit
             self.text += self.time_format.format(time=float(t),
-                                                 units=self.time_unit)
+                                                 units=time_unit)
 
         # If time and redshift both shown, do one on top of the other
         if self.time and self.redshift:

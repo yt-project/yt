@@ -1,7 +1,6 @@
 language: python
 dist: xenial
 sudo: required
-dist: xenial
 cache:
   pip: true
   directories:
@@ -64,7 +63,7 @@ install:
         # pyproject.toml in cartopy.
         # These versions are pinned, so we will need to update/remove them when
         # the hack is no longer necessary.
-        $PIP install numpy==1.16.2 cython==0.29.6
+        $PIP install numpy==1.18.1 cython==0.29.6
         $PIP install -r tests/test_requirements.txt
       fi
       $PIP install -e .
@@ -75,12 +74,12 @@ install:
 jobs:
   include:
     - stage: lint
-      python: 3.7
+      python: 3.6
       script: flake8 yt/
 
     - stage: tests
-      name: "Minimal Dependency Version Unit Tests"
-      python: 3.5
+      name: "Python: 3.6 Minimal Dependency Unit Tests"
+      python: 3.6
       env: MINIMAL=1
       script: coverage run $(which nosetests) -c nose_unit.cfg
 

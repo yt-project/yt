@@ -501,7 +501,7 @@ Gradient Fields
 ---------------
 
 yt provides a way to compute gradients of spatial fields using the
-:meth:`~yt.frontends.flash.data_structures.FLASHDataset.add_gradient_fields`
+:meth:`~yt.data_objects.static_output.Dataset.add_gradient_fields`
 method. If you have a spatially-based field such as density or temperature,
 and want to calculate the gradient of that field, you can do it like so:
 
@@ -656,6 +656,41 @@ available are:
 * ``smoothed`` - this is a special deposition type.  See discussion below for
   more information, in :ref:`sph-fields`.
 
+You can also directly use the
+:meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
+defined on each dataset to depose any particle field onto the mesh like so:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   fname = ds.add_deposited_particle_field(('all', 'particle_velocity_x'), method='nearest')
+
+   print('The velocity of the particles are (stored in %s)' % fname)
+   print(ds.r['deposit', 'all_nn_particle_velocity_x'])
+
+Possible deposition methods are:
+
+* ``simple_smooth`` - perform an SPH-like deposition of the field onto the mesh
+  optionally accepting a ``kernel_name``.
+* ``sum`` - sums the value of the particle field for all particles found in
+  each cell.
+* ``std`` - computes the standard deviation of the value of the particle field
+  for all particles found in each cell.
+* ``cic`` - performs cloud-in-cell interpolation (see `Section 2.2
+  <http://ta.twi.tudelft.nl/dv/users/lemmens/MThesis.TTH/chapter4.html>`_ for more
+  information) of the particle field on a given mesh zone.
+* ``weighted_mean`` - computes the mean of the particle field, weighted by
+  the field passed into ``weight_field`` (by default, it uses the particle
+  mass).
+* ``count`` - counts the number of particles in each cell.
+* ``nearest`` - assign to each cell the value of the closest particle.
+
+In addition, the :meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
+returns the name of the newly created field.
+
+
 .. _mesh-sampling-particle-fields:
 
 Mesh Sampling Particle Fields
@@ -673,8 +708,8 @@ The particle fields are named ``(ptype, cell_ftype_fname)`` where
 ``ptype`` is the particle type onto which the deposition occurs,
 ``ftype`` is the mesh field type (e.g. ``gas``) and ``fname`` is the
 field (e.g. ``temperature``, ``density``, ...). You can directly use
-the ``add_mesh_sampling_particle_field`` function defined on each dataset to
-impose a field onto the particles like so:
+the :meth:`~yt.data_objects.static_output.Dataset.add_mesh_sampling_particle_field`
+function defined on each dataset to impose a field onto the particles like so:
 
 .. code-block:: python
 
@@ -686,7 +721,7 @@ impose a field onto the particles like so:
    print('The temperature at the location of the particles is')
    print(ds.r['all', 'cell_gas_temperature'])
 
-For octree codes (e.g. RAMSES), you can trigger the build of an index so 
+For octree codes (e.g. RAMSES), you can trigger the build of an index so
 that the next sampling operations will be mush faster
 
 .. code-block:: python

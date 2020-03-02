@@ -358,13 +358,13 @@ class DualEPS(object):
             _ylabel = pyxize_label(yaxis.label.get_text())
             # set log if necessary
             if subplot.get_xscale() == "log":
-                 _xlog = True 
+                _xlog = True 
             else:
-                 _xlog = False
+                _xlog = False
             if subplot.get_yscale() == "log":
-                 _ylog = True 
+                _ylog = True 
             else:
-                 _ylog = False
+                _ylog = False
             _tickcolor = None 
         elif isinstance(plot, PhasePlot):
             k = list(plot.plots.keys())[0]
@@ -960,9 +960,9 @@ class DualEPS(object):
         elif format == "pdf":
             self.canvas.writePDFfile(filename)
         elif format == "png":
-             self.canvas.writeGSfile(filename+".png", "png16m", resolution=resolution)
+            self.canvas.writeGSfile(filename+".png", "png16m", resolution=resolution)
         elif format == "jpg":
-             self.canvas.writeGSfile(filename+".jpeg", "jpeg", resolution=resolution)
+            self.canvas.writeGSfile(filename+".jpeg", "jpeg", resolution=resolution)
         else:
             raise RuntimeError("format %s unknown." % (format))
             

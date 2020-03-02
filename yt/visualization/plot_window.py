@@ -294,7 +294,9 @@ class PlotWindow(ImagePlotContainer):
 
     @invalidate_data
     def zoom(self, factor):
-        r"""This zooms the window by *factor*.
+        r"""This zooms the window by *factor* > 0.
+        - zoom out with *factor* < 1
+        - zoom in with *factor* > 1
 
         Parameters
         ----------
@@ -302,6 +304,8 @@ class PlotWindow(ImagePlotContainer):
             multiplier for the current width
 
         """
+        if factor <= 0:
+            raise ValueError("Only positive zooming factors are meaningful.")
         Wx, Wy = self.width
         centerx = self.xlim[0] + Wx*0.5
         centery = self.ylim[0] + Wy*0.5

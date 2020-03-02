@@ -180,10 +180,10 @@ def read_vector(f, d, endian='='):
     vec_fmt = "%s%s" % (endian, d)
     vec_size = struct.calcsize(vec_fmt)
     if vec_len % vec_size != 0:
-            raise IOError(
-                'An error occured while reading a Fortran record. '
-                'Vector length is not compatible with data type: %s %s',
-                vec_len, vec_size)
+        raise IOError(
+            'An error occured while reading a Fortran record. '
+            'Vector length is not compatible with data type: %s %s',
+            vec_len, vec_size)
     vec_num = int(vec_len / vec_size)
     if isinstance(f, file): # Needs to be explicitly a file
         tr = np.fromfile(f, vec_fmt, count=vec_num)

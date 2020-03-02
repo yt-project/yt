@@ -63,9 +63,8 @@ def _field_concat(fname):
         v = []
         for ptype in data.ds.particle_types:
             data.ds._last_freq = (ptype, None)
-            if ptype == "all" or \
-                ptype in data.ds.known_filters:
-                  continue
+            if ptype == "all" or ptype in data.ds.known_filters:
+                continue
             v.append(data[ptype, fname].copy())
         rv = uconcatenate(v, axis=0)
         return rv
@@ -76,9 +75,8 @@ def _field_concat_slice(fname, axi):
         v = []
         for ptype in data.ds.particle_types:
             data.ds._last_freq = (ptype, None)
-            if ptype == "all" or \
-                ptype in data.ds.known_filters:
-                  continue
+            if ptype == "all" or ptype in data.ds.known_filters:
+                continue
             v.append(data[ptype, fname][:,axi])
         rv = uconcatenate(v, axis=0)
         return rv

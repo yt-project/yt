@@ -939,6 +939,8 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         if axis is None:
             mv, pos0, pos1, pos2 = self.quantities.min_location(field)
             return pos0, pos1, pos2
+        if isinstance(axis, string_types):
+            axis = [axis]
         rv = self.quantities.sample_at_min_field_values(field, axis)
         if len(rv) == 2:
             return rv[1]

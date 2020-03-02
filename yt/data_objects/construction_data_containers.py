@@ -1979,14 +1979,14 @@ class YTSurface(YTSelectionContainer3D):
                          sample_type)
 
     def _color_samples(self, cs, color_log, color_map, arr):
-            if color_log: cs = np.log10(cs)
-            mi, ma = cs.min(), cs.max()
-            cs = (cs - mi) / (ma - mi)
-            from yt.visualization.image_writer import map_to_colors
-            cs = map_to_colors(cs, color_map)
-            arr["red"][:] = cs[0,:,0]
-            arr["green"][:] = cs[0,:,1]
-            arr["blue"][:] = cs[0,:,2]
+        if color_log: cs = np.log10(cs)
+        mi, ma = cs.min(), cs.max()
+        cs = (cs - mi) / (ma - mi)
+        from yt.visualization.image_writer import map_to_colors
+        cs = map_to_colors(cs, color_map)
+        arr["red"][:] = cs[0,:,0]
+        arr["green"][:] = cs[0,:,1]
+        arr["blue"][:] = cs[0,:,2]
 
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,
