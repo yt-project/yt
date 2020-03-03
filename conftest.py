@@ -14,6 +14,7 @@ import tempfile
 import pytest
 import yaml
 
+import yt
 from yt.config import ytcfg
 from yt.utilities.answer_testing import utils
 
@@ -56,6 +57,7 @@ def pytest_configure(config):
     Reads in the tests/tests.yaml file. This file contains a list of
     each answer test's answer file (including the changeset number).
     """
+    yt._called_from_pytest = True
     # Make sure that the answers dir exists. If not, try to make it
     if not os.path.isdir(answer_dir):
         os.mkdir(answer_dir)
