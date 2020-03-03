@@ -415,7 +415,7 @@ class ProfileNDFromDataset(ProfileND):
     An ND profile object loaded from a ytdata dataset.
     """
     def __init__(self, ds):
-        ProfileND.__init__(self, ds.data, ds.parameters["weight_field"])
+        ProfileND.__init__(self, ds.data, ds.parameters.get("weight_field", None))
         self.fractional = ds.parameters.get("fractional", False)
         self.accumulation = ds.parameters.get("accumulation", False)
         exclude_fields = ["used", "weight"]
@@ -425,11 +425,11 @@ class ProfileNDFromDataset(ProfileND):
             ax_field = "%s_field" % ax
             ax_log = "%s_log" % ax
             setattr(self, ax_bins, ds.data[ax_bins])
-            field_name = tuple(ds.parameters[ax_field])
+            field_name = tuple(ds.parameters.get(ax_field, (None, None)))
             setattr(self, ax_field, field_name)
             self.field_info[field_name] = ds.field_info[field_name]
             setattr(self, ax_log, ds.parameters.get(ax_log, False))
-            exclude_fields.extend([ax, ax_bins, ds.parameters[ax_field][1]])
+            exclude_fields.extend([ax, ax_bins, field_name[1]])
         self.weight = ds.data["weight"]
         self.used = ds.data["used"].d.astype(bool)
         profile_fields = [f for f in ds.field_list
