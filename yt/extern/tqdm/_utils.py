@@ -89,7 +89,7 @@ def _environ_cols_linux(fp):  # pragma: no cover
     # if fp is None:
     #     try:
     #         fp = os.open(os.ctermid(), os.O_RDONLY)
-    #     except:
+    #     except Exception:
     #         pass
     try:
         from termios import TIOCGWINSZ
@@ -100,7 +100,7 @@ def _environ_cols_linux(fp):  # pragma: no cover
     else:
         try:
             return array('h', ioctl(fp, TIOCGWINSZ, '\0' * 8))[1]
-        except:
+        except Exception:
             try:
                 from os.environ import get
             except ImportError:

@@ -440,7 +440,7 @@ class AthenaConverter(Converter):
         pars_g.attrs['domain_dimensions'] = grid['dimensions']
         try:
             pars_g.attrs['current_time'] = grid['time']
-        except:
+        except Exception:
             pars_g.attrs['current_time'] = 0.0
         pars_g.attrs['domain_left_edge'] = grid['left_edge'] # For Now
         pars_g.attrs['domain_right_edge'] = grid['right_edge'] # For Now

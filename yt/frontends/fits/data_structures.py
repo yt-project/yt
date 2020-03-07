@@ -465,7 +465,7 @@ class FITSDataset(Dataset):
         # Get the simulation time
         try:
             self.current_time = self.parameters["time"]
-        except:
+        except Exception:
             mylog.warning("Cannot find time")
             self.current_time = 0.0
             pass

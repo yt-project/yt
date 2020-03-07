@@ -1472,7 +1472,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 try:
                     fd = fi.get_dependencies(ds = self.ds)
                     self.ds.field_dependencies[field] = fd
-                except:
+                except Exception:
                     continue
             requested = self._determine_fields(list(set(fd.requested)))
             deps = [d for d in requested if d not in fields_to_get]

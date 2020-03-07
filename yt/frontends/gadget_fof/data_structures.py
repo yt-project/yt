@@ -306,7 +306,7 @@ class GadgetFOFDataset(Dataset):
             valid = all(ng in fh["/"] for ng in need_groups) and \
               not any(vg in fh["/"] for vg in veto_groups)
             fh.close()
-        except:
+        except Exception:
             valid = False
             pass
         return valid

@@ -33,7 +33,7 @@ class ParticleGenerator(object):
             self.posx_index = self.field_list.index(self.default_fields[0])
             self.posy_index = self.field_list.index(self.default_fields[1])
             self.posz_index = self.field_list.index(self.default_fields[2])
-        except:
+        except Exception:
             raise KeyError("You must specify position fields: " +
                            " ".join(["particle_position_%s" % ax for ax in "xyz"]))
         self.index_index = self.field_list.index((ptype, "particle_index"))

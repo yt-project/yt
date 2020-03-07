@@ -38,7 +38,7 @@ class GizmoDataset(GadgetHDF5Dataset):
             if dmetal not in fh or fh[dmetal].shape[1] not in (11, 17):
                 valid = False
             fh.close()
-        except:
+        except Exception:
             valid = False
             pass
         return valid

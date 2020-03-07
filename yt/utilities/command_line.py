@@ -503,7 +503,7 @@ class YTBugreportCmd(YTCommand):
         print()
         try:
             current_version = get_yt_version()
-        except:
+        except Exception:
             current_version = "Unavailable"
         summary = input("Summary? ")
         bugtype = "bug"
