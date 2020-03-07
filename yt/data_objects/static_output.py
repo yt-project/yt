@@ -1491,10 +1491,27 @@ class Dataset(object):
         if deg:
             shift_angle = np.deg2rad(shift_angle)
 
-        theta_edges = [self.index.grid_left_edge[:, theta_axis], self.index.grid_right_edge[:, theta_axis]]
+        # convert to length unit for internal operations compatibility
+        shift_angle *= self.length_unit
+        
+        # only rotate by a multiple of the coarsest angular step
+        # devnote: not sure this is necessary, though it should help making sure
+        # the feature's flow is controlled
+        dx = self.index.select_grids(level=self.min_level)[0].dds
+        dtheta = dx[theta_axis]
+        shift_angle -= shift_angle % dtheta
+
+        theta_edges = [self.index.grid_left_edge, self.index.grid_right_edge]
+
+        #h = self.index.grids[0].index # devnote why is is not the same as ds.index ?
+        #theta_edges += [h.grid_left_edge, h.grid_right_edge]
+
         for edge in theta_edges:
-            edge += shift_angle * self.length_unit
-            edge %= 2*np.pi * self.length_unit
+            edge[:, theta_axis] += shift_angle
+            edge[:, theta_axis] %= 2*np.pi * self.length_unit
+
+        #for g in self.index.grids:
+        #    g._prepare_grid()
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
