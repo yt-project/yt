@@ -102,6 +102,7 @@ class AMRVACHierarchy(GridIndex):
         # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
         ytlevels = np.array(vaclevels, dtype="int32") - 1
         self.grid_levels.flat[:] = ytlevels
+        self.min_level = np.min(ytlevels)
         self.max_level = np.max(ytlevels)
         assert self.max_level == self.dataset.parameters["levmax"] - 1
 
