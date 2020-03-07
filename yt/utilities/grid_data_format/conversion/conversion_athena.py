@@ -73,8 +73,7 @@ class AthenaDistributedConverter(Converter):
         name = field
         try:
             name = translation_dict[name]
-        except:
-            pass
+        except Exception: pass
         # print 'Writing %s' % name
         if name not in g.keys():
             g.create_dataset(name,data=data)
@@ -274,8 +273,7 @@ class AthenaDistributedConverter(Converter):
             tname = name
             try:
                 tname = translation_dict[name]
-            except:
-                pass
+            except Exception: pass
             this_field = field_g.create_group(tname)
             if name in self.field_conversions.keys():
                 this_field.attrs['field_to_cgs'] = self.field_conversions[name]
@@ -461,8 +459,7 @@ class AthenaConverter(Converter):
             tname = name
             try:
                 tname = translation_dict[name]
-            except:
-                pass
+            except Exception: pass
             this_field = field_g.create_group(tname)
         if name in self.field_conversions.keys():
             this_field.attrs['field_to_cgs'] = self.field_conversions[name]

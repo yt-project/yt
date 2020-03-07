@@ -525,8 +525,7 @@ class YTBugreportCmd(YTCommand):
             content = open(fn).read()
             try:
                 os.unlink(fn)
-            except:
-                pass
+            except Exception: pass
         else:
             print()
             print("Couldn't find an $EDITOR variable.  So, let's just take")

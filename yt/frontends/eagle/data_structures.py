@@ -93,6 +93,5 @@ class EagleNetworkDataset(EagleDataset):
                 fileh.close()
                 return True
             fileh.close()
-        except:
-            pass
+        except Exception: pass
         return False

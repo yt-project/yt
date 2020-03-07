@@ -336,6 +336,5 @@ class GAMERDataset(Dataset):
             f = HDF5FileHandler(args[0])
             if 'Info' in f['/'].keys() and 'KeyInfo' in f['/Info'].keys():
                 return True
-        except:
-            pass
+        except Exception: pass
         return False

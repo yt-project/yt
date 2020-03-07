@@ -67,8 +67,7 @@ def _environ_cols_windows(fp):  # pragma: no cover
              maxx, maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
             # nlines = bottom - top + 1
             return right - left  # +1
-    except:
-        pass
+    except Exception: pass
     return None
 
 
@@ -80,8 +79,7 @@ def _environ_cols_tput(*args):  # pragma: no cover
         cols = int(subprocess.check_call(shlex.split('tput cols')))
         # rows = int(subprocess.check_call(shlex.split('tput lines')))
         return cols
-    except:
-        pass
+    except Exception: pass
     return None
 
 

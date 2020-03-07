@@ -643,8 +643,7 @@ class DarkMatterARTDataset(ARTDataset):
                     if possible.endswith(amr_suffix):
                         if os.path.basename(possible).startswith(amr_prefix):
                             return False
-            except:
-                pass
+            except Exception: pass
             try:
                 seek = 4
                 fh.seek(seek)

@@ -166,8 +166,7 @@ class AHFHalosDataset(Dataset):
                     try:
                         val = float(val)
                         param[key] = val
-                    except:
-                        pass
+                    except Exception: pass
         return param
 
     @property

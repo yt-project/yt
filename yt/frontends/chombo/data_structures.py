@@ -390,8 +390,7 @@ class ChomboDataset(Dataset):
                 valid = valid and not ('Charm_global' in fileh.keys())
                 fileh.close()
                 return valid
-            except:
-                pass
+            except Exception: pass
         return False
 
     @parallel_root_only
@@ -698,8 +697,7 @@ class Orion2Dataset(ChomboDataset):
                 valid = valid and 'CeilVA_mass' in fileh.attrs.keys()
                 fileh.close()
                 return valid
-            except:
-                pass
+            except Exception: pass
         return False
 
 
@@ -757,6 +755,5 @@ class ChomboPICDataset(ChomboDataset):
             valid = "Charm_global" in fileh["/"]
             fileh.close()
             return valid
-        except:
-            pass
+        except Exception: pass
         return False
