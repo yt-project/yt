@@ -242,7 +242,6 @@ class Dataset(object):
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
 
-        self.min_level = 0
         self.no_cgs_equiv_length = False
 
         self._create_unit_registry()
@@ -263,6 +262,10 @@ class Dataset(object):
 
         self._set_derived_attrs()
         self._setup_classes()
+
+    @property
+    def min_level(self):
+        return self.index.min_level
 
     def _set_derived_attrs(self):
         if self.domain_left_edge is None or self.domain_right_edge is None:
