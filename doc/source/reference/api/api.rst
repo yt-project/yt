@@ -735,6 +735,7 @@ particularly with complicated layouts.
    ~yt.visualization.eps_writer.multiplot
    ~yt.visualization.eps_writer.multiplot_yt
    ~yt.visualization.eps_writer.return_cmap
+   ~yt.visualization.eps_writer.return_colormap
 
 .. _derived-quantities-api:
 
@@ -805,6 +806,7 @@ See also :ref:`colormaps`.
 .. autosummary::
 
    ~yt.visualization.color_maps.add_cmap
+   ~yt.visualization.color_maps.add_colormap
    ~yt.visualization.color_maps.make_colormap
    ~yt.visualization.color_maps.show_colormaps
 
