@@ -263,10 +263,6 @@ class Dataset(object):
         self._set_derived_attrs()
         self._setup_classes()
 
-    @property
-    def min_level(self):
-        return self.index.min_level
-
     def _set_derived_attrs(self):
         if self.domain_left_edge is None or self.domain_right_edge is None:
             self.domain_center = np.zeros(3)
@@ -1428,6 +1424,18 @@ class Dataset(object):
     @max_level.setter
     def max_level(self, value):
         self._max_level = value
+
+    _min_level = None
+    @property
+    def min_level(self):
+        if self._min_level is None:
+            self._min_level = self.index.min_level
+
+        return self._min_level
+
+    @min_level.setter
+    def min_level(self, value):
+        self._min_level = value
 
     def define_unit(self, symbol, value, tex_repr=None, offset=None, prefixable=False):
         """
