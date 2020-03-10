@@ -102,7 +102,7 @@ from yt.visualization.api import \
     apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, LinePlot, \
     LineBuffer, ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps, add_cmap, make_colormap, \
+    show_colormaps, add_colormap, make_colormap, \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \
     ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
     FITSImageData, FITSSlice, FITSProjection, FITSOffAxisSlice, \

@@ -1,7 +1,6 @@
 from .color_maps import \
-    add_cmap, \
+    add_colormap, \
     show_colormaps, \
-    add_cmap, \
     make_colormap
 
 from .particle_plots import \

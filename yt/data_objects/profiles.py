@@ -272,7 +272,7 @@ been deprecated, use profile.standard_deviation instead."""
                 fname = self.field_map.get(field[1], None)
                 if fname != field:
                     raise KeyError("Asked for field '{}' but only have data for "
-                                   "field '{}'".format(field, fname))
+                                   "fields '{}'".format(field, list(self.field_data.keys())))
             elif isinstance(field, DerivedField):
                 fname = self.field_map.get(field.name[1], None)
             if fname is None:
@@ -399,19 +399,21 @@ class ProfileNDFromDataset(ProfileND):
     An ND profile object loaded from a ytdata dataset.
     """
     def __init__(self, ds):
-        ProfileND.__init__(self, ds.data, ds.parameters["weight_field"])
-        self.fractional = ds.parameters["fractional"]
-        self.accumulation = ds.parameters["accumulation"]
+        ProfileND.__init__(self, ds.data, ds.parameters.get("weight_field", None))
+        self.fractional = ds.parameters.get("fractional", False)
+        self.accumulation = ds.parameters.get("accumulation", False)
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[:ds.dimensionality]:
             setattr(self, ax, ds.data[ax])
-            setattr(self, "%s_bins" % ax, ds.data["%s_bins" % ax])
-            field_name = tuple(ds.parameters["%s_field" % ax])
-            setattr(self, "%s_field" % ax, field_name)
+            ax_bins = "%s_bins" % ax
+            ax_field = "%s_field" % ax
+            ax_log = "%s_log" % ax
+            setattr(self, ax_bins, ds.data[ax_bins])
+            field_name = tuple(ds.parameters.get(ax_field, (None, None)))
+            setattr(self, ax_field, field_name)
             self.field_info[field_name] = ds.field_info[field_name]
-            setattr(self, "%s_log" % ax, ds.parameters["%s_log" % ax])
-            exclude_fields.extend([ax, "%s_bins" % ax,
-                                   ds.parameters["%s_field" % ax][1]])
+            setattr(self, ax_log, ds.parameters.get(ax_log, False))
+            exclude_fields.extend([ax, ax_bins, field_name[1]])
         self.weight = ds.data["weight"]
         self.used = ds.data["used"].d.astype(bool)
         profile_fields = [f for f in ds.field_list

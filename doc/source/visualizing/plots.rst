@@ -817,7 +817,7 @@ The minorticks may be removed using the
 :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_minorticks`
 function, which either accepts a specific field name including the 'all' alias
 and the desired state for the plot as 'on' or 'off'. There is also an analogous
-:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_cbar_minorticks`
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_colorbar_minorticks`
 function for the colorbar axis.
 
 .. python-script::
@@ -825,8 +825,8 @@ function for the colorbar axis.
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
-   slc.set_minorticks('all', 'off')
-   slc.set_cbar_minorticks('all', 'off')
+   slc.set_minorticks('all', False)
+   slc.set_colorbar_minorticks('all', False)
    slc.save()
 
 
