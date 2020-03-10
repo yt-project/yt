@@ -641,6 +641,10 @@ class GridHierarchyTest(AnswerTestingTest):
         for k in new_result:
             assert_equal(new_result[k], old_result[k])
 
+    def check_index_levels_consistency(self):
+        assert self.ds.index.select_grids(self.ds.min_level).size > 0
+        assert self.ds.index.select_grids(self.ds.max_level).size > 0
+
 class ParentageRelationshipsTest(AnswerTestingTest):
     _type_name = "ParentageRelationships"
     _attrs = ()
