@@ -212,7 +212,7 @@ class GDFDataset(Dataset):
                     # assign CGS units. setdefaultattr will catch code units
                     # which have already been set via units_override. 
                     un = unit_name[:-5]
-                    un = un.replace('magnetic', 'magnetic_field', 1)
+                    un = un.replace('magnetic', 'magnetic_field_cgs', 1)
                     unit = unit_system_registry["cgs"][un]
                     setdefaultattr(self, unit_name, self.quan(value, unit))
                 setdefaultattr(self, unit_name, self.quan(value, unit))
