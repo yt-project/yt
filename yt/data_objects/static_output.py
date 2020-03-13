@@ -1431,6 +1431,10 @@ class Dataset(object):
             self._min_level = self.index.min_level
         return self._min_level
 
+    @min_level.setter
+    def min_level(self, value):
+        self._min_level = value
+
     def define_unit(self, symbol, value, tex_repr=None, offset=None, prefixable=False):
         """
         Define a new unit and add it to the dataset's unit registry.
