@@ -142,8 +142,8 @@ class RegionExpression(object):
         return l, r
 
     def _create_region(self, bounds_tuple):
-        left_edge = self.ds.domain_left_edge
-        right_edge = self.ds.domain_right_edge
+        left_edge = self.ds.domain_left_edge.copy()
+        right_edge = self.ds.domain_right_edge.copy()
         dims = []
         for ax, b in enumerate(bounds_tuple):
             l, r = self._slice_to_edges(ax, b)
