@@ -85,6 +85,8 @@ from yt.geometry.coordinates.api import \
     GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler, \
     InternalGeographicCoordinateHandler
+from yt.geometry.geometry_handler import \
+    is_curvilinear
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
@@ -1390,6 +1392,7 @@ class Dataset(object):
 
         Examples
         --------
+        with a cartesian dataset ds
         >>> grad_fields = ds.add_gradient_fields(("gas","temperature"))
         >>> print(grad_fields)
         [('gas', 'temperature_gradient_x'),
@@ -1398,16 +1401,21 @@ class Dataset(object):
          ('gas', 'temperature_gradient_magnitude')]
         """
         self.index
-        if isinstance(input_field, tuple):
-            ftype, input_field = input_field[0], input_field[1]
-        else:
-            raise RuntimeError
+        if not isinstance(input_field, tuple):
+            raise ValueError
+        ftype, input_field = input_field[0], input_field[1]
         units = self.field_info[ftype, input_field].units
         setup_gradient_fields(self.field_info, (ftype, input_field), units)
         # Now we make a list of the fields that were just made, to check them
         # and to return them
+        if not is_curvilinear(self.geometry):
+            suffixes = ["x", "y", "z"]
+        elif self.geometry in ("polar", "cylindrical"):
+            suffixes = ["r", "theta", "z"]
+        else:
+            raise NotImplementedError("Dataset.add_gradient_fields is not implemented for %s geometry." % self.geometry)
         grad_fields = [(ftype,input_field+"_gradient_%s" % suffix)
-                       for suffix in "xyz"]
+                       for suffix in suffixes]
         grad_fields.append((ftype,input_field+"_gradient_magnitude"))
         deps, _ = self.field_info.check_derived_fields(grad_fields)
         self.field_dependencies.update(deps)
