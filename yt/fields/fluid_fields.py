@@ -39,6 +39,8 @@ from yt.utilities.physical_constants import \
 from yt.utilities.lib.misc_utilities import \
     obtain_relative_velocity_vector
 
+from yt.funcs import mylog
+
 @register_field_plugin
 def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     # slice_info would be the left, the right, and the factor.
@@ -192,9 +194,9 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
 
-    #geom = registry.ds.geometry
-    #if is_curvilinear(geom) and geom not in ("polar", "cylindrical"):
-    #    raise NotImplementedError("set_gradient_fields is not implemented for %s geometry." % geom)
+    geom = registry.ds.geometry
+    if is_curvilinear(geom):
+        mylog.warning("In %s geometry, gradient fields may contain artifacts near cartesian axes." % geom)
 
     assert(isinstance(grad_field, tuple))
     ftype, fname = grad_field
@@ -229,12 +231,10 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
     for axi, ax in enumerate(registry.ds.coordinates.axis_order):
         f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
-                               sampling_type="cell",
-                               function = f,
-                               validators = [ValidateSpatial(1, [grad_field])],
-                               units = grad_units)
-
+                           sampling_type="cell",
+                           function = f,
+                           validators = [ValidateSpatial(1, [grad_field])],
+                           units = grad_units)
     create_magnitude_field(registry, "%s_gradient" % fname,
                            grad_units, ftype=ftype,
                            validators = [ValidateSpatial(1, [grad_field])])
-    

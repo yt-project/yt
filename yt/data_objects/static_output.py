@@ -85,8 +85,6 @@ from yt.geometry.coordinates.api import \
     GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler, \
     InternalGeographicCoordinateHandler
-from yt.geometry.geometry_handler import \
-    is_curvilinear
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
@@ -1408,12 +1406,7 @@ class Dataset(object):
         setup_gradient_fields(self.field_info, (ftype, input_field), units)
         # Now we make a list of the fields that were just made, to check them
         # and to return them
-        if not is_curvilinear(self.geometry):
-            suffixes = ["x", "y", "z"]
-        elif self.geometry in ("polar", "cylindrical"):
-            suffixes = ["r", "theta", "z"]
-        else:
-            raise NotImplementedError("Dataset.add_gradient_fields is not implemented for %s geometry." % self.geometry)
+        suffixes = self.coordinates.axis_order
         grad_fields = [(ftype,input_field+"_gradient_%s" % suffix)
                        for suffix in suffixes]
         grad_fields.append((ftype,input_field+"_gradient_magnitude"))
