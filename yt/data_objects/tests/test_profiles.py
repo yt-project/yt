@@ -399,14 +399,15 @@ def test_index_field_units():
     assert str(prof['gas', 'cell_volume'].units) == 'cm**3'
 
 
-def test_export_profiles():
+@requires_module("astropy")
+def test_export_astropy():
     from yt.units.yt_array import YTArray
     ds = fake_random_ds(64)
     ad = ds.all_data()
-    # export to AstroPy table
     prof = ad.profile('radius',
                       [('gas', 'density'), ('gas', 'velocity_x')],
                       weight_field=('index','ones'), n_bins=32)
+    # export to AstroPy table
     at1 = prof.to_astropy_table()
     assert 'radius' in at1.colnames
     assert 'density' in at1.colnames
@@ -423,6 +424,16 @@ def test_export_profiles():
     assert 'velocity_x' not in at2.colnames
     assert_equal(prof.x.d[prof.used], at2["radius"].value)
     assert_equal(prof["density"].d[prof.used], at2["density"].value)
+
+
+@requires_module("pandas")
+def test_export_pandas():
+    from yt.units.yt_array import YTArray
+    ds = fake_random_ds(64)
+    ad = ds.all_data()
+    prof = ad.profile('radius',
+                      [('gas', 'density'), ('gas', 'velocity_x')],
+                      weight_field=('index','ones'), n_bins=32)
     # export to pandas DataFrame
     df1 = prof.to_dataframe()
     assert 'radius' in df1.columns
