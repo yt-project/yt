@@ -192,6 +192,10 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
 
+    geom = registry.ds.geometry
+    if is_curvilinear(geom) and geom not in ("polar", "cylindrical"):
+        raise NotImplementedError("set_gradient_fields is not implemented for %s geometry." % geom)
+
     assert(isinstance(grad_field, tuple))
     ftype, fname = grad_field
     if slice_info is None:
@@ -218,59 +222,33 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
     field_units = Unit(field_units, registry=registry.ds.unit_registry)
     grad_units = field_units / registry.ds.unit_system["length"]
 
-    geom = registry.ds.geometry
-    if not is_curvilinear(geom):
-        for axi, ax in enumerate('xyz'):
+    for axi, ax in enumerate(registry.ds.coordinates.axis_order):
+        if ax == "theta":
+            def theta_grad_func(field, data):
+                slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi+1:]
+                slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
+                ds = div_fac * data[ftype, "dtheta"] * data[ftype, "r"]
+                f  = data[grad_field][slice_3dr]/ds[slice_3d]
+                f -= data[grad_field][slice_3dl]/ds[slice_3d]
+                new_field = np.zeros_like(data[grad_field], dtype=np.float64)
+                new_field = data.ds.arr(new_field, f.units)
+                new_field[slice_3d] = f
+                return new_field
+
+            f = theta_grad_func
+
+        elif ax == "phi": # spherical geometries
+            raise NotImplementedError
+
+        else:
+            # non-angular coordinates
             f = grad_func(axi, ax)
-            registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
+
+        registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
                                sampling_type="cell",
                                function = f,
                                validators = [ValidateSpatial(1, [grad_field])],
                                units = grad_units)
-    elif geom in ("polar", "cylindrical"):
-        # heavy copy pasta here. Refactoring is mandatory
-        ds = registry.ds
-
-        ax = "r"
-        axi = ds.coordinates.axis_id[ax]
-        f = grad_func(axi, ax)
-        registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
-                            sampling_type="cell",
-                            function = f,
-                            validators = [ValidateSpatial(1, [grad_field])],
-                            units = grad_units)
-
-        ax = "theta"
-        axi = ds.coordinates.axis_id[ax]
-        def theta_func(field, data):
-            slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi+1:]
-            slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
-            ds = div_fac * data[ftype, "dtheta"] * data[ftype, "r"]
-            f  = data[grad_field][slice_3dr]/ds[slice_3d]
-            f -= data[grad_field][slice_3dl]/ds[slice_3d]
-            new_field = np.zeros_like(data[grad_field], dtype=np.float64)
-            new_field = data.ds.arr(new_field, f.units)
-            new_field[slice_3d] = f
-            return new_field
-
-        f = theta_func
-        registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
-                            sampling_type="cell",
-                            function = f,
-                            validators = [ValidateSpatial(1, [grad_field])],
-                            units = grad_units)
-
-        ax = "z"
-        axi = ds.coordinates.axis_id[ax]
-        f = grad_func(axi, ax)
-        registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
-                            sampling_type="cell",
-                            function = f,
-                            validators = [ValidateSpatial(1, [grad_field])],
-                            units = grad_units)
-        
-    else:
-        raise NotImplementedError("Dataset.set_gradient_fields is not implemented for %s geometry." % geom)
 
     create_magnitude_field(registry, "%s_gradient" % fname,
                            grad_units, ftype=ftype,
