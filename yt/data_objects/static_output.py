@@ -1400,7 +1400,7 @@ class Dataset(object):
         """
         self.index
         if not isinstance(input_field, tuple):
-            raise ValueError
+            raise TypeError
         ftype, input_field = input_field[0], input_field[1]
         units = self.field_info[ftype, input_field].units
         setup_gradient_fields(self.field_info, (ftype, input_field), units)
