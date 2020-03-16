@@ -30,7 +30,7 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install --yes -c conda-forge numpy scipy nose pytest setuptools ipython Cython sympy fastcache h5py matplotlib=3.1 mock pandas cartopy conda-build pyyaml"
+    - "conda install --yes -c conda-forge numpy scipy nose pytest setuptools ipython Cython sympy fastcache h5py matplotlib\<3.2 mock pandas cartopy conda-build pyyaml"
     - "conda develop -b ."
 
 # Not a .NET project
