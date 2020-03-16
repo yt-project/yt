@@ -100,15 +100,9 @@ class TestDataContainers(unittest.TestCase):
         fields = ["density", "velocity_z"]
         ds = fake_random_ds(6)
         dd = ds.all_data()
-        df1 = dd.to_dataframe(fields)
-        assert_array_equal(dd[fields[0]], df1[fields[0]])
-        assert_array_equal(dd[fields[1]], df1[fields[1]])
-        sp = ds.sphere("c", (0.5, "unitary"))
-        sp["velocity_x"]
-        sp["velocity_y"]
-        df2 = sp.to_dataframe()
-        assert_array_equal(sp["velocity_x"], df2["velocity_x"])
-        assert_array_equal(sp["velocity_y"], df2["velocity_y"])
+        df = dd.to_dataframe(fields)
+        assert_array_equal(dd[fields[0]], df[fields[0]])
+        assert_array_equal(dd[fields[1]], df[fields[1]])
 
     @requires_module("astropy")
     def test_to_astropy_table(self):
@@ -121,14 +115,6 @@ class TestDataContainers(unittest.TestCase):
         assert_array_equal(dd[fields[1]].d, at1[fields[1]].value)
         assert dd[fields[0]].units == YTArray.from_astropy(at1[fields[0]]).units
         assert dd[fields[1]].units == YTArray.from_astropy(at1[fields[1]]).units
-        sp = ds.sphere("c", (0.5, "unitary"))
-        sp["velocity_x"]
-        sp["velocity_y"]
-        at2 = sp.to_astropy_table()
-        assert_array_equal(sp["velocity_x"].d, at2["velocity_x"].value)
-        assert_array_equal(sp["velocity_y"].d, at2["velocity_y"].value)
-        assert sp["velocity_x"].units == YTArray.from_astropy(at2["velocity_x"]).units
-        assert sp["velocity_y"].units == YTArray.from_astropy(at2["velocity_y"]).units
 
     def test_std(self):
         ds = fake_random_ds(3)

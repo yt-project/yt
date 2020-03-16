@@ -23,11 +23,7 @@ To export to a :class:`~pandas.DataFrame`, use
 .. code-block:: python
 
     sp = ds.sphere("c", (0.2, "unitary"))
-    # Adds all of the fields to the DataFrame which have been loaded into memory
-    # already
-    df = sp.to_dataframe()
-    # Only adds the density and temperature fields
-    df2 = sp.to_dataframe(fields=["density","temperature"])
+    df2 = sp.to_dataframe(["density","temperature"])
 
 To export to a :class:`~astropy.table.QTable`, use 
 :meth:`~yt.data_objects.data_containers.YTDataContainer.to_astropy_table`:
@@ -35,11 +31,7 @@ To export to a :class:`~astropy.table.QTable`, use
 .. code-block:: python
 
     sp = ds.sphere("c", (0.2, "unitary"))
-    # Adds all of the fields to the Table which have been loaded into memory
-    # already
-    df = sp.to_astropy_table()
-    # Only adds the density and temperature fields
-    df2 = sp.to_astropy_table(fields=["density","temperature"])
+    at2 = sp.to_astropy_table(fields=["density","temperature"])
 
 For exports to :class:`~pandas.DataFrame` objects, the unit information is lost, but for 
 exports to :class:`~astropy.table.QTable` objects, the :class:`~yt.units.yt_array.YTArray`

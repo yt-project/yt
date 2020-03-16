@@ -482,7 +482,7 @@ class YTDataContainer(object):
         else:
             self.index.save_object(self, name)
 
-    def to_dataframe(self, fields=None):
+    def to_dataframe(self, fields):
         r"""Export a data object to a :class:`~pandas.DataFrame`.
 
         This function will take a data object and an optional list of fields
@@ -491,10 +491,9 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        fields : list of strings or tuple field names, default None
-            If this is supplied, it is the list of fields to be exported into
-            the DataFrame. If not supplied, whatever fields presently exist
-            will be used.
+        fields : list of strings or tuple field names
+            This is the list of fields to be exported into
+            the DataFrame.
 
         Returns
         -------
@@ -504,22 +503,18 @@ class YTDataContainer(object):
         Examples
         --------
         >>> dd = ds.all_data()
-        >>> df1 = dd.to_dataframe(["density", "temperature"])
-        >>> dd["velocity_magnitude"]
-        >>> df2 = dd.to_dataframe()
+        >>> df = dd.to_dataframe(["density", "temperature"])
         """
         import pandas as pd
         data = {}
-        if fields is not None:
-            fields = self._determine_fields(fields)
-        else:
-            fields = self.field_data.keys()
+        fields = ensure_list(fields)
+        fields = self._determine_fields(fields)
         for field in fields:
             data[field[-1]] = self[field]
         df = pd.DataFrame(data)
         return df
 
-    def to_astropy_table(self, fields=None):
+    def to_astropy_table(self, fields):
         """
         Export region data to a :class:~astropy.table.table.QTable,
         which is a Table object which is unit-aware. The QTable can then
@@ -530,23 +525,19 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        fields : list of strings or tuple field names, default None
-            If this is supplied, it is the list of fields to be exported into
-            the QTable. If not supplied, whatever fields presently exist
-            will be used.
+        fields : list of strings or tuple field names
+            This is the list of fields to be exported into
+            the QTable. 
 
         Examples
         --------
         >>> sp = ds.sphere("c", (1.0, "Mpc"))
-        >>> t = sp.to_astropy_table(fields=["density","temperature"])
+        >>> t = sp.to_astropy_table(["density","temperature"])
         """
         from astropy.table import QTable
         t = QTable()
-        if fields is not None:
-            fields = ensure_list(fields)
-            fields = self._determine_fields(fields)
-        else:
-            fields = self.field_data.keys()
+        fields = ensure_list(fields)
+        fields = self._determine_fields(fields)
         for field in fields:
             t[field[-1]] = self[field].to_astropy()
         return t
