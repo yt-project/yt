@@ -467,6 +467,10 @@ class FieldValuesTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         err_msg = "Field values for %s not equal." % (self.field,)
+        if hasattr(new_result, "d"):
+            new_result = new_result.d
+        if hasattr(old_result, "d"):
+            old_result = old_result.d
         if self.decimals is None:
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
@@ -491,6 +495,10 @@ class AllFieldValuesTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         err_msg = "All field values for %s not equal." % self.field
+        if hasattr(new_result, "d"):
+            new_result = new_result.d
+        if hasattr(old_result, "d"):
+            old_result = old_result.d
         if self.decimals is None:
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
@@ -543,6 +551,10 @@ class ProjectionValuesTest(AnswerTestingTest):
             if k == 'weight_field' and self.weight_field is None:
                 continue
             nres, ores = new_result[k][nind], old_result[k][oind]
+            if hasattr(nres, "d"):
+                nres = nres.d
+            if hasattr(ores, "d"):
+                ores = ores.d
             if self.decimals is None:
                 assert_equal(nres, ores, err_msg=err_msg)
             else:
@@ -584,6 +596,10 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         for k in new_result:
             assert (k in old_result)
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             assert_rel_equal(new_result[k], old_result[k], 10)
 
 class GridValuesTest(AnswerTestingTest):
@@ -606,6 +622,10 @@ class GridValuesTest(AnswerTestingTest):
         for k in new_result:
             assert (k in old_result)
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             assert_equal(new_result[k], old_result[k])
 
 class VerifySimulationSameTest(AnswerTestingTest):
@@ -643,6 +663,10 @@ class GridHierarchyTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             assert_equal(new_result[k], old_result[k])
 
 class ParentageRelationshipsTest(AnswerTestingTest):
@@ -828,6 +852,10 @@ class GenericArrayTest(AnswerTestingTest):
                                           err_msg="Number of outputs not equal.",
                                           verbose=True)
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             if self.decimals is None:
                 assert_almost_equal(new_result[k], old_result[k])
             else:
@@ -901,6 +929,10 @@ class AxialPixelizationTest(AnswerTestingTest):
                                           err_msg="Number of outputs not equal.",
                                           verbose=True)
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             if self.decimals is None:
                 assert_almost_equal(new_result[k], old_result[k])
             else:
