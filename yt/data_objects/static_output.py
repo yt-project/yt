@@ -1406,9 +1406,8 @@ class Dataset(object):
         setup_gradient_fields(self.field_info, (ftype, input_field), units)
         # Now we make a list of the fields that were just made, to check them
         # and to return them
-        suffixes = self.coordinates.axis_order
         grad_fields = [(ftype,input_field+"_gradient_%s" % suffix)
-                       for suffix in suffixes]
+                       for suffix in self.coordinates.axis_order]
         grad_fields.append((ftype,input_field+"_gradient_magnitude"))
         deps, _ = self.field_info.check_derived_fields(grad_fields)
         self.field_dependencies.update(deps)
