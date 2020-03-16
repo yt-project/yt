@@ -404,8 +404,7 @@ def test_export_astropy():
     from yt.units.yt_array import YTArray
     ds = fake_random_ds(64)
     ad = ds.all_data()
-    prof = ad.profile('radius',
-                      [('gas', 'density'), ('gas', 'velocity_x')],
+    prof = ad.profile('radius', [('gas', 'density'), ('gas', 'velocity_x')],
                       weight_field=('index','ones'), n_bins=32)
     # export to AstroPy table
     at1 = prof.to_astropy_table()
@@ -428,11 +427,9 @@ def test_export_astropy():
 
 @requires_module("pandas")
 def test_export_pandas():
-    from yt.units.yt_array import YTArray
     ds = fake_random_ds(64)
     ad = ds.all_data()
-    prof = ad.profile('radius',
-                      [('gas', 'density'), ('gas', 'velocity_x')],
+    prof = ad.profile('radius', [('gas', 'density'), ('gas', 'velocity_x')],
                       weight_field=('index','ones'), n_bins=32)
     # export to pandas DataFrame
     df1 = prof.to_dataframe()
