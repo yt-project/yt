@@ -237,11 +237,10 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
 
             f = theta_grad_func
 
-        elif ax == "phi": # spherical geometries
+        elif ax == "phi":  # spherical geometries
             raise NotImplementedError
 
-        else:
-            # non-angular coordinates
+        else:  # non-angular coordinates
             f = grad_func(axi, ax)
 
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
