@@ -192,9 +192,9 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
 
-    geom = registry.ds.geometry
-    if is_curvilinear(geom) and geom not in ("polar", "cylindrical"):
-        raise NotImplementedError("set_gradient_fields is not implemented for %s geometry." % geom)
+    #geom = registry.ds.geometry
+    #if is_curvilinear(geom) and geom not in ("polar", "cylindrical"):
+    #    raise NotImplementedError("set_gradient_fields is not implemented for %s geometry." % geom)
 
     assert(isinstance(grad_field, tuple))
     ftype, fname = grad_field
@@ -211,6 +211,10 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
         def func(field, data):
             ds = div_fac * data[ftype, "d%s" % ax]
+            if ax == "theta":
+                ds *= data[ftype, "r"]
+            if ax == "phi":
+                ds *= data[ftype, "r"] * np.sin(data[ftype, "theta"])
             f  = data[grad_field][slice_3dr]/ds[slice_3d]
             f -= data[grad_field][slice_3dl]/ds[slice_3d]
             new_field = np.zeros_like(data[grad_field], dtype=np.float64)
@@ -223,26 +227,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
     grad_units = field_units / registry.ds.unit_system["length"]
 
     for axi, ax in enumerate(registry.ds.coordinates.axis_order):
-        if ax == "theta":
-            def theta_grad_func(field, data):
-                slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi+1:]
-                slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
-                ds = div_fac * data[ftype, "dtheta"] * data[ftype, "r"]
-                f  = data[grad_field][slice_3dr]/ds[slice_3d]
-                f -= data[grad_field][slice_3dl]/ds[slice_3d]
-                new_field = np.zeros_like(data[grad_field], dtype=np.float64)
-                new_field = data.ds.arr(new_field, f.units)
-                new_field[slice_3d] = f
-                return new_field
-
-            f = theta_grad_func
-
-        elif ax == "phi":  # spherical geometries
-            raise NotImplementedError
-
-        else:  # non-angular coordinates
-            f = grad_func(axi, ax)
-
+        f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
                                sampling_type="cell",
                                function = f,
