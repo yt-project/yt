@@ -575,14 +575,15 @@ class Profile1D(ProfileND):
         >>> df2 = p.to_dataframe(fields="density", only_used=True)
         """
         import pandas as pd
+        from collections import OrderedDict
         idxs, masked, fields = self._export_prep(fields, only_used)
-        pdata = {self.x_field[-1]: self.x[idxs]}
+        pdata = OrderedDict([(self.x_field[-1], self.x[idxs])])
         for field in fields:
             pdata[field[-1]] = self[field][idxs]
         df = pd.DataFrame(pdata)
         if masked:
             mask = np.zeros(df.shape, dtype='bool')
-            mask[~self.used,1:] = True
+            mask[~self.used, 1:] = True
             df.mask(mask, inplace=True)
         return df
 
