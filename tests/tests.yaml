@@ -115,8 +115,8 @@ answer_tests:
   local_axialpix_006:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_particle_trajectory_001:
-    - yt/data_objects/tests/test_particle_trajectories.py
+  #local_particle_trajectory_001:
+  #  - yt/data_objects/tests/test_particle_trajectories.py
 
 other_tests:
   unittests:
