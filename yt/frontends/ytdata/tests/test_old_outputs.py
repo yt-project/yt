@@ -50,7 +50,8 @@ enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
 ytdata_dir = "ytdata_test"
 
 @requires_ds(enzotiny)
-@requires_ds(ytdata_dir)
+@requires_file(os.path.join(ytdata_dir, "DD0046_sphere.h5"))
+@requires_file(os.path.join(ytdata_dir, "DD0046_cut_region.h5"))
 def test_old_datacontainer_data():
     ds = data_dir_load(enzotiny)
     sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
@@ -69,7 +70,9 @@ def test_old_datacontainer_data():
     assert (cr["temperature"] == cr_ds.data["temperature"]).all()
 
 @requires_ds(enzotiny)
-@requires_ds(ytdata_dir)
+@requires_file(os.path.join(ytdata_dir, "DD0046_covering_grid.h5"))
+@requires_file(os.path.join(ytdata_dir, "DD0046_arbitrary_grid.h5"))
+@requires_file(os.path.join(ytdata_dir, "DD0046_proj_frb.h5"))
 def test_old_grid_datacontainer_data():
     ds = data_dir_load(enzotiny)
 
@@ -100,7 +103,7 @@ def test_old_grid_datacontainer_data():
     yield YTDataFieldTest(full_fn, "density", geometric=False)
 
 @requires_ds(enzotiny)
-@requires_ds(ytdata_dir)
+@requires_file(os.path.join(ytdata_dir, "DD0046_proj.h5"))
 def test_old_spatial_data():
     ds = data_dir_load(enzotiny)
     fn = "DD0046_proj.h5"
@@ -111,7 +114,8 @@ def test_old_spatial_data():
     yield YTDataFieldTest(full_fn, ("grid", "density"), geometric=False)
 
 @requires_ds(enzotiny)
-@requires_ds(ytdata_dir)
+@requires_file(os.path.join(ytdata_dir, "DD0046_Profile1D.h5"))
+@requires_file(os.path.join(ytdata_dir, "DD0046_Profile2D.h5"))
 def test_old_profile_data():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
@@ -157,7 +161,8 @@ def test_old_profile_data():
     shutil.rmtree(tmpdir)
 
 @requires_ds(enzotiny)
-@requires_ds(ytdata_dir)
+@requires_file(os.path.join(ytdata_dir, "test_data.h5"))
+@requires_file(os.path.join(ytdata_dir, "random_data.h5"))
 def test_old_nonspatial_data():
     ds = data_dir_load(enzotiny)
     region = ds.box([0.25]*3, [0.75]*3)
@@ -181,7 +186,9 @@ def test_old_nonspatial_data():
     yield YTDataFieldTest(full_fn, "density", geometric=False)
 
 @requires_module('h5py')
-@requires_file(ytdata_dir)
+@requires_file(os.path.join(ytdata_dir, "slice.h5"))
+@requires_file(os.path.join(ytdata_dir, "proj.h5"))
+@requires_file(os.path.join(ytdata_dir, "oas.h5"))
 def test_old_plot_data():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
