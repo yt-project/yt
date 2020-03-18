@@ -12,6 +12,7 @@ Tests for AMRSlice
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 import os
+import mock
 import numpy as np
 import tempfile
 from yt.testing import \
@@ -32,7 +33,8 @@ def teardown_func(fns):
             pass
 
 
-def test_slice():
+@mock.patch("yt.visualization._mpl_imports.FigureCanvasAgg.print_figure")
+def test_slice(pf):
     fns = []
     grid_eps = np.finfo(np.float64).eps
     for nprocs in [8, 1]:

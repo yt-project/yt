@@ -9,3 +9,4 @@ pyyaml>=4.2b1
 coverage==4.5.1
 codecov==2.0.15
 mock==2.0.0; python_version < '3.0'
+mock>=3.0.0; python_version >= '3.0'
