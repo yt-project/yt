@@ -3,6 +3,7 @@ import shutil
 import tempfile
 import unittest
 
+import mock
 import numpy as np
 
 from yt.convenience import load
@@ -11,7 +12,6 @@ from yt.data_objects.profiles import create_profile
 from yt.testing import (
     assert_allclose,
     assert_array_almost_equal,
-    assert_fname,
     fake_particle_ds,
     requires_file,
 )
@@ -69,11 +69,7 @@ CENTER_SPECS = (
     YTArray([0.3, 0.4, 0.7], "cm"),
 )
 
-WEIGHT_FIELDS = (
-    None,
-    "particle_ones",
-    ("all", "particle_mass"),
-)
+WEIGHT_FIELDS = (None, "particle_ones", ("all", "particle_mass"))
 
 PHASE_FIELDS = [
     ("particle_velocity_x", "particle_position_z", "particle_mass"),
@@ -231,9 +227,17 @@ class TestParticlePhasePlotSave(unittest.TestCase):
 
                 particle_phases.append(ParticlePhasePlot.from_profile(pp))
         particle_phases[0]._repr_html_()
-        for p in particle_phases:
-            for fname in TEST_FLNMS:
-                assert_fname(p.save(fname)[0])
+
+        with mock.patch(
+            "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+        ), mock.patch(
+            "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
+        ), mock.patch(
+            "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
+        ):
+            for p in particle_phases:
+                for fname in TEST_FLNMS:
+                    p.save(fname)
 
 
 tgal = "TipsyGalaxy/galaxy.00300"
@@ -331,8 +335,15 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         test_ds = fake_particle_ds()
         for dim in range(3):
             pplot = ParticleProjectionPlot(test_ds, dim, "particle_mass")
-            for fname in TEST_FLNMS:
-                assert_fname(pplot.save(fname)[0])
+            with mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+            ), mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
+            ), mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
+            ):
+                for fname in TEST_FLNMS:
+                    pplot.save(fname)[0]
 
     def test_particle_plot_ds(self):
         test_ds = fake_particle_ds()
@@ -341,7 +352,10 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
             pplot_ds = ParticleProjectionPlot(
                 test_ds, dim, "particle_mass", data_source=ds_region
             )
-            pplot_ds.save()
+            with mock.patch(
+                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+            ):
+                pplot_ds.save()
 
     def test_particle_plot_c(self):
         test_ds = fake_particle_ds()
@@ -350,7 +364,10 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                 pplot_c = ParticleProjectionPlot(
                     test_ds, dim, "particle_mass", center=center
                 )
-                pplot_c.save()
+                with mock.patch(
+                    "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+                ):
+                    pplot_c.save()
 
     def test_particle_plot_wf(self):
         test_ds = fake_particle_ds()
@@ -359,7 +376,10 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                 pplot_wf = ParticleProjectionPlot(
                     test_ds, dim, "particle_mass", weight_field=weight_field
                 )
-                pplot_wf.save()
+                with mock.patch(
+                    "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
+                ):
+                    pplot_wf.save()
 
     def test_creation_with_width(self):
         test_ds = fake_particle_ds()

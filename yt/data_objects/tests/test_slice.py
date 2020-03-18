@@ -1,6 +1,7 @@
 import os
 import tempfile
 
+import mock
 import numpy as np
 
 from yt.testing import assert_equal, fake_random_ds
@@ -21,7 +22,8 @@ def teardown_func(fns):
             pass
 
 
-def test_slice():
+@mock.patch("yt.visualization._mpl_imports.FigureCanvasAgg.print_figure")
+def test_slice(pf):
     fns = []
     grid_eps = np.finfo(np.float64).eps
     for nprocs in [8, 1]:
