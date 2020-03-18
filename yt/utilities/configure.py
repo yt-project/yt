@@ -12,6 +12,7 @@ import shutil
 import sys
 import argparse
 from yt.config import CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE, YTConfigParser
+from yt.extern.six.moves import configparser
 
 CONFIG = YTConfigParser()
 CONFIG.read([CURRENT_CONFIG_FILE])
@@ -46,16 +47,19 @@ def migrate_config():
     os.rename(_OLD_CONFIG_FILE, _OLD_CONFIG_FILE + '.bak')
 
     old_config_dir = os.path.dirname(_OLD_CONFIG_FILE)
-    plugin_file = CONFIG.get('yt', 'pluginfilename')
-    if plugin_file and \
-            os.path.exists(os.path.join(old_config_dir, plugin_file)):
-        print('Migrating plugin file {} to new location'.format(plugin_file))
-        shutil.copyfile(
-            os.path.join(old_config_dir, plugin_file),
-            os.path.join(os.path.dirname(CURRENT_CONFIG_FILE), plugin_file))
-        print('Backing up the old plugin file: {}.bak'.format(_OLD_CONFIG_FILE))
-        plugin_file = os.path.join(old_config_dir, plugin_file)
-        os.rename(plugin_file, plugin_file + '.bak')
+    try:
+        plugin_file = CONFIG.get('yt', 'pluginfilename')
+        if plugin_file and \
+                os.path.exists(os.path.join(old_config_dir, plugin_file)):
+            print('Migrating plugin file {} to new location'.format(plugin_file))
+            shutil.copyfile(
+                os.path.join(old_config_dir, plugin_file),
+                os.path.join(os.path.dirname(CURRENT_CONFIG_FILE), plugin_file))
+            print('Backing up the old plugin file: {}.bak'.format(_OLD_CONFIG_FILE))
+            plugin_file = os.path.join(old_config_dir, plugin_file)
+            os.rename(plugin_file, plugin_file + '.bak')
+    except configparser.NoOptionError:
+        pass
 
 
 def rm_config(section, option):

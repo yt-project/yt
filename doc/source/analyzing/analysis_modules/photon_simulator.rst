@@ -25,14 +25,14 @@ For detailed information about the design of the algorithm in yt, check
 out `the SciPy 2014 Proceedings. <http://conference.scipy.org/proceedings/scipy2014/zuhone.html>`_.
 
 The algorithm is based off of that implemented in
-`PHOX <http://www.mpa-garching.mpg.de/~kdolag/Phox/>`_ for SPH datasets
+`PHOX <https://wwwmpa.mpa-garching.mpg.de/~kdolag/Phox/>`_ for SPH datasets
 by Veronica Biffi and Klaus Dolag. There are two relevant papers:
 
 `Biffi, V., Dolag, K., Bohringer, H., & Lemson, G. 2012, MNRAS, 420,
-3545 <http://adsabs.harvard.edu/abs/2012MNRAS.420.3545B>`_
+3545 <https://ui.adsabs.harvard.edu/abs/2012MNRAS.420.3545B>`_
 
 `Biffi, V., Dolag, K., Bohringer, H. 2013, MNRAS, 428,
-1395 <http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B>`_
+1395 <https://ui.adsabs.harvard.edu/abs/2013MNRAS.428.1395B>`_
 
 The basic procedure is as follows:
 
@@ -106,7 +106,7 @@ cold fronts.
 
    To work out the following examples, you should install
    `AtomDB <http://www.atomdb.org>`_ and get the files from the
-   `xray_data <http://yt-project.org/data/xray_data.tar.gz>`_ auxiliary
+   `xray_data <https://yt-project.org/data/xray_data.tar.gz>`_ auxiliary
    data package (see the :ref:`xray_data_README` for details on the latter). 
    Make sure that in what follows you specify the full path to the locations 
    of these files.
@@ -134,7 +134,7 @@ use any thermal model that is known to
     mekal_model = XSpecThermalModel("mekal", 0.01, 10.0, 2000)
 
 This requires XSPEC and
-`PyXspec <http://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/>`_ to
+`PyXspec <https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/>`_ to
 be installed. The second option, ``TableApecModel``, utilizes the data
 from the `AtomDB <http://www.atomdb.org>`_ tables. We'll use this one
 here:
@@ -390,7 +390,7 @@ placed in the image:
 
 The resulting FITS image will have WCS coordinates in RA and Dec. It
 should be suitable for plotting in
-`ds9 <http://hea-www.harvard.edu/RD/ds9/site/Home.html>`_, for example.
+`ds9 <http://ds9.si.edu/site/Home.html>`_, for example.
 There is also a great project for opening astronomical images in Python,
 called `APLpy <http://aplpy.github.io>`_:
 
@@ -466,7 +466,7 @@ created using different data sources:
 
 Finally, a new ``EventList`` can be created from a subset of an existing ``EventList``,
 defined by a ds9 region (this functionality requires the
-`pyregion <http://pyregion.readthedocs.org>`_ package to be installed):
+`pyregion <https://pyregion.readthedocs.io/en/latest/>`_ package to be installed):
 
 .. code:: python
 
@@ -590,7 +590,7 @@ Storing events for future use and for reading-in by telescope simulators
 If you want a more accurate representation of an observation taken by a
 particular instrument, there are tools available for such purposes. For
 the *Chandra* telescope, there is the venerable
-`MARX <http://space.mit.edu/ASC/MARX/>`_. For a wide range of
+`MARX <https://space.mit.edu/ASC/MARX/>`_. For a wide range of
 instruments, both existing and future, there is
 `SIMX <http://hea-www.harvard.edu/simx/>`_. We'll discuss two ways
 to store your event files so that they can be input by these and other
@@ -612,7 +612,7 @@ simple:
    events = EventList.from_h5_file("my_events.h5")
 
 You can use event data written to HDF5 files to input events into MARX
-using `this code <http://bitbucket.org/jzuhone/yt_marx_source>`_.
+using `this code <https://bitbucket.org/jzuhone/yt_marx_source>`_.
 
 The second option, for use with SIMX, is to dump the events into a
 SIMPUT file:

@@ -811,7 +811,7 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
     hardware that automatically performs the divide by w operation.
     See the following for more details about the OpenGL perspective matrices.
 
-    http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
+    https://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
     http://www.songho.ca/opengl/gl_projectionmatrix.html
 
     """
@@ -883,7 +883,7 @@ def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     See the following for more details about the OpenGL perspective matrices.
 
     http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/orthographic-projection-matrix
-    http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
+    https://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
     http://www.songho.ca/opengl/gl_projectionmatrix.html
 
     """

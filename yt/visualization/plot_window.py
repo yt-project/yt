@@ -33,7 +33,8 @@ from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, symlog_transform, \
     get_log_minorticks, get_symlog_minorticks, \
-    invalidate_data, invalidate_plot, apply_callback
+    invalidate_data, invalidate_plot, invalidate_figure, \
+    apply_callback
 from .base_plot_types import CallbackWrapper
 
 from yt.data_objects.image_array import \
@@ -61,6 +62,8 @@ from yt.utilities.exceptions import \
     YTInvalidFieldType, \
     YTUnitNotRecognized, \
     YTUnitConversionError
+
+from .geo_plot_utils import get_mpl_transform
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
@@ -186,6 +189,8 @@ class PlotWindow(ImagePlotContainer):
         self.buff_size = buff_size
         self.antialias = antialias
         self._axes_unit_names = None
+        self._transform = None
+        self._projection = None
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
@@ -196,6 +201,7 @@ class PlotWindow(ImagePlotContainer):
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
+
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         if self.data_source.center is not None and oblique is False:
@@ -206,6 +212,13 @@ class PlotWindow(ImagePlotContainer):
                 self.data_source.center, ax)
             center = [display_center[xax], display_center[yax]]
             self.set_center(center)
+
+            axname = self.ds.coordinates.axis_name[ax]
+            transform = self.ds.coordinates.data_transform[axname]
+            projection = self.ds.coordinates.data_projection[axname]
+            self._projection = get_mpl_transform(projection)
+            self._transform = get_mpl_transform(transform)
+
         for field in self.data_source._determine_fields(self.fields):
             finfo = self.data_source.ds._get_field_info(*field)
             if finfo.take_log:
@@ -293,7 +306,9 @@ class PlotWindow(ImagePlotContainer):
 
     @invalidate_data
     def zoom(self, factor):
-        r"""This zooms the window by *factor*.
+        r"""This zooms the window by *factor* > 0.
+        - zoom out with *factor* < 1
+        - zoom in with *factor* > 1
 
         Parameters
         ----------
@@ -301,6 +316,8 @@ class PlotWindow(ImagePlotContainer):
             multiplier for the current width
 
         """
+        if factor <= 0:
+            raise ValueError("Only positive zooming factors are meaningful.")
         Wx, Wy = self.width
         centerx = self.xlim[0] + Wx*0.5
         centery = self.ylim[0] + Wy*0.5
@@ -435,6 +452,102 @@ class PlotWindow(ImagePlotContainer):
 
         """
         self.origin = origin
+        return self
+
+    @invalidate_plot
+    @invalidate_figure
+    def set_mpl_projection(self, mpl_proj):
+        r"""
+        Set the matplotlib projection type with a cartopy transform function
+
+        Given a string or a tuple argument, this will project the data onto
+        the plot axes with the chosen transform function.
+
+        Assumes that the underlying data has a PlateCarree transform type.
+
+        To annotate the plot with coastlines or other annotations,
+        `_setup_plots()` will need to be called after this function
+        to make the axes available for annotation.
+
+        Parameters
+        ----------
+        mpl_proj : string, tuple
+            if passed as a string, mpl_proj is the specified projection type,
+            if passed as a tuple, then tuple will take the form of
+            ("ProjectionType", (args)) or ("ProjectionType", (args), {kwargs})
+            Valid projection type options include:
+                'PlateCarree', 'LambertConformal', 'LabmbertCylindrical',
+                'Mercator', 'Miller', 'Mollweide', 'Orthographic',
+                'Robinson', 'Stereographic', 'TransverseMercator',
+                'InterruptedGoodeHomolosine', 'RotatedPole', 'OGSB',
+                'EuroPP', 'Geostationary', 'Gnomonic', 'NorthPolarStereo',
+                'OSNI', 'SouthPolarStereo', 'AlbersEqualArea',
+                'AzimuthalEquidistant', 'Sinusoidal', 'UTM',
+                'NearsidePerspective', 'LambertAzimuthalEqualArea'
+
+
+        Examples
+        --------
+
+        This will create a Mollweide projection using Mollweide default values
+        and annotate it with coastlines
+
+        >>> import yt
+        >>> ds = yt.load("")
+        >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
+        >>> p.set_mpl_projection('AIRDENS', 'Mollweide')
+        >>> p._setup_plots()
+        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.show()
+
+        This will move the PlateCarree central longitude to 90 degrees and
+        annotate with coastlines.
+
+        >>> import yt
+        >>> ds = yt.load("")
+        >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
+        >>> p.set_mpl_projection('AIRDENS', ('PlateCarree', () ,
+        ...                      {central_longitude=90, globe=None} ))
+        >>> p._setup_plots()
+        >>> p.plots['AIRDENS'].axes.set_global()
+        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.show()
+
+
+        This will create a RoatatedPole projection with the unrotated pole
+        position at 37.5 degrees latitude and 177.5 degrees longitude by
+        passing them in as args.
+
+
+        >>> import yt
+        >>> ds = yt.load("")
+        >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
+        >>> p.set_mpl_projection(('RotatedPole', (177.5, 37.5))
+        >>> p._setup_plots()
+        >>> p.plots['AIRDENS'].axes.set_global()
+        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.show()
+
+        This will create a RoatatedPole projection with the unrotated pole
+        position at 37.5 degrees latitude and 177.5 degrees longitude by
+        passing them in as kwargs.
+
+        >>> import yt
+        >>> ds = yt.load("")
+        >>> p = yt.SlicePlot(ds, "altitude", "AIRDENS")
+        >>> p.set_mpl_projection(('RotatedPole', (), {'pole_latitude':37.5,
+        ...                       'pole_longitude':177.5}))
+        >>> p._setup_plots()
+        >>> p.plots['AIRDENS'].axes.set_global()
+        >>> p.plots['AIRDENS'].axes.coastlines()
+        >>> p.show()
+
+        """
+
+        self._projection = get_mpl_transform(mpl_proj)
+        axname = self.ds.coordinates.axis_name[self.data_source.axis]
+        transform = self.ds.coordinates.data_transform[axname]
+        self._transform = get_mpl_transform(transform)
         return self
 
     @invalidate_data
@@ -700,7 +813,7 @@ class PWViewerMPL(PlotWindow):
             return (self.ds.quan(0.0, 'code_length'),
                     self.ds.quan(0.0, 'code_length'))
         else:
-            mylog.warn("origin = {0}".format(origin))
+            mylog.warning("origin = {0}".format(origin))
             msg = \
                   ('origin keyword "{0}" not recognized, must declare "domain" '
                    'or "center" as the last term in origin.').format(self.origin)
@@ -713,7 +826,7 @@ class PWViewerMPL(PlotWindow):
             elif origin[0] == 'center':
                 yc = (yllim + yrlim)/2.0
             else:
-                mylog.warn("origin = {0}".format(origin))
+                mylog.warning("origin = {0}".format(origin))
                 msg = ('origin keyword "{0}" not recognized, must declare "lower" '
                        '"upper" or "center" as the first term in origin.')
                 msg = msg.format(self.origin)
@@ -726,7 +839,7 @@ class PWViewerMPL(PlotWindow):
             elif origin[1] == 'center':
                 xc = (xllim + xrlim)/2.0
             else:
-                mylog.warn("origin = {0}".format(origin))
+                mylog.warning("origin = {0}".format(origin))
                 msg = ('origin keyword "{0}" not recognized, must declare "left" '
                        '"right" or "center" as the second term in origin.')
                 msg = msg.format(self.origin)
@@ -755,8 +868,10 @@ class PWViewerMPL(PlotWindow):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
-
-            if self._axes_unit_names is None:
+            if self.ds.unit_system.name.startswith("us"):
+                # this should happen only if the dataset was initialized with argument unit_system="code"
+                (unit_x, unit_y) = ('code_length', 'code_length')
+            elif self._axes_unit_names is None:
                 unit = self.ds.get_smallest_appropriate_unit(
                     self.xlim[1] - self.xlim[0])
                 (unit_x, unit_y) = (unit, unit)
@@ -847,7 +962,8 @@ class PWViewerMPL(PlotWindow):
                 self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, font_size,
-                self.aspect, fig, axes, cax)
+                self.aspect, fig, axes, cax, self._projection,
+                self._transform)
 
             if not self._right_handed:
                 ax = self.plots[f].axes
@@ -1019,134 +1135,7 @@ class PWViewerMPL(PlotWindow):
                 if key not in keys:
                     del self.frb[key]
 
-    def hide_colorbar(self, field=None):
-        """
-        Hides the colorbar for a plot and updates the size of the
-        plot accordingly.  Defaults to operating on all fields for a
-        PlotWindow object.
 
-        Parameters
-        ----------
-
-        field : string, field tuple, or list of strings or field tuples (optional)
-            The name of the field(s) that we want to hide the colorbar. If None
-            is provided, will default to using all fields available for this
-            object.
-
-        Examples
-        --------
-
-        This will save an image with no colorbar.
-
-        >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
-        >>> s.hide_colorbar()
-        >>> s.save()
-
-        This will save an image with no axis or colorbar.
-
-        >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
-        >>> s.hide_axes()
-        >>> s.hide_colorbar()
-        >>> s.save()
-        """
-        if field is None:
-            field = self.fields
-        field = ensure_list(field)
-        for f in field:
-            self.plots[f].hide_colorbar()
-        return self
-
-    def show_colorbar(self, field=None):
-        """
-        Shows the colorbar for a plot and updates the size of the
-        plot accordingly.  Defaults to operating on all fields for a
-        PlotWindow object.  See hide_colorbar().
-
-        Parameters
-        ----------
-
-        field : string, field tuple, or list of strings or field tuples (optional)
-            The name of the field(s) that we want to show the colorbar.
-        """
-        if field is None:
-            field = self.fields
-        field = ensure_list(field)
-        for f in field:
-            self.plots[f].show_colorbar()
-        return self
-
-    def hide_axes(self, field=None, draw_frame=False):
-        """
-        Hides the axes for a plot and updates the size of the
-        plot accordingly.  Defaults to operating on all fields for a
-        PlotWindow object.
-
-        Parameters
-        ----------
-
-        field : string, field tuple, or list of strings or field tuples (optional)
-            The name of the field(s) that we want to hide the axes.
-
-        draw_frame : boolean
-            If True, the axes frame will still be drawn. Defaults to False.
-            See note below for more details.
-
-        Examples
-        --------
-
-        This will save an image with no axes.
-
-        >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
-        >>> s.hide_axes()
-        >>> s.save()
-
-        This will save an image with no axis or colorbar.
-
-        >>> import yt
-        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
-        >>> s.hide_axes()
-        >>> s.hide_colorbar()
-        >>> s.save()
-
-        Note
-        ----
-        By default, when removing the axes, the patch on which the axes are
-        drawn is disabled, making it impossible to later change e.g. the
-        background colour. To force the axes patch to be displayed while still 
-        hiding the axes, set the ``draw_frame`` keyword argument to ``True``.
-        """
-        if field is None:
-            field = self.fields
-        field = ensure_list(field)
-        for f in field:
-            self.plots[f].hide_axes(draw_frame)
-        return self
-
-    def show_axes(self, field=None):
-        """
-        Shows the axes for a plot and updates the size of the
-        plot accordingly.  Defaults to operating on all fields for a
-        PlotWindow object.  See hide_axes().
-
-        Parameters
-        ----------
-
-        field : string, field tuple, or list of strings or field tuples (optional)
-            The name of the field(s) that we want to show the axes.
-        """
-        if field is None:
-            field = self.fields
-        field = ensure_list(field)
-        for f in field:
-            self.plots[f].show_axes()
-        return self
 
 class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a dataset
@@ -1290,7 +1279,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         validate_mesh_fields(slc, fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
-                             window_size=window_size, aspect=aspect, right_handed=right_handed)
+                             window_size=window_size, aspect=aspect,
+                             right_handed=right_handed)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1590,7 +1580,7 @@ class OffAxisProjectionDummyDataSource(object):
     _type_name = 'proj'
     _key_fields = []
     def __init__(self, center, ds, normal_vector, width, fields,
-                 interpolated, resolution = (800,800), weight=None,
+                 interpolated, weight=None,
                  volume=None, no_ghost=False, le=None, re=None,
                  north_vector=None, method="integrate",
                  data_source=None):
@@ -1606,7 +1596,6 @@ class OffAxisProjectionDummyDataSource(object):
         fields = self.dd._determine_fields(fields)
         self.fields = fields
         self.interpolated = interpolated
-        self.resolution = resolution
         if weight is not None:
             weight = self.dd._determine_fields(weight)[0]
         self.weight_field = weight
@@ -1728,7 +1717,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
                             bounds[5] - bounds[4]))
         OffAxisProj = OffAxisProjectionDummyDataSource(
             center_rot, ds, normal, oap_width, fields, interpolated,
-            weight=weight_field,  volume=volume, no_ghost=no_ghost,
+            weight=weight_field, volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector, method=method,
             data_source=data_source)
 
@@ -1752,19 +1741,20 @@ class OffAxisProjectionPlot(PWViewerMPL):
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
 
-    def _recreate_frb(self):
-        super(OffAxisProjectionPlot, self)._recreate_frb()
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
     def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim,
-                 figure_size, fontsize, aspect, figure, axes, cax):
+                 figure_size, fontsize, aspect, figure, axes, cax, mpl_proj,
+                 mpl_transform):
         from matplotlib.ticker import ScalarFormatter
         self._draw_colorbar = True
         self._draw_axes = True
         self._draw_frame = True
         self._fontsize = fontsize
         self._figure_size = figure_size
+        self._projection = mpl_proj
+        self._transform = mpl_transform
 
         # Compute layout
         fontscale = float(fontsize) / 18.0
@@ -1801,6 +1791,9 @@ class WindowPlotMPL(ImagePlotMPL):
             self.cb.formatter.set_powerlimits((-2, 3))
             self.cb.update_ticks()
 
+    def _create_axes(self, axrect):
+        self.axes = self.figure.add_axes(axrect, projection=self._projection)
+
 
 def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     r"""
@@ -1832,8 +1825,12 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself.  If specified, this will replace normal.
 
+
     The following are nominally keyword arguments passed onto the respective
     slice plot objects generated by this function.
+
+    Keyword Arguments
+    -----------------
 
     center : A sequence floats, a string, or a tuple.
          The coordinate of the center of the image. If set to 'c', 'center' or
@@ -1962,7 +1959,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
         if 'origin' in kwargs:
             msg = "Ignoring 'origin' keyword as it is ill-defined for " \
                   "an OffAxisSlicePlot object."
-            mylog.warn(msg)
+            mylog.warning(msg)
             del kwargs['origin']
 
         return OffAxisSlicePlot(ds, normal, fields, *args, **kwargs)
@@ -1971,13 +1968,13 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
         if 'north_vector' in kwargs:
             msg = "Ignoring 'north_vector' keyword as it is ill-defined for " \
                   "an AxisAlignedSlicePlot object."
-            mylog.warn(msg)
+            mylog.warning(msg)
             del kwargs['north_vector']
 
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)
 
 def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
-            origin='center-window', fontsize=18, field_parameters=None, 
+            origin='center-window', fontsize=18, field_parameters=None,
             window_size=8.0, aspect=None, data_source=None):
     r"""Creates a plot of a 2D dataset
 
@@ -2068,7 +2065,7 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     """
     if ds.dimensionality != 2:
@@ -2077,6 +2074,10 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
         axis = "z"
     elif ds.geometry == "cylindrical":
         axis = "theta"
+    elif ds.geometry == "spherical":
+        axis = "phi"
+    else:
+        raise NotImplementedError("plot_2d does not yet support datasets with {} geometries".format(ds.geometry))
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument
     if not isinstance(center, string_types) and obj_length(center) == 2:
@@ -2088,11 +2089,11 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
             elif not isinstance(center, YTArray):
                 center = ds.arr(center, 'code_length')
             center.convert_to_units("code_length")
-        center = ds.arr([center[0], center[1], 
+        center = ds.arr([center[0], center[1],
                          ds.domain_center[2]])
     return AxisAlignedSlicePlot(ds, axis, fields, center=center, width=width,
-                                axes_unit=axes_unit, origin=origin, 
+                                axes_unit=axes_unit, origin=origin,
                                 fontsize=fontsize,
-                                field_parameters=field_parameters, 
+                                field_parameters=field_parameters,
                                 window_size=window_size, aspect=aspect,
                                 data_source=data_source)

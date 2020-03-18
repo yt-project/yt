@@ -32,7 +32,7 @@ What do Unit Tests Do
 
 Unit tests are tests that operate on some small set of machinery, and verify
 that the machinery works.  yt uses the `Nose
-<http://nose.readthedocs.org/en/latest/>`_ framework for running unit tests.  In
+<https://nose.readthedocs.io/en/latest/>`_ framework for running unit tests.  In
 practice, what this means is that we write scripts that assert statements, and
 Nose identifies those scripts, runs them, and verifies that the assertions are
 true and the code runs without crashing.
@@ -73,16 +73,24 @@ run:
 Handling yt dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-We attempt to make yt compatible with a wide variety of downstream software versions. However, sometimes a specific version of a project that yt depends on causes some breakage and must be blacklisted in the tests or a more experimental project that yt depends on optionally might change sufficiently that the yt community decides not to support an old version of that project.
+We attempt to make yt compatible with a wide variety of upstream software
+versions. However, sometimes a specific version of a project that yt depends on
+causes some breakage and must be blacklisted in the tests or a more
+experimental project that yt depends on optionally might change sufficiently
+that the yt community decides not to support an old version of that project.
 
-To handle cases like this, the versions of downstream software projects installed on the machines running the yt test suite are pinned to specific version numbers that must be updated manually. This prevents breaking the yt tests when a new version of a downstream dependency is released and allows us to manage updates in downstream projects at our pace.
+To handle cases like this, the versions of upstream software projects installed
+on the machines running the yt test suite are pinned to specific version
+numbers that must be updated manually. This prevents breaking the yt tests when
+a new version of an upstream dependency is released and allows us to manage
+updates in upstream projects at our pace.
 
 If you would like to add a new dependency for yt (even an optional dependency)
-or would like to update a version of a yt depdendency, you must edit the
+or would like to update a version of a yt dependency, you must edit the
 ``tests/test_requirements.txt`` file, this path is relative to the root of the
-repository. This file contains an enumerated list of direct depdnencies and
+repository. This file contains an enumerated list of direct dependencies and
 pinned version numbers. For new dependencies, simply append the name of the new
-depdendency to the end of the file, along with a pin to the latest version
+dependency to the end of the file, along with a pin to the latest version
 number of the package. To update a package's version, simply update the version
 number in the entry for that package.
 
@@ -210,7 +218,7 @@ directory with the test data you want to test with, e.g.:
 
 We use a number of real-world datasets for the tests that must be downloaded and
 unzipped in the ``test_data_dir`` path you have set. The test datasets, can be
-downloaded from http://yt-project.org/data/. We do not explicitly list the
+downloaded from https://yt-project.org/data/. We do not explicitly list the
 datasets we use in the tests here because the list of necessary datasets changes
 regularly, instead you should take a look at the tests you would like to run and
 make sure that the necessary data files are downloaded before running the tests.
@@ -407,7 +415,7 @@ Enabling Answer Tests on Jenkins
 Before any code is added to or modified in the yt codebase, each incoming
 changeset is run against all available unit and answer tests on our `continuous
 integration server <https://tests.yt-project.org>`_. While unit tests are
-autodiscovered by `nose <http://nose.readthedocs.org/en/latest/>`_ itself,
+autodiscovered by `nose <https://nose.readthedocs.io/en/latest/>`_ itself,
 answer tests require definition of which set of tests constitute to a given
 answer. Configuration for the integration server is stored in
 *tests/tests.yaml* in the main yt repository:

@@ -48,6 +48,7 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                          'FigureManagerNbAgg'],
                 'agg': ['backend_agg', 'FigureCanvasAgg']}
 
+_AGG_FORMATS = (".png", ".jpg", ".jpeg", ".raw", ".rgba", ".tif", ".tiff")
 
 class CallbackWrapper(object):
     def __init__(self, viewer, window_plot, frb, field, font_properties,
@@ -93,7 +94,7 @@ class PlotMPL(object):
             figure.set_size_inches(fsize)
             self.figure = figure
         if axes is None:
-            self.axes = self.figure.add_axes(axrect)
+            self._create_axes(axrect)
         else:
             axes.cla()
             axes.set_position(axrect)
@@ -107,6 +108,9 @@ class PlotMPL(object):
                 self.axes.tick_params(
                     which=which, axis=axis, direction='in', top=True, right=True
                 )
+
+    def _create_axes(self, axrect):
+        self.axes = self.figure.add_axes(axrect)
 
     def _set_canvas(self):
         self.interactivity = get_interactivity()
@@ -130,7 +134,7 @@ class PlotMPL(object):
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
         from ._mpl_imports import \
-            FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
+            FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS, FigureCanvasSVG
         if mpl_kwargs is None:
             mpl_kwargs = {}
         if 'papertype' not in mpl_kwargs:
@@ -143,8 +147,10 @@ class PlotMPL(object):
 
         mylog.info("Saving plot %s", name)
 
-        if suffix == ".png":
+        if suffix in _AGG_FORMATS:
             canvas = FigureCanvasAgg(self.figure)
+        elif suffix in (".svg", ".svgz"):
+            canvas = FigureCanvasSVG(self.figure)
         elif suffix == ".pdf":
             canvas = FigureCanvasPdf(self.figure)
         elif suffix in (".eps", ".ps"):
@@ -220,10 +226,36 @@ class ImagePlotMPL(PlotMPL):
             cmap = get_brewer_cmap(cmap)
         vmin = float(self.zmin) if self.zmax is not None else None
         vmax = float(self.zmax) if self.zmax is not None else None
+        if self._transform is None:
+            # sets the transform to be an ax.TransData object, where the
+            # coordiante system of the data is controlled by the xlim and ylim
+            # of the data.
+            transform = self.axes.transData
+        else:
+            transform = self._transform
+        if hasattr(self.axes, "set_extent"):
+            # CartoPy hangs if we do not set_extent before imshow if we are
+            # displaying a small subset of the globe.  What I believe happens is
+            # that the transform for the points on the outside results in
+            # infinities, and then the scipy.spatial cKDTree hangs trying to
+            # identify nearest points.
+            #
+            # Also, set_extent is defined by cartopy, so not all axes will have
+            # it as a method.
+            # 
+            # A potential downside is that other images may change, but I believe
+            # the result of imshow is to set_extent *regardless*.  This just
+            # changes the order in which it happens.
+            # 
+            # NOTE: This is currently commented out because it breaks in some
+            # instances.  It is left as a historical note because we will
+            # eventually need some form of it.
+            # self.axes.set_extent(extent)
+            pass
         self.image = self.axes.imshow(
             data.to_ndarray(), origin='lower', extent=extent, norm=norm,
             vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
-            interpolation='nearest')
+            interpolation='nearest', transform=transform)
         if (cbnorm == 'symlog'):
             if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
                 formatter_kwargs = {}

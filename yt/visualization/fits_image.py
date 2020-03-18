@@ -352,7 +352,7 @@ class FITSImageData(object):
     def to_glue(self, label="yt", data_collection=None):
         """
         Takes the data in the FITSImageData instance and exports it to
-        Glue (http://www.glueviz.org) for interactive analysis. Optionally 
+        Glue (http://glueviz.org) for interactive analysis. Optionally 
         add a *label*. If you are already within the Glue environment, you 
         can pass a *data_collection* object, otherwise Glue will be started.
         """

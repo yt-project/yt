@@ -577,6 +577,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = "Inline_processor_%07i" % (self.grid_procs[i,0])
             grid._prepare_grid()
+            grid._setup_dx()
             grid.proc_num = self.grid_procs[i,0]
             self.grids[i] = grid
         mylog.debug("Prepared")
@@ -861,6 +862,8 @@ class EnzoDataset(Dataset):
             self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
             self.omega_lambda = self.parameters["CosmologyOmegaLambdaNow"]
             self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
+            self.omega_radiation = \
+              self.parameters.get("CosmologyOmegaRadiationNow", 0.0)
             self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
         else:
             self.current_redshift = self.omega_lambda = self.omega_matter = \

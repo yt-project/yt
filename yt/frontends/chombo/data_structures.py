@@ -188,9 +188,9 @@ class ChomboHierarchy(GridIndex):
         for lev_index, lev in enumerate(self._levels):
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
             try:
-                boxes = f[lev]['boxes'].value
+                boxes = f[lev]['boxes'][()]
             except KeyError:
-                boxes = f[lev]['particles:boxes'].value
+                boxes = f[lev]['particles:boxes'][()]
             dx = f[lev].attrs['dx']
             self.dds_list.append(dx * np.ones(3))
 
@@ -421,9 +421,9 @@ class PlutoHierarchy(ChomboHierarchy):
         for lev_index, lev in enumerate(self._levels):
             level_number = int(re.match('level_(\d+)',lev).groups()[0])
             try:
-                boxes = f[lev]['boxes'].value
+                boxes = f[lev]['boxes'][()]
             except KeyError:
-                boxes = f[lev]['particles:boxes'].value
+                boxes = f[lev]['particles:boxes'][()]
             dx = f[lev].attrs['dx']
             self.dds_list.append(dx * np.ones(3))
 

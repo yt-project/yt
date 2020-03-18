@@ -206,13 +206,17 @@ along that ray:
    ray = ds.ray((0.3, 0.5, 0.9), (0.1, 0.8, 0.5))
    print(ray["density"])
 
-The points are ordered, but the ray is also traversing cells of varying length,
-as well as taking a varying distance to cross each cell.  To determine the
-distance traveled by the ray within each cell (for instance, for integration)
-the field ``dt`` is available; this field will sum to 1.0, as the ray's path
-will be normalized to 1.0, independent of how far it travels through the domain.
-To determine the value of ``t`` at which the ray enters each cell, the field
-``t`` is available.  For instance:
+The points are not ordered, so you may need to sort the data (see the
+example in the
+:class:`~yt.data_objects.selection_data_containers.YTRay` docs).  Also
+note, the ray is traversing cells of varying length, as well as
+taking a varying distance to cross each cell.  To determine the
+distance traveled by the ray within each cell (for instance, for
+integration) the field ``dt`` is available; this field will sum to
+1.0, as the ray's path will be normalized to 1.0, independent of how
+far it travels through the domain.  To determine the value of ``t`` at
+which the ray enters each cell, the field ``t`` is available.  For
+instance:
 
 .. code-block:: python
 
@@ -226,3 +230,23 @@ The volume rendering functionality in yt can also be used to calculate
 off-axis plane integrals, using the
 :class:`~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction`
 in a manner similar to that described in :ref:`volume_rendering`.
+
+.. _generating-xarray:
+
+Regular Grids to xarray
+-----------------------
+
+Objects that subclass from
+:class:`~yt.data_objects.construction_data_containers.YTCoveringGrid` are able
+to export to `xarray <https://xarray.pydata.org/>`_.  This enables
+interoperability with anything that can take xarray data.  The classes that can do this are
+:class:`~yt.data_objects.construction_data_containers.YTCoveringGrid`,
+:class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid`, and
+:class:`~yt.data_objects.construction_data_containers.YTSmoothedCoveringGrid`.  For example, you can:
+
+.. code-block:: python
+
+   grid = ds.r[::256j, ::256j, ::256j]
+   obj = grid.to_xarray(fields = ["density", "temperature"])
+
+The returned object, `obj`, will now have the correct labeled axes and so forth.

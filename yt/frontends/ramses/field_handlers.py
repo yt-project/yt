@@ -304,6 +304,7 @@ class HydroFieldFileHandler(FieldFileHandler):
 
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
+
         elif cls.config_field and ytcfg.has_section(cls.config_field):
             # Or this is given by the config
             cfg = ytcfg.get(cls.config_field, 'fields')
@@ -346,14 +347,14 @@ class HydroFieldFileHandler(FieldFileHandler):
                 if nvar == 11:
                     fields = ["Density",
                               "x-velocity", "y-velocity", "z-velocity",
-                              "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                              "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
+                              "B_x_left","B_y_left","B_z_left",
+                              "B_x_right","B_y_right","B_z_right",
                               "Pressure"]
                 if nvar > 11:
                     fields = ["Density",
                               "x-velocity", "y-velocity", "z-velocity",
-                              "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                              "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
+                              "B_x_left","B_y_left","B_z_left",
+                              "B_x_right","B_y_right","B_z_right",
                               "Pressure", "Metallicity"]
             mylog.debug("No fields specified by user; automatically setting fields array to %s"
                         % str(fields))
@@ -444,13 +445,29 @@ class RTFieldFileHandler(FieldFileHandler):
             rheader[p.strip()] = cast(v)
 
         with open(fname, 'r') as f:
-            for i in range(4): read_rhs(int)
+            # Read nRTvar, nions, ngroups, iions
+            for i in range(4):
+                read_rhs(int)
             f.readline()
-            for i in range(2): read_rhs(float)
+
+            # Read X and Y fractions
+            for i in range(2):
+                read_rhs(float)
             f.readline()
-            for i in range(3): read_rhs(float)
+
+            # Reat unit_np, unit_pfd
+            for i in range(2):
+                read_rhs(float)
+
+            # Read rt_c_frac
+            # Note: when using variable speed of light, this line will contain multiple values
+            # corresponding the the velocity at each level
+            read_rhs(lambda line: [float(e) for e in line.split()])
             f.readline()
-            for i in range(3): read_rhs(float)
+
+            # Read n star, t2star, g_star
+            for i in range(3):
+                read_rhs(float)
 
             # Touchy part, we have to read the photon group properties
             mylog.debug('Not reading photon group properties')

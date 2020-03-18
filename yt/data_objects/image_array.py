@@ -328,7 +328,7 @@ class ImageArray(YTArray):
             The min and max to scale between.  Outlying values will be clipped.
         cmap_name : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
-            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+            https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
         func : function, optional
             A function to transform the buffer before applying a colormap.
 
@@ -384,9 +384,13 @@ class ImageArray(YTArray):
 
         """
         if png:
+            if not filename.endswith('.png'):
+                filename = filename + '.png'
             if len(self.shape) > 2:
-                self.write_png("%s.png" % filename)
+                self.write_png(filename)
             else:
-                self.write_image("%s.png" % filename)
+                self.write_image(filename)
         if hdf5:
-            self.write_hdf5("%s.h5" % filename, dataset_name)
+            if not filename.endswith('.h5'):
+                filename = filename + '.h5'
+            self.write_hdf5(filename, dataset_name)

@@ -38,7 +38,7 @@ by default:
 Next, load up a dataset and instantiate the :class:`~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DWriter`.
 For this example, we'll use the "StarParticle" dataset,
 available `here
-<http://yt-project.org/data/>`_.
+<https://yt-project.org/data/>`_.
 
 .. code-block:: python
 
@@ -181,7 +181,7 @@ The file format required for line emission is slightly different. The
 following script will generate two files, one called "numderdens_co.inp",
 which contains the number density of CO molecules for every cell in the index,
 and another called "gas-velocity.inp", which is useful if you want to include
-doppler broadening.
+Doppler broadening.
 
 .. code-block:: python
 

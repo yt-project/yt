@@ -203,15 +203,15 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         r_ax, theta_ax, z_ax = (self.ds.coordinates.axis_id[ax]
                                 for ax in ('r', 'theta', 'z'))
         if width is not None:
-             width = super(CylindricalCoordinateHandler,
-                           self).sanitize_width(axis, width, depth)
+            width = super(CylindricalCoordinateHandler,
+                self).sanitize_width(axis, width, depth)
         # Note: regardless of axes, these are set up to give consistent plots
         # when plotted, which is not strictly a "right hand rule" for axes.
         elif name == "r": # soup can label
             width = [2.0 * np.pi * self.ds.domain_width.uq,
                      self.ds.domain_width[z_ax]]
         elif name == "theta":
-            width = [self.ds.domain_right_edge[r_ax],
+            width = [self.ds.domain_width[r_ax],
                      self.ds.domain_width[z_ax]]
         elif name == "z":
             width = [2.0*self.ds.domain_right_edge[r_ax],

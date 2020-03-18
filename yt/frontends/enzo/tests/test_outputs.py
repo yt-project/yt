@@ -46,6 +46,34 @@ toro1d = "ToroShockTube/DD0001/data0001"
 kh2d = "EnzoKelvinHelmholtz/DD0011/DD0011"
 mhdctot = "MHDCTOrszagTang/DD0004/data0004"
 dnz = "DeeplyNestedZoom/DD0025/data0025"
+p3mini = "PopIII_mini/DD0034/DD0034"
+
+
+def color_conservation(ds):
+    species_names = ds.field_info.species_names
+    dd = ds.all_data()
+    dens_yt = dd["density"].copy()
+    # Enumerate our species here
+    for s in sorted(species_names):
+        if s == "El": continue
+        dens_yt -= dd["%s_density" % s]
+    dens_yt -= dd["metal_density"]
+    delta_yt = np.abs(dens_yt / dd["density"])
+    # Now we compare color conservation to Enzo's color conservation
+    dd = ds.all_data()
+    dens_enzo = dd["Density"].copy()
+    for f in sorted(ds.field_list):
+        ff = f[1]
+        if not ff.endswith("_Density"):
+            continue
+        start_strings = ["Electron_", "SFR_", "Forming_Stellar_",
+                         "Dark_Matter", "Star_Particle_"]
+        if any([ff.startswith(ss) for ss in start_strings]):
+            continue
+        dens_enzo -= dd[f]
+    delta_enzo = np.abs(dens_enzo / dd["Density"])
+    np.testing.assert_almost_equal(delta_yt, delta_enzo)
+
 
 def check_color_conservation(ds):
     species_names = ds.field_info.species_names
@@ -105,7 +133,7 @@ def test_kh2d():
     ds = data_dir_load(kh2d)
     assert_equal(str(ds), 'DD0011')
     for test in small_patch_amr(ds, ds.field_list):
-        test_toro1d.__name__ = test.description
+        test_kh2d.__name__ = test.description
         yield test
 
 @requires_ds(enzotiny)
@@ -202,7 +230,7 @@ def test_deeply_nested_zoom():
 
     # carefully chosen to just barely miss a grid in the middle of the image
     center = [0.4915073260199302, 0.5052605316800006, 0.4905805557500548]
-    
+
     plot = SlicePlot(ds, 'z', 'density', width=(0.001, 'pc'),
                      center=center)
 
@@ -228,3 +256,17 @@ def test_2d_grid_shape():
     ds = data_dir_load(kh2d)
     g = ds.index.grids[1]
     assert g['density'].shape == (128, 100, 1)
+
+@requires_file(p3mini)
+def test_nonzero_omega_radiation():
+    """
+    Test support for non-zero omega_radiation cosmologies.
+    """
+    ds = data_dir_load(p3mini)
+
+    assert_equal(ds.omega_radiation, ds.cosmology.omega_radiation)
+
+    tratio = ds.current_time / \
+      ds.cosmology.t_from_z(ds.current_redshift)
+    assert_almost_equal(tratio, 1, 4,
+      err_msg='Simulation time not consistent with cosmology calculator.')

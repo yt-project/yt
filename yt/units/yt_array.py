@@ -46,10 +46,16 @@ from yt.units.dimensions import \
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
-    YTInvalidUnitEquivalence, YTEquivalentDimsError
+    YTInvalidUnitEquivalence, YTEquivalentDimsError, \
+    YTArrayTooLargeToDisplay
 from yt.utilities.lru_cache import lru_cache
+from yt.utilities.on_demand_imports import _h5py as h5py
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
+try:
+    from numpy.core.umath import clip
+except ImportError:
+    clip = None
 from sympy import Rational
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut
@@ -302,6 +308,8 @@ trigonometric_operators = (
     sin, cos, tan,
 )
 
+multiple_output_operators = {modf: 2, frexp: 2, divmod_: 2}
+
 class YTArray(np.ndarray):
     """
     An ndarray subclass that attaches a symbolic unit object to the array data.
@@ -451,6 +459,7 @@ class YTArray(np.ndarray):
         divmod_: passthrough_unit,
         isnat: return_without_unit,
         heaviside: preserve_units,
+        clip: passthrough_unit,
     }
 
     __array_priority__ = 2.0
@@ -943,7 +952,6 @@ class YTArray(np.ndarray):
         >>> a.write_hdf5('test_array_data.h5', dataset_name='dinosaurs',
         ...              info=myinfo)
         """
-        from yt.utilities.on_demand_imports import _h5py as h5py
         from yt.extern.six.moves import cPickle as pickle
         if info is None:
             info = {}
@@ -998,7 +1006,6 @@ class YTArray(np.ndarray):
             arrays are datasets at the top level by default.
 
         """
-        import h5py
         from yt.extern.six.moves import cPickle as pickle
 
         if dataset_name is None:
@@ -1365,9 +1372,25 @@ class YTArray(np.ndarray):
             func = getattr(ufunc, method)
             if 'out' in kwargs:
                 out_orig = kwargs.pop('out')
-                out = np.asarray(out_orig[0])
+                if ufunc in multiple_output_operators:
+                    outs = []
+                    for arr in out_orig:
+                        outs.append(arr.view(np.ndarray))
+                    out = tuple(outs)
+                else:
+                    out_element = out_orig[0]
+                    if out_element.dtype.kind in ("u", "i"):
+                        new_dtype = "f" + str(out_element.dtype.itemsize)
+                        float_values = out_element.astype(new_dtype)
+                        out_element.dtype = new_dtype
+                        np.copyto(out_element, float_values)
+                    out = out_element.view(np.ndarray)
             else:
-                out = None
+                if ufunc in multiple_output_operators:
+                    num_outputs = multiple_output_operators[ufunc]
+                    out = (None,) * num_outputs
+                else:
+                    out = None
             if len(inputs) == 1:
                 _, inp, u = get_inp_u_unary(ufunc, inputs)
                 out_arr = func(np.asarray(inp), out=out, **kwargs)
@@ -1396,9 +1419,29 @@ class YTArray(np.ndarray):
                     out, out_arr, unit = handle_multiply_divide_units(
                         unit, units, out, out_arr)
             else:
-                raise RuntimeError(
-                    "Support for the %s ufunc with %i inputs has not been"
-                    "added to YTArray." % (str(ufunc), len(inputs)))
+                if ufunc is clip:
+                    inp = []
+                    for i in inputs:
+                        if isinstance(i, YTArray):
+                            inp.append(i.to(inputs[0].units).view(np.ndarray))
+                        elif iterable(i):
+                            inp.append(np.asarray(i))
+                        else:
+                            inp.append(i)
+                    if out is not None:
+                        _out = out.view(np.ndarray)
+                    else:
+                        _out = None
+                    out_arr = ufunc(*inp, out=_out)
+                    unit = inputs[0].units
+                    ret_class = type(inputs[0])
+                    # This was added after unyt was spun out, but is not presently used:
+                    # mul = 1
+                else:
+                    raise RuntimeError(
+                        "Support for the %s ufunc with %i inputs has not been "
+                        "added to unyt_array." % (str(ufunc), len(inputs))
+                    )
             if unit is None:
                 out_arr = np.array(out_arr, copy=False)
             elif ufunc in (modf, divmod_):
@@ -1414,14 +1457,15 @@ class YTArray(np.ndarray):
                 else:
                     out_arr = ret_class(np.asarray(out_arr), unit)
             if out is not None:
-                out_orig[0].flat[:] = out.flat[:]
-                if isinstance(out_orig[0], YTArray):
-                    out_orig[0].units = unit
+                if ufunc not in multiple_output_operators:
+                    out_orig[0].flat[:] = out.flat[:]
+                    if isinstance(out_orig[0], YTArray):
+                        out_orig[0].units = unit
             return out_arr
 
         def copy(self, order='C'):
             return type(self)(np.copy(np.asarray(self)), self.units)
-    
+
     def __array_finalize__(self, obj):
         if obj is None and hasattr(self, 'units'):
             return
@@ -1473,6 +1517,12 @@ class YTArray(np.ndarray):
             lut.update(default_unit_symbol_lut)
             for k, v in [(k, v) for k, v in lut.items() if len(v) == 2]:
                 lut[k] = v + (0.0, r'\rm{' + k.replace('_', '\ ') + '}')
+        # sympy 1.5 added new assumptions, making dimensions not compare
+        # as equal, so we update the loaded assumptions based on the assumptions
+        # for angle. I could have used any dimension, angle just
+        # happened to already be imported in this file
+        for v in lut.values():
+            v[1]._assumptions.update(angle._assumptions)
         registry = UnitRegistry(lut=lut, add_default_symbols=False)
         self.units = Unit(unit, registry=registry)
 
@@ -1693,7 +1743,7 @@ def ustack(arrs, axis=0):
     This is a wrapper around np.stack that preserves units.
 
     """
-    v = np.stack(arrs)
+    v = np.stack(arrs, axis=axis)
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 
@@ -1844,3 +1894,48 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
     np.savetxt(fname, np.transpose(arrays), header=header,
                fmt=fmt, delimiter=delimiter, footer=footer,
                newline='\n', comments=comments)
+
+def display_ytarray(arr):
+    r"""
+    Display a YTArray in a Jupyter widget that enables unit switching.
+
+    The array returned by this function is read-only, and only works with
+    arrays of size 3 or lower.
+
+    Parameters
+    ----------
+    arr : YTArray
+        The Array to display; must be of size 3 or lower.
+
+    Examples
+    --------
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> display_ytarray(ds.domain_width)
+    """
+    if arr.size > 3:
+        raise YTArrayTooLargeToDisplay(arr.size, 3)
+    import ipywidgets
+    unit_registry = arr.units.registry 
+    equiv = unit_registry.list_same_dimensions(arr.units)
+    dropdown = ipywidgets.Dropdown(options = sorted(equiv), value = str(arr.units))
+    def arr_updater(arr, texts):
+        def _value_updater(change):
+            arr2 = arr.in_units(change['new'])
+            if arr2.shape == ():
+                arr2 = [arr2]
+            for v, t in zip(arr2, texts):
+                t.value = str(v.value)
+        return _value_updater
+    if arr.shape == ():
+        arr_iter = [arr]
+    else:
+        arr_iter = arr
+    texts = [ipywidgets.Text(value = str(_.value), disabled = True)
+             for _ in arr_iter]
+    dropdown.observe(arr_updater(arr, texts), names="value")
+    return ipywidgets.HBox(texts + [dropdown])
+
+def _wrap_display_ytarray(arr):
+    from IPython.core.display import display
+    display(display_ytarray(arr))
+

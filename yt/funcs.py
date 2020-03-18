@@ -34,6 +34,7 @@ import base64
 import numpy
 import matplotlib
 import getpass
+import glob
 from math import floor, ceil
 from numbers import Number as numeric_type
 
@@ -649,7 +650,10 @@ def get_yt_version():
     if version is None:
         return version
     else:
-        return version[:12].strip().decode('utf-8')
+        v_str = version[:12].strip()
+        if hasattr(v_str, 'decode'):
+            v_str = v_str.decode('utf-8')
+        return v_str
 
 def get_version_stack():
     version_info = {}
@@ -988,7 +992,7 @@ def enable_plugins():
 
     if _fn is not None and os.path.isfile(_fn):
         if _fn.startswith(old_config_dir):
-            mylog.warn(
+            mylog.warning(
                 'Your plugin file is located in a deprecated directory. '
                 'Please move it from %s to %s',
                 os.path.join(old_config_dir, my_plugin_name),
@@ -997,15 +1001,14 @@ def enable_plugins():
         ytdict = yt.__dict__
         execdict = ytdict.copy()
         execdict['add_field'] = my_plugins_fields.add_field
-        localdict = {}
         with open(_fn) as f:
             code = compile(f.read(), _fn, 'exec')
-            exec(code, execdict, localdict)
+            exec(code, execdict, execdict)
         ytnamespace = list(ytdict.keys())
-        for k in localdict.keys():
+        for k in execdict.keys():
             if k not in ytnamespace:
-                if callable(localdict[k]):
-                    setattr(yt, k, localdict[k])
+                if callable(execdict[k]):
+                    setattr(yt, k, execdict[k])
 
 def fix_unitary(u):
     if u == '1':
@@ -1017,7 +1020,7 @@ def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
     """Generate file hash without reading in the entire file at once.
 
     Original code licensed under MIT.  Source:
-    http://pythoncentral.io/hashing-files-with-python/
+    https://www.pythoncentral.io/hashing-files-with-python/
 
     Parameters
     ----------
@@ -1261,3 +1264,9 @@ def validate_center(center):
         raise TypeError("Expected 'center' to be a numeric object of type "
                         "list/tuple/np.ndarray/YTArray/YTQuantity, "
                         "received '%s'." % str(type(center)).split("'")[1])
+
+def sglob(pattern):
+    """
+    Return the results of a glob through the sorted() function.
+    """
+    return sorted(glob.glob(pattern))

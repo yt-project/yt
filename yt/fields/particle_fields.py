@@ -77,9 +77,8 @@ def _field_concat(fname):
         v = []
         for ptype in data.ds.particle_types:
             data.ds._last_freq = (ptype, None)
-            if ptype == "all" or \
-                ptype in data.ds.known_filters:
-                  continue
+            if ptype == "all" or ptype in data.ds.known_filters:
+                continue
             v.append(data[ptype, fname].copy())
         rv = uconcatenate(v, axis=0)
         return rv
@@ -90,9 +89,8 @@ def _field_concat_slice(fname, axi):
         v = []
         for ptype in data.ds.particle_types:
             data.ds._last_freq = (ptype, None)
-            if ptype == "all" or \
-                ptype in data.ds.known_filters:
-                  continue
+            if ptype == "all" or ptype in data.ds.known_filters:
+                continue
             v.append(data[ptype, fname][:,axi])
         rv = uconcatenate(v, axis=0)
         return rv
@@ -303,7 +301,7 @@ def standard_particle_fields(registry, ptype,
         # adding in the unit registry allows us to have a reference to the
         # dataset and thus we will always get the correct units after applying
         # the cross product.
-        return -ucross(r_vec, v_vec, registry=data.ds.unit_registry)
+        return ucross(r_vec, v_vec, registry=data.ds.unit_registry)
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
@@ -857,6 +855,30 @@ def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
                        function = _nth_neighbor,
                        validators = [ValidateSpatial(0)],
                        units = "code_length")
+    return [field_name]
+
+def add_nearest_neighbor_value_field(ptype, coord_name, sampled_field, registry):
+    """
+    This adds a nearest-neighbor field, where values on the mesh are assigned
+    based on the nearest particle value found.  This is useful, for instance,
+    with voronoi-tesselations.
+    """
+    field_name = ("deposit", "%s_nearest_%s" % (ptype, sampled_field))
+    field_units = registry[ptype, sampled_field].units
+    unit_system = registry.ds.unit_system
+    def _nearest_value(field, data):
+        pos = data[ptype, coord_name]
+        pos = pos.convert_to_units("code_length")
+        value = data[ptype, sampled_field].in_base(unit_system.name)
+        rv = data.smooth(pos, [value],
+                         method="nearest",
+                         create_octree=True,
+                         nneighbors=1)
+        rv = data.apply_units(rv, field_units)
+        return rv
+    registry.add_field(field_name, sampling_type="cell",
+            function=_nearest_value, validators=[ValidateSpatial(0)],
+            units=field_units)
     return [field_name]
 
 def add_union_field(registry, ptype, field_name, units):

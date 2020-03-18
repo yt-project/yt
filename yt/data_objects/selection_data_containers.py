@@ -736,7 +736,7 @@ class YTSphere(YTSelectionContainer3D):
         if radius < self.index.get_smallest_dx():
             raise YTSphereTooSmall(ds, radius.in_units("code_length"),
                                    self.index.get_smallest_dx().in_units("code_length"))
-        self.set_field_parameter('radius',radius)
+        self.set_field_parameter('radius', radius)
         self.set_field_parameter("center", self.center)
         self.radius = radius
 
@@ -856,7 +856,8 @@ class YTCutRegion(YTSelectionContainer3D):
     _type_name = "cut_region"
     _con_args = ("base_object", "conditionals")
     def __init__(self, data_source, conditionals, ds=None,
-                 field_parameters=None, base_object=None):
+                 field_parameters=None, base_object=None,
+                 locals={}):
         validate_object(data_source, YTSelectionContainer)
         validate_iterable(conditionals)
         for condition in conditionals:
@@ -871,12 +872,21 @@ class YTCutRegion(YTSelectionContainer3D):
                 raise RuntimeError(
                     "Cannot use both base_object and data_source")
             data_source=base_object
+
+        self.conditionals = ensure_list(conditionals)
+        if isinstance(data_source, YTCutRegion):
+            # If the source is also a cut region, add its conditionals
+            # and set the source to be its source.
+            # Preserve order of conditionals.
+            self.conditionals = data_source.conditionals + \
+              self.conditionals
+            data_source = data_source.base_object
+
         super(YTCutRegion, self).__init__(
             data_source.center, ds, field_parameters, data_source=data_source)
-        self.conditionals = ensure_list(conditionals)
         self.base_object = data_source
+        self.locals = locals
         self._selector = None
-        self._particle_mask = {}
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
 
@@ -921,9 +931,13 @@ class YTCutRegion(YTSelectionContainer3D):
     def _cond_ind(self):
         ind = None
         obj = self.base_object
+        locals = self.locals.copy()
+        if 'obj' in locals:
+            raise RuntimeError('"obj" has been defined in the "locals" ; this is not supported, please rename the variable.')
+        locals['obj'] = obj
         with obj._field_parameter_state(self.field_parameters):
             for cond in self.conditionals:
-                res = eval(cond)
+                res = eval(cond, locals)
                 if ind is None: ind = res
                 if ind.shape != res.shape:
                     raise YTIllDefinedCutRegion(self.conditionals)
@@ -992,18 +1006,14 @@ class YTCutRegion(YTSelectionContainer3D):
         return mask
 
     def _part_ind(self, ptype):
-        if self._particle_mask.get(ptype) is None:
-            # If scipy is installed, use the fast KD tree
-            # implementation. Else, fall back onto the direct
-            # brute-force algorithm.
-            try:
-                _scipy.spatial.KDTree
-                mask = self._part_ind_KDTree(ptype)
-            except ImportError:
-                mask = self._part_ind_brute_force(ptype)
-
-            self._particle_mask[ptype] = mask
-        return self._particle_mask[ptype]
+        # If scipy is installed, use the fast KD tree
+        # implementation. Else, fall back onto the direct
+        # brute-force algorithm.
+        try:
+            _scipy.spatial.KDTree
+            return self._part_ind_KDTree(ptype)
+        except ImportError:
+            return self._part_ind_brute_force(ptype)
 
     @property
     def icoords(self):

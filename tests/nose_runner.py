@@ -78,7 +78,7 @@ def generate_tasks_input():
         lines = obj.read()
     data = '\n'.join([line for line in lines.split('\n')
                       if DROP_TAG not in line])
-    tests = yaml.load(data)
+    tests = yaml.load(data, Loader=yaml.FullLoader)
 
     base_argv = ['-s', '--nologcapture', '--with-xunit']
 

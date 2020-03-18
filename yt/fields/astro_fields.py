@@ -50,7 +50,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         """
         sqrt(3 pi / (16 G rho))
         """
-        return np.sqrt(3.0 * np.pi / (16.0 * G * data[ftype, "density"]))
+        return np.sqrt(3.0 * np.pi / (16.0 * data[ftype, "density"] * G))
 
     registry.add_field((ftype, "dynamical_time"), sampling_type="cell", 
                        function=_dynamical_time,
@@ -59,10 +59,9 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     def _jeans_mass(field, data):
         MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
           (3.0 / (4.0 * np.pi)) ** (0.5)
-        u = (MJ_constant * \
-             ((data[ftype, "temperature"] /
+        u = ((data[ftype, "temperature"] /
                data[ftype, "mean_molecular_weight"])**(1.5)) * \
-             (data[ftype, "density"]**(-0.5)))
+             (data[ftype, "density"]**(-0.5)) * MJ_constant
         return u
 
     registry.add_field((ftype, "jeans_mass"), sampling_type="cell", 
@@ -120,12 +119,12 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         # Spectroscopic-like weighting field for galaxy clusters
         # Only useful as a weight_field for temperature, metallicity, velocity
         ret = data["density"]/mh
-        ret *= ret*data["kT"]**-0.25
+        ret *= ret*data["kT"]**-0.75
         return ret
 
     registry.add_field((ftype,"mazzotta_weighting"), sampling_type="cell", 
                        function=_mazzotta_weighting,
-                       units="keV**-0.25*cm**-6")
+                       units="keV**-0.75*cm**-6")
 
     def _sz_kinetic(field, data):
         scale = 0.88 * sigma_thompson / mh / clight

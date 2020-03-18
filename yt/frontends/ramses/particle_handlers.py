@@ -94,9 +94,16 @@ class ParticleFileHandler(object):
                 (self.ptype, full_path))
 
         if self.file_descriptor is not None:
-            self.file_descriptor = os.path.join(
-                basename,
-                self.file_descriptor)
+            if ds.num_groups > 0:
+                # The particle file descriptor is *only* in the first group
+                self.file_descriptor = os.path.join(
+                    basename,
+                    'group_00001',
+                    self.file_descriptor)
+            else:
+                self.file_descriptor = os.path.join(
+                    basename,
+                    self.file_descriptor)
 
         # Attempt to read the list of fields from the config file
         if self.config_field and ytcfg.has_section(self.config_field):
@@ -191,7 +198,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
     attrs = ( ('ncpu', 1, 'i'),
               ('ndim', 1, 'i'),
               ('npart', 1, 'i'),
-              ('localseed', 4, 'i'),
+              ('localseed', -1, 'i'),
               ('nstar_tot', 1, 'i'),
               ('mstar_tot', 1, 'd'),
               ('mstar_lost', 1, 'd'),

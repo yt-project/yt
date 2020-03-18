@@ -1,4 +1,5 @@
 include README* CREDITS COPYING.txt CITATION  setupext.py CONTRIBUTING.rst
+include yt/visualization/mapserver/html/map.js
 include yt/visualization/mapserver/html/map_index.html
 include yt/utilities/mesh_types.yaml
 exclude scripts/pr_backport.py
@@ -13,3 +14,4 @@ recursive-include yt/analysis_modules/halo_finding/rockstar *.py *.pyx
 recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
 prune yt/frontends/_skeleton
 include yt/visualization/volume_rendering/shaders/shaderlist.yaml
+recursive-include yt/frontends/amrvac *.par

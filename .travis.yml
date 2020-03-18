@@ -1,5 +1,5 @@
 language: python
-sudo: required
+dist: xenial
 cache:
   pip: true
   directories:
@@ -9,17 +9,29 @@ addons:
   apt:
     packages:
       - libhdf5-serial-dev
+      - libproj-dev
+      - proj-data
+      - proj-bin
+      - libgeos-dev
+      - libopenmpi-dev
+
+env:
+  global:
+    PIP=pip
 
 before_install:
   - |
     if [[ $TRAVIS_OS_NAME != 'osx' ]]; then
-      pip install --upgrade virtualenv
+      $PIP install --upgrade virtualenv
       python -m virtualenv venv
       source venv/bin/activate
       export PATH=/usr/lib/ccache:$PATH
     else
+      sudo mkdir -p /usr/local/man
+      sudo chown -R "${USER}:admin" /usr/local/man
       brew update
-      brew install ccache hdf5
+      brew install python ccache hdf5 proj geos openmpi netcdf
+      brew uninstall gdal postgis numpy
       export PATH=/usr/local/opt/ccache/libexec:$PATH
     fi
     mkdir -p $HOME/.config/yt
@@ -33,19 +45,28 @@ install:
     # setup environment
     ccache -s
     # Upgrade pip and setuptools and wheel to get clean install
-    pip install --upgrade pip
-    pip install --upgrade wheel
-    pip install --upgrade setuptools
+    $PIP install --upgrade pip
+    $PIP install --upgrade wheel
+    $PIP install --upgrade setuptools
     # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       if [[ $MINIMAL == 1 ]]; then
-        pip install -r tests/test_minimal_requirements.txt
+        # The first numpy to support py3.6 is 1.12, but numpy 1.13 matches 
+        # unyt so we'll match it here. 
+        $PIP install numpy==1.13.3 cython==0.24
+        $PIP install -r tests/test_minimal_requirements.txt
       else
-        pip install -r tests/test_requirements.txt
+        # Getting cartopy installed requires getting cython and numpy installed
+        # first; this is potentially going to be fixed with the inclusion of
+        # pyproject.toml in cartopy.
+        # These versions are pinned, so we will need to update/remove them when
+        # the hack is no longer necessary.
+        $PIP install numpy==1.18.1 cython==0.29.6
+        $PIP install -r tests/test_requirements.txt
       fi
-      pip install -e .
+      $PIP install -e .
     else
-      pip install -r tests/lint_requirements.txt
+      $PIP install -r tests/lint_requirements.txt
     fi
 
 jobs:
@@ -54,19 +75,10 @@ jobs:
       python: 3.6
       script: flake8 yt/
 
-    - stage: lint
-      python: 2.7
-      script: flake8 yt/
-
     - stage: tests
-      name: "Python: 2.7 Unit Tests"
-      python: 2.7
+      name: "Python: 3.6 Minimal Dependency Unit Tests"
+      python: 3.6
       env: MINIMAL=1
-      script: coverage run $(which nosetests) -c nose_unit.cfg
-
-    - stage: tests
-      name: "Python: 2.7 Unit Tests"
-      python: 2.7
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
@@ -80,23 +92,17 @@ jobs:
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
-      name: "Python: 2.7 Answer Tests"
-      python: 2.7
-      env: MINIMAL=1
-      script: coverage run $(which nosetests) -c nose_answer.cfg
-      after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
-
-    - stage: tests
       name: "Python: 3.6 Answer Tests"
       python: 3.6
       script: coverage run $(which nosetests) -c nose_answer.cfg
       after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 
     - stage: tests
-      name: "MacOS: xcode7.3 Unit Tests"
+      name: "MacOS: Unit Tests"
       os: osx
-      osx_image: xcode7.3
+      osx_image: xcode10.1
       language: generic  # https://github.com/travis-ci/travis-ci/issues/2312
+      env: PIP=pip3
       cache:
         pip: false
         directories:

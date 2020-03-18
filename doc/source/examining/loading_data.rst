@@ -6,6 +6,117 @@ Loading Data
 This section contains information on how to load data into yt, as well as
 some important caveats about different data formats.
 
+.. _loading-amrvac-data
+
+AMRVAC Data
+-----------
+
+.. note:
+   This frontend is brand new and may be subject to rapid change in the
+   near future.
+
+To load data to yt, simply use
+
+.. code-block::
+
+  import yt
+  ds = yt.load("output0010.dat")
+
+
+.. rubric:: Dataset geometry & periodicity
+
+Starting from AMRVAC 2.2, and datfile format 5, a geometry flag
+(e.g. "Cartesian_2.5D", "Polar_2D", "Cylindrical_1.5D"...) was added
+to the datfile header.  yt will fall back to a cartesian mesh if the
+geometry flag is not found.  For older datfiles however it is possible
+to provide it externally with the ``override_geometry`` parameter.
+
+.. code-block:: python
+  # examples
+  ds = yt.load("output0010.dat", override_geometry="polar")
+  ds = yt.load("output0010.dat", override_geometry="cartesian")
+
+Note that ``override_geometry`` has priority over any ``geometry`` flag
+present in recent datfiles, which means it can be used to force ``r``
+VS ``theta`` 2D plots in polar geometries (for example), but this may
+produce unpredictable behaviour and comes with no guarantee.
+
+A ``ndim``-long ``periodic`` boolean array was also added to improve
+comptatibility with yt. See http://amrvac.org/md_doc_fileformat.html
+for details.
+
+.. rubric:: Auto-setup for derived fields
+
+Yt will attempt to mimic the way AMRVAC internally defines kinetic energy,
+pressure, and sound speed. To see a complete list of fields that are defined after
+loading, one can simply type
+
+.. code-block:: python
+    print(ds.derived_field_list)
+
+Note that for adiabatic (magneto-)hydrodynamics, i.e. `(m)hd_energy = False` in
+AMRVAC, additional input data is required in order to setup some of these fields.
+This is done by passing the corresponding parfile(s) at load time
+
+.. code-block:: python
+    # example using a single parfile
+    ds = yt.load("output0010.dat", parfiles="amrvac.par")
+
+    # ... or using multiple parfiles
+    ds = yt.load("output0010.dat", parfiles=["amrvac.par", "modifier.par"])
+
+In case more than one parfile is passed, yt will create a single namelist by
+replicating AMRVAC's rules (see "Using multiple par files"
+http://amrvac.org/md_doc_commandline.html).
+
+
+.. rubric:: Unit System
+
+AMRVAC only supports dimensionless fields and as such, no unit system
+is ever attached to any given dataset.  yt however defines physical
+quantities and give them units. As is customary in yt, the default
+unit system is ``cgs``, e.g. lengths are read as "cm" unless specified
+otherwise.
+
+The user has two ways to control displayed units, through
+``unit_system`` (``"cgs"``, ``"mks"`` or ``"code"``) and
+``units_override``. Example:
+
+.. code-block:: python
+
+  units_override = dict(length_unit=(100., 'au'), mass_unit=yt.units.mass_sun)
+  ds = yt.load("output0010.dat", units_override=units_override, unit_system="mks")
+
+To ensure consistency with normalisations as used in AMRVAC we only allow
+overriding a maximum of three units. Allowed unit combinations at the moment are
+
+.. code-block:: none
+
+  {numberdensity_unit, temperature_unit, length_unit}
+  {mass_unit, temperature_unit, length_unit}
+  {mass_unit, time_unit, length_unit}
+  {numberdensity_unit, velocity_unit, length_unit}
+  {mass_unit, velocity_unit, length_unit}
+
+Appropriate errors are thrown for other combinations.
+
+
+.. rubric:: Partially supported and unsupported features
+
+* a maximum of 100 dust species can be read by yt at the moment.
+  If your application needs this limit increased, please report an issue
+  https://github.com/yt-project/yt/issues
+* particle data: currently not supported (but might come later)
+* staggered grids (AMRVAC 2.2 and later): yt logs a warning if you load
+  staggered datasets, but the flag is currently ignored.
+* "stretched grids" as defined in AMRVAC have no correspondance in yt,
+  hence will never be supported.
+
+.. note
+   Ghost cells exist in .dat files but never read by yt.
+
+
+
 .. _loading-art-data:
 
 ART Data
@@ -552,7 +663,7 @@ file:
    ds = yt.load("MOOSE_sample_data/out.e-s010", step=0)
 
 Because Exodus II datasets can have multiple steps (which can correspond to time steps,
-picard iterations, non-linear solve iterations, etc...), you can also specify a step
+Picard iterations, non-linear solve iterations, etc...), you can also specify a step
 argument when you load an Exodus II data that defines the index at which to look when
 you read data from the file. Omitting this argument is the same as passing in 0, and
 setting ``step=-1`` selects the last time output in the file.
@@ -688,7 +799,7 @@ FITS Data
 ---------
 
 FITS data is *mostly* supported and cared for by John ZuHone. In order to
-read FITS data, `AstroPy <http://www.astropy.org>`_ must be installed. FITS
+read FITS data, `AstroPy <https://www.astropy.org>`_ must be installed. FITS
 data cubes can be loaded in the same way by yt as other datasets. yt
 can read FITS image files that have the following (case-insensitive) suffixes:
 
@@ -838,7 +949,7 @@ The third way is if auxiliary files are included along with the main file, like 
 The image blocks in each of these files will be loaded as a separate field,
 provided they have the same dimensions as the image blocks in the main file.
 
-Additionally, fields corresponding to the WCS coordinates will be generated.
+Additionally, fields corresponding to the WCS coordinates will be generated
 based on the corresponding ``CTYPEx`` keywords. When queried, these fields
 will be generated from the pixel coordinates in the file using the WCS
 transformations provided by AstroPy.
@@ -962,7 +1073,7 @@ improves it will be utilized more here.
 .. note::
 
   The following functionality requires the
-  `spectral-cube <http://spectral-cube.readthedocs.org>`_ library to be
+  `spectral-cube <https://spectral-cube.readthedocs.io/en/latest/>`_ library to be
   installed.
 
 If you have a spectral intensity dataset of some sort, and would like to
@@ -1697,18 +1808,93 @@ Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 Halo Catalog Data
 -----------------
 
-yt has support for reading halo catalogs produced by the Amiga Halo Finder (AHF), Rockstar and the inline
-FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as
-particle datasets where each particle represents a single halo.  For example,
-this means that the `particle_mass` field refers to the mass of the halos.  For
-Gadget FOF/SUBFIND catalogs, the member particles for a given halo can be
-accessed by creating `halo` data containers.  See :ref:`halo_containers` for
-more information.
+yt has support for reading halo catalogs produced by the AdaptaHOP, Amiga Halo
+Finder (AHF), Rockstar and the inline FOF/SUBFIND halo finders of Gadget and
+OWLS.  The halo catalogs are treated as particle datasets where each particle
+represents a single halo.  For example, this means that the `particle_mass`
+field refers to the mass of the halos.  For Gadget FOF/SUBFIND catalogs, the
+member particles for a given halo can be accessed by creating `halo` data
+containers.  See :ref:`halo_containers` for more information.
 
 If you have access to both the halo catalog and the simulation snapshot from
 the same redshift, additional analysis can be performed for each halo using
 :ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
 to the other halo catalogs shown here.
+
+.. _adaptahop:
+
+AdataHOP
+^^^^^^^^
+
+`AdaptaHOP <https://ascl.net/1305.004>`_ halo catalogs are loaded by providing
+the path to the `tree_bricksXXX` file. As the halo catalog does not contain
+all the information about the simulation (for example the cosmological
+parameters), you also need to pass the parent dataset for it to load correctly.
+Some fields of note available from AdaptaHOP are:
+
++---------------------+---------------------------+
+| Rockstar field      | yt field name             |
++=====================+===========================+
+| halo id             | particle_identifier       |
++---------------------+---------------------------+
+| halo mass           | particle_mass             |
++---------------------+---------------------------+
+| virial mass         | virial_mass               |
++---------------------+---------------------------+
+| virial radius       | virial_radius             |
++---------------------+---------------------------+
+| virial temperature  | virial_temperature        |
++---------------------+---------------------------+
+| halo position       | particle_position_(x,y,z) |
++---------------------+---------------------------+
+| halo velocity       | particle_velocity_(x,y,z) |
++---------------------+---------------------------+
+
+Numerous other AdataHOP fields exist.  To see them, check the field list by
+typing `ds.field_list` for a dataset loaded as `ds`.  Like all other datasets,
+fields must be accessed through :ref:`Data-objects`.
+
+.. code-block:: python
+
+   import yt
+   parent_ds = yt.load("output_00080/info_00080.txt")
+   ds = yt.load("output_00080_halos/tree_bricks080", parent_ds=parent_ds)
+   ad = ds.all_data()
+   # halo masses
+   print(ad["halos", "particle_mass"])
+   # halo radii
+   print(ad["halos", "virial_radius"])
+
+Halo Data Containers
+""""""""""""""""""""
+
+Halo member particles are accessed by creating halo data containers with the
+the halo id and the type of the particles.  Scalar values for halos
+can be accessed in the same way.  Halos also have mass, position, velocity, and
+member ids attributes.
+
+.. code-block:: python
+
+   halo = ds.halo(1, ptype='io')
+   # member particles for this halo
+   print(halo.member_ids)
+   # masses of the halo particles
+   print(halo["io", "particle_mass"])
+   # halo mass
+   print(halo.mass)
+
+In addition, the halo container contains a sphere container. This is the smallest
+sphere that contains all the halos' particles
+
+.. code-block:: python
+
+  halo = ds.halo(1, ptype='io')
+  sp = halo.sphere
+  # Density in halo
+  sp['gas', 'density']
+  # Entropy in halo
+  sp['gas', 'entropy']
+
 
 .. _ahf:
 
@@ -1849,7 +2035,7 @@ underscore and the index.
 .. _halo_containers:
 
 Halo Data Containers
-^^^^^^^^^^^^^^^^^^^^
+""""""""""""""""""""
 
 Halo member particles are accessed by creating halo data containers with the
 type of halo ("Group" or "Subhalo") and the halo id.  Scalar values for halos
@@ -1931,7 +2117,7 @@ available here are similar to other catalogs.  Any addition
 openPMD Data
 ------------
 
-`openPMD <http://www.openpmd.org>`_ is an open source meta-standard and naming
+`openPMD <https://www.openpmd.org>`_ is an open source meta-standard and naming
 scheme for mesh based data and particle data. It does not actually define a file
 format.
 
@@ -1985,7 +2171,7 @@ PyNE Data
 `PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit
 maintained by the PyNE development team (pyne-dev@googlegroups.com).
 PyNE meshes utilize the Mesh-Oriented datABase
-`(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ and can be
+`(MOAB) <https://press3.mcs.anl.gov/sigma/moab-library/>`_ and can be
 Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne
 Material objects which provide a rich set of capabilities for nuclear
 engineering tasks. PyNE Cartesian (Hex8) meshes are supported by yt.
@@ -2215,7 +2401,7 @@ There are three way to make yt detect all the particle fields. For example, if y
 Customizing the particle type association
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In verions of RAMSES more recent than December 2017, particles carry
+In versions of RAMSES more recent than December 2017, particles carry
 along a ``family`` array. The value of this array gives the kind of
 the particle, e.g. 1 for dark matter. It is possible to customize the
 association between particle type and family by customizing the yt
@@ -2263,7 +2449,7 @@ of the various particle formation time and age fields:
 
 +------------------+--------------------------+--------------------------------+
 | Simulation type  | Field name               | Description                    |
-|==================+==========================+================================+
++==================+==========================+================================+
 | cosmological     | ``conformal_birth_time`` | Formation time in conformal    |
 |                  |                          | units (dimensionless)          |
 +------------------+--------------------------+--------------------------------+
@@ -2312,7 +2498,7 @@ stars might look like this:
 
 For a cosmological simulation, this filter will distinguish between stars and
 dark matter particles.
-        
+
 .. _loading-sph-data:
 
 SPH Particle Data

@@ -15,7 +15,7 @@ Getting the Sample Data
 -----------------------
 
 All of the data used in the cookbook is freely available
-`here <http://yt-project.org/data/>`_, where you will find links to download
+`here <https://yt-project.org/data/>`_, where you will find links to download
 individual datasets.
 
 .. note:: To contribute your own recipes, please follow the instructions
@@ -47,6 +47,7 @@ Example Notebooks
    ../analyzing/analysis_modules/sunyaev_zeldovich
    fits_radio_cubes
    fits_xray_images
+   geographic_projections
    tipsy_notebook
    halo_analysis_example
    ../visualizing/volume_rendering_tutorial

@@ -67,8 +67,9 @@ import contextlib
 #  X ray
 #  X line_integral_convolution
 
-# 2D cylindrical data for callback test
+# cylindrical data for callback test
 cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
+cyl_3d = "MHD_Cyl3d_hdf5_plt_cnt_0100/MHD_Cyl3d_hdf5_plt_cnt_0100.hdf5"
 
 @contextlib.contextmanager
 def _cleanup_fname():
@@ -227,6 +228,11 @@ def test_arrow_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_arrow([0.5,0.5], coord_system='axis', length=0.05)
+        p.annotate_arrow([[0.5,0.6],[0.5,0.6],[0.5,0.6]], coord_system='data', length=0.05)
+        p.annotate_arrow([[0.5,0.6,0.8],[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='data', length=0.05)
+        p.annotate_arrow([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='axis', length=0.05)
+        p.annotate_arrow([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='figure', length=0.05)
+        p.annotate_arrow([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='plot', length=0.05)
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
@@ -254,7 +260,15 @@ def test_marker_callback():
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
+        coord = ds.arr([0.75, 0.75, 0.75], 'unitary')
+        coord.convert_to_units('kpc')
+        p.annotate_marker(coord, coord_system='data')
         p.annotate_marker([0.5,0.5], coord_system='axis', marker='*')
+        p.annotate_marker([[0.5,0.6],[0.5,0.6],[0.5,0.6]], coord_system='data')
+        p.annotate_marker([[0.5,0.6,0.8],[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='data')
+        p.annotate_marker([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='axis')
+        p.annotate_marker([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='figure')
+        p.annotate_marker([[0.5,0.6,0.8],[0.5,0.6,0.8]], coord_system='plot')
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
@@ -347,6 +361,8 @@ def test_text_callback():
                         text_args={'color':'red'})
         assert_fname(p.save(prefix)[0])
 
+@requires_file(cyl_2d)
+@requires_file(cyl_3d)
 def test_velocity_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =
@@ -369,6 +385,22 @@ def test_velocity_callback():
         assert_fname(p.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
+        ds = load(cyl_2d)
+        slc = SlicePlot(ds, "theta", "velocity_magnitude")
+        slc.annotate_velocity()
+        assert_fname(slc.save(prefix)[0])
+
+    with _cleanup_fname() as prefix:
+        ds = load(cyl_3d)
+        for ax in ["r", "z", "theta"]:
+            slc = SlicePlot(ds, ax, "velocity_magnitude")
+            slc.annotate_velocity()
+            assert_fname(slc.save(prefix)[0])
+            slc = ProjectionPlot(ds, ax, "velocity_magnitude")
+            slc.annotate_velocity()
+            assert_fname(slc.save(prefix)[0])
+
+    with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields = 
             ("density", "velocity_r", "velocity_theta", "velocity_phi"),
             geometry="spherical")
@@ -377,6 +409,7 @@ def test_velocity_callback():
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 @requires_file(cyl_2d)
+@requires_file(cyl_3d)
 def test_magnetic_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields = ("density", "magnetic_field_x",
@@ -400,9 +433,19 @@ def test_magnetic_callback():
 
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
-        slc = ProjectionPlot(ds, "theta", "density")
+        slc = SlicePlot(ds, "theta", "magnetic_field_strength")
         slc.annotate_magnetic_field()
         assert_fname(slc.save(prefix)[0])
+
+    with _cleanup_fname() as prefix:
+        ds = load(cyl_3d)
+        for ax in ["r", "z", "theta"]:
+            slc = SlicePlot(ds, ax, "magnetic_field_strength")
+            slc.annotate_magnetic_field()
+            assert_fname(slc.save(prefix)[0])
+            slc = ProjectionPlot(ds, ax, "magnetic_field_strength")
+            slc.annotate_magnetic_field()
+            assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields = ("density", "magnetic_field_r",
@@ -414,6 +457,7 @@ def test_magnetic_callback():
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 @requires_file(cyl_2d)
+@requires_file(cyl_3d)
 def test_quiver_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =
@@ -439,7 +483,19 @@ def test_quiver_callback():
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", "density")
-        slc.annotate_quiver("velocity_x", "velocity_y")
+        slc.annotate_quiver("velocity_r", "velocity_z")
+        assert_fname(slc.save(prefix)[0])
+
+    with _cleanup_fname() as prefix:
+        ds = load(cyl_3d)
+        slc = SlicePlot(ds, "r", "velocity_magnitude")
+        slc.annotate_quiver("velocity_theta", "velocity_z")
+        assert_fname(slc.save(prefix)[0])
+        slc = SlicePlot(ds, "z", "velocity_magnitude")
+        slc.annotate_quiver("velocity_cartesian_x", "velocity_cartesian_y")
+        assert_fname(slc.save(prefix)[0])
+        slc = SlicePlot(ds, "theta", "velocity_magnitude")
+        slc.annotate_quiver("velocity_r", "velocity_z")
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
@@ -592,6 +648,7 @@ def test_mesh_lines_callback():
             assert_fname(sl.save(prefix)[0])
                 
 @requires_file(cyl_2d)
+@requires_file(cyl_3d)
 def test_streamline_callback():
 
     with _cleanup_fname() as prefix:
@@ -634,8 +691,20 @@ def test_streamline_callback():
     with _cleanup_fname() as prefix:
 
         ds = load(cyl_2d)
-        slc = SlicePlot(ds, "theta", "density")
-        slc.annotate_streamlines("magnetic_field_r", "magnetic_field_z")
+        slc = SlicePlot(ds, "theta", "velocity_magnitude")
+        slc.annotate_streamlines("velocity_r", "velocity_z")
+        assert_fname(slc.save(prefix)[0])
+
+    with _cleanup_fname() as prefix:
+        ds = load(cyl_3d)
+        slc = SlicePlot(ds, "r", "velocity_magnitude")
+        slc.annotate_streamlines("velocity_theta", "velocity_z")
+        assert_fname(slc.save(prefix)[0])
+        slc = SlicePlot(ds, "z", "velocity_magnitude")
+        slc.annotate_streamlines("velocity_cartesian_x", "velocity_cartesian_y")
+        assert_fname(slc.save(prefix)[0])
+        slc = SlicePlot(ds, "theta", "velocity_magnitude")
+        slc.annotate_streamlines("velocity_r", "velocity_z")
         assert_fname(slc.save(prefix)[0])
 
     # Spherical dataset
@@ -649,6 +718,7 @@ def test_streamline_callback():
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 @requires_file(cyl_2d)
+@requires_file(cyl_3d)
 def test_line_integral_convolution_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =
@@ -673,8 +743,23 @@ def test_line_integral_convolution_callback():
 
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
-        slc = SlicePlot(ds, "theta", "density")
+        slc = SlicePlot(ds, "theta", "magnetic_field_strength")
         slc.annotate_line_integral_convolution("magnetic_field_r", "magnetic_field_z")
+        assert_fname(slc.save(prefix)[0])
+
+    with _cleanup_fname() as prefix:
+        ds = load(cyl_3d)
+        slc = SlicePlot(ds, "r", "magnetic_field_strength")
+        slc.annotate_line_integral_convolution("magnetic_field_theta", 
+                                               "magnetic_field_z")
+        assert_fname(slc.save(prefix)[0])
+        slc = SlicePlot(ds, "z", "magnetic_field_strength")
+        slc.annotate_line_integral_convolution("magnetic_field_cartesian_x", 
+                                               "magnetic_field_cartesian_y")
+        assert_fname(slc.save(prefix)[0])
+        slc = SlicePlot(ds, "theta", "magnetic_field_strength")
+        slc.annotate_line_integral_convolution("magnetic_field_r", 
+                                               "magnetic_field_z")
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:

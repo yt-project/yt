@@ -48,6 +48,16 @@ its attributes the fields themselves.  When one of these is printed, it returns
 information about the field and things like units and so on.  You can use this
 for tab-completing as well as easier access to information.
 
+Additionally, if you have `ipywidgets
+<https://ipywidgets.readthedocs.io/en/stable/>`_ installed and are in a `Jupyter
+environment <https://jupyter.org/>`_, you can view the rich representation of
+the fields (including source code) by either typing `ds.fields` as the last
+item in a cell or by calling `display(ds.fields)`.  The resulting output will
+have tabs and source:
+
+.. image:: _images/fields_ipywidget.png
+   :scale: 50%
+
 As an example, you might browse the available fields like so:
 
 .. code-block:: python
@@ -430,7 +440,7 @@ Gradient Fields
 ---------------
 
 yt provides a way to compute gradients of spatial fields using the
-:meth:`~yt.frontends.flash.data_structures.FLASHDataset.add_gradient_fields`
+:meth:`~yt.data_objects.static_output.Dataset.add_gradient_fields`
 method. If you have a spatially-based field such as density or temperature,
 and want to calculate the gradient of that field, you can do it like so:
 
@@ -490,6 +500,85 @@ available are:
   information) of the density of particles in a given mesh zone.
 * ``smoothed`` - this is a special deposition type.  See discussion below for
   more information, in :ref:`sph-fields`.
+
+You can also directly use the
+:meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
+defined on each dataset to depose any particle field onto the mesh like so:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   fname = ds.add_deposited_particle_field(('all', 'particle_velocity_x'), method='nearest')
+
+   print('The velocity of the particles are (stored in %s)' % fname)
+   print(ds.r['deposit', 'all_nn_particle_velocity_x'])
+
+Possible deposition methods are:
+
+* ``simple_smooth`` - perform an SPH-like deposition of the field onto the mesh
+  optionally accepting a ``kernel_name``.
+* ``sum`` - sums the value of the particle field for all particles found in
+  each cell.
+* ``std`` - computes the standard deviation of the value of the particle field
+  for all particles found in each cell.
+* ``cic`` - performs cloud-in-cell interpolation (see `Section 2.2
+  <http://ta.twi.tudelft.nl/dv/users/lemmens/MThesis.TTH/chapter4.html>`_ for more
+  information) of the particle field on a given mesh zone.
+* ``weighted_mean`` - computes the mean of the particle field, weighted by
+  the field passed into ``weight_field`` (by default, it uses the particle
+  mass).
+* ``count`` - counts the number of particles in each cell.
+* ``nearest`` - assign to each cell the value of the closest particle.
+
+In addition, the :meth:`~yt.data_objects.static_outputs.add_deposited_particle_field` function
+returns the name of the newly created field.
+
+
+.. _mesh-sampling-particle-fields:
+
+Mesh Sampling Particle Fields
+-----------------------------
+
+In order to turn mesh fields into discrete particle field, yt provides
+a mechanism to do sample mesh fields at particle locations. This operation is
+the inverse operation of :ref:`deposited-particle-fields`: for each
+particle the cell containing the particle is found and the value of
+the field in the cell is assigned to the particle. This is for
+example useful when using tracer particles to have access to the
+Eulerian information for Lagrangian particles.
+
+The particle fields are named ``(ptype, cell_ftype_fname)`` where
+``ptype`` is the particle type onto which the deposition occurs,
+``ftype`` is the mesh field type (e.g. ``gas``) and ``fname`` is the
+field (e.g. ``temperature``, ``density``, ...). You can directly use
+the :meth:`~yt.data_objects.static_output.Dataset.add_mesh_sampling_particle_field`
+function defined on each dataset to impose a field onto the particles like so:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   ds.add_mesh_sampling_particle_field(('gas', 'temperature'), ptype='all')
+
+   print('The temperature at the location of the particles is')
+   print(ds.r['all', 'cell_gas_temperature'])
+
+For octree codes (e.g. RAMSES), you can trigger the build of an index so
+that the next sampling operations will be mush faster
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("output_00080/info_00080.txt")
+   ds.add_mesh_sampling_particle_field(('gas', 'temperature'), ptype='all')
+
+   ad = ds.all_data()
+   ad['all', 'cell_index']            # Trigger the build of the index of the cell containing the particles
+   ad['all', 'cell_gas_temperature']  # This is now much faster
 
 .. _sph-fields:
 
@@ -571,3 +660,23 @@ default this is 64, but it can be supplied as the final argument to
 This can then be used as input to the function
 ``add_volume_weighted_smoothed_field``, which can enable smoothing particle
 types that would normally not be smoothed.
+
+Commonly, not just the identity of the nearest particle is interesting, but the
+value of a given field associated with that particle.  yt provides a function
+that can do this, as well.  This deposits into the indexing octree the value
+from the nearest particle.
+
+.. code-block:: python
+
+   import yt
+   from yt.fields.particle_fields import \
+     add_nearest_neighbor_value_field
+
+   ds = yt.load("snapshot_033/snap_033.0.hdf5")
+   ds.index
+   fn, = add_nearest_neighbor_value_field("all", "particle_position",
+                "particle_velocity_magnitude", ds.field_info)
+
+   dd = ds.all_data()
+   print(dd[fn])
+
