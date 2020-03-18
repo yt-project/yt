@@ -148,20 +148,20 @@ class RenderingContext(pyglet.window.Window):
             self.set_location(*position)
 
         self.scene = scene
-        self.label = pyglet.text.Label('Hello, world',
+        self.label = pyglet.text.Label('Hello, yt',
                                   font_name='Times New Roman',
                                   font_size=36,
                                   x=self.width//2, y=self.height//2,
                                   anchor_x='center', anchor_y='center')
 
     def on_draw(self):
+        self.clear()
         if self.scene is not None:
             self.scene.render()
             if self.image_widget is not None:
                 self.image_widget.value = write_bitmap(
                         self.scene.image[:,:,:3], None)
         self.label.draw()
-        self.flip()
 
     def set_position(self, xpos, ypos):
         if xpos < 0 or ypos < 0:
@@ -185,6 +185,3 @@ class RenderingContext(pyglet.window.Window):
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
         print(x, y, dx, dy, buttons, modifiers)
-
-    def on_resize(self, *args, **kwargs):
-        pass
