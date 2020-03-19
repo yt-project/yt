@@ -1,6 +1,5 @@
 language: python
 dist: xenial
-sudo: required
 cache:
   pip: true
   directories:
@@ -15,10 +14,6 @@ addons:
       - proj-bin
       - libgeos-dev
       - libopenmpi-dev
-
-env:
-  global:
-    PIP=pip
 
 env:
   global:
@@ -67,7 +62,7 @@ install:
         # These versions are pinned, so we will need to update/remove them when
         # the hack is no longer necessary.
         $PIP install numpy==1.18.1 cython==0.29.6
-        $PIP install -r tests/test_requirements.txt
+        CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" $PIP install -r tests/test_requirements.txt
       fi
       $PIP install -e .
     else

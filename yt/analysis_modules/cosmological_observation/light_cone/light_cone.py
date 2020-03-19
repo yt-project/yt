@@ -430,7 +430,7 @@ class LightCone(CosmologySplice):
         if (filename is None):
             filename = os.path.join(self.output_dir, "%s_data" % self.output_prefix)
         if not(filename.endswith(".h5")):
-               filename += ".h5"
+            filename += ".h5"
 
         if pstack.size == 0:
             mylog.info("save_light_cone_stack: light cone projection is empty.")

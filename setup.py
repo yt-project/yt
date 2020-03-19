@@ -369,7 +369,8 @@ setup(
                  "Programming Language :: Python :: 3.5",
                  "Topic :: Scientific/Engineering :: Astronomy",
                  "Topic :: Scientific/Engineering :: Physics",
-                 "Topic :: Scientific/Engineering :: Visualization"],
+                 "Topic :: Scientific/Engineering :: Visualization",
+                 "Framework :: Matplotlib"],
     keywords='astronomy astrophysics visualization ' +
     'amr adaptivemeshrefinement',
     entry_points={'console_scripts': [
