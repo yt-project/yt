@@ -7,7 +7,7 @@ glueviz==0.13.3; python_version >= '3.0'
 h5py==2.8.0
 ipython==7.1.1; python_version >= '3.0'
 ipython==5.8.0; python_version < '3.0'
-matplotlib==3.0.1; python_version >= '3.0'
+matplotlib==3.0.3; python_version >= '3.0'
 matplotlib==2.2.3; python_version < '3.0'
 mock==2.0.0; python_version < '3.0'
 nose-timer==0.7.3
@@ -25,7 +25,7 @@ netCDF4==1.4.2
 libconf==1.0.1
 cartopy==0.17.0
 pyaml==17.10.0
-mpi4py==3.0.0
+mpi4py==3.0.3
 pyyaml>=4.2b1
 xarray==0.12.3 ; python_version >= '3.0'
 firefly_api>=0.0.2
