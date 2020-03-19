@@ -24,7 +24,7 @@ install:
 
     # Install the build and runtime dependencies of the project.
     # Create a conda environment
-    - "conda update -q --yes conda"
+    # - "conda update -q --yes conda"  ## Updating conda leads to an erratic behavior...
     - "conda create -q --yes -n test python=%PYTHON_VERSION%"
     - "activate test"
 
