@@ -242,7 +242,6 @@ class Dataset(object):
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
 
-        self.min_level = 0
         self.no_cgs_equiv_length = False
 
         self._create_unit_registry()
@@ -1419,12 +1418,22 @@ class Dataset(object):
     def max_level(self):
         if self._max_level is None:
             self._max_level = self.index.max_level
-
         return self._max_level
 
     @max_level.setter
     def max_level(self, value):
         self._max_level = value
+
+    _min_level = None
+    @property
+    def min_level(self):
+        if self._min_level is None:
+            self._min_level = self.index.min_level
+        return self._min_level
+
+    @min_level.setter
+    def min_level(self, value):
+        self._min_level = value
 
     def define_unit(self, symbol, value, tex_repr=None, offset=None, prefixable=False):
         """
