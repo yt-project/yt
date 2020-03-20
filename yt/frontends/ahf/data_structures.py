@@ -151,7 +151,7 @@ class AHFHalosDataset(Dataset):
                     key = name.strip().split('.')[1]
                     try:
                         val = float(val)
-                    except:
+                    except Exception:
                         val = float.fromhex(val)
                     simu[key] = val
         return simu
@@ -166,8 +166,7 @@ class AHFHalosDataset(Dataset):
                     try:
                         val = float(val)
                         param[key] = val
-                    except:
-                        pass
+                    except Exception: pass
         return param
 
     @property

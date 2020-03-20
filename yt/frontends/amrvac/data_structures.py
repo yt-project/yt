@@ -220,8 +220,7 @@ class AMRVACDataset(Dataset):
                         istream.seek(0,2)
                         file_size = istream.tell()
                         validation = offset_tree < file_size and offset_blocks < file_size
-            except:
-                pass
+            except Exception: pass
         return validation
 
     def _parse_geometry(self, geometry_tag):
