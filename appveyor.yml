@@ -38,7 +38,7 @@ install:
 build: false
 
 test_script:
-  - "nosetests --nologcapture -sv yt"
+    - "nosetests --nologcapture -sv --traverse-namespace yt"
 
 # Enable this to be able to login to the build worker. You can use the
 # `remmina` program in Ubuntu, use the login information that the line below
