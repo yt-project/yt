@@ -391,6 +391,8 @@ for the grid cell to be incorporated.
     | A cylinder defined by a point at the center of one of the circular bases,
       a normal vector to it defining the orientation of the length of the
       cylinder, and radius and height values for the cylinder's dimensions.
+      Note: ``height`` is the distance from midplane to the top or bottom of the
+      cylinder.
 
 **Ellipsoid**
     | Class :class:`~yt.data_objects.selection_data_containers.YTEllipsoid`
