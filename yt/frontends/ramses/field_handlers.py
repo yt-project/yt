@@ -489,12 +489,12 @@ class RTFieldFileHandler(FieldFileHandler):
             # Read nRTvar, nions, ngroups, iions
             for _ in range(4):
                 read_rhs(int)
-            # Try to read new rtprecision
+            # Try to read rtprecision
             try:
                 read_rhs(int)
+		f.readline()
             except Exception:
-                pass                
-            f.readline()
+                pass    
 
             # Read X and Y fractions
             for _ in range(2):
