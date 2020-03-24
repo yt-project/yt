@@ -491,7 +491,7 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(int)
             # Try to read rtprecision
             try:
-                read_rhs(int)
+		read_rhs(int)
 		f.readline()
             except Exception:
                 pass    
