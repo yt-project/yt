@@ -16,12 +16,8 @@ Coding is only one way to be involved!
 Communication Channels
 ----------------------
 
-There are five main communication channels for yt:
+There are three main communication channels for yt:
 
- * We have an IRC channel, on ``irc.freenode.net`` in ``#yt``.
-   You can connect through our web
-   gateway without any special client, at http://yt-project.org/irc.html .
-   *IRC is the first stop for conversation!*
  * Many yt developers participate in the yt Slack community. Slack is a free
    chat service that many teams use to organize their work. You can get an
    invite to yt's Slack organization by clicking the "Join us @ Slack" button
