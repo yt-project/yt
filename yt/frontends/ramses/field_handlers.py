@@ -491,10 +491,10 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(int)
             # Try to read rtprecision
             try:
-		read_rhs(int)
-		f.readline()
+                read_rhs(int)
+                f.readline()
             except Exception:
-                pass    
+                pass
 
             # Read X and Y fractions
             for _ in range(2):
