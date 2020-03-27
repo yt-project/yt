@@ -21,7 +21,7 @@ sympy==1.5
 pyqt5==5.11.3; python_version >= '3.0'
 thingking==1.0.2; python_version < '3.0'
 pint==0.8.1
-netCDF4==1.4.2
+netCDF4==1.5.3
 libconf==1.0.1
 cartopy==0.17.0
 pyaml==17.10.0
