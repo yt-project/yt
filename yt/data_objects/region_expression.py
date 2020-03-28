@@ -58,9 +58,6 @@ class RegionExpression(object):
             # implicitly.  Note that this happens *after* the implicit expansion
             # of a single slice.
             raise YTDimensionalityError(len(item), self.ds.dimensionality)
-        #if self.ds.dimensionality != 3:
-            # We'll pass on this for the time being.
-        #    raise YTDimensionalityError(self.ds.dimensionality, '3')
 
         # OK, now we need to look at our slices.  How many are a specific
         # coordinate?
