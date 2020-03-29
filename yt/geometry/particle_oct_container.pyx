@@ -1,3 +1,6 @@
+# distutils: include_dirs = LIB_DIR, yt/utilities/lib/ewahboolarray
+# distutils: language = c++
+# distutils: libraries = STD_LIBS
 """
 Oct container tuned for Particles
 

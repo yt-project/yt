@@ -1,3 +1,6 @@
+# distutils: sources = yt/utilities/lib/tsearch.c
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Oct container
 
