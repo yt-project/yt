@@ -85,6 +85,7 @@ else:
 
 from Cython.Build import cythonize
 cythonize_aliases = {'LIB_DIR': 'yt/utilities/lib/',
+                     'LIB_DIR_EWAH': ['yt/utilities/lib/', 'yt/utilities/lib/ewahboolarray/'],
                      'STD_LIBS': std_libs}
 
 cython_extensions = cythonize("yt/geometry/*.pyx", aliases = cythonize_aliases,
