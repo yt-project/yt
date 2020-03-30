@@ -320,18 +320,6 @@ if check_for_pyembree() is not None:
 
     cython_extensions += embree_extensions
 
-if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
-    gpd = os.environ["GPERFTOOLS"]
-    idir = os.path.join(gpd, "include")
-    ldir = os.path.join(gpd, "lib")
-    print(("INCLUDE AND LIB DIRS", idir, ldir))
-    cython_extensions.append(
-        Extension("yt.utilities.lib.perftools_wrap",
-                  ["yt/utilities/lib/perftools_wrap.pyx"],
-                  libraries=["profiler"],
-                  library_dirs=[ldir],
-                  include_dirs=[idir]))
-
 class build_ext(_build_ext):
     # subclass setuptools extension builder to avoid importing cython and numpy
     # at top level in setup.py. See http://stackoverflow.com/a/21621689/1382869
