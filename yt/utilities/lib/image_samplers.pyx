@@ -1,3 +1,8 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: extra_compile_args = OMP_ARGS
+# distutils: extra_link_args = OMP_ARGS
+# distutils: libraries = STD_LIBS
+# distutils: sources = FIXED_INTERP
 """
 Image sampler definitions
 
