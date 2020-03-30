@@ -224,17 +224,15 @@ cython_extensions += [
               libraries=std_libs),
 ]
 
-lib_exts = [
+lib_exts = ["yt/utilities/lib/{}.pyx".format(_) for _ in [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
     "interpolators", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "mesh_utilities",
     "amr_kdtools", "lenses", "distance_queue", "allocation_container",
-]
-for ext_name in lib_exts:
-    cython_extensions.append(
-        Extension("yt.utilities.lib.{}".format(ext_name),
-                  ["yt/utilities/lib/{}.pyx".format(ext_name)],
-                  libraries=std_libs))
+]]
+
+cython_extensions += cythonize(lib_exts, aliases = cythonize_aliases,
+                               language_level = 2)
 
 lib_exts = ["write_array", "ragged_arrays", "line_integral_convolution"]
 for ext_name in lib_exts:

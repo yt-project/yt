@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Utilities for unstructured and semi-structured meshes
 

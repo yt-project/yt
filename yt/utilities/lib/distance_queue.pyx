@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Distance queue implementation
 

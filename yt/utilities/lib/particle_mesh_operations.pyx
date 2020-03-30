@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Simple integrators for the radiative transfer equation
 

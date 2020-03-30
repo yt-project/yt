@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Simple readers for fortran unformatted data, specifically for the Tiger code.
 
