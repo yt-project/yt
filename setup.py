@@ -83,7 +83,6 @@ if os.name == "nt":
 else:
     std_libs = ["m"]
 
-from Cython.Build import cythonize
 cythonize_aliases = {'LIB_DIR': 'yt/utilities/lib/',
                      'LIB_DIR_EWAH': ['yt/utilities/lib/', 'yt/utilities/lib/ewahboolarray/'],
                      'LIB_DIR_GEOM': ['yt/utilities/lib/', 'yt/geometry/'],
