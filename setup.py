@@ -125,21 +125,10 @@ cython_extensions += cythonize(lib_exts, aliases = cythonize_aliases,
 
 # EMBREE
 if check_for_pyembree() is not None:
-    embree_extensions = [
-        Extension("yt.utilities.lib.mesh_construction",
-                  ["yt/utilities/lib/mesh_construction.pyx"],
-                  depends=["yt/utilities/lib/mesh_triangulation.h"]),
-        Extension("yt.utilities.lib.mesh_traversal",
-                  ["yt/utilities/lib/mesh_traversal.pyx"]),
-        Extension("yt.utilities.lib.mesh_samplers",
-                  ["yt/utilities/lib/mesh_samplers.pyx"]),
-        Extension("yt.utilities.lib.mesh_intersection",
-                  ["yt/utilities/lib/mesh_intersection.pyx"]),
-    ]
 
     embree_prefix = os.path.abspath(read_embree_location())
-    embree_inc_dir = [os.path.join(embree_prefix, 'include')]
-    embree_lib_dir = [os.path.join(embree_prefix, 'lib')]
+    embree_inc_dir = os.path.join(embree_prefix, 'include')
+    embree_lib_dir = os.path.join(embree_prefix, 'lib')
     if in_conda_env():
         conda_basedir = os.path.dirname(os.path.dirname(sys.executable))
         embree_inc_dir.append(os.path.join(conda_basedir, 'include'))
@@ -150,14 +139,15 @@ if check_for_pyembree() is not None:
     else:
         embree_lib_name = "embree"
 
-    for ext in embree_extensions:
-        ext.include_dirs += embree_inc_dir
-        ext.library_dirs += embree_lib_dir
-        ext.language = "c++"
-        ext.libraries += std_libs
-        ext.libraries += [embree_lib_name]
+    embree_aliases = cythonize_aliases.copy()
+    embree_aliases['EMBREE_INC_DIR'] = ['yt/utilities/lib/', embree_inc_dir]
+    embree_aliases['EMBREE_LIB_DIR'] = [embree_lib_dir]
+    embree_aliases['EMBREE_LIBS'] = std_libs + [embree_lib_name]
 
-    cython_extensions += embree_extensions
+    cython_extensions += cythonize("yt/utilities/lib/embree_mesh/*.pyx",
+                                   aliases = embree_aliases,
+                                   language_level = 2
+                                  )
 
 if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
     gpd = os.environ["GPERFTOOLS"]

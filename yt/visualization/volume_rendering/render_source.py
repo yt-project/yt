@@ -21,13 +21,13 @@ from yt.utilities.lib.misc_utilities import \
 
 from yt.utilities.on_demand_imports import NotAModule
 try:
-    from yt.utilities.lib import mesh_traversal
+    from yt.utilities.lib.embree_mesh import mesh_traversal
 # Catch ValueError in case size of objects in Cython change
 except (ImportError, ValueError):
     mesh_traversal = NotAModule("pyembree")
     ytcfg["yt", "ray_tracing_engine"] = "yt"
 try:
-    from yt.utilities.lib import mesh_construction
+    from yt.utilities.lib.embree_mesh import mesh_construction
 # Catch ValueError in case size of objects in Cython change
 except (ImportError, ValueError):
     mesh_construction = NotAModule("pyembree")
