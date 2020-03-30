@@ -1,3 +1,5 @@
+# distutils: language = c++
+# distutils: include_dirs = LIB_DIR_EWAH
 """
 Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 

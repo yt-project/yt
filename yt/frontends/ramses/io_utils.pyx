@@ -1,3 +1,5 @@
+# distutils: libraries = STD_LIBS
+# distutils: include_dirs = LIB_DIR
 cimport cython
 cimport numpy as np
 import numpy as np
