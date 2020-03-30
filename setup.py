@@ -95,8 +95,6 @@ cythonize_aliases = {'LIB_DIR': 'yt/utilities/lib/',
                      'ARTIO_SOURCE': glob.glob("yt/frontends/artio/artio_headers/*.c"),
 }
 
-cython_extensions = []
-
 lib_exts = ["yt/geometry/*.pyx",
             "yt/utilities/cython_fortran_utils.pyx",
             "yt/frontends/ramses/io_utils.pyx",
@@ -126,10 +124,6 @@ if check_for_pyembree() is not None:
     cythonize_aliases['EMBREE_LIB_DIR'] = [embree_lib_dir]
     cythonize_aliases['EMBREE_LIBS'] = std_libs + [embree_lib_name]
     lib_exts += ['yt/utilities/lib/embree_mesh/*.pyx']
-
-cython_extensions += cythonize(lib_exts, aliases = cythonize_aliases,
-                               language_level = 2)
-
 
 if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
     gpd = os.environ["GPERFTOOLS"]
@@ -168,8 +162,10 @@ NumPy %s is installed. Please update NumPy using the appropriate
 package manager for your python environment.""" %
                 numpy.__version__)
         from Cython.Build import cythonize
+        # Override the list of extension modules
         self.distribution.ext_modules[:] = cythonize(
-            self.distribution.ext_modules,
+            lib_exts,
+            aliases = cythonize_aliases,
             compiler_directives={'language_level': 2},
             nthreads=_get_cpu_count(),
         )
@@ -204,7 +200,8 @@ class sdist(_sdist):
         # Make sure the compiled Cython files in the distribution are up-to-date
         from Cython.Build import cythonize
         cythonize(
-            cython_extensions,
+            lib_exts,
+            aliases = cythonize_aliases,
             compiler_directives={'language_level': 2},
             nthreads=_get_cpu_count(),
         )
@@ -267,6 +264,6 @@ setup(
     license="BSD 3-Clause",
     zip_safe=False,
     scripts=["scripts/iyt"],
-    ext_modules=cython_extensions,
+    ext_modules=[], # !!! We override this inside build_ext above
     python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*'
 )
