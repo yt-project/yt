@@ -50,7 +50,7 @@ install:
     $PIP install --upgrade setuptools
     echo "Travis build stage: $TRAVIS_BUILD_STAGE_NAME"
     # install dependencies yt
-    if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
+    if [[ ${TRAVIS_BUILD_STAGE_NAME^^} != "LINT" ]]; then
       if [[ $MINIMAL == 1 ]]; then
         # The first numpy to support py3.6 is 1.12, but numpy 1.13 matches 
         # unyt so we'll match it here. 
@@ -114,6 +114,6 @@ jobs:
 
 after_success:
   - |
-    if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
+    if [[ ${TRAVIS_BUILD_STAGE_NAME^^} != "LINT" ]]; then
       codecov
     fi
