@@ -1,19 +1,7 @@
 """
-Answer Testing using Nose as a starting point
-
-
-
+Title: framework.py
+Purpose: Contains answer tests that are used by yt's various frontends
 """
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import logging
 import numpy as np
 import os
@@ -63,6 +51,7 @@ _latest = ytcfg.get("yt", "gold_standard_filename")
 _latest_local = ytcfg.get("yt", "local_standard_filename")
 _url_path = ytcfg.get("yt", "answer_tests_url")
 
+
 class AnswerTesting(Plugin):
     name = "answer-testing"
     _my_version = None
@@ -89,7 +78,7 @@ class AnswerTesting(Plugin):
         if version is None:
             try:
                 version = get_yt_version()
-            except:
+            except Exception:
                 version = "UNKNOWN%s" % (time.time())
         self._my_version = version
         return self._my_version
@@ -196,7 +185,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
             for this_try in range(3):
                 try:
                     data = resp.read()
-                except:
+                except Exception:
                     time.sleep(0.01)
                 else:
                     # We were succesful

@@ -1114,6 +1114,8 @@ class CastroDataset(BoxlibDataset):
             # skip the "====..." line
             line = next(f)
             for line in f:
+                if line.strip() == "" or "fortin parameters" in line:
+                    continue
                 p, v = line.strip().split("=")
                 self.parameters[p] = v.strip()
 
@@ -1330,7 +1332,7 @@ def _guess_pcast(vals):
     v = vals.split()[0]
     try:
         float(v.upper().replace("D", "E"))
-    except:
+    except Exception:
         pcast = str
         if v in ("F", "T"):
             pcast = bool

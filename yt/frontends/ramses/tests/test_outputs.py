@@ -25,6 +25,7 @@ from yt.utilities.answer_testing.framework import \
     PixelizedProjectionValuesTest, \
     FieldValuesTest, \
     create_obj
+from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.config import ytcfg
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
@@ -443,7 +444,6 @@ def test_ramses_empty_record():
 @requires_ds(ramses_new_format)
 @requires_module('f90nml')
 def test_namelist_reading():
-    import f90nml
     ds = data_dir_load(ramses_new_format)
     namelist_fname = os.path.join(ds.directory, 'namelist.txt')
     with open(namelist_fname, 'r') as f:
@@ -462,3 +462,19 @@ def test_namelist_reading_should_not_fail():
         # Test that the reading does not fail for malformed namelist.txt files
         ds = data_dir_load(ds_name)
         ds.index  # should work
+
+
+ramses_mhd_128 = "ramses_mhd_128/output_00027/info_00027.txt"
+@requires_file(ramses_mhd_128)
+def test_magnetic_field_aliasing():
+    # Test if RAMSES magnetic fields are correctly aliased to yt magnetic fields and if 
+    # derived magnetic quantities are calculated
+    ds = data_dir_load(ramses_mhd_128)
+    ad=ds.all_data()
+
+    for field in ['magnetic_field_x',
+                  'magnetic_field_magnitude',
+                  'alfven_speed',
+                  'magnetic_field_divergence']:
+        assert ('gas',field) in ds.derived_field_list
+        ad[('gas',field)]

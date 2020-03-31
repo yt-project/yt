@@ -26,6 +26,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
 from yt.utilities.lib.api import add_points_to_greyscale_image
+from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.frontends.stream.api import load_uniform_grid
 
 import numpy as np
@@ -289,7 +290,6 @@ class FixedResolutionBuffer(object):
         fields : list of strings
             These fields will be pixelized and output.
         """
-        import h5py
         if fields is None: fields = list(self.data.keys())
         output = h5py.File(filename, "a")
         for field in fields:

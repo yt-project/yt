@@ -111,7 +111,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         data = lev[self._data_string][start:stop]
         data_no_ghost = data.reshape(shape, order='F')
         ghost_slice = tuple(
-            [slice(g, d-g, None) for g, d in zip(self.ghost, dims)])
+            [slice(g, d+g, None) for g, d in zip(self.ghost, dims)])
         ghost_slice = ghost_slice[0:self.dim]
         return data_no_ghost[ghost_slice]
 

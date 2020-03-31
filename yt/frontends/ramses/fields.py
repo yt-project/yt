@@ -105,7 +105,13 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-acceleration", (ra_units, ['acceleration_x'], None)),
         ("y-acceleration", (ra_units, ['acceleration_y'], None)),
         ("z-acceleration", (ra_units, ['acceleration_z'], None)),
-        ("Potential", (ener_units, ['potential'], None))
+        ("Potential", (ener_units, ['potential'], None)),
+        ("B_x_left", (b_units, ['magnetic_field_x_left'],None)),
+        ("B_x_right", (b_units, ['magnetic_field_x_right'],None)),
+        ("B_y_left", (b_units, ['magnetic_field_y_left'],None)),
+        ("B_y_right", (b_units, ['magnetic_field_y_right'],None)),
+        ("B_z_left", (b_units, ['magnetic_field_z_left'],None)),
+        ("B_z_right", (b_units, ['magnetic_field_z_right'],None)),
     )
     known_particle_fields = (
         ("particle_position_x", ("code_length", [], None)),
@@ -192,6 +198,35 @@ class RAMSESFieldInfo(FieldInfoContainer):
         if rt_flag: # rt run
             self.create_rt_fields()
 
+        #Load magnetic fields
+        if ('gas','magnetic_field_x_left') in self:
+            self.create_magnetic_fields()
+
+    def create_magnetic_fields(self):
+        #Calculate cell-centred magnetic fields from face-centred
+        def mag_field(ax):
+            def _mag_field(field, data):
+                return (data['magnetic_field_%s_left' % ax]+data['magnetic_field_%s_right' % ax])/2
+            return _mag_field
+
+        for ax in self.ds.coordinates.axis_order:
+            self.add_field(('gas',"magnetic_field_%s" % ax),
+                           sampling_type='cell',
+                           function=mag_field(ax),
+                           units=self.ds.unit_system['magnetic_field_cgs'])
+
+        def _divB(field,data):
+            '''Calculate magnetic field divergence'''
+            out = np.zeros_like(data['magnetic_field_x_right'])
+            for ax in data.ds.coordinates.axis_order:
+                out += data['magnetic_field_%s_right' % ax] - data['magnetic_field_%s_left' % ax] 
+            return out/data['dx']
+
+        self.add_field(('gas','magnetic_field_divergence'),
+                       sampling_type='cell',
+                       function=_divB,
+                       units=self.ds.unit_system['magnetic_field_cgs']/ self.ds.unit_system['length'])
+
     def create_rt_fields(self):
         self.ds.fluid_types += ('rt', )
         p = RTFieldFileHandler.get_rt_parameters(self.ds).copy()
@@ -257,7 +292,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         filename = "%s/cooling_%05i.out" % (
             os.path.dirname(self.ds.parameter_filename), int(num))
 
-        if not os.path.exists(filename): 
+        if not os.path.exists(filename):
             mylog.warning('This output has no cooling fields')
             return
 

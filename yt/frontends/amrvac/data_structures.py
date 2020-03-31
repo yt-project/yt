@@ -29,14 +29,22 @@ from yt.funcs import \
     setdefaultattr
 from yt.data_objects.static_output import \
    Dataset
+from yt.utilities.physical_constants import \
+    boltzmann_constant_cgs as kb_cgs
 
 from .fields import AMRVACFieldInfo
 from .datfile_utils import get_header, get_tree_info
+from . import read_amrvac_namelist
 
+ALLOWED_UNIT_COMBINATIONS = [{'numberdensity_unit', 'temperature_unit', 'length_unit'},
+                             {'mass_unit', 'temperature_unit', 'length_unit'},
+                             {'mass_unit', 'time_unit', 'length_unit'},
+                             {'numberdensity_unit', 'velocity_unit', 'length_unit'},
+                             {'mass_unit', 'velocity_unit', 'length_unit'}]
 
 
 class AMRVACGrid(AMRGridPatch):
-    """A class to populate AMRVACHierarchy.grids, setting parent/children relations """
+    """A class to populate AMRVACHierarchy.grids, setting parent/children relations."""
     _id_offset = 0
 
     def __init__(self, id, index, level):
@@ -50,10 +58,11 @@ class AMRVACGrid(AMRGridPatch):
         return "AMRVACGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
     def get_global_startindex(self):
-        """
-        Return the integer starting index for each dimension at the current
-        level.
+        """Refresh and retrieve the starting index for each dimension at current level.
 
+        Returns
+        -------
+        self.start_index : int
         """
         start_index = (self.LeftEdge - self.ds.domain_left_edge)/self.dds
         self.start_index = np.rint(start_index).astype('int64').ravel()
@@ -93,6 +102,7 @@ class AMRVACHierarchy(GridIndex):
         # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
         ytlevels = np.array(vaclevels, dtype="int32") - 1
         self.grid_levels.flat[:] = ytlevels
+        self.min_level = np.min(ytlevels)
         self.max_level = np.max(ytlevels)
         assert self.max_level == self.dataset.parameters["levmax"] - 1
 
@@ -128,12 +138,68 @@ class AMRVACDataset(Dataset):
 
     def __init__(self, filename, dataset_type='amrvac',
                 units_override=None, unit_system="cgs",
-                geometry_override=None):
-        # note: geometry_override is specific to this frontend
+                geometry_override=None,
+                parfiles=None):
+        """Instanciate AMRVACDataset.
+
+        Parameters
+        ----------
+        filename : str
+            Path to a datfile.
+
+        dataset_type : str, optional
+            This should always be 'amrvac'.
+
+        units_override : dict, optional
+            A dictionnary of physical normalisation factors to interpret on disk data.
+
+        unit_system : str, optional
+            Either "cgs" (default), "mks" or "code"
+
+        geometry_override : str, optional
+            A geometry flag formatted either according to either AMRVAC's or yt's standards.
+            When this parameter is passed along with v5 or more newer datfiles, will precede over
+            their internal "geometry" tag.
+
+        parfiles : str or list, optional
+            One or more parfiles to be passed to yt.frontends.amrvac.read_amrvac_parfiles()
+
+        """
+        # note: geometry_override and parfiles are specific to this frontend
 
         self._geometry_override = geometry_override
         super(AMRVACDataset, self).__init__(filename, dataset_type,
                                             units_override=units_override, unit_system=unit_system)
+
+        self._parfiles = parfiles
+
+        namelist = None
+        namelist_gamma = None
+        c_adiab = None
+        e_is_internal = None
+        if parfiles is not None:
+            namelist = read_amrvac_namelist(parfiles)
+            if "hd_list" in namelist:
+                c_adiab = namelist["hd_list"].get("hd_adiab", 1.0)
+                namelist_gamma = namelist["hd_list"].get("hd_gamma")
+            elif "mhd_list" in namelist:
+                c_adiab = namelist["mhd_list"].get("mhd_adiab", 1.0)
+                namelist_gamma = namelist["mhd_list"].get("mhd_gamma")
+
+            if namelist_gamma is not None and self.gamma != namelist_gamma:
+                mylog.error("Inconsistent values in gamma: datfile {}, parfiles {}".format(self.gamma, namelist_gamma))
+
+            if "method_list" in namelist:
+                e_is_internal = namelist["method_list"].get("solve_internal_e", False)
+
+        if c_adiab is not None:
+            # this complicated unit is required for the adiabatic equation of state to make physical sense
+            c_adiab *= self.mass_unit**(1-self.gamma) * self.length_unit**(2+3*(self.gamma-1)) / self.time_unit**2
+
+        self.namelist = namelist
+        self._c_adiab = c_adiab
+        self._e_is_internal = e_is_internal
+
         self.fluid_types += ('amrvac',)
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
@@ -154,19 +220,42 @@ class AMRVACDataset(Dataset):
                         istream.seek(0,2)
                         file_size = istream.tell()
                         validation = offset_tree < file_size and offset_blocks < file_size
-            except:
-                pass
+            except Exception: pass
         return validation
 
-    def parse_geometry(self, geometry_string):
-        """Transform a string such as "Polar_2D" or "Cartesian_1.75D" to yt's standard equivalent (i.e. respectively "polar", "cartesian")."""
+    def _parse_geometry(self, geometry_tag):
+        """Translate AMRVAC's geometry tag to yt's format.
+
+        Parameters
+        ----------
+        geometry_tag : str
+            A geometry tag as read from AMRVAC's datfile from v5.
+
+        Returns
+        -------
+        geometry_yt : str
+            Lower case geometry tag among "cartesian", "polar", "cylindrical", "spherical"
+
+        Raises
+        ------
+        ValueError
+            In case the tag is not properly formatted or recognized.
+
+        Examples
+        --------
+        >>> print(self._parse_geometry("Polar_2.5D"))
+        "polar"
+        >>> print(self._parse_geometry("Cartesian_2.5D"))
+
+        """
         # frontend specific method
-        geom = geometry_string.split("_")[0].lower()
-        if geom not in ("cartesian", "polar", "cylindrical", "spherical"):
+        geometry_yt = geometry_tag.split("_")[0].lower()
+        if geometry_yt not in ("cartesian", "polar", "cylindrical", "spherical"):
             raise ValueError
-        return geom
+        return geometry_yt
 
     def _parse_parameter_file(self):
+        """Parse input datfile's header. Apply geometry_override if specified."""
         # required method
         self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
@@ -182,10 +271,6 @@ class AMRVACDataset(Dataset):
         dd[:self.dimensionality] = self.parameters['domain_nx']
         self.domain_dimensions = dd
 
-        # the following parameters may not be present in the datfile,
-        # dependending on format version
-        if self.parameters["datfile_version"] < 5:
-            mylog.warning("This data format does not contain geometry or periodicity info")
         if self.parameters.get("staggered", False):
             mylog.warning("'staggered' flag was found, but is currently ignored (unsupported)")
 
@@ -194,26 +279,27 @@ class AMRVACDataset(Dataset):
         # - geometry_override
         # - "geometry" parameter from datfile
         # - if all fails, default to "cartesian"
-        geom_candidates = {"param": None, "override": None}
+        self.geometry = None
         amrvac_geom = self.parameters.get("geometry", None)
-        if amrvac_geom is None:
-            mylog.warning("Could not find a 'geometry' parameter in source file.")
-        else:
-            geom_candidates.update({"param": self.parse_geometry(amrvac_geom)})
+        if amrvac_geom is not None:
+            self.geometry = self._parse_geometry(amrvac_geom)
+        elif self.parameters["datfile_version"] > 4:
+            # py38: walrus here
+            mylog.error("No 'geometry' flag found in datfile with version %d >4." % self.parameters["datfile_version"])
 
         if self._geometry_override is not None:
+            # py38: walrus here
             try:
-                geom_candidates.update({"override": self.parse_geometry(self._geometry_override)})
+                new_geometry = self._parse_geometry(self._geometry_override)
+                if new_geometry == self.geometry:
+                    mylog.info("geometry_override is identical to datfile parameter.")
+                else:
+                    self.geometry = new_geometry
+                    mylog.warning("Overriding geometry, this may lead to surprising results.")
             except ValueError:
-                mylog.error("Unknown value for geometry_override (will be ignored).")
-    
-        if geom_candidates["override"] is not None:
-            mylog.warning("Using override geometry, this may lead to surprising results for inappropriate values.")
-            self.geometry = geom_candidates["override"]
-        elif geom_candidates["param"] is not None:
-            mylog.info("Using parameter geometry")
-            self.geometry = geom_candidates["param"]
-        else:
+                mylog.error("Unable to parse geometry_override '%s' (will be ignored)." % self._geometry_override)
+
+        if self.geometry is None:
             mylog.warning("No geometry parameter supplied or found, defaulting to cartesian.")
             self.geometry = "cartesian"
 
@@ -241,25 +327,110 @@ class AMRVACDataset(Dataset):
 
     # units stuff ===============================================================================
     def _set_code_unit_attributes(self):
+        """Reproduce how AMRVAC internally set up physical normalisation factors."""
         # required method
-        # note: this method is never defined in the parent abstract class Dataset
+        # devnote: this method is never defined in the parent abstract class Dataset
         # but it is called in Dataset.set_code_units(), which is part of Dataset.__init__()
         # so it must be defined here.
 
-        # note2: this gets called later than Dataset._override_code_units()
-        # This is the reason why it uses setdefaultattr: it will only fill the gaps lefts by the "override",
-        # instead of overriding them again
+        # devnote: this gets called later than Dataset._override_code_units()
+        # This is the reason why it uses setdefaultattr: it will only fill in the gaps left
+        # by the "override", instead of overriding them again.
+        # For the same reason, self.units_override is set, as well as corresponding *_unit instance attributes
+        # which may include up to 3 of the following items: length, time, mass, velocity, number_density, temperature
 
-        setdefaultattr(self, "length_unit", self.quan(1, "cm"))
-        setdefaultattr(self, "mass_unit", self.quan(1, "g"))
-        setdefaultattr(self, "time_unit", self.quan(1, "s"))
+        # note: yt sets hydrogen mass equal to proton mass, amrvac doesn't.
+        mp_cgs = self.quan(1.672621898e-24, 'g')  # This value is taken from AstroPy
+        He_abundance = 0.1  # hardcoded parameter in AMRVAC
 
-        # derived units
-        setdefaultattr(self, "velocity_unit", self.quan(self.length_unit/self.time_unit))
-        setdefaultattr(self, "density_unit", self.quan(self.mass_unit/self.length_unit**3))
-        setdefaultattr(self, "numberdensity_unit", self.quan(self.length_unit**-3))
+        # get self.length_unit if overrides are supplied, otherwise use default
+        length_unit = getattr(self, 'length_unit', self.quan(1, 'cm'))
 
-        # TODO: check this
-        setdefaultattr(self, "temperature_unit", self.quan(1, "K"))
-        setdefaultattr(self, "pressure_unit", self.quan(1, "dyn*cm**-2"))
-        setdefaultattr(self, "magnetic_unit", self.quan(1, "gauss"))
+        # 1. calculations for mass, density, numberdensity
+        if 'mass_unit' in self.units_override:
+            # in this case unit_mass is supplied (and has been set as attribute)
+            mass_unit = self.mass_unit
+            density_unit = mass_unit / length_unit**3
+            numberdensity_unit = density_unit / ((1.0 + 4.0 * He_abundance) * mp_cgs)
+        else:
+            # other case: numberdensity is supplied. Fall back to one (default) if no overrides supplied
+            numberdensity_override = self.units_override.get('numberdensity_unit', (1, 'cm**-3'))
+            if 'numberdensity_unit' in self.units_override: # print similar warning as yt when overriding numberdensity
+                mylog.info("Overriding numberdensity_unit: %g %s.", *numberdensity_override)
+            numberdensity_unit = self.quan(*numberdensity_override)  # numberdensity is never set as attribute
+            density_unit = (1.0 + 4.0 * He_abundance) * mp_cgs * numberdensity_unit
+            mass_unit = density_unit * length_unit**3
+
+        # 2. calculations for velocity
+        if 'time_unit' in self.units_override:
+            # in this case time was supplied
+            velocity_unit = length_unit / self.time_unit
+        else:
+            # other case: velocity was supplied. Fall back to None if no overrides supplied
+            velocity_unit = getattr(self, 'velocity_unit', None)
+
+        # 3. calculations for pressure and temperature
+        if velocity_unit is None:
+            # velocity and time not given, see if temperature is given. Fall back to one (default) if not
+            temperature_unit = getattr(self, 'temperature_unit', self.quan(1, 'K'))
+            pressure_unit = ((2.0 + 3.0 * He_abundance) * numberdensity_unit * kb_cgs * temperature_unit).in_cgs()
+            velocity_unit = (np.sqrt(pressure_unit / density_unit)).in_cgs()
+        else:
+            # velocity is not zero if either time was given OR velocity was given
+            pressure_unit = (density_unit * velocity_unit ** 2).in_cgs()
+            temperature_unit = (pressure_unit / ((2.0 + 3.0 * He_abundance) * numberdensity_unit * kb_cgs)).in_cgs()
+
+        # 4. calculations for magnetic unit and time
+        time_unit = getattr(self, 'time_unit', length_unit / velocity_unit)  # if time given use it, else calculate
+        magnetic_unit = (np.sqrt(4 * np.pi * pressure_unit)).to('gauss')
+
+        setdefaultattr(self, 'mass_unit', mass_unit)
+        setdefaultattr(self, 'density_unit', density_unit)
+        setdefaultattr(self, 'numberdensity_unit', numberdensity_unit)
+
+        setdefaultattr(self, 'length_unit', length_unit)
+        setdefaultattr(self, 'velocity_unit', velocity_unit)
+        setdefaultattr(self, 'time_unit', time_unit)
+
+        setdefaultattr(self, 'temperature_unit', temperature_unit)
+        setdefaultattr(self, 'pressure_unit', pressure_unit)
+        setdefaultattr(self, 'magnetic_unit', magnetic_unit)
+
+
+    def _override_code_units(self):
+        """Add a check step to the base class' method (Dataset)."""
+        self._check_override_consistency()
+        super(AMRVACDataset, self)._override_code_units()
+
+
+    def _check_override_consistency(self):
+        """Check that keys in units_override are consistent with respect to AMRVAC's internal way to
+        set up normalisations factors.
+
+        """
+        # frontend specific method
+        # YT supports overriding other normalisations, this method ensures consistency between
+        # supplied 'units_override' items and those used by AMRVAC.
+
+        # AMRVAC's normalisations/units have 3 degrees of freedom.
+        # Moreover, if temperature unit is specified then velocity unit will be calculated
+        # accordingly, and vice-versa.
+        # Currently we replicate this by allowing a finite set of combinations in units_override
+        if not self.units_override:
+            return
+        overrides = set(self.units_override)
+
+        # there are only three degrees of freedom, so explicitly check for this
+        if len(overrides) > 3:
+            raise ValueError('More than 3 degrees of freedom were specified '
+                             'in units_override ({} given)'.format(len(overrides)))
+        # temperature and velocity cannot both be specified
+        if 'temperature_unit' in overrides and 'velocity_unit' in overrides:
+            raise ValueError('Either temperature or velocity is allowed in units_override, not both.')
+        # check if provided overrides are allowed
+        for allowed_combo in ALLOWED_UNIT_COMBINATIONS:
+            if overrides.issubset(allowed_combo):
+                break
+        else:
+            raise ValueError('Combination {} passed to units_override is not consistent with AMRVAC. \n'
+                             'Allowed combinations are {}'.format(overrides, ALLOWED_UNIT_COMBINATIONS))

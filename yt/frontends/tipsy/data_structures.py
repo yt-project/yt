@@ -294,7 +294,7 @@ class TipsyDataset(SPHDataset):
         '''
         try:
             f = open(filename,'rb')
-        except:
+        except Exception:
             return False, 1
         try:
             f.seek(0, os.SEEK_END)

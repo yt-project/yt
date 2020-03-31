@@ -33,7 +33,8 @@ from yt.funcs import \
     get_image_suffix, \
     iterable, \
     ensure_dir, \
-    ensure_list
+    ensure_list, \
+    issue_deprecation_warning
 from yt.units.unit_lookup_table import \
     prefixable_units, latex_prefixes
 from yt.units.unit_object import \
@@ -114,8 +115,8 @@ def get_log_minorticks(vmin, vmax):
     """
     expA = np.floor(np.log10(vmin))
     expB = np.floor(np.log10(vmax))
-    cofA = np.ceil(vmin/10**expA)
-    cofB = np.floor(vmax/10**expB)
+    cofA = np.ceil(vmin/10**expA).astype("int64")
+    cofB = np.floor(vmax/10**expB).astype("int64")
     lmticks = []
     while cofA*10**expA <= cofB*10**expB:
         if expA < expB:
@@ -267,19 +268,24 @@ class PlotContainer(object):
 
     @invalidate_plot
     def set_minorticks(self, field, state):
-        """turn minor ticks on or off in the current plot
+        """Turn minor ticks on or off in the current plot.
 
         Displaying minor ticks reduces performance; turn them off
-        using set_minorticks('all', 'off') if drawing speed is a problem.
+        using set_minorticks('all', False) if drawing speed is a problem.
 
         Parameters
         ----------
         field : string
             the field to remove minorticks
-        state : string
-            the state indicating 'on' or 'off'
+        state : bool
+            the state indicating 'on' (True) or 'off' (False)
 
         """
+        if isinstance(state, str):
+            from yt.funcs import issue_deprecation_warning
+            issue_deprecation_warning("Deprecated api, use bools for *state*.")
+            state = {"on": True, "off": False}[state.lower()]
+
         if field == 'all':
             fields = list(self.plots.keys())
         else:
@@ -883,7 +889,7 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
-        if field is 'all':
+        if field == 'all':
             fields = list(self.plots.keys())
         else:
             fields = ensure_list(field)
@@ -906,10 +912,9 @@ class ImagePlotContainer(PlotContainer):
 
     @invalidate_plot
     def set_cbar_minorticks(self, field, state):
-        """turn colorbar minor ticks on or off in the current plot
+        """Deprecated alias, kept for backward compatibility.
 
-        Displaying minor ticks reduces performance; turn them off
-        using set_cbar_minorticks('all', 'off') if drawing speed is a problem.
+        turn colorbar minor ticks "on" or "off" in the current plot, according to *state*
 
         Parameters
         ----------
@@ -917,17 +922,32 @@ class ImagePlotContainer(PlotContainer):
             the field to remove colorbar minorticks
         state : string
             the state indicating 'on' or 'off'
+        """
+        issue_deprecation_warning("Deprecated alias, use set_colorbar_minorticks instead.")
 
+        boolstate = {"on": True, "off": False}[state.lower()]
+        return self.set_colorbar_minorticks(field, boolstate)
+
+    @invalidate_plot
+    def set_colorbar_minorticks(self, field, state):
+        """turn colorbar minor ticks on or off in the current plot
+
+        Displaying minor ticks reduces performance; turn them off
+        using set_colorbar_minorticks('all', False) if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove colorbar minorticks
+        state : bool
+            the state indicating 'on' (True) or 'off' (False)
         """
         if field == 'all':
             fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            if state == 'on':
-                self._cbar_minorticks[field] = True
-            else:
-                self._cbar_minorticks[field] = False
+            self._cbar_minorticks[field] = state
         return self
 
     @invalidate_plot

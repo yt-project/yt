@@ -35,6 +35,12 @@ def check_color(name):
 yt_colormaps = {}
 
 def add_cmap(name, cdict):
+    """Deprecated alias, kept for backwards compatibility."""
+    from yt.funcs import issue_deprecation_warning
+    issue_deprecation_warning("Deprecated alias. Use add_colormap instead.")
+    add_colormap(name, cdict)
+
+def add_colormap(name, cdict):
     """
     Adds a colormap to the colormaps available in yt for this session
     """
@@ -73,8 +79,8 @@ cdict = {'red':   ((0.0, 80/256., 80/256.),
                    (0.6, 20/256., 20/256.),
                    (1.0, 0.0, 0.0))}
 
-add_cmap('bds_highcontrast', cdict)
-add_cmap('algae', cdict)
+add_colormap('bds_highcontrast', cdict)
+add_colormap('algae', cdict)
 
 # This next colormap was designed by Tune Kamae and converted here by Matt
 _vs = np.linspace(0,1,255)
@@ -90,7 +96,7 @@ _kamae_blu = np.minimum(255,
 cdict = {'red':np.transpose([_vs,_kamae_red,_kamae_red]),
          'green':np.transpose([_vs,_kamae_grn,_kamae_grn]),
          'blue':np.transpose([_vs,_kamae_blu,_kamae_blu])}
-add_cmap('kamae', cdict)
+add_colormap('kamae', cdict)
 
 # This one is a simple black & green map
 
@@ -101,7 +107,7 @@ cdict = {'red':   ((0.0, 0.0, 0.0),
          'blue':  ((0.0, 0.0, 0.0),
                    (1.0, 0.0, 0.0))}
 
-add_cmap('black_green', cdict)
+add_colormap('black_green', cdict)
 
 cdict = {'red':   ((0.0, 0.0, 0.0),
                    (1.0, 0.2, 0.2)),
@@ -110,7 +116,7 @@ cdict = {'red':   ((0.0, 0.0, 0.0),
          'blue':  ((0.0, 0.0, 0.0),
                    (1.0, 1.0, 1.0))}
 
-add_cmap('black_blueish', cdict)
+add_colormap('black_blueish', cdict)
 
 # This one is a variant of a colormap commonly
 # used for X-ray observations by Maxim Markevitch
@@ -136,7 +142,7 @@ cdict = {'red': ((0.0, 0.0, 0.0),
                   (0.391, 1.0, 1.0),
                   (1.0, 1.0, 1.0))}
 
-add_cmap("purple_mm", cdict)
+add_colormap("purple_mm", cdict)
 
 # This one comes from
 # http://permalink.gmane.org/gmane.comp.python.matplotlib.devel/10518
@@ -155,7 +161,7 @@ _cubehelix_data = {
         'blue': lambda x: x**_gamma_cubehelix + (_h_cubehelix * x**_gamma_cubehelix * (1 - x**_gamma_cubehelix) / 2) * (1.97294 * np.cos(2 * np.pi * (_s_cubehelix / 3 + _r_cubehelix * x))),
 }
 
-add_cmap("cubehelix", _cubehelix_data)
+add_colormap("cubehelix", _cubehelix_data)
 
 # The turbo colormap, by Anton Mikhailov.
 # from: https://gist.github.com/mikhailov-work/ee72ba4191942acecc03fe6da94fc73f
@@ -297,11 +303,13 @@ _turbo_data = \
                              _turbo_colormap_data[:, i]]))
        for i, color in enumerate(['red', 'green', 'blue']))
 
-add_cmap("turbo", _turbo_data)
+add_colormap("turbo", _turbo_data)
 
 # Add colormaps from cmocean, if it's installed
 if cmocean is not None:
-    for cmname in cmocean.cm.cmapnames:
+    cmo_cmapnames = cmocean.cm.cmapnames
+    cmo_cmapnames += ["%s_r" % name for name in cmo_cmapnames]
+    for cmname in cmo_cmapnames:
         cm = getattr(cmocean.cm, cmname)
         # cmocean has a colormap named 'algae', so let's avoid overwriting
         # yt's algae or any other colormap we've already added
@@ -322,7 +330,7 @@ for k,v in list(_cm.color_map_luts.items()):
         cdict = { 'red': np.transpose([_vs,v[0],v[0]]),
                   'green': np.transpose([_vs,v[1],v[1]]),
                   'blue': np.transpose([_vs,v[2],v[2]]) }
-        add_cmap(k, cdict)
+        add_colormap(k, cdict)
 
 def _extract_lookup_table(cmap_name):
     cmap = mcm.get_cmap(cmap_name)
@@ -546,15 +554,15 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
 
         # Interpolate the R, G, and B channels from one color to the next
         # Use np.round to make sure you're on a discrete index
-        interval = np.round(next_index)-np.round(rolling_index)
+        interval = int(np.round(next_index)-np.round(rolling_index))
         for j in np.arange(3):
             cmap[int(np.rint(rolling_index)):int(np.rint(next_index)), j] = \
-                np.linspace(color[j], next_color[j], interval)
+                np.linspace(color[j], next_color[j], num=interval)
 
         rolling_index = next_index
 
     # Return a dictionary with the appropriate RGB channels each consisting of
-    # a 256x3 array in the format that is expected by add_cmap() to add a 
+    # a 256x3 array in the format that is expected by add_colormap() to add a 
     # colormap to the session.
 
     # The format is as follows:
@@ -567,6 +575,6 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
              'blue':  np.transpose([_vs, cmap[:,2], cmap[:,2]])}
 
     if name is not None:
-        add_cmap(name, cdict)
+        add_colormap(name, cdict)
 
     return cdict

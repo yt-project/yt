@@ -118,7 +118,7 @@ class SDFDataset(ParticleDataset):
         try:
             self.unique_identifier = \
                 int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        except:
+        except Exception:
             self.unique_identifier = time.time()
 
         if self.domain_left_edge is None or self.domain_right_edge is None:

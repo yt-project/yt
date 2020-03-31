@@ -1,6 +1,5 @@
 language: python
 dist: xenial
-sudo: required
 cache:
   pip: true
   directories:
@@ -15,10 +14,6 @@ addons:
       - proj-bin
       - libgeos-dev
       - libopenmpi-dev
-
-env:
-  global:
-    PIP=pip
 
 env:
   global:
@@ -56,7 +51,9 @@ install:
     # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       if [[ $MINIMAL == 1 ]]; then
-        $PIP install numpy==1.10.4 cython==0.24
+        # The first numpy to support py3.6 is 1.12, but numpy 1.13 matches 
+        # unyt so we'll match it here. 
+        $PIP install numpy==1.13.3 cython==0.24
         $PIP install -r tests/test_minimal_requirements.txt
       else
         # Getting cartopy installed requires getting cython and numpy installed
@@ -64,8 +61,8 @@ install:
         # pyproject.toml in cartopy.
         # These versions are pinned, so we will need to update/remove them when
         # the hack is no longer necessary.
-        $PIP install numpy==1.16.2 cython==0.29.6
-        $PIP install -r tests/test_requirements.txt
+        $PIP install numpy==1.18.1 cython==0.29.6
+        CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" $PIP install -r tests/test_requirements.txt
       fi
       $PIP install -e .
     else
@@ -78,19 +75,10 @@ jobs:
       python: 3.6
       script: flake8 yt/
 
-    - stage: lint
-      python: 2.7
-      script: flake8 yt/
-
     - stage: tests
-      name: "Python: 2.7 Unit Tests"
-      python: 2.7
+      name: "Python: 3.6 Minimal Dependency Unit Tests"
+      python: 3.6
       env: MINIMAL=1
-      script: coverage run $(which nosetests) -c nose_unit.cfg
-
-    - stage: tests
-      name: "Python: 2.7 Unit Tests"
-      python: 2.7
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
@@ -102,13 +90,6 @@ jobs:
       name: "Python: 3.6 Unit Tests"
       python: 3.6
       script: coverage run $(which nosetests) -c nose_unit.cfg
-
-    - stage: tests
-      name: "Python: 2.7 Minimal Dependency Answer Tests"
-      python: 2.7
-      env: MINIMAL=1
-      script: coverage run $(which nosetests) -c nose_answer.cfg
-      after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
 
     - stage: tests
       name: "Python: 3.6 Answer Tests"

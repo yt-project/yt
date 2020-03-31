@@ -709,7 +709,7 @@ def _find_complexes(x, yDat, complexLim=.999, fitLim=.99,
 
 
 def _split_region(yDat,b,splitLim):
-        #Find the minimum absorption in the middle two quartiles of
+    #Find the minimum absorption in the middle two quartiles of
     #   the large complex
 
     q=(b[2]-b[1])/4
