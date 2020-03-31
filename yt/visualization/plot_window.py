@@ -1266,7 +1266,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         if field_parameters is None:
             field_parameters = {}
 
-        if ds.geometry == "spherical" or ds.geometry == "cylindrical":
+        if ds.geometry in ("spherical", "cylindrical", "geographic", "internal_geographic"):
             mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
             origin = 'native'
 
@@ -1441,6 +1441,9 @@ class ProjectionPlot(PWViewerMPL):
                  method = "integrate", proj_style = None, window_size=8.0,
                  aspect=None):
         axis = fix_axis(axis, ds)
+        if ds.geometry in ("spherical", "cylindrical", "geographic", "internal_geographic"):
+            mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
+            origin = 'native'
         # proj_style is deprecated, but if someone specifies then it trumps
         # method.
         if proj_style is not None:
