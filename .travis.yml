@@ -48,6 +48,7 @@ install:
     $PIP install --upgrade pip
     $PIP install --upgrade wheel
     $PIP install --upgrade setuptools
+    echo "Travis build stage: $TRAVIS_BUILD_STAGE_NAME"
     # install dependencies yt
     if [[ $TRAVIS_BUILD_STAGE_NAME != "Lint" ]]; then
       if [[ $MINIMAL == 1 ]]; then
