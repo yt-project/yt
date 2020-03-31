@@ -82,18 +82,8 @@ jobs:
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
-      name: "Python: 3.5 Unit Tests"
-      python: 3.5
-      script: coverage run $(which nosetests) -c nose_unit.cfg
-
-    - stage: tests
       name: "Python: 3.6 Unit Tests"
       python: 3.6
-      script: coverage run $(which nosetests) -c nose_unit.cfg
-
-    - stage: tests
-      name: "Python: 3.7 Unit Tests"
-      python: 3.7
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
