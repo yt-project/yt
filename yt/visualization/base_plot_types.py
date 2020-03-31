@@ -250,7 +250,8 @@ class ImagePlotMPL(PlotMPL):
             # NOTE: This is currently commented out because it breaks in some
             # instances.  It is left as a historical note because we will
             # eventually need some form of it.
-            self.axes.set_extent(extent)
+            # self.axes.set_extent(extent)
+            pass
         self.image = self.axes.imshow(
             data.to_ndarray(), origin='lower', extent=extent, norm=norm,
             vmin=vmin, vmax=vmax, aspect=aspect, cmap=cmap,
