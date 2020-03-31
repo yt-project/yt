@@ -43,7 +43,8 @@ will work best for you depends on your precise situation:
   installed with the system package manager. Note that the packages in some of
   these distributions may not be the most recent release. See :ref:`distro-packages`
   for a list of available packages.  You can always get the current stable
-  version of ``yt`` via ``conda`` as described in :ref:`anaconda-installation`.
+  version of ``yt`` via ``conda`` as described in :ref:`anaconda-installation`
+  or via ``pip`` as described in :ref:`source-installation`.
 
 * If you want to build a development version of yt or are comfortable with
   compilers and know your way around python packaging,
@@ -317,9 +318,11 @@ Then you can install yt normally, either from the conda-forge channel as above, 
 yt Distribution Packages
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-``yt`` has been packaged for the distributions listed below. If you can't find
-your distro here, you can install ``yt``'s current stable version using
-``conda``, or build the latest development version from source.
+While we recommended installing ``yt`` with either the ``conda`` or ``pip``
+package managers, a number of third-party packages exist for the distributions
+listed below.  If you can't find your distro here, you can always install
+``yt``'s current stable version using ``conda`` or ``pip``, or build the latest
+development version from source.
 
 .. image:: https://repology.org/badge/vertical-allrepos/python:yt.svg?header=yt%20packaging%20status
     :target: https://repology.org/project/python:yt/versions
