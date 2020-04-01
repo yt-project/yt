@@ -906,6 +906,8 @@ class ImagePlotContainer(PlotContainer):
                 else:
                     myzmin = myzmax / dynamic_range
 
+            if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
+                self._field_transform[field] = log_transform
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
         return self
