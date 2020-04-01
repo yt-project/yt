@@ -74,7 +74,7 @@ def load_sample(name=None, specific_file=None):
         loaded_file = os.path.join(base_path, "%s.untar" %fileext, name,
                                    specific_file)
 
-    load(loaded_file, **optional_args)
+    return load(loaded_file, **optional_args)
 
 def _validate_sampledata_name(name):
     """

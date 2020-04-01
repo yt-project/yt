@@ -334,7 +334,11 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     continue
                 for field in field_list:
                     if field == "Mass" and ptype not in self.var_mass:
-                        data = np.empty(mask.sum(), dtype="float64")
+                        if getattr(selector, 'is_all_data', False):
+                            size = data_file.total_particles[ptype]
+                        else:
+                            size = mask.sum()
+                        data = np.empty(size, dtype="float64")
                         m = self.ds.parameters["Massarr"][
                             self._ptypes.index(ptype)]
                         data[:] = m
