@@ -45,7 +45,7 @@ def run_recipe(payload):
             cmd = ["python", recipe]
         try:
             subprocess.check_call(cmd)
-        except:
+        except Exception:
             trace = "".join(traceback.format_exception(*sys.exc_info()))
             trace += " in module: %s\n" % module_name
             trace += " recipe: %s\n" % recipe

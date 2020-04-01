@@ -176,7 +176,7 @@ class GadgetBinaryHeader(object):
             self.open().close()
             self.gadget_format
             self.float_type
-        except:
+        except Exception:
             return False
         return True
 
@@ -578,7 +578,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             valid = all(ng in fh["/"] for ng in need_groups) and \
                 not any(vg in fh["/"] for vg in veto_groups)
             fh.close()
-        except:
+        except Exception:
             valid = False
             pass
         return valid
