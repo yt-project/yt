@@ -87,7 +87,8 @@ of the x-plane (i.e. with axes in the y and z directions):
 
 Note that for non-cartesian geometries and ``coord_system="data"``, the coordinates
 are still interpreted in the corresponding cartesian system. For instance using a polar
-dataset from AMRVAC 
+dataset from AMRVAC :
+
 .. python-script::
 
     import yt
