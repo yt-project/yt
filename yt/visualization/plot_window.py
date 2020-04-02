@@ -1788,7 +1788,11 @@ class WindowPlotMPL(ImagePlotMPL):
         self.image.axes.yaxis.set_major_formatter(formatter)
         if cbname == 'linear':
             self.cb.formatter.set_scientific(True)
-            self.cb.formatter.set_useMathText(True)
+            try:
+                self.cb.formatter.set_useMathText(True)
+            except AttributeError:
+                # this is only available in mpl > 2.1
+                pass
             self.cb.formatter.set_powerlimits((-2, 3))
             self.cb.update_ticks()
 
