@@ -1274,10 +1274,10 @@ class PWViewerMPL(PlotWindow):
                              cbar_location="right", cbar_size="5%",
                              cbar_mode="each", cbar_pad="0%"):
         r"""
-        Creates a matplotlib figure object with the specified axes arrangment, nrows_ncols,
-        and maps the underlying figures to the matplotlib axes.
-
-        The return is a matplotlib figure object.
+        Creates a matplotlib figure object with the specified axes arrangement, nrows_ncols,
+        and maps the underlying figures to the matplotlib axes.  Note that all of these
+        parameters are fed directly to the matplotlib ImageGrid class to create the new figure
+        layout.
 
         Parameters
         ----------
@@ -1296,6 +1296,11 @@ class PWViewerMPL(PlotWindow):
            how to represent the colorbar
         cbar_pad : string (percentage)
            padding between the axis and colorbar (e.g. "5%")
+
+        Returns
+        -------
+
+        The return is a matplotlib figure object.
 
         Examples
         --------
