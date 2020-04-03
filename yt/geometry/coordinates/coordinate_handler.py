@@ -270,6 +270,13 @@ class CoordinateHandler(object):
         display_center = self.convert_to_cartesian(center)
         return center, display_center
 
+    def sanitize_buffer_fill_values(self, buff):
+        """Replace nans with +inf in buff, if all valid values are positive"""
+        # In buffers with only positive values, maplotlib will raise a warning
+        # if nan is used as a filler, while it tolerates np.inf just fine
+        minval = buff[buff == buff].min()
+        if minval > 0:
+            buff[buff != buff] = np.inf
 
 def cartesian_to_cylindrical(coord, center = (0,0,0)):
     c2 = np.zeros_like(coord)

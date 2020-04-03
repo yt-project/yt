@@ -213,11 +213,12 @@ class GeographicCoordinateHandler(CoordinateHandler):
         else:
             # We should never get here!
             raise NotImplementedError
-        buff = np.full((size[1], size[0]), np.inf, dtype="f8")
+        buff = np.full((size[1], size[0]), np.nan, dtype="f8")
         pixelize_cylinder(buff, r, data_source['pdy'],
                           px, pdx, data_source[field], bounds)
         if do_transpose:
             buff = buff.transpose()
+        self.sanitize_buffer_fill_values(buff)
         return buff
 
     def convert_from_cartesian(self, coord):
