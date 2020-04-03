@@ -125,7 +125,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
         name = self.axis_name[dimension]
-        buff = np.zeros((size[1], size[0]), dtype="f8")
+        buff = np.full((size[1], size[0]), np.inf, dtype="f8")
         if name == 'theta':
             pixelize_cylinder(buff,
                               data_source['px'],
