@@ -1269,25 +1269,57 @@ class PWViewerMPL(PlotWindow):
             self.plots[f].show_axes()
         return self
 
-    def export_to_mpl_figure(self, nrows_ncols, axes_pad=1.0, cbar_pad="0%"):
+    def export_to_mpl_figure(self, nrows_ncols, axes_pad=1.0,
+                             label_mode="L",
+                             cbar_location="right", cbar_size="5%",
+                             cbar_mode="each", cbar_pad="0%"):
         r"""
         Creates a matplotlib figure object with the specified axes arrangment, nrows_ncols,
         and maps the underlying figures to the matplotlib axes.
 
+        The return is a matplotlib figure object.
+
         Parameters
         ----------
 
-        nrows_ncols, tuple: the number of rows and columns of the axis grid (e.g., nrows_ncols=(2,2,)).
-        axes_pad, float: padding between axes--passed onto matplotlib
-        cbar_pad, string, percentage: padding between the axis and colorbar (e.g. "5%")
+        nrows_ncols : tuple
+           the number of rows and columns of the axis grid (e.g., nrows_ncols=(2,2,))
+        axes_pad : float
+           padding between axes in inches
+        label_mode : one of "L", "1", "all"
+           arrangement of axes that are labeled
+        cbar_location : one of "left", "right", "bottom", "top"
+           where to place the colorbar
+        cbar_size : string (percentage)
+           scaling of the colorbar (e.g., "5%")
+        cbar_mode : one of "each", "single", "edge", None
+           how to represent the colorbar
+        cbar_pad : string (percentage)
+           padding between the axis and colorbar (e.g. "5%")
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load_sample("IsolatedGalaxy")
+        >>> fields = ['density', 'velocity_x', 'velocity_y', 'velocity_magnitude']
+        >>> p = yt.SlicePlot(ds, 'z', fields)
+        >>> p.set_log('velocity_x', False)
+        >>> p.set_log('velocity_y', False)
+        >>> fig = p.export_to_mpl_figure((2,2))
+        >>> fig.tight_layout()
+        >>> fig.savefig("test.png")
+
         """
 
         fig = plt.figure()
         grid = ImageGrid(fig, 111,
                          nrows_ncols=nrows_ncols,
                          axes_pad=axes_pad,
-                         label_mode="L",
-                         cbar_mode="each",
+                         label_mode=label_mode,
+                         cbar_location=cbar_location,
+                         cbar_size=cbar_size,
+                         cbar_mode=cbar_mode,
                          cbar_pad=cbar_pad)
 
         fields = self.fields
