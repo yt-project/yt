@@ -13,7 +13,7 @@ def test_axial_pixelization():
 
 
 def test_noise_plot_lin():
-    ds = fake_amr_ds()
+    ds = fake_amr_ds(geometry="cylindrical")
     add_noise_fields(ds)
 
     def create_image_lin(filename_prefix):
@@ -52,7 +52,7 @@ def test_noise_plot_lin():
     yield test
 
 def test_noise_plot_log():
-    ds = fake_amr_ds()
+    ds = fake_amr_ds(geometry="cylindrical")
     add_noise_fields(ds)
 
     def create_image_log(filename_prefix):
