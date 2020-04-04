@@ -935,8 +935,8 @@ class AxialPixelizationTest(AnswerTestingTest):
             pix_x = ds.coordinates.pixelize(axis, slc, xax, bounds, (512, 512))
             pix_y = ds.coordinates.pixelize(axis, slc, yax, bounds, (512, 512))
             # Wipe out invalid values (fillers)
-            pix_x[np.isnan(pix_x) | np.isinf(pix_x)] = 0.0
-            pix_y[np.isnan(pix_y) | np.isinf(pix_y)] = 0.0
+            pix_x[~np.isfinite(pix_x)] = 0.0
+            pix_y[~np.isfinite(pix_y)] = 0.0
             rv['%s_x' % axis] = pix_x
             rv['%s_y' % axis] = pix_y
         return rv
