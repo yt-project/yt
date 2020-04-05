@@ -1398,8 +1398,8 @@ class Dataset(object):
          ('gas', 'temperature_gradient_z'),
          ('gas', 'temperature_gradient_magnitude')]
 
-        note that the above example assumes ds.geometry == 'cartesian'
-        In general, the function will create gradients components along the axes of the dataset coordinate system.
+        Note that the above example assumes ds.geometry == 'cartesian'. In general, the function
+        will create gradients components along the axes of the dataset coordinate system.
         For instance, with cylindrical data, one gets 'temperature_gradient_<r,theta,z>'
         """
         self.index
