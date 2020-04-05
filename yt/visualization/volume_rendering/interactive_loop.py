@@ -15,6 +15,7 @@ Event loop for Interactive Data Visualization
 # This is a part of the experimental Interactive Data Visualization
 
 import os
+import time
 
 import pyglet
 import numpy as np
@@ -131,6 +132,7 @@ class RenderingContext(pyglet.window.Window):
         specified, default to center.
     '''
     image_widget = None
+    _do_update = True
     def __init__(self, width=1024, height=1024, title="vol_render",
                  always_on_top = False, decorated = True, position = None,
                  visible = True, scene = None):
@@ -155,8 +157,11 @@ class RenderingContext(pyglet.window.Window):
                                   anchor_x='center', anchor_y='center')
 
     def on_draw(self):
+        if not self._do_update: return
+        self._do_update = False
         self.clear()
         if self.scene is not None:
+            print("Rendering %s" % time.time())
             self.scene.render()
             if self.image_widget is not None:
                 self.image_widget.value = write_bitmap(
@@ -183,5 +188,8 @@ class RenderingContext(pyglet.window.Window):
     def center_window(self):
         self.set_position(0.5, 0.5)
 
+    def on_mouse_press(self, x, y, button, modifiers):
+        self._do_update = True
+
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
-        print(x, y, dx, dy, buttons, modifiers)
+        self._do_update = True
