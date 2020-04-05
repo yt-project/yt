@@ -110,7 +110,7 @@ def get_latex_representation(expr, registry):
     for ex in expr.free_symbols:
         try:
             symbol_table[ex] = registry.lut[str(ex)][3]
-        except:
+        except Exception:
             symbol_table[ex] = r"\rm{" + str(ex).replace('_', '\ ') + "}"
 
     # invert the symbol table dict to look for keys with identical values

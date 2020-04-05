@@ -69,7 +69,7 @@ POWER_SIGN_MAPPING = {multiply: 1, divide: -1}
 # redefine this here to avoid a circular import from yt.funcs
 def iterable(obj):
     try: len(obj)
-    except: return False
+    except Exception: return False
     return True
 
 def return_arr(func):

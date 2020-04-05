@@ -1332,7 +1332,7 @@ def _guess_pcast(vals):
     v = vals.split()[0]
     try:
         float(v.upper().replace("D", "E"))
-    except:
+    except Exception:
         pcast = str
         if v in ("F", "T"):
             pcast = bool

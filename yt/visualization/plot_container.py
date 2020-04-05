@@ -645,16 +645,16 @@ class PlotContainer(object):
                     un = Unit(un, registry=self.ds.unit_registry)
                     un = un.latex_representation()
                     if hinv:
-                        un = un + '\,h^{-1}'
+                        un = un + r'\,h^{-1}'
                     if comoving:
-                        un = un + '\,(1+z)^{-1}'
+                        un = un + r'\,(1+z)^{-1}'
                     pp = un[0]
                     if pp in latex_prefixes:
                         symbol_wo_prefix = un[1:]
                         if symbol_wo_prefix in prefixable_units:
                             un = un.replace(
                                 pp, "{"+latex_prefixes[pp]+"}", 1)
-                axes_unit_labels[i] = '\ \ ('+un+')'
+                axes_unit_labels[i] = r'\ \ ('+un+')'
         return axes_unit_labels
 
     
@@ -906,6 +906,8 @@ class ImagePlotContainer(PlotContainer):
                 else:
                     myzmin = myzmax / dynamic_range
 
+            if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
+                self._field_transform[field] = log_transform
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
         return self

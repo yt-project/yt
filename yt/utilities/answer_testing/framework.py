@@ -78,7 +78,7 @@ class AnswerTesting(Plugin):
         if version is None:
             try:
                 version = get_yt_version()
-            except:
+            except Exception:
                 version = "UNKNOWN%s" % (time.time())
         self._my_version = version
         return self._my_version
@@ -185,7 +185,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
             for this_try in range(3):
                 try:
                     data = resp.read()
-                except:
+                except Exception:
                     time.sleep(0.01)
                 else:
                     # We were succesful

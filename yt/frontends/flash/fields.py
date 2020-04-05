@@ -121,8 +121,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 ener = data["flash","eint"]+ekin(data)
                 try:
                     ener += data["flash","magp"]/data["flash","dens"]
-                except:
-                    pass
+                except Exception: pass
                 return ener
             self.add_field(("gas","total_energy"), sampling_type="cell",  function=_ener,
                            units=unit_system["specific_energy"])
@@ -136,8 +135,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 eint = data["flash","ener"]-ekin(data)
                 try:
                     eint -= data["flash","magp"]/data["flash","dens"]
-                except:
-                    pass
+                except Exception: pass
                 return eint
             self.add_field(("gas","thermal_energy"), sampling_type="cell",  function=_eint,
                            units=unit_system["specific_energy"])

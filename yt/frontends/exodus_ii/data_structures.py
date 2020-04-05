@@ -399,5 +399,4 @@ class ExodusIIDataset(Dataset):
             with Dataset(filename, keepweakref=True) as f:
                 f.variables['connect1']
             return True
-        except:
-            pass
+        except Exception: pass

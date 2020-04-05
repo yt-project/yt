@@ -482,42 +482,65 @@ class YTDataContainer(object):
         else:
             self.index.save_object(self, name)
 
-    def to_dataframe(self, fields=None):
-        r"""Export a data object to a pandas DataFrame.
+    def to_dataframe(self, fields):
+        r"""Export a data object to a :class:`~pandas.DataFrame`.
 
-        This function will take a data object and construct from it and
-        optionally a list of fields a pandas DataFrame object.  If pandas is
-        not importable, this will raise ImportError.
+        This function will take a data object and an optional list of fields
+        and export them to a :class:`~pandas.DataFrame` object.
+        If pandas is not importable, this will raise ImportError.
 
         Parameters
         ----------
-        fields : list of strings or tuple field names, default None
-            If this is supplied, it is the list of fields to be exported into
-            the data frame.  If not supplied, whatever fields presently exist
-            will be used.
+        fields : list of strings or tuple field names
+            This is the list of fields to be exported into
+            the DataFrame.
 
         Returns
         -------
-        df : DataFrame
+        df : :class:`~pandas.DataFrame`
             The data contained in the object.
 
         Examples
         --------
-
         >>> dd = ds.all_data()
-        >>> df1 = dd.to_dataframe(["density", "temperature"])
-        >>> dd["velocity_magnitude"]
-        >>> df2 = dd.to_dataframe()
+        >>> df = dd.to_dataframe(["density", "temperature"])
         """
         import pandas as pd
         data = {}
-        if fields is not None:
-            for f in fields:
-                data[f] = self[f]
-        else:
-            data.update(self.field_data)
+        fields = ensure_list(fields)
+        fields = self._determine_fields(fields)
+        for field in fields:
+            data[field[-1]] = self[field]
         df = pd.DataFrame(data)
         return df
+
+    def to_astropy_table(self, fields):
+        """
+        Export region data to a :class:~astropy.table.table.QTable,
+        which is a Table object which is unit-aware. The QTable can then
+        be exported to an ASCII file, FITS file, etc.
+
+        See the AstroPy Table docs for more details:
+        http://docs.astropy.org/en/stable/table/
+
+        Parameters
+        ----------
+        fields : list of strings or tuple field names
+            This is the list of fields to be exported into
+            the QTable. 
+
+        Examples
+        --------
+        >>> sp = ds.sphere("c", (1.0, "Mpc"))
+        >>> t = sp.to_astropy_table(["density","temperature"])
+        """
+        from astropy.table import QTable
+        t = QTable()
+        fields = ensure_list(fields)
+        fields = self._determine_fields(fields)
+        for field in fields:
+            t[field[-1]] = self[field].to_astropy()
+        return t
 
     def save_as_dataset(self, filename=None, fields=None):
         r"""Export a data object to a reloadable yt dataset.
@@ -1472,7 +1495,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 try:
                     fd = fi.get_dependencies(ds = self.ds)
                     self.ds.field_dependencies[field] = fd
-                except:
+                except Exception:
                     continue
             requested = self._determine_fields(list(set(fd.requested)))
             deps = [d for d in requested if d not in fields_to_get]
@@ -1812,6 +1835,7 @@ class YTSelectionContainer1D(YTSelectionContainer):
         self._grids = None
         self._sortkey = None
         self._sorted = {}
+
 
 class YTSelectionContainer2D(YTSelectionContainer):
     _key_fields = ['px','py','pdx','pdy']
