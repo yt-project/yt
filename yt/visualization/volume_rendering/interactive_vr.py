@@ -330,7 +330,7 @@ class SceneComponent(traitlets.HasTraits):
         # Even if old/new are the same
         self._program2_invalid = True
 
-    @traitlets.observe("colormap_shader")
+    @traitlets.observe("colormap_fragment")
     def _change_colormap_fragment(self, change):
         # Even if old/new are the same
         self._program2_invalid = True
