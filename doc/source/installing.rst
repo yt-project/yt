@@ -318,6 +318,13 @@ Then you can install yt normally, either from the conda-forge channel as above, 
 yt Distribution Packages
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
+.. note::
+
+  Since the third-party packages listed below are not officially supported by
+  yt developers, support should not be sought out on the project mailing lists
+  or Slack channels.  All support requests related to these packages should be
+  directed to their official maintainers.
+
 While we recommended installing ``yt`` with either the ``conda`` or ``pip``
 package managers, a number of third-party packages exist for the distributions
 listed below.  If you can't find your distro here, you can always install
