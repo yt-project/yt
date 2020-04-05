@@ -241,9 +241,9 @@ def test_add_gradient_fields_curvilinear():
                   ('stream', 'Density_gradient_theta'),
                   ('stream', 'Density_gradient_phi'),
                   ('stream', 'Density_gradient_magnitude'),
-                  ('index', 'ones_gradient_x'),
-                  ('index', 'ones_gradient_y'),
-                  ('index', 'ones_gradient_z'),
+                  ('index', 'ones_gradient_r'),
+                  ('index', 'ones_gradient_theta'),
+                  ('index', 'ones_gradient_phi'),
                   ('index', 'ones_gradient_magnitude')]
     assert_equal(gfields, field_list)
     ad = ds.all_data()
