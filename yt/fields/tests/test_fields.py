@@ -233,6 +233,27 @@ def test_add_gradient_fields():
         else:
             assert str(ret.units) == "1/cm"
 
+def test_add_gradient_fields_curvilinear():
+    ds = fake_amr_ds(geometry="spherical")
+    gfields = ds.add_gradient_fields(("stream", "density"))
+    gfields += ds.add_gradient_fields(("index", "ones"))
+    field_list = [('stream', 'density_gradient_r'),
+                  ('stream', 'density_gradient_theta'),
+                  ('stream', 'density_gradient_phi'),
+                  ('stream', 'density_gradient_magnitude'),
+                  ('index', 'ones_gradient_x'),
+                  ('index', 'ones_gradient_y'),
+                  ('index', 'ones_gradient_z'),
+                  ('index', 'ones_gradient_magnitude')]
+    assert_equal(gfields, field_list)
+    ad = ds.all_data()
+    for field in field_list:
+        ret = ad[field]
+        if field[0] == 'stream':
+            assert str(ret.units) == "g/cm**4"
+        else:
+            assert str(ret.units) == "1/cm"
+
 def get_data(ds, field_name):
     # Need to create a new data object otherwise the errors we are
     # intentionally raising lead to spurious GenerationInProgress errors
