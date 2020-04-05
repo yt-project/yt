@@ -1390,13 +1390,17 @@ class Dataset(object):
 
         Examples
         --------
-        with a cartesian dataset ds
+
         >>> grad_fields = ds.add_gradient_fields(("gas","temperature"))
         >>> print(grad_fields)
         [('gas', 'temperature_gradient_x'),
          ('gas', 'temperature_gradient_y'),
          ('gas', 'temperature_gradient_z'),
          ('gas', 'temperature_gradient_magnitude')]
+
+        note that the above example assumes ds.geometry == 'cartesian'
+        In general, the function will create gradients components along the axes of the dataset coordinate system.
+        For instance, with cylindrical data, one gets 'temperature_gradient_<r,theta,z>'
         """
         self.index
         if not isinstance(input_field, tuple):
