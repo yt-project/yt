@@ -235,12 +235,12 @@ def test_add_gradient_fields():
 
 def test_add_gradient_fields_curvilinear():
     ds = fake_amr_ds(geometry="spherical")
-    gfields = ds.add_gradient_fields(("stream", "density"))
+    gfields = ds.add_gradient_fields(("stream", "Density"))
     gfields += ds.add_gradient_fields(("index", "ones"))
-    field_list = [('stream', 'density_gradient_r'),
-                  ('stream', 'density_gradient_theta'),
-                  ('stream', 'density_gradient_phi'),
-                  ('stream', 'density_gradient_magnitude'),
+    field_list = [('stream', 'Density_gradient_r'),
+                  ('stream', 'Density_gradient_theta'),
+                  ('stream', 'Density_gradient_phi'),
+                  ('stream', 'Density_gradient_magnitude'),
                   ('index', 'ones_gradient_x'),
                   ('index', 'ones_gradient_y'),
                   ('index', 'ones_gradient_z'),
