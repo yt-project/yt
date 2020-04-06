@@ -4,7 +4,7 @@ from .data_structures import \
     GadgetFOFDataset, \
     GadgetFOFHaloParticleIndex, \
     GadgetFOFHaloDataset, \
-    GagdetFOFHaloContainer
+    GadgetFOFHaloContainer
 
 from .io import \
     IOHandlerGadgetFOFHDF5, \

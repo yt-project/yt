@@ -173,7 +173,7 @@ class GadgetFOFDataset(ParticleDataset):
 
     def _setup_classes(self):
         super(GadgetFOFDataset, self)._setup_classes()
-        self.halo = partial(GagdetFOFHaloContainer, ds=self._halos_ds)
+        self.halo = partial(GadgetFOFHaloContainer, ds=self._halos_ds)
 
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename,"r") as f:
@@ -458,7 +458,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
     def _setup_classes(self):
         self.objects = []
 
-class GagdetFOFHaloContainer(YTSelectionContainer):
+class GadgetFOFHaloContainer(YTSelectionContainer):
     """
     Create a data container to get member particles and individual
     values from halos and subhalos. Halo mass, position, and
@@ -541,7 +541,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
 
         self.ptype = ptype
         self._current_particle_type = ptype
-        super(GagdetFOFHaloContainer, self).__init__(ds, {})
+        super(GadgetFOFHaloContainer, self).__init__(ds, {})
 
         if ptype == "Subhalo" and isinstance(particle_identifier, tuple):
             self.group_identifier, self.subgroup_identifier = \
