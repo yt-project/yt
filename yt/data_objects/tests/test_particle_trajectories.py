@@ -19,7 +19,7 @@ vfields = ["particle_velocity_x", "particle_velocity_y", "particle_velocity_z"]
 
 def test_orbit_traj():
     n_particles = 16 ** 2
-    ids = np.arange(n_particles, dtype=int) % (n_particles // 2)
+    ids = np.arange(n_particles, dtype=int)
     data = {'particle_index': ids}
     fields = ['particle_type', 'density', 'particle_position_x',
               'particle_position_y', 'particle_position_z', 'particle_index']
@@ -36,7 +36,7 @@ def test_orbit_traj():
 
 def test_etc_traj():
     n_particles = 16**2
-    ids = np.arange(n_particles, dtype=int) % (n_particles // 2)
+    ids = np.arange(n_particles, dtype=int)
     data = {'particle_index': ids}
     fields = ['particle_type', 'density', 'particle_position_x',
               'particle_position_y', 'particle_position_z', 'particle_index']
