@@ -195,22 +195,7 @@ class HaloCatalogHaloParticleIndex(ParticleIndex):
                 for ptype in self.ds.particle_types_raw])
 
     def _create_halo_id_table(self):
-        """
-        Create a list of halo start ids so we know which file
-        contains particles for a given halo.  Note, the halo ids
-        are distributed over all files and so the ids for a given
-        halo are likely stored in a different file than the halo
-        itself.
-        """
-
-        self._halo_id_number = np.array([data_file.total_ids
-                            for data_file in self.data_files])
-        self._halo_id_end = self._halo_id_number.cumsum()
-        self._halo_id_start = self._halo_id_end - self._halo_id_number
-
-        self._group_length_sum = \
-          np.array([data_file.group_length_sum
-                    for data_file in self.data_files])
+        pass
 
     def _detect_output_fields(self):
         field_list = []
@@ -292,7 +277,7 @@ class HaloCatalogHaloParticleIndex(ParticleIndex):
 
             for field in fields:
                 data[field][target] = \
-                  my_f[os.path.join(ptype, field)][()][scalar_indices[target]]
+                  my_f[field][scalar_indices[target]]
 
             if self.data_files[i_scalar].filename != filename: my_f.close()
 
@@ -452,86 +437,27 @@ class HaloCatalogHaloContainer(YTSelectionContainer):
         self.scalar_index = self.index._get_halo_scalar_index(
             ptype, self.particle_identifier)
 
-        halo_fields = ["%sLen" % ptype]
-        if ptype == "Subhalo": halo_fields.append("SubhaloGrNr")
+        halo_fields = ['particle_number',
+                       'particle_index_start']
         my_data = self.index._get_halo_values(
             ptype, np.array([self.particle_identifier]),
             halo_fields)
-        self.particle_number = np.int64(my_data["%sLen" % ptype][0])
+        self.particle_number = np.int64(my_data['particle_number'][0])
 
-        if ptype == "Group":
-            self.group_identifier = self.particle_identifier
-            id_offset = 0
-            # index of file that has scalar values for the group
-            g_scalar = i_scalar
-            group_index = self.scalar_index
+        self.group_identifier = self.particle_identifier
+        id_offset = 0
+        # index of file that has scalar values for the group
+        g_scalar = i_scalar
+        group_index = self.scalar_index
 
-        # If a subhalo, find the index of the parent.
-        elif ptype == "Subhalo":
-            self.group_identifier = np.int64(my_data["SubhaloGrNr"][0])
-
-            # Find the file that has the scalar values for the parent group.
-            g_scalar = self.index._get_halo_file_indices(
-                "Group", [self.group_identifier])[0]
-
-            # index within halo arrays that corresponds to the paent group
-            group_index = self.index._get_halo_scalar_index(
-                "Group", self.group_identifier)
-
-            my_data = self.index._get_halo_values(
-                "Group", np.array([self.group_identifier]),
-                ["GroupNsubs", "GroupFirstSub"])
-            self.subgroup_identifier = self.particle_identifier - \
-              np.int64(my_data["GroupFirstSub"][0])
-            parent_subhalos = my_data["GroupNsubs"][0]
-
-            mylog.debug("Subhalo %d is subgroup %s of %d in group %d." % \
-                        (self.particle_identifier, self.subgroup_identifier,
-                        parent_subhalos, self.group_identifier))
-
-            # ids of the sibling subhalos that come before this one
-            if self.subgroup_identifier > 0:
-                sub_ids = np.arange(
-                    self.particle_identifier - self.subgroup_identifier,
-                    self.particle_identifier)
-                my_data = self.index._get_halo_values(
-                    "Subhalo", sub_ids, ["SubhaloLen"])
-                id_offset = my_data["SubhaloLen"].sum(dtype=np.int64)
-            else:
-                id_offset = 0
-
-        # Calculate the starting index for the member particles.
-        # First, add up all the particles in the earlier files.
-        all_id_start = self.index._group_length_sum[:g_scalar].sum(dtype=np.int64)
-
-        # Now add the halos in this file that come before.
-        with h5py.File(self.index.data_files[g_scalar].filename, "r") as f:
-            all_id_start += f["Group"]["GroupLen"][:group_index].sum(dtype=np.int64)
-
-        # Add the subhalo offset.
-        all_id_start += id_offset
-
-        # indices of first and last files containing member particles
-        i_start = np.digitize([all_id_start],
-                              self.index._halo_id_start,
-                              right=False)[0] - 1
-        i_end = np.digitize([all_id_start+self.particle_number],
-                            self.index._halo_id_end,
-                            right=True)[0]
-        self.field_data_files = self.index.data_files[i_start:i_end+1]
+        # Data files containing particles belonging to this halo.
+        self.field_data_files = [self.index.data_files[i_scalar]]
 
         # starting and ending indices for each file containing particles
-        self.field_data_start = \
-          (all_id_start -
-           self.index._halo_id_start[i_start:i_end+1]).clip(min=0)
-        self.field_data_start = self.field_data_start.astype(np.int64)
-        self.field_data_end = \
-          (all_id_start + self.particle_number -
-           self.index._halo_id_start[i_start:i_end+1]).clip(
-               max=self.index._halo_id_number[i_start:i_end+1])
-        self.field_data_end = self.field_data_end.astype(np.int64)
+        self.field_data_start = [np.int64(my_data['particle_index_start'][0])]
+        self.field_data_end = [self.field_data_start[0] + self.particle_number]
 
-        for attr in ["mass", "position", "velocity"]:
+        for attr in ["mass", "position"]:#, "velocity"]:
             setattr(self, attr, self[self.ptype, "particle_%s" % attr][0])
 
     def __repr__(self):
