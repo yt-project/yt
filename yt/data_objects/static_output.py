@@ -255,6 +255,7 @@ class Dataset(metaclass=RegisteredDataset):
 
         self._parse_parameter_file()
         self.set_units()
+        self.setup_cosmology()
         self._assign_unit_system(unit_system)
         self._setup_coordinate_handler()
 
@@ -1129,6 +1130,7 @@ class Dataset(metaclass=RegisteredDataset):
 
         self.set_code_units()
 
+    def setup_cosmology(self):
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, add a cosmology object
 
