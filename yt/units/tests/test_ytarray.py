@@ -37,9 +37,11 @@ from yt.units.yt_array import \
     unary_operators, binary_operators, \
     uconcatenate, uintersect1d, \
     uhstack, uvstack, ustack, \
-    uunion1d, loadtxt, savetxt
+    uunion1d, loadtxt, savetxt, \
+    display_ytarray
 from yt.utilities.exceptions import \
-    YTUnitOperationError, YTUfuncUnitError
+    YTUnitOperationError, YTUfuncUnitError, \
+    YTArrayTooLargeToDisplay
 from yt.testing import \
     fake_random_ds, \
     requires_module, \
@@ -826,7 +828,10 @@ def unary_ufunc_comparison(ufunc, a):
 
 
 def binary_ufunc_comparison(ufunc, a, b):
-    out = a.copy()
+    if ufunc in [np.divmod]:
+        out = (a.copy(), a.copy())
+    else:
+        out = a.copy()
     if ufunc in yield_np_ufuncs([
             'add', 'subtract', 'remainder', 'fmod', 'mod', 'arctan2', 'hypot',
             'greater', 'greater_equal', 'less', 'less_equal', 'equal',
@@ -858,7 +863,10 @@ def binary_ufunc_comparison(ufunc, a, b):
         assert_true(not isinstance(ret, YTArray) and
                     isinstance(ret, np.ndarray))
     if isinstance(ret, tuple):
-        assert_array_equal(ret[0], out)
+        assert isinstance(out, tuple)
+        assert len(out) == len(ret)
+        for o, r in zip(out, ret):
+            assert_array_equal(o, r)
     else:
         assert_array_equal(ret, out)
     if (ufunc in (np.divide, np.true_divide, np.arctan2) and
@@ -1281,6 +1289,7 @@ def test_numpy_wrappers():
     union_answer = [1, 2, 3, 4, 5, 6]
     vstack_answer = [[2, 3, 4, 5, 6],
                      [7, 8, 9,10, 11]]
+    vstack_answer_last_axis = [[ 2, 7], [ 3, 8], [ 4, 9], [ 5, 10], [ 6, 11]]
 
     assert_array_equal(YTArray(catenate_answer, 'cm'),
                        uconcatenate((a1, a2)))
@@ -1301,6 +1310,9 @@ def test_numpy_wrappers():
 
     assert_array_equal(YTArray(vstack_answer, 'cm'), ustack([a2, a3]))
     assert_array_equal(vstack_answer, np.stack([a2, a3]))
+
+    assert_array_equal(YTArray(vstack_answer_last_axis, 'cm'), ustack([a2, a3], axis=-1))
+    assert_array_equal(vstack_answer_last_axis, np.stack([a2, a3], axis=-1))
 
 def test_dimensionless_conversion():
     a = YTQuantity(1, 'Zsun')
@@ -1379,3 +1391,46 @@ def test_ones_and_zeros_like():
     assert_equal(zd.units, data.units)
     assert_equal(od, YTArray([1, 1, 1], 'cm'))
     assert_equal(od.units, data.units)
+
+@requires_module('ipywidgets')
+def test_display_ytarray():
+    arr = YTArray([1,2,3], 'cm')
+    widget = display_ytarray(arr)
+    dropdown = widget.children[-1]
+    dropdown.value = 'm'
+    # Check that our original array did *not* change
+    assert_equal(arr.to_value(), np.array([1.0, 2.0, 3.0]))
+    # Check our values did change
+    assert_equal([float(_.value) for _ in widget.children[:-1]],
+        arr.to_value()/100.0)
+            
+
+def test_display_ytarray_too_large():
+    arr = YTArray([1,2,3,4], 'cm')
+    assert_raises(YTArrayTooLargeToDisplay, display_ytarray, arr)
+
+def test_clip():
+    km = YTQuantity(1, 'km')
+
+    data = [1, 2, 3, 4, 5, 6] * km
+    answer = [2, 2, 3, 4, 4, 4] * km
+
+    ret = np.clip(data, 2, 4)
+    assert_array_equal(ret, answer)
+    assert ret.units == answer.units
+
+    np.clip(data, 2, 4, out=data)
+
+    assert_array_equal(data, answer)
+    assert data.units == answer.units
+
+    left_edge = [0.0, 0.0, 0.0] * km
+    right_edge = [1.0, 1.0, 1.0] * km
+
+    positions = [[0.0, 0.0, 0.0],
+                 [1.0, 1.0, -0.1],
+                 [1.5, 1.0, 0.9]] * km
+    np.clip(positions, left_edge, right_edge, positions)
+    assert positions.units == left_edge.units
+    assert positions.max() == 1.0 * km
+    assert positions.min() == 0.0 * km

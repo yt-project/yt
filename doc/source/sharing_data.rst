@@ -60,7 +60,7 @@ After the API Key is created you can obtain it by clicking *show* link:
    :width: 50 %
 
 For more information about API keys please see `this document
-<http://girder.readthedocs.io/en/latest/user-guide.html?highlight=API%20keys#api-keys>`__.
+<https://girder.readthedocs.io/en/latest/user-guide.html?highlight=API%20keys#api-keys>`__.
 
 After you have gotten your API key, update your config file:
 
@@ -92,7 +92,7 @@ Currently, the yt hub can accept these types of data:
 
  * Raw data files, scripts.
  * IPython notebooks: these are stored on the hub and are made available for
-   download and via the IPython `nbviewer <http://nbviewer.jupyter.org/>`_
+   download and via the IPython `nbviewer <https://nbviewer.jupyter.org/>`_
    service.
 
 How to Upload Data
@@ -100,7 +100,7 @@ How to Upload Data
 
 Uploading data can be performed using the ``girder-cli`` command tool or
 directly via the web interface. Please refer to ``girder-cli`` `documentation page
-<http://girder.readthedocs.io/en/latest/python-client.html>`_ for additional
+<https://girder.readthedocs.io/en/latest/python-client.html>`_ for additional
 information.
 
 Uploading Notebooks

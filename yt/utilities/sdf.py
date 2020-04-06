@@ -251,7 +251,7 @@ class SDFRead(dict):
     def __init__(self, filename = None, header=None):
         r""" Read an SDF file, loading parameters and variables.
 
-        Given an SDF file (see http://bitbucket.org/JohnSalmon/sdf), parse the
+        Given an SDF file (see https://bitbucket.org/JohnSalmon/sdf), parse the
         ASCII header and construct numpy memmap array
         access.
 
@@ -274,7 +274,7 @@ class SDFRead(dict):
         SDF is described here:
 
             J. K. Salmon and M. S. Warren. Self-Describing File (SDF) Library.
-            Zenodo, Jun 2014. URL http://bitbucket.org/JohnSalmon/sdf.
+            Zenodo, Jun 2014. URL https://bitbucket.org/JohnSalmon/sdf.
 
         Examples
         --------
@@ -308,7 +308,7 @@ class SDFRead(dict):
             if k == 'byteorder': continue
             try:
                 t = _rev_types[v.dtype.name]
-            except:
+            except Exception:
                 t = type(v).__name__
             if t == str.__name__:
                 f.write("parameter %s = \"%s\";\n" % (k, v))
@@ -425,7 +425,7 @@ class HTTPSDFRead(SDFRead):
 
     r""" Read an SDF file hosted on the internet.
 
-    Given an SDF file (see http://bitbucket.org/JohnSalmon/sdf), parse the
+    Given an SDF file (see https://bitbucket.org/JohnSalmon/sdf), parse the
     ASCII header and construct numpy memmap array
     access.
 
@@ -447,7 +447,7 @@ class HTTPSDFRead(SDFRead):
     SDF is described here:
 
         J. K. Salmon and M. S. Warren. Self-Describing File (SDF) Library.
-        Zenodo, Jun 2014. URL http://bitbucket.org/JohnSalmon/sdf.
+        Zenodo, Jun 2014. URL https://bitbucket.org/JohnSalmon/sdf.
 
     Examples
     --------
@@ -486,7 +486,7 @@ class HTTPSDFRead(SDFRead):
 def load_sdf(filename, header=None):
     r""" Load an SDF file.
 
-    Given an SDF file (see http://bitbucket.org/JohnSalmon/sdf), parse the
+    Given an SDF file (see https://bitbucket.org/JohnSalmon/sdf), parse the
     ASCII header and construct numpy memmap array access. The file can
     be either local (on a hard drive, for example), or remote (on the World
     Wide Web).
@@ -509,7 +509,7 @@ def load_sdf(filename, header=None):
     SDF is described here:
 
         J. K. Salmon and M. S. Warren. Self-Describing File (SDF) Library.
-        Zenodo, Jun 2014. URL http://bitbucket.org/JohnSalmon/sdf.
+        Zenodo, Jun 2014. URL https://bitbucket.org/JohnSalmon/sdf.
 
     Examples
     --------
@@ -820,7 +820,7 @@ class SDFIndex(object):
         ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
         if np.any(iright-ileft) > self.domain_dims:
-            mylog.warn("Attempting to get data from bounding box larger than the domain. You may want to check your units.")
+            mylog.warning("Attempting to get data from bounding box larger than the domain. You may want to check your units.")
         #iright[iright <= ileft+1] += 1
 
         return self.get_ibbox(ileft, iright)

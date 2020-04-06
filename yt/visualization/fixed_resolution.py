@@ -26,6 +26,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
 from yt.utilities.lib.api import add_points_to_greyscale_image
+from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.frontends.stream.api import load_uniform_grid
 
 import numpy as np
@@ -289,7 +290,6 @@ class FixedResolutionBuffer(object):
         fields : list of strings
             These fields will be pixelized and output.
         """
-        import h5py
         if fields is None: fields = list(self.data.keys())
         output = h5py.File(filename, "a")
         for field in fields:
@@ -535,7 +535,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
         buff = off_axis_projection(dd.dd, dd.center, dd.normal_vector,
-                                   width, dd.resolution, item,
+                                   width, self.buff_size, item,
                                    weight=dd.weight_field, volume=dd.volume,
                                    no_ghost=dd.no_ghost,
                                    interpolated=dd.interpolated,
@@ -587,9 +587,16 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         y_data = self.data_source.dd[ftype, self.y_field]
         data = self.data_source.dd[item]
 
+        # handle periodicity
+        dx = x_data.in_units("code_length").d - bounds[0]
+        dy = y_data.in_units("code_length").d - bounds[2]
+        if self.periodic:
+            dx %= float(self._period[0].in_units("code_length"))
+            dy %= float(self._period[1].in_units("code_length"))
+
         # convert to pixels
-        px = (x_data - self.bounds[0]) / (self.bounds[1] - self.bounds[0])
-        py = (y_data - self.bounds[2]) / (self.bounds[3] - self.bounds[2])
+        px = dx / (bounds[1] - bounds[0])
+        py = dy / (bounds[3] - bounds[2])
 
         # select only the particles that will actually show up in the image
         mask = np.logical_and(np.logical_and(px >= 0.0, px <= 1.0),

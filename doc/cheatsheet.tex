@@ -101,7 +101,7 @@ For everything yt please see \url{http://yt-project.org}.
 Documentation \url{http://yt-project.org/doc/index.html}.
 Need help? Start here \url{http://yt-project.org/doc/help/} and then
 try the IRC chat room \url{http://yt-project.org/irc.html},
-or the mailing list \url{https://mail.python.org/mm3/archives/list/yt-users@python.org/}. \\
+or the mailing list \url{https://mail.python.org/archives/list/yt-users@python.org/}. \\
 
 \subsection{Installing yt} The easiest way to install yt is to use the
 installation script found on the yt homepage or the docs linked above.  If you
@@ -125,7 +125,7 @@ including a list of the available flags.
 \texttt{yt version} \textemdash\ yt installation information. \\
 \texttt{yt notebook} \textemdash\ Run the IPython notebook server. \\
 \texttt{yt upload\_image} \textit{image.png} \textemdash\ Upload PNG image to imgur.com. \\
-\texttt{yt upload\_notebook} \textit{notebook.nb} \textemdash\ Upload IPython notebook to hub.yt-project.org.\\
+\texttt{yt upload\_notebook} \textit{notebook.nb} \textemdash\ Upload IPython notebook to \url{https://girder.hub.yt}.\\
 \texttt{yt plot} \textit{dataset} \textemdash\ Create a set of images.\\
 \texttt{yt render} \textit{dataset} \textemdash\ Create a simple
  volume rendering. \\
@@ -313,23 +313,29 @@ applications.
 (such as halos or clumps).\\
 
 
-\subsection{Mercurial}
+\subsection{Git}
 \settowidth{\MyLen}{\texttt{multicol}}
-Please see \url{http://mercurial.selenic.com/} for the full Mercurial documentation.
+Please see \url{https://git-scm.com/} for the latest Git documentation.
 
-\texttt{hg clone https://bitbucket.org/yt\_analysis/yt} \textemdash\ Clone a copy of yt. \\
-\texttt{hg status} \textemdash\ Files changed in working directory.\\
-\texttt{hg diff} \textemdash\ Print diff of all changed files in working directory. \\
-\texttt{hg diff -r\textit{RevX} -r\textit{RevY}} \textemdash\ Print diff of all changes between revision \textit{RevX} and \textit{RevY}.\\
-\texttt{hg log} \textemdash\ History of changes.\\
-\texttt{hg cat -r\textit{RevX file}} \textemdash\ Print the contents of \textit{file} from revision \textit{RevX}.\\
-\texttt{hg heads} \textemdash\ Print all the current heads. \\
-\texttt{hg revert -r\textit{RevX file}} \textemdash\ Revert \textit{file} to revision \textit{RevX}. On-disk changed version is
-moved to \textit{file.orig}. \\
-\texttt{hg commit} \textemdash\ Commit changes to repository. \\
-\texttt{hg push} \textemdash\ Push changes to default remote repository. \\
-\texttt{hg pull} \textemdash\ Pull changes from default remote repository. \\
-\texttt{hg serve} \textemdash\ Launch a webserver on the local machine to examine the repository in a web browser. \\
+\texttt{git clone https://github.com/yt-project/yt} \textemdash\ Clone the yt
+repository. \\
+\texttt{git status} \textemdash\ Show status of working tree.\\
+\texttt{git diff} \textemdash\ Show changed files in the working tree. \\
+\texttt{git log} \textemdash\ Show a log of changes in reverse chronological
+oder.\\
+\texttt{git revert <commit>} \textemdash\ Revert the changes in an existing
+commit and create a new commit with reverted changes. \\
+\texttt{git add <pathspec>} \textemdash\ Stage changes in the working tree to
+the index. \\
+\texttt{git commit} \textemdash\ Commit staged changes to the repository. \\
+\texttt{git merge <branch>} Merge the revisions from the specified branch on
+top of the current branch.\\
+\texttt{git push <remote>} \textemdash\ Push changes to remote repository. \\
+\texttt{git push <remote> <branch>} \textemdash\ Push changes in specified
+branch to remote repository. \\
+\texttt{git pull <remote> <branch>} \textemdash\ Pull changes from the
+specified branch of the remote repository. This is equivalent to \texttt{git
+fetch <remote>} and then \texttt{git merge <remote>/<branch>}.\\
 
 \subsection{FAQ}
 \settowidth{\MyLen}{\texttt{multicol}}

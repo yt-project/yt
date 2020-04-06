@@ -492,7 +492,7 @@ class YTBugreportCmd(YTCommand):
         print("simply be a misunderstanding that could be cleared up by")
         print("visiting the yt irc channel or getting advice on the email list:")
         print("   http://yt-project.org/irc.html")
-        print("   https://mail.python.org/mm3/archives/list/yt-users@python.org/")
+        print("   https://mail.python.org/archives/list/yt-users@python.org/")
         print()
         summary = input("Press <enter> if you remain firm in your conviction to continue.")
         print()
@@ -503,7 +503,7 @@ class YTBugreportCmd(YTCommand):
         print()
         try:
             current_version = get_yt_version()
-        except:
+        except Exception:
             current_version = "Unavailable"
         summary = input("Summary? ")
         bugtype = "bug"
@@ -525,8 +525,7 @@ class YTBugreportCmd(YTCommand):
             content = open(fn).read()
             try:
                 os.unlink(fn)
-            except:
-                pass
+            except Exception: pass
         else:
             print()
             print("Couldn't find an $EDITOR variable.  So, let's just take")
@@ -1016,13 +1015,9 @@ class YTNotebookCmd(YTCommand):
         """
     def __call__(self, args):
         kwargs = {}
-        try:
-            # IPython 1.0+
-            from IPython.html.notebookapp import NotebookApp
-        except ImportError:
-            # pre-IPython v1.0
-            from IPython.frontend.html.notebook.notebookapp import NotebookApp
-        print("You must choose a password so that others cannot connect to " \
+        from notebook.notebookapp import NotebookApp
+
+        print("You must choose a password so that others cannot connect to "
               "your notebook.")
         pw = ytcfg.get("yt", "notebook_password")
         if len(pw) == 0 and not args.no_password:

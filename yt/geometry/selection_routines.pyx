@@ -973,7 +973,10 @@ cdef class CutRegionSelector(SelectorObject):
     cdef tuple _conditionals
 
     def __init__(self, dobj):
-        positions = np.array([dobj['x'], dobj['y'], dobj['z']]).T
+        axis_name = dobj.ds.coordinates.axis_name
+        positions = np.array([dobj['index', axis_name[0]],
+                              dobj['index', axis_name[1]],
+                              dobj['index', axis_name[2]]]).T
         self._conditionals = tuple(dobj.conditionals)
         self._positions = set(tuple(position) for position in positions)
 
@@ -1219,6 +1222,7 @@ cdef class SliceSelector(SelectorObject):
         cdef int total = 0
         cdef int this_level = 0
         cdef int ind[3][2]
+        cdef np.uint64_t icoord
         cdef np.int32_t level = gobj.Level
         _ensure_code(gobj.LeftEdge)
         _ensure_code(gobj.dds)
@@ -1232,9 +1236,12 @@ cdef class SliceSelector(SelectorObject):
                 this_level = 1
             for i in range(3):
                 if i == self.axis:
-                    ind[i][0] = \
-                        <int> ((self.coord - (gobj.LeftEdge[i]).to_ndarray()) /
-                               gobj.dds[i])
+                    icoord = <np.uint64_t>(
+                        (self.coord - gobj.LeftEdge.d[i])/gobj.dds[i])
+                    # clip coordinate to avoid seg fault below if we're
+                    # exactly at a grid boundary
+                    ind[i][0] = iclip(
+                        icoord, 0, gobj.ActiveDimensions[i]-1)
                     ind[i][1] = ind[i][0] + 1
                 else:
                     ind[i][0] = 0
@@ -2092,20 +2099,15 @@ def points_in_cells(
 
     n_p = px.size
     n_c = cx.size
-    mask = np.ones(n_p, dtype="bool")
+    mask = np.zeros(n_p, dtype="bool")
 
     for p in range(n_p):
         for c in range(n_c):
-            if fabs(px[p] - cx[c]) > 0.5 * dx[c]:
-                mask[p] = False
-                continue
-            if fabs(py[p] - cy[c]) > 0.5 * dy[c]:
-                mask[p] = False
-                continue
-            if fabs(pz[p] - cz[c]) > 0.5 * dz[c]:
-                mask[p] = False
-                continue
-            if mask[p]: break
+            if (fabs(px[p] - cx[c]) <= 0.5 * dx[c] and
+                fabs(py[p] - cy[c]) <= 0.5 * dy[c] and
+                fabs(pz[p] - cz[c]) <= 0.5 * dz[c]):
+                mask[p] = True
+                break
 
     return mask
 

@@ -1,5 +1,5 @@
 .. This document is rendered in HTML with cross-reference links filled in at
-   http://yt-project.org/doc/developing/
+   https://yt-project.org/doc/developing/developing.html
 
 .. _getting-involved:
 
@@ -20,16 +20,16 @@ There are five main communication channels for yt:
 
  * We have an IRC channel, on ``irc.freenode.net`` in ``#yt``.
    You can connect through our web
-   gateway without any special client, at http://yt-project.org/irc.html .
+   gateway without any special client, at https://yt-project.org/irc.html .
    *IRC is the first stop for conversation!*
  * Many yt developers participate in the yt Slack community. Slack is a free
    chat service that many teams use to organize their work. You can get an
    invite to yt's Slack organization by clicking the "Join us @ Slack" button
-   on this page: http://yt-project.org/community.html
- * `yt-users <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_
+   on this page: https://yt-project.org/community.html
+ * `yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_
    is a relatively high-traffic mailing list where people are encouraged to ask
    questions about the code, figure things out and so on.
- * `yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_ is
+ * `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_ is
    a much lower-traffic mailing list designed to focus on discussions of
    improvements to the code, ideas about planning, development issues, and so
    on.
@@ -50,9 +50,17 @@ outdated section, contributing typo or grammatical fixes, adding a FAQ, or
 increasing coverage of functionality, it would be very helpful if you wanted to
 help out.
 
-The easiest way to help out is to fork the main yt repository (where the
-documentation lives in the ``doc`` directory in the root of the yt git
-repository) and then make your changes in your own fork.  When you are done,
+The easiest way to help out is to fork the main yt repository and make changes
+in it to contribute back to the ``yt-project``. A fork is a copy
+of a repository; in this case the fork will live in the space under your
+username on github, rather than the ``yt-project``. If you have never made a
+fork of a repository on github, or are unfamiliar with this process, here is a
+short article about how to do so:
+https://help.github.com/en/github/getting-started-with-github/fork-a-repo . 
+The documentation for
+``yt`` lives in the ``doc`` directory in the root of the yt git
+repository. To make a contribution to the yt documentation you will 
+make your changes in your own fork of ``yt``.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes. See :ref:`sharing-changes` for
 more information about contributing your changes to yt on GitHub.
@@ -62,12 +70,12 @@ Gallery Images and Videos
 
 If you have an image or video you'd like to display in the image or video
 galleries, getting it included it easy!  You can either fork the `yt homepage
-repository <http://github.com/yt-project/website>`_ and add it there, or
+repository <https://github.com/yt-project/website>`_ and add it there, or
 email it to us and we'll add it to the `Gallery
-<http://yt-project.org/gallery.html>`_.
+<https://yt-project.org/gallery.html>`_.
 
 We're eager to show off the images and movies you make with yt, so please feel
-free to drop `us <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_
+free to drop `us <https://mail.python.org/archives/list/yt-dev@python.org/>`_
 a line and let us know if you've got something great!
 
 Technical Contributions
@@ -83,7 +91,8 @@ usually we end up accepting.
 
 For more information, see :ref:`contributing-code`, where we spell out how to
 get up and running with a development environment, how to commit, and how to
-use GitHub.
+use GitHub. When you're ready to share your changes with the community, refer to 
+:ref:`sharing-changes` to see how to contribute them back upstream.
 
 Online Presence
 ---------------
@@ -100,15 +109,15 @@ Word of Mouth
 
 If you're using yt and it has increased your productivity, please feel
 encouraged to share that information.  Cite our `paper
-<http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_, tell your colleagues,
+<https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T>`_, tell your colleagues,
 and just spread word of mouth.  By telling people about your successes, you'll
 help bring more eyes and hands to the table -- in this manner, by increasing
 participation, collaboration, and simply spreading the limits of what the code
 is asked to do, we hope to help scale the utility and capability of yt with the
 community size.
 
-Feel free to `blog <http://blog.yt-project.org/>`_ about, `tweet
-<http://twitter.com/yt_astro>`_ about and talk about what you are up to!
+Feel free to `blog <https://blog.yt-project.org/>`_ about, `tweet
+<https://twitter.com/yt_astro>`_ about and talk about what you are up to!
 
 Long-Term Projects
 ------------------
@@ -196,7 +205,7 @@ associated social events, and one-to-one interactions.
 
 The yt Community Code of Conduct was adapted from the
 `Astropy Community Code of Conduct
-<http://www.astropy.org/code_of_conduct.html>`_,
+<https://www.astropy.org/code_of_conduct.html>`_,
 which was partially inspired by the PSF code of conduct.
 
 .. _contributing-code:
@@ -211,7 +220,7 @@ the community!  yt is developed using git, primarily because it enables
 very easy and straightforward submission of revisions.  We're eager to hear
 from you, and if you are developing yt, we encourage you to subscribe to the
 `developer mailing list
-<https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_. Please feel
+<https://mail.python.org/archives/list/yt-dev@python.org/>`_. Please feel
 free to hack around, commit changes, and send them upstream.
 
 .. note:: If you already know how to use the `git version control system
@@ -237,22 +246,24 @@ Open Issues
 If you're interested in participating in yt development, take a look at the
 `issue tracker on GitHub
 <https://github.com/yt-project/yt/issues>`_.
-Issues are marked with a milestone of "easy", "moderate", or "difficult"
-depending on the estimated level of difficulty for fixing the issue. While we
-try to triage the issue tracker regularly, it may be the case that issues marked
-"moderate" are actually easier than their milestone label indicates since that
-is the default value.
+You can search by labels, indicating estimated level of difficulty or category,
+to find issues that you would like to contribute to.  Good first issues are
+marked with a label of `new contributor friendly`.  While we try to triage the
+issue tracker regularly to assign appropriate labels to every issue, it may be
+the case that issues not marked as `new contributor friendly` are actually
+suitable for new contributors.
 
 Here are some predefined issue searches that might be useful:
 
-* Unresolved issues `marked "easy" <https://github.com/yt-project/yt/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20milestone%3Aeasy>`_.
-* `All unresolved issues <https://github.com/yt-project/yt/issues>`_
+* Unresolved issues `marked "new contributor friendly"
+  <https://github.com/yt-project/yt/labels/new%20contributor%20friendly>`_.
+* `All unresolved issues <https://github.com/yt-project/yt/issues>`_.
 
 Submitting Changes
 ------------------
 
 We provide a brief introduction to submitting changes here.  yt thrives on the
-strength of its communities (http://arxiv.org/abs/1301.7064 has further
+strength of its communities (https://arxiv.org/abs/1301.7064 has further
 discussion) and we encourage contributions from any user.  While we do not
 discuss version control, git, or the advanced usage of GitHub in detail
 here, we do provide an outline of how to submit changes and we are happy to
@@ -261,7 +272,7 @@ provide further assistance or guidance.
 Licensing
 +++++++++
 
-yt is `licensed <http://blog.yt-project.org/post/Relicensing/>`_ under the
+yt is `licensed <https://blog.yt-project.org/post/Relicensing/>`_ under the
 BSD 3-clause license.  Versions previous to yt-2.6 were released under the GPLv3.
 
 All contributed code must be BSD-compatible.  If you'd rather not license in
@@ -323,6 +334,19 @@ code (a previous changeset or version) by executing the command:
 
    $ git checkout revision_specifier
 
+You can always return to the most recent version of the code by executing the
+same command as above with the most recent revision specifier in the
+repository. However, using ``git log`` when you're checked out to an older
+revision specifier will not show more recent changes to the repository. An
+alternative option is to use ``checkout`` on a branch. In yt the ``master``
+branch is our primary development branch, so checking out ``master`` should
+return you to the tip (or most up-to-date revision specifier) on the ``master``
+branch. 
+
+.. code-block:: bash
+   
+   $ git checkout master
+   
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
 you run yt from the command line or the one that is loaded when you do ``import
@@ -462,7 +486,7 @@ which have different requirements for acceptance into the code base.  These
 requirements are in place for a few reasons -- to make sure that the code is
 maintainable, testable, and that we can easily include information about
 changes in changelogs during the release procedure.  (See `YTEP-0008
-<https://ytep.readthedocs.org/en/latest/YTEPs/YTEP-0008.html>`_ for more
+<https://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0008.html>`_ for more
 detail.)
 
 * New Features
@@ -500,6 +524,14 @@ If you're new to git, the following resource is pretty great for learning
 the ins and outs:
 
 * https://git-scm.com/
+
+There also exist a number of step-by-step git tutorials to help you get used to
+version controlling files with git. Here are a few resources that you may find
+helpful:
+
+* http://swcarpentry.github.io/git-novice/
+* https://git-scm.com/docs/gittutorial
+* https://try.github.io/
 
 The commands that are essential for using git include:
 
@@ -636,7 +668,7 @@ Here's a more detailed flowchart of how to submit changes.
      For consistency, all commands we list in this document will use the HTTPS
      protocol.
 
-     .. _SSH key: https://help.github.com/articles/connecting-to-github-with-ssh/
+     .. _SSH key: https://help.github.com/en/articles/connecting-to-github-with-ssh/
 #. Issue a pull request at https://github.com/yt-project/yt/pull/new/master A
    pull request is essentially just asking people to review and accept the
    modifications you have made to your personal version of the code.
@@ -650,7 +682,9 @@ straightforward.
    they should be made.
 #. Commit those changes to your local repository.
 #. Push the changes to your fork::
+
       git push origin my-first-pull-request
+
 #. Your pull request will be automatically updated.
 
 Once your pull request is merged, sync up with the main yt repository by pulling
@@ -719,7 +753,7 @@ triggers. The errors will be in your newly added code because we have already
 cleaned up the rest of the yt codebase of the errors and warnings detected by
 the `flake8` tool. Note that this will only trigger a subset of the `full flake8
 error and warning list
-<http://flake8.readthedocs.io/en/latest/user/error-codes.html>`_, since we explicitly
+<https://flake8.readthedocs.io/en/latest/user/error-codes.html>`_, since we explicitly
 blacklist a large number of the full list of rules that are checked by
 ``flake8`` by default.
 
@@ -727,7 +761,7 @@ Source code style guide
 -----------------------
 
  * In general, follow PEP-8 guidelines.
-   http://www.python.org/dev/peps/pep-0008/
+   https://www.python.org/dev/peps/pep-0008/
  * Classes are ``ConjoinedCapitals``, methods and functions are
    ``lowercase_with_underscores``.
  * Use 4 spaces, not tabs, to represent indentation.
@@ -803,7 +837,8 @@ Docstrings
 The following is an example docstring. You can use it as a template for
 docstrings in your code and as a guide for how we expect docstrings to look and
 the level of detail we are looking for. Note that we use NumPy style docstrings
-written in `Sphinx restructured text format <http://sphinx-doc.org/rest.html>`_.
+written in `Sphinx restructured text format
+<http://www.sphinx-doc.org/es/master/usage/restructuredtext/>`_.
 
 .. code-block:: rest
 

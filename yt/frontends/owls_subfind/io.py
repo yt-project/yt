@@ -46,7 +46,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
-                    coords = f[ptype]["CenterOfMass"].value.astype("float64")
+                    coords = f[ptype]["CenterOfMass"][()].astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
                     y = coords[:, 1]
@@ -81,7 +81,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0: continue
-                    coords = f[ptype]["CenterOfMass"].value.astype("float64")
+                    coords = f[ptype]["CenterOfMass"][()].astype("float64")
                     coords = np.resize(coords, (pcount, 3))
                     x = coords[:, 0]
                     y = coords[:, 1]
@@ -99,10 +99,10 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                                   np.arange(data_file.total_particles[ptype]) + \
                                   data_file.index_start[ptype]
                             elif field in f[ptype]:
-                                field_data = f[ptype][field].value.astype("float64")
+                                field_data = f[ptype][field][()].astype("float64")
                             else:
                                 fname = field[:field.rfind("_")]
-                                field_data = f[ptype][fname].value.astype("float64")
+                                field_data = f[ptype][fname][()].astype("float64")
                                 my_div = field_data.size / pcount
                                 if my_div > 1:
                                     field_data = np.resize(field_data, (int(pcount), int(my_div)))
@@ -125,7 +125,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
 
             for ptype in data_file.ds.particle_types_raw:
                 if data_file.total_particles[ptype] == 0: continue
-                pos = f[ptype]["CenterOfMass"].value.astype("float64")
+                pos = f[ptype]["CenterOfMass"][()].astype("float64")
                 pos = np.resize(pos, (data_file.total_particles[ptype], 3))
                 pos = data_file.ds.arr(pos, "code_length")
                 
@@ -209,7 +209,7 @@ def subfind_field_list(fh, ptype, pcount):
                     fields.append(("FOF", fname))
                 offset_fields.append(fname)
             else:
-                mylog.warn("Cannot add field (%s, %s) with size %d." % \
-                           (ptype, fh[field].name, fh[field].size))
+                mylog.warning("Cannot add field (%s, %s) with size %d." % \
+                              (ptype, fh[field].name, fh[field].size))
                 continue
     return fields, offset_fields

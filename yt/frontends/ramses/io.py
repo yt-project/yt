@@ -23,7 +23,7 @@ from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTFileNotParseable
-import re
+from .definitions import VERSION_RE, VAR_DESC_RE
 
 def convert_ramses_ages(ds, conformal_ages):
     tf = ds.t_frw
@@ -96,50 +96,43 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"
 
-    def _generic_fluid_handler(self, chunks, selector, fields, size, ftype):
+    def _read_fluid_selection(self, chunks, selector, fields, size):
         tr = defaultdict(list)
 
+        # Set of field types
+        ftypes = set(f[0] for f in fields)
         for chunk in chunks:
-            for subset in chunk.objs:
-                fname = None
-                for fh in subset.domain.field_handlers:
-                    if fh.ftype == ftype:
-                        file_handler = fh
-                        fname = fh.fname
-                        break
+            # Gather fields by type to minimize i/o operations
+            for ft in ftypes:
+                # Get all the fields of the same type
+                field_subs = list(
+                    filter(lambda f: f[0]==ft, fields))
 
-                if fname is None:
-                    raise YTFieldTypeNotFound(ftype)
+                # Loop over subsets
+                for subset in chunk.objs:
+                    fname = None
+                    for fh in subset.domain.field_handlers:
+                        if fh.ftype == ft:
+                            file_handler = fh
+                            fname = fh.fname
+                            break
 
-                # Now we read the entire thing
-                with FortranFile(fname) as fd:
-                    # This contains the boundary information, so we skim through
-                    # and pick off the right vectors
-                    rv = subset.fill(fd, fields, selector, file_handler)
-                for ft, f in fields:
-                    d = rv.pop(f)
-                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
-                        f, d.size, d.min(), d.max(), d.size)
-                    tr[(ft, f)].append(d)
+                    if fname is None:
+                        raise YTFieldTypeNotFound(ft)
+
+                    # Now we read the entire thing
+                    with FortranFile(fname) as fd:
+                        # This contains the boundary information, so we skim through
+                        # and pick off the right vectors
+                        rv = subset.fill(fd, field_subs, selector, file_handler)
+                    for ft, f in field_subs:
+                        d = rv.pop(f)
+                        mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
+                            f, d.size, d.min(), d.max(), d.size)
+                        tr[(ft, f)].append(d)
         d = {}
         for field in fields:
             d[field] = np.concatenate(tr.pop(field))
-
-        return d
-
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        d = {}
-
-        # Group fields by field type
-        for ft in set(f[0] for f in fields):
-            # Select the fields for the current reader
-            fields_subs = list(
-                filter(lambda f: f[0]==ft,
-                       fields))
-
-            newd = self._generic_fluid_handler(chunks, selector, fields_subs, size,
-                                               ft)
-            d.update(newd)
 
         return d
 
@@ -220,8 +213,6 @@ def _read_part_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile(r'# version: *(\d+)')
-    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping
     mapping = [
@@ -237,7 +228,7 @@ def _read_part_file_descriptor(fname):
         ('family', 'particle_family'),
         ('tag', 'particle_tag')
     ]
-    # Convert in dictionary
+    # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
     with open(fname, 'r') as f:
@@ -277,8 +268,6 @@ def _read_fluid_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile(r'# version: *(\d+)')
-    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping
     mapping = [
@@ -289,7 +278,14 @@ def _read_fluid_file_descriptor(fname):
         ('pressure', 'Pressure'),
         ('metallicity', 'Metallicity'),
     ]
-    # Convert in dictionary
+
+    # Add mapping for magnetic fields
+    mapping += [(key, key) for key in 
+                ('B_{0}_{1}'.format(dim,side) for side in ['left','right'] 
+                 for dim in ['x','y','z'])]  
+
+
+    # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
     with open(fname, 'r') as f:

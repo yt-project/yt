@@ -89,7 +89,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     """
     This method is used inside a script to turn on MPI parallelism, via
     mpi4py.  More information about running yt in parallel can be found
-    here: http://yt-project.org/docs/3.0/analyzing/parallel_computation.html
+    here: https://yt-project.org/docs/3.0/analyzing/parallel_computation.html
 
     Parameters
     ----------
@@ -1211,7 +1211,7 @@ class ParallelAnalysisInterface(object):
         """
         LE, RE = left_edge[:], right_edge[:]
         if not self._distributed:
-            raise NotImplemented
+            raise NotImplementedError
             return LE, RE #, re
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)

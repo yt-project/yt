@@ -17,6 +17,7 @@ Definitions for RAMSES files
 # These functions are RAMSES-specific
 from yt.config import ytcfg
 from yt.funcs import mylog
+import re
 
 def ramses_header(hvals):
     header = ( ('ncpu', 1, 'i'),
@@ -41,7 +42,8 @@ def ramses_header(hvals):
                  ('stat', 3, 'd'),
                  ('cosm', 7, 'd'),
                  ('timing', 5, 'd'),
-                 ('mass_sph', 1, 'd') )
+                 ('mass_sph', 1, 'd', True)
+                 )
     yield next_set
 
 field_aliases = {
@@ -59,6 +61,14 @@ field_aliases = {
 
 }
 
+## Regular expressions used to parse file descriptors
+VERSION_RE = re.compile(r'# version: *(\d+)')
+# This will match comma-separated strings, discarding whitespaces
+# on the left hand side
+VAR_DESC_RE = re.compile(r'\s*([^\s]+),\s*([^\s]+),\s*([^\s]+)')
+
+
+## Configure family mapping
 particle_families = {
     'DM': 1,
     'star': 2,

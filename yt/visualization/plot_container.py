@@ -22,11 +22,8 @@ import numpy as np
 import matplotlib
 import os
 
-from distutils.version import LooseVersion
 from collections import defaultdict
 from functools import wraps
-
-from .tick_locators import LogLocator, LinearLocator
 
 from yt.config import \
     ytcfg
@@ -36,7 +33,8 @@ from yt.funcs import \
     get_image_suffix, \
     iterable, \
     ensure_dir, \
-    ensure_list
+    ensure_list, \
+    issue_deprecation_warning
 from yt.units.unit_lookup_table import \
     prefixable_units, latex_prefixes
 from yt.units.unit_object import \
@@ -117,8 +115,8 @@ def get_log_minorticks(vmin, vmax):
     """
     expA = np.floor(np.log10(vmin))
     expB = np.floor(np.log10(vmax))
-    cofA = np.ceil(vmin/10**expA)
-    cofB = np.floor(vmax/10**expB)
+    cofA = np.ceil(vmin/10**expA).astype("int64")
+    cofB = np.floor(vmax/10**expB).astype("int64")
     lmticks = []
     while cofA*10**expA <= cofB*10**expB:
         if expA < expB:
@@ -157,25 +155,17 @@ field_transforms = {}
 
 
 class FieldTransform(object):
-    def __init__(self, name, func, locator):
+    def __init__(self, name, func):
         self.name = name
         self.func = func
-        self.locator = locator
         field_transforms[name] = self
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
 
-    def ticks(self, mi, ma):
-        try:
-            ticks = self.locator(mi, ma)
-        except:
-            ticks = []
-        return ticks
-
-log_transform = FieldTransform('log10', np.log10, LogLocator())
-linear_transform = FieldTransform('linear', lambda x: x, LinearLocator())
-symlog_transform = FieldTransform('symlog', None, LogLocator())
+log_transform = FieldTransform('log10', np.log10)
+linear_transform = FieldTransform('linear', lambda x: x)
+symlog_transform = FieldTransform('symlog', None)
 
 class PlotDictionary(defaultdict):
     def __getitem__(self, item):
@@ -278,19 +268,24 @@ class PlotContainer(object):
 
     @invalidate_plot
     def set_minorticks(self, field, state):
-        """turn minor ticks on or off in the current plot
+        """Turn minor ticks on or off in the current plot.
 
         Displaying minor ticks reduces performance; turn them off
-        using set_minorticks('all', 'off') if drawing speed is a problem.
+        using set_minorticks('all', False) if drawing speed is a problem.
 
         Parameters
         ----------
         field : string
             the field to remove minorticks
-        state : string
-            the state indicating 'on' or 'off'
+        state : bool
+            the state indicating 'on' (True) or 'off' (False)
 
         """
+        if isinstance(state, str):
+            from yt.funcs import issue_deprecation_warning
+            issue_deprecation_warning("Deprecated api, use bools for *state*.")
+            state = {"on": True, "off": False}[state.lower()]
+
         if field == 'all':
             fields = list(self.plots.keys())
         else:
@@ -344,6 +339,7 @@ class PlotContainer(object):
                 lim = tuple(new_ds.quan(l.value, str(l.units)) for l in lim)
                 setattr(self, lim_name, lim)
         self.plots.data_source = new_object
+        self._background_color.data_source = new_object
         self._colorbar_label.data_source = new_object
         self._setup_plots()
 
@@ -388,7 +384,7 @@ class PlotContainer(object):
               demi, bold, heavy, extra bold, or black
 
             See the matplotlib font manager API documentation for more details.
-            http://matplotlib.org/api/font_manager_api.html
+            https://matplotlib.org/api/font_manager_api.html
 
         Notes
         -----
@@ -649,17 +645,150 @@ class PlotContainer(object):
                     un = Unit(un, registry=self.ds.unit_registry)
                     un = un.latex_representation()
                     if hinv:
-                        un = un + '\,h^{-1}'
+                        un = un + r'\,h^{-1}'
                     if comoving:
-                        un = un + '\,(1+z)^{-1}'
+                        un = un + r'\,(1+z)^{-1}'
                     pp = un[0]
                     if pp in latex_prefixes:
                         symbol_wo_prefix = un[1:]
                         if symbol_wo_prefix in prefixable_units:
                             un = un.replace(
                                 pp, "{"+latex_prefixes[pp]+"}", 1)
-                axes_unit_labels[i] = '\ \ ('+un+')'
+                axes_unit_labels[i] = r'\ \ ('+un+')'
         return axes_unit_labels
+
+    
+    def hide_colorbar(self, field=None):
+        """
+        Hides the colorbar for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
+        PlotContainer object.
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to hide the colorbar. If None
+            is provided, will default to using all fields available for this
+            object.
+
+        Examples
+        --------
+
+        This will save an image with no colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_colorbar()
+        >>> s.save()
+
+        This will save an image with no axis or colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.hide_colorbar()
+        >>> s.save()
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].hide_colorbar()
+        return self
+
+
+    def show_colorbar(self, field=None):
+        """
+        Shows the colorbar for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
+        PlotContainer object.  See hide_colorbar().
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+        The name of the field(s) that we want to show the colorbar.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].show_colorbar()
+        return self
+
+    def hide_axes(self, field=None, draw_frame=False):
+        """
+        Hides the axes for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
+        PlotContainer object.
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to hide the axes.
+
+        draw_frame : boolean
+            If True, the axes frame will still be drawn. Defaults to False.
+            See note below for more details.
+
+        Examples
+        --------
+
+        This will save an image with no axes.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.save()
+
+        This will save an image with no axis or colorbar.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> s = SlicePlot(ds, 2, 'density', 'c', (20, 'kpc'))
+        >>> s.hide_axes()
+        >>> s.hide_colorbar()
+        >>> s.save()
+
+        Note
+        ----
+        By default, when removing the axes, the patch on which the axes are
+        drawn is disabled, making it impossible to later change e.g. the
+        background colour. To force the axes patch to be displayed while still
+        hiding the axes, set the ``draw_frame`` keyword argument to ``True``.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].hide_axes(draw_frame)
+        return self
+
+
+    def show_axes(self, field=None):
+        """
+        Shows the axes for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
+        PlotContainer object.  See hide_axes().
+
+        Parameters
+        ----------
+
+        field : string, field tuple, or list of strings or field tuples (optional)
+            The name of the field(s) that we want to show the axes.
+        """
+        if field is None:
+            field = self.fields
+        field = ensure_list(field)
+        for f in field:
+            self.plots[f].show_axes()
+        return self
+
 
 
 class ImagePlotContainer(PlotContainer):
@@ -676,6 +805,8 @@ class ImagePlotContainer(PlotContainer):
         self._colormaps = defaultdict(
             lambda: ytcfg.get("yt", "default_colormap"))
         self._cbar_minorticks = {}
+        self._background_color = PlotDictionary(
+            self.data_source, lambda: 'w')
         self._colorbar_label = PlotDictionary(
             self.data_source, lambda: None)
 
@@ -729,10 +860,7 @@ class ImagePlotContainer(PlotContainer):
                 except KeyError:
                     cmap = getattr(matplotlib.cm, cmap)
             color = cmap(0)
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            self.plots[actual_field].axes.set_axis_bgcolor(color)
-        else:
-            self.plots[actual_field].axes.set_facecolor(color)
+        self._background_color[actual_field] = color
         return self
 
     @invalidate_plot
@@ -761,7 +889,7 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
-        if field is 'all':
+        if field == 'all':
             fields = list(self.plots.keys())
         else:
             fields = ensure_list(field)
@@ -778,16 +906,17 @@ class ImagePlotContainer(PlotContainer):
                 else:
                     myzmin = myzmax / dynamic_range
 
+            if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
+                self._field_transform[field] = log_transform
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
         return self
 
     @invalidate_plot
     def set_cbar_minorticks(self, field, state):
-        """turn colorbar minor ticks on or off in the current plot
+        """Deprecated alias, kept for backward compatibility.
 
-        Displaying minor ticks reduces performance; turn them off
-        using set_cbar_minorticks('all', 'off') if drawing speed is a problem.
+        turn colorbar minor ticks "on" or "off" in the current plot, according to *state*
 
         Parameters
         ----------
@@ -795,17 +924,32 @@ class ImagePlotContainer(PlotContainer):
             the field to remove colorbar minorticks
         state : string
             the state indicating 'on' or 'off'
+        """
+        issue_deprecation_warning("Deprecated alias, use set_colorbar_minorticks instead.")
 
+        boolstate = {"on": True, "off": False}[state.lower()]
+        return self.set_colorbar_minorticks(field, boolstate)
+
+    @invalidate_plot
+    def set_colorbar_minorticks(self, field, state):
+        """turn colorbar minor ticks on or off in the current plot
+
+        Displaying minor ticks reduces performance; turn them off
+        using set_colorbar_minorticks('all', False) if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove colorbar minorticks
+        state : bool
+            the state indicating 'on' (True) or 'off' (False)
         """
         if field == 'all':
             fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            if state == 'on':
-                self._cbar_minorticks[field] = True
-            else:
-                self._cbar_minorticks[field] = False
+            self._cbar_minorticks[field] = state
         return self
 
     @invalidate_plot

@@ -14,6 +14,7 @@ Subsets of octrees
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from contextlib import contextmanager
 import numpy as np
 
 from yt.data_objects.data_containers import \
@@ -91,8 +92,10 @@ class OctreeSubset(YTSelectionContainer):
         nz = self.nz
         if len(arr.shape) <= 2:
             n_oct = arr.shape[0] // (nz**3)
+        elif arr.shape[-1] == 3:
+            n_oct = arr.shape[-2]
         else:
-            n_oct = max(arr.shape)
+            n_oct = arr.shape[-1]
         if arr.size == nz*nz*nz*n_oct:
             new_shape = (nz, nz, nz, n_oct)
         elif arr.size == nz*nz*nz*n_oct * 3:
@@ -193,6 +196,60 @@ class OctreeSubset(YTSelectionContainer):
         vals = op.finalize()
         if vals is None: return
         return np.asfortranarray(vals)
+
+    def mesh_sampling_particle_field(self, positions, mesh_field, lvlmax=None):
+        r"""Operate on the particles, in a mesh-against-particle
+        fashion, with exclusively local input.
+
+        This uses the octree indexing system to call a "mesh
+        sampling" operation (defined in yt/geometry/particle_deposit.pyx).
+        For each particle, the function returns the value of the cell
+        containing the particle.
+
+        Parameters
+        ----------
+        positions : array_like (Nx3)
+            The positions of all of the particles to be examined.
+        mesh_field : array_like (M,)
+            The value of the field to deposit.
+        lvlmax : array_like (N), optional
+            If provided, the maximum level where to look for cells
+
+        Returns
+        -------
+        List of fortran-ordered, particle-like arrays containing the
+        value of the mesh at the location of the particles.
+        """
+        # Here we perform our particle deposition.
+        npart = positions.shape[0]
+        nocts = (self.domain_ind >= 0).sum()
+        # We allocate number of zones, not number of octs
+        op = particle_deposit.CellIdentifier(npart, 'none')
+        op.initialize(npart)
+        mylog.debug("Depositing %s Octs onto %s (%s^3) particles",
+                    nocts, positions.shape[0], positions.shape[0]**0.3333333)
+        pos = np.asarray(positions.convert_to_units("code_length"),
+                         dtype="float64")
+
+        op.process_octree(self.oct_handler, self.domain_ind, pos, None,
+            self.domain_id, self._domain_offset, lvlmax=lvlmax)
+
+        igrid, icell = op.finalize()
+
+        igrid = np.asfortranarray(igrid)
+        icell = np.asfortranarray(icell)
+
+        # Some particle may fall outside of the local domain, so we
+        # need to be careful here
+        ids = igrid*8 + icell
+        mask = ids >= 0
+
+        # Fill the return array
+        ret = np.empty(npart)
+        ret[ mask] = mesh_field[ids[mask]]
+        ret[~mask] = np.nan
+
+        return ret
 
     def smooth(self, positions, fields = None, index_fields = None,
                method = None, create_octree = False, nneighbors = 64,
@@ -479,6 +536,10 @@ class OctreeSubsetBlockSlicePosition(object):
     def get_vertex_centered_data(self, *args, **kwargs):
         raise NotImplementedError
 
+    @contextmanager
+    def _field_parameter_state(self, field_parameters):
+        yield self.block_slice.octree_subset._field_parameter_state(
+                field_parameters)
 
 class OctreeSubsetBlockSlice(object):
     def __init__(self, octree_subset):

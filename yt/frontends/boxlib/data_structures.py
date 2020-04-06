@@ -1102,8 +1102,9 @@ class CastroDataset(BoxlibDataset):
                 if any(b in line for b in bcs):
                     p, v = line.strip().split(":")
                     self.parameters[p] = v.strip()
-                if "git hash" in line:
-                    # line format: codename git hash:  the-hash
+                if "git describe" in line or "git hash" in line:
+                    # Castro release 17.02 and later - line format: codename git describe:  the-hash
+                    # Castro before release 17.02    - line format: codename git hash:  the-hash
                     fields = line.split(":")
                     self.parameters[fields[0]] = fields[1].strip()
                 line = next(f)
@@ -1113,6 +1114,8 @@ class CastroDataset(BoxlibDataset):
             # skip the "====..." line
             line = next(f)
             for line in f:
+                if line.strip() == "" or "fortin parameters" in line:
+                    continue
                 p, v = line.strip().split("=")
                 self.parameters[p] = v.strip()
 
@@ -1309,7 +1312,7 @@ class NyxDataset(BoxlibDataset):
 
         # alias
         self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
-        if os.path.isdir(os.path.join(self.output_dir, "DM")):
+        if os.path.isfile(os.path.join(self.output_dir, "DM/Header")):
             # we have particles
             self.parameters["particles"] = 1 
             self.particle_types = ("DM",)
@@ -1329,7 +1332,7 @@ def _guess_pcast(vals):
     v = vals.split()[0]
     try:
         float(v.upper().replace("D", "E"))
-    except:
+    except Exception:
         pcast = str
         if v in ("F", "T"):
             pcast = bool
@@ -1350,7 +1353,7 @@ def _guess_pcast(vals):
 
 def _read_raw_field_names(raw_file):
     header_files = glob.glob(raw_file + "*_H")
-    return [hf.split("/")[-1][:-2] for hf in header_files]
+    return [hf.split(os.sep)[-1][:-2] for hf in header_files]
 
 
 def _string_to_numpy_array(s):
@@ -1380,10 +1383,18 @@ def _read_header(raw_file, field):
         header_file = level_file + "/" + field + "_H"
         with open(header_file, "r") as f:
         
-            # skip the first five lines
-            for _ in range(5):
-                f.readline()
-
+            f.readline()  # version
+            f.readline()  # how
+            f.readline()  # ncomp
+            nghost_lines = f.readline().strip().split()
+            try:
+                ng = int(nghost_lines[0])
+                nghost = np.array([ng, ng, ng])
+            except ValueError:
+                nghosts = nghost_lines[0][1:-1].split(",")
+                nghost = np.array([int(ng) for ng in nghosts])
+            f.readline()  # num boxes
+            
             # read boxes
             boxes = []
             for line in f:
@@ -1406,7 +1417,7 @@ def _read_header(raw_file, field):
             all_file_names += file_names
             all_offsets += offsets
 
-    return all_boxes, all_file_names, all_offsets
+    return nghost, all_boxes, all_file_names, all_offsets
 
 
 class WarpXHeader(object):
@@ -1446,6 +1457,9 @@ class WarpXHeader(object):
             line = f.readline()
             while line:
                 line = line.strip().split()
+                if (len(line) == 1):
+                    line = f.readline()
+                    continue
                 self.data["species_%d" % i] = [float(val) for val in line]
                 i = i + 1
                 line = f.readline()
@@ -1480,9 +1494,11 @@ class WarpXHierarchy(BoxlibHierarchy):
         self.field_list += [('raw', f) for f in self.raw_fields]
         self.raw_field_map = {}
         self.ds.nodal_flags = {}
+        self.raw_field_nghost = {}
         for field_name in self.raw_fields:
-            boxes, file_names, offsets = _read_header(self.raw_file, field_name)
-            self.raw_field_map[field_name] = (boxes, file_names, offsets) 
+            nghost, boxes, file_names, offsets = _read_header(self.raw_file, field_name)
+            self.raw_field_map[field_name] = (boxes, file_names, offsets)
+            self.raw_field_nghost[field_name] = nghost
             self.ds.nodal_flags[field_name] = np.array(boxes[0][2])
 
 
@@ -1558,16 +1574,16 @@ class WarpXDataset(BoxlibDataset):
             periodicity += [True]  # pad to 3D
         self.periodicity = ensure_tuple(periodicity)
 
-        
-
-        species_list = []
-        species_dirs = glob.glob(self.output_dir + "/particle*")
-        for species in species_dirs:
-            species_list.append(species[len(self.output_dir)+1:])
-        self.particle_types = tuple(species_list)
-        self.particle_types_raw = self.particle_types
-
-
+        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
+        if len(particle_types) > 0:
+            self.parameters["particles"] = 1
+            self.particle_types = tuple(particle_types)
+            self.particle_types_raw = self.particle_types
+        else:
+            self.particle_types = ()
+            self.particle_types_raw = ()
+            
     def _set_code_unit_attributes(self):
         setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))
         setdefaultattr(self, 'mass_unit', self.quan(1.0, "kg"))
@@ -1609,7 +1625,7 @@ class AMReXDataset(BoxlibDataset):
     def _parse_parameter_file(self):
         super(AMReXDataset, self)._parse_parameter_file()
         particle_types = glob.glob(self.output_dir + "/*/Header")
-        particle_types = [cpt.split("/")[-2] for cpt in particle_types]
+        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)

@@ -20,7 +20,7 @@ How can I tell what version of yt I'm using?
 If you run into problems with yt and you're writing to the mailing list
 or contacting developers on IRC, they will likely want to know what version of
 yt you're using.  Oftentimes, you'll want to know both the yt version,
-as well as the last changeset that was comitted to the branch you're using.
+as well as the last changeset that was committed to the branch you're using.
 To reveal this, go to a command line and type:
 
 .. code-block:: bash
@@ -124,7 +124,7 @@ cc is the mpi-enabled C compiler (and it is in my path), so I run:
 And voila!  It installs!  If this *still* fails for you, then you can
 build and install from source and specify the mpi-enabled c and c++
 compilers in the mpi.cfg file.  See the
-`mpi4py installation page <http://mpi4py.scipy.org/docs/usrman/install.html>`_
+`mpi4py installation page <https://mpi4py.readthedocs.io/en/stable/install.html>`_
 for details.
 
 
@@ -176,7 +176,7 @@ units, you can convert it to a YTQuantity with units of ``kpc`` by running:
 
     x = x*ds.length_unit.in_units('kpc')
 
-For more information about unit conversion, see :ref:`data_selection_and_fields`.
+For more information about unit conversion, see :ref:`units`.
 
 How do I make a YTQuantity tied to a specific dataset's units?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -200,7 +200,7 @@ You can then naturally exploit the units system:
     print("One Mpc in AU:", one_Mpc.in_units('AU'))
     print("One Mpc in comoving kpc:", one_Mpc.in_units('kpccm'))
 
-For more information about unit conversion, see :ref:`data_selection_and_fields`.
+For more information about unit conversion, see :ref:`units`.
 
 .. _accessing-unitless-data:
 
@@ -240,7 +240,7 @@ attribute, which returns the data itself:
 
     2.0
 
-For more information about this functionality with units, see :ref:`data_selection_and_fields`.
+For more information about this functionality with units, see :ref:`units`.
 
 Fields
 ------
@@ -370,7 +370,7 @@ Miscellaneous
 How can I get some sample data for yt?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Many different sample datasets can be found at http://yt-project.org/data/ .
+Many different sample datasets can be found at https://yt-project.org/data/ .
 These can be downloaded, unarchived, and they will each create their own
 directory.  It is generally straight forward to load these datasets, but if
 you have any questions about loading data from a code with which you are
@@ -469,7 +469,7 @@ How do I cite yt?
 
 If you use yt in a publication, we'd very much appreciate a citation!  You
 should feel free to cite the `ApJS paper
-<http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_ with the following BibTeX
+<https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T>`_ with the following BibTeX
 entry: ::
 
    @ARTICLE{2011ApJS..192....9T,
@@ -487,6 +487,6 @@ entry: ::
          eid = {9},
        pages = {9},
          doi = {10.1088/0067-0049/192/1/9},
-      adsurl = {http://adsabs.harvard.edu/abs/2011ApJS..192....9T},
+      adsurl = {https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T},
      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
    }

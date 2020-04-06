@@ -114,13 +114,6 @@ def test_point_from_r():
     assert_equal(str(ex.exception),
                  'Dimensionality specified was 2 but we need 3')
 
-    # Test with ds.dimensionality != 3
-    ds = fake_random_ds([32, 32, 1])
-    with assert_raises(YTDimensionalityError) as ex:
-        ds.r[0.5,0.3]
-    assert_equal(str(ex.exception),
-                 'Dimensionality specified was 2 but we need 3')
-
 def test_ray_from_r():
     ds = fake_amr_ds(fields = ["density"])
     ray1 = ds.r[(0.1,0.2,0.3):(0.4,0.5,0.6)]

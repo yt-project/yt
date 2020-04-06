@@ -58,9 +58,6 @@ class RegionExpression(object):
             # implicitly.  Note that this happens *after* the implicit expansion
             # of a single slice.
             raise YTDimensionalityError(len(item), self.ds.dimensionality)
-        if self.ds.dimensionality != 3:
-            # We'll pass on this for the time being.
-            raise YTDimensionalityError(self.ds.dimensionality, '3')
 
         # OK, now we need to look at our slices.  How many are a specific
         # coordinate?
@@ -101,6 +98,12 @@ class RegionExpression(object):
             else:
                 new_slice.append(v)
         # This new slice doesn't need to be a tuple
+        dim = self.ds.dimensionality
+        if dim < 2:
+            raise ValueError("Can not create a slice from data with dimensionality '%d'" % dim)
+        if dim == 2:
+            coord = self.ds.domain_center[2]
+            axis = 2
         source = self._create_region(new_slice)
         sl = self.ds.slice(axis, coord, data_source = source)
         # Now, there's the possibility that what we're also seeing here
@@ -136,13 +139,13 @@ class RegionExpression(object):
         return l, r
 
     def _create_region(self, bounds_tuple):
-        left_edge = []
-        right_edge = []
+        left_edge = self.ds.domain_left_edge.copy()
+        right_edge = self.ds.domain_right_edge.copy()
         dims = []
         for ax, b in enumerate(bounds_tuple):
             l, r = self._slice_to_edges(ax, b)
-            left_edge.append(l)
-            right_edge.append(r)
+            left_edge[ax] = l
+            right_edge[ax] = r
             dims.append(getattr(b.step, "imag", None))
         center = [ (cl + cr)/2.0 for cl, cr in zip(left_edge, right_edge)]
         if all(d is not None for d in dims):

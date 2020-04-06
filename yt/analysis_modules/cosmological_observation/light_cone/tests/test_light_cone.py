@@ -31,7 +31,6 @@ from yt.utilities.answer_testing.framework import \
 
 ETC = "enzo_tiny_cosmology/32Mpc_32.enzo"
 
-@requires_module("h5py")
 class LightConeProjectionTest(AnswerTestingTest):
     _type_name = "LightConeProjection"
     _attrs = ()
@@ -45,6 +44,7 @@ class LightConeProjectionTest(AnswerTestingTest):
     def storage_name(self):
         return os.path.basename(self.parameter_file)
 
+    @requires_module("h5py")
     def run(self):
         # Set up in a temp dir
         tmpdir = tempfile.mkdtemp()

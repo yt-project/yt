@@ -15,19 +15,31 @@ Gadget frontend tests
 #-----------------------------------------------------------------------------
 
 from collections import OrderedDict
+from itertools import product
+import os
+import shutil
+import tempfile
 
+import yt
 from yt.testing import requires_file
 from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     requires_ds, \
     sph_answer
 from yt.frontends.gadget.api import GadgetHDF5Dataset, GadgetDataset
+from yt.frontends.gadget.testing import fake_gadget_binary
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"
 BE_Gadget = "BigEndianGadgetBinary/BigEndianGadgetBinary"
 LE_SnapFormat2 = "Gadget3-snap-format2/Gadget3-snap-format2"
-keplerian_ring = "KeplerianRing/keplerian_ring_test_data.hdf5"
+keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
+
+# py2/py3 compat
+try:
+    FileNotFoundError
+except NameError:
+    FileNotFoundError = IOError
 
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
@@ -45,17 +57,32 @@ iso_fields = OrderedDict(
 iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
 
+def test_gadget_binary():
+    header_specs = ['default', 'default+pad32', ['default', 'pad32']]
+    curdir = os.getcwd()
+    tmpdir = tempfile.mkdtemp()
+    for header_spec, endian, fmt in product(header_specs, '<>', [1, 2]):
+        fake_snap = fake_gadget_binary(
+            header_spec=header_spec,
+            endian=endian,
+            fmt=fmt
+        )
+        ds = yt.load(fake_snap, header_spec=header_spec)
+        assert isinstance(ds, GadgetDataset)
+        ds.field_list
+        try:
+            os.remove(fake_snap)
+        except FileNotFoundError:
+            # sometimes this happens for mysterious reasons
+            pass
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+
 @requires_file(isothermal_h5)
-@requires_file(isothermal_bin)
-@requires_file(BE_Gadget)
-@requires_file(LE_SnapFormat2)
-def test_gadget_dataset():
+def test_gadget_hdf5():
     assert isinstance(data_dir_load(isothermal_h5, kwargs=iso_kwargs),
                       GadgetHDF5Dataset)
-    assert isinstance(data_dir_load(isothermal_bin, kwargs=iso_kwargs),
-                      GadgetDataset)
-    assert isinstance(data_dir_load(BE_Gadget), GadgetDataset)
-    assert isinstance(data_dir_load(LE_SnapFormat2), GadgetDataset)
 
 
 @requires_file(keplerian_ring)
@@ -87,3 +114,9 @@ def test_pid_uniqueness():
     ad = ds.all_data()
     pid = ad['ParticleIDs']
     assert len(pid) == len(set(pid.v))
+
+@requires_ds(BE_Gadget)
+def test_bigendian_field_access():
+    ds = data_dir_load(BE_Gadget)
+    data = ds.all_data()
+    data['Halo', 'Velocities']

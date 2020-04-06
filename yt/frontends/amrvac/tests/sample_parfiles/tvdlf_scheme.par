@@ -1,0 +1,10 @@
+! This is a fake example modifier parfile that can be used as an
+! extension to bw_3d.par in order to change the integrator scheme.
+! This file is here for testing.
+
+&methodlist
+    flux_scheme= 20*'tvdlf'
+/
+&filelist
+    base_filename='_tvdlf'
+/

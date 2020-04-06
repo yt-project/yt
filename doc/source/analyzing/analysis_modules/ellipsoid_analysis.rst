@@ -137,7 +137,7 @@ cut.  Many things listed here will be amended when I have time.
   center of mass that contains all the particles, but sometimes people
   prefer an inertial tensor triaxial ellipsoid described in
   `Dubinski, Carlberg 1991
-  <http://adsabs.harvard.edu/abs/1991ApJ...378..496D>`_.  I have that
+  <https://ui.adsabs.harvard.edu/abs/1991ApJ...378..496D>`_.  I have that
   method composed but it is not fully tested yet.
 * The method to obtain information from the halo still uses the center
   of mass as the center of the ellipsoid, so it is not making the

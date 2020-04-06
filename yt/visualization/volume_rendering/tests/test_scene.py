@@ -97,6 +97,9 @@ class RotationTest(TestCase):
 
 def test_annotations():
     from matplotlib.image import imread
+    curdir = os.getcwd()
+    tmpdir = tempfile.mkdtemp()
+    os.chdir(tmpdir)
     ds = fake_vr_orientation_test_ds(N=16)
     sc = create_scene(ds)
     sc.annotate_axes()
@@ -111,4 +114,5 @@ def test_annotations():
     sc.save_annotated('test_scene_annotated.png', text_annotate=[[(.1, 1.05), "test_string"]])
     image = imread('test_scene_annotated.png')
     assert image.shape == sc.camera.resolution + (4,)
-    os.remove('test_scene_annotated.png')
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)

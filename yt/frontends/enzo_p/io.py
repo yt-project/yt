@@ -21,9 +21,6 @@ from yt.extern.six import b, iteritems
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
-
-_convert_mass = ("particle_mass","mass")
-
 _particle_position_names = {}
 
 class EnzoPIOHandler(BaseIOHandler):
@@ -31,6 +28,7 @@ class EnzoPIOHandler(BaseIOHandler):
     _dataset_type = "enzo_p"
     _base = slice(None)
     _field_dtype = "float64"
+    _sep = "_"
 
     def __init__(self, *args, **kwargs):
         super(EnzoPIOHandler, self).__init__(*args, **kwargs)
@@ -48,19 +46,27 @@ class EnzoPIOHandler(BaseIOHandler):
                 message="Grid %s is missing from data file %s." %
                 (grid.block_name, grid.filename), ds=self.ds)
         fields = []
-        dtypes = set([])
+        ptypes = set()
+        dtypes = set()
+        # keep one field for each particle type so we can count later
+        sample_pfields = {}
         for name, v in iteritems(group):
             if not hasattr(v, "shape") or v.dtype == "O":
                 continue
             # mesh fields are "field <name>"
             if name.startswith("field"):
-                dummy, fname = name.split(" ", 1)
+                _, fname = name.split(self._sep, 1)
                 fields.append(("enzop", fname))
                 dtypes.add(v.dtype)
             # particle fields are "particle <type> <name>"
             else:
-                dummy, ftype, fname = name.split(" ", 2)
+                _, ftype, fname = name.split(self._sep, 2)
                 fields.append((ftype, fname))
+                ptypes.add(ftype)
+                dtypes.add(v.dtype)
+                if ftype not in sample_pfields:
+                    sample_pfields[ftype] = fname
+        self.sample_pfields = sample_pfields
 
         if len(dtypes) == 1:
             # Now, if everything we saw was the same dtype, we can go ahead and
@@ -71,7 +77,7 @@ class EnzoPIOHandler(BaseIOHandler):
             # okay for now.
             self._field_dtype = list(dtypes)[0]
         f.close()
-        return fields
+        return fields, ptypes
 
     def _read_particle_coords(self, chunks, ptf):
         for rv in self._read_particle_fields(chunks, ptf, None):
@@ -79,37 +85,47 @@ class EnzoPIOHandler(BaseIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
+        dc = self.ds.domain_center.in_units("code_length").d
         for chunk in chunks: # These should be organized by grid filename
             f = None
             for g in chunk.objs:
-                if g.filename is None: continue
+                if g.filename is None:
+                    continue
                 if f is None:
                     f = h5py.File(g.filename, "r")
-                nap = sum(g.NumberOfActiveParticles.values())
-                if g.NumberOfParticles == 0 and nap == 0:
+                if g.particle_count is None:
+                    fnstr = "%s/%s" % \
+                      (g.block_name, self._sep.join(["particle", "%s", "%s"]))
+                    g.particle_count = \
+                      dict((ptype, f.get(fnstr %
+                            (ptype, self.sample_pfields[ptype])).size)
+                            for ptype in self.sample_pfields)
+                    g.total_particles = sum(g.particle_count.values())
+                if g.total_particles == 0:
                     continue
-                ds = f.get(g.block_name)
+                group = f.get(g.block_name)
                 for ptype, field_list in sorted(ptf.items()):
-                    if ptype != "io":
-                        if g.NumberOfActiveParticles[ptype] == 0: continue
-                        pds = ds.get("Particles/%s" % ptype)
-                    else:
-                        pds = ds
-                    pn = _particle_position_names.get(ptype,
-                            r"particle_position_%s")
-                    x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
-                               for ax in 'xyz')
+                    pn = self._sep.join(
+                        ["particle", ptype, "%s"])
+                    if g.particle_count[ptype] == 0:
+                        continue
+                    coords = \
+                      tuple(np.asarray(group.get(pn % ax)[()], dtype="=f8")
+                            for ax in 'xyz'[:self.ds.dimensionality])
+                    for i in range(self.ds.dimensionality, 3):
+                        coords += \
+                          (dc[i] * np.ones(g.particle_count[ptype], dtype="f8"),)
                     if selector is None:
                         # This only ever happens if the call is made from
                         # _read_particle_coords.
-                        yield ptype, (x, y, z)
+                        yield ptype, coords
                         continue
-                    mask = selector.select_points(x, y, z, 0.0)
-                    if mask is None: continue
+                    coords += (0.0,)
+                    mask = selector.select_points(*coords)
+                    if mask is None:
+                        continue
                     for field in field_list:
-                        data = np.asarray(pds.get(field).value, "=f8")
-                        if field in _convert_mass:
-                            data *= g.dds.prod(dtype="f8")
+                        data = np.asarray(group.get(pn % field)[()], "=f8")
                         yield (ptype, field), data[mask]
             if f: f.close()
 
@@ -144,9 +160,9 @@ class EnzoPIOHandler(BaseIOHandler):
         else:
             close = False
         ftype, fname = field
-        node = "/%s/field %s" % (obj.block_name, fname)
+        node = "/%s/field%s%s" % (obj.block_name, self._sep, fname)
         dg = h5py.h5d.open(fid, b(node))
-        rdata = np.empty(self.ds.grid_dimensions[:self.ds.dimensionality],
+        rdata = np.empty(self.ds.grid_dimensions[:self.ds.dimensionality][::-1],
                          dtype=self._field_dtype)
         dg.read(h5py.h5s.ALL, h5py.h5s.ALL, rdata)
         if close:

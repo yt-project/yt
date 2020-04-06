@@ -129,8 +129,7 @@ class Index(ParallelAnalysisInterface):
                 del self._data_file[node][name]
             elif name in node_loc and passthrough:
                 return
-        except:
-            pass
+        except Exception: pass
         myGroup = self._data_file['/']
         for q in node.split('/'):
             if q: myGroup = myGroup.require_group(q)
@@ -447,3 +446,10 @@ class ChunkDataCache(object):
         g = self.queue.pop(0)
         g._initialize_cache(self.cache.pop(g.id, {}))
         return g
+
+def is_curvilinear(geo):
+    # tell geometry is curvilinear or not
+    if geo in ["polar", "cylindrical", "spherical"]:
+        return True
+    else:
+        return False

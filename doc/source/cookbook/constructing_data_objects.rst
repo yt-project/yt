@@ -21,7 +21,8 @@ Identifying Clumps
 This is a recipe to show how to find topologically connected sets of cells
 inside a dataset.  It returns these clumps and they can be inspected or
 visualized as would any other data object.  More detail on this method can be
-found in `astro-ph/0806.1653`.
+found in `Smith et al. 2009
+<https://ui.adsabs.harvard.edu/abs/2009ApJ...691..441S>`_.
 
 .. yt_cookbook:: find_clumps.py
 

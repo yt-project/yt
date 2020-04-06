@@ -72,8 +72,8 @@ used if you simply need to access the NumPy arrays:
     ad = ds.all_data()
     overpressure_and_fast = (ad["pressure"] > 1e-14) & (ad["velocity_magnitude"].in_units('km/s') > 1e2)
     print('Density of all data: ad["density"] = \n%s' % ad['density'])
-    print('Density of "overpressure and fast" data: ad["density"][overpressure_and_fast] = \n%s' %
-          ad['density'][overpressure_and_fast])
+    print('Density of "overpressure and fast" data: overpressure_and_fast['density'] = \n%s' %
+          overpressure_and_fast['density'])
 
 .. _cut-regions:
 
@@ -86,7 +86,39 @@ other data object to generate images, examine its values, etc.
 
 .. notebook:: mesh_filter.ipynb
 
-Cut regions can also operator on particle fields, but a single cut region object
+In addition to inputting string parameters into cut_region to specify filters,
+wrapper functions exist that allow the user to use a simplified syntax for
+filtering out unwanted regions. Such wrapper functions are methods of
+:func: ``YTSelectionContainer3D``.
+
+.. notebook-cell::
+
+   import yt
+   ds = yt.load('Enzo_64/DD0042/data0042')
+   ad = ds.all_data()
+   overpressure_and_fast = ad.include_above('pressure', 1e-14)
+   # You can chain include_xx and exclude_xx to produce the intersection of cut regions
+   overpressure_and_fast = overpressure_and_fast.include_above('velocity_magnitude', 1e2, 'km/s')
+
+   print('Density of all data: ad["density"] = \n%s' % ad['density'])
+   print('Density of "overpressure and fast" data: overpressure_and_fast['density'] = \n%s' %
+          overpressure_and_fast['density'])
+
+The following exclude and include functions are supported:
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_equal` - Only include values equal to given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_equal`- Exclude values equal to given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_inside` - Only include values inside closed interval
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_inside` - Exclude values inside closed interval
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_outside` - Only include values outside closed interval
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_outside` - Exclude values outside closed interval 
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_nan` - Exclude NaN values
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_above` - Only include values above given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_above` - Exclude values above given value
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_below` - Only include values below given balue
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_below` - Exclude values below given value
+
+   
+Cut regions can also operate on particle fields, but a single cut region object
 cannot operate on both particle fields and mesh fields at the same time.
 
 .. _filtering-particles:
@@ -184,7 +216,6 @@ to the dataset, it will also add ``stars`` filter to the dataset.
     import yt
     ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     ds.add_particle_filter('young_stars')
-
 
 
 .. notebook:: particle_filter.ipynb

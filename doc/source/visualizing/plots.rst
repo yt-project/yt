@@ -9,7 +9,7 @@ of simulation data, derived fields, and the data produced by yt
 analysis objects.  For details about the data extraction and
 algorithms used to produce the image and analysis data, please see the
 yt `method paper
-<http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_.  There are also
+<https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T>`_.  There are also
 many example scripts in :ref:`cookbook`.
 
 The :class:`~yt.visualization.plot_window.PlotWindow` interface is useful for
@@ -61,8 +61,8 @@ of fixed size. This is accomplished behind the scenes using
 
 The :class:`~yt.visualization.plot_window.PlotWindow` class exposes the
 underlying matplotlib
-`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
-and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
 objects, making it easy to customize your plots and
 add new annotations.  See :ref:`matplotlib-customization` for more information.
 
@@ -805,7 +805,7 @@ The minorticks may be removed using the
 :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_minorticks`
 function, which either accepts a specific field name including the 'all' alias
 and the desired state for the plot as 'on' or 'off'. There is also an analogous
-:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_cbar_minorticks`
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_colorbar_minorticks`
 function for the colorbar axis.
 
 .. python-script::
@@ -813,8 +813,8 @@ function for the colorbar axis.
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
-   slc.set_minorticks('all', 'off')
-   slc.set_cbar_minorticks('all', 'off')
+   slc.set_minorticks('all', False)
+   slc.set_colorbar_minorticks('all', False)
    slc.save()
 
 
@@ -837,8 +837,8 @@ accessed via the ``plots`` dictionary attached to each
 In this example ``dens_plot`` is an instance of
 :class:`~yt.visualization.plot_window.WindowPlotMPL`, an object that wraps the
 matplotlib
-`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
-and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
 objects.  We can access these matplotlib primitives via attributes of
 ``dens_plot``.
 
@@ -849,8 +849,8 @@ objects.  We can access these matplotlib primitives via attributes of
     colorbar_axes = dens_plot.cax
 
 These are the
-`figure <http://matplotlib.org/api/figure_api.html#matplotlib.figure.Figure>`_
-and `axes <http://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
 objects that control the actual drawing of the plot.  Arbitrary plot
 customizations are possible by manipulating these objects.  See
 :ref:`matplotlib-primitives` for an example.
@@ -1097,7 +1097,7 @@ function of radius. The xlabel is set to "Radius", for all plots, and the ylabel
    plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
                     weight_field=None)
    plot.set_xlabel("Radius")
-   plot.set_ylabel("x-velocity", "velocity in x direction")
+   plot.set_ylabel("velocity_x", "velocity in x direction")
    plot.save()
 
 Adding plot title
@@ -1320,7 +1320,10 @@ Customizing Phase Plots
 Similarly to 1D profile plots, :class:`~yt.visualization.profile_plotter.PhasePlot`
 can be customized via ``set_unit``,
 ``set_xlim``, ``set_ylim``, and ``set_zlim``.  The following example illustrates
-how to manipulate these functions.
+how to manipulate these functions. :class:`~yt.visualization.profile_plotter.PhasePlot`
+can also be customized in a similar manner as 
+:class:`~yt.visualization.plot_window.SlicePlot`, such as with ``hide_colorbar``
+and ``show_colorbar``.
 
 .. python-script::
 
@@ -1404,6 +1407,12 @@ plot that shows the x and y positions of all the particles in ``ds`` and save th
 result to a file on the disk. The type of plot returned depends on the fields you
 pass in; in this case, ``p`` will be an :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`,
 because the fields are aligned to the coordinate system of the simulation.
+The above example is equivalent to the following:
+
+.. code-block:: python
+
+   p = yt.ParticleProjectionPlot(ds, 'z')
+   p.save()
 
 Most of the callbacks the work for slice and projection plots also work for
 :class:`~yt.visualization.particle_plots.ParticleProjectionPlot`.
@@ -1438,21 +1447,40 @@ Here is a full example that shows the simplest way to use
    p.save()
 
 In the above examples, we are simply splatting particle x and y positions onto
-a plot using some color. We can also supply an additional particle field, and map
-that to a colorbar. For instance:
+a plot using some color. Colors can be applied to the plotted particles by
+providing a ``z_field``, which will be summed along the line of sight in a manner
+similar to a projection.
 
-.. code-block:: python
+.. python-script::
 
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
    p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y',
-                           'particle_mass', width=(0.5, 0.5))
+                       'particle_mass')
    p.set_unit('particle_mass', 'Msun')
+   p.zoom(32)
    p.save()
 
-will create a plot with the particle mass used to set the colorbar.
-Specifically, :class:`~yt.visualization.particle_plots.ParticlePlot`
-shows the total ``z_field`` for all the particles in each pixel on the
-colorbar axis; to plot average quantities instead, one can supply a
-``weight_field`` argument.
+Additionally, a ``weight_field`` can be given such that the value in each
+pixel is the weighted average along the line of sight.
+
+.. python-script::
+
+   import yt
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+   p = yt.ParticlePlot(ds, 'particle_position_x', 'particle_position_y',
+                       'particle_mass', weight_field='particle_ones')
+   p.set_unit('particle_mass', 'Msun')
+   p.zoom(32)
+   p.save()
+
+Note the difference in the above two plots. The first shows the
+total mass along the line of sight. The density is higher in the
+inner regions, and hence there are more particles and more mass along
+the line of sight. The second plot shows the average mass per particle
+along the line of sight. The inner region is dominated by low mass
+star particles, whereas the outer region is comprised of higher mass
+dark matter particles.
 
 Here is a complete example that uses the ``particle_mass`` field
 to set the colorbar and shows off some of the modification functions for
@@ -1767,7 +1795,7 @@ visualize your data, publishers often require figures to be in PDF or
 EPS format.  While the matplotlib supports vector graphics and image
 compression in PDF formats, it does not support compression in EPS
 formats.  The :class:`~yt.visualization.eps_writer.DualEPS` module
-provides an interface with the `PyX <http://pyx.sourceforge.net/>`_,
+provides an interface with the `PyX <https://pyx-project.org/>`_,
 which is a Python abstraction of the PostScript drawing model with a
 LaTeX interface.  It is optimal for publications to provide figures
 with vector graphics to avoid rasterization of the lines and text,
@@ -1795,7 +1823,7 @@ EPS or PDF figure.  For example,
 
 The ``eps_fig`` object exposes all of the low-level functionality of
 ``PyX`` for further customization (see the `PyX documentation
-<http://pyx.sourceforge.net/manual/index.html>`_).  There are a few
+<https://pyx-project.org/manual/>`_).  There are a few
 convenience routines in ``eps_writer``, such as drawing a circle,
 
 .. code-block:: python

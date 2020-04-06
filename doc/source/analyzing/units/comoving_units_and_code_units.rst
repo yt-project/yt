@@ -30,7 +30,7 @@ Using the parsec as an example,
     Comoving parsecs, :math:`\rm{pc}/(1+z)`.
 
 ``pccm/h``
-    Comoving parsecs normalized by the scaled hubble constant, :math:`\rm{pc}/h/(1+z)`.
+    Comoving parsecs normalized by the scaled Hubble constant, :math:`\rm{pc}/h/(1+z)`.
 
 ``pc/h``
-    Proper parsecs, normalized by the scaled hubble constant, :math:`\rm{pc}/h`.
+    Proper parsecs, normalized by the scaled Hubble constant, :math:`\rm{pc}/h`.

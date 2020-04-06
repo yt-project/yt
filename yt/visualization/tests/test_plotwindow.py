@@ -23,6 +23,7 @@ from distutils.version import LooseVersion
 from nose.tools import assert_true
 
 from yt.testing import \
+    requires_file, \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
     assert_array_almost_equal, assert_raises, assert_fname
 from yt.utilities.answer_testing.framework import \
@@ -43,8 +44,7 @@ def setup():
     ytcfg["yt", "__withintesting"] = "True"
 
 
-TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
-              'test.ps', 'test.pdf']
+TEST_FLNMS = ['test.png']
 M7 = "DD0010/moving7_0010"
 WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
@@ -297,7 +297,7 @@ class TestPlotWindowSave(unittest.TestCase):
         for dim in range(3):
             slc = SlicePlot(test_ds, dim, 'density')
             for fname in TEST_FLNMS:
-                assert assert_fname(slc.save(fname)[0])
+                assert_fname(slc.save(fname)[0])
 
     def test_repr_html(self):
         test_ds = fake_random_ds(16)
@@ -309,7 +309,7 @@ class TestPlotWindowSave(unittest.TestCase):
         for dim in range(3):
             proj = ProjectionPlot(test_ds, dim, 'density')
             for fname in TEST_FLNMS:
-                assert assert_fname(proj.save(fname)[0])
+                assert_fname(proj.save(fname)[0])
 
     def test_projection_plot_ds(self):
         test_ds = fake_random_ds(16)
@@ -340,13 +340,13 @@ class TestPlotWindowSave(unittest.TestCase):
         test_ds = fake_random_ds(16)
         slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
         for fname in TEST_FLNMS:
-            assert assert_fname(slc.save(fname)[0])
+            assert_fname(slc.save(fname)[0])
 
     def test_offaxis_projection_plot(self):
         test_ds = fake_random_ds(16)
         prj = OffAxisProjectionPlot(test_ds, [1, 1, 1], "density")
         for fname in TEST_FLNMS:
-            assert assert_fname(prj.save(fname)[0])
+            assert_fname(prj.save(fname)[0])
 
     def test_creation_with_width(self):
         test_ds = fake_random_ds(16)
@@ -461,6 +461,7 @@ def test_set_background_color():
     plot = SlicePlot(ds, 2, 'density')
     for field in ['density', ('gas', 'density')]:
         plot.set_background_color(field, 'red')
+        plot._setup_plots()
         ax = plot.plots[field].axes
         if LooseVersion(matplotlib.__version__) < LooseVersion('2.0.0'):
             assert_equal(ax.get_axis_bgcolor(), 'red')
@@ -510,8 +511,10 @@ def test_set_unit():
     assert str(slc.frb['gas', 'temperature'].units) == 'keV'
 
 WD = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
+blast_wave = "amrvac/bw_2d0000.dat"
 
-@requires_ds(WD)
+@requires_file(WD)
+@requires_file(blast_wave)
 def test_plot_2d():
     # Cartesian
     ds = fake_random_ds((32,32,1), fields=('temperature',), units=('K',))
@@ -527,6 +530,12 @@ def test_plot_2d():
     ds = data_dir_load(WD)
     slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
     slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
+    assert_array_equal(slc.frb['density'], slc2.frb['density'])
+
+    # Spherical
+    ds = data_dir_load(blast_wave)
+    slc = SlicePlot(ds, "phi", ["density"], width=(1, "unitary"))
+    slc2 = plot_2d(ds, "density", width=(1, "unitary"))
     assert_array_equal(slc.frb['density'], slc2.frb['density'])
 
 def test_symlog_colorbar():
@@ -551,3 +560,16 @@ def test_symlog_colorbar():
         plot.set_log(field, True, linthresh=0.1)
         with tempfile.NamedTemporaryFile(suffix='png') as f:
             plot.save(f.name)
+
+def test_nan_data():
+    data = np.random.random((16, 16, 16)) - 0.5
+    data[:9, :9, :9] = np.nan
+
+    data = {'density': data}
+
+    ds = load_uniform_grid(data, [16, 16, 16])
+
+    plot = SlicePlot(ds, 'z', 'density')
+
+    with tempfile.NamedTemporaryFile(suffix='png') as f:
+        plot.save(f.name)

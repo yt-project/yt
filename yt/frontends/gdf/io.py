@@ -49,9 +49,9 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             gds = h5f.get(_grid_dname(grid.id))
             for ftype, fname in fields:
                 if self.ds.field_ordering == 1:
-                    rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0, 2)
+                    rv[(ftype, fname)] = gds.get(fname)[()].swapaxes(0, 2)
                 else:
-                    rv[(ftype, fname)] = gds.get(fname).value
+                    rv[(ftype, fname)] = gds.get(fname)[()]
             h5f.close()
             return rv
         if size is None:

@@ -84,6 +84,12 @@ yt/utilities/lib/image_samplers.c
 tests/results/*
 doc/build/*
 doc/source/reference/api/generated/*
+doc/source/reference/api/yt*
+doc/cheatsheet.aux
+doc/cheatsheet.log
+doc/cheatsheet.pdf
 doc/_temp/*
-doc/source/bootcamp/.ipynb_checkpoints/
+doc/source/quickstart/.ipynb_checkpoints/
 dist
+.python-version
+answer_nosetests.xml

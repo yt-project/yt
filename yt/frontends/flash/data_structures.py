@@ -206,7 +206,7 @@ class FLASHDataset(Dataset):
             # particle_filename is specified by user
             try:
                 self._particle_handle = HDF5FileHandler(self.particle_filename)
-            except:
+            except Exception:
                 raise IOError(self.particle_filename)
         # Check if the particle file has the same time
         if self._particle_handle != self._handle:
@@ -318,7 +318,7 @@ class FLASHDataset(Dataset):
             for hn in hns:
                 if hn not in self._handle:
                     continue
-                if hn is 'simulation parameters':
+                if hn == 'simulation parameters':
                     zipover = ((name, self._handle[hn][name][0])
                                for name in self._handle[hn].dtype.names)
                 else:
@@ -407,7 +407,7 @@ class FLASHDataset(Dataset):
         # Try to determine Gamma
         try:
             self.gamma = self.parameters["gamma"]
-        except:
+        except Exception:
             mylog.info("Cannot find Gamma")
             pass
 
@@ -427,7 +427,7 @@ class FLASHDataset(Dataset):
             self.omega_matter = self.parameters['omegamatter']
             self.hubble_constant = self.parameters['hubbleconstant']
             self.hubble_constant *= cm_per_mpc * 1.0e-5 * 1.0e-2 # convert to 'h'
-        except:
+        except Exception:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
 

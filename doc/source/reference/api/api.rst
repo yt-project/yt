@@ -172,11 +172,24 @@ These classes and functions enable yt's symbolic unit handling system.
    ~yt.units.yt_array.uvstack
    ~yt.units.yt_array.uhstack
    ~yt.units.yt_array.ustack
+   ~yt.units.yt_array.display_ytarray
 
 Frontends
 ---------
 
 .. autosummary::
+
+AMRVAC
+^^^^^^
+
+.. autosummary::
+
+   ~yt.frontends.amrvac.data_structures.AMRVACGrid
+   ~yt.frontends.amrvac.data_structures.AMRVACHierarchy
+   ~yt.frontends.amrvac.data_structures.AMRVACDataset
+   ~yt.frontends.amrvac.fields.AMRVACFieldInfo
+   ~yt.frontends.amrvac.io.AMRVACIOHandler
+   ~yt.frontends.amrvac.read_amrvac_namelist
 
 ARTIO
 ^^^^^
@@ -304,7 +317,7 @@ Halo Catalogs
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHDF5
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHaloHDF5
    ~yt.frontends.gadget_fof.fields.GadgetFOFFieldInfo
-   ~yt.frontends.gadget_fof.fields.GadgetFIFHaloFieldInfo
+   ~yt.frontends.gadget_fof.fields.GadgetFOFHaloFieldInfo
    ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
    ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
    ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo
@@ -438,6 +451,7 @@ Loading Data
    ~yt.frontends.stream.data_structures.load_uniform_grid
    ~yt.frontends.stream.data_structures.load_amr_grids
    ~yt.frontends.stream.data_structures.load_particles
+   ~yt.frontends.stream.data_structures.load_octree
    ~yt.frontends.stream.data_structures.load_hexahedral_mesh
    ~yt.frontends.stream.data_structures.load_unstructured_mesh
 
@@ -472,14 +486,13 @@ of topologically disconnected structures, i.e., clump finding.
 
 .. autosummary::
 
-   ~yt.analysis_modules.level_sets.clump_handling.Clump
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.add_info_item
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.add_validator
-   ~yt.analysis_modules.level_sets.clump_handling.Clump.save_as_dataset
-   ~yt.analysis_modules.level_sets.clump_handling.find_clumps
-   ~yt.analysis_modules.level_sets.clump_handling.get_lowest_clumps
-   ~yt.analysis_modules.level_sets.clump_info_items.add_clump_info
-   ~yt.analysis_modules.level_sets.clump_validators.add_validator
+   ~yt.data_objects.level_sets.clump_handling.Clump
+   ~yt.data_objects.level_sets.clump_handling.Clump.add_info_item
+   ~yt.data_objects.level_sets.clump_handling.Clump.add_validator
+   ~yt.data_objects.level_sets.clump_handling.Clump.save_as_dataset
+   ~yt.data_objects.level_sets.clump_handling.find_clumps
+   ~yt.data_objects.level_sets.clump_info_items.add_clump_info
+   ~yt.data_objects.level_sets.clump_validators.add_validator
 
 .. _halo_analysis_ref:
 
@@ -722,6 +735,7 @@ particularly with complicated layouts.
    ~yt.visualization.eps_writer.multiplot
    ~yt.visualization.eps_writer.multiplot_yt
    ~yt.visualization.eps_writer.return_cmap
+   ~yt.visualization.eps_writer.return_colormap
 
 .. _derived-quantities-api:
 
@@ -792,6 +806,7 @@ See also :ref:`colormaps`.
 .. autosummary::
 
    ~yt.visualization.color_maps.add_cmap
+   ~yt.visualization.color_maps.add_colormap
    ~yt.visualization.color_maps.make_colormap
    ~yt.visualization.color_maps.show_colormaps
 
@@ -820,7 +835,7 @@ Function List
    ~yt.funcs.print_tb
    ~yt.funcs.rootonly
    ~yt.funcs.time_execution
-   ~yt.analysis_modules.level_sets.contour_finder.identify_contours
+   ~yt.data_objects.level_sets.contour_finder.identify_contours
    ~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_blocking_call
    ~yt.utilities.parallel_tools.parallel_analysis_interface.parallel_objects
@@ -848,7 +863,6 @@ Math Utilities
    ~yt.utilities.math_utils.ortho_find
    ~yt.utilities.math_utils.quartiles
    ~yt.utilities.math_utils.get_rotation_matrix
-   ~yt.utilities.math_utils.get_ortho_basis
    ~yt.utilities.math_utils.get_sph_r
    ~yt.utilities.math_utils.resize_vector
    ~yt.utilities.math_utils.get_sph_theta
@@ -926,3 +940,31 @@ These are yt-provided functions:
    ~yt.testing.amrspace
    ~yt.testing.fake_random_ds
    ~yt.testing.expand_keywords
+
+These are for the pytest infrastructure:
+
+.. autosummary::
+
+    ~conftest.tempdir
+    ~conftest.answer_file
+    ~conftest.hashing
+    ~yt.utilities.answer_testing.answer_tests.grid_hierarchy
+    ~yt.utilities.answer_testing.answer_tests.parentage_relationships
+    ~yt.utilities.answer_testing.answer_tests.grid_values
+    ~yt.utilities.answer_testing.answer_tests.projection_values
+    ~yt.utilities.answer_testing.answer_tests.field_values
+    ~yt.utilities.answer_testing.answer_tests.pixelized_projection_values
+    ~yt.utilities.answer_testing.answer_tests.simulated_halo_mass_function
+    ~yt.utilities.answer_testing.answer_tests.analytic_halo_mass_function
+    ~yt.utilities.answer_testing.answer_tests.small_patch_amr
+    ~yt.utilities.answer_testing.answer_tests.big_patch_amr
+    ~yt.utilities.answer_testing.answer_tests.generic_array
+    ~yt.utilities.answer_testing.answer_tests.sph_answer
+    ~yt.utilities.answer_testing.answer_tests.get_field_size_and_mean
+    ~yt.utilities.answer_testing.answer_tests.plot_window_attribute
+    ~yt.utilities.answer_testing.answer_tests.phase_plot_attribute
+    ~yt.utilities.answer_testing.answer_tests.generic_image
+    ~yt.utilities.answer_testing.answer_tests.axial_pixelization
+    ~yt.utilities.answer_testing.answer_tests.light_cone_projection
+    ~yt.utilities.answer_testing.answer_tests.extract_connected_sets
+    ~yt.utilities.answer_testing.answer_tests.VR_image_comparison

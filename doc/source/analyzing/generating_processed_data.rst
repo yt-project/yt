@@ -9,6 +9,34 @@ data by hand and construct plots which can then be combined with other plots,
 modified in some way, or even (gasp) created and modified in some other tool or
 program.
 
+.. _exporting-container-data:
+
+Exporting Container Data
+------------------------
+
+Fields from data containers such as regions, spheres, cylinders, etc. can be exported
+tabular format using either a :class:`~pandas.DataFrame` or an :class:`~astropy.table.QTable`. 
+
+To export to a :class:`~pandas.DataFrame`, use 
+:meth:`~yt.data_objects.data_containers.YTDataContainer.to_dataframe`:
+
+.. code-block:: python
+
+    sp = ds.sphere("c", (0.2, "unitary"))
+    df2 = sp.to_dataframe(["density","temperature"])
+
+To export to a :class:`~astropy.table.QTable`, use 
+:meth:`~yt.data_objects.data_containers.YTDataContainer.to_astropy_table`:
+
+.. code-block:: python
+
+    sp = ds.sphere("c", (0.2, "unitary"))
+    at2 = sp.to_astropy_table(fields=["density","temperature"])
+
+For exports to :class:`~pandas.DataFrame` objects, the unit information is lost, but for 
+exports to :class:`~astropy.table.QTable` objects, the :class:`~yt.units.yt_array.YTArray`
+objects are converted to :class:`~astropy.units.Quantity` objects.
+
 .. _generating-2d-image-arrays:
 
 2D Image Arrays
@@ -175,6 +203,58 @@ whether to use a log or linear scale, and whether or not to do accumulation to
 create a cumulative distribution function.  For more information, see the API
 documentation on the :func:`~yt.data_objects.profiles.create_profile` function.
 
+For custom bins the other keyword arguments can be overriden using the
+``override_bins`` keyword argument. This accepts a dictionary with an array
+for each bin field or ``None`` to use the default settings. 
+
+.. code-block:: python
+
+    custom_bins = np.array([1e-27, 1e-25, 2e-25, 5e-25, 1e-23])
+    profile2d = source.profile([("gas", "density"), ("gas", "temperature")],
+                                [("gas", "cell_mass")], 
+                                override_bins = {("gas", "density"):custom_bins,
+                                                 ("gas", "temperature"):None}) 
+
+.. _profile-dataframe-export:
+
+One-dimensional profile data can be exported to a :class:`~pandas.DataFrame` object 
+using the :meth:`yt.data_objects.profiles.Profile1D.to_dataframe` method. Bins which 
+do not have data will have their fields filled with `NaN`s, except for the bin field
+itself. If you only want to export the bins which are used, set `only_used=True`.
+
+.. code-block:: python
+
+    # Adds all of the data to the DataFrame, but non-used bins are filled with NaNs
+    df = profile.to_dataframe()
+    # Only adds the used bins to the DataFrame
+    df_used = profile.to_dataframe(only_used=True)
+    # Only adds the density and temperature fields
+    df2 = profile.to_dataframe(fields=["density","temperature"])
+    
+The :class:`~pandas.DataFrame` can then analyzed and/or written to disk using pandas 
+methods. Note that unit information is lost in this export.
+
+.. _profile-astropy-export:
+
+One-dimensional profile data also can be exported to an AstroPy :class:`~astropy.table.QTable`  
+object. This table can then be written to disk in a number of formats, such as ASCII text
+or FITS files, and manipulated in a number of ways. Bins which do not have data 
+will have their mask values set to `False`. If you only want to export the bins 
+which are used, set `only_used=True`. Units are preserved in the table by converting 
+each :class:`~yt.units.yt_array.YTArray` to an :class:`~astropy.units.Quantity`.
+
+To export the 1D profile to a Table object, simply call 
+:meth:`yt.data_objects.profiles.Profile1D.to_astropy_table`:
+
+.. code-block:: python
+
+    # Adds all of the data to the Table, but non-used bins are masked
+    t = profile.to_astropy_table()
+    # Only adds the used bins to the Table
+    t_used = profile.to_astropy_table(only_used=True)
+    # Only adds the density and temperature fields
+    t2 = profile.to_astropy_table(fields=["density","temperature"])
+
 .. _generating-line-queries:
 
 Line Queries and Planar Integrals
@@ -193,13 +273,17 @@ along that ray:
    ray = ds.ray((0.3, 0.5, 0.9), (0.1, 0.8, 0.5))
    print(ray["density"])
 
-The points are ordered, but the ray is also traversing cells of varying length,
-as well as taking a varying distance to cross each cell.  To determine the
-distance traveled by the ray within each cell (for instance, for integration)
-the field ``dt`` is available; this field will sum to 1.0, as the ray's path
-will be normalized to 1.0, independent of how far it travels through the domain.
-To determine the value of ``t`` at which the ray enters each cell, the field
-``t`` is available.  For instance:
+The points are not ordered, so you may need to sort the data (see the
+example in the
+:class:`~yt.data_objects.selection_data_containers.YTRay` docs).  Also
+note, the ray is traversing cells of varying length, as well as
+taking a varying distance to cross each cell.  To determine the
+distance traveled by the ray within each cell (for instance, for
+integration) the field ``dt`` is available; this field will sum to
+1.0, as the ray's path will be normalized to 1.0, independent of how
+far it travels through the domain.  To determine the value of ``t`` at
+which the ray enters each cell, the field ``t`` is available.  For
+instance:
 
 .. code-block:: python
 
@@ -213,3 +297,23 @@ The volume rendering functionality in yt can also be used to calculate
 off-axis plane integrals, using the
 :class:`~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction`
 in a manner similar to that described in :ref:`volume_rendering`.
+
+.. _generating-xarray:
+
+Regular Grids to xarray
+-----------------------
+
+Objects that subclass from
+:class:`~yt.data_objects.construction_data_containers.YTCoveringGrid` are able
+to export to `xarray <https://xarray.pydata.org/>`_.  This enables
+interoperability with anything that can take xarray data.  The classes that can do this are
+:class:`~yt.data_objects.construction_data_containers.YTCoveringGrid`,
+:class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid`, and
+:class:`~yt.data_objects.construction_data_containers.YTSmoothedCoveringGrid`.  For example, you can:
+
+.. code-block:: python
+
+   grid = ds.r[::256j, ::256j, ::256j]
+   obj = grid.to_xarray(fields = ["density", "temperature"])
+
+The returned object, `obj`, will now have the correct labeled axes and so forth.

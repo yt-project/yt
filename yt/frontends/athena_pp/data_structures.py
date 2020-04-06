@@ -341,8 +341,7 @@ class AthenaPPDataset(Dataset):
         try:
             if args[0].endswith('athdf'):
                 return True
-        except:
-            pass
+        except Exception: pass
         return False
 
     @property

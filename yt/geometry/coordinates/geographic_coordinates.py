@@ -20,7 +20,7 @@ from .coordinate_handler import \
     _unknown_coord, \
     _get_coord_fields
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder, pixelize_aitoff
+    pixelize_cylinder, pixelize_cartesian
 
 class GeographicCoordinateHandler(CoordinateHandler):
     radial_axis = "altitude"
@@ -84,14 +84,14 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         def _path_radial_axis(field, data):
             return data["index", "d%s" % self.radial_axis]
-        registry.add_field(("index", "path_element_%s" % self.radial_axis), sampling_type="cell", 
+        registry.add_field(("index", "path_element_%s" % self.radial_axis), sampling_type="cell",
                  function = _path_radial_axis,
                  units = "code_length")
         def _path_latitude(field, data):
             # We use r here explicitly
             return data["index", "r"] * \
                 data["index", "dlatitude"] * np.pi/180.0
-        registry.add_field(("index", "path_element_latitude"), sampling_type="cell", 
+        registry.add_field(("index", "path_element_latitude"), sampling_type="cell",
                  function = _path_latitude,
                  units = "code_length")
         def _path_longitude(field, data):
@@ -99,31 +99,31 @@ class GeographicCoordinateHandler(CoordinateHandler):
             return data["index", "r"] \
                     * data["index", "dlongitude"] * np.pi/180.0 \
                     * np.sin((data["index", "latitude"] + 90.0) * np.pi/180.0)
-        registry.add_field(("index", "path_element_longitude"), sampling_type="cell", 
+        registry.add_field(("index", "path_element_longitude"), sampling_type="cell",
                  function = _path_longitude,
                  units = "code_length")
 
         def _latitude_to_theta(field, data):
             # latitude runs from -90 to 90
             return (data["latitude"] + 90) * np.pi/180.0
-        registry.add_field(("index", "theta"), sampling_type="cell", 
+        registry.add_field(("index", "theta"), sampling_type="cell",
                  function = _latitude_to_theta,
                  units = "")
         def _dlatitude_to_dtheta(field, data):
             return data["dlatitude"] * np.pi/180.0
-        registry.add_field(("index", "dtheta"), sampling_type="cell", 
+        registry.add_field(("index", "dtheta"), sampling_type="cell",
                  function = _dlatitude_to_dtheta,
                  units = "")
 
         def _longitude_to_phi(field, data):
             # longitude runs from -180 to 180
             return (data["longitude"] + 180) * np.pi/180.0
-        registry.add_field(("index", "phi"), sampling_type="cell", 
+        registry.add_field(("index", "phi"), sampling_type="cell",
                  function = _longitude_to_phi,
                  units = "")
         def _dlongitude_to_dphi(field, data):
             return data["dlongitude"] * np.pi/180.0
-        registry.add_field(("index", "dphi"), sampling_type="cell", 
+        registry.add_field(("index", "dphi"), sampling_type="cell",
                  function = _dlongitude_to_dphi,
                  units = "")
 
@@ -140,7 +140,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                 else:
                     surface_height = data.ds.quan(0.0, "code_length")
             return data["altitude"] + surface_height
-        registry.add_field(("index", "r"), sampling_type="cell", 
+        registry.add_field(("index", "r"), sampling_type="cell",
                  function=_altitude_to_radius,
                  units = "code_length")
         registry.alias(("index", "dr"), ("index", "daltitude"))
@@ -174,18 +174,25 @@ class GeographicCoordinateHandler(CoordinateHandler):
             raise NotImplementedError
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
-                        dim, periodic):
+                            dimension, periodic):
+
+        period = self.period[:2].copy()
+        period[0] = self.period[self.x_axis[dimension]]
+        period[1] = self.period[self.y_axis[dimension]]
+        if hasattr(period, 'in_units'):
+            period = period.in_units("code_length").d
+
         # For a radial axis, px will correspond to longitude and py will
         # correspond to latitude.
-        px = (data_source["px"].d + 180) * np.pi/180
-        pdx = data_source["pdx"].d * np.pi/180
-        py = (data_source["py"].d + 90) * np.pi/180
-        pdy = data_source["pdy"].d * np.pi/180
-        # First one in needs to be the equivalent of "theta", which is
-        # longitude
-        buff = pixelize_aitoff(px, pdx, py, pdy,
-                               size, data_source[field], None,
-                               None).transpose()
+        px = data_source["px"]
+        pdx = data_source["pdx"]
+        py = data_source["py"]
+        pdy = data_source["pdy"]
+        buff = np.zeros((size[1], size[0]), dtype="f8")
+        pixelize_cartesian(buff, px, py, pdx, pdy,
+                           data_source[field],
+                           bounds, int(antialias),
+                           period, int(periodic))
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
@@ -254,7 +261,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     _image_axis_name = None
     @property
-    def image_axis_name(self):    
+    def image_axis_name(self):
         if self._image_axis_name is not None:
             return self._image_axis_name
         # This is the x and y axes labels that get displayed.  For
@@ -281,6 +288,34 @@ class GeographicCoordinateHandler(CoordinateHandler):
                 ('longitude', 'altitude'),
                 ('altitude', 'latitude'))
 
+    _data_projection = None
+    @property
+    def data_projection(self):
+        if self._data_projection is not None:
+            return self._data_projection
+        dpj = {}
+        for ax in self.axis_order:
+            if ax == self.radial_axis:
+                dpj[ax] = "Mollweide"
+            else:
+                dpj[ax] = None
+        self._data_projection = dpj
+        return dpj
+
+    _data_transform = None
+    @property
+    def data_transform(self):
+        if self._data_transform is not None:
+            return self._data_transform
+        dtx = {}
+        for ax in self.axis_order:
+            if ax == self.radial_axis:
+                dtx[ax] = "PlateCarree"
+            else:
+                dtx[ax] = None
+        self._data_transform = dtx
+        return dtx
+
     @property
     def period(self):
         return self.ds.domain_width
@@ -299,7 +334,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
             ri = self.axis_id[self.radial_axis]
             c = (self.ds.domain_right_edge[ri] +
                  self.ds.domain_left_edge[ri])/2.0
-            display_center = [0.0 * display_center[0], 
+            display_center = [0.0 * display_center[0],
                               0.0 * display_center[1],
                               0.0 * display_center[2]]
             display_center[self.axis_id['latitude']] = c
@@ -329,7 +364,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
     radial_axis = "depth"
     name = "internal_geographic"
-    
+
     def _setup_radial_fields(self, registry):
         # Altitude is the radius from the central zone minus the radius of the
         # surface.
@@ -344,7 +379,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
                     rax = self.axis_id[self.radial_axis]
                     outer_radius = data.ds.domain_right_edge[rax]
             return -1.0 * data["depth"] + outer_radius
-        registry.add_field(("index", "r"), sampling_type="cell", 
+        registry.add_field(("index", "r"), sampling_type="cell",
                  function=_depth_to_radius,
                  units = "code_length")
         registry.alias(("index", "dr"), ("index", "ddepth"))
@@ -386,7 +421,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
             ri = self.axis_id[self.radial_axis]
             offset, factor = self._retrieve_radial_offset()
             outermost = factor * self.ds.domain_left_edge[ri] + offset
-            display_center = [0.0 * display_center[0], 
+            display_center = [0.0 * display_center[0],
                               0.0 * display_center[1],
                               0.0 * display_center[2]]
             display_center[self.axis_id['latitude']] = outermost/2.0

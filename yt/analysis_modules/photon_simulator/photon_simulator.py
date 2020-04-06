@@ -6,15 +6,15 @@ The SciPy Proceeding that describes this module in detail may be found at:
 http://conference.scipy.org/proceedings/scipy2014/zuhone.html
 
 The algorithms used here are based off of the method used by the
-PHOX code (http://www.mpa-garching.mpg.de/~kdolag/Phox/),
+PHOX code (https://wwwmpa.mpa-garching.mpg.de/~kdolag/Phox/),
 developed by Veronica Biffi and Klaus Dolag. References for
 PHOX may be found at:
 
 Biffi, V., Dolag, K., Bohringer, H., & Lemson, G. 2012, MNRAS, 420, 3545
-http://adsabs.harvard.edu/abs/2012MNRAS.420.3545B
+https://ui.adsabs.harvard.edu/abs/2012MNRAS.420.3545B
 
 Biffi, V., Dolag, K., Bohringer, H. 2013, MNRAS, 428, 1395
-http://adsabs.harvard.edu/abs/2013MNRAS.428.1395B
+https://ui.adsabs.harvard.edu/abs/2013MNRAS.428.1395B
 """
 
 #-----------------------------------------------------------------------------
@@ -295,7 +295,7 @@ class PhotonList(object):
         ds = data_source.ds
 
         if parameters is None:
-             parameters = {}
+            parameters = {}
         if cosmology is None:
             hubble = getattr(ds, "hubble_constant", None)
             omega_m = getattr(ds, "omega_matter", None)
@@ -546,7 +546,7 @@ class PhotonList(object):
         dx = self.photons["dx"].d
         nx = self.parameters["Dimension"]
         if psf_sigma is not None:
-             psf_sigma = parse_value(psf_sigma, "degree")
+            psf_sigma = parse_value(psf_sigma, "degree")
 
         if not isinstance(normal, string_types):
             L = np.array(normal)
@@ -1033,24 +1033,24 @@ class EventList(object):
         cols = [col_e, col_x, col_y]
 
         if "ChannelType" in self.parameters:
-             chantype = self.parameters["ChannelType"]
-             if chantype == "PHA":
-                  cunit = "adu"
-             elif chantype == "PI":
-                  cunit = "Chan"
-             col_ch = pyfits.Column(name=chantype.upper(), format='1J',
-                                    unit=cunit, array=self.events[chantype])
-             cols.append(col_ch)
+            chantype = self.parameters["ChannelType"]
+            if chantype == "PHA":
+                cunit = "adu"
+            elif chantype == "PI":
+                cunit = "Chan"
+            col_ch = pyfits.Column(name=chantype.upper(), format='1J',
+                unit=cunit, array=self.events[chantype])
+            cols.append(col_ch)
 
-             mylog.info("Generating times for events assuming uniform time "
-                        "distribution. In future versions this will be made "
-                        "more general.")
+            mylog.info("Generating times for events assuming uniform time "
+                "distribution. In future versions this will be made "
+                "more general.")
 
-             time = np.random.uniform(size=self.num_events, low=0.0,
-                                      high=float(self.parameters["ExposureTime"]))
-             col_t = pyfits.Column(name="TIME", format='1D', unit='s',
-                                   array=time)
-             cols.append(col_t)
+            time = np.random.uniform(size=self.num_events, low=0.0,
+                high=float(self.parameters["ExposureTime"]))
+            col_t = pyfits.Column(name="TIME", format='1D', unit='s',
+                array=time)
+            cols.append(col_t)
 
         coldefs = pyfits.ColDefs(cols)
         tbhdu = pyfits.BinTableHDU.from_columns(coldefs)
@@ -1151,8 +1151,8 @@ class EventList(object):
         """
         pyfits = _astropy.pyfits
         if isinstance(self.parameters["Area"], string_types):
-             mylog.error("Writing SIMPUT files is only supported if you didn't convolve with responses.")
-             raise TypeError("Writing SIMPUT files is only supported if you didn't convolve with responses.")
+            mylog.error("Writing SIMPUT files is only supported if you didn't convolve with responses.")
+            raise TypeError("Writing SIMPUT files is only supported if you didn't convolve with responses.")
 
         if emin is None:
             emin = self["eobs"].min().value

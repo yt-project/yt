@@ -1,14 +1,14 @@
 .. _light-ray-generator:
 
+Light Ray Generator
+===================
+
 .. note::
 
     Development of the LightRay module has been moved to the Trident
     package. This version is deprecated and will be removed from yt
     in a future release. See https://github.com/trident-project/trident
     for further information.
-
-Light Ray Generator
-===================
 
 Light rays are similar to light cones (:ref:`light-cone-generator`) in how
 they stack multiple datasets together to span a redshift interval.  Unlike

@@ -26,9 +26,6 @@ from yt.utilities.lib.geometry_utils import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-from .data_structures import \
-    _get_gadget_format
-
 from .definitions import \
     gadget_hdf5_ptypes, \
     SNAP_FORMAT_2_OFFSET
@@ -242,10 +239,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         self._fields = ds._field_spec
         self._ptypes = ds._ptype_spec
         self.data_files = set([])
-        gformat = _get_gadget_format(ds.parameter_filename)
+        gformat, endianswap = ds._header.gadget_format
         # gadget format 1 original, 2 with block name
-        self._format = gformat[0]
-        self._endian = gformat[1]
+        self._format = gformat
+        self._endian = endianswap
         super(IOHandlerGadgetBinary, self).__init__(ds, *args, **kwargs)
 
     @property
@@ -273,8 +270,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             for ptype in ptf:
                 # This is where we could implement sub-chunking
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(f,
-                                                 tp[ptype], "Coordinates")
+                pos = self._read_field_from_file(
+                    f, tp[ptype], "Coordinates")
                 yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2])
             f.close()
 
@@ -289,8 +286,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items()):
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(f,
-                                                 tp[ptype], "Coordinates")
+                pos = self._read_field_from_file(
+                    f, tp[ptype], "Coordinates")
                 mask = selector.select_points(
                     pos[:, 0], pos[:, 1], pos[:, 2], 0.0)
                 del pos
@@ -317,9 +314,14 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             dt = self._endian + "u4"
         else:
             dt = self._endian + self._float_type
+        dt = np.dtype(dt)
         if name in self._vector_fields:
             count *= self._vector_fields[name]
         arr = np.fromfile(f, dtype=dt, count=count)
+        # ensure data are in native endianness to avoid errors
+        # when field data are passed to cython
+        dt = dt.newbyteorder('N')
+        arr = arr.astype(dt)
         if name in self._vector_fields:
             factor = self._vector_fields[name]
             arr = arr.reshape((count // factor, factor), order="C")
@@ -344,7 +346,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     def _initialize_index(self, data_file, regions):
         DLE = data_file.ds.domain_left_edge
         DRE = data_file.ds.domain_right_edge
-        self._float_type = data_file.ds._validate_header(data_file.filename)[1]
+        self._float_type = data_file.ds._header.float_type
         if self.index_ptype == "all":
             count = sum(data_file.total_particles.values())
             return self._get_morton_from_position(

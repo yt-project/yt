@@ -73,8 +73,7 @@ class AthenaDistributedConverter(Converter):
         name = field
         try:
             name = translation_dict[name]
-        except:
-            pass
+        except Exception: pass
         # print 'Writing %s' % name
         if name not in g.keys():
             g.create_dataset(name,data=data)
@@ -208,7 +207,7 @@ class AthenaDistributedConverter(Converter):
             f = open(fn,'rb')
             #print 'Reading data from %s' % fn
             line = f.readline()
-            while line is not '':
+            while line != '':
                 if len(line) == 0: break
                 splitup = line.strip().split()
 
@@ -231,7 +230,7 @@ class AthenaDistributedConverter(Converter):
                     del line
                     line = f.readline()
             read_table = False
-            while line is not '':
+            while line != '':
                 if len(line) == 0: break
                 splitup = line.strip().split()
                 if 'SCALARS' in splitup:
@@ -274,8 +273,7 @@ class AthenaDistributedConverter(Converter):
             tname = name
             try:
                 tname = translation_dict[name]
-            except:
-                pass
+            except Exception: pass
             this_field = field_g.create_group(tname)
             if name in self.field_conversions.keys():
                 this_field.attrs['field_to_cgs'] = self.field_conversions[name]
@@ -340,10 +338,10 @@ class AthenaConverter(Converter):
         grid['read_type'] = None
         table_read=False
         line = f.readline()
-        while line is not '':
+        while line != '':
             while grid['read_field'] is None:
                 self.parse_line(line, grid)
-                if grid['read_type'] is 'vector':
+                if grid['read_type'] == 'vector':
                     break
                 if table_read is False:             
                     line = f.readline()
@@ -359,11 +357,11 @@ class AthenaConverter(Converter):
                       (np.prod(grid['dimensions']), grid['ncells']))
                 raise TypeError
 
-            if grid['read_type'] is 'scalar':
+            if grid['read_type'] == 'scalar':
                 grid[grid['read_field']] = \
                     np.fromfile(f, dtype='>f4', count=grid['ncells']).reshape(grid['dimensions'],order='F')
                 self.fields.append(grid['read_field'])
-            elif grid['read_type'] is 'vector':
+            elif grid['read_type'] == 'vector':
                 data = np.fromfile(f, dtype='>f4', count=3*grid['ncells'])
                 grid[grid['read_field']+'_x'] = data[0::3].reshape(grid['dimensions'],order='F')
                 grid[grid['read_field']+'_y'] = data[1::3].reshape(grid['dimensions'],order='F')
@@ -442,7 +440,7 @@ class AthenaConverter(Converter):
         pars_g.attrs['domain_dimensions'] = grid['dimensions']
         try:
             pars_g.attrs['current_time'] = grid['time']
-        except:
+        except Exception:
             pars_g.attrs['current_time'] = 0.0
         pars_g.attrs['domain_left_edge'] = grid['left_edge'] # For Now
         pars_g.attrs['domain_right_edge'] = grid['right_edge'] # For Now
@@ -461,8 +459,7 @@ class AthenaConverter(Converter):
             tname = name
             try:
                 tname = translation_dict[name]
-            except:
-                pass
+            except Exception: pass
             this_field = field_g.create_group(tname)
         if name in self.field_conversions.keys():
             this_field.attrs['field_to_cgs'] = self.field_conversions[name]

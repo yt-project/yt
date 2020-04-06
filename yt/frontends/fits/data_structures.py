@@ -302,8 +302,7 @@ def check_fits_valid(args):
             return fileh
         else:
             fileh.close()
-    except:
-        pass
+    except Exception: pass
     return None
 
 def check_sky_coords(args, ndim):
@@ -323,8 +322,7 @@ def check_sky_coords(args, ndim):
                 x = find_axes(axis_names, sky_prefixes + spec_prefixes)
                 fileh.close()
                 return x >= ndim
-        except:
-            pass
+        except Exception: pass
     return False
 
 class FITSDataset(Dataset):
@@ -467,7 +465,7 @@ class FITSDataset(Dataset):
         # Get the simulation time
         try:
             self.current_time = self.parameters["time"]
-        except:
+        except Exception:
             mylog.warning("Cannot find time")
             self.current_time = 0.0
             pass
@@ -660,14 +658,8 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         self.spec_axis = np.where(self.spec_axis)[0][0]
         self.spec_name = spec_names[self.ctypes[self.spec_axis].split("-")[0][0]]
 
-        self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
-        self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
-        self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.lon_axis, self.lat_axis]]
-        self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.lon_axis, self.lat_axis]]
-        self.wcs_2d.wcs.cunit = [str(self.wcs.wcs.cunit[self.lon_axis]),
-                                 str(self.wcs.wcs.cunit[self.lat_axis])]
-        self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
-                                 self.wcs.wcs.ctype[self.lat_axis]]
+        # Extract a subimage from a WCS object
+        self.wcs_2d = self.wcs.sub(["longitude", "latitude"])
 
         self._p0 = self.wcs.wcs.crpix[self.spec_axis]
         self._dz = self.wcs.wcs.cdelt[self.spec_axis]
@@ -799,6 +791,5 @@ class EventsFITSDataset(SkyDataFITSDataset):
                 valid = fileh[1].name == "EVENTS"
                 fileh.close()
                 return valid
-            except:
-                pass
+            except Exception: pass
         return False

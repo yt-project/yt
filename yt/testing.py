@@ -14,6 +14,7 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import hashlib
+import matplotlib
 from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it
@@ -21,6 +22,8 @@ import numpy as np
 import functools
 import importlib
 import os
+import shutil
+import tempfile
 import unittest
 from yt.funcs import iterable
 from yt.config import ytcfg
@@ -38,6 +41,7 @@ from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
 
+ANSWER_TEST_TAG = "answer_test"
 # Expose assert_true and assert_less_equal from unittest.TestCase
 # this is adopted from nose. Doing this here allows us to avoid importing
 # nose at the top level.
@@ -232,7 +236,7 @@ _geom_transforms = {
                    ( (-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0) ), # latlondep
 }
 
-def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0):
+def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0, length_unit=None):
     from yt.frontends.stream.api import load_amr_grids
     prng = RandomState(0x4d3d3d3)
     LE, RE = _geom_transforms[geometry]
@@ -260,7 +264,7 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0):
             gdata['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
         data.append(gdata)
     bbox = np.array([LE, RE]).T
-    return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox)
+    return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox, length_unit=length_unit)
 
 def fake_particle_ds(
         fields = ("particle_position_x",
@@ -272,7 +276,8 @@ def fake_particle_ds(
                   "particle_velocity_z"),
         units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s'),
         negative = (False, False, False, False, True, True, True),
-        npart = 16**3, length_unit=1.0, data=None):
+        npart = 16**3, length_unit=1.0, data=None,
+        over_refine_factor = 1):
     from yt.frontends.stream.api import load_particles
 
     prng = RandomState(0x4d3d3d3)
@@ -285,7 +290,7 @@ def fake_particle_ds(
             offsets.append(0.5)
         else:
             offsets.append(0.0)
-    data = {}
+    data = data if data else {}
     for field, offset, u in zip(fields, offsets, units):
         if field in data:
             v = data[field]
@@ -296,7 +301,7 @@ def fake_particle_ds(
         v = (prng.random_sample(npart) - offset)
         data[field] = (v, u)
     bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
-    ds = load_particles(data, 1.0, bbox=bbox)
+    ds = load_particles(data, 1.0, bbox=bbox, over_refine_factor = over_refine_factor)
     return ds
 
 
@@ -448,9 +453,16 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     return ds
 
 
-def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=[True]):
+def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=None):
     # Implementation taken from url:
     # http://docs.hyperion-rt.org/en/stable/advanced/indepth_oct.html
+
+
+    if refined in (None, True):
+        refined = [True]
+    if refined is False:
+        refined = [False]
+        return refined
 
     # Loop over subcells
     for subcell in range(8):
@@ -466,7 +478,7 @@ def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=[True]):
             construct_octree_mask(prng, refined)
     return refined
 
-def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=[True], quantities=None,
+def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=None, quantities=None,
                    bbox=None, sim_time=0.0, length_unit=None, mass_unit=None,
                    time_unit=None, velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True), over_refine_factor=1,
@@ -603,9 +615,15 @@ def requires_module(module):
     platform.
     """
     def ffalse(func):
-        return lambda: None
+        @functools.wraps(func)
+        def false_wrapper(*args, **kwargs):
+            return None
+        return false_wrapper
     def ftrue(func):
-        return func
+        @functools.wraps(func)
+        def true_wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        return true_wrapper
     try:
         importlib.import_module(module)
     except ImportError:
@@ -616,9 +634,15 @@ def requires_module(module):
 def requires_file(req_file):
     path = ytcfg.get("yt", "test_data_dir")
     def ffalse(func):
-        return lambda: None
+        @functools.wraps(func)
+        def false_wrapper(*args, **kwargs):
+            return None
+        return false_wrapper
     def ftrue(func):
-        return func
+        @functools.wraps(func)
+        def true_wrapper(*args, **kwargs):
+            return func
+        return true_wrapper
     if os.path.exists(req_file):
         return ftrue
     else:
@@ -908,6 +932,7 @@ def check_results(func):
 
     """
     def compute_results(func):
+        @functools.wraps(func)
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
@@ -932,6 +957,7 @@ def check_results(func):
         return compute_results(func)
 
     def compare_results(func):
+        @functools.wraps(func)
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
@@ -1101,5 +1127,51 @@ def assert_fname(fname):
     elif data.startswith(b'%PDF'):
         image_type = '.pdf'
 
-    return image_type == os.path.splitext(fname)[1]
+    extension = os.path.splitext(fname)[1]
 
+    assert image_type == extension, \
+        ("Expected an image of type '%s' but '%s' is an image of type '%s'" %
+         (extension, fname, image_type))
+
+def requires_backend(backend):
+    """ Decorator to check for a specified matplotlib backend.
+
+    This decorator returns the decorated function if the specified `backend`
+    is same as of `matplotlib.get_backend()`, otherwise returns null function.
+    It could be used to execute function only when a particular `backend` of
+    matplotlib is being used.
+
+    Parameters
+    ----------
+    backend : String
+        The value which is compared with the current matplotlib backend in use.
+
+    Returns
+    -------
+    Decorated function or null function
+
+    """
+    def ffalse(func):
+        return lambda: None
+
+    def ftrue(func):
+        return func
+
+    if backend.lower() == matplotlib.get_backend().lower():
+        return ftrue
+    return ffalse
+
+class TempDirTest(unittest.TestCase):
+    """
+    A test class that runs in a temporary directory and
+    removes it afterward.
+    """
+
+    def setUp(self):
+        self.curdir = os.getcwd()
+        self.tmpdir = tempfile.mkdtemp()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.curdir)
+        shutil.rmtree(self.tmpdir)
