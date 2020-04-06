@@ -46,6 +46,9 @@ class ParticleIndex(Index):
         return self.dataset.conversion_factors[unit]
 
     def _setup_filenames(self):
+        if hasattr(self, "data_files"):
+            return
+
         template = self.dataset.filename_template
         ndoms = self.dataset.file_count
         cls = self.dataset._file_class
