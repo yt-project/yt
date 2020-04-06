@@ -38,17 +38,15 @@ def test_cylindrical_coordinates():
 def test_noise_plot_lin():
     ds = fake_amr_ds(geometry="cylindrical")
     add_noise_fields(ds)
+
     def create_image(filename_prefix):
         fields = ['noise%d' % i for i in range(4)]
 
-        for f in fields:
-            p = SlicePlot(ds, 'z', f)
-            p.save('%s_%s_log' % (filename_prefix, f))
+        p = SlicePlot(ds, 'z', fields)
+        p.save('%s_log' % filename_prefix)
 
         p.set_log('all', False)
-        for f in fields:
-            p = SlicePlot(ds, 'z', f)
-            p.save('%s_%s_lin' % (filename_prefix, f))
+        p.save('%s_lin' % filename_prefix)
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_noise_plot_lin"
