@@ -35,7 +35,7 @@ def test_cylindrical_coordinates():
     assert_equal(dd["index", "path_element_theta"],
                  dd["index", "r"] * dd["index", "dtheta"])
 
-def test_noise_plot_lin():
+def test_noise_plots():
     ds = fake_amr_ds(geometry="cylindrical")
     add_noise_fields(ds)
 
@@ -50,5 +50,5 @@ def test_noise_plot_lin():
 
     test = GenericImageTest(ds, create_image, 12)
     test.prefix = "test_noise_plot_lin"
-    test_noise_plot_lin.__name__ = test.description
+    test_noise_plots.__name__ = test.description
     yield test

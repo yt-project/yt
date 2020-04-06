@@ -129,8 +129,7 @@ answer_tests:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
   local_cylindrical_background_000:
-    - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plot_lin
-    - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plot_log
+    - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
   local_particle_trajectory_001:
     - yt/data_objects/tests/test_particle_trajectories.py
