@@ -2,14 +2,13 @@ import glob
 
 import numpy as np
 
-from yt.data_objects.static_output import ParticleFile
+from yt.data_objects.static_output import ParticleFile, validate_index_order
 from yt.frontends.ytdata.data_structures import SavedDataset
 from yt.funcs import parse_h5_attr
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import HaloCatalogFieldInfo
-
 
 class HaloCatalogParticleIndex(ParticleIndex):
     def _setup_filenames(self):
@@ -98,24 +97,20 @@ class HaloCatalogDataset(SavedDataset):
     _file_class = HaloCatalogHDF5File
     _field_info_class = HaloCatalogFieldInfo
     _suffix = ".h5"
-    _con_attrs = (
-        "cosmological_simulation",
-        "current_time",
-        "current_redshift",
-        "hubble_constant",
-        "omega_matter",
-        "omega_lambda",
-        "domain_left_edge",
-        "domain_right_edge",
-    )
+    _con_attrs = ("cosmological_simulation",
+                  "current_time", "current_redshift",
+                  "hubble_constant", "omega_matter", "omega_lambda",
+                  "domain_left_edge", "domain_right_edge")
 
     def __init__(
         self,
         filename,
         dataset_type="halocatalog_hdf5",
+        index_order=None,
         units_override=None,
         unit_system="cgs",
     ):
+        self.index_order = validate_index_order(index_order)
         super(HaloCatalogDataset, self).__init__(
             filename,
             dataset_type,
