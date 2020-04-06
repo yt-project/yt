@@ -12,7 +12,8 @@ from yt.funcs import \
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
-    ParticleFile
+    ParticleFile, \
+    validate_index_order
 
 class HaloCatalogParticleIndex(ParticleIndex):
     def _setup_filenames(self):
@@ -95,7 +96,8 @@ class HaloCatalogDataset(SavedDataset):
                   "domain_left_edge", "domain_right_edge")
 
     def __init__(self, filename, dataset_type="halocatalog_hdf5",
-                 units_override=None, unit_system="cgs"):
+                 index_order=None, units_override=None, unit_system="cgs"):
+        self.index_order = validate_index_order(index_order)
         super(HaloCatalogDataset, self).__init__(filename, dataset_type,
                                                  units_override=units_override,
                                                  unit_system=unit_system)
