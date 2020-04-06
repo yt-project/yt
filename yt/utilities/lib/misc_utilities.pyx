@@ -1084,7 +1084,7 @@ cdef int assert_similar(memoryview left_, memoryview right_) except -1:
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef update_orientation(np.ndarray[np.float64_t, ndim=2] q1,
+def update_orientation(np.ndarray[np.float64_t, ndim=1] q1,
                         np.float64_t start_x, np.float64_t start_y,
                         np.float64_t end_x, np.float64_t end_y):
     # This is a Cython implementation of the TrackballCamera implementation of:
@@ -1121,7 +1121,6 @@ cdef update_orientation(np.ndarray[np.float64_t, ndim=2] q1,
     new_map[0] = end_x
     new_map[1] = -end_y
     new_map[2] = end_z
-
     w = old_map[0] * new_map[0] + old_map[1] * new_map[1] + old_map[2] * new_map[2]
     x = old_map[1] * new_map[2] - old_map[2] * new_map[1]
     y = old_map[2] * new_map[0] - old_map[0] * new_map[2]
@@ -1141,8 +1140,8 @@ cdef update_orientation(np.ndarray[np.float64_t, ndim=2] q1,
     y = q1[0]*q2[2] + q1[2]*q2[0] + q1[3]*q2[1] - q1[1]*q2[3]
     z = q1[0]*q2[3] + q1[3]*q2[0] + q1[1]*q2[2] - q1[2]*q2[1]
 
-    q1[0] = w
-    q1[1] = x
-    q1[2] = y
-    q1[3] = z
-    return
+    q2[0] = w
+    q2[1] = x
+    q2[2] = y
+    q2[3] = z
+    return np.asarray(<np.float64_t[:4]> q2).copy()

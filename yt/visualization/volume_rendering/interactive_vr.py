@@ -44,6 +44,8 @@ from yt.utilities.math_utils import \
     quaternion_mult, \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
+from yt.utilities.lib.misc_utilities import \
+    update_orientation
 from yt.data_objects.data_containers import \
     YTDataContainer
 from yt.data_objects.static_output import \
@@ -237,24 +239,26 @@ class TrackballCamera(IDVCamera):
         return np.array([x, -y, z])
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
-        old = self._map_to_surface(start_x, start_y)
-        new = self._map_to_surface(end_x, end_y)
+        if 0:
+            old = self._map_to_surface(start_x, start_y)
+            new = self._map_to_surface(end_x, end_y)
 
-        # dot product controls the angle of the rotation
-        w = old[0]*new[0] + old[1]*new[1] + old[2]*new[2]
+            # dot product controls the angle of the rotation
+            w = old[0]*new[0] + old[1]*new[1] + old[2]*new[2]
 
-        # cross product gives the rotation axis
-        x = old[1]*new[2] - old[2]*new[1]
-        y = old[2]*new[0] - old[0]*new[2]
-        z = old[0]*new[1] - old[1]*new[0]
+            # cross product gives the rotation axis
+            x = old[1]*new[2] - old[2]*new[1]
+            y = old[2]*new[0] - old[0]*new[2]
+            z = old[0]*new[1] - old[1]*new[0]
 
-        q = np.array([w, x, y, z])
+            q = np.array([w, x, y, z])
 
-        #renormalize to prevent floating point issues
-        mag = np.sqrt(w**2 + x**2 + y**2 + z**2)
-        q /= mag
+            #renormalize to prevent floating point issues
+            mag = np.sqrt(w**2 + x**2 + y**2 + z**2)
+            q /= mag
 
-        self.orientation = quaternion_mult(self.orientation, q)
+            o1 = quaternion_mult(self.orientation, q)
+        self.orientation = update_orientation(self.orientation, start_x, start_y, end_x, end_y)
 
     def _compute_matrices(self):
         rotation_matrix = quaternion_to_rotation_matrix(self.orientation)

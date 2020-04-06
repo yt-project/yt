@@ -192,4 +192,10 @@ class RenderingContext(pyglet.window.Window):
         self._do_update = True
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        start_x = -1.0 + 2.0 * x / self.width
+        end_x = -1.0 + 2.0 * (x + dx) / self.width
+        start_y = -1.0 + 2.0 * y / self.height
+        end_y = -1.0 + 2.0 * (y + dy) / self.height
+
+        self.scene.camera.update_orientation(start_x, start_y, end_x, end_y)
         self._do_update = True
