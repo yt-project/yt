@@ -114,3 +114,147 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
                            parse_h5_attr(f[field], "units"))
                           for field in f])
         return fields, units
+
+class IOHandlerHaloCatalogHaloHDF5(IOHandlerHaloCatalogHDF5):
+    _dataset_type = "halo_catalog_halo_hdf5"
+
+    def _read_particle_coords(self, chunks, ptf):
+        pass
+
+    def _read_particle_selection(self, dobj, fields):
+        rv = {}
+        ind = {}
+        # We first need a set of masks for each particle type
+        ptf = defaultdict(list)        # ON-DISK TO READ
+        fsize = defaultdict(lambda: 0) # COUNT RV
+        field_maps = defaultdict(list) # ptypes -> fields
+        unions = self.ds.particle_unions
+        # What we need is a mapping from particle types to return types
+        for field in fields:
+            ftype, fname = field
+            fsize[field] = 0
+            # We should add a check for p.fparticle_unions or something here
+            if ftype in unions:
+                for pt in unions[ftype]:
+                    ptf[pt].append(fname)
+                    field_maps[pt, fname].append(field)
+            else:
+                ptf[ftype].append(fname)
+                field_maps[field].append(field)
+
+        # Now we allocate
+        psize = {dobj.ptype: dobj.particle_number}
+        for field in fields:
+            if field[0] in unions:
+                for pt in unions[field[0]]:
+                    fsize[field] += psize.get(pt, 0)
+            else:
+                fsize[field] += psize.get(field[0], 0)
+        for field in fields:
+            if field[1] in self._vector_fields:
+                shape = (fsize[field], self._vector_fields[field[1]])
+            elif field[1] in self._array_fields:
+                shape = (fsize[field],)+self._array_fields[field[1]]
+            elif field in self.ds.scalar_field_list:
+                shape = (1,)
+            else:
+                shape = (fsize[field], )
+            rv[field] = np.empty(shape, dtype="float64")
+            ind[field] = 0
+        # Now we read.
+        for field_r, vals in self._read_particle_fields(dobj, ptf):
+            # Note that we now need to check the mappings
+            for field_f in field_maps[field_r]:
+                my_ind = ind[field_f]
+                rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
+                ind[field_f] += vals.shape[0]
+        # Now we need to truncate all our fields, since we allow for
+        # over-estimating.
+        for field_f in ind:
+            rv[field_f] = rv[field_f][:ind[field_f]]
+        return rv
+
+    def _read_scalar_fields(self, dobj, scalar_fields):
+        all_data = {}
+        if not scalar_fields: return all_data
+        pcount = 1
+        with h5py.File(dobj.scalar_data_file.filename, "r") as f:
+            for ptype, field_list in sorted(scalar_fields.items()):
+                for field in field_list:
+                    if field == "particle_identifier":
+                        field_data = \
+                          np.arange(dobj.scalar_data_file.total_particles[ptype]) + \
+                          dobj.scalar_data_file.index_start[ptype]
+                    elif field in f[ptype]:
+                        field_data = f[ptype][field][()].astype("float64")
+                    else:
+                        fname = field[:field.rfind("_")]
+                        field_data = f[ptype][fname][()].astype("float64")
+                        my_div = field_data.size / pcount
+                        if my_div > 1:
+                            findex = int(field[field.rfind("_") + 1:])
+                            field_data = field_data[:, findex]
+                    data = np.array([field_data[dobj.scalar_index]])
+                    all_data[(ptype, field)] = data
+        return all_data
+
+    def _read_member_fields(self, dobj, member_fields):
+        all_data = defaultdict(lambda: np.empty(dobj.particle_number,
+                                                dtype=np.float64))
+        if not member_fields: return all_data
+        field_start = 0
+        for i, data_file in enumerate(dobj.field_data_files):
+            start_index = dobj.field_data_start[i]
+            end_index = dobj.field_data_end[i]
+            pcount = end_index - start_index
+            if pcount == 0: continue
+            field_end = field_start + end_index - start_index
+            with h5py.File(data_file.filename, "r") as f:
+                for ptype, field_list in sorted(member_fields.items()):
+                    for field in field_list:
+                        field_data = all_data[(ptype, field)]
+                        if field in f["IDs"]:
+                            my_data = \
+                              f["IDs"][field][start_index:end_index].astype("float64")
+                        else:
+                            fname = field[:field.rfind("_")]
+                            my_data = \
+                              f["IDs"][fname][start_index:end_index].astype("float64")
+                            my_div = my_data.size / pcount
+                            if my_div > 1:
+                                findex = int(field[field.rfind("_") + 1:])
+                                my_data = my_data[:, findex]
+                        field_data[field_start:field_end] = my_data
+            field_start = field_end
+        return all_data
+
+    def _read_particle_fields(self, dobj, ptf):
+        # separate member particle fields from scalar fields
+        scalar_fields = defaultdict(list)
+        member_fields = defaultdict(list)
+        for ptype, field_list in sorted(ptf.items()):
+            for field in field_list:
+                if (ptype, field) in self.ds.scalar_field_list:
+                    scalar_fields[ptype].append(field)
+                else:
+                    member_fields[ptype].append(field)
+
+        all_data = self._read_scalar_fields(dobj, scalar_fields)
+        all_data.update(self._read_member_fields(dobj, member_fields))
+
+        for field, field_data in all_data.items():
+            yield field, field_data
+
+    def _identify_fields(self, data_file):
+        with h5py.File(data_file.filename, "r") as f:
+            scalar_fields = [("halos", field) for field in f
+                        if not isinstance(f[field], h5py.Group)]
+            units = dict([(("halos", field),
+                           parse_h5_attr(f[field], "units"))
+                          for field in f])
+            if 'particles' in f:
+                id_fields = [('halos', field) for field in f['particles']]
+            else:
+                id_fields = []
+
+        return scalar_fields+id_fields, scalar_fields, id_fields, units
