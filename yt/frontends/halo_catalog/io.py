@@ -1,3 +1,5 @@
+from collections import \
+    defaultdict
 import numpy as np
 
 from yt.funcs import mylog, parse_h5_attr
@@ -178,20 +180,7 @@ class IOHandlerHaloCatalogHaloHDF5(IOHandlerHaloCatalogHDF5):
         with h5py.File(dobj.scalar_data_file.filename, "r") as f:
             for ptype, field_list in sorted(scalar_fields.items()):
                 for field in field_list:
-                    if field == "particle_identifier":
-                        field_data = \
-                          np.arange(dobj.scalar_data_file.total_particles[ptype]) + \
-                          dobj.scalar_data_file.index_start[ptype]
-                    elif field in f[ptype]:
-                        field_data = f[ptype][field][()].astype("float64")
-                    else:
-                        fname = field[:field.rfind("_")]
-                        field_data = f[ptype][fname][()].astype("float64")
-                        my_div = field_data.size / pcount
-                        if my_div > 1:
-                            findex = int(field[field.rfind("_") + 1:])
-                            field_data = field_data[:, findex]
-                    data = np.array([field_data[dobj.scalar_index]])
+                    data = np.array([f[field][dobj.scalar_index]]).astype("float64")
                     all_data[(ptype, field)] = data
         return all_data
 
@@ -210,17 +199,8 @@ class IOHandlerHaloCatalogHaloHDF5(IOHandlerHaloCatalogHDF5):
                 for ptype, field_list in sorted(member_fields.items()):
                     for field in field_list:
                         field_data = all_data[(ptype, field)]
-                        if field in f["IDs"]:
-                            my_data = \
-                              f["IDs"][field][start_index:end_index].astype("float64")
-                        else:
-                            fname = field[:field.rfind("_")]
-                            my_data = \
-                              f["IDs"][fname][start_index:end_index].astype("float64")
-                            my_div = my_data.size / pcount
-                            if my_div > 1:
-                                findex = int(field[field.rfind("_") + 1:])
-                                my_data = my_data[:, findex]
+                        my_data = \
+                          f['particles'][field][start_index:end_index].astype("float64")
                         field_data[field_start:field_end] = my_data
             field_start = field_end
         return all_data
