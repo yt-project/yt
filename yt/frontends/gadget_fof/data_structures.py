@@ -17,6 +17,7 @@ from yt.frontends.gadget_fof.fields import \
 from yt.frontends.halo_catalog.data_structures import \
     HaloCatalogFile, \
     HaloCatalogParticleIndex, \
+    HaloContainer, \
     HaloDatasetParticleIndex, \
     HaloDataset
 from yt.funcs import \
@@ -332,141 +333,27 @@ class GadgetFOFHaloDataset(HaloDataset):
     def __init__(self, ds, dataset_type="gadget_fof_halo_hdf5"):
         super(GadgetFOFHaloDataset, self).__init__(ds, dataset_type)
 
-class GadgetFOFHaloContainer(YTSelectionContainer):
-    """
-    Create a data container to get member particles and individual
-    values from halos and subhalos. Halo mass, position, and
-    velocity are set as attributes. Halo IDs are accessible
-    through the field, "member_ids".  Other fields that are one
-    value per halo are accessible as normal.  The field list for
-    halo objects can be seen in `ds.halos_field_list`.
-
-    Parameters
-    ----------
-    ptype : string
-        The type of halo, either "Group" for the main halo or
-        "Subhalo" for subhalos.
-    particle_identifier : int or tuple of ints
-        The halo or subhalo id.  If requesting a subhalo, the id
-        can also be given as a tuple of the main halo id and
-        subgroup id, such as (1, 4) for subgroup 4 of halo 1.
-
-    Attributes
-    ----------
-    particle_identifier : int
-        The id of the halo or subhalo.
-    group_identifier : int
-        For subhalos, the id of the enclosing halo.
-    subgroup_identifier : int
-        For subhalos, the relative id of the subhalo within
-        the enclosing halo.
-    particle_number : int
-        Number of particles in the halo.
-    mass : float
-        Halo mass.
-    position : array of floats
-        Halo position.
-    velocity : array of floats
-        Halo velocity.
-
-    Note
-    ----
-    Relevant Fields:
-
-     * particle_number - number of particles
-     * subhalo_number - number of subhalos
-     * group_identifier - id of parent group for subhalos
-
-    Examples
-    --------
-
-    >>> import yt
-    >>> ds = yt.load("gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5")
-    >>>
-    >>> halo = ds.halo("Group", 0)
-    >>> print(halo.mass)
-    13256.5517578 code_mass
-    >>> print(halo.position)
-    [ 16.18603706   6.95965052  12.52694607] code_length
-    >>> print(halo.velocity)
-    [ 6943694.22793569  -762788.90647454  -794749.63819757] cm/s
-    >>> print(halo["Group_R_Crit200"])
-    [ 0.79668683] code_length
-    >>>
-    >>> # particle ids for this halo
-    >>> print(halo["member_ids"])
-    [  723631.   690744.   854212. ...,   608589.   905551.  1147449.] dimensionless
-    >>>
-    >>> # get the first subhalo of this halo
-    >>> subhalo = ds.halo("Subhalo", (0, 0))
-    >>> print(subhalo["member_ids"])
-    [  723631.   690744.   854212. ...,   808362.   956359.  1248821.] dimensionless
-
-    """
-
-    _type_name = "halo"
-    _con_args = ("ptype", "particle_identifier")
-    _spatial = False
-    # Do not register it to prevent .halo from being attached to all datasets
-    _skip_add = True
-
-    def __init__(self, ptype, particle_identifier, ds=None):
-        if ptype not in ds.particle_types_raw:
-            raise RuntimeError(
-                'Possible halo types are %s, supplied "%s".'
-                % (ds.particle_types_raw, ptype)
-            )
-
-        self.ptype = ptype
-        self._current_particle_type = ptype
-        super(GadgetFOFHaloContainer, self).__init__(ds, {})
-
-        if ptype == "Subhalo" and isinstance(particle_identifier, tuple):
-            self.group_identifier, self.subgroup_identifier = particle_identifier
-            my_data = self.index._get_halo_values(
-                "Group", np.array([self.group_identifier]), ["GroupFirstSub"]
-            )
-            self.particle_identifier = np.int64(
-                my_data["GroupFirstSub"][0] + self.subgroup_identifier
-            )
-        else:
-            self.particle_identifier = particle_identifier
-
-        if self.particle_identifier >= self.index.particle_count[ptype]:
-            raise RuntimeError(
-                "%s %d requested, but only %d %s objects exist."
-                % (ptype, particle_identifier, self.index.particle_count[ptype], ptype)
-            )
-
-        # Find the file that has the scalar values for this halo.
-        i_scalar = self.index._get_halo_file_indices(ptype, [self.particle_identifier])[
-            0
-        ]
-        self.scalar_data_file = self.index.data_files[i_scalar]
-
-        # index within halo arrays that corresponds to this halo
-        self.scalar_index = self.index._get_halo_scalar_index(
-            ptype, self.particle_identifier
-        )
-
-        halo_fields = ["%sLen" % ptype]
-        if ptype == "Subhalo":
+class GadgetFOFHaloContainer(HaloContainer):
+    def _get_member_fieldnames(self):
+        halo_fields = ["%sLen" % self.ptype]
+        if self.ptype == "Subhalo":
             halo_fields.append("SubhaloGrNr")
-        my_data = self.index._get_halo_values(
-            ptype, np.array([self.particle_identifier]), halo_fields
-        )
-        self.particle_number = np.int64(my_data["%sLen" % ptype][0])
+        return halo_fields
 
-        if ptype == "Group":
+    def _get_particle_number(self):
+        return self._io_data["%sLen" % self.ptype]
+
+    def _set_field_indices(self):
+        if self.ptype == "Group":
             self.group_identifier = self.particle_identifier
             id_offset = 0
             # index of file that has scalar values for the group
-            g_scalar = i_scalar
+            g_scalar = self.i_scalar
             group_index = self.scalar_index
 
         # If a subhalo, find the index of the parent.
-        elif ptype == "Subhalo":
-            self.group_identifier = np.int64(my_data["SubhaloGrNr"][0])
+        elif self.ptype == "Subhalo":
+            self.group_identifier = self._io_data["SubhaloGrNr"]
 
             # Find the file that has the scalar values for the parent group.
             g_scalar = self.index._get_halo_file_indices(
@@ -543,8 +430,14 @@ class GadgetFOFHaloContainer(YTSelectionContainer):
         ).clip(max=self.index._halo_id_number[i_start : i_end + 1])
         self.field_data_end = self.field_data_end.astype(np.int64)
 
-        for attr in ["mass", "position", "velocity"]:
-            setattr(self, attr, self[self.ptype, "particle_%s" % attr][0])
-
-    def __repr__(self):
-        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
+    def _set_identifiers(self, particle_identifier):
+        if self.ptype == "Subhalo" and isinstance(particle_identifier, tuple):
+            self.group_identifier, self.subgroup_identifier = \
+              particle_identifier
+            my_data = self.index._get_halo_values(
+                "Group", np.array([self.group_identifier]),
+                ["GroupFirstSub"])
+            self.particle_identifier = \
+              np.int64(my_data["GroupFirstSub"][0] + self.subgroup_identifier)
+        else:
+            self.particle_identifier = particle_identifier

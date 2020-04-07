@@ -452,6 +452,7 @@ class HaloContainer(YTSelectionContainer):
         # Find the file that has the scalar values for this halo.
         i_scalar = self.index._get_halo_file_indices(
             ptype, [self.particle_identifier])[0]
+        self.i_scalar = i_scalar
         self.scalar_data_file = self.index.data_files[i_scalar]
 
         # Data files containing particles belonging to this halo.
