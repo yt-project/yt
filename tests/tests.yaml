@@ -128,6 +128,9 @@ answer_tests:
   local_axialpix_006:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
+  local_cylindrical_background_001:
+    - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
+
   local_particle_trajectory_001:
     - yt/data_objects/tests/test_particle_trajectories.py
 
