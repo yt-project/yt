@@ -192,7 +192,6 @@ class HaloDatasetIOHandler():
             rv[field_f] = rv[field_f][:ind[field_f]]
         return rv
 
-
 class IOHandlerHaloCatalogHaloHDF5(HaloDatasetIOHandler, IOHandlerHaloCatalogHDF5):
     _dataset_type = "halo_catalog_halo_hdf5"
 
@@ -237,7 +236,6 @@ class IOHandlerHaloCatalogHaloHDF5(HaloDatasetIOHandler, IOHandlerHaloCatalogHDF
         all_data = {}
         if not scalar_fields:
             return all_data
-        pcount = 1
         with h5py.File(dobj.scalar_data_file.filename, "r") as f:
             for ptype, field_list in sorted(scalar_fields.items()):
                 for field in field_list:

@@ -157,39 +157,14 @@ class HaloCatalogDataset(SavedDataset):
                 return True
         return False
 
-class HaloCatalogHaloParticleIndex(ParticleIndex):
+class HaloDatasetParticleIndex(ParticleIndex):
+    """
+    Base class for particle index objects that read halo member particles.
+    """
+
     def __init__(self, ds, dataset_type):
         self.real_ds = weakref.proxy(ds.real_ds)
-        super(HaloCatalogHaloParticleIndex, self).__init__(ds, dataset_type)
-
-    def _setup_data_io(self):
-        super(HaloCatalogHaloParticleIndex, self)._setup_data_io()
-        self._setup_filenames()
-
-    def _setup_geometry(self):
-        self._setup_data_io()
-
-        if self.real_ds._instantiated_index is None:
-            template = self.real_ds.filename_template
-            ndoms = self.real_ds.file_count
-            cls = self.real_ds._file_class
-            self.data_files = \
-              [cls(self.dataset, self.io, template % {'num':i}, i, None)
-               for i in range(ndoms)]
-        else:
-            self.data_files = self.real_ds.index.data_files
-
-        self._calculate_particle_index_starts()
-        self._calculate_particle_count()
-        self._create_halo_id_table()
-
-    def _calculate_particle_count(self):
-        """
-        Calculate the total number of each type of particle.
-        """
-        self.particle_count = \
-          dict([(ptype, sum([d.total_particles[ptype] for d in self.data_files]))
-                 for ptype in self.ds.particle_types_raw])
+        super(HaloDatasetParticleIndex, self).__init__(ds, dataset_type)
 
     def _calculate_particle_index_starts(self):
         """
@@ -206,6 +181,14 @@ class HaloCatalogHaloParticleIndex(ParticleIndex):
           dict([(ptype, np.array([data_file.index_start[ptype]
                                   for data_file in self.data_files]))
                 for ptype in self.ds.particle_types_raw])
+
+    def _calculate_particle_count(self):
+        """
+        Calculate the total number of each type of particle.
+        """
+        self.particle_count = \
+          dict([(ptype, sum([d.total_particles[ptype] for d in self.data_files]))
+                 for ptype in self.ds.particle_types_raw])
 
     def _create_halo_id_table(self):
         pass
@@ -240,6 +223,15 @@ class HaloCatalogHaloParticleIndex(ParticleIndex):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
+    def _get_halo_file_indices(self, ptype, identifiers):
+        return np.digitize(identifiers,
+            self._halo_index_start[ptype], right=False) - 1
+
+    def _get_halo_scalar_index(self, ptype, identifier):
+        i_scalar = self._get_halo_file_indices(ptype, [identifier])[0]
+        scalar_index = identifier - self._halo_index_start[ptype][i_scalar]
+        return scalar_index
+
     def _identify_base_chunk(self, dobj):
         pass
 
@@ -252,14 +244,27 @@ class HaloCatalogHaloParticleIndex(ParticleIndex):
             dobj, fields_to_read)
         return fields_to_return, fields_to_generate
 
-    def _get_halo_file_indices(self, ptype, identifiers):
-        return np.digitize(identifiers,
-            self._halo_index_start[ptype], right=False) - 1
+    def _setup_geometry(self):
+        self._setup_data_io()
 
-    def _get_halo_scalar_index(self, ptype, identifier):
-        i_scalar = self._get_halo_file_indices(ptype, [identifier])[0]
-        scalar_index = identifier - self._halo_index_start[ptype][i_scalar]
-        return scalar_index
+        if self.real_ds._instantiated_index is None:
+            template = self.real_ds.filename_template
+            ndoms = self.real_ds.file_count
+            cls = self.real_ds._file_class
+            self.data_files = \
+              [cls(self.dataset, self.io, template % {'num':i}, i, None)
+               for i in range(ndoms)]
+        else:
+            self.data_files = self.real_ds.index.data_files
+
+        self._calculate_particle_index_starts()
+        self._calculate_particle_count()
+        self._create_halo_id_table()
+
+class HaloCatalogHaloParticleIndex(HaloDatasetParticleIndex):
+    def _setup_data_io(self):
+        super(HaloCatalogHaloParticleIndex, self)._setup_data_io()
+        self._setup_filenames()
 
     def _get_halo_values(self, ptype, identifiers, fields,
                          f=None):
