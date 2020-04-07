@@ -114,7 +114,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
                           for field in f])
         return fields, units
 
-class HaloDatasetIOHandler(IOHandlerHaloCatalogHDF5):
+class HaloDatasetIOHandler():
     """
     Base class for io handlers to load halo member particles.
     """
@@ -193,20 +193,22 @@ class HaloDatasetIOHandler(IOHandlerHaloCatalogHDF5):
         return rv
 
 
-class IOHandlerHaloCatalogHaloHDF5(HaloDatasetIOHandler):
+class IOHandlerHaloCatalogHaloHDF5(HaloDatasetIOHandler, IOHandlerHaloCatalogHDF5):
     _dataset_type = "halo_catalog_halo_hdf5"
 
-    def _read_scalar_fields(self, dobj, scalar_fields):
-        all_data = {}
-        if not scalar_fields:
-            return all_data
-        pcount = 1
-        with h5py.File(dobj.scalar_data_file.filename, "r") as f:
-            for ptype, field_list in sorted(scalar_fields.items()):
-                for field in field_list:
-                    data = np.array([f[field][dobj.scalar_index]]).astype("float64")
-                    all_data[(ptype, field)] = data
-        return all_data
+    def _identify_fields(self, data_file):
+        with h5py.File(data_file.filename, "r") as f:
+            scalar_fields = [("halos", field) for field in f
+                        if not isinstance(f[field], h5py.Group)]
+            units = dict([(("halos", field),
+                           parse_h5_attr(f[field], "units"))
+                          for field in f])
+            if 'particles' in f:
+                id_fields = [('halos', field) for field in f['particles']]
+            else:
+                id_fields = []
+
+        return scalar_fields+id_fields, scalar_fields, id_fields, units
 
     def _read_member_fields(self, dobj, member_fields):
         all_data = defaultdict(lambda: np.empty(dobj.particle_number,
@@ -231,16 +233,14 @@ class IOHandlerHaloCatalogHaloHDF5(HaloDatasetIOHandler):
             field_start = field_end
         return all_data
 
-    def _identify_fields(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
-            scalar_fields = [("halos", field) for field in f
-                        if not isinstance(f[field], h5py.Group)]
-            units = dict([(("halos", field),
-                           parse_h5_attr(f[field], "units"))
-                          for field in f])
-            if 'particles' in f:
-                id_fields = [('halos', field) for field in f['particles']]
-            else:
-                id_fields = []
-
-        return scalar_fields+id_fields, scalar_fields, id_fields, units
+    def _read_scalar_fields(self, dobj, scalar_fields):
+        all_data = {}
+        if not scalar_fields:
+            return all_data
+        pcount = 1
+        with h5py.File(dobj.scalar_data_file.filename, "r") as f:
+            for ptype, field_list in sorted(scalar_fields.items()):
+                for field in field_list:
+                    data = np.array([f[field][dobj.scalar_index]]).astype("float64")
+                    all_data[(ptype, field)] = data
+        return all_data
