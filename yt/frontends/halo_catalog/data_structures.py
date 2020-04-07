@@ -361,7 +361,7 @@ class HaloCatalogHaloDataset(HaloDataset):
     def __init__(self, ds, dataset_type="halo_catalog_halo_hdf5"):
         super(HaloCatalogHaloDataset, self).__init__(ds, dataset_type)
 
-class HaloCatalogHaloContainer(YTSelectionContainer):
+class HaloContainer(YTSelectionContainer):
     """
     Create a data container to get member particles and individual
     values from halos and subhalos. Halo mass, position, and
@@ -435,6 +435,7 @@ class HaloCatalogHaloContainer(YTSelectionContainer):
 
     _type_name = "halo"
     _con_args = ("ptype", "particle_identifier")
+    _skip_add = True
     _spatial = False
 
     def __init__(self, ptype, particle_identifier, ds=None):
@@ -444,56 +445,54 @@ class HaloCatalogHaloContainer(YTSelectionContainer):
 
         self.ptype = ptype
         self._current_particle_type = ptype
-        super(HaloCatalogHaloContainer, self).__init__(ds, {})
+        super(HaloContainer, self).__init__(ds, {})
 
-        if ptype == "Subhalo" and isinstance(particle_identifier, tuple):
-            self.group_identifier, self.subgroup_identifier = \
-              particle_identifier
-            my_data = self.index._get_halo_values(
-                "Group", np.array([self.group_identifier]),
-                ["GroupFirstSub"])
-            self.particle_identifier = \
-              np.int64(my_data["GroupFirstSub"][0] + self.subgroup_identifier)
-        else:
-            self.particle_identifier = particle_identifier
-
-        if self.particle_identifier >= self.index.particle_count[ptype]:
-            raise RuntimeError("%s %d requested, but only %d %s objects exist." %
-                               (ptype, particle_identifier,
-                                self.index.particle_count[ptype], ptype))
+        self._set_identifiers(particle_identifier)
 
         # Find the file that has the scalar values for this halo.
         i_scalar = self.index._get_halo_file_indices(
             ptype, [self.particle_identifier])[0]
         self.scalar_data_file = self.index.data_files[i_scalar]
 
+        # Data files containing particles belonging to this halo.
+        self.field_data_files = [self.index.data_files[i_scalar]]
+
         # index within halo arrays that corresponds to this halo
         self.scalar_index = self.index._get_halo_scalar_index(
             ptype, self.particle_identifier)
 
-        halo_fields = ['particle_number',
-                       'particle_index_start']
-        my_data = self.index._get_halo_values(
-            ptype, np.array([self.particle_identifier]),
-            halo_fields)
-        self.particle_number = np.int64(my_data['particle_number'][0])
-
-        self.group_identifier = self.particle_identifier
-        id_offset = 0
-        # index of file that has scalar values for the group
-        g_scalar = i_scalar
-        group_index = self.scalar_index
-
-        # Data files containing particles belonging to this halo.
-        self.field_data_files = [self.index.data_files[i_scalar]]
+        self._set_io_data()
+        self.particle_number = self._get_particle_number()
 
         # starting and ending indices for each file containing particles
-        self.field_data_start = [np.int64(my_data['particle_index_start'][0])]
-        self.field_data_end = [self.field_data_start[0] + self.particle_number]
+        self._set_field_indices()
 
         for attr in ["mass", "position"]:#, "velocity"]:
             setattr(self, attr, self[self.ptype, "particle_%s" % attr][0])
 
+    def _set_io_data(self):
+        halo_fields = self._get_member_fieldnames()
+        my_data = self.index._get_halo_values(
+            self.ptype, np.array([self.particle_identifier]),
+            halo_fields)
+        self._io_data = dict((field, np.int64(val[0]))
+                             for field, val in my_data.items())
+
     def __repr__(self):
         return "%s_%s_%09d" % \
           (self.ds, self.ptype, self.particle_identifier)
+
+class HaloCatalogHaloContainer(HaloContainer):
+    def _get_member_fieldnames(self):
+        return ['particle_number', 'particle_index_start']
+
+    def _get_particle_number(self):
+        return self._io_data['particle_number']
+
+    def _set_field_indices(self):
+        self.field_data_start = [self._io_data['particle_index_start']]
+        self.field_data_end = [self.field_data_start[0] + self.particle_number]
+
+    def _set_identifiers(self, particle_identifier):
+        self.particle_identifier = particle_identifier
+        self.group_identifier = self.particle_identifier
