@@ -387,17 +387,10 @@ Here is an example test function:
    def test_my_ds():
        ds = data_dir_load(my_ds)
 
-       def create_images(filename_prefix):
-            plot = yt.SlicePlot(ds, "z", "density")
-            plot.save("%s_log" % filename_prefix)
-
-            plot.set_log("density", False)
-            plot.save("%s_lin" % filename_prefix)
-
-            plt.plot([1, 2], [1, 2])
-            plt.savefig("%s_lineplot" % filename_prefix)
-
-       test = GenericImageTest(ds, create_images, 12)
+       def create_image(filename_prefix):
+           plt.plot([1, 2], [1, 2])
+           plt.savefig("%s_lineplot" % filename_prefix)
+       test = GenericImageTest(ds, create_image, 12)
 
        # this ensures the test has a unique key in the
        # answer test storage file
@@ -407,7 +400,8 @@ Here is an example test function:
        test_my_ds.__name__ = test.description
 
        yield test
-.. note:: The inner function ``create_images`` can create any number of images,
+
+.. note:: The inner function ``create_image`` can create any number of images,
           as long as the corresponding filenames conform to the prefix.
 
 Another good example of an image comparison test is the
