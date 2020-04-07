@@ -16,7 +16,8 @@ from yt.frontends.gadget_fof.fields import \
     GadgetFOFFieldInfo, \
     GadgetFOFHaloFieldInfo
 from yt.frontends.halo_catalog.data_structures import \
-    HaloCatalogFile
+    HaloCatalogFile, \
+    HaloDatasetParticleIndex
 from yt.funcs import \
     only_on_root, \
     setdefaultattr
