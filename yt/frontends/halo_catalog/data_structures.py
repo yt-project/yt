@@ -240,6 +240,42 @@ class HaloDatasetParticleIndex(HaloCatalogParticleIndex):
         scalar_index = identifier - self._halo_index_start[ptype][i_scalar]
         return scalar_index
 
+    def _get_halo_values(self, ptype, identifiers, fields,
+                         f=None):
+        """
+        Get field values for halos.  IDs are likely to be
+        sequential (or at least monotonic), but not necessarily
+        all within the same file.
+
+        This does not do much to minimize file i/o, but with
+        halos randomly distributed across files, there's not
+        much more we can do.
+        """
+
+        # if a file is already open, don't open it again
+        filename = None if f is None \
+          else f.filename
+
+        data = defaultdict(lambda: np.empty(identifiers.size))
+        i_scalars = self._get_halo_file_indices(ptype, identifiers)
+        for i_scalar in np.unique(i_scalars):
+            target = i_scalars == i_scalar
+            scalar_indices = identifiers - \
+              self._halo_index_start[ptype][i_scalar]
+
+            # only open file if it's not already open
+            my_f = f if self.data_files[i_scalar].filename == filename \
+              else h5py.File(self.data_files[i_scalar].filename, "r")
+
+            for field in fields:
+                data[field][target] = \
+                  self._read_halo_particle_field(
+                      my_f, ptype, field, scalar_indices[target])
+
+            if self.data_files[i_scalar].filename != filename: my_f.close()
+
+        return data
+
     def _identify_base_chunk(self, dobj):
         pass
 
@@ -274,40 +310,8 @@ class HaloCatalogHaloParticleIndex(HaloDatasetParticleIndex):
         super(HaloCatalogHaloParticleIndex, self)._setup_data_io()
         self._setup_filenames()
 
-    def _get_halo_values(self, ptype, identifiers, fields,
-                         f=None):
-        """
-        Get field values for halos.  IDs are likely to be
-        sequential (or at least monotonic), but not necessarily
-        all within the same file.
-
-        This does not do much to minimize file i/o, but with
-        halos randomly distributed across files, there's not
-        much more we can do.
-        """
-
-        # if a file is already open, don't open it again
-        filename = None if f is None \
-          else f.filename
-
-        data = defaultdict(lambda: np.empty(identifiers.size))
-        i_scalars = self._get_halo_file_indices(ptype, identifiers)
-        for i_scalar in np.unique(i_scalars):
-            target = i_scalars == i_scalar
-            scalar_indices = identifiers - \
-              self._halo_index_start[ptype][i_scalar]
-
-            # only open file if it's not already open
-            my_f = f if self.data_files[i_scalar].filename == filename \
-              else h5py.File(self.data_files[i_scalar].filename, "r")
-
-            for field in fields:
-                data[field][target] = \
-                  my_f[field][scalar_indices[target]]
-
-            if self.data_files[i_scalar].filename != filename: my_f.close()
-
-        return data
+    def _read_halo_particle_field(self, fh, ptype, field, indices):
+        return fh[field][indices]
 
 class HaloCatalogHaloDataset(ParticleDataset):
     _index_class = HaloCatalogHaloParticleIndex
