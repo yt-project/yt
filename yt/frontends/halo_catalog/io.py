@@ -114,11 +114,30 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
                           for field in f])
         return fields, units
 
-class IOHandlerHaloCatalogHaloHDF5(IOHandlerHaloCatalogHDF5):
-    _dataset_type = "halo_catalog_halo_hdf5"
+class HaloDatasetIOHandler(IOHandlerHaloCatalogHDF5):
+    """
+    Base class for io handlers to load halo member particles.
+    """
 
     def _read_particle_coords(self, chunks, ptf):
         pass
+
+    def _read_particle_fields(self, dobj, ptf):
+        # separate member particle fields from scalar fields
+        scalar_fields = defaultdict(list)
+        member_fields = defaultdict(list)
+        for ptype, field_list in sorted(ptf.items()):
+            for field in field_list:
+                if (ptype, field) in self.ds.scalar_field_list:
+                    scalar_fields[ptype].append(field)
+                else:
+                    member_fields[ptype].append(field)
+
+        all_data = self._read_scalar_fields(dobj, scalar_fields)
+        all_data.update(self._read_member_fields(dobj, member_fields))
+
+        for field, field_data in all_data.items():
+            yield field, field_data
 
     def _read_particle_selection(self, dobj, fields):
         rv = {}
@@ -173,9 +192,14 @@ class IOHandlerHaloCatalogHaloHDF5(IOHandlerHaloCatalogHDF5):
             rv[field_f] = rv[field_f][:ind[field_f]]
         return rv
 
+
+class IOHandlerHaloCatalogHaloHDF5(HaloDatasetIOHandler):
+    _dataset_type = "halo_catalog_halo_hdf5"
+
     def _read_scalar_fields(self, dobj, scalar_fields):
         all_data = {}
-        if not scalar_fields: return all_data
+        if not scalar_fields:
+            return all_data
         pcount = 1
         with h5py.File(dobj.scalar_data_file.filename, "r") as f:
             for ptype, field_list in sorted(scalar_fields.items()):
@@ -187,13 +211,15 @@ class IOHandlerHaloCatalogHaloHDF5(IOHandlerHaloCatalogHDF5):
     def _read_member_fields(self, dobj, member_fields):
         all_data = defaultdict(lambda: np.empty(dobj.particle_number,
                                                 dtype=np.float64))
-        if not member_fields: return all_data
+        if not member_fields:
+            return all_data
         field_start = 0
         for i, data_file in enumerate(dobj.field_data_files):
             start_index = dobj.field_data_start[i]
             end_index = dobj.field_data_end[i]
             pcount = end_index - start_index
-            if pcount == 0: continue
+            if pcount == 0:
+                continue
             field_end = field_start + end_index - start_index
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(member_fields.items()):
@@ -204,23 +230,6 @@ class IOHandlerHaloCatalogHaloHDF5(IOHandlerHaloCatalogHDF5):
                         field_data[field_start:field_end] = my_data
             field_start = field_end
         return all_data
-
-    def _read_particle_fields(self, dobj, ptf):
-        # separate member particle fields from scalar fields
-        scalar_fields = defaultdict(list)
-        member_fields = defaultdict(list)
-        for ptype, field_list in sorted(ptf.items()):
-            for field in field_list:
-                if (ptype, field) in self.ds.scalar_field_list:
-                    scalar_fields[ptype].append(field)
-                else:
-                    member_fields[ptype].append(field)
-
-        all_data = self._read_scalar_fields(dobj, scalar_fields)
-        all_data.update(self._read_member_fields(dobj, member_fields))
-
-        for field, field_data in all_data.items():
-            yield field, field_data
 
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, "r") as f:
