@@ -455,8 +455,26 @@ class HaloContainer(YTSelectionContainer):
         # starting and ending indices for each file containing particles
         self._set_field_indices()
 
-        for attr in ["mass", "position"]:#, "velocity"]:
-            setattr(self, attr, self[self.ptype, "particle_%s" % attr][0])
+    _mass = None
+    @property
+    def mass(self):
+        if self._mass is None:
+            self._mass = self[self.ptype, "particle_mass"][0]
+        return self._mass
+
+    _position = None
+    @property
+    def position(self):
+        if self._position is None:
+            self._position = self[self.ptype, "particle_position"][0]
+        return self._position
+
+    _velocity = None
+    @property
+    def velocity(self):
+        if self._velocity is None:
+            self._velocity = self[self.ptype, "particle_velocity"][0]
+        return self._velocity
 
     def _set_io_data(self):
         halo_fields = self._get_member_fieldnames()
