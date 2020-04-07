@@ -157,14 +157,18 @@ class HaloCatalogDataset(SavedDataset):
                 return True
         return False
 
-class HaloDatasetParticleIndex(ParticleIndex):
+class HaloCatalogParticleIndex(ParticleIndex):
     """
-    Base class for particle index objects that read halo member particles.
+    Base class for halo catalog datasets.
     """
 
-    def __init__(self, ds, dataset_type):
-        self.real_ds = weakref.proxy(ds.real_ds)
-        super(HaloDatasetParticleIndex, self).__init__(ds, dataset_type)
+    def _calculate_particle_count(self):
+        """
+        Calculate the total number of each type of particle.
+        """
+        self.particle_count = \
+          dict([(ptype, sum([d.total_particles[ptype] for d in self.data_files]))
+                 for ptype in self.ds.particle_types_raw])
 
     def _calculate_particle_index_starts(self):
         """
@@ -185,13 +189,14 @@ class HaloDatasetParticleIndex(ParticleIndex):
                                   for data_file in self.data_files]))
                 for ptype in self.ds.particle_types_raw])
 
-    def _calculate_particle_count(self):
-        """
-        Calculate the total number of each type of particle.
-        """
-        self.particle_count = \
-          dict([(ptype, sum([d.total_particles[ptype] for d in self.data_files]))
-                 for ptype in self.ds.particle_types_raw])
+class HaloDatasetParticleIndex(HaloCatalogParticleIndex):
+    """
+    Base class for particle index objects that read halo member particles.
+    """
+
+    def __init__(self, ds, dataset_type):
+        self.real_ds = weakref.proxy(ds.real_ds)
+        super(HaloDatasetParticleIndex, self).__init__(ds, dataset_type)
 
     def _create_halo_id_table(self):
         pass
