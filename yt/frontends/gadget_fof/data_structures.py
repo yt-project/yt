@@ -17,7 +17,8 @@ from yt.frontends.gadget_fof.fields import \
 from yt.frontends.halo_catalog.data_structures import \
     HaloCatalogFile, \
     HaloCatalogParticleIndex, \
-    HaloDatasetParticleIndex
+    HaloDatasetParticleIndex, \
+    HaloDataset
 from yt.funcs import \
     only_on_root, \
     setdefaultattr
@@ -323,70 +324,13 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex, HaloDatasetParticleInde
     def _read_halo_particle_field(self, fh, ptype, field, indices):
         return fh[os.path.join(ptype, field)][indices]
 
-
-class GadgetFOFHaloDataset(ParticleDataset):
+class GadgetFOFHaloDataset(HaloDataset):
     _index_class = GadgetFOFHaloParticleIndex
     _file_class = GadgetFOFHDF5File
     _field_info_class = GadgetFOFHaloFieldInfo
 
     def __init__(self, ds, dataset_type="gadget_fof_halo_hdf5"):
-        self.real_ds = ds
-        for attr in [
-            "filename_template",
-            "file_count",
-            "particle_types_raw",
-            "particle_types",
-            "periodicity",
-        ]:
-            setattr(self, attr, getattr(self.real_ds, attr))
-
-        super(GadgetFOFHaloDataset, self).__init__(
-            self.real_ds.parameter_filename, dataset_type
-        )
-
-    @classmethod
-    def _is_valid(self, *args, **kwargs):
-        # This class is not meant to be instanciated by yt.load()
-        return False
-
-    def print_key_parameters(self):
-        pass
-
-    def _set_derived_attrs(self):
-        pass
-
-    def _parse_parameter_file(self):
-        for attr in [
-            "cosmological_simulation",
-            "cosmology",
-            "current_redshift",
-            "current_time",
-            "dimensionality",
-            "domain_dimensions",
-            "domain_left_edge",
-            "domain_right_edge",
-            "domain_width",
-            "hubble_constant",
-            "omega_lambda",
-            "omega_matter",
-            "unique_identifier",
-        ]:
-            setattr(self, attr, getattr(self.real_ds, attr))
-
-    def set_code_units(self):
-        self._set_code_unit_attributes()
-        self.unit_registry = self.real_ds.unit_registry
-
-    def _set_code_unit_attributes(self):
-        for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
-            my_unit = "%s_unit" % unit
-            setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
-
-    def __repr__(self):
-        return "%s" % self.real_ds
-
-    def _setup_classes(self):
-        self.objects = []
+        super(GadgetFOFHaloDataset, self).__init__(ds, dataset_type)
 
 class GadgetFOFHaloContainer(YTSelectionContainer):
     """

@@ -313,19 +313,15 @@ class HaloCatalogHaloParticleIndex(HaloDatasetParticleIndex):
     def _read_halo_particle_field(self, fh, ptype, field, indices):
         return fh[field][indices]
 
-class HaloCatalogHaloDataset(ParticleDataset):
-    _index_class = HaloCatalogHaloParticleIndex
-    _file_class = HaloCatalogHDF5File
-    _field_info_class = HaloCatalogHaloFieldInfo
-
-    def __init__(self, ds, dataset_type="halo_catalog_halo_hdf5"):
+class HaloDataset(ParticleDataset):
+    def __init__(self, ds, dataset_type):
         self.real_ds = ds
         for attr in ['filename_template', 'file_count',
                      'particle_types_raw', 'particle_types',
                      'periodicity']:
             setattr(self, attr, getattr(self.real_ds, attr))
 
-        super(HaloCatalogHaloDataset, self).__init__(
+        super(HaloDataset, self).__init__(
             self.real_ds.parameter_filename, dataset_type)
 
     def print_key_parameters(self):
@@ -356,6 +352,14 @@ class HaloCatalogHaloDataset(ParticleDataset):
 
     def _setup_classes(self):
         self.objects = []
+
+class HaloCatalogHaloDataset(HaloDataset):
+    _index_class = HaloCatalogHaloParticleIndex
+    _file_class = HaloCatalogHDF5File
+    _field_info_class = HaloCatalogHaloFieldInfo
+
+    def __init__(self, ds, dataset_type="halo_catalog_halo_hdf5"):
+        super(HaloCatalogHaloDataset, self).__init__(ds, dataset_type)
 
 class HaloCatalogHaloContainer(YTSelectionContainer):
     """
