@@ -373,8 +373,8 @@ class HaloContainer(YTSelectionContainer):
     Parameters
     ----------
     ptype : string
-        The type of halo, either "Group" for the main halo or
-        "Subhalo" for subhalos.
+        The type of halo. Possible options can be found by
+        inspecting the value of ds.particle_types_raw.
     particle_identifier : int or tuple of ints
         The halo or subhalo id.  If requesting a subhalo, the id
         can also be given as a tuple of the main halo id and
