@@ -1483,9 +1483,9 @@ class Dataset(object):
         if self.geometry not in ("polar", "cylindrical"):
             raise ValueError("Unsupported geometry '%s'." % self.geometry)
 
-        theta_axis = self.coordinates.axis_id["theta"]
+        theta_index = self.coordinates.axis_id["theta"]
 
-        if self.dimensionality < theta_axis - 1:
+        if self.dimensionality < theta_index - 1:
             raise ValueError("Unsupported dimensionality '%s' with geometry '%s'." % (self.dimensionality, self.geometry))
 
         if deg:
@@ -1498,20 +1498,26 @@ class Dataset(object):
         # devnote: not sure this is necessary, though it should help making sure
         # the feature's flow is controlled
         dx = self.index.select_grids(level=self.min_level)[0].dds
-        dtheta = dx[theta_axis]
-        shift_angle -= shift_angle % dtheta
+        dtheta = dx[theta_index]
+        shift_angle_ = np.sign(shift_angle) * (np.abs(shift_angle) - np.abs(shift_angle) % dtheta)
 
+        # two seemingly equivalent possibilities here (both broken)
+        # note that combining them only result in doubling the desired rotation
+
+        # 1)
         theta_edges = [self.index.grid_left_edge, self.index.grid_right_edge]
-
         #h = self.index.grids[0].index # devnote why is is not the same as ds.index ?
         #theta_edges += [h.grid_left_edge, h.grid_right_edge]
 
         for edge in theta_edges:
-            edge[:, theta_axis] += shift_angle
-            edge[:, theta_axis] %= 2*np.pi * self.length_unit
+            edge[:, theta_index] += shift_angle_
+            edge[:, theta_index] %= 2*np.pi * self.length_unit
 
-        #for g in self.index.grids:
-        #    g._prepare_grid()
+        # 2)
+        #for grid in self.index.grids:
+        #    grid.LeftEdge[theta_index] += shift_angle_
+        #    grid.LeftEdge[theta_index] %= 2*np.pi * self.length_unit
+
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
