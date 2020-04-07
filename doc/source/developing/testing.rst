@@ -402,7 +402,7 @@ Here is an example test function:
        yield test
 
 .. note:: The inner function ``create_image`` can create any number of images,
-          as long as the corresponding filenames conform to the prefix.
+   as long as the corresponding filenames conform to the prefix.
 
 Another good example of an image comparison test is the
 ``PlotWindowAttributeTest`` defined in the answer testing framework and used in
