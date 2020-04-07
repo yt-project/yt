@@ -171,11 +171,14 @@ class HaloDatasetParticleIndex(ParticleIndex):
         Create a dict of halo id offsets for each file.
         """
         particle_count = defaultdict(int)
+        offset_count = 0
         for data_file in self.data_files:
             data_file.index_start = dict([(ptype, particle_count[ptype]) for
                                            ptype in data_file.total_particles])
+            data_file.offset_start = offset_count
             for ptype in data_file.total_particles:
                 particle_count[ptype] += data_file.total_particles[ptype]
+            offset_count += getattr(data_file, "total_offset", 0)
 
         self._halo_index_start = \
           dict([(ptype, np.array([data_file.index_start[ptype]
