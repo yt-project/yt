@@ -3,7 +3,6 @@ from numpy.testing import assert_raises
 
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.utilities.answer_testing.framework import GenericArrayTest
 from yt.testing import fake_particle_ds, assert_allclose_units
 from yt.utilities.exceptions import YTIllDefinedParticleData
 from yt.data_objects.particle_filters import particle_filter
@@ -15,7 +14,6 @@ def setup():
 data_path = ytcfg.get("yt", "test_data_dir")
 
 pfields = ["particle_position_x", "particle_position_y", "particle_position_z"]
-vfields = ["particle_velocity_x", "particle_velocity_y", "particle_velocity_z"]
 
 def test_orbit_traj():
     n_particles = 16 ** 2
