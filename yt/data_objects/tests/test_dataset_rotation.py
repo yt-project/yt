@@ -29,7 +29,7 @@ methods = [lambda x: None, plot_topw, plot_SlicePlot]
 def test_dont_corrupt_data(plot_method, touch):
     ds = fake_amr_ds(geometry="cylindrical")
 
-    ndiv = 11 # arbitrary, not a power of two on purpose
+    ndiv = 3 # arbitrary, not a power of two on purpose
 
     if touch:
         # devnote : I do not understand why, but creating a buffer NOW affects the end result
@@ -55,14 +55,22 @@ def test_dont_corrupt_data(plot_method, touch):
         assert count_invalid_values(slc["Density"]) == 0
 
         if touch:
-            buff = get_buffer(ds)
-            new_invalid_count = count_invalid_values(buff)
+            buff1 = get_buffer(ds)
+            new_invalid_count = count_invalid_values(buff1)
             # although the exact number of filler pixels may slighlty vary, a variation greater than 0.1%
             # is very suspicious in this test case
             assert_almost_equal(new_invalid_count/ref_invalid_count, 1, decimal=3)
 
-        p = plot_method(ds)
+        plot = plot_method(ds)
 
         # tmp
-        #if p is not None:
-        #   p.save(f'/tmp/{plot_method.__name__}_{i}')
+        if plot is not None:
+            if touch:
+                buff2 = get_buffer(ds)
+                new_invalid_count = count_invalid_values(buff2)
+                assert_almost_equal(new_invalid_count/ref_invalid_count, 1, decimal=3)
+
+                assert_almost_equal(buff1, buff2)
+                assert_almost_equal(buff2, plot.frb.data['Density'])
+
+        #   p.save(f'/tmp/{plot_method.__name__}_{touch}_{i}')
