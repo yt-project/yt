@@ -250,16 +250,20 @@ class PlotCallback(object):
             raise SyntaxError("Argument coord_system must have a value of "
                               "'data', 'plot', 'axis', or 'figure'.")
 
+    def _physical_bounds(self, plot):
+        xlims = tuple(v.in_units("code_length") for v in plot.xlim)
+        ylims = tuple(v.in_units("code_length") for v in plot.ylim)
+        return xlims + ylims
+
+    def _plot_bounds(self, plot):
+        return plot._axes.get_xlim() + plot._axes.get_ylim()
+
     def _pixel_scale(self, plot):
-        x0, x1 = np.array(plot.xlim)
-        xx0, xx1 = plot._axes.get_xlim()
-        dx = (xx1 - xx0)/(x1 - x0)
-
-        y0, y1 = np.array(plot.ylim)
-        yy0, yy1 = plot._axes.get_ylim()
-        dy = (yy1 - yy0)/(y1 - y0)
-
-        return (dx,dy)
+        x0, x1, y0, y1 = self._physical_bounds(plot)
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
+        dx = (xx1 - xx0) / (x1 - x0)
+        dy = (yy1 - yy0) / (y1 - y0)
+        return dx, dy
 
     def _set_font_properties(self, plot, labels, **kwargs):
         """
@@ -460,10 +464,8 @@ class QuiverCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        x0, x1 = [p.to('code_length') for p in plot.xlim]
-        y0, y1 = [p.to('code_length') for p in plot.ylim]
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        x0, x1, y0, y1 = self._physical_bounds(plot)
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         bounds = [x0,x1,y0,y1]
         periodic = int(any(plot.data.ds.periodicity))
 
@@ -554,12 +556,10 @@ class ContourCallback(PlotCallback):
         from matplotlib.tri import Triangulation, LinearTriInterpolator
 
         # These need to be in code_length
-        x0, x1 = (v.in_units("code_length") for v in plot.xlim)
-        y0, y1 = (v.in_units("code_length") for v in plot.ylim)
+        x0, x1, y0, y1 = self._physical_bounds(plot)
 
         # These are in plot coordinates, which may not be code coordinates.
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
 
         # See the note about rows/columns in the pixelizer for more information
         # on why we choose the bounds we do
@@ -679,10 +679,8 @@ class GridBoundaryCallback(PlotCallback):
                 for 2D cylindrical geometry, not 3D")
         from matplotlib.colors import colorConverter
 
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        x0, x1, y0, y1 = self._physical_bounds(plot)
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         (dx, dy) = self._pixel_scale(plot)
         (ypix, xpix) = plot.image._A.shape
         ax = plot.data.axis
@@ -816,11 +814,8 @@ class StreamlineCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        bounds = [x0,x1,y0,y1]
+        bounds = self._physical_bounds(plot)
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
@@ -946,8 +941,7 @@ class LinePlotCallback(PlotCallback):
                             coord_system=self.coord_system)
         p2 = self._sanitize_coord_system(plot, self.p2,
                             coord_system=self.coord_system)
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         plot._axes.plot([p1[0], p2[0]], [p1[1], p2[1]], transform=self.transform,
                         **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
@@ -1002,10 +996,8 @@ class CuttingQuiverCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        x0, x1 = [p.to('code_length') for p in plot.xlim]
-        y0, y1 = [p.to('code_length') for p in plot.ylim]
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        x0, x1, y0, y1 = self._physical_bounds(plot)
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
         indices = np.argsort(plot.data['dx'])[::-1].astype(np.int_)
@@ -1057,12 +1049,8 @@ class ClumpContourCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-
-        extent = [xx0,xx1,yy0,yy1]
+        bounds = self._physical_bounds(plot)
+        extent = self._plot_bounds(plot)
 
         ax = plot.data.axis
         px_index = plot.data.ds.coordinates.x_axis[ax]
@@ -1092,10 +1080,10 @@ class ClumpContourCallback(PlotCallback):
 
             temp = np.zeros((ny, nx), dtype="f8")
             pixelize_cartesian(temp, xf_copy, yf_copy,
-                                 clump[ftype, dxf].in_units("code_length")/2.0,
-                                 clump[ftype, dyf].in_units("code_length")/2.0,
-                                 clump[ftype, dxf].d*0.0+i+1, # inits inside Pixelize
-                             (x0, x1, y0, y1), 0)
+                               clump[ftype, dxf].in_units("code_length")/2.0,
+                               clump[ftype, dyf].in_units("code_length")/2.0,
+                               clump[ftype, dxf].d*0.0+i+1, # inits inside Pixelize
+                               bounds, 0)
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, np.unique(buff),
                                      extent=extent, **self.plot_args)
@@ -1202,8 +1190,7 @@ class ArrowCallback(PlotCallback):
     def __call__(self, plot):
         x,y = self._sanitize_coord_system(plot, self.pos,
                                coord_system=self.coord_system)
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         # normalize all of the kwarg lengths to the plot size
         plot_diag = ((yy1-yy0)**2 + (xx1-xx0)**2)**(0.5)
         self.length *= plot_diag
@@ -1316,8 +1303,7 @@ class MarkerAnnotateCallback(PlotCallback):
     def __call__(self, plot):
         x,y = self._sanitize_coord_system(plot, self.pos,
                                coord_system=self.coord_system)
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         plot._axes.scatter(x, y, marker = self.marker,
                            transform=self.transform, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
@@ -1415,8 +1401,7 @@ class SphereCallback(PlotCallback):
 
         cir = Circle((x, y), self.radius, transform=self.transform,
                      **self.circle_args)
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
 
         plot._axes.add_patch(cir)
         if self.text is not None:
@@ -1512,8 +1497,7 @@ class TextLabelCallback(PlotCallback):
 
         # Set the font properties of text from this callback to be
         # consistent with other text labels in this figure
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         if self.inset_box_args is not None:
             kwargs['bbox'] = self.inset_box_args
         label = plot._axes.text(x, y, self.text, transform=self.transform,
@@ -1675,10 +1659,8 @@ class HaloCatalogCallback(PlotCallback):
     def __call__(self, plot):
         from matplotlib.patches import Circle
         data = plot.data
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        x0, x1, y0, y1 = self._physical_bounds(plot)
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
 
         halo_data = self.halo_data
         axis_names = plot.data.ds.coordinates.axis_name
@@ -1794,12 +1776,8 @@ class ParticleCallback(PlotCallback):
         else:
             self.width = plot.data.ds.quan(self.width, "code_length")
         # we construct a rectangular prism
-        x0 = plot.xlim[0].to("code_length")
-        x1 = plot.xlim[1].to("code_length")
-        y0 = plot.ylim[0].to("code_length")
-        y1 = plot.ylim[1].to("code_length")
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        x0, x1, y0, y1 = self._physical_bounds(plot)
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         if type(self.data_source)==YTCutRegion:
             mylog.warning("Parameter 'width' is ignored in annotate_particles if the "
                           "data_source is a cut_region. "
@@ -2647,12 +2625,8 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
     def __call__(self, plot):
         from matplotlib import cm
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-        bounds = [x0,x1,y0,y1]
-        extent = [xx0,xx1,yy0,yy1]
+        bounds = self._physical_bounds(plot)
+        extent = self._plot_bounds(plot)
 
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
@@ -2742,10 +2716,8 @@ class CellEdgesCallback(PlotCallback):
             plot.data.ds.dimensionality == 3:
             raise NotImplementedError("Cell edge annotation is only supported for \
                 for 2D cylindrical geometry, not 3D")
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
+        x0, x1, y0, y1 = self._physical_bounds(plot)
+        xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         nx = plot.image._A.shape[1]
         ny = plot.image._A.shape[0]
         aspect = float((y1 - y0) / (x1 - x0))
