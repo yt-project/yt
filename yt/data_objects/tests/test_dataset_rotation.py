@@ -2,7 +2,7 @@
 
 from itertools import product
 import yt
-from yt.testing import fake_amr_ds, assert_almost_equal, assert_allclose
+from yt.testing import fake_amr_ds, assert_allclose
 import numpy as np
 
 import pytest
