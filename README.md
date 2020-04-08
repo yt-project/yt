@@ -7,6 +7,7 @@
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](http://numfocus.org)
+[![Sponsor our Project](https://img.shields.io/badge/donate-to%20yt-blueviolet)](https://numfocus.salsalabs.org/donate-to-yt/index.html)
                 
 <a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
 
@@ -161,3 +162,12 @@ We have some community and documentation resources available.
    better suited for more development issues
  * You can also join us on Slack at yt-project.slack.com ([request an
    invite](https://yt-project.org/slack.html))
+
+## Powered by NumFOCUS
+
+yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/). 
+If you're interested in
+supporting the active maintenance and development of this project, consider
+[donating to the project](https://numfocus.salsalabs.org/donate-to-yt/index.html). 
+
+
