@@ -1467,7 +1467,7 @@ class Dataset(object):
         _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr,
                      offset=offset, prefixable=prefixable)
 
-    def rotate_frame_by(self, shift_angle, deg=False):
+    def rotate_frame_by(self, shift_angle, deg=False, safe_=True):
         """
         (experimental)
         Shift azimuth coordinate 'theta' by *shift_angle*, counter-clockwise, and in radians by default.
@@ -1494,12 +1494,17 @@ class Dataset(object):
         # convert to length unit for internal operations compatibility
         shift_angle *= self.length_unit
         
-        # only rotate by a multiple of the coarsest angular step
-        # devnote: not sure this is necessary, though it should help making sure
-        # the feature's flow is controlled
+        
         dx = self.index.select_grids(level=self.min_level)[0].dds
         dtheta = dx[theta_index]
-        shift_angle_ = np.sign(shift_angle) * (np.abs(shift_angle) - np.abs(shift_angle) % dtheta)
+        if safe_:
+            # only rotate by a multiple of the coarsest angular step
+
+            # I'm pretty confident that this is not necessary as well as limiting, but I'm keeping
+            # it as an option while this is not working
+            shift_angle_ = np.sign(shift_angle) * (np.abs(shift_angle) - np.abs(shift_angle) % dtheta)
+        else:
+            shift_angle_ = shift_angle
 
         # two seemingly equivalent possibilities here (both broken)
         # note that combining them only result in doubling the desired rotation
