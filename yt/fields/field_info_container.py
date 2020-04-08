@@ -399,7 +399,7 @@ class FieldInfoContainer(dict):
         fields_to_check = fields_to_check or list(self.keys())
         for field in fields_to_check:
             if field not in self:
-                raise RuntimeError("Could not find field %s" % str(field))
+                raise YTFieldNotFound(str(field))
             fi = self[field]
             try:
                 fd = fi.get_dependencies(ds = self.ds)
