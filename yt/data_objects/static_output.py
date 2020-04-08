@@ -1390,24 +1390,28 @@ class Dataset(object):
 
         Examples
         --------
+
         >>> grad_fields = ds.add_gradient_fields(("gas","temperature"))
         >>> print(grad_fields)
         [('gas', 'temperature_gradient_x'),
          ('gas', 'temperature_gradient_y'),
          ('gas', 'temperature_gradient_z'),
          ('gas', 'temperature_gradient_magnitude')]
+
+        Note that the above example assumes ds.geometry == 'cartesian'. In general, the function
+        will create gradients components along the axes of the dataset coordinate system.
+        For instance, with cylindrical data, one gets 'temperature_gradient_<r,theta,z>'
         """
         self.index
-        if isinstance(input_field, tuple):
-            ftype, input_field = input_field[0], input_field[1]
-        else:
-            raise RuntimeError
+        if not isinstance(input_field, tuple):
+            raise TypeError
+        ftype, input_field = input_field[0], input_field[1]
         units = self.field_info[ftype, input_field].units
         setup_gradient_fields(self.field_info, (ftype, input_field), units)
         # Now we make a list of the fields that were just made, to check them
         # and to return them
         grad_fields = [(ftype,input_field+"_gradient_%s" % suffix)
-                       for suffix in "xyz"]
+                       for suffix in self.coordinates.axis_order]
         grad_fields.append((ftype,input_field+"_gradient_magnitude"))
         deps, _ = self.field_info.check_derived_fields(grad_fields)
         self.field_dependencies.update(deps)

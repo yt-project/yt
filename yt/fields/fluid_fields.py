@@ -39,6 +39,8 @@ from yt.utilities.physical_constants import \
 from yt.utilities.lib.misc_utilities import \
     obtain_relative_velocity_vector
 
+from yt.funcs import mylog
+
 @register_field_plugin
 def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
     # slice_info would be the left, the right, and the factor.
@@ -191,8 +193,10 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                           weight="cell_mass")
 
 def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
-    # Current implementation for gradient is not valid for curvilinear geometries
-    if is_curvilinear(registry.ds.geometry): return
+
+    geom = registry.ds.geometry
+    if is_curvilinear(geom):
+        mylog.warning("In %s geometry, gradient fields may contain artifacts near cartesian axes." % geom)
 
     assert(isinstance(grad_field, tuple))
     ftype, fname = grad_field
@@ -209,6 +213,10 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
         def func(field, data):
             ds = div_fac * data[ftype, "d%s" % ax]
+            if ax == "theta":
+                ds *= data[ftype, "r"]
+            if ax == "phi":
+                ds *= data[ftype, "r"] * np.sin(data[ftype, "theta"])
             f  = data[grad_field][slice_3dr]/ds[slice_3d]
             f -= data[grad_field][slice_3dl]/ds[slice_3d]
             new_field = np.zeros_like(data[grad_field], dtype=np.float64)
@@ -220,7 +228,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
     field_units = Unit(field_units, registry=registry.ds.unit_registry)
     grad_units = field_units / registry.ds.unit_system["length"]
 
-    for axi, ax in enumerate('xyz'):
+    for axi, ax in enumerate(registry.ds.coordinates.axis_order):
         f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
                            sampling_type="cell",
