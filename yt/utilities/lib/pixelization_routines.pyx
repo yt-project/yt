@@ -528,7 +528,6 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     if y0 < 0 and y1 > 0:
         rbounds[0] = 0.0
     dthetamin = dx / rmax
-
     for i in range(radius.shape[0]):
 
         r0 = radius[i]
