@@ -268,7 +268,7 @@ class GDFDataset(Dataset):
           * field_name - human readable field name
         """
         field_conv = just_one(field.attrs.get("field_to_cgs", 1.0))
-        field_units = just_one(field.attrs.get("field_units", ""))
+        field_units = just_one(field.attrs.get("field_units", [b""]))
         if field_units:
             if field_conv == 1.0:  # I hate float comparison...
                 return field_units.decode()
