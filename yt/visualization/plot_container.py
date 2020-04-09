@@ -260,19 +260,17 @@ class PlotContainer(object):
         ----------
         field : string
             the field to get a transform
+            if field == 'all', applies to all plots.
 
         """
-        # devnote : accept_alltag decorator is not applicable here because the return variable isn't self
+        # devnote : accept_allflag decorator is not applicable here because the return variable isn't self
         log = {}
         if field == 'all':
             fields = list(self.plots.keys())
         else:
-            fields = [field]
+            fields = ensure_list(field)
         for field in self.data_source._determine_fields(fields):
-            if self._field_transform[field] == log_transform:
-                log[field] = True
-            else:
-                log[field] = False
+            log[field] = (self._field_transform[field] == log_transform)
         return log
 
     @invalidate_plot
