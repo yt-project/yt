@@ -819,6 +819,7 @@ class ImagePlotContainer(PlotContainer):
         self._colorbar_label = PlotDictionary(
             self.data_source, lambda: None)
 
+    @accept_allflag
     @invalidate_plot
     def set_cmap(self, field, cmap):
         """set the colormap for one of the fields
@@ -835,14 +836,8 @@ class ImagePlotContainer(PlotContainer):
             can be used to specify if a reverse colormap is to be used.
 
         """
-
-        if field == 'all':
-            fields = list(self.plots.keys())
-        else:
-            fields = [field]
-        for field in self.data_source._determine_fields(fields):
-            self._colorbar_valid = False
-            self._colormaps[field] = cmap
+        self._colorbar_valid = False
+        self._colormaps[field] = cmap
         return self
 
     @accept_allflag
@@ -872,6 +867,7 @@ class ImagePlotContainer(PlotContainer):
         self._background_color[field] = color
         return self
 
+    @accept_allflag
     @invalidate_plot
     def set_zlim(self, field, zmin, zmax, dynamic_range=None):
         """set the scale of the colormap
@@ -898,27 +894,22 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
-        if field == 'all':
-            fields = list(self.plots.keys())
-        else:
-            fields = ensure_list(field)
-        for field in self.data_source._determine_fields(fields):
-            myzmin = zmin
-            myzmax = zmax
-            if zmin == 'min':
-                myzmin = self.plots[field].image._A.min()
-            if zmax == 'max':
-                myzmax = self.plots[field].image._A.max()
-            if dynamic_range is not None:
-                if zmax is None:
-                    myzmax = myzmin * dynamic_range
-                else:
-                    myzmin = myzmax / dynamic_range
+        myzmin = zmin
+        myzmax = zmax
+        if zmin == 'min':
+            myzmin = self.plots[field].image._A.min()
+        if zmax == 'max':
+            myzmax = self.plots[field].image._A.max()
+        if dynamic_range is not None:
+            if zmax is None:
+                myzmax = myzmin * dynamic_range
+            else:
+                myzmin = myzmax / dynamic_range
 
-            if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
-                self._field_transform[field] = log_transform
-            self.plots[field].zmin = myzmin
-            self.plots[field].zmax = myzmax
+        if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
+            self._field_transform[field] = log_transform
+        self.plots[field].zmin = myzmin
+        self.plots[field].zmax = myzmax
         return self
 
     @invalidate_plot
@@ -939,6 +930,7 @@ class ImagePlotContainer(PlotContainer):
         boolstate = {"on": True, "off": False}[state.lower()]
         return self.set_colorbar_minorticks(field, boolstate)
 
+    @accept_allflag
     @invalidate_plot
     def set_colorbar_minorticks(self, field, state):
         """turn colorbar minor ticks on or off in the current plot
@@ -953,12 +945,7 @@ class ImagePlotContainer(PlotContainer):
         state : bool
             the state indicating 'on' (True) or 'off' (False)
         """
-        if field == 'all':
-            fields = list(self.plots.keys())
-        else:
-            fields = [field]
-        for field in self.data_source._determine_fields(fields):
-            self._cbar_minorticks[field] = state
+        self._cbar_minorticks[field] = state
         return self
 
     @invalidate_plot
