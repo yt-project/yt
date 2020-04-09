@@ -868,8 +868,12 @@ class PWViewerMPL(PlotWindow):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
-            if self.ds.unit_system.name.startswith("us"):
-                # this should happen only if the dataset was initialized with argument unit_system="code"
+            if self.ds.unit_system.name.startswith("us") or self.ds.no_cgs_equiv_length:
+                # this should happen only if the dataset was initialized with
+                # argument unit_system="code" or if it's set to have no CGS
+                # equivalent.  This only needs to happen here in the specific
+                # case that we're doing a computationally intense operation
+                # like using cartopy, but it prevents crashes in that case.
                 (unit_x, unit_y) = ('code_length', 'code_length')
             elif self._axes_unit_names is None:
                 unit = self.ds.get_smallest_appropriate_unit(
@@ -1262,7 +1266,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         if field_parameters is None:
             field_parameters = {}
 
-        if ds.geometry == "spherical" or ds.geometry == "cylindrical":
+        if ds.geometry in ("spherical", "cylindrical", "geographic", "internal_geographic"):
             mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
             origin = 'native'
 
@@ -1437,6 +1441,9 @@ class ProjectionPlot(PWViewerMPL):
                  method = "integrate", proj_style = None, window_size=8.0,
                  aspect=None):
         axis = fix_axis(axis, ds)
+        if ds.geometry in ("spherical", "cylindrical", "geographic", "internal_geographic"):
+            mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
+            origin = 'native'
         # proj_style is deprecated, but if someone specifies then it trumps
         # method.
         if proj_style is not None:

@@ -570,10 +570,13 @@ class Dataset(object):
             cls = PolarCoordinateHandler
         elif self.geometry == "spherical":
             cls = SphericalCoordinateHandler
+            self.no_cgs_equiv_length = True
         elif self.geometry == "geographic":
             cls = GeographicCoordinateHandler
+            self.no_cgs_equiv_length = True
         elif self.geometry == "internal_geographic":
             cls = InternalGeographicCoordinateHandler
+            self.no_cgs_equiv_length = True
         elif self.geometry == "spectral_cube":
             cls = SpectralCubeCoordinateHandler
         else:
