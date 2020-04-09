@@ -103,8 +103,8 @@ def apply_callback(f):
     return newfunc
 
 def accept_allflag(f):
-    """Deocorate a function whose second argument is <field> and deal with the special case
-    field == 'all', looping over all fields allready present in the PlotContainer instance.
+    """Decorate a function whose second argument is <field> and deal with the special case
+    field == 'all', looping over all fields already present in the PlotContainer instance.
 
     """
     # This is to be applied to PlotContainer class method with the following signature:
