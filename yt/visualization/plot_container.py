@@ -102,6 +102,18 @@ def apply_callback(f):
         return args[0]
     return newfunc
 
+def accept_allflag(f):
+    @wraps(f)
+    def newfunc(self, field, *args, **kwargs):
+        if field == 'all':
+            fields = list(self.plots.keys())
+        else:
+            fields = ensure_list(field)
+        for field in self.data_source._determine_fields(fields):
+            p = f(self, field, *args, **kwargs)
+        return p
+    return newfunc
+
 def get_log_minorticks(vmin, vmax):
     """calculate positions of linear minorticks on a log colorbar
 
@@ -833,6 +845,7 @@ class ImagePlotContainer(PlotContainer):
             self._colormaps[field] = cmap
         return self
 
+    @accept_allflag
     @invalidate_plot
     def set_background_color(self, field, color=None):
         """set the background color to match provided color
@@ -848,16 +861,15 @@ class ImagePlotContainer(PlotContainer):
             the color map
 
         """
-        actual_field = self.data_source._determine_fields(field)[0]
         if color is None:
-            cmap = self._colormaps[actual_field]
+            cmap = self._colormaps[field]
             if isinstance(cmap, string_types):
                 try:
                     cmap = yt_colormaps[cmap]
                 except KeyError:
                     cmap = getattr(matplotlib.cm, cmap)
             color = cmap(0)
-        self._background_color[actual_field] = color
+        self._background_color[field] = color
         return self
 
     @invalidate_plot
