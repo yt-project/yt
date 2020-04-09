@@ -110,8 +110,8 @@ def accept_allflag(f):
         else:
             fields = ensure_list(field)
         for field in self.data_source._determine_fields(fields):
-            p = f(self, field, *args, **kwargs)
-        return p
+            f(self, field, *args, **kwargs)
+        return self
     return newfunc
 
 def get_log_minorticks(vmin, vmax):
