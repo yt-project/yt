@@ -62,7 +62,7 @@ Major Changes and New Features
 - annotations used to work for only a single point, they now work for multiple points 
   on a plot, see `PR 2122 <https://github.com/yt-project/yt/pull/2122>`__.
 - cosmology calculations now have support for the relativistic energy density of the 
-  unvierse, see `PR 1714 <https://github.com/yt-project/yt/pull/1714>`__. 
+  universe, see `PR 1714 <https://github.com/yt-project/yt/pull/1714>`__. 
   This feature is accessible to cosmology datasets and was added to the Enzo frontend. 
 - the eps writer now allows for arrow rotation. this is accessible with 
   the ``rotate`` kwarg in the ``arrow`` function. 
@@ -139,7 +139,7 @@ Our documentataion has received some attention in the following PRs:
   contributors `PR 2346 <https://github.com/yt-project/yt/pull/2346>`__.
 - fix URLs and spelling errors in a number of the cookbook notebooks 
   `PR 2341 <https://github.com/yt-project/yt/pull/2341>`__.
-- udpate release docs to include information about building binaries, tagging, 
+- update release docs to include information about building binaries, tagging, 
   and various upload locations. See 
   `PR 2156 <https://github.com/yt-project/yt/pull/2156>`__ and 
   `PR 2160 <https://github.com/yt-project/yt/pull/2160>`__.
@@ -330,7 +330,7 @@ CI related support
 
 - disable coverage on OSX to speed up travis testing and avoid 
   timeouts `PR 2076 <https://github.com/yt-project/yt/pull/2076>`__.
-- pdate travis base images on Linux and 
+- update travis base images on Linux and 
   MacOSX `PR 2093 <https://github.com/yt-project/yt/pull/2093>`__.
 - add ``W504`` and ``W605`` to ignored flake8 errors, see 
   `PR 2078 <https://github.com/yt-project/yt/pull/2078>`__., 
