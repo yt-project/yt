@@ -25,8 +25,19 @@ you can `view here <https://yt-project.github.io/governance/>`_ .
 We'd like to thank all of the individuals who contributed to this release. There
 are lots of new features and we're excited to share them with the community. 
 
+Breaking Changes
+^^^^^^^^^^^^^^^^
+
+The following breaking change was introduced. Please be aware that this could
+impact your code if you use this feature. 
+
+- The angular momentum has been reversed compared to previous versions of yt. 
+  See `PR 2043 <https://github.com/yt-project/yt/pull/2043>`__.
+
+
 Major Changes and New Features
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 - New frontend support for the code AMRVAC. Many thanks to Clement Robert 
   and Niels Claes who were major contributors to this initiative. Relevant PRs include:
@@ -72,9 +83,6 @@ Major Changes and New Features
 - show/hide colorbar and show/hide axes are now available for 
   ``ProfilePlot`` s. These functions were also moved from the PlotWindow to the 
   PlotContainer class. `PR 2169 <https://github.com/yt-project/yt/pull/2169>`__.
-- The angular momentum has been reversed compared to previous versions of yt. 
-  This may cause breaking changes in your code. 
-  See `PR 2043 <https://github.com/yt-project/yt/pull/2043>`__.
 - add support for ipywidgets with an ``__ipython_display__`` method on the 
   FieldTypeContainer. Field variables, source, and the field array can be 
   viewed with this widget. See PRs `PR 1844 <https://github.com/yt-project/yt/pull/1844>`__ 
