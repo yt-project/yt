@@ -16,13 +16,13 @@ Version 3.6.0
 -------------
 
 Version 3.6.0 our next major release since 3.5.1, which was in February 
-2019. It includes roughly 180 pull requests contibuted from 39 contributors, 
+2019. It includes roughly 180 pull requests contributed from 39 contributors, 
 22 of which committed for their first time to the project. 
 
-We have also updated our project govenance and contribution guidelines, which
+We have also updated our project governance and contribution guidelines, which
 you can `view here <https://yt-project.github.io/governance/>`_ .
 
-We'd like to thank all of the individuals who contributed to this relase. There
+We'd like to thank all of the individuals who contributed to this release. There
 are lots of new features and we're excited to share them with the community. 
 
 Major Changes and New Features
@@ -30,7 +30,7 @@ Major Changes and New Features
 
 - New frontend support for the code AMRVAC. Many thanks to Clement Robert 
   and Niels Claes who were major contributors to this initiative. Relevant PRs include:
-    - Inital PR to support AMRVAC native data files  
+    - Initial PR to support AMRVAC native data files  
       `PR 2321 <https://github.com/yt-project/yt/pull/2321>`__.
     - added support for dust fields and derived fields 
       `PR 2387 <https://github.com/yt-project/yt/pull/2387>`__.
@@ -46,11 +46,11 @@ Major Changes and New Features
     - add verbosity to logging of geometry or `geometry_override` 
       `PR 2421 <https://github.com/yt-project/yt/pull/2421>`__.
     - add attribute to `_code_unit_attributes` specific to AMRVAC to ensure 
-      consistent renormalisation of amrvac datasets. See 
+      consistent renormalisation of AMRVAC datasets. See 
       `PR 2357 <https://github.com/yt-project/yt/pull/2357>`__.
     - parse AMRVAC's parfiles if user-provided  
       `PR 2369 <https://github.com/yt-project/yt/pull/2369>`__.
-    - enssure that min_level reflects dataset that has refinement 
+    - ensure that min_level reflects dataset that has refinement 
       `PR 2475 <https://github.com/yt-project/yt/pull/2475>`__.
     - fix derived unit parsing  `PR 2362 <https://github.com/yt-project/yt/pull/2362>`__.
     - update energy field to be `energy_density` and have units of code 
@@ -106,7 +106,7 @@ Major Changes and New Features
   `PR 2339 <https://github.com/yt-project/yt/pull/2339>`__.
 - Enable exporting regular grids (i.e., covering grids, arbitrary grids and 
   smoothed grids) to ``xarray`` `PR 2294 <https://github.com/yt-project/yt/pull/2294>`__.
-- add automatic loading of ``namelist.txt``, which contains the paramater file 
+- add automatic loading of ``namelist.txt``, which contains the parameter file 
   RAMSES uses to produce output `PR 2347 <https://github.com/yt-project/yt/pull/2347>`__.
 - adds support for a nearest neighbor value field, accessible with 
   the ``add_nearest_neighbor_value_field`` function for particle fields. See 
