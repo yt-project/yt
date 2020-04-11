@@ -6,7 +6,7 @@ Loading Data
 This section contains information on how to load data into yt, as well as
 some important caveats about different data formats.
 
-.. _loading-amrvac-data
+.. _loading-amrvac-data:
 
 AMRVAC Data
 -----------
