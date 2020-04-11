@@ -133,7 +133,7 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
 
     Parameters
     ----------
-    linthresh: float
+    linthresh : float
         the threshold for the linear region
     vmin : float
         the minimum value in the colorbar
@@ -573,8 +573,8 @@ class PlotContainer(object):
 
         Parameters
         ----------
-        x_title: str
-              The new string for the x-axis.
+        label : str
+            The new string for the x-axis.
 
         >>>  plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
 
@@ -590,8 +590,8 @@ class PlotContainer(object):
 
         Parameters
         ----------
-        label: str
-          The new string for the y-axis.
+        label : str
+            The new string for the y-axis.
 
         >>>  plot.set_ylabel("Temperature (K)")
 
@@ -959,9 +959,9 @@ class ImagePlotContainer(PlotContainer):
 
         Parameters
         ----------
-        field: str or tuple
+        field : str or tuple
           The name of the field to modify the label for.
-        label: str
+        label : str
           The new label
 
         >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")

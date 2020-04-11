@@ -417,39 +417,38 @@ class PlotWindow(ImagePlotContainer):
         Parameters
         ----------
         origin : string or length 1, 2, or 3 sequence.
-            The location of the origin of the plot coordinate system. This
-            is typically represented by a '-' separated string or a tuple of
-            strings. In the first index the y-location is given by 'lower',
-            'upper', or 'center'. The second index is the x-location, given as
-            'left', 'right', or 'center'. Finally, whether the origin is
-            applied in 'domain' space, plot 'window' space or 'native'
-            simulation coordinate system is given. For example, both
-            'upper-right-domain' and ['upper', 'right', 'domain'] place the
-            origin in the upper right hand corner of domain space. If x or y
-            are not given, a value is inferred. For instance, 'left-domain'
-            corresponds to the lower-left hand corner of the simulation domain,
-            'center-domain' corresponds to the center of the simulation domain,
-            or 'center-window' for the center of the plot window. In the event
-            that none of these options place the origin in a desired location,
-            a sequence of tuples and a string specifying the
-            coordinate space can be given. If plain numeric types are input,
-            units of `code_length` are assumed. Further examples:
+           The location of the origin of the plot coordinate system. This
+           is typically represented by a '-' separated string or a tuple of
+           strings. In the first index the y-location is given by 'lower',
+           'upper', or 'center'. The second index is the x-location, given as
+           'left', 'right', or 'center'. Finally, whether the origin is
+           applied in 'domain' space, plot 'window' space or 'native'
+           simulation coordinate system is given. For example, both
+           'upper-right-domain' and ['upper', 'right', 'domain'] place the
+           origin in the upper right hand corner of domain space. If x or y
+           are not given, a value is inferred. For instance, 'left-domain'
+           corresponds to the lower-left hand corner of the simulation domain,
+           'center-domain' corresponds to the center of the simulation domain,
+           or 'center-window' for the center of the plot window. In the event
+           that none of these options place the origin in a desired location,
+           a sequence of tuples and a string specifying the
+           coordinate space can be given. If plain numeric types are input,
+           units of `code_length` are assumed. Further examples:
 
-         ===============================================    ==================================
-         format                                             example
-         ===============================================    ==================================
-         '{space}'                                          'domain'
-         '{xloc}-{space}'                                   'left-window'
-         '{yloc}-{space}'                                   'upper-domain'
-         '{yloc}-{xloc}-{space}'                            'lower-right-window'
-         ('{space}',)                                       ('window',)
-         ('{xloc}', '{space}')                              ('right', 'domain')
-         ('{yloc}', '{space}')                              ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
-         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
-         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         ===============================================    ==================================
-
+           ===============================================    ==================================
+           format                                             example
+           ===============================================    ==================================
+           '{space}'                                          'domain'
+           '{xloc}-{space}'                                   'left-window'
+           '{yloc}-{space}'                                   'upper-domain'
+           '{yloc}-{xloc}-{space}'                            'lower-right-window'
+           ('{space}',)                                       ('window',)
+           ('{xloc}', '{space}')                              ('right', 'domain')
+           ('{yloc}', '{space}')                              ('lower', 'window')
+           ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
+           ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
+           (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
+           ===============================================    ==================================
         """
         self.origin = origin
         return self
@@ -471,19 +470,19 @@ class PlotWindow(ImagePlotContainer):
 
         Parameters
         ----------
-        mpl_proj : string, tuple
-            if passed as a string, mpl_proj is the specified projection type,
-            if passed as a tuple, then tuple will take the form of
-            ("ProjectionType", (args)) or ("ProjectionType", (args), {kwargs})
-            Valid projection type options include:
-                'PlateCarree', 'LambertConformal', 'LabmbertCylindrical',
-                'Mercator', 'Miller', 'Mollweide', 'Orthographic',
-                'Robinson', 'Stereographic', 'TransverseMercator',
-                'InterruptedGoodeHomolosine', 'RotatedPole', 'OGSB',
-                'EuroPP', 'Geostationary', 'Gnomonic', 'NorthPolarStereo',
-                'OSNI', 'SouthPolarStereo', 'AlbersEqualArea',
-                'AzimuthalEquidistant', 'Sinusoidal', 'UTM',
-                'NearsidePerspective', 'LambertAzimuthalEqualArea'
+
+        mpl_proj : string or tuple
+           if passed as a string, mpl_proj is the specified projection type,
+           if passed as a tuple, then tuple will take the form of
+           ``("ProjectionType", (args))`` or ``("ProjectionType", (args), {kwargs})``
+           Valid projection type options include: 'PlateCarree', 'LambertConformal', 'LabmbertCylindrical',
+           'Mercator', 'Miller', 'Mollweide', 'Orthographic',
+           'Robinson', 'Stereographic', 'TransverseMercator',
+           'InterruptedGoodeHomolosine', 'RotatedPole', 'OGSB',
+           'EuroPP', 'Geostationary', 'Gnomonic', 'NorthPolarStereo',
+           'OSNI', 'SouthPolarStereo', 'AlbersEqualArea',
+           'AzimuthalEquidistant', 'Sinusoidal', 'UTM',
+           'NearsidePerspective', 'LambertAzimuthalEqualArea'
 
         Examples
         --------
