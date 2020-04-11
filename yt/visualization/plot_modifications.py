@@ -656,7 +656,7 @@ class GridBoundaryCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20,
-                 draw_ids=False, id_loc="lower left",
+                 draw_ids=False, id_loc=None,
                  periodic=True, min_level=None, max_level=None,
                  cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
         PlotCallback.__init__(self)
@@ -664,7 +664,12 @@ class GridBoundaryCallback(PlotCallback):
         self.min_pix = min_pix
         self.min_pix_ids = min_pix_ids
         self.draw_ids = draw_ids  # put grid numbers in the corner.
-        self.id_loc = id_loc
+        if id_loc is None:
+            self.id_loc = "lower left"
+        else:
+            self.id_loc = id_loc.lower()  # Make case-insensitive
+            if not self.draw_ids:
+                mylog.warning("Supplied id_loc but draw_ids is False. Not drawing grid ids")
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
@@ -756,26 +761,23 @@ class GridBoundaryCallback(PlotCallback):
                                    ywidth > self.min_pix_ids),
                     np.logical_and(levels >= min_level, levels <= max_level))
 
-            if self.id_loc and not self.draw_ids:
-                mylog.warning("Supplied id_loc but draw_ids is False. Not drawing grid ids")
 
             if self.draw_ids:
-                id_loc = self.id_loc.lower() # Make case-insensitive
                 plot_ids = np.where(visible_ids)[0]
                 x = np.empty(plot_ids.size)
                 y = np.empty(plot_ids.size)
                 for i,n in enumerate(plot_ids):
-                    if id_loc == "lower left":
+                    if self.id_loc == "lower left":
                         x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
                         y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
-                    elif id_loc == "lower right":
+                    elif self.id_loc == "lower right":
                         x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
                                                    * (xx1 - xx0) / xpix)
                         y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
-                    elif id_loc == "upper left":
+                    elif self.id_loc == "upper left":
                         x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
                         y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
-                    elif id_loc == "upper right":
+                    elif self.id_loc == "upper right":
                         x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
                                                    * (xx1 - xx0) / xpix)
                         y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
