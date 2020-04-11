@@ -100,7 +100,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
 
     ``self.known_other_fields`` and ``self.known_particle_fields`` must be populated.
     Entries for both of these lists must be tuples of the form
-        ("name", ("units", ["fields", "to", "alias"], "display_name"))
+    ("name", ("units", ["fields", "to", "alias"], "display_name"))
     These fields will be represented and handled in yt in the way you define them here.
     The fields defined in both ``self.known_other_fields`` and ``self.known_particle_fields`` will only be added
     to a dataset (with units, aliases, etc), if they match any entry in the ``OpenPMDHierarchy``'s ``self.field_list``.
@@ -113,10 +113,10 @@ class OpenPMDFieldInfo(FieldInfoContainer):
     can (and very likely will) vary.
 
     openPMD states that names of records and their components are only allowed to contain the
-        characters a-Z,
-        the numbers 0-9
-        and the underscore _
-        (equivalently, the regex \w).
+    * characters a-Z,
+    * the numbers 0-9
+    * and the underscore _
+    * (equivalently, the regex \w).
     Since yt widely uses the underscore in field names, openPMD's underscores (_) are replaced by hyphen (-).
 
     Derived fields will automatically be set up, if names and units of your known on-disk (or manually derived)

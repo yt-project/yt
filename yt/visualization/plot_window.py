@@ -485,7 +485,6 @@ class PlotWindow(ImagePlotContainer):
                 'AzimuthalEquidistant', 'Sinusoidal', 'UTM',
                 'NearsidePerspective', 'LambertAzimuthalEqualArea'
 
-
         Examples
         --------
 
