@@ -972,10 +972,11 @@ def enable_plugins(pluginfilename=None):
     in yt scripts without modifying the yt source directly.
 
     If <pluginfilename> is omited, this function will look for a plugin file at
-    ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a machine-level configuration.
+    ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
+    system-level configuration.
 
-    Warning: when you use this function, your script will only be reproducible
-    if you also provide your plugin file.
+    Warning: scripts using this function will only be reproducible if your plugin
+    file is shared with it.
     """
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
