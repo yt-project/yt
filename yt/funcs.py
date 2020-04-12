@@ -964,31 +964,35 @@ def deprecated_class(cls):
         return cls(*args, **kwargs)
     return _func
 
-def enable_plugins():
-    """Forces the plugins file to be parsed.
+def enable_plugins(pluginfilename=None):
+    """Forces a plugin file to be parsed.
 
-    This plugin file is a means of creating custom fields, quantities,
+    A plugin file is a means of creating custom fields, quantities,
     data objects, colormaps, and other code classes and objects to be used
     in yt scripts without modifying the yt source directly.
 
-    The file must be located at ``$HOME/.config/yt/my_plugins.py``.
+    If <pluginfilename> is omited, this function will look for a plugin file at
+    ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a machine-level configuration.
 
     Warning: when you use this function, your script will only be reproducible
-    if you also provide the ``my_plugins.py`` file.
+    if you also provide your plugin file.
     """
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg, CONFIG_DIR
-    my_plugin_name = ytcfg.get("yt", "pluginfilename")
-
+    if pluginfilename is None:
+        my_plugin_name = ytcfg.get("yt", "pluginfilename")
+        _fn = None
+    else:
+        _fn = pluginfilename
+    old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
     # In the following order if pluginfilename is: an absolute path, located in
     # the CONFIG_DIR, located in an obsolete config dir.
-    _fn = None
-    old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
-    for base_prefix in ('', CONFIG_DIR, old_config_dir):
-        if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
-            _fn = os.path.join(base_prefix, my_plugin_name)
-            break
+    if _fn is None:
+        for base_prefix in ('', CONFIG_DIR, old_config_dir):
+            if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
+                _fn = os.path.join(base_prefix, my_plugin_name)
+                break
 
     if _fn is not None and os.path.isfile(_fn):
         if _fn.startswith(old_config_dir):
