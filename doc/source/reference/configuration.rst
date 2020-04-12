@@ -133,7 +133,8 @@ To enable a plugin file, call the function
 System wise plugin file
 ^^^^^^^^^^^^^^^^^^^^^^^
 yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
-plugin file.
+plugin file. It is possible to rename this file to ``$HOME/.config/yt/<pluginfilename>.py``
+by defining ``pluginfilename`` in your ytrc file, as mentioned above.
 
 .. note::
 
