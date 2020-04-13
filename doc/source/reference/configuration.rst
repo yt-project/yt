@@ -197,6 +197,10 @@ use this function:
 And because we have used ``yt.enable_plugins`` we have access to the
 ``load_run`` function defined in our plugin file.
 
+.. note::
+    if your convenience function's name colliding with an existing object
+    within yt's namespace, it will be ignored.
+
 Note that using the plugins file implies that your script is no longer fully
 reproducible. If you share your script with someone else and use some of the
 functionality if your plugins file, you will also need to share your plugins
