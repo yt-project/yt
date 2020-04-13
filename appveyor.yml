@@ -8,9 +8,7 @@ environment:
 
   matrix:
       - PYTHON_VERSION: "3.6"
-        NUMPY_VERSION: "1.18"
       - PYTHON_VERSION: "3.8"
-        NUMPY_VERSION: "1.18"
 
 platform:
     -x64
@@ -32,7 +30,7 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install --yes -c conda-forge numpy==%NUMPY_VERSION% scipy nose pytest setuptools ipython
+    - "conda install --yes -c conda-forge numpy scipy nose pytest setuptools ipython
     Cython sympy fastcache h5py matplotlib=3.1.3 mock pandas cartopy conda-build unyt pooch pyyaml"
     # install yt
     - "pip install -e ."
