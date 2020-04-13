@@ -1,0 +1,11 @@
+# config file for mergeable: https://github.com/mergeability/mergeable
+version: 2
+mergeable:
+  - when: pull_request.*
+    validate:
+      - do: title
+        must_exclude:
+          regex: ^\[WIP\]
+      - do: label
+        must_include:
+          regex: 'bug|enhancement|new feature|docs'
