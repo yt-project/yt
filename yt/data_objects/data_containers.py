@@ -696,10 +696,11 @@ class YTDataContainer(object):
         velocity_units = 'km/s',
         coordinate_units = 'kpc',
         show_unused_fields = 0,
-        dataset_name = 'yt'):
+        dataset_name = 'yt'
+    ):
         r"""This function links a region of data stored in a yt dataset
             to the Python frontend API for [Firefly](github.com/ageller/Firefly),
-             a browser-based particle visualization platform. 
+            a browser-based particle visualization platform.
 
             Parameters
             ----------
@@ -766,7 +767,7 @@ class YTDataContainer(object):
                 >>> reader.options['color']['io']=[1,1,0,1]
                 >>> reader.particleGroups[0].decimation_factor=100
                 >>> reader.dumpToJSON()
-            """ 
+        """
         
         ## attempt to import firefly_api
         try:

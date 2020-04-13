@@ -39,17 +39,17 @@ def _streamline_for_io(params):
     convert these objects to strings (using __repr__() has it's own
     issues) in order to solve this problem.
 
-    Parameters:
-    -----------
-        params : dict
-            The dictionary of test parameters in the form
-            {param_name : param_value}.
+    Parameters
+    ----------
+    params : dict
+        The dictionary of test parameters in the form
+        {param_name : param_value}.
 
-    Returns:
-    --------
-        streamlined_params : dict
-            The dictionary of parsed and converted
-            {param_name : param_value} pairs.
+    Returns
+    -------
+    streamlined_params : dict
+        The dictionary of parsed and converted
+        {param_name : param_value} pairs.
     """
     streamlined_params = {}
     for key, value in params.items():
@@ -79,15 +79,15 @@ def _iterable_to_string(iterable):
     An extension of streamline_for_io that does the work of making an
     iterable more io-friendly.
 
-    Parameters:
-    -----------
-        iterable : python iterable
-            The object to be parsed and converted.
+    Parameters
+    ----------
+    iterable : python iterable
+        The object to be parsed and converted.
 
-    Returns:
-    --------
-        result : str
-            The io-friendly version of the passed iterable.
+    Returns
+    -------
+    result : str
+        The io-friendly version of the passed iterable.
     """
     result = iterable.__class__.__name__ 
     for elem in iterable:
@@ -109,16 +109,16 @@ def _hash_results(results):
     r"""
     Driver function for hashing the test result.
 
-    Parameters:
-    -----------
-        results : dict
-            Dictionary of {test_name : test_result} pairs.
+    Parameters
+    ----------
+    results : dict
+        Dictionary of {test_name : test_result} pairs.
 
-    Returns:
-    --------
-        results : dict
-            Same as the passed results, but the test_results are now
-            hex digests of the hashed test_result.
+    Returns
+    -------
+    results : dict
+        Same as the passed results, but the test_results are now
+        hex digests of the hashed test_result.
     """
     # Here, results should be comprised of only the tests, not the test
     # parameters
@@ -136,15 +136,15 @@ def _hash_dict(data):
     r"""
     Specifically handles hashing a dictionary object. 
 
-    Parameters:
-    -----------
-        data : dict
-            The dictionary to be hashed.
+    Parameters
+    ----------
+    data : dict
+        The dictionary to be hashed.
 
-    Returns:
-    --------
-        hd.hexdigest : str
-            The hex digest of the hashed dictionary.
+    Returns
+    -------
+    hd.hexdigest : str
+        The hex digest of the hashed dictionary.
     """
     hd = None
     for key, value in sorted(data.items()):
@@ -158,15 +158,15 @@ def generate_hash(data):
     r"""
     Actually performs the hash operation. 
 
-    Parameters:
-    -----------
-        data : python object 
-            Data to be hashed.
+    Parameters
+    ----------
+    data : python object
+        Data to be hashed.
 
-    Returns:
-    --------
-        hd : str
-            Hex digest of the hashed data.
+    Returns
+    -------
+    hd : str
+        Hex digest of the hashed data.
     """
     # Sometimes md5 complains that the data is not contiguous, so we
     # make it so here
@@ -191,17 +191,13 @@ def _save_result(data, outputFile):
     r"""
     Saves the test results to the desired answer file. 
 
-    Parameters:
-    -----------
-        data : dict
-            Test results to be saved.
+    Parameters
+    ----------
+    data : dict
+        Test results to be saved.
 
-        outputFile : str
-            Name of file to save results to.
-
-    Returns:
-    --------
-        None 
+    outputFile : str
+        Name of file to save results to.
     """
     with open(outputFile, 'a') as f:
         yaml.dump(data, f)
@@ -211,13 +207,13 @@ def _compare_result(data, outputFile):
     Compares the just-generated test results to those that are already
     saved.
 
-    Parameters:
-    -----------
-        data : dict
-            Just-generated test results.
+    Parameters
+    ----------
+    data : dict
+        Just-generated test results.
 
-        outputFile : str
-            Name of file where answers are already saved.
+    outputFile : str
+        Name of file where answers are already saved.
     """
     # Load the saved data
     with open(outputFile, 'r') as f:
@@ -237,22 +233,22 @@ def _handle_hashes(save_dir_name, fname, hashes, answer_store):
     Driver function for deciding whether to save the test results or
     compare them to already saved results.
 
-    Parameters:
-    -----------
-        save_dir_name : str
-            Name of the directory to save results or where results are
-            already saved.
+    Parameters
+    ----------
+    save_dir_name : str
+        Name of the directory to save results or where results are
+        already saved.
 
-        fname : str
-            Name of the file to either save results to or where results
-            are already saved.
+    fname : str
+        Name of the file to either save results to or where results
+        are already saved.
 
-        hashes : dict
-            The just-generated test results.
+    hashes : dict
+        The just-generated test results.
 
-        answer_store : bool
-            If true, save the just-generated test results, otherwise,
-            compare them to the previously saved results.
+    answer_store : bool
+        If true, save the just-generated test results, otherwise,
+        compare them to the previously saved results.
     """
     # Set up the answer file in the answer directory
     answer_file = os.path.join(save_dir_name, fname)
@@ -269,23 +265,23 @@ def _save_arrays(save_dir_name, fbasename, arrays, answer_store):
     Driver routine for either saving the raw arrays resulting from the
     tests, or compare them to previously saved results.
 
-    Parameters:
-    -----------
-        save_dir_name : str
-            Name of the directory to save results or where results are
-            already saved.
+    Parameters
+    ----------
+    save_dir_name : str
+        Name of the directory to save results or where results are
+        already saved.
 
-        fbasename : str
-            Base name (no extension) of the file to either save results
-            to or where results are already saved.
+    fbasename : str
+        Base name (no extension) of the file to either save results
+        to or where results are already saved.
 
-        arrays : dict
-            The raw arrays generated from the tests, with the test name
-            as a key.
+    arrays : dict
+        The raw arrays generated from the tests, with the test name
+        as a key.
 
-        answer_store : bool
-            If true, save the just-generated test results, otherwise,
-            compare them to the previously saved results.
+    answer_store : bool
+        If true, save the just-generated test results, otherwise,
+        compare them to the previously saved results.
     """
     pass
 
@@ -435,22 +431,22 @@ def _create_plot_window_attribute_plot(ds, ptype, field, axis, pkwargs = None):
     r"""
     Convenience function used in plot_window_attribute_test.
 
-    Parameters:
-    -----------
-        ds : Dataset
-            The Dataset object from which the plotting data is taken.
+    Parameters
+    ----------
+    ds : Dataset
+        The Dataset object from which the plotting data is taken.
 
-        ptype : string
-            Type of plot to make (e.g., SlicePlot).
+    ptype : string
+        Type of plot to make (e.g., SlicePlot).
 
-        field : yt field
-            The field (e.g, density) to plot.
+    field : yt field
+        The field (e.g, density) to plot.
 
-        axis : int
-            The plot axis to plot or project along.
-            
-        pkwargs : dict
-            Any keywords to be passed when creating the plot.
+    axis : int
+        The plot axis to plot or project along.
+
+    pkwargs : dict
+        Any keywords to be passed when creating the plot.
     """
     if ptype is None:
         raise RuntimeError('Must explicitly request a plot type')
@@ -466,25 +462,25 @@ def _create_phase_plot_attribute_plot(data_source, x_field, y_field, z_field,
     r"""
     Convenience function used in phase_plot_attribute_test.
 
-    Parameters:
-    -----------
-        data_source : Dataset object
-            The Dataset object from which the plotting data is taken.
-        
-        x_field : yt field
-            Field to plot on x-axis.
-        
-        y_field : yt field
-            Field to plot on y-axis.
+    Parameters
+    ----------
+    data_source : Dataset object
+        The Dataset object from which the plotting data is taken.
 
-        z_field : yt field
-            Field to plot on z-axis.
+    x_field : yt field
+        Field to plot on x-axis.
 
-        plot_type : string
-            Type of plot to make (e.g., SlicePlot).
-            
-        plot_kwargs : dict
-            Any keywords to be passed when creating the plot.
+    y_field : yt field
+        Field to plot on y-axis.
+
+    z_field : yt field
+        Field to plot on z-axis.
+
+    plot_type : string
+        Type of plot to make (e.g., SlicePlot).
+
+    plot_kwargs : dict
+        Any keywords to be passed when creating the plot.
     """
     if plot_type is None:
         raise RuntimeError('Must explicitly request a plot type')

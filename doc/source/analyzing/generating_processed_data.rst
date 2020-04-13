@@ -217,6 +217,9 @@ for each bin field or ``None`` to use the default settings.
 
 .. _profile-dataframe-export:
 
+Exporting Profiles to DataFrame
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 One-dimensional profile data can be exported to a :class:`~pandas.DataFrame` object 
 using the :meth:`yt.data_objects.profiles.Profile1D.to_dataframe` method. Bins which 
 do not have data will have their fields filled with `NaN`s, except for the bin field
@@ -235,6 +238,9 @@ The :class:`~pandas.DataFrame` can then analyzed and/or written to disk using pa
 methods. Note that unit information is lost in this export.
 
 .. _profile-astropy-export:
+
+Exporting Profiles to QTable
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 One-dimensional profile data also can be exported to an AstroPy :class:`~astropy.table.QTable`  
 object. This table can then be written to disk in a number of formats, such as ASCII text

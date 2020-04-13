@@ -792,15 +792,15 @@ class ProfilePlot(object):
 
         Parameters
         ----------
-        xpos: float
+        xpos : float
           Position on plot in x-coordinates.
-        ypos: float
+        ypos : float
           Position on plot in y-coordinates.
-        text: str
+        text : str
           The text to insert onto the plot.
-        field: str or tuple
+        field : str or tuple
           The name of the field to add text to.
-        text_kwargs: dict
+        text_kwargs : dict
           Dictionary of text keyword arguments to be passed to matplotlib
 
         >>>  import yt
@@ -881,7 +881,7 @@ class PhasePlot(ImagePlotContainer):
     fractional : If True the profile values are divided by the sum of all 
         the profile data such that the profile represents a probability 
         distribution function.
-    fontsize: int
+    fontsize : int
         Font size for all text in the plot.
         Default: 18.
     figure_size : int
@@ -1190,15 +1190,15 @@ class PhasePlot(ImagePlotContainer):
 
         Parameters
         ----------
-        field: str or tuple
+        field : str or tuple
           The name of the field to add text to. 
-        xpos: float
+        xpos : float
           Position on plot in x-coordinates.
-        ypos: float
+        ypos : float
           Position on plot in y-coordinates.
-        text: str
+        text : str
           The text to insert onto the plot.
-        text_kwargs: dict
+        text_kwargs : dict
           Dictionary of text keyword arguments to be passed to matplotlib
 
         >>>  plot.annotate_text(1e-15, 5e4, "Hello YT")

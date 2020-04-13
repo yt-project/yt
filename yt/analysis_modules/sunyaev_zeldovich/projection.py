@@ -366,9 +366,9 @@ class SZProjection(object):
             be specified with *sky_scale*.
         overwrite : boolean, optional
             If the file already exists, do we overwrite?
-
-        Additional keyword arguments are passed to
-        :meth:`~astropy.io.fits.HDUList.writeto`.
+        **kwargs
+            Additional keyword arguments are passed to
+            :meth:`~astropy.io.fits.HDUList.writeto`.
 
         Examples
         --------
