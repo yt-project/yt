@@ -124,8 +124,8 @@ Plugin Files
 ------------
 
 Plugin files are a means of creating custom fields, quantities, data objects,
-colormaps, and other code classes and objects to be used in futureyt sessions
-without modifying the source code directly.
+colormaps, and other code executable functions or classes to be used in future 
+yt sessions without modifying the source code directly.
 
 To enable a plugin file, call the function
 :func:`~yt.funcs.enable_plugins` at the top of your script.
