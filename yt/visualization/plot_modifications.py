@@ -2375,7 +2375,7 @@ class ScaleCallback(PlotCallback):
                 max_scale, return_quantity=True)
             self.coeff = max_scale.v
             self.unit = max_scale.units
-        self.scale = YTQuantity(self.coeff, self.unit)
+        self.scale = plot.ds.quan(self.coeff, self.unit)
         text = self.scale_text_format.format(scale=int(self.coeff),
                                              units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
