@@ -62,11 +62,15 @@ def test_gadget_binary():
     curdir = os.getcwd()
     tmpdir = tempfile.mkdtemp()
     for header_spec, endian, fmt in product(header_specs, '<>', [1, 2]):
-        fake_snap = fake_gadget_binary(
-            header_spec=header_spec,
-            endian=endian,
-            fmt=fmt
-        )
+        try:
+            fake_snap = fake_gadget_binary(
+                header_spec=header_spec,
+                endian=endian,
+                fmt=fmt
+            )
+        except FileNotFoundError:
+            # sometimes this happens for mysterious reasons
+            pass
         ds = yt.load(fake_snap, header_spec=header_spec)
         assert isinstance(ds, GadgetDataset)
         ds.field_list

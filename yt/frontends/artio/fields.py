@@ -30,13 +30,14 @@ vel_units = "code_velocity"
 # NOTE: ARTIO uses momentum density.
 mom_units = "code_mass / (code_length**2 * code_time)"
 en_units = "code_mass*code_velocity**2/code_length**3"
+p_units = "code_mass / (code_length * code_time**2)"
 
 class ARTIOFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("HVAR_GAS_DENSITY", (rho_units, ["density"], None)),
         ("HVAR_GAS_ENERGY", (en_units, ["total_energy"], None)),
         ("HVAR_INTERNAL_ENERGY", (en_units, ["thermal_energy"], None)),
-        ("HVAR_PRESSURE", ("", ["pressure"], None)), # Unused
+        ("HVAR_PRESSURE", (p_units, ["pressure"], None)),
         ("HVAR_MOMENTUM_X", (mom_units, ["momentum_x"], None)),
         ("HVAR_MOMENTUM_Y", (mom_units, ["momentum_y"], None)),
         ("HVAR_MOMENTUM_Z", (mom_units, ["momentum_z"], None)),

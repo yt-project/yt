@@ -71,7 +71,7 @@ class EagleDataset(GadgetHDF5Dataset):
                 if vg in fileh["/"]:
                     valid = False                    
             fileh.close()
-        except:
+        except Exception:
             valid = False
             pass
         return valid
@@ -93,6 +93,5 @@ class EagleNetworkDataset(EagleDataset):
                 fileh.close()
                 return True
             fileh.close()
-        except:
-            pass
+        except Exception: pass
         return False

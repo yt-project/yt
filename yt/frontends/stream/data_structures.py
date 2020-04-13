@@ -170,6 +170,7 @@ class StreamHierarchy(GridIndex):
         self.grid_left_edge[:] = self.stream_handler.left_edges
         self.grid_right_edge[:] = self.stream_handler.right_edges
         self.grid_levels[:] = self.stream_handler.levels
+        self.min_level = self.grid_levels.min()
         self.grid_procs = self.stream_handler.processor_ids
         self.grid_particle_count[:] = self.stream_handler.particle_count
         mylog.debug("Copying reverse tree")

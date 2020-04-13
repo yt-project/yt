@@ -27,7 +27,7 @@ def test_covering_grid():
         for nprocs in [1, 2, 4, 8]:
             ds = fake_random_ds(16, nprocs = nprocs)
             axis_name = ds.coordinates.axis_name
-            dn = ds.refine_by**level 
+            dn = ds.refine_by**level
             cg = ds.covering_grid(level, [0.0, 0.0, 0.0],
                     dn * ds.domain_dimensions)
             # Test coordinate generation
@@ -104,7 +104,7 @@ def test_xarray_export():
     for level in [0, 1, 2]:
         ds = fake_random_ds(16, fields=["density", "temperature",
                                         "thermal_energy"])
-        dn = ds.refine_by**level 
+        dn = ds.refine_by**level
         rcg = ds.covering_grid(level, [0.0, 0.0, 0.0],
                 dn * ds.domain_dimensions)
         _run_tests(rcg)
@@ -125,7 +125,7 @@ def test_smoothed_covering_grid():
     for level in [0, 1, 2]:
         for nprocs in [1, 2, 4, 8]:
             ds = fake_random_ds(16, nprocs = nprocs)
-            dn = ds.refine_by**level 
+            dn = ds.refine_by**level
             cg = ds.smoothed_covering_grid(level, [0.0, 0.0, 0.0],
                     dn * ds.domain_dimensions)
             assert_equal(cg["ones"].max(), 1.0)

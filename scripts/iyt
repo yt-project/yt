@@ -77,10 +77,10 @@ def yt_simple_fieldname_completer(self, event):
 
     try:
         obj = eval(expr, self.Completer.namespace)
-    except:
+    except Exception:
         try:
             obj = eval(expr, self.Completer.global_namespace)
-        except:
+        except Exception:
             raise IPython.ipapi.TryNext
 
     if isinstance(obj, YTDataContainer):
@@ -104,10 +104,10 @@ def yt_tuple_fieldname_completer(self, event):
 
     try:
         obj = eval(expr, self.Completer.namespace)
-    except:
+    except Exception:
         try:
             obj = eval(expr, self.Completer.global_namespace)
-        except:
+        except Exception:
             raise IPython.ipapi.TryNext
 
     if isinstance(obj, YTDataContainer):

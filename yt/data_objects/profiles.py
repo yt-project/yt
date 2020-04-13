@@ -288,7 +288,7 @@ been deprecated, use profile.standard_deviation instead."""
                 fname = self.field_map.get(field[1], None)
                 if fname != field:
                     raise KeyError("Asked for field '{}' but only have data for "
-                                   "field '{}'".format(field, fname))
+                                   "fields '{}'".format(field, list(self.field_data.keys())))
             elif isinstance(field, DerivedField):
                 fname = self.field_map.get(field.name[1], None)
             if fname is None:
@@ -415,19 +415,21 @@ class ProfileNDFromDataset(ProfileND):
     An ND profile object loaded from a ytdata dataset.
     """
     def __init__(self, ds):
-        ProfileND.__init__(self, ds.data, ds.parameters["weight_field"])
-        self.fractional = ds.parameters["fractional"]
-        self.accumulation = ds.parameters["accumulation"]
+        ProfileND.__init__(self, ds.data, ds.parameters.get("weight_field", None))
+        self.fractional = ds.parameters.get("fractional", False)
+        self.accumulation = ds.parameters.get("accumulation", False)
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[:ds.dimensionality]:
             setattr(self, ax, ds.data[ax])
-            setattr(self, "%s_bins" % ax, ds.data["%s_bins" % ax])
-            field_name = tuple(ds.parameters["%s_field" % ax])
-            setattr(self, "%s_field" % ax, field_name)
+            ax_bins = "%s_bins" % ax
+            ax_field = "%s_field" % ax
+            ax_log = "%s_log" % ax
+            setattr(self, ax_bins, ds.data[ax_bins])
+            field_name = tuple(ds.parameters.get(ax_field, (None, None)))
+            setattr(self, ax_field, field_name)
             self.field_info[field_name] = ds.field_info[field_name]
-            setattr(self, "%s_log" % ax, ds.parameters["%s_log" % ax])
-            exclude_fields.extend([ax, "%s_bins" % ax,
-                                   ds.parameters["%s_field" % ax][1]])
+            setattr(self, ax_log, ds.parameters.get(ax_log, False))
+            exclude_fields.extend([ax, ax_bins, field_name[1]])
         self.weight = ds.data["weight"]
         self.used = ds.data["used"].d.astype(bool)
         profile_fields = [f for f in ds.field_list
@@ -520,11 +522,116 @@ class Profile1D(ProfileND):
 
     def plot(self):
         r"""
-        This returns a :class:~yt.visualization.profile_plotter.ProfilePlot
+        This returns a :class:`~yt.visualization.profile_plotter.ProfilePlot`
         with the fields that have been added to this object.
         """
         from yt.visualization.profile_plotter import ProfilePlot
         return ProfilePlot.from_profiles(self)
+
+    def _export_prep(self, fields, only_used):
+        if only_used:
+            idxs = self.used
+        else:
+            idxs = slice(None, None, None)
+        if not only_used and not np.all(self.used):
+            masked = True
+        else:
+            masked = False
+        if fields is None:
+            fields = self.field_data.keys()
+        else:
+            fields = ensure_list(fields)
+            fields = self.data_source._determine_fields(fields)
+        return idxs, masked, fields
+
+    def to_dataframe(self, fields=None, only_used=False):
+        r"""Export a profile object to a pandas DataFrame.
+
+        This function will take a data object and construct from it and
+        optionally a list of fields a pandas DataFrame object.  If pandas is
+        not importable, this will raise ImportError.
+
+        Parameters
+        ----------
+        fields : list of strings or tuple field names, default None
+            If this is supplied, it is the list of fields to be exported into
+            the DataFrame. If not supplied, whatever fields exist in the 
+            profile, along with the bin field, will be exported.
+        only_used : boolean, default False
+            If True, only the bins which have data will be exported. If False,
+            all of the bins will be exported, but the elements for those bins
+            in the data arrays will be filled with NaNs. 
+
+        Returns
+        -------
+        df : :class:`~pandas.DataFrame`
+            The data contained in the profile.
+
+        Examples
+        --------
+        >>> sp = ds.sphere("c", (0.1, "unitary"))
+        >>> p = sp.profile("radius", ["density", "temperature"])
+        >>> df1 = p.to_dataframe()
+        >>> df2 = p.to_dataframe(fields="density", only_used=True)
+        """
+        import pandas as pd
+        from collections import OrderedDict
+        idxs, masked, fields = self._export_prep(fields, only_used)
+        pdata = OrderedDict([(self.x_field[-1], self.x[idxs])])
+        for field in fields:
+            pdata[field[-1]] = self[field][idxs]
+        df = pd.DataFrame(pdata)
+        if masked:
+            mask = np.zeros(df.shape, dtype='bool')
+            mask[~self.used, 1:] = True
+            df.mask(mask, inplace=True)
+        return df
+
+    def to_astropy_table(self, fields=None, only_used=False):
+        """
+        Export the profile data to a :class:`~astropy.table.table.QTable`,
+        which is a Table object which is unit-aware. The QTable can then
+        be exported to an ASCII file, FITS file, etc.
+
+        See the AstroPy Table docs for more details:
+        http://docs.astropy.org/en/stable/table/
+
+        Parameters
+        ----------
+        fields : list of strings or tuple field names, default None
+            If this is supplied, it is the list of fields to be exported into
+            the DataFrame. If not supplied, whatever fields exist in the 
+            profile, along with the bin field, will be exported.
+        only_used : boolean, optional
+            If True, only the bins which are used are copied
+            to the QTable as rows. If False, all bins are
+            copied, but the bins which are not used are masked.
+            Default: False
+
+        Returns
+        -------
+        df : :class:`~astropy.table.QTable`
+            The data contained in the profile.
+
+        Examples
+        --------
+        >>> sp = ds.sphere("c", (0.1, "unitary"))
+        >>> p = sp.profile("radius", ["density", "temperature"])
+        >>> qt1 = p.to_astropy_table()
+        >>> qt2 = p.to_astropy_table(fields="density", only_used=True)
+        """
+        from astropy.table import QTable
+        idxs, masked, fields = self._export_prep(fields, only_used)
+        qt = QTable(masked=masked)
+        qt[self.x_field[-1]] = self.x[idxs].to_astropy()
+        if masked:
+            qt[self.x_field[-1]].mask = self.used
+        for field in fields:
+            qt[field[-1]] = self[field][idxs].to_astropy()
+            if masked:
+                qt[field[-1]].mask = self.used
+        return qt
+
 
 class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
     """
@@ -533,6 +640,7 @@ class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
 
     def __init(self, ds):
         ProfileNDFromDataset.__init__(self, ds)
+
 
 class Profile2D(ProfileND):
     """An object that represents a 2D profile.

@@ -33,7 +33,8 @@ from yt.funcs import \
     get_image_suffix, \
     iterable, \
     ensure_dir, \
-    ensure_list
+    ensure_list, \
+    issue_deprecation_warning
 from yt.units.unit_lookup_table import \
     prefixable_units, latex_prefixes
 from yt.units.unit_object import \
@@ -132,7 +133,7 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
 
     Parameters
     ----------
-    linthresh: float
+    linthresh : float
         the threshold for the linear region
     vmin : float
         the minimum value in the colorbar
@@ -267,19 +268,24 @@ class PlotContainer(object):
 
     @invalidate_plot
     def set_minorticks(self, field, state):
-        """turn minor ticks on or off in the current plot
+        """Turn minor ticks on or off in the current plot.
 
         Displaying minor ticks reduces performance; turn them off
-        using set_minorticks('all', 'off') if drawing speed is a problem.
+        using set_minorticks('all', False) if drawing speed is a problem.
 
         Parameters
         ----------
         field : string
             the field to remove minorticks
-        state : string
-            the state indicating 'on' or 'off'
+        state : bool
+            the state indicating 'on' (True) or 'off' (False)
 
         """
+        if isinstance(state, str):
+            from yt.funcs import issue_deprecation_warning
+            issue_deprecation_warning("Deprecated api, use bools for *state*.")
+            state = {"on": True, "off": False}[state.lower()]
+
         if field == 'all':
             fields = list(self.plots.keys())
         else:
@@ -567,8 +573,8 @@ class PlotContainer(object):
 
         Parameters
         ----------
-        x_title: str
-              The new string for the x-axis.
+        label : str
+            The new string for the x-axis.
 
         >>>  plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
 
@@ -584,8 +590,8 @@ class PlotContainer(object):
 
         Parameters
         ----------
-        label: str
-          The new string for the y-axis.
+        label : str
+            The new string for the y-axis.
 
         >>>  plot.set_ylabel("Temperature (K)")
 
@@ -639,16 +645,16 @@ class PlotContainer(object):
                     un = Unit(un, registry=self.ds.unit_registry)
                     un = un.latex_representation()
                     if hinv:
-                        un = un + '\,h^{-1}'
+                        un = un + r'\,h^{-1}'
                     if comoving:
-                        un = un + '\,(1+z)^{-1}'
+                        un = un + r'\,(1+z)^{-1}'
                     pp = un[0]
                     if pp in latex_prefixes:
                         symbol_wo_prefix = un[1:]
                         if symbol_wo_prefix in prefixable_units:
                             un = un.replace(
                                 pp, "{"+latex_prefixes[pp]+"}", 1)
-                axes_unit_labels[i] = '\ \ ('+un+')'
+                axes_unit_labels[i] = r'\ \ ('+un+')'
         return axes_unit_labels
 
     
@@ -900,16 +906,17 @@ class ImagePlotContainer(PlotContainer):
                 else:
                     myzmin = myzmax / dynamic_range
 
+            if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
+                self._field_transform[field] = log_transform
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
         return self
 
     @invalidate_plot
     def set_cbar_minorticks(self, field, state):
-        """turn colorbar minor ticks on or off in the current plot
+        """Deprecated alias, kept for backward compatibility.
 
-        Displaying minor ticks reduces performance; turn them off
-        using set_cbar_minorticks('all', 'off') if drawing speed is a problem.
+        turn colorbar minor ticks "on" or "off" in the current plot, according to *state*
 
         Parameters
         ----------
@@ -917,17 +924,32 @@ class ImagePlotContainer(PlotContainer):
             the field to remove colorbar minorticks
         state : string
             the state indicating 'on' or 'off'
+        """
+        issue_deprecation_warning("Deprecated alias, use set_colorbar_minorticks instead.")
 
+        boolstate = {"on": True, "off": False}[state.lower()]
+        return self.set_colorbar_minorticks(field, boolstate)
+
+    @invalidate_plot
+    def set_colorbar_minorticks(self, field, state):
+        """turn colorbar minor ticks on or off in the current plot
+
+        Displaying minor ticks reduces performance; turn them off
+        using set_colorbar_minorticks('all', False) if drawing speed is a problem.
+
+        Parameters
+        ----------
+        field : string
+            the field to remove colorbar minorticks
+        state : bool
+            the state indicating 'on' (True) or 'off' (False)
         """
         if field == 'all':
             fields = list(self.plots.keys())
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            if state == 'on':
-                self._cbar_minorticks[field] = True
-            else:
-                self._cbar_minorticks[field] = False
+            self._cbar_minorticks[field] = state
         return self
 
     @invalidate_plot
@@ -937,9 +959,9 @@ class ImagePlotContainer(PlotContainer):
 
         Parameters
         ----------
-        field: str or tuple
+        field : str or tuple
           The name of the field to modify the label for.
-        label: str
+        label : str
           The new label
 
         >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")

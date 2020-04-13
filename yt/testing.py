@@ -506,6 +506,32 @@ def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=None, quantities=None,
                      unit_system=unit_system)
     return ds
 
+def add_noise_fields(ds):
+    """Add 4 classes of noise fields to a dataset"""
+    prng = RandomState(0x4d3d3d3)
+    def _binary_noise(field, data):
+        """random binary data"""
+        res = prng.random_integers(0, 1, data.size).astype("float64")
+        return res
+
+    def _positive_noise(field, data):
+        """random strictly positive data"""
+        return prng.random_sample(data.size) + 1e-16
+
+    def _negative_noise(field, data):
+        """random negative data"""
+        return - prng.random_sample(data.size)
+
+    def _even_noise(field, data):
+        """random data with mixed signs"""
+        return 2 * prng.random_sample(data.size) - 1
+
+    ds.add_field("noise0", _binary_noise, sampling_type="cell")
+    ds.add_field("noise1", _positive_noise, sampling_type="cell")
+    ds.add_field("noise2", _negative_noise, sampling_type="cell")
+    ds.add_field("noise3", _even_noise, sampling_type="cell")
+
+
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword

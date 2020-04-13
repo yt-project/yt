@@ -577,8 +577,7 @@ class AthenaDataset(Dataset):
         try:
             if 'vtk' in args[0]:
                 return True
-        except:
-            pass
+        except Exception: pass
         return False
 
     @property
