@@ -254,6 +254,28 @@ OWLS frontend, do the following:
 
    $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-big-data yt.frontends.owls
 
+Minimal Answer Tests
+^^^^^^^^^^^^^^^^^^^^
+
+yt has a set of minimal answer tests that are versioned alongside it.  These
+live in the `answer-store` directory in the base of the repository, and are run
+on Travis with every pull request.  As of yt-4.0, these are stored using the
+`git LFS<https://git-lfs.github.com/>`_ system so as to avoid churn in the
+repository.
+
+Once you have installed git LFS (as per the instructions on its home page) you
+can obtain the files by typing `git lfs fetch answer-store/*` in the root of
+the yt repository.  You can then run the "minimal" answer tests by executing:
+
+.. code-block:: base
+
+   nosetests -c nose_answer.cfg
+
+If the minimal answer tests fail when run on Travis, the test runner will
+output a set of files that can be downloaded and inspected that contain both
+the *new* results as well as a *diff* of the results against those expected.
+These also include instructions on how to commit new results into the
+repository and include that as part of the pull request.
 
 How to Write Answer Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^
