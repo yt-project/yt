@@ -5,7 +5,7 @@ mergeable:
     validate:
       - do: title
         must_exclude:
-          regex: ^\[WIP\]
+          regex: ^\[?WIP\b
           message: "WIP pull requests can't be merged."
       - do: label
         must_include:
