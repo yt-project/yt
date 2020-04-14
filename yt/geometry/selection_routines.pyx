@@ -332,23 +332,29 @@ cdef class SelectorObject:
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         return 0
 
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
-        return 0
-
     cdef int select_point_ndims(self, np.float64_t pos[3], np.int32_t ndims) nogil:
         return 0
 
-    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
-        return 0
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        return self.select_point_ndims(pos, 3)
 
-    cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         return 0
 
     cdef int select_bbox_ndims(
         self, np.float64_t left_edge[3], np.float64_t right_edge[3], np.int32_t ndims
     ) nogil:
         return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        return self.select_bbox_ndims(left_edge, right_edge, 3)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -888,13 +894,6 @@ cdef class RegionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
-        return self.select_bbox_ndims(left_edge, right_edge, 3)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef int select_bbox_ndims(
         self, np.float64_t left_edge[3], np.float64_t right_edge[3], np.int32_t ndims
     ) nogil:
@@ -930,12 +929,6 @@ cdef class RegionSelector(SelectorObject):
                pos[i] >= self.right_edge[i]:
                 return 0
         return 1
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int select_point(self, np.float64_t pos[3]) nogil:
-        return self.select_point_ndims(pos, 3)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
