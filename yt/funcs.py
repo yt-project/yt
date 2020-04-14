@@ -981,22 +981,29 @@ def enable_plugins(pluginfilename=None):
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg, CONFIG_DIR
-    if pluginfilename is None:
-        my_plugin_name = ytcfg.get("yt", "pluginfilename")
-        _fn = None
-    else:
+
+    use_custom_plugin = (pluginfilename is not None)
+
+    if use_custom_plugin:
         _fn = pluginfilename
+    else:
+        _fn = None
+
     old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
     # In the following order if pluginfilename is: an absolute path, located in
     # the CONFIG_DIR, located in an obsolete config dir.
-    if _fn is None:
+    if not use_custom_plugin:
+        my_plugin_name = ytcfg.get("yt", "pluginfilename")
         for base_prefix in ('', CONFIG_DIR, old_config_dir):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
+        
+    if _fn is None:
+        return
 
-    if _fn is not None and os.path.isfile(_fn):
-        if _fn.startswith(old_config_dir):
+    if os.path.isfile(_fn):
+        if _fn.startswith(old_config_dir) and not use_custom_plugin:
             mylog.warning(
                 'Your plugin file is located in a deprecated directory. '
                 'Please move it from %s to %s',
