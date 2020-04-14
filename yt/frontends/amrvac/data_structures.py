@@ -250,6 +250,8 @@ class AMRVACDataset(Dataset):
         """
         # frontend specific method
         geometry_yt = geometry_tag.split("_")[0].lower()
+        if geometry_yt == "default":
+            return "cartesian"
         if geometry_yt not in ("cartesian", "polar", "cylindrical", "spherical"):
             raise ValueError
         return geometry_yt
