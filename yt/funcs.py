@@ -975,7 +975,7 @@ def enable_plugins(pluginfilename=None):
     ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
     system-level configuration.
 
-    Warning: scripts using this function will only be reproducible if your plugin
+    Warning: a script using this function will only be reproducible if your plugin
     file is shared with it.
     """
     import yt
