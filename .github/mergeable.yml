@@ -6,7 +6,7 @@ mergeable:
       - do: title
         must_exclude:
           regex: ^\[WIP\]
-          message: "WIP pull requests can't be meged."
+          message: "WIP pull requests can't be merged."
       - do: label
         must_include:
           regex: 'bug|enhancement|new feature|docs|infrastructure'
