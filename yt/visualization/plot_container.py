@@ -666,7 +666,7 @@ class PlotContainer(object):
                 axes_unit_labels[i] = r'\ \ ('+un+')'
         return axes_unit_labels
 
-    
+
     def hide_colorbar(self, field=None):
         """
         Hides the colorbar for a plot and updates the size of the
@@ -677,9 +677,9 @@ class PlotContainer(object):
         ----------
 
         field : string, field tuple, or list of strings or field tuples (optional)
-            The name of the field(s) that we want to hide the colorbar. If None
-            is provided, will default to using all fields available for this
-            object.
+            The name of the field(s) that we want to hide the colorbar.
+            If None or 'all' is provided, will default to using all fields available
+            for this object.
 
         Examples
         --------
@@ -701,7 +701,7 @@ class PlotContainer(object):
         >>> s.hide_colorbar()
         >>> s.save()
         """
-        if field is None:
+        if field is None or field == 'all':
             field = self.fields
         field = ensure_list(field)
         for f in field:
