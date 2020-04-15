@@ -305,7 +305,7 @@ _turbo_data = \
 
 add_colormap("turbo", _turbo_data)
 
-_turbo_r_colormap_data = np.flip(_turbo_colormap_data)
+_turbo_r_colormap_data = np.flip(_turbo_colormap_data, axis=0)
 _turbo_r_data = dict((color, np.transpose([_tvals,
                              _turbo_r_colormap_data[:, i],
                              _turbo_r_colormap_data[:, i]]))
