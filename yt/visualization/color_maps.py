@@ -305,6 +305,13 @@ _turbo_data = \
 
 add_colormap("turbo", _turbo_data)
 
+_turbo_r_colormap_data = np.flip(_turbo_colormap_data)
+_turbo_r_data = dict((color, np.transpose([_tvals,
+                             _turbo_r_colormap_data[:, i],
+                             _turbo_r_colormap_data[:, i]]))
+       for i, color in enumerate(['red', 'green', 'blue']))
+add_colormap("turbo_r", _turbo_r_data)
+
 # Add colormaps from cmocean, if it's installed
 if cmocean is not None:
     cmo_cmapnames = cmocean.cm.cmapnames
