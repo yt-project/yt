@@ -107,7 +107,7 @@ def accept_allflag(f):
     field == 'all', looping over all fields already present in the PlotContainer instance.
 
     """
-    # This is to be applied to PlotContainer class method with the following signature:
+    # This is to be applied to PlotContainer class methods with the following signature:
     # 
     # f(self, field, *args, **kwargs) -> self
     @wraps(f)
