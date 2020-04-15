@@ -230,16 +230,12 @@ class AMRVACDataset(Dataset):
         ----------
         geometry_tag : str
             A geometry tag as read from AMRVAC's datfile from v5.
+            If "default" is found, it is translated to "cartesian".
 
         Returns
         -------
         geometry_yt : str
-            Lower case geometry tag among "cartesian", "polar", "cylindrical", "spherical"
-
-        Raises
-        ------
-        ValueError
-            In case the tag is not properly formatted or recognized.
+            Lower case geometry tag among "cartesian", "polar", "cylindrical", "spherical".
 
         Examples
         --------
@@ -249,10 +245,15 @@ class AMRVACDataset(Dataset):
 
         """
         # frontend specific method
-        geometry_yt = geometry_tag.split("_")[0].lower()
-        if geometry_yt not in ("cartesian", "polar", "cylindrical", "spherical"):
-            raise ValueError
-        return geometry_yt
+        known_geoms = {
+            "default": "cartesian",
+            "cartesian": "cartesian",
+            "polar": "polar",
+            "cylindrical": "cylindrical",
+            "spherical": "spherical"
+        }
+        geom_key = geometry_tag.split("_")[0].lower()
+        return known_geoms[geom_key]
 
     def _parse_parameter_file(self):
         """Parse input datfile's header. Apply geometry_override if specified."""
