@@ -102,7 +102,7 @@ def apply_callback(f):
         return args[0]
     return newfunc
 
-def accept_allflag(f):
+def accepts_all_fields(f):
     """Decorate a function whose second argument is <field> and deal with the special case
     field == 'all', looping over all fields already present in the PlotContainer instance.
 
@@ -225,7 +225,7 @@ class PlotContainer(object):
         self._minorticks = {}
         self._field_transform = {}
 
-    @accept_allflag
+    @accepts_all_fields
     @invalidate_plot
     def set_log(self, field, log, linthresh=None):
         """set a field to log or linear.
@@ -263,7 +263,7 @@ class PlotContainer(object):
             if field == 'all', applies to all plots.
 
         """
-        # devnote : accept_allflag decorator is not applicable here because the return variable isn't self
+        # devnote : accepts_all_fields decorator is not applicable here because the return variable isn't self
         log = {}
         if field == 'all':
             fields = list(self.plots.keys())
@@ -281,7 +281,7 @@ class PlotContainer(object):
         self._field_transform[field] = field_transforms[name]
         return self
 
-    @accept_allflag
+    @accepts_all_fields
     @invalidate_plot
     def set_minorticks(self, field, state):
         """Turn minor ticks on or off in the current plot.
@@ -819,7 +819,7 @@ class ImagePlotContainer(PlotContainer):
         self._colorbar_label = PlotDictionary(
             self.data_source, lambda: None)
 
-    @accept_allflag
+    @accepts_all_fields
     @invalidate_plot
     def set_cmap(self, field, cmap):
         """set the colormap for one of the fields
@@ -840,7 +840,7 @@ class ImagePlotContainer(PlotContainer):
         self._colormaps[field] = cmap
         return self
 
-    @accept_allflag
+    @accepts_all_fields
     @invalidate_plot
     def set_background_color(self, field, color=None):
         """set the background color to match provided color
@@ -867,7 +867,7 @@ class ImagePlotContainer(PlotContainer):
         self._background_color[field] = color
         return self
 
-    @accept_allflag
+    @accepts_all_fields
     @invalidate_plot
     def set_zlim(self, field, zmin, zmax, dynamic_range=None):
         """set the scale of the colormap
@@ -930,7 +930,7 @@ class ImagePlotContainer(PlotContainer):
         boolstate = {"on": True, "off": False}[state.lower()]
         return self.set_colorbar_minorticks(field, boolstate)
 
-    @accept_allflag
+    @accepts_all_fields
     @invalidate_plot
     def set_colorbar_minorticks(self, field, state):
         """turn colorbar minor ticks on or off in the current plot
