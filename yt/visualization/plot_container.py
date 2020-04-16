@@ -218,6 +218,7 @@ class PlotContainer(object):
         self._minorticks = {}
         self._field_transform = {}
 
+    @accept_allflag
     @invalidate_plot
     def set_log(self, field, log, linthresh=None):
         """set a field to log or linear.
@@ -226,27 +227,23 @@ class PlotContainer(object):
         ----------
         field : string
             the field to set a transform
+            if field == 'all', applies to all plots.
         log : boolean
             Log on/off.
         linthresh : float (must be positive)
             linthresh will be enabled for symlog scale only when log is true
 
         """
-        if field == 'all':
-            fields = list(self.plots.keys())
-        else:
-            fields = [field]
-        for field in self.data_source._determine_fields(fields):
-            if log:
-                if linthresh is not None:
-                    if not linthresh > 0.:
-                        raise ValueError('\"linthresh\" must be positive')
-                    self._field_transform[field] = symlog_transform
-                    self._field_transform[field].func = linthresh
-                else:
-                    self._field_transform[field] = log_transform
+        if log:
+            if linthresh is not None:
+                if not linthresh > 0.:
+                    raise ValueError('\"linthresh\" must be positive')
+                self._field_transform[field] = symlog_transform
+                self._field_transform[field].func = linthresh
             else:
-                self._field_transform[field] = linear_transform
+                self._field_transform[field] = log_transform
+        else:
+            self._field_transform[field] = linear_transform
         return self
 
     def get_log(self, field):
@@ -258,6 +255,7 @@ class PlotContainer(object):
             the field to get a transform
 
         """
+        # devnote : accept_alltag decorator is not applicable here because the return variable isn't self
         log = {}
         if field == 'all':
             fields = list(self.plots.keys())
@@ -278,6 +276,7 @@ class PlotContainer(object):
         self._field_transform[field] = field_transforms[name]
         return self
 
+    @accept_allflag
     @invalidate_plot
     def set_minorticks(self, field, state):
         """Turn minor ticks on or off in the current plot.
@@ -289,6 +288,7 @@ class PlotContainer(object):
         ----------
         field : string
             the field to remove minorticks
+            if field == 'all', applies to all plots.
         state : bool
             the state indicating 'on' (True) or 'off' (False)
 
@@ -298,12 +298,7 @@ class PlotContainer(object):
             issue_deprecation_warning("Deprecated api, use bools for *state*.")
             state = {"on": True, "off": False}[state.lower()]
 
-        if field == 'all':
-            fields = list(self.plots.keys())
-        else:
-            fields = [field]
-        for field in self.data_source._determine_fields(fields):
-            self._minorticks[field] = state
+        self._minorticks[field] = state
         return self
 
     def _setup_plots(self):
@@ -942,6 +937,7 @@ class ImagePlotContainer(PlotContainer):
         ----------
         field : string
             the field to remove colorbar minorticks
+            if field == 'all', applies to all plots.
         state : bool
             the state indicating 'on' (True) or 'off' (False)
         """
