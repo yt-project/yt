@@ -5,4 +5,4 @@ nose==1.3.7
 nose-timer==0.7.3
 coverage==4.5.1
 codecov==2.0.15
-unyt==2.2.2
+unyt==2.7.1
