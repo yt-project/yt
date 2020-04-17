@@ -30,6 +30,14 @@ class ArepoFieldInfo(GadgetFieldInfo):
                              ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
                              )
 
+    def __init__(self, ds, field_list, slice_info=None):
+        if ds.cosmological_simulation:
+            GFM_SFT_units = "dimensionless"
+        else:
+            GFM_SFT_units = "code_length/code_velocity"
+        self.known_particle_fields += (("GFM_StellarFormationTime", (GFM_SFT_units, ["stellar_age"], None)), )
+        super(ArepoFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+
     def setup_particle_fields(self, ptype):
         FieldInfoContainer.setup_particle_fields(self, ptype)
         if ptype == "PartType0":

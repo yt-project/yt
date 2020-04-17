@@ -8,4 +8,4 @@ pytest~=4.6; python_version < '3.0'
 pyyaml>=4.2b1
 coverage==4.5.1
 codecov==2.0.15
-unyt==2.2.2
+unyt==2.7.1

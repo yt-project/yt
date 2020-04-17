@@ -57,7 +57,6 @@ class TestGeoProjections(unittest.TestCase):
     @requires_module("cartopy")
     def tearDown(self):
         del self.ds
-        del self.slc
 
     @requires_module("cartopy")
     def test_geo_projection_setup(self):
