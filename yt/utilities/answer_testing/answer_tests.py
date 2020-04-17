@@ -9,10 +9,6 @@ import hashlib
 import matplotlib.image as mpimg
 import numpy as np
 
-from yt.analysis_modules.cosmological_observation.api import \
-     LightCone
-from yt.analysis_modules.halo_analysis.api import HaloCatalog
-from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
 from yt.utilities.on_demand_imports import \
     _h5py as h5py
 from . import utils
@@ -131,22 +127,6 @@ def pixelized_projection_values(ds, axis, field,
             result.update(k + v.tobytes())
     return result.hexdigest()
 
-
-def simulated_halo_mass_function(ds, finder):
-    hc = HaloCatalog(data_ds=ds, finder_method=finder)
-    hc.create()
-    hmf = HaloMassFcn(halos_ds=hc.halos_ds)
-    result = np.empty((2, hmf.masses_sim.size))
-    result[0] = hmf.masses_sim.d
-    result[1] = hmf.n_cumulative_sim.d
-    return result
-
-def analytic_halo_mass_function(ds, fit):
-    hmf = HaloMassFcn(simulation_ds=ds, fitting_function=fit)
-    result = np.empty((2, hmf.masses_analytic.size))
-    result[0] = hmf.masses_analytic.d
-    result[1] = hmf.n_cumulative_analytic.d
-    return result
 
 def small_patch_amr(ds, field, weight, axis, ds_obj):
     hex_digests = {} 
@@ -273,25 +253,6 @@ def axial_pixelization(ds):
         pix_x
         pix_y
     return pix_x, pix_y 
-
-def light_cone_projection(parameter_file, simulation_type):
-    lc = LightCone(
-        parameter_file, simulation_type, 0., 0.1,
-        observer_redshift=0.0, time_data=False)
-    lc.calculate_light_cone_solution(
-        seed=123456789, filename="LC/solution.txt")
-    lc.project_light_cone(
-        (600.0, "arcmin"), (60.0, "arcsec"), "density",
-        weight_field=None, save_stack=True)
-    fh = h5py.File("LC/LightCone.h5")
-    data = fh["density_None"].value
-    units = fh["density_None"].attrs["units"]
-    assert units == "g/cm**2"
-    fh.close()
-    mean = data.mean()
-    mi = data[data.nonzero()].min()
-    ma = data.max()
-    return np.array([mean, mi, ma])
 
 def extract_connected_sets(ds_fn, data_source, field, num_levels, min_val, max_val):
     n, all_sets = data_source.extract_connected_sets(
