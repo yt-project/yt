@@ -983,32 +983,29 @@ def enable_plugins(pluginfilename=None):
     from yt.config import ytcfg, CONFIG_DIR
 
     use_custom_plugin = (pluginfilename is not None)
+    old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
 
+    # In the following order if pluginfilename is: an absolute path, located in
+    # the CONFIG_DIR, located in an obsolete config dir.
     if use_custom_plugin:
         _fn = pluginfilename
     else:
-        _fn = None
-
-    old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
-    # In the following order if pluginfilename is: an absolute path, located in
-    # the CONFIG_DIR, located in an obsolete config dir.
-    if not use_custom_plugin:
         my_plugin_name = ytcfg.get("yt", "pluginfilename")
         for base_prefix in ('', CONFIG_DIR, old_config_dir):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
-        
-    if _fn is None:
-        return
-
-    if os.path.isfile(_fn):
-        if _fn.startswith(old_config_dir) and not use_custom_plugin:
+        else:
+            mylog.error("Could not find plugin file")
+            return
+        if _fn.startswith(old_config_dir):
             mylog.warning(
                 'Your plugin file is located in a deprecated directory. '
                 'Please move it from %s to %s',
                 os.path.join(old_config_dir, my_plugin_name),
                 os.path.join(CONFIG_DIR, my_plugin_name))
+
+    if os.path.isfile(_fn):
         mylog.info("Loading plugins from %s", _fn)
         ytdict = yt.__dict__
         execdict = ytdict.copy()
