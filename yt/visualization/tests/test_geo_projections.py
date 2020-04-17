@@ -56,7 +56,6 @@ class TestGeoProjections(unittest.TestCase):
 
     def tearDown(self):
         del self.ds
-        del self.slc
 
     def test_geo_projection_setup(self):
 
