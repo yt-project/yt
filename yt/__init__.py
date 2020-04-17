@@ -131,3 +131,5 @@ from yt.utilities.math_utils import \
 
 from yt.units.unit_systems import \
     UnitSystem, unit_system_registry
+
+_called_from_pytest = False
