@@ -1395,8 +1395,9 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+    cdef int select_bbox_ndims(
+        self, np.float64_t left_edge[3], np.float64_t right_edge[3], np.int32_t ndims
+    ) nogil:
         if left_edge[self.px_ax] <= self.px < right_edge[self.px_ax] and \
            left_edge[self.py_ax] <= self.py < right_edge[self.py_ax] :
             return 1
@@ -1597,8 +1598,9 @@ cdef class RaySelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+    cdef int select_bbox_ndims(
+        self, np.float64_t left_edge[3], np.float64_t right_edge[3], np.int32_t ndims
+    ) nogil:
         cdef int i, rv
         cdef VolumeContainer vc
         cdef IntegrationAccumulator *ia
@@ -1606,11 +1608,13 @@ cdef class RaySelector(SelectorObject):
         cdef np.float64_t dt[1]
         cdef np.float64_t t[1]
         cdef np.uint8_t cm[1]
-        for i in range(3):
+
+        # TODO: initialize vc for dims > ndims
+        for i in range(ndims):
             vc.left_edge[i] = left_edge[i]
             vc.right_edge[i] = right_edge[i]
             vc.dds[i] = right_edge[i] - left_edge[i]
-            vc.idds[i] = 1.0/vc.dds[i]
+            vc.idds[i] = 1.0 / vc.dds[i]
             vc.dims[i] = 1
         t[0] = dt[0] = 0.0
         cm[0] = 1
@@ -1618,6 +1622,7 @@ cdef class RaySelector(SelectorObject):
         ia.dt = dt
         ia.child_mask = cm
         ia.hits = 0
+        # TODO: ndims should be respected in walk_volume
         walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
         rv = 0
         if ia.hits > 0:
