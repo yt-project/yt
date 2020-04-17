@@ -430,8 +430,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                     try:
                         f.create_dataset("/brick_%s_%s" % (hex(i),field),
                                          data = node.data.my_data[fi].astype('float64'))
-                    except:
-                        pass
+                    except Exception: pass
         f.close()
         del f
         if self.comm.rank != (self.comm.size-1):
@@ -463,8 +462,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             self._initialized=True
             f.close()
             del f
-        except:
-            pass
+        except Exception: pass
         if self.comm.rank != (self.comm.size-1):
             self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
 

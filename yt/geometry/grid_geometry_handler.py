@@ -175,8 +175,7 @@ class GridIndex(Index):
         print("\n")
         try:
             print("z = %0.8f" % (self["CosmologyCurrentRedshift"]))
-        except:
-            pass
+        except Exception: pass
         print("t = %0.8e = %0.8e s = %0.8e years" % \
             (self.ds.current_time.in_units("code_time"),
              self.ds.current_time.in_units("s"),

@@ -38,7 +38,7 @@ def iterable(obj):
     *obj* iterable.
     """
     try: len(obj)
-    except: return False
+    except Exception: return False
     return True
 
 def ensure_list(obj):
@@ -662,7 +662,7 @@ def get_script_contents():
     if not os.path.exists(finfo[0]): return None
     try:
         contents = open(finfo[0]).read()
-    except:
+    except Exception:
         contents = None
     return contents
 
@@ -1047,7 +1047,7 @@ def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
 
     try:
         hasher = getattr(hashlib, algorithm)()
-    except:
+    except Exception:
         raise NotImplementedError("'%s' not available!  Available algorithms: %s" %
                                   (algorithm, hashlib.algorithms))
 

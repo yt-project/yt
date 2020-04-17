@@ -61,7 +61,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'The yt Project'
-copyright = u'2013-2019, the yt Project'
+copyright = u'2013-2020, the yt Project'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -251,6 +251,7 @@ intersphinx_mapping = {'https://docs.python.org/3/': None,
                        'https://docs.scipy.org/doc/numpy/': None,
                        'https://matplotlib.org/': None,
                        'https://docs.astropy.org/en/stable': None,
+                       'https://pandas.pydata.org/pandas-docs/stable': None,
                        'trident': ('https://trident.readthedocs.io/en/latest/', None),
                        'yt_astro_analysis': ('https://yt-astro-analysis.readthedocs.io/en/latest/', None),
                        'yt_attic': ('https://yt-attic.readthedocs.io/en/latest/', None),

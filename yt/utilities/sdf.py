@@ -308,7 +308,7 @@ class SDFRead(dict):
             if k == 'byteorder': continue
             try:
                 t = _rev_types[v.dtype.name]
-            except:
+            except Exception:
                 t = type(v).__name__
             if t == str.__name__:
                 f.write("parameter %s = \"%s\";\n" % (k, v))

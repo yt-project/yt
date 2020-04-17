@@ -1411,8 +1411,7 @@ class YTSurface(YTSelectionContainer3D):
     def calculate_flux(self, field_x, field_y, field_z, fluxing_field = None):
         r"""This calculates the flux over the surface.
 
-        This function will conduct `marching cubes
-        <https://en.wikipedia.org/wiki/Marching_cubes>`_ on all the cells in a
+        This function will conduct `Marching Cubes`_ on all the cells in a
         given data container (grid-by-grid), and then for each identified
         triangular segment of an isocontour in a given cell, calculate the
         gradient (i.e., normal) in the isocontoured field, interpolate the local
@@ -1451,7 +1450,8 @@ class YTSurface(YTSelectionContainer3D):
         References
         ----------
 
-        .. [1] Marching Cubes: https://en.wikipedia.org/wiki/Marching_cubes
+        .. _Marching Cubes:
+            https://en.wikipedia.org/wiki/Marching_cubes
 
         Examples
         --------

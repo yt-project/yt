@@ -93,9 +93,21 @@ class TestDataContainers(unittest.TestCase):
         fields = ["density", "velocity_z"]
         ds = fake_random_ds(6)
         dd = ds.all_data()
-        df1 = dd.to_dataframe(fields)
-        assert_array_equal(dd[fields[0]], df1[fields[0]])
-        assert_array_equal(dd[fields[1]], df1[fields[1]])
+        df = dd.to_dataframe(fields)
+        assert_array_equal(dd[fields[0]], df[fields[0]])
+        assert_array_equal(dd[fields[1]], df[fields[1]])
+
+    @requires_module("astropy")
+    def test_to_astropy_table(self):
+        from yt.units.yt_array import YTArray
+        fields = ["density", "velocity_z"]
+        ds = fake_random_ds(6)
+        dd = ds.all_data()
+        at1 = dd.to_astropy_table(fields)
+        assert_array_equal(dd[fields[0]].d, at1[fields[0]].value)
+        assert_array_equal(dd[fields[1]].d, at1[fields[1]].value)
+        assert dd[fields[0]].units == YTArray.from_astropy(at1[fields[0]]).units
+        assert dd[fields[1]].units == YTArray.from_astropy(at1[fields[1]]).units
 
     def test_std(self):
         ds = fake_random_ds(3)

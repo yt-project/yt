@@ -212,7 +212,7 @@ class GAMERDataset(Dataset):
         else:
             try:
                 self._particle_handle = HDF5FileHandler(self.particle_filename)
-            except:
+            except Exception:
                 raise IOError(self.particle_filename)
 
         # currently GAMER only supports refinement by a factor of 2
@@ -320,6 +320,5 @@ class GAMERDataset(Dataset):
             f = HDF5FileHandler(args[0])
             if 'Info' in f['/'].keys() and 'KeyInfo' in f['/Info'].keys():
                 return True
-        except:
-            pass
+        except Exception: pass
         return False

@@ -112,8 +112,7 @@ class Index(ParallelAnalysisInterface):
                 del self._data_file[node][name]
             elif name in node_loc and passthrough:
                 return
-        except:
-            pass
+        except Exception: pass
         myGroup = self._data_file['/']
         for q in node.split('/'):
             if q: myGroup = myGroup.require_group(q)

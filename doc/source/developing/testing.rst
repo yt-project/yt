@@ -389,7 +389,7 @@ Here is an example test function:
 
        def create_image(filename_prefix):
            plt.plot([1, 2], [1, 2])
-           plt.savefig(filename_prefix)
+           plt.savefig("%s_lineplot" % filename_prefix)
        test = GenericImageTest(ds, create_image, 12)
 
        # this ensures the test has a unique key in the
@@ -400,6 +400,9 @@ Here is an example test function:
        test_my_ds.__name__ = test.description
 
        yield test
+
+.. note:: The inner function ``create_image`` can create any number of images,
+   as long as the corresponding filenames conform to the prefix.
 
 Another good example of an image comparison test is the
 ``PlotWindowAttributeTest`` defined in the answer testing framework and used in

@@ -114,7 +114,7 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
 
     Parameters
     ----------
-    linthresh: float
+    linthresh : float
         the threshold for the linear region
     vmin : float
         the minimum value in the colorbar
@@ -272,10 +272,7 @@ class PlotContainer(object):
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            if state == 'on':
-                self._minorticks[field] = True
-            else:
-                self._minorticks[field] = False
+            self._minorticks[field] = state
         return self
 
     def _setup_plots(self):
@@ -554,8 +551,8 @@ class PlotContainer(object):
 
         Parameters
         ----------
-        x_title: str
-              The new string for the x-axis.
+        label : str
+            The new string for the x-axis.
 
         >>>  plot.set_xlabel("H2I Number Density (cm$^{-3}$)")
 
@@ -571,8 +568,8 @@ class PlotContainer(object):
 
         Parameters
         ----------
-        label: str
-          The new string for the y-axis.
+        label : str
+            The new string for the y-axis.
 
         >>>  plot.set_ylabel("Temperature (K)")
 
@@ -626,10 +623,16 @@ class PlotContainer(object):
                     un = Unit(un, registry=self.ds.unit_registry)
                     un = un.latex_representation()
                     if hinv:
-                        un = un + '\,h^{-1}'
+                        un = un + r'\,h^{-1}'
                     if comoving:
-                        un = un + '\,(1+z)^{-1}'
-                axes_unit_labels[i] = '\ \ ('+un+')'
+                        un = un + r'\,(1+z)^{-1}'
+                    pp = un[0]
+                    if pp in latex_prefixes:
+                        symbol_wo_prefix = un[1:]
+                        if symbol_wo_prefix in prefixable_units:
+                            un = un.replace(
+                                pp, "{"+latex_prefixes[pp]+"}", 1)
+                axes_unit_labels[i] = r'\ \ ('+un+')'
         return axes_unit_labels
 
     
@@ -881,6 +884,8 @@ class ImagePlotContainer(PlotContainer):
                 else:
                     myzmin = myzmax / dynamic_range
 
+            if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
+                self._field_transform[field] = log_transform
             self.plots[field].zmin = myzmin
             self.plots[field].zmax = myzmax
         return self
@@ -932,9 +937,9 @@ class ImagePlotContainer(PlotContainer):
 
         Parameters
         ----------
-        field: str or tuple
+        field : str or tuple
           The name of the field to modify the label for.
-        label: str
+        label : str
           The new label
 
         >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")

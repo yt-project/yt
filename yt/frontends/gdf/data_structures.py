@@ -283,8 +283,7 @@ class GDFDataset(Dataset):
                 fileh.close()
                 return True
             fileh.close()
-        except:
-            pass
+        except Exception: pass
         return False
 
     def __repr__(self):

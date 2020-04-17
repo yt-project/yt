@@ -229,7 +229,7 @@ class ARTIOIndex(Index):
             try:
                 all_data = all(dobj.left_edge == self.ds.domain_left_edge) and\
                     all(dobj.right_edge == self.ds.domain_right_edge)
-            except:
+            except Exception:
                 all_data = False
             base_region = getattr(dobj, "base_region", dobj)
             sfc_start = getattr(dobj, "sfc_start", None)

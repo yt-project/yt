@@ -158,11 +158,12 @@ class FieldFileHandler(metaclass = RAMSESFieldFileHandlerRegistry):
         Called once to setup the fields of this type
 
         It should set the following static variables:
+
         * parameters: dictionary
-           Dictionary containing the variables. The keys should match
-           those of `cls.attrs`
+            Dictionary containing the variables. The keys should match
+            those of `cls.attrs`
         * field_list: list of (ftype, fname)
-           The list of the field present in the file
+            The list of the field present in the file
         '''
         # this function must be implemented by subclasses
         raise NotImplementedError

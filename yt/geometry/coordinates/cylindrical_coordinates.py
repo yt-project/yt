@@ -146,13 +146,14 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
-        buff = np.zeros((size[1], size[0]), dtype="f8")
+        buff = np.full((size[1], size[0]), np.nan, dtype="f8")
         pixelize_cylinder(buff,
                           data_source['px'],
                           data_source['pdx'],
                           data_source['py'],
                           data_source['pdy'],
                           data_source[field], bounds)
+        self.sanitize_buffer_fill_values(buff)
         return buff
 
     _x_pairs = (('r', 'theta'), ('z', 'r'), ('theta', 'r'))

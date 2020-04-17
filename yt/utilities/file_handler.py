@@ -9,7 +9,7 @@ def valid_hdf5_signature(fn):
         with open(fn, 'rb') as f:
             header = f.read(8)
             return header == signature
-    except:
+    except Exception:
         return False
 
 
@@ -81,7 +81,7 @@ def valid_netcdf_classic_signature(filename):
         with open(filename, 'rb') as f:
             header = f.read(4)
             return (header == signature_v1 or header == signature_v2)
-    except:
+    except Exception:
         return False
 
 

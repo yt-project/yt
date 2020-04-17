@@ -383,7 +383,7 @@ class ARTDataset(Dataset):
             try:
                 fpu.read_attrs(fh, amr_header_struct, '>')
                 return True
-            except:
+            except Exception:
                 return False
         return False
 
@@ -632,8 +632,7 @@ class DarkMatterARTDataset(ARTDataset):
                     if possible.endswith(amr_suffix):
                         if os.path.basename(possible).startswith(amr_prefix):
                             return False
-            except:
-                pass
+            except Exception: pass
             try:
                 seek = 4
                 fh.seek(seek)
@@ -664,7 +663,7 @@ class DarkMatterARTDataset(ARTDataset):
                 extras = np.fromfile(fh, count=79, dtype='>f4')  # NOQA
                 boxsize = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
                 return True
-            except:
+            except Exception:
                 return False
         return False
 

@@ -79,7 +79,7 @@ class AnswerTesting(Plugin):
         if version is None:
             try:
                 version = get_yt_version()
-            except:
+            except Exception:
                 version = "UNKNOWN%s" % (time.time())
         self._my_version = version
         return self._my_version
@@ -186,7 +186,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
             for this_try in range(3):
                 try:
                     data = resp.read()
-                except:
+                except Exception:
                     time.sleep(0.01)
                 else:
                     # We were succesful
@@ -917,9 +917,9 @@ class AxialPixelizationTest(AnswerTestingTest):
             yax = ds.coordinates.axis_name[ds.coordinates.y_axis[axis]]
             pix_x = ds.coordinates.pixelize(axis, slc, xax, bounds, (512, 512))
             pix_y = ds.coordinates.pixelize(axis, slc, yax, bounds, (512, 512))
-            # Wipe out all NaNs
-            pix_x[np.isnan(pix_x)] = 0.0
-            pix_y[np.isnan(pix_y)] = 0.0
+            # Wipe out invalid values (fillers)
+            pix_x[~np.isfinite(pix_x)] = 0.0
+            pix_y[~np.isfinite(pix_y)] = 0.0
             rv['%s_x' % axis] = pix_x
             rv['%s_y' % axis] = pix_y
         return rv
