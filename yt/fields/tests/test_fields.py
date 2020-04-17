@@ -228,10 +228,7 @@ def test_add_gradient_fields():
             assert str(ret.units) == "1/cm"
 
 def test_add_gradient_fields_curvilinear():
-    def _dimensionful_density(field, data):
-        return data.apply_units(data["Density"], "g/cm**3")
-    ds = fake_amr_ds(geometry="spherical")
-    ds.add_field(("gas", "density"), _dimensionful_density, units="g/cm**3", sampling_type="cell")
+    ds = fake_amr_ds(fields = ["density"], geometry="spherical")
     gfields = ds.add_gradient_fields(("gas", "density"))
     gfields += ds.add_gradient_fields(("index", "ones"))
     field_list = [('gas', 'density_gradient_r'),
