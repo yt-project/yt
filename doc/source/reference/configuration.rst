@@ -124,7 +124,7 @@ Plugin Files
 ------------
 
 Plugin files are a means of creating custom fields, quantities, data objects,
-colormaps, and other code executable functions or classes to be used in future 
+colormaps, and other code executable functions or classes to be used in future
 yt sessions without modifying the source code directly.
 
 To enable a plugin file, call the function
@@ -132,6 +132,7 @@ To enable a plugin file, call the function
 
 Global system plugin file
 ^^^^^^^^^^^^^^^^^^^^^^^^^
+
 yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
 plugin file. It is possible to rename this file to ``$HOME/.config/yt/<pluginfilename>.py``
 by defining ``pluginfilename`` in your ytrc file, as mentioned above.
