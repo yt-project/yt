@@ -8,6 +8,7 @@ import hashlib
 import inspect
 import os
 
+import h5py
 import numpy as np
 import pytest
 import yaml
@@ -260,7 +261,7 @@ def _handle_hashes(save_dir_name, fname, hashes, answer_store):
         _compare_result(hashes, answer_file)
 
 
-def _save_arrays(save_dir_name, fbasename, arrays, answer_store):
+def _handle_raw_arrays(save_dir_name, fbasename, arrays, answer_store, func_name):
     r"""
     Driver routine for either saving the raw arrays resulting from the
     tests, or compare them to previously saved results.
@@ -282,8 +283,75 @@ def _save_arrays(save_dir_name, fbasename, arrays, answer_store):
     answer_store : bool
         If true, save the just-generated test results, otherwise,
         compare them to the previously saved results.
+
+    func_name : str
+        The name of the function that created the answers being saved.
     """
-    pass
+    answer_file = os.path.join(save_dir_name, fbasename + '.h5')
+    if answer_store:
+        _save_raw_arrays(arrays, answer_file, func_name)
+    else:
+        _compare_raw_arrays(arrays, answer_file, func_name)
+
+
+def _save_raw_arrays(arrays, answer_file, func_name):
+    r"""
+    Saves the raw arrays produced from answer tests to a file.
+
+    The structure of `answer_file` is: each test function (e.g.,
+    test_toro1d[0-None-None-0]) forms a group. Within each group is a
+    hdf5 dataset named after the test (e.g., field_values). The value
+    stored in each dataset is the raw array corresponding to that
+    test and function.
+
+    Parameters
+    ----------
+    arrays : dict
+        Keys are the test name (e.g. field_values) and the values are
+        the actual answer arrays produced by the test.
+
+    answer_file : str
+        The name of the file to save the answers to, in hdf5 format.
+
+    func_name : str
+        The name of the function (possibly augmented by pytest with
+        test parameters) that called the test functions
+        (e.g, test_toro1d).
+    """
+    with h5py.File(answer_file, 'a') as f:
+        grp = f.create_group(func_name)
+        for test_name, test_array in arrays.items():
+            grp.create_dataset(test_name, data=test_array)
+
+
+def _compare_raw_arrays(arrays, answer_file, func_name):
+    r"""
+    Reads in previously saved raw array data and compares the current
+    results with the old ones.
+
+    The structure of `answer_file` is: each test function (e.g.,
+    test_toro1d[0-None-None-0]) forms a group. Within each group is a
+    hdf5 dataset named after the test (e.g., field_values). The value
+    stored in each dataset is the raw array corresponding to that
+    test and function.
+
+    Parameters
+    ----------
+    arrays : dict
+        Keys are the test name (e.g. field_values) and the values are
+        the actual answer arrays produced by the test.
+
+    answer_file : str
+        The name of the file to load the answers from, in hdf5 format.
+
+    func_name : str
+        The name of the function (possibly augmented by pytest with
+        test parameters) that called the test functions
+        (e.g, test_toro1d).
+    """
+    with h5py.File(answer_file, 'r') as f:
+        for test_name, new_answer in arrays.items():
+            np.testing.assert_array_equal(f[func_name][test_name][:], new_answer)
 
 
 def can_run_ds(ds_fn, file_check = False):

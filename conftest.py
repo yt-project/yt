@@ -20,11 +20,15 @@ from yt.utilities.answer_testing import utils
 
 
 # Global variables can be added to the pytest namespace
-answer_files = {}
+# if this is not done (i.e., just using answer_files = {}), then
+# the dictionary is empty come pytest configuration time and
+# setting each class' answer_file attribute
+pytest.answer_files = {}
 
 # List of answer files
 answer_file_list = 'tests/tests.yaml'
 answer_dir = os.path.join(ytcfg.get('yt', 'test_data_dir'), 'answers')
+array_dir = os.path.join(answer_dir, 'raw_arrays')
 
 
 def pytest_addoption(parser):
@@ -47,7 +51,7 @@ def pytest_addoption(parser):
         default=False,
     )
     parser.addoption(
-        "--save-answer-arrays",
+        "--answer-raw-arrays",
         action="store_true",
     )
 
@@ -61,10 +65,12 @@ def pytest_configure(config):
     # Make sure that the answers dir exists. If not, try to make it
     if not os.path.isdir(answer_dir):
         os.mkdir(answer_dir)
+    if not os.path.isdir(array_dir):
+        os.mkdir(array_dir)
     # Read the list of answer test classes and their associated answer
     # file
     with open(answer_file_list, 'r') as f:
-        answer_files = yaml.safe_load(f)
+        pytest.answer_files = yaml.safe_load(f)
     # Register custom marks for answer tests and big data
     config.addinivalue_line('markers', 'answer_test: Run the answer tests.')
     config.addinivalue_line('markers', 'big_data: Run answer tests that require'
@@ -142,8 +148,8 @@ def answer_file(request):
         >>>     def test1(self):
                     ...
     """
-    if request.cls.__name__ in answer_files:
-        answer_file = answer_files[request.cls.__name__]
+    if request.cls.__name__ in pytest.answer_files:
+        answer_file = pytest.answer_files[request.cls.__name__]
         # Make sure we're not overwriting an existing answer set
         if os.path.isfile(os.path.join(answer_dir, answer_file)):
             if request.config.getoption('--answer-store'):
@@ -249,8 +255,9 @@ def hashing(request):
     # Either save or compare
     utils._handle_hashes(answer_dir, request.cls.answer_file, hashes,
         request.config.getoption('--answer-store'))
-    if request.config.getoption('--save-answer-arrays'):
+    if request.config.getoption('--answer-raw-arrays'):
         # answer_file has .yaml appended to it, but here we're saving
         # the arrays as .npy files, so we remove the .yaml extension
-        utils._save_arrays(answer_dir, request.cls.answer_file.split('.')[0],
-            request.cls.hashes, request.config.getoption('--answer-store'))
+        utils._handle_raw_arrays(array_dir, request.cls.answer_file.split('.')[0],
+            request.cls.hashes, request.config.getoption('--answer-store'),
+            request.node.name)
