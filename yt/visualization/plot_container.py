@@ -27,6 +27,10 @@ from yt.utilities.exceptions import \
 from yt.visualization.color_maps import \
     yt_colormaps
 
+latex_prefixes = {
+    "u": r"\mu",
+    }
+
 
 def invalidate_data(f):
     @wraps(f)
@@ -629,7 +633,7 @@ class PlotContainer(object):
                     pp = un[0]
                     if pp in latex_prefixes:
                         symbol_wo_prefix = un[1:]
-                        if symbol_wo_prefix in prefixable_units:
+                        if symbol_wo_prefix in self.ds.unit_registry.prefixable_units:
                             un = un.replace(
                                 pp, "{"+latex_prefixes[pp]+"}", 1)
                 axes_unit_labels[i] = r'\ \ ('+un+')'
