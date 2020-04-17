@@ -982,8 +982,6 @@ def enable_plugins(pluginfilename=None):
     from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg, CONFIG_DIR
 
-    old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
-
     if pluginfilename is not None:
         _fn = pluginfilename
         if not os.path.isfile(_fn):
@@ -994,6 +992,7 @@ def enable_plugins(pluginfilename=None):
         # - CONFIG_DIR
         # - obsolete config dir.
         my_plugin_name = ytcfg.get("yt", "pluginfilename")
+        old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
         for base_prefix in ('', CONFIG_DIR, old_config_dir):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
                 _fn = os.path.join(base_prefix, my_plugin_name)
