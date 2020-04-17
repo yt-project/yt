@@ -989,6 +989,8 @@ def enable_plugins(pluginfilename=None):
     # the CONFIG_DIR, located in an obsolete config dir.
     if use_custom_plugin:
         _fn = pluginfilename
+        if not os.path.isfile(_fn):
+            raise FileNotFoundError(_fn)
     else:
         my_plugin_name = ytcfg.get("yt", "pluginfilename")
         for base_prefix in ('', CONFIG_DIR, old_config_dir):
@@ -996,7 +998,7 @@ def enable_plugins(pluginfilename=None):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
         else:
-            mylog.error("Could not find plugin file")
+            mylog.error("Could not find a global system plugin file.")
             return
         if _fn.startswith(old_config_dir):
             mylog.warning(
@@ -1005,19 +1007,18 @@ def enable_plugins(pluginfilename=None):
                 os.path.join(old_config_dir, my_plugin_name),
                 os.path.join(CONFIG_DIR, my_plugin_name))
 
-    if os.path.isfile(_fn):
-        mylog.info("Loading plugins from %s", _fn)
-        ytdict = yt.__dict__
-        execdict = ytdict.copy()
-        execdict['add_field'] = my_plugins_fields.add_field
-        with open(_fn) as f:
-            code = compile(f.read(), _fn, 'exec')
-            exec(code, execdict, execdict)
-        ytnamespace = list(ytdict.keys())
-        for k in execdict.keys():
-            if k not in ytnamespace:
-                if callable(execdict[k]):
-                    setattr(yt, k, execdict[k])
+    mylog.info("Loading plugins from %s", _fn)
+    ytdict = yt.__dict__
+    execdict = ytdict.copy()
+    execdict['add_field'] = my_plugins_fields.add_field
+    with open(_fn) as f:
+        code = compile(f.read(), _fn, 'exec')
+        exec(code, execdict, execdict)
+    ytnamespace = list(ytdict.keys())
+    for k in execdict.keys():
+        if k not in ytnamespace:
+            if callable(execdict[k]):
+                setattr(yt, k, execdict[k])
 
 def fix_unitary(u):
     if u == '1':
