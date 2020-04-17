@@ -982,16 +982,17 @@ def enable_plugins(pluginfilename=None):
     from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg, CONFIG_DIR
 
-    use_custom_plugin = (pluginfilename is not None)
     old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
 
-    # In the following order if pluginfilename is: an absolute path, located in
-    # the CONFIG_DIR, located in an obsolete config dir.
-    if use_custom_plugin:
+    if pluginfilename is not None:
         _fn = pluginfilename
         if not os.path.isfile(_fn):
             raise FileNotFoundError(_fn)
     else:
+        # Determine global plugin location. By decreasing priority order:
+        # - absolute path
+        # - CONFIG_DIR
+        # - obsolete config dir.
         my_plugin_name = ytcfg.get("yt", "pluginfilename")
         for base_prefix in ('', CONFIG_DIR, old_config_dir):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
