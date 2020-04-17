@@ -30,7 +30,8 @@ from yt.utilities.lib.primitives cimport \
     tet_patchSurfaceDerivU, \
     tet_patchSurfaceDerivV, \
     compute_tet_patch_hit
-from vec3_ops cimport dot, subtract, cross, distance
+from yt.utilities.lib.vec3_ops cimport \
+    dot, subtract, cross, distance
 
 
 @cython.boundscheck(False)
