@@ -16,7 +16,8 @@ from __future__ import absolute_import
 import tempfile
 import shutil
 from numpy.testing import \
-    assert_raises
+    assert_raises, \
+    assert_array_equal
 
 from yt.config import \
     ytcfg
@@ -35,7 +36,6 @@ from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot
 from yt.convenience import load
 from yt.visualization.plot_container import accepts_all_fields
-import numpy as np
 
 import contextlib
 
@@ -775,7 +775,7 @@ def test_line_integral_convolution_callback():
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 
-def test_accept_all_fields_decorator():
+def test_accepts_all_fields_decorator():
     fields = ["density", "velocity_x", "pressure", "temperature"]
     ds = fake_random_ds(16, fields=fields)
     plot = SlicePlot(ds, "z", fields=fields)
@@ -788,10 +788,10 @@ def test_accept_all_fields_decorator():
         self.fake_attr[field] = value
         return self
 
-    # test one a single field
+    # test on a single field
     plot = set_fake_field_attribute(plot, field="density", value=1)
     assert plot.fake_attr[("gas", "density")] == 1
 
     # test using "all" as a field
     plot = set_fake_field_attribute(plot, field="all", value=2)
-    assert np.all(np.array(list(plot.fake_attr.values())) == 2)
+    assert_array_equal(list(plot.fake_attr.values()), [2]*4)
