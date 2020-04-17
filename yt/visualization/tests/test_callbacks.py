@@ -22,6 +22,7 @@ from yt.config import \
     ytcfg
 from yt.testing import \
     fake_amr_ds, \
+    fake_random_ds, \
     fake_tetrahedral_ds, \
     fake_hexahedral_ds, \
     assert_fname, \
@@ -33,6 +34,9 @@ from yt.utilities.exceptions import \
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot
 from yt.convenience import load
+from yt.visualization.plot_container import accepts_all_fields
+import numpy as np
+
 import contextlib
 
 # These are a very simple set of tests that verify that each callback is or is
@@ -769,3 +773,25 @@ def test_line_integral_convolution_callback():
         p = SlicePlot(ds, "r", "density")
         p.annotate_line_integral_convolution("velocity_theta", "velocity_phi")
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
+
+
+def test_accept_all_fields_decorator():
+    fields = ["density", "velocity_x", "pressure", "temperature"]
+    ds = fake_random_ds(16, fields=fields)
+    plot = SlicePlot(ds, "z", fields=fields)
+
+    # mocking a class method
+    plot.fake_attr = {("gas", f): "not set" for f in fields}
+
+    @accepts_all_fields
+    def set_fake_field_attribute(self, field, value):
+        self.fake_attr[field] = value
+        return self
+
+    # test one a single field
+    plot = set_fake_field_attribute(plot, field="density", value=1)
+    assert plot.fake_attr[("gas", "density")] == 1
+
+    # test using "all" as a field
+    plot = set_fake_field_attribute(plot, field="all", value=2)
+    assert np.all(np.array(list(plot.fake_attr.values())) == 2)
