@@ -130,8 +130,8 @@ yt sessions without modifying the source code directly.
 To enable a plugin file, call the function
 :func:`~yt.funcs.enable_plugins` at the top of your script.
 
-System wise plugin file
-^^^^^^^^^^^^^^^^^^^^^^^
+Global system plugin file
+^^^^^^^^^^^^^^^^^^^^^^^^^
 yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
 plugin file. It is possible to rename this file to ``$HOME/.config/yt/<pluginfilename>.py``
 by defining ``pluginfilename`` in your ytrc file, as mentioned above.
