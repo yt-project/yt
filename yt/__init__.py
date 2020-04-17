@@ -137,3 +137,5 @@ from yt.units.unit_object import unit_system_registry
 
 from yt.analysis_modules.list_modules import \
     amods
+
+_called_from_pytest = False

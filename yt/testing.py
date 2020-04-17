@@ -13,6 +13,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import pytest
 import hashlib
 import matplotlib
 from yt.extern.six import string_types
@@ -40,6 +41,7 @@ from numpy.random import RandomState
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
+import yt
 
 ANSWER_TEST_TAG = "answer_test"
 # Expose assert_true and assert_less_equal from unittest.TestCase
@@ -1178,7 +1180,20 @@ def requires_backend(backend):
 
     """
     def ffalse(func):
-        return lambda: None
+        # returning a lambda : None causes an error when using pytest. Having
+        # a function (skip) that returns None does work, but pytest marks the
+        # test as having passed, which seems bad, since it wasn't actually run.
+        # Using pytest.skip() means that a change to test_requires_backend was
+        # needed since None is no longer returned, so we check for the skip
+        # exception in the xfail case for that test
+        def skip(*args, **kwargs):
+            msg = "`{}` backend not found, skipping: `{}`".format(backend, func.__name__)
+            print(msg)
+            pytest.skip(msg)
+        if yt._called_from_pytest:
+            return skip
+        else:
+            return lambda : None
 
     def ftrue(func):
         return func
