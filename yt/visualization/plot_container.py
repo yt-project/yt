@@ -291,10 +291,7 @@ class PlotContainer(object):
         else:
             fields = [field]
         for field in self.data_source._determine_fields(fields):
-            if state == 'on':
-                self._minorticks[field] = True
-            else:
-                self._minorticks[field] = False
+            self._minorticks[field] = state
         return self
 
     def _setup_plots(self):
