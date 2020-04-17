@@ -9,8 +9,6 @@ import hashlib
 import matplotlib.image as mpimg
 import numpy as np
 
-from yt.utilities.on_demand_imports import \
-    _h5py as h5py
 from . import utils
 import yt.visualization.plot_window as pw
 
