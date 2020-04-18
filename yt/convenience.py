@@ -29,8 +29,14 @@ from yt.utilities.exceptions import \
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 
 def _sanitize_load_args(*args):
-    """Filter out non-pathlike arguments."""
-    return [os.path.expanduser(arg) if isinstance(arg, (str, os.PathLike))
+    """Filter out non-pathlike arguments, ensure list form, and expand '~' tokens"""
+    try:
+        # os.PathLike is python >= 3.6
+        path_types = str, os.PathLike
+    except AttributeError:
+        path_types = str,
+
+    return [os.path.expanduser(arg) if isinstance(arg, path_types)
             else arg for arg in args]
 
 def load(*args ,**kwargs):
