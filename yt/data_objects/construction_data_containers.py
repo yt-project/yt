@@ -2835,3 +2835,36 @@ class YTOctree(YTSelectionContainer3D):
             normalization_1d_utility(buff, buff_den)
 
         self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)
+
+    @property
+    def num_neighbors(self):
+        return self._num_neighbors
+
+    @num_neighbors.setter
+    def num_neighbors(self, value):
+        if value < 0:
+            raise ValueError("Negative value not allowed: %s" % value)
+        self._num_neighbors = value
+
+    @property
+    def sph_smoothing_style(self):
+        return self._sph_smoothing_style
+
+    @sph_smoothing_style.setter
+    def sph_smoothing_style(self, value):
+        if value not in self._sph_smoothing_styles:
+            raise ValueError("Smoothing style not implemented: %s, please "
+                             "select one of the following: " % value,
+                             self._sph_smoothing_styles)
+
+        self._sph_smoothing_style = value
+
+    @property
+    def use_sph_normalization(self):
+        return self._use_sph_normalization
+
+    @use_sph_normalization.setter
+    def use_sph_normalization(self, value):
+        if value is not True and value is not False:
+            raise ValueError("SPH normalization needs to be True or False!")
+        self._use_sph_normalization = value
