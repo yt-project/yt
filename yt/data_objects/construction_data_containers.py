@@ -2742,11 +2742,18 @@ class YTOctree(YTSelectionContainer3D):
         if fields is None:
             return
 
-        sph_ptypes = getattr(self.ds, '_sph_ptypes', 'None')
+        sph_ptypes = getattr(self.ds, '_sph_ptypes', None)
         if fields[0] in sph_ptypes:
-            smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
-            normalize = getattr(self.ds, 'use_sph_normalization', False)
-            normalize = False
+            # Try to get the smoothing style and normalization of the octree
+            smoothing_style = getattr(self, 'smoothing_style', None)
+            normalize = getattr(self, 'use_sph_normalization', None)
+
+            # But if the octree smoothing style is not set, fallback to the
+            # underlying dataset settings
+            if smoothing_style is None:
+                smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+            if normalize is None:
+                normalize = getattr(self.ds, 'use_sph_normalization', False)
 
             units = self.ds._get_field_info(fields).units
             if smoothing_style == "scatter":
@@ -2761,9 +2768,13 @@ class YTOctree(YTSelectionContainer3D):
 
     def gather_smooth(self, fields, units, normalize):
         buff = np.zeros(self.tree.num_nodes, dtype="float64")
-        num_neighbors = getattr(self.ds, "num_neighbors", 32)
 
-        # for the gather approach we load up all of the data, this like other
+        # Again, attempt to load num_neighbors from the octree
+        num_neighbors = getattr(self, 'num_neighbors', None)
+        if num_neighbors is None:
+            num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+
+        # For the gather approach we load up all of the data, this like other
         # gather approaches is not memory conservative and with spatial chunking
         # this can be fixed
         fields_to_get = [
