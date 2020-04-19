@@ -397,48 +397,6 @@ cdef class CyOctree:
                                     hsml[i], prefactor, prefactor_norm,
                                     0, use_normalization=use_normalization)
 
-    def mpl_project2d(self, ax, np.int64_t ind1=0, np.int64_t ind2=1, kwargs={}):
-        def_kwargs = {'width': 0.1, 'edgecolor': 'k', 'facecolor': 'k'}
-
-        for key, item in kwargs.items():
-            def_kwargs[key] = item
-
-
-        import matplotlib.patches as patches
-
-        cdef np.int64_t i = 0
-        rects_plotted = {}
-        for i in range(self.c_octree.num_nodes):
-            # Create a Rectangle patch
-            if i == 0:
-                size = (
-                    2*self.c_octree.size[ind1]/2**(<np.int64_t>self.c_octree.depth[i]),
-                    2*self.c_octree.size[ind2]/2**(<np.int64_t>self.c_octree.depth[i]))
-                pos = (
-                    self.c_octree.node_positions[(3*i)+ind1]-size[0]/2,
-                    self.c_octree.node_positions[(3*i)+ind2]-size[1]/2)
-
-                rect = patches.Rectangle(pos, size[0], size[1], linewidth=def_kwargs["width"],
-                                         edgecolor=def_kwargs["edgecolor"], facecolor="none")
-                ax.add_patch(rect)
-
-            if self.c_octree.refined[i] == 1:
-                size = (
-                    self.c_octree.size[ind1]/2**(<np.int64_t>self.c_octree.depth[i]),
-                    self.c_octree.size[ind2]/2**(<np.int64_t>self.c_octree.depth[i]))
-                pos = (
-                    self.c_octree.node_positions[(3*i)+ind1],
-                    self.c_octree.node_positions[(3*i)+ind2])
-
-                if pos not in rects_plotted:
-                    rect = patches.Arrow(pos[0]-size[0], pos[1], 2*size[0], 0.0, **def_kwargs)
-                    ax.add_patch(rect)
-                    rect = patches.Arrow(pos[0], pos[1]-size[1], 0, 2*size[1], **def_kwargs)
-                    ax.add_patch(rect)
-
-                    rects_plotted[pos] = self.c_octree.depth[i]
-
-
     def __del__(self):
         octree_deallocate(self.c_octree)
         free(self.c_octree)
