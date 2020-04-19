@@ -2626,6 +2626,12 @@ class YTOctree(YTSelectionContainer3D):
 
     _spatial = True
     _type_name = "octree"
+
+    _sph_smoothing_styles = ["scatter", "gather"]
+    _sph_smoothing_style = None
+    _num_neighbors = None
+    _use_sph_normalization = None
+
     _con_args = ('left_edge', 'right_edge', 'n_ref')
     _container_fields = (("index", "dx"),
                          ("index", "dy"),
@@ -2662,11 +2668,11 @@ class YTOctree(YTSelectionContainer3D):
                 .in_units("code_length")
                 .d
             )
-        positions = np.concatenate(positions)
 
-        if positions == []:
+        if len(positions) == 0:
             self._octree = None
             return
+        positions = np.concatenate(positions)
 
         mylog.info('Allocating Octree for %s particles' % positions.shape[0])
         self._octree = CyOctree(
@@ -2745,15 +2751,15 @@ class YTOctree(YTSelectionContainer3D):
         sph_ptypes = getattr(self.ds, '_sph_ptypes', None)
         if fields[0] in sph_ptypes:
             # Try to get the smoothing style and normalization of the octree
-            smoothing_style = getattr(self, 'smoothing_style', None)
-            normalize = getattr(self, 'use_sph_normalization', None)
+            smoothing_style = getattr(self, '_sph_smoothing_style', None)
+            normalize = getattr(self, '_use_sph_normalization', None)
 
             # But if the octree smoothing style is not set, fallback to the
             # underlying dataset settings
             if smoothing_style is None:
-                smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+                smoothing_style = getattr(self.ds, '_sph_smoothing_style', 'scatter')
             if normalize is None:
-                normalize = getattr(self.ds, 'use_sph_normalization', False)
+                normalize = getattr(self.ds, '_use_sph_normalization', False)
 
             units = self.ds._get_field_info(fields).units
             if smoothing_style == "scatter":
@@ -2770,9 +2776,9 @@ class YTOctree(YTSelectionContainer3D):
         buff = np.zeros(self.tree.num_nodes, dtype="float64")
 
         # Again, attempt to load num_neighbors from the octree
-        num_neighbors = getattr(self, 'num_neighbors', None)
+        num_neighbors = getattr(self, '_num_neighbors', None)
         if num_neighbors is None:
-            num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+            num_neighbors = getattr(self.ds, '_num_neighbors', 32)
 
         # For the gather approach we load up all of the data, this like other
         # gather approaches is not memory conservative and with spatial chunking
@@ -2800,9 +2806,6 @@ class YTOctree(YTSelectionContainer3D):
         )
 
         self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)
-
-    def mpl_project2d(self, ax, *args, kwargs={}):
-        return self.tree.mpl_project2d(ax, *args, kwargs=kwargs)
 
     def scatter_smooth(self, fields, units, normalize):
         buff = np.zeros(self.tree.num_nodes, dtype="float64")
