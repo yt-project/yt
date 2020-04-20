@@ -815,7 +815,11 @@ def fix_axis(axis, ds):
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     supported_suffixes = ['.png', '.eps', '.ps', '.pdf', '.jpg', '.jpeg']
-    return suffix if suffix in supported_suffixes else ''
+    if suffix in supported_suffixes or suffix == '':
+        return suffix
+    else:
+        mylog.warning('Unsupported image suffix requested (%s)' % suffix)
+        return ''
 
 def get_output_filename(name, keyword, suffix):
     r"""Return an appropriate filename for output.
