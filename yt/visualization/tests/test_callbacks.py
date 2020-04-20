@@ -789,8 +789,8 @@ def test_accepts_all_fields_decorator():
         return self
 
     # test on a single field
-    plot = set_fake_field_attribute(plot, field="density", value=1)
-    assert plot.fake_attr[("gas", "density")] == 1
+    plot = set_fake_field_attribute(plot, field=fields[0], value=1)
+    assert_array_equal([plot.fake_attr["gas", f] for f in fields], [1] + ["not set"]*3)
 
     # test using "all" as a field
     plot = set_fake_field_attribute(plot, field="all", value=2)
