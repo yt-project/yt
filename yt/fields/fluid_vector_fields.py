@@ -127,10 +127,15 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
 
-    vort_validators = [
-        ValidateSpatial(1, [(ftype, "velocity_%s" % d) for d in 'xyz']),
-        ValidateParameter('bulk_velocity')
-    ]
+
+    def get_vort_validators(ax=None):
+        if ax is None:
+            ax = ""
+        vort_validators = [
+            ValidateSpatial(1, [(ftype, "velocity_%s" % d) for d in "xyz".replace(ax, "")]),
+            ValidateParameter('bulk_velocity')
+        ]
+        return vort_validators
 
     for ax in 'xyz':
         n = "vorticity_%s" % ax
@@ -138,13 +143,13 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                            sampling_type="cell",
                            function=eval("_%s" % n),
                            units=unit_system["frequency"],
-                           validators=vort_validators)
+                           validators=get_vort_validators(ax))
     create_magnitude_field(registry, "vorticity", unit_system["frequency"],
                            ftype=ftype, slice_info=slice_info,
-                           validators=vort_validators)
+                           validators=get_vort_validators(ax))
     create_squared_field(registry, "vorticity", unit_system["frequency"]**2,
                          ftype=ftype, slice_info=slice_info,
-                         validators=vort_validators)
+                         validators=get_vort_validators(ax))
 
     def _vorticity_stretching_x(field, data):
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_x"]
@@ -158,12 +163,11 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                            sampling_type="cell",
                            function=eval("_%s" % n),
                            units = unit_system["frequency"]**2,
-                           validators=vort_validators)
+                           validators=get_vort_validators(ax))
 
     create_magnitude_field(registry, "vorticity_stretching", 
                            unit_system["frequency"]**2,
-                           ftype=ftype, slice_info=slice_info,
-                           validators=vort_validators)
+                           ftype=ftype, slice_info=slice_info)
 
     def _vorticity_growth_x(field, data):
         return -data[ftype, "vorticity_stretching_x"] - \
@@ -180,7 +184,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                            sampling_type="cell",
                            function=eval("_%s" % n),
                            units=unit_system["frequency"]**2,
-                           validators=vort_validators)
+                           validators=get_vort_validators(ax))
 
     def _vorticity_growth_magnitude(field, data):
         result = np.sqrt(data[ftype, "vorticity_growth_x"]**2 +
@@ -197,7 +201,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                        sampling_type="cell",
                        function=_vorticity_growth_magnitude,
                        units=unit_system["frequency"]**2,
-                       validators=vort_validators,
+                       validators=get_vort_validators(),
                        take_log=False)
 
     def _vorticity_growth_magnitude_absolute(field, data):
@@ -209,7 +213,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                        sampling_type="cell",
                        function=_vorticity_growth_magnitude_absolute,
                        units=unit_system["frequency"]**2,
-                       validators=vort_validators)
+                       validators=get_vort_validators())
 
     def _vorticity_growth_timescale(field, data):
         domegax_dt = data[ftype, "vorticity_x"] / data[ftype, "vorticity_growth_x"]
@@ -221,7 +225,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                        sampling_type="cell",
                        function=_vorticity_growth_timescale,
                        units=unit_system["time"],
-                       validators=vort_validators)
+                       validators=get_vort_validators())
 
     ########################################################################
     # With radiation pressure
