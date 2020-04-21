@@ -14,6 +14,7 @@ Geometry container base class.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import abc
 import os
 from yt.extern.six.moves import cPickle
 import weakref
@@ -30,7 +31,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_root_only
 from yt.utilities.exceptions import YTFieldNotFound
 
-class Index(ParallelAnalysisInterface):
+class Index(ParallelAnalysisInterface, abc.ABC):
     """The base index class"""
     _global_mesh = True
     _unsupported_objects = ()
@@ -56,6 +57,10 @@ class Index(ParallelAnalysisInterface):
         # potentially quite expensive, and should be done with the indexing.
         mylog.debug("Detecting fields.")
         self._detect_output_fields()
+
+    @abc.abstractmethod
+    def _detect_output_fields(self):
+        pass
 
     def _initialize_state_variables(self):
         self._parallel_locking = False
