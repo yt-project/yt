@@ -185,6 +185,16 @@ class Dataset(object):
     _particle_type_counts = None
     _ionization_label_format = 'roman_numeral'
 
+    # these should be set in self._parse_parameter_file()
+    domain_left_edge = MutableAttribute(True)
+    domain_right_edge = MutableAttribute(True)
+    domain_dimensions = MutableAttribute(False)
+    periodicity = MutableAttribute(True)
+
+    # these are set up in self._set_derived_attrs()
+    domain_width = MutableAttribute(True)
+    domain_center = MutableAttribute(True)
+
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, string_types):
             obj = object.__new__(cls)
@@ -264,55 +274,24 @@ class Dataset(object):
         self._set_derived_attrs()
         self._setup_classes()
 
+    # abstract methods require implementation in subclasses
     @classmethod
     @abc.abstractmethod
     def _is_valid(cls, *args, **kwargs):
-        """An heuristic test to determine if the data format can be interpreted
-           with the present frontend."""
+        # A heuristic test to determine if the data format can be interpreted
+        # with the present frontend
         return False
 
     @abc.abstractmethod
     def _parse_parameter_file(self):
-        # This needs to set up the following items.  Note that these are all
-        # assumed to be in code units; domain_left_edge and domain_right_edge
-        # will be converted to YTArray automatically at a later time.
-        # This includes the cosmological parameters.
-        #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
-        #   self.parameters             <= dict full of code-specific items of use
-        #   self.domain_left_edge       <= three-element array of float64
-        #   self.domain_right_edge      <= three-element array of float64
-        #   self.dimensionality         <= int
-        #   self.domain_dimensions      <= three-element array of int64
-        #   self.periodicity            <= three-element tuple of booleans
-        #   self.current_time           <= simulation time in code units (float)
-        #
-        # We also set up cosmological information.  Set these to zero if
-        # non-cosmological.
-        #
-        #   self.cosmological_simulation    <= int, 0 or 1
-        #   self.current_redshift           <= float
-        #   self.omega_lambda               <= float
-        #   self.omega_matter               <= float
-        #   self.hubble_constant            <= float
+        # set up various attributes from self.parameter_filename
+        # see yt.frontends._skeleton.SkeletonDataset for a full description of what is required here
         pass
 
     @abc.abstractmethod
     def _set_code_unit_attributes(self):
-        # This is where quantities are created that represent the various
-        # on-disk units.  These are the currently available quantities which
-        # should be set, along with examples of how to set them to standard
-        # values.
-        #
-        # self.length_unit = self.quan(1.0, "cm")
-        # self.mass_unit = self.quan(1.0, "g")
-        # self.time_unit = self.quan(1.0, "s")
-        # self.time_unit = self.quan(1.0, "s")
-        #
-        # These can also be set:
-        # self.velocity_unit = self.quan(1.0, "cm/s")
-        # self.magnetic_unit = self.quan(1.0, "gauss")
+        # set up code-units to physical units normalization factors
+        # see yt.frontends._skeleton.SkeletonDataset for a full description of what is required here
         pass
 
     def _set_derived_attrs(self):
@@ -391,12 +370,6 @@ class Dataset(object):
                 m = m.hexdigest()
             self._checksum = m
         return self._checksum
-
-    domain_left_edge = MutableAttribute(True)
-    domain_right_edge = MutableAttribute(True)
-    domain_width = MutableAttribute(True)
-    domain_dimensions = MutableAttribute(False)
-    domain_center = MutableAttribute(True)
 
     @property
     def _mrep(self):
