@@ -63,7 +63,7 @@ class SkeletonHierarchy(GridIndex):
         pass
 
     def _count_grids(self):
-        # This needs to set self.num_grids
+        # This needs to set self.num_grids (int)
         pass
 
     def _parse_index(self):
@@ -78,14 +78,16 @@ class SkeletonHierarchy(GridIndex):
         pass
 
     def _populate_grid_objects(self):
-        # For each grid g, this must call:
-        #   g._prepare_grid()
-        #   g._setup_dx()
+        # the minimal form of this method is
+        #
+        # for g in self.grids:
+        #     g._prepare_grid()
+        #     g._setup_dx()
+        #
         # This must also set:
         #   g.Children <= list of child grids
         #   g.Parent   <= parent grid
-        # This is handled by the frontend because often the children must be
-        # identified.
+        # This is handled by the frontend because often the children must be identified.
         pass
 
 
@@ -127,13 +129,13 @@ class SkeletonDataset(Dataset):
         #
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME)
-        #   self.parameters             <= full of code-specific items of use
-        #   self.domain_left_edge       <= array of float64
-        #   self.domain_right_edge      <= array of float64
+        #   self.parameters             <= dict full of code-specific items of use
+        #   self.domain_left_edge       <= three-element array of float64
+        #   self.domain_right_edge      <= three-element array of float64
         #   self.dimensionality         <= int
-        #   self.domain_dimensions      <= array of int64
+        #   self.domain_dimensions      <= three-element array of int64
         #   self.periodicity            <= three-element tuple of booleans
-        #   self.current_time           <= simulation time in code units
+        #   self.current_time           <= simulation time in code units (float)
         #
         # We also set up cosmological information.  Set these to zero if
         # non-cosmological.
@@ -143,6 +145,8 @@ class SkeletonDataset(Dataset):
         #   self.omega_lambda               <= float
         #   self.omega_matter               <= float
         #   self.hubble_constant            <= float
+        #
+        # This is also the place to overwrite self.geometry (default in 'cartesian') if necessary
         pass
 
     @classmethod
