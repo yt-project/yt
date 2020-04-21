@@ -1052,11 +1052,9 @@ class PWViewerMPL(PlotWindow):
             # colorbar minorticks
             if f not in self._cbar_minorticks:
                 self._cbar_minorticks[f] = True
-            if (self._cbar_minorticks[f] is True and MPL_VERSION < LooseVersion('2.0.0')
-                or self._field_transform[f] == symlog_transform):
-                if self._field_transform[f] == linear_transform:
-                    self.plots[f].cax.minorticks_on()
-                else:
+
+            if self._cbar_minorticks[f] is True:
+                if (MPL_VERSION < LooseVersion('2.0.0') or self._field_transform[f] == symlog_transform):
                     vmin = np.float64( self.plots[f].cb.norm.vmin )
                     vmax = np.float64( self.plots[f].cb.norm.vmax )
                     if self._field_transform[f] == log_transform:
@@ -1065,7 +1063,12 @@ class PWViewerMPL(PlotWindow):
                         flinthresh = 10**np.floor( np.log10( self.plots[f].cb.norm.linthresh ) )
                         mticks = self.plots[f].image.norm( get_symlog_minorticks(flinthresh, vmin, vmax) )
                     self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
-            else:
+                elif self._field_transform[f] in (linear_transform, log_transform):
+                    self.plots[f].cax.minorticks_on()
+                else:
+                    mylog.error("Unable to draw cbar minorticks.")
+                    self._cbar_minorticks[f] = False
+            if self._cbar_minorticks[f] is False:
                 self.plots[f].cax.minorticks_off()
 
             if draw_axes is False:
