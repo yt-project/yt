@@ -165,7 +165,8 @@ def requires_index(attr_name):
     return ireq
 
 @add_metaclass(RegisteredDataset)
-class Dataset(abc.ABC):
+class Dataset(object):
+
     default_fluid_type = "gas"
     default_field = ("gas", "density")
     fluid_types = ("gas", "deposit", "index")

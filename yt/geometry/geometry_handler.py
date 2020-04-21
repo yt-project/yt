@@ -16,6 +16,7 @@ Geometry container base class.
 
 import abc
 import os
+from yt.extern.six import add_metaclass
 from yt.extern.six.moves import cPickle
 import weakref
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -31,7 +32,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_root_only
 from yt.utilities.exceptions import YTFieldNotFound
 
-class Index(ParallelAnalysisInterface, abc.ABC):
+
+@add_metaclass(abc.ABCMeta)
+class Index(ParallelAnalysisInterface):
     """The base index class"""
     _global_mesh = True
     _unsupported_objects = ()

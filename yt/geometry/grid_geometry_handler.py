@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import abc
 from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.extern.six import add_metaclass
 import numpy as np
 import weakref
 
@@ -34,8 +35,8 @@ from yt.utilities.logger import ytLogger as mylog
 from .grid_container import \
     GridTree, MatchPointsToGrids
 
-
-class GridIndex(Index, abc.ABC):
+@add_metaclass(abc.ABCMeta)
+class GridIndex(Index):
     """The index class for patch and block AMR datasets. """
     float_type = 'float64'
     _preload_implemented = False
