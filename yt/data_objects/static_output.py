@@ -263,19 +263,55 @@ class Dataset(abc.ABC):
         self._set_derived_attrs()
         self._setup_classes()
 
+    @classmethod
+    @abc.abstractmethod
+    def _is_valid(cls, *args, **kwargs):
+        """An heuristic test to determine if the data format can be interpreted
+           with the present frontend."""
+        return False
+
     @abc.abstractmethod
     def _parse_parameter_file(self):
-        """Init instance attribute from file data, including:
-        - self.current_time (float)
-        - self.dimensionality (str)
-        - self.domain_dimensions (3-element ndarray(dtype=int64))
-        - self.geometry (str)
-        - self.cosmological_simulation (int)
-        - self.current_redshift (float)
-        - self.omega_matter (float)
-        - self.omega_lambda (float)
-        - self.hubble_constant (float)
-        """
+        # This needs to set up the following items.  Note that these are all
+        # assumed to be in code units; domain_left_edge and domain_right_edge
+        # will be converted to YTArray automatically at a later time.
+        # This includes the cosmological parameters.
+        #
+        #   self.unique_identifier      <= unique identifier for the dataset
+        #                                  being read (e.g., UUID or ST_CTIME)
+        #   self.parameters             <= dict full of code-specific items of use
+        #   self.domain_left_edge       <= three-element array of float64
+        #   self.domain_right_edge      <= three-element array of float64
+        #   self.dimensionality         <= int
+        #   self.domain_dimensions      <= three-element array of int64
+        #   self.periodicity            <= three-element tuple of booleans
+        #   self.current_time           <= simulation time in code units (float)
+        #
+        # We also set up cosmological information.  Set these to zero if
+        # non-cosmological.
+        #
+        #   self.cosmological_simulation    <= int, 0 or 1
+        #   self.current_redshift           <= float
+        #   self.omega_lambda               <= float
+        #   self.omega_matter               <= float
+        #   self.hubble_constant            <= float
+        pass
+
+    @abc.abstractmethod
+    def _set_code_unit_attributes(self):
+        # This is where quantities are created that represent the various
+        # on-disk units.  These are the currently available quantities which
+        # should be set, along with examples of how to set them to standard
+        # values.
+        #
+        # self.length_unit = self.quan(1.0, "cm")
+        # self.mass_unit = self.quan(1.0, "g")
+        # self.time_unit = self.quan(1.0, "s")
+        # self.time_unit = self.quan(1.0, "s")
+        #
+        # These can also be set:
+        # self.velocity_unit = self.quan(1.0, "cm/s")
+        # self.magnetic_unit = self.quan(1.0, "gauss")
         pass
 
     def _set_derived_attrs(self):
@@ -371,12 +407,6 @@ class Dataset(abc.ABC):
 
     def hub_upload(self):
         self._mrep.upload()
-
-    @classmethod
-    @abc.abstractmethod
-    def _is_valid(cls, *args, **kwargs):
-        """An heuristic test to determine if the data format can be interpreted with the present frontend."""
-        return False
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
