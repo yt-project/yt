@@ -14,6 +14,7 @@ Dataset and related data structures.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import abc
 import functools
 import itertools
 import numpy as np
@@ -98,7 +99,7 @@ def _unsupported_object(ds, obj_name):
         raise YTObjectNotImplemented(ds, obj_name)
     return _raise_unsupp
 
-class RegisteredDataset(type):
+class RegisteredDataset(abc.ABCMeta):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         output_type_registry[name] = cls
@@ -164,8 +165,7 @@ def requires_index(attr_name):
     return ireq
 
 @add_metaclass(RegisteredDataset)
-class Dataset(object):
-
+class Dataset(abc.ABC):
     default_fluid_type = "gas"
     default_field = ("gas", "density")
     fluid_types = ("gas", "deposit", "index")
@@ -263,6 +263,21 @@ class Dataset(object):
         self._set_derived_attrs()
         self._setup_classes()
 
+    @abc.abstractmethod
+    def _parse_parameter_file(self):
+        """Init instance attribute from file data, including:
+        - self.current_time (float)
+        - self.dimensionality (str)
+        - self.domain_dimensions (3-element ndarray(dtype=int64))
+        - self.geometry (str)
+        - self.cosmological_simulation (int)
+        - self.current_redshift (float)
+        - self.omega_matter (float)
+        - self.omega_lambda (float)
+        - self.hubble_constant (float)
+        """
+        pass
+
     def _set_derived_attrs(self):
         if self.domain_left_edge is None or self.domain_right_edge is None:
             self.domain_center = np.zeros(3)
@@ -358,7 +373,9 @@ class Dataset(object):
         self._mrep.upload()
 
     @classmethod
+    @abc.abstractmethod
     def _is_valid(cls, *args, **kwargs):
+        """An heuristic test to determine if the data format can be interpreted with the present frontend."""
         return False
 
     @classmethod
