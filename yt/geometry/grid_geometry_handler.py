@@ -14,6 +14,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import abc
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import weakref
@@ -34,7 +35,7 @@ from .grid_container import \
     GridTree, MatchPointsToGrids
 
 
-class GridIndex(Index):
+class GridIndex(Index, abc.ABC):
     """The index class for patch and block AMR datasets. """
     float_type = 'float64'
     _preload_implemented = False
@@ -57,6 +58,18 @@ class GridIndex(Index):
 
         mylog.debug("Re-examining index")
         self._initialize_level_stats()
+
+    @abc.abstractmethod
+    def _count_grids(self):
+        pass
+
+    @abc.abstractmethod
+    def _parse_index(self):
+        pass
+
+    @abc.abstractmethod
+    def _populate_grid_objects(self):
+        pass
 
     def __del__(self):
         del self.grid_dimensions
