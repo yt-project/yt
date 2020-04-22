@@ -183,6 +183,13 @@ class IOHandlerFLASHParticle(BaseIOHandler):
                     total += count
                     yield ptype, (x, y, z)
 
+    def _yield_coordinates(self, data_file, needed_ptype=None):
+        px, py, pz = self._position_fields
+        si, ei = data_file.start, data_file.end
+        p_fields = self._handle["/tracer particles"]
+        pxyz = np.asarray(p_fields[data_file.start:data_file.end, (px, py, pz)], dtype="=f8")
+        yield ("io", pxyz)
+
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         data_files = set([])
