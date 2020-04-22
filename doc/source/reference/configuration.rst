@@ -120,30 +120,42 @@ used internally.
 
 .. _plugin-file:
 
-The Plugin File
----------------
+Plugin Files
+------------
 
-The plugin file is a means of creating custom fields, quantities, data
-objects, colormaps, and other code classes and objects to be used in future
+Plugin files are a means of creating custom fields, quantities, data objects,
+colormaps, and other code executable functions or classes to be used in future
 yt sessions without modifying the source code directly.
 
-To force the plugin file to be parsed, call the function
+To enable a plugin file, call the function
 :func:`~yt.funcs.enable_plugins` at the top of your script.
+
+Global system plugin file
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
+plugin file. It is possible to rename this file to ``$HOME/.config/yt/<pluginfilename>.py``
+by defining ``pluginfilename`` in your ytrc file, as mentioned above.
 
 .. note::
 
-   You can tell that your plugins file is being parsed by watching for a logging
+   You can tell that your system plugin file is being parsed by watching for a logging
    message when you import yt.  Note that both the ``yt load`` and ``iyt``
    command line entry points parse the plugin file, so the ``my_plugins.py``
    file will be parsed if you enter yt that way.
 
+Local project plugin file
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Optionally, :func:`~yt.funcs.enable_plugins` can be passed an argument to specify
+a custom location for a plugin file. This can be useful to define project wise customizations.
+In that use case, any system-level plugin file will be ignored.
+
 Plugin File Format
 ^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
-plugin file, which should contain python code.  If accessing yt functions and
-classes they will not require the ``yt.`` prefix, because of how they are
-loaded.
+Plugin files should contain pure Python code. If accessing yt functions and classes
+they will not require the ``yt.`` prefix, because of how they are loaded.
 
 For example, if I created a plugin file containing:
 
@@ -185,6 +197,10 @@ use this function:
 
 And because we have used ``yt.enable_plugins`` we have access to the
 ``load_run`` function defined in our plugin file.
+
+.. note::
+    if your convenience function's name colliding with an existing object
+    within yt's namespace, it will be ignored.
 
 Note that using the plugins file implies that your script is no longer fully
 reproducible. If you share your script with someone else and use some of the
