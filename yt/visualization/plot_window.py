@@ -1066,7 +1066,7 @@ class PWViewerMPL(PlotWindow):
                     self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
 
                 elif self._field_transform[f] == log_transform:
-                    if MPL_VERSION >= LooseVersion('2.0.0'):
+                    if MPL_VERSION >= LooseVersion('3.0.0'):
                         self.plots[f].cax.minorticks_on()
                         self.plots[f].cax.xaxis.set_visible(False)  # experimental
                     else:
