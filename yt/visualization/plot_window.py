@@ -1078,10 +1078,7 @@ class PWViewerMPL(PlotWindow):
                     self._cbar_minorticks[f] = False
 
             if not self._cbar_minorticks[f]:
-                try:
-                    self.plots[f].cax.minorticks_off()
-                except AttributeError:
-                    pass # todo: logme
+                self.plots[f].cax.minorticks_off()
 
             if draw_axes is False:
                 self.plots[f]._toggle_axes(draw_axes, draw_frame)
