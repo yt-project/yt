@@ -22,6 +22,7 @@ from yt.utilities.file_handler import \
 from yt.utilities.physical_ratios import cm_per_mpc
 from .fields import FLASHFieldInfo
 
+
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
     #__slots__ = ["_level_id", "stop_index"]
@@ -34,6 +35,7 @@ class FLASHGrid(AMRGridPatch):
 
     def __repr__(self):
         return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+
 
 class FLASHHierarchy(GridIndex):
 
@@ -163,6 +165,7 @@ class FLASHHierarchy(GridIndex):
             for g in self.grids:
                 g.dds[1] = DD
         self.max_level = self.grid_levels.max()
+
 
 class FLASHDataset(Dataset):
     _index_class = FLASHHierarchy
@@ -439,8 +442,10 @@ class FLASHDataset(Dataset):
     def close(self):
         self._handle.close()
 
+
 class FLASHParticleFile(ParticleFile):
     pass
+
 
 class FLASHParticleDataset(FLASHDataset):
     _index_class = ParticleIndex
@@ -448,13 +453,13 @@ class FLASHParticleDataset(FLASHDataset):
     _file_class = FLASHParticleFile
 
     def __init__(self, filename, dataset_type='flash_particle_hdf5',
-                 storage_filename = None,
-                 units_override = None,
+                 storage_filename=None,
+                 units_override=None,
                  index_order=None,
                  index_filename=None,
-                 unit_system = "cgs"):
+                 unit_system="cgs"):
         self.index_order = validate_index_order(index_order)
-        self.index_filename=index_filename
+        self.index_filename = index_filename
 
         if self._handle is not None: return
         self._handle = HDF5FileHandler(filename)

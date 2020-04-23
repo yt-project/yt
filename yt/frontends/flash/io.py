@@ -30,6 +30,7 @@ def determine_particle_fields(handle):
         _particle_fields = {}
     return _particle_fields
 
+
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "flash_hdf5"
@@ -145,6 +146,7 @@ class IOHandlerFLASH(BaseIOHandler):
                     rv[g.id][field] = np.asarray(data[...,i], "=f8")
         return rv
 
+
 class IOHandlerFLASHParticle(BaseIOHandler):
     _particle_reader = True
     _dataset_type = "flash_particle_hdf5"
@@ -237,13 +239,25 @@ class IOHandlerFLASHParticle(BaseIOHandler):
             ind += self._chunksize
         return morton
 
+    def _yield_coordinates(self, sub_file, needed_ptype=None):
+        si, ei = sub_file.start, sub_file.end
+        p_fields = self._handle["/tracer particles"]
+        px, py, pz = self._position_fields
+        npart = ei-si
+        pos = np.empty((npart, 3), dtype="=f8")
+        pos[:, 0] = p_fields[si:ei, px]
+        pos[:, 1] = p_fields[si:ei, py]
+        pos[:, 2] = p_fields[si:ei, pz]
+        yield "io", pos
+
     _pcount = None
     def _count_particles(self, data_file):
         if self._pcount is None:
             self._pcount = self._handle["/localnp"][:].sum()
         si, ei = data_file.start, data_file.end
+        pcount = self._pcount
         if None not in (si, ei):
-            pcount = np.clip(self._pcount - si, 0, ei - si)
+            pcount = np.clip(pcount - si, 0, ei - si)
         return {'io': pcount}
 
     def _identify_fields(self, data_file):
