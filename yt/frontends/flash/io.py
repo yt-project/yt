@@ -172,18 +172,16 @@ class IOHandlerFLASHParticle(BaseIOHandler):
                 data_files.update(obj.data_files)
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
-        assert(len(data_files) == 1)
+        # We used to have this, but it is no longer the case.  We can have
+        # multiple data files, as each data file is a subset.
+        # assert(len(data_files) == 1)
+        ptypes = [_[0] for _ in ptf.items()]
+        # Let's just make sure this is still true, though.
+        assert(len(set(ptypes)) == 1)
+        assert(ptypes[0] == "io")
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            pcount = self._count_particles(data_file)["io"]
-            for ptype, field_list in sorted(ptf.items()):
-                total = 0
-                while total < pcount:
-                    count = min(self._chunksize, pcount - total)
-                    x = np.asarray(p_fields[total:total+count, px], dtype="=f8")
-                    y = np.asarray(p_fields[total:total+count, py], dtype="=f8")
-                    z = np.asarray(p_fields[total:total+count, pz], dtype="=f8")
-                    total += count
-                    yield ptype, (x, y, z)
+            pxyz = np.asarray(p_fields[data_file.start:data_file.end, (px,py,pz)], dtype="=f8")
+            yield "io", pxyz
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         px, py, pz = self._position_fields
