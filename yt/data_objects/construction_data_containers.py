@@ -728,8 +728,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
 
-        smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
-        normalize = getattr(self.ds, 'use_sph_normalization', True)
+        smoothing_style = getattr(self.ds, '_sph_smoothing_style', 'scatter')
+        normalize = getattr(self.ds, '_use_sph_normalization', False)
 
         bounds, size = self._get_grid_bounds_size()
 
@@ -768,7 +768,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 pbar.close()
 
         if(smoothing_style == "gather"):
-            num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+            num_neighbors = getattr(self.ds, '_num_neighbors', 32)
             for field in fields:
                 buff = np.zeros(size, dtype="float64")
 
