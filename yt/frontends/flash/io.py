@@ -239,17 +239,6 @@ class IOHandlerFLASHParticle(BaseIOHandler):
             ind += self._chunksize
         return morton
 
-    def _yield_coordinates(self, sub_file, needed_ptype=None):
-        si, ei = sub_file.start, sub_file.end
-        p_fields = self._handle["/tracer particles"]
-        px, py, pz = self._position_fields
-        npart = ei-si
-        pos = np.empty((npart, 3), dtype="=f8")
-        pos[:, 0] = p_fields[si:ei, px]
-        pos[:, 1] = p_fields[si:ei, py]
-        pos[:, 2] = p_fields[si:ei, pz]
-        yield "io", pos
-
     _pcount = None
     def _count_particles(self, data_file):
         if self._pcount is None:
