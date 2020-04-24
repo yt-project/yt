@@ -814,7 +814,12 @@ def fix_axis(axis, ds):
 
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
-    return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
+    supported_suffixes = ['.png', '.eps', '.ps', '.pdf', '.jpg', '.jpeg']
+    if suffix in supported_suffixes or suffix == '':
+        return suffix
+    else:
+        mylog.warning('Unsupported image suffix requested (%s)' % suffix)
+        return ''
 
 def get_output_filename(name, keyword, suffix):
     r"""Return an appropriate filename for output.
@@ -964,51 +969,61 @@ def deprecated_class(cls):
         return cls(*args, **kwargs)
     return _func
 
-def enable_plugins():
-    """Forces the plugins file to be parsed.
+def enable_plugins(pluginfilename=None):
+    """Forces a plugin file to be parsed.
 
-    This plugin file is a means of creating custom fields, quantities,
+    A plugin file is a means of creating custom fields, quantities,
     data objects, colormaps, and other code classes and objects to be used
     in yt scripts without modifying the yt source directly.
 
-    The file must be located at ``$HOME/.config/yt/my_plugins.py``.
+    If <pluginfilename> is omited, this function will look for a plugin file at
+    ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
+    system-level configuration.
 
-    Warning: when you use this function, your script will only be reproducible
-    if you also provide the ``my_plugins.py`` file.
+    Warning: a script using this function will only be reproducible if your plugin
+    file is shared with it.
     """
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg, CONFIG_DIR
-    my_plugin_name = ytcfg.get("yt", "pluginfilename")
 
-    # In the following order if pluginfilename is: an absolute path, located in
-    # the CONFIG_DIR, located in an obsolete config dir.
-    _fn = None
-    old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
-    for base_prefix in ('', CONFIG_DIR, old_config_dir):
-        if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
-            _fn = os.path.join(base_prefix, my_plugin_name)
-            break
-
-    if _fn is not None and os.path.isfile(_fn):
+    if pluginfilename is not None:
+        _fn = pluginfilename
+        if not os.path.isfile(_fn):
+            raise FileNotFoundError(_fn)
+    else:
+        # Determine global plugin location. By decreasing priority order:
+        # - absolute path
+        # - CONFIG_DIR
+        # - obsolete config dir.
+        my_plugin_name = ytcfg.get("yt", "pluginfilename")
+        old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
+        for base_prefix in ('', CONFIG_DIR, old_config_dir):
+            if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
+                _fn = os.path.join(base_prefix, my_plugin_name)
+                break
+        else:
+            mylog.error("Could not find a global system plugin file.")
+            return
         if _fn.startswith(old_config_dir):
             mylog.warning(
                 'Your plugin file is located in a deprecated directory. '
                 'Please move it from %s to %s',
                 os.path.join(old_config_dir, my_plugin_name),
                 os.path.join(CONFIG_DIR, my_plugin_name))
-        mylog.info("Loading plugins from %s", _fn)
-        ytdict = yt.__dict__
-        execdict = ytdict.copy()
-        execdict['add_field'] = my_plugins_fields.add_field
-        with open(_fn) as f:
-            code = compile(f.read(), _fn, 'exec')
-            exec(code, execdict, execdict)
-        ytnamespace = list(ytdict.keys())
-        for k in execdict.keys():
-            if k not in ytnamespace:
-                if callable(execdict[k]):
-                    setattr(yt, k, execdict[k])
+
+    mylog.info("Loading plugins from %s", _fn)
+    ytdict = yt.__dict__
+    execdict = ytdict.copy()
+    execdict['add_field'] = my_plugins_fields.add_field
+    with open(_fn) as f:
+        code = compile(f.read(), _fn, 'exec')
+        exec(code, execdict, execdict)
+    ytnamespace = list(ytdict.keys())
+    for k in execdict.keys():
+        if k not in ytnamespace:
+            if callable(execdict[k]):
+                setattr(yt, k, execdict[k])
 
 def fix_unitary(u):
     if u == '1':

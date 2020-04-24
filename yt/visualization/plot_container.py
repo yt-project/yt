@@ -102,6 +102,25 @@ def apply_callback(f):
         return args[0]
     return newfunc
 
+def accepts_all_fields(f):
+    """Decorate a function whose second argument is <field> and deal with the special case
+    field == 'all', looping over all fields already present in the PlotContainer instance.
+
+    """
+    # This is to be applied to PlotContainer class methods with the following signature:
+    # 
+    # f(self, field, *args, **kwargs) -> self
+    @wraps(f)
+    def newfunc(self, field, *args, **kwargs):
+        if field == 'all':
+            fields = list(self.plots.keys())
+        else:
+            fields = ensure_list(field)
+        for field in self.data_source._determine_fields(fields):
+            f(self, field, *args, **kwargs)
+        return self
+    return newfunc
+
 def get_log_minorticks(vmin, vmax):
     """calculate positions of linear minorticks on a log colorbar
 
@@ -206,6 +225,7 @@ class PlotContainer(object):
         self._minorticks = {}
         self._field_transform = {}
 
+    @accepts_all_fields
     @invalidate_plot
     def set_log(self, field, log, linthresh=None):
         """set a field to log or linear.
@@ -214,27 +234,23 @@ class PlotContainer(object):
         ----------
         field : string
             the field to set a transform
+            if field == 'all', applies to all plots.
         log : boolean
             Log on/off.
         linthresh : float (must be positive)
             linthresh will be enabled for symlog scale only when log is true
 
         """
-        if field == 'all':
-            fields = list(self.plots.keys())
-        else:
-            fields = [field]
-        for field in self.data_source._determine_fields(fields):
-            if log:
-                if linthresh is not None:
-                    if not linthresh > 0.:
-                        raise ValueError('\"linthresh\" must be positive')
-                    self._field_transform[field] = symlog_transform
-                    self._field_transform[field].func = linthresh
-                else:
-                    self._field_transform[field] = log_transform
+        if log:
+            if linthresh is not None:
+                if not linthresh > 0.:
+                    raise ValueError('\"linthresh\" must be positive')
+                self._field_transform[field] = symlog_transform
+                self._field_transform[field].func = linthresh
             else:
-                self._field_transform[field] = linear_transform
+                self._field_transform[field] = log_transform
+        else:
+            self._field_transform[field] = linear_transform
         return self
 
     def get_log(self, field):
@@ -244,18 +260,17 @@ class PlotContainer(object):
         ----------
         field : string
             the field to get a transform
+            if field == 'all', applies to all plots.
 
         """
+        # devnote : accepts_all_fields decorator is not applicable here because the return variable isn't self
         log = {}
         if field == 'all':
             fields = list(self.plots.keys())
         else:
-            fields = [field]
+            fields = ensure_list(field)
         for field in self.data_source._determine_fields(fields):
-            if self._field_transform[field] == log_transform:
-                log[field] = True
-            else:
-                log[field] = False
+            log[field] = (self._field_transform[field] == log_transform)
         return log
 
     @invalidate_plot
@@ -266,6 +281,7 @@ class PlotContainer(object):
         self._field_transform[field] = field_transforms[name]
         return self
 
+    @accepts_all_fields
     @invalidate_plot
     def set_minorticks(self, field, state):
         """Turn minor ticks on or off in the current plot.
@@ -277,6 +293,7 @@ class PlotContainer(object):
         ----------
         field : string
             the field to remove minorticks
+            if field == 'all', applies to all plots.
         state : bool
             the state indicating 'on' (True) or 'off' (False)
 
@@ -286,12 +303,7 @@ class PlotContainer(object):
             issue_deprecation_warning("Deprecated api, use bools for *state*.")
             state = {"on": True, "off": False}[state.lower()]
 
-        if field == 'all':
-            fields = list(self.plots.keys())
-        else:
-            fields = [field]
-        for field in self.data_source._determine_fields(fields):
-            self._minorticks[field] = state
+        self._minorticks[field] = state
         return self
 
     def _setup_plots(self):
@@ -654,7 +666,7 @@ class PlotContainer(object):
                 axes_unit_labels[i] = r'\ \ ('+un+')'
         return axes_unit_labels
 
-    
+
     def hide_colorbar(self, field=None):
         """
         Hides the colorbar for a plot and updates the size of the
@@ -665,9 +677,9 @@ class PlotContainer(object):
         ----------
 
         field : string, field tuple, or list of strings or field tuples (optional)
-            The name of the field(s) that we want to hide the colorbar. If None
-            is provided, will default to using all fields available for this
-            object.
+            The name of the field(s) that we want to hide the colorbar.
+            If None or 'all' is provided, will default to using all fields available
+            for this object.
 
         Examples
         --------
@@ -689,7 +701,7 @@ class PlotContainer(object):
         >>> s.hide_colorbar()
         >>> s.save()
         """
-        if field is None:
+        if field is None or field == 'all':
             field = self.fields
         field = ensure_list(field)
         for f in field:
@@ -807,6 +819,7 @@ class ImagePlotContainer(PlotContainer):
         self._colorbar_label = PlotDictionary(
             self.data_source, lambda: None)
 
+    @accepts_all_fields
     @invalidate_plot
     def set_cmap(self, field, cmap):
         """set the colormap for one of the fields
@@ -823,16 +836,11 @@ class ImagePlotContainer(PlotContainer):
             can be used to specify if a reverse colormap is to be used.
 
         """
-
-        if field == 'all':
-            fields = list(self.plots.keys())
-        else:
-            fields = [field]
-        for field in self.data_source._determine_fields(fields):
-            self._colorbar_valid = False
-            self._colormaps[field] = cmap
+        self._colorbar_valid = False
+        self._colormaps[field] = cmap
         return self
 
+    @accepts_all_fields
     @invalidate_plot
     def set_background_color(self, field, color=None):
         """set the background color to match provided color
@@ -848,18 +856,18 @@ class ImagePlotContainer(PlotContainer):
             the color map
 
         """
-        actual_field = self.data_source._determine_fields(field)[0]
         if color is None:
-            cmap = self._colormaps[actual_field]
+            cmap = self._colormaps[field]
             if isinstance(cmap, string_types):
                 try:
                     cmap = yt_colormaps[cmap]
                 except KeyError:
                     cmap = getattr(matplotlib.cm, cmap)
             color = cmap(0)
-        self._background_color[actual_field] = color
+        self._background_color[field] = color
         return self
 
+    @accepts_all_fields
     @invalidate_plot
     def set_zlim(self, field, zmin, zmax, dynamic_range=None):
         """set the scale of the colormap
@@ -886,27 +894,22 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
-        if field == 'all':
-            fields = list(self.plots.keys())
-        else:
-            fields = ensure_list(field)
-        for field in self.data_source._determine_fields(fields):
-            myzmin = zmin
-            myzmax = zmax
-            if zmin == 'min':
-                myzmin = self.plots[field].image._A.min()
-            if zmax == 'max':
-                myzmax = self.plots[field].image._A.max()
-            if dynamic_range is not None:
-                if zmax is None:
-                    myzmax = myzmin * dynamic_range
-                else:
-                    myzmin = myzmax / dynamic_range
+        myzmin = zmin
+        myzmax = zmax
+        if zmin == 'min':
+            myzmin = self.plots[field].image._A.min()
+        if zmax == 'max':
+            myzmax = self.plots[field].image._A.max()
+        if dynamic_range is not None:
+            if zmax is None:
+                myzmax = myzmin * dynamic_range
+            else:
+                myzmin = myzmax / dynamic_range
 
-            if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
-                self._field_transform[field] = log_transform
-            self.plots[field].zmin = myzmin
-            self.plots[field].zmax = myzmax
+        if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
+            self._field_transform[field] = log_transform
+        self.plots[field].zmin = myzmin
+        self.plots[field].zmax = myzmax
         return self
 
     @invalidate_plot
@@ -927,6 +930,7 @@ class ImagePlotContainer(PlotContainer):
         boolstate = {"on": True, "off": False}[state.lower()]
         return self.set_colorbar_minorticks(field, boolstate)
 
+    @accepts_all_fields
     @invalidate_plot
     def set_colorbar_minorticks(self, field, state):
         """turn colorbar minor ticks on or off in the current plot
@@ -938,15 +942,11 @@ class ImagePlotContainer(PlotContainer):
         ----------
         field : string
             the field to remove colorbar minorticks
+            if field == 'all', applies to all plots.
         state : bool
             the state indicating 'on' (True) or 'off' (False)
         """
-        if field == 'all':
-            fields = list(self.plots.keys())
-        else:
-            fields = [field]
-        for field in self.data_source._determine_fields(fields):
-            self._cbar_minorticks[field] = state
+        self._cbar_minorticks[field] = state
         return self
 
     @invalidate_plot
