@@ -849,7 +849,6 @@ class Dataset(object):
         # the center
         if isinstance(left_edge[0], YTQuantity):
             left_edge = YTArray(left_edge)
-        if isinstance(right_edge[0], YTQuantity):
             right_edge = YTArray(right_edge)
 
         left_edge = np.asanyarray(left_edge, dtype='float64')
