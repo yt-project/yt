@@ -422,9 +422,6 @@ class FITSDataset(Dataset):
 
         if self.parameter_filename.startswith("InMemory"):
             self.unique_identifier = time.time()
-        else:
-            self.unique_identifier = \
-                int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Determine dimensionality
 
