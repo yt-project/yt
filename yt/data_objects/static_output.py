@@ -847,10 +847,13 @@ class Dataset(object):
         # but need to check if left_edge or right_edge is a
         # list or other non-array iterable before calculating
         # the center
-        if not isinstance(left_edge, np.ndarray):
-            left_edge = np.array(left_edge, dtype='float64')
-        if not isinstance(right_edge, np.ndarray):
-            right_edge = np.array(right_edge, dtype='float64')
+        if isinstance(left_edge[0], YTQuantity):
+            left_edge = YTArray(left_edge)
+        if isinstance(right_edge[0], YTQuantity):
+            right_edge = YTArray(right_edge)
+
+        left_edge = np.asanyarray(left_edge, dtype='float64')
+        right_edge = np.asanyarray(right_edge, dtype='float64')
         c = (left_edge + right_edge)/2.0
         return self.region(c, left_edge, right_edge, **kwargs)
 
