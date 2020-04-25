@@ -183,8 +183,6 @@ class GadgetFOFDataset(ParticleDataset):
 
         self.dimensionality = 3
         self.refine_by = 2
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
         self.domain_left_edge = np.zeros(3, "float64")

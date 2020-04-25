@@ -402,8 +402,6 @@ class EnzoPDataset(Dataset):
         self.periodicity += (False, ) * (3 - self.dimensionality)
         self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
 
-        self.unique_identifier = \
-          str(int(os.stat(self.parameter_filename)[stat.ST_CTIME]))
 
     def _set_code_unit_attributes(self):
         if self.cosmological_simulation:

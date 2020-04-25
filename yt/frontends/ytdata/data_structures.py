@@ -119,8 +119,6 @@ class SavedDataset(Dataset):
 
         for attr in self._con_attrs:
             setattr(self, attr, self.parameters.get(attr))
-        self.unique_identifier = \
-          int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
     def _with_parameter_file_open(self, f):
         # This allows subclasses to access the parameter file

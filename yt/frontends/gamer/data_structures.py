@@ -246,8 +246,6 @@ class GAMERDataset(Dataset):
                     mylog.warning("Assuming %8s unit = %f %s", unit, value, cgs)
 
     def _parse_parameter_file(self):
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # code-specific parameters
         for t in self._handle['Info']:

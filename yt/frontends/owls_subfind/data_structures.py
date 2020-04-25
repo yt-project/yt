@@ -106,8 +106,6 @@ class OWLSSubfindDataset(ParticleDataset):
 
         self.dimensionality = 3
         self.refine_by = 2
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
         self.current_time = self.quan(hvals["Time_GYR"], "Gyr")

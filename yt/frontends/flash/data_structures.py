@@ -270,8 +270,6 @@ class FLASHDataset(Dataset):
         raise KeyError(pname)
 
     def _parse_parameter_file(self):
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         if "file format version" in self._handle:
             self._flash_version = int(
                 self._handle["file format version"][:])

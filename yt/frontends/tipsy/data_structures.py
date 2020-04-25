@@ -123,9 +123,6 @@ class TipsyDataset(SPHDataset):
         self.parameters["HydroMethod"] = "sph"
 
 
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-
         # Read in parameter file, if available.
         if self._param_file is None:
             pfn = glob.glob(os.path.join(self.directory, "*.param"))
