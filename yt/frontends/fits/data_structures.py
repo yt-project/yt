@@ -1,4 +1,3 @@
-import stat
 import numpy as np
 import numpy.core.defchararray as np_char
 import os

@@ -4,7 +4,6 @@ from numbers import \
     Number as numeric_type
 import numpy as np
 import os
-import stat
 import weakref
 
 from .fields import \

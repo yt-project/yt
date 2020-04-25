@@ -4,9 +4,6 @@ import os
 import weakref
 import numpy as np
 
-from stat import \
-    ST_CTIME
-
 from yt.funcs import \
     mylog, \
     setdefaultattr

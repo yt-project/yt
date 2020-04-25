@@ -1,6 +1,5 @@
 import glob
 import os
-import stat
 
 import numpy as np
 

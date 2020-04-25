@@ -1,7 +1,6 @@
 import glob
 import numpy as np
 import os
-import stat
 import struct
 import weakref
 

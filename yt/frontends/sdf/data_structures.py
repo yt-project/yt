@@ -1,7 +1,5 @@
 
 import numpy as np
-import stat
-import time
 import os
 import sys
 import contextlib

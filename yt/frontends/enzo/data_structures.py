@@ -5,7 +5,6 @@ import io
 import weakref
 import numpy as np
 import os
-import stat
 import string
 import time
 import re

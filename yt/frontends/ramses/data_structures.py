@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import stat
 import weakref
 from collections import defaultdict
 from glob import glob

@@ -7,7 +7,6 @@ from yt.utilities.on_demand_imports import \
 import io as io
 import numpy as np
 import os
-import stat
 import warnings
 
 from yt.data_objects.grid_patch import \

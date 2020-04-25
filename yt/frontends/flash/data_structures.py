@@ -1,5 +1,4 @@
 import os
-import stat
 import numpy as np
 import weakref
 

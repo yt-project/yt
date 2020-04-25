@@ -2,7 +2,6 @@ from collections import defaultdict
 from functools import partial
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-import stat
 import os
 import weakref
 
