@@ -120,7 +120,7 @@ Clear Callbacks (Some or All)
 List Currently Applied Callbacks
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_list()
+.. function:: list_annotations()
 
    This function will print a list of each of the currently applied
    callbacks together with their index.  The index can be used with
@@ -134,7 +134,7 @@ List Currently Applied Callbacks
     p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
     p.annotate_scale()
     p.annotate_timestamp()
-    p.annotate_list()
+    p.list_annotations()
 
 .. _annotate-arrow:
 

@@ -1119,7 +1119,7 @@ class PWViewerMPL(PlotWindow):
         self.setup_callbacks()
         return self
 
-    def annotate_list(self):
+    def list_annotations(self):
         """
         List the current callbacks for the plot, along with their index.  This
         index can be used with annotate_clear to remove a callback from the
