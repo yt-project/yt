@@ -511,10 +511,8 @@ class Scene(object):
                      log_scale=source.log_field)
 
     def _annotate_multi(self, ax, tf, source, label="", label_fmt=None):
-        #ax.get_xaxis().set_visible(False)
-        #ax.get_xaxis().set_ticks([])
-        #ax.get_yaxis().set_visible(False)
-        #ax.get_yaxis().set_ticks([])
+        ax.yaxis.set_label_position("right")
+        ax.yaxis.tick_right()
         tf.vert_cbar(ax=ax, label=label, label_fmt=label_fmt,
                      resolution=self.camera.resolution[0],
                      log_scale=source.log_field)
