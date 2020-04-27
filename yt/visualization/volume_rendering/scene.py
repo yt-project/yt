@@ -421,14 +421,28 @@ class Scene(object):
 
         self.render()
 
-        # which transfer function?
-        rs = rensources[0]
-        tf = rs.transfer_function
-        label = rs.data_source.ds._get_field_info(rs.field).get_label()
-
         ax = self._show_mpl(self._last_render.swapaxes(0, 1),
                             sigma_clip=sigma_clip, dpi=dpi)
-        self._annotate(ax.axes, tf, rs, label=label, label_fmt=label_fmt)
+
+        # which transfer function?
+        if len(rensources) == 1:
+            rs = rensources[0]
+            tf = rs.transfer_function
+            label = rs.data_source.ds._get_field_info(rs.field).get_label()
+            self._annotate(ax.axes, tf, rs, label=label, label_fmt=label_fmt)
+
+        else:
+            # set the origin and width and height of the colorbar region
+            cbx0 = 0.80
+            cby0 = 0.12
+            cbw = 0.12
+            cbh = 0.9/len(rensources)
+
+            for i, rs in enumerate(rensources):
+                ax = self._render_figure.add_axes([cbx0, cby0 + i*cbh, 0.8*cbw, 0.8*cbh])
+                tf = rs.transfer_function
+                label = rs.data_source.ds._get_field_info(rs.field).get_label()
+                self._annotate_multi(ax, tf, rs, label=label, label_fmt=label_fmt)
 
         # any text?
         if text_annotate is not None:
@@ -493,6 +507,15 @@ class Scene(object):
         cb = self._render_figure.colorbar(ax.images[0], pad=0.0, fraction=0.05,
                                           drawedges=True)
         tf.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt,
+                     resolution=self.camera.resolution[0],
+                     log_scale=source.log_field)
+
+    def _annotate_multi(self, ax, tf, source, label="", label_fmt=None):
+        #ax.get_xaxis().set_visible(False)
+        #ax.get_xaxis().set_ticks([])
+        #ax.get_yaxis().set_visible(False)
+        #ax.get_yaxis().set_ticks([])
+        tf.vert_cbar(ax=ax, label=label, label_fmt=label_fmt,
                      resolution=self.camera.resolution[0],
                      log_scale=source.log_field)
 
