@@ -44,18 +44,11 @@ def parentage_relationships(ds):
     return result 
 
 def grid_values(ds, field):
-    # The hashing is done here so that there is only one entry for
-    # the test that contains info about all of the grids as opposed
-    # to having a separate 'grid_id : grid_hash' pair for each grid
-    # since that makes the answer file much larger
-    result = None
+    result = {}
     for g in ds.index.grids:
-        if result is None:
-            result = hashlib.md5(bytes(g.id) + g[field].tobytes())
-        else:
-            result.update(bytes(g.id) + g[field].tobytes())
+        result[str(g.id)] = g[field]
         g.clear_data()
-    return result.hexdigest()
+    return result
 
 def projection_values(ds, axis, field, weight_field, dobj_type):
     if dobj_type is not None:
@@ -63,27 +56,13 @@ def projection_values(ds, axis, field, weight_field, dobj_type):
     else:
         dobj = None
     if ds.domain_dimensions[axis] == 1:
-        # This originally returned None, but None can't be converted
-        # to a bytes array (for hashing), so use -1 as a string,
-        # since ints can't be converted to bytes either
-        return bytes(str(-1).encode('utf-8'))
+        return None
     proj = ds.proj(field,
                 axis,
                 weight_field=weight_field,
                 data_source=dobj
             )
-    # This is to try and remove python-specific anchors in the yaml
-    # answer file. Also, using __repr__() results in weird strings
-    # of strings that make comparison fail even though the data is
-    # the same
-    result = None 
-    for k, v in proj.field_data.items():
-        k = k.__repr__().encode('utf8')
-        if result is None:
-            result = hashlib.md5(k + v.tobytes())
-        else:
-            result.update(k + v.tobytes())
-    return result.hexdigest()
+    return proj.field_data
 
 def field_values(ds, field, obj_type=None, particle_type=False):
     # If needed build an instance of the dataset type
@@ -118,19 +97,7 @@ def pixelized_projection_values(ds, axis, field,
     for f in proj.field_data:
         # Sometimes f will be a tuple.
         d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
-    # This is to try and remove python-specific anchors in the yaml
-    # answer file. Also, using __repr__() results in weird strings
-    # of strings that make comparison fail even though the data is
-    # the same
-    result = None 
-    for k, v in d.items():
-        k = k.__repr__().encode('utf8')
-        if result is None:
-            result = hashlib.md5(k + v.tobytes())
-        else:
-            result.update(k + v.tobytes())
-    return result.hexdigest()
-
+    return d
 
 def simulated_halo_mass_function(ds, finder):
     hc = HaloCatalog(data_ds=ds, finder_method=finder)

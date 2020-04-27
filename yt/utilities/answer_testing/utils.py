@@ -124,13 +124,7 @@ def _hash_results(results):
     # Here, results should be comprised of only the tests, not the test
     # parameters
     for test_name, test_value in results.items():
-        # These tests have issues with python-specific anchors and so
-        # are already hashed
-        # (see their definitions in yt/utilites/answer_testing/answer_tests.py)
-        if test_name in ['projection_values', 'pixelized_projection_values', 'grid_values']:
-            continue
-        else:
-            results[test_name] = generate_hash(test_value)
+        results[test_name] = generate_hash(test_value)
     return results
 
 def _hash_dict(data):
@@ -184,6 +178,9 @@ def generate_hash(data):
     except TypeError:
         if isinstance(data, dict):
             hd = _hash_dict(data)
+        elif data is None:
+            hd = hashlib.md5(bytes(str(-1).encode('utf-8')))
+        elif isinstance(data, 
         else:
             raise TypeError
     return hd
