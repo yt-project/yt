@@ -318,7 +318,24 @@ def _save_raw_arrays(arrays, answer_file, func_name):
     with h5py.File(answer_file, 'a') as f:
         grp = f.create_group(func_name)
         for test_name, test_array in arrays.items():
+            # Some answer tests (e.g., grid_values, projection_values)
+            # return a dictionary, which cannot be handled by h5py
+            if isinstance(test_array, dict):
+                test_array = _dict_to_array(test_array)
             grp.create_dataset(test_name, data=test_array)
+
+
+def _dict_to_array(d):
+    r"""
+    Converts a dictionary into a 2D numpy array, where array[0][0] = key
+    and array[0][1] = value.
+    """
+    nkeys = len(d.keys())
+    arr = np.zeros((nkeys, 2))
+    for i, (k, v) in enumerate(sorted(d.items())):
+        arr[i][0] = k
+        arr[i][1] = v
+    return arr
 
 
 def _compare_raw_arrays(arrays, answer_file, func_name):
