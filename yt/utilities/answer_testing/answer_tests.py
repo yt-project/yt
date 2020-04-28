@@ -5,7 +5,6 @@ Purpose: Contains answer tests that are used by yt's various frontends
 import os
 import tempfile
 
-import hashlib
 import matplotlib.image as mpimg
 import numpy as np
 
