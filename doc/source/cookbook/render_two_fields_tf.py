@@ -49,5 +49,6 @@ cam.zoom(20.0)
 
 sc.render()
 
-sc.save_annotated("test_cb.png", sigma_clip=6.0, tf_rect=[0.88, 0.15, 0.03, 0.8] )
+sc.save_annotated("render_two_fields_tf.png", sigma_clip=6.0,
+                  tf_rect=[0.88, 0.15, 0.03, 0.8])
 
