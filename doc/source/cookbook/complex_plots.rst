@@ -328,6 +328,16 @@ new developments and the infrastructure described in :ref:`volume_rendering`.
 
 .. yt_cookbook:: vol-annotated.py
 
+.. _cookbook-render_two_fields_tf:
+
+Volume Rendering Multiple Fields And Annotation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe shows how to display the transfer functions when rendering multiple
+fields in a volume render.
+
+.. yt_cookbook:: render_two_fields_tf.py
+
 .. _cookbook-vol-points:
 
 Volume Rendering with Points
