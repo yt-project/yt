@@ -1074,7 +1074,7 @@ class PWViewerMPL(PlotWindow):
                         self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
 
                 else:
-                    mylog.error("Unable to draw cbar minorticks.")
+                    mylog.error("Unable to draw cbar minorticks for field {} with transform {} ".format(f, self._field_transform[f]))
                     self._cbar_minorticks[f] = False
 
             if not self._cbar_minorticks[f]:
