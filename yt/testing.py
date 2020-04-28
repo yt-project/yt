@@ -13,7 +13,6 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import pytest
 import hashlib
 import matplotlib
 from yt.extern.six import string_types
@@ -1179,6 +1178,7 @@ def requires_backend(backend):
     Decorated function or null function
 
     """
+    import pytest
     def ffalse(func):
         # returning a lambda : None causes an error when using pytest. Having
         # a function (skip) that returns None does work, but pytest marks the
