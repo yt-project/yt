@@ -555,7 +555,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlabel("Value")
 
     def vert_cbar(self, resolution, log_scale, ax, label=None, 
-                  label_fmt=None):
+                  label_fmt=None, size=10):
         r"""Display an image of the transfer function
 
         This function loads up matplotlib and displays the current transfer function.
@@ -607,7 +607,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 if abs(val) < 1.e-3 or abs(val) > 1.e4:
                     if not val == 0.0:
                         e = np.floor(np.log10(abs(val)))
-                        return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
+                        return r"${:.2f}\times 10^{{ {:d} }}$".format(val/10.0**e, int(e))
                     else:
                         return r"$0$"
                 else:
@@ -625,11 +625,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_xlim(0., max_alpha)
         ax.get_xaxis().set_ticks([])
         ax.set_ylim(visible[0], visible[-1])
-        ax.tick_params(axis='y', colors='white', size=10)
-        ax.set_ylabel(label, color='white', size=10*resolution/512.0)
-        
+        ax.tick_params(axis='y', colors='white', size=size)
+        ax.set_ylabel(label, color='white', size=size*resolution/512.0)
 
-        
+
     def sample_colormap(self, v, w, alpha=None, colormap="gist_stern", col_bounds=None):
         r"""Add a Gaussian based on an existing colormap.
 

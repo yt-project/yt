@@ -530,7 +530,7 @@ class Scene(object):
         ax.yaxis.tick_right()
         tf.vert_cbar(ax=ax, label=label, label_fmt=label_fmt,
                      resolution=self.camera.resolution[0],
-                     log_scale=source.log_field)
+                     log_scale=source.log_field, size=8)
 
     def _validate(self):
         r"""Validate the current state of the scene."""
