@@ -335,7 +335,7 @@ class AnswerTestingTest(object):
         elif isinstance(ds_fn, Dataset):
             self.ds = ds_fn
         else:
-            self.ds = data_dir_load(ds_fn)
+            self.ds = data_dir_load(ds_fn, kwargs = {'unit_system': 'code'})
 
     def __call__(self):
         if AnswerTestingTest.result_storage is None:
