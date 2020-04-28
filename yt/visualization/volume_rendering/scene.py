@@ -338,7 +338,8 @@ class Scene(object):
             canvas.print_figure(fname, dpi=100)
 
     def save_annotated(self, fname=None, label_fmt=None,
-                       text_annotate=None, dpi=100, sigma_clip=None):
+                       text_annotate=None, dpi=100, sigma_clip=None,
+                       tf_rect=None):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
         text.
@@ -376,7 +377,11 @@ class Scene(object):
            function.
 
            Each item in the main list is a separate string to write.
-
+        tf_rect : seqeunce, optional
+           A rectangle that defines the location of the transfer
+           function legend for the case where there are multiple
+           volume sources with associated transfer functions.  tf_rect
+           is of the form [x0, y0, width, height], in figure coordinates.
 
         Returns
         -------
@@ -433,13 +438,23 @@ class Scene(object):
 
         else:
             # set the origin and width and height of the colorbar region
-            cbx0 = 0.80
-            cby0 = 0.12
-            cbw = 0.12
-            cbh = 0.9/len(rensources)
+            if tf_rect is not None:
+                try:
+                    cbx0, cby0, cbw, cbh = tf_rect
+                except ValueError:
+                    print("tf_rect does not have correct number of values.  Using default")
+                    tf_rect = None
+
+            if tf_rect is None:
+                cbx0 = 0.80
+                cby0 = 0.12
+                cbw = 0.12
+                cbh = 0.9
+
+            cbh_each = cbh/len(rensources)
 
             for i, rs in enumerate(rensources):
-                ax = self._render_figure.add_axes([cbx0, cby0 + i*cbh, 0.8*cbw, 0.8*cbh])
+                ax = self._render_figure.add_axes([cbx0, cby0 + i*cbh_each, 0.8*cbw, 0.8*cbh_each])
                 tf = rs.transfer_function
                 label = rs.data_source.ds._get_field_info(rs.field).get_label()
                 self._annotate_multi(ax, tf, rs, label=label, label_fmt=label_fmt)
