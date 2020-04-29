@@ -42,7 +42,7 @@ with open('README.md') as file:
 if check_for_openmp() is True:
     omp_args = ['-fopenmp']
 else:
-    omp_args = None
+    omp_args = []
 
 if os.name == "nt":
     std_libs = []
