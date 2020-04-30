@@ -461,9 +461,7 @@ class FieldValuesTest(AnswerTestingTest):
         avg = obj.quantities.weighted_average_quantity(
             field, weight=weight_field)
         mi, ma = obj.quantities.extrema(self.field)
-        return np.array([avg.in_base(self.unit_system),
-                         mi.in_base(self.unit_system),
-                         ma.in_base(self.unit_system)])
+        return [avg, mi, ma]
 
     def compare(self, new_result, old_result):
         err_msg = "Field values for %s not equal." % (self.field,)
@@ -471,6 +469,11 @@ class FieldValuesTest(AnswerTestingTest):
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
+            # What we do here is check if the old_result has units; if not, we
+            # assume they will be the same as the units of new_result.
+            if isinstance(old_result, np.ndarray) and not hasattr(old_result, "in_units"):
+                # coerce it here to the same units
+                old_result = old_result * new_result[0].uq
             assert_allclose_units(new_result, old_result, 10.**(-self.decimals),
                                   err_msg=err_msg, verbose=True)
 
