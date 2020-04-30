@@ -442,12 +442,14 @@ class FieldValuesTest(AnswerTestingTest):
     _attrs = ("field", )
 
     def __init__(self, ds_fn, field, obj_type = None,
-                 particle_type=False, decimals = 10):
+                 particle_type=False, decimals = 10,
+                 unit_system = "cgs"):
         super(FieldValuesTest, self).__init__(ds_fn)
         self.obj_type = obj_type
         self.field = field
         self.particle_type = particle_type
         self.decimals = decimals
+        self.unit_system = unit_system
 
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
@@ -459,7 +461,9 @@ class FieldValuesTest(AnswerTestingTest):
         avg = obj.quantities.weighted_average_quantity(
             field, weight=weight_field)
         mi, ma = obj.quantities.extrema(self.field)
-        return np.array([avg, mi, ma])
+        return np.array([avg.in_units(self.unit_system),
+                         mi.in_units(self.unit_system),
+                         ma.in_units(self.unit_system)])
 
     def compare(self, new_result, old_result):
         err_msg = "Field values for %s not equal." % (self.field,)
@@ -1000,8 +1004,13 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                     yield ProjectionValuesTest(
                         ds_fn, axis, field, weight_field,
                         dobj_name)
+                # We convert these to CGS, which will help flush out any issues
+                # with conversions between unit systems.  We don't do that
+                # earlier because *earlier* we want to reduce any possibility
+                # of roundoff error before hashing the values.  Here, we use
+                # decimals, so a tiny bit of roundoff is OK.
                 yield FieldValuesTest(
-                        ds_fn, field, dobj_name)
+                        ds_fn, field, dobj_name, unit_system = "cgs")
 
 def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
     if not can_run_ds(ds_fn):
@@ -1044,8 +1053,10 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
                     yield PixelizedProjectionValuesTest(
                         ds, axis, field, weight_field,
                         dobj_name)
+            # See the other note about unit_system
             yield FieldValuesTest(ds, field, dobj_name,
-                                  particle_type=particle_type)
+                                  particle_type=particle_type,
+                                  unit_system = "cgs")
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of
