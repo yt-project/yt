@@ -131,6 +131,7 @@ def test_profiles():
                              extrema={'density': (None, rma*e2)})
         assert_equal(p2d.x_bins[0], rmi - np.spacing(rmi))
         assert_equal(p2d.x_bins[-1], rma*e2)
+        assert str(ds.field_info['gas', 'cell_mass'].units) == str(p2d.weight.units)
 
         p2d = create_profile(dd, ('gas', 'density'), ('gas', 'temperature'),
                              weight_field=('gas', 'cell_mass'),

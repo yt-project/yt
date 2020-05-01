@@ -208,6 +208,8 @@ been deprecated, use profile.standard_deviation instead."""
                   array_like_field(self.data_source,
                                    all_std[...,i], field)
                 self.standard_deviation[field][blank] = 0.0
+                self.weight = array_like_field(
+                    self.data_source, self.weight, self.weight_field)
             self.field_data[field][blank] = 0.0
             self.field_units[field] = self.field_data[field].units
             if isinstance(field, tuple):
