@@ -1,4 +1,3 @@
-import pytest
 import hashlib
 import matplotlib
 import pickle
@@ -1241,6 +1240,7 @@ def requires_backend(backend):
     Decorated function or null function
 
     """
+    import pytest
     def ffalse(func):
         # returning a lambda : None causes an error when using pytest. Having
         # a function (skip) that returns None does work, but pytest marks the

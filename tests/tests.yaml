@@ -1,54 +1,54 @@
 answer_tests:
 
-  local_amrvac_003:
+  local_amrvac_004:
     - yt/frontends/amrvac/tests/test_outputs.py
     
   local_arepo_002:
     - yt/frontends/arepo/tests/test_outputs.py
 
-  local_artio_001:
+  local_artio_002:
     - yt/frontends/artio/tests/test_outputs.py
 
-  local_athena_005:
+  local_athena_006:
     - yt/frontends/athena
 
-  local_athena_pp_001:
+  local_athena_pp_002:
     - yt/frontends/athena_pp
 
-  local_chombo_002:
+  local_chombo_003:
     - yt/frontends/chombo/tests/test_outputs.py
 
-  local_enzo_004:
+  local_enzo_005:
     - yt/frontends/enzo
 
-  local_enzo_p_005:
+  local_enzo_p_006:
     - yt/frontends/enzo_p/tests/test_outputs.py
 
-  local_fits_002:
+  local_fits_003:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_009:
+  local_flash_010:
     - yt/frontends/flash/tests/test_outputs.py
 
-  local_gadget_001:
+  local_gadget_002:
     - yt/frontends/gadget/tests/test_outputs.py
 
-  local_gamer_005:
+  local_gamer_006:
     - yt/frontends/gamer/tests/test_outputs.py
 
   local_gdf_001:
     - yt/frontends/gdf/tests/test_outputs.py
 
-  local_gizmo_002:
+  local_gizmo_003:
     - yt/frontends/gizmo/tests/test_outputs.py
 
-  local_halos_008:
+  local_halos_009:
     - yt/frontends/ahf/tests/test_outputs.py
     - yt/frontends/owls_subfind/tests/test_outputs.py
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
-  local_owls_002:
+  local_owls_003:
     - yt/frontends/owls/tests/test_outputs.py
 
   local_pw_027:
@@ -59,7 +59,7 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
     - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
 
-  local_tipsy_002:
+  local_tipsy_003:
     - yt/frontends/tipsy/tests/test_outputs.py
 
   local_varia_010:
@@ -84,7 +84,7 @@ answer_tests:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render
     - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render_pyembree
 
-  local_boxlib_008:
+  local_boxlib_009:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
     - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
     - yt/frontends/boxlib/tests/test_outputs.py:test_star
@@ -94,7 +94,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
     - yt/frontends/boxlib/tests/test_outputs.py:test_raw_fields
 
-  local_boxlib_particles_005:
+  local_boxlib_particles_006:
     - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
     - yt/frontends/boxlib/tests/test_outputs.py:test_nyx_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_castro_particle_io
@@ -105,7 +105,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
 
-  local_ramses_001:
+  local_ramses_002:
     - yt/frontends/ramses/tests/test_outputs.py
 
   local_ytdata_006:
