@@ -1052,20 +1052,32 @@ class PWViewerMPL(PlotWindow):
             # colorbar minorticks
             if f not in self._cbar_minorticks:
                 self._cbar_minorticks[f] = True
-            if (self._cbar_minorticks[f] is True and MPL_VERSION < LooseVersion('2.0.0')
-                or self._field_transform[f] == symlog_transform):
+
+            if self._cbar_minorticks[f] is True:
+                vmin = np.float64(self.plots[f].cb.norm.vmin)
+                vmax = np.float64(self.plots[f].cb.norm.vmax)
+
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
-                else:
-                    vmin = np.float64( self.plots[f].cb.norm.vmin )
-                    vmax = np.float64( self.plots[f].cb.norm.vmax )
-                    if self._field_transform[f] == log_transform:
-                        mticks = self.plots[f].image.norm( get_log_minorticks(vmin, vmax) )
-                    else: # symlog_transform
-                        flinthresh = 10**np.floor( np.log10( self.plots[f].cb.norm.linthresh ) )
-                        mticks = self.plots[f].image.norm( get_symlog_minorticks(flinthresh, vmin, vmax) )
+                
+                elif self._field_transform[f] == symlog_transform:
+                    flinthresh = 10**np.floor(np.log10(self.plots[f].cb.norm.linthresh))
+                    mticks = self.plots[f].image.norm(get_symlog_minorticks(flinthresh, vmin, vmax))
                     self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
-            else:
+
+                elif self._field_transform[f] == log_transform:
+                    if MPL_VERSION >= LooseVersion('3.0.0'):
+                        self.plots[f].cax.minorticks_on()
+                        self.plots[f].cax.xaxis.set_visible(False)
+                    else:
+                        mticks = self.plots[f].image.norm(get_log_minorticks(vmin, vmax))
+                        self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
+
+                else:
+                    mylog.error("Unable to draw cbar minorticks for field {} with transform {} ".format(f, self._field_transform[f]))
+                    self._cbar_minorticks[f] = False
+
+            if not self._cbar_minorticks[f]:
                 self.plots[f].cax.minorticks_off()
 
             if draw_axes is False:
