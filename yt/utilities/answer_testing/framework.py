@@ -506,7 +506,7 @@ class ProjectionValuesTest(AnswerTestingTest):
     _attrs = ("field", "axis", "weight_field")
 
     def __init__(self, ds_fn, axis, field, weight_field = None,
-                 obj_type = None, decimals = None):
+                 obj_type = None, decimals = 10):
         super(ProjectionValuesTest, self).__init__(ds_fn)
         self.axis = axis
         self.field = field
@@ -543,7 +543,10 @@ class ProjectionValuesTest(AnswerTestingTest):
         for k in new_result:
             err_msg = "%s values of %s (%s weighted) projection (axis %s) not equal." % \
               (k, self.field, self.weight_field, self.axis)
-            if k == 'weight_field' and self.weight_field is None:
+            if k == 'weight_field':
+                # Our weight_field can vary between unit systems, whereas we
+                # can do a unitful comparison for the other fields.  So we do
+                # not do the test here.
                 continue
             nres, ores = new_result[k][nind], old_result[k][oind]
             if self.decimals is None:
