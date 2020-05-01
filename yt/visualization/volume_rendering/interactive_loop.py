@@ -151,14 +151,15 @@ class RenderingContext(pyglet.window.Window):
 
         self.scene = scene
         self.label = pyglet.text.Label('Hello, yt',
-                                  font_name='Times New Roman',
+                                  font_name=("Verdana", "Helvetica", "Arial"),
                                   font_size=36,
-                                  x=self.width//2, y=self.height//2,
-                                  anchor_x='center', anchor_y='center')
+                                  x=self.width, y=self.height,
+                                  anchor_x='right', anchor_y='top')
 
     def on_draw(self):
         if not self._do_update: return
         self._do_update = False
+        self.switch_to()
         self.clear()
         if self.scene is not None:
             print("Rendering %s" % time.time())
