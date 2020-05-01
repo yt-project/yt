@@ -93,7 +93,7 @@ The underlying functions are more thoroughly documented in :ref:`callback-api`.
 .. _annotate-clear:
 
 Clear Callbacks (Some or All)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_clear(index=None)
 
@@ -114,6 +114,27 @@ Clear Callbacks (Some or All)
     # Oops, I didn't want any of that.
     p.annotate_clear()
     p.save()
+
+.. _annotate-list:
+
+List Currently Applied Callbacks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: list_annotations()
+
+   This function will print a list of each of the currently applied
+   callbacks together with their index.  The index can be used with
+   :ref:`annotate_clear() function <annotate-clear>` to remove a
+   specific callback.
+
+.. python-script::
+
+    import yt
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+    p.annotate_scale()
+    p.annotate_timestamp()
+    p.list_annotations()
 
 .. _annotate-arrow:
 
