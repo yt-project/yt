@@ -48,7 +48,6 @@ def test_sph_interpolation_gather():
     octree.sph_smoothing_style = 'gather'
     octree.num_neighbors = 5
     octree.use_sph_normalization = False
-    print(octree._sph_smoothing_style)
 
     density = octree[('io', 'density')]
     answers = np.array([0.59240874, 0.59240874, 0.59240874, 0.59240874,
