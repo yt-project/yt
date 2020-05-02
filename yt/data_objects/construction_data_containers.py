@@ -729,9 +729,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if len(fields) == 0: return
 
         smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
-        normalize = getattr(self.ds, 'use_sph_normalization', False)
-
-        print("smoothing style: ", smoothing_style)
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
 
         bounds, size = self._get_grid_bounds_size()
 
