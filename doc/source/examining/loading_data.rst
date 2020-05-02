@@ -43,7 +43,7 @@ VS ``theta`` 2D plots in polar geometries (for example), but this may
 produce unpredictable behaviour and comes with no guarantee.
 
 A ``ndim``-long ``periodic`` boolean array was also added to improve
-comptatibility with yt. See http://amrvac.org/md_doc_fileformat.html
+compatibility with yt. See http://amrvac.org/md_doc_fileformat.html
 for details.
 
 .. rubric:: Auto-setup for derived fields
@@ -762,7 +762,7 @@ a dataset loaded as
    ds = yt.load("MOOSE_sample_data/mps_out.e")
 
 will not include the displacements in the vertex positions. The displacements can
-be turned on separately for each mesh in the file by passing in a a tuple of
+be turned on separately for each mesh in the file by passing in a tuple of
 (scale, offset) pairs for the meshes you want to enable displacements for.
 For example, the following code snippet turns displacements on for the second
 mesh, but not the first:
