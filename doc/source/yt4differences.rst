@@ -137,15 +137,13 @@ Smoothing data onto an Octree
 
 Whilst the move away from the global octree is a promising one in terms of
 perfomance and dealing with SPH data in a more intuitive manner, it does remove
-a useful feature. We are aware that many uses will have older scripts which take
+a useful feature. We are aware that many users will have older scripts which take
 advantage of the global octree.
 
 As such, we have added support to smooth SPH data onto an octree when desired by
 the users. The new octree is designed to give results consistent with those of
 the previous octree, but the new octree takes advantage of the scatter and
 gather machinery also added.
-
-It should be noted that the
 
 .. code-block:: python
 
@@ -159,6 +157,8 @@ It should be noted that the
     # generate an octree
     octree = ds.octree(left, right, n_ref=64)
 
+    ds.sph_smoothing_style = "scatter"
+
     # the density will be calculated using SPH scatter
     density = octree[('PartType0', 'density')]
 
@@ -166,17 +166,11 @@ It should be noted that the
     x = octree[('index', 'x')]
 
 The above code can be modified to use the scatter approach by using
-``ds.sph_smoothing_style = 'gather'`` before any field access. The octree also
-accepts ``over_refine_factor`` which works just like the ``over_refine_factor``
-parameter in yt-3.0 that could be passed to ``yt.load``, and determines how many
-particles are in each leaf.
+``ds.sph_smoothing_style = 'gather'`` before any field access.
 
-The ``density_factor`` keyword allows the construction of dense octrees
-trees. In a traditional octree, if a leaf has more particles that a critical
-value `n_ref`, then it divides into 8 new children (hence the name oct). The
-value of `density_factor` allows the node to divide into 2^(3*density_factor)
-zones instead. This creates an octree structure similar that used by AMR codes
-like FLASH that make use of an octree of grid patches.
+The octree implementation is very simple. It uses a recursive algorithm to build
+a ``depth-first`` which is consistent with the results from yt-3.
+
 
 ``yt.units`` is now a wrapper for ``unyt``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
