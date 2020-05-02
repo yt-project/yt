@@ -2743,7 +2743,7 @@ class YTOctree(YTSelectionContainer3D):
         if fields is None:
             return
 
-        sph_ptypes = getattr(self.ds, 'sph_ptypes', ["PartType0"])
+        sph_ptypes = getattr(self.ds, '_sph_ptypes', ["PartType0"])
         if fields[0] in sph_ptypes:
             # Try to get the smoothing style and normalization of the octree
             smoothing_style = getattr(self, 'sph_smoothing_style', None)
