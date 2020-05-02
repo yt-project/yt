@@ -2590,7 +2590,7 @@ class YTSurface(YTSelectionContainer3D):
 class YTOctree(YTSelectionContainer3D):
     """A 3D region with all the data filled into an octree. This container
     will mean deposit particle fields onto octs using a kernel and SPH
-    smoothing.
+    smoothing. The octree is built in a depth-first fashion.
 
     Parameters
     ----------
@@ -2626,11 +2626,6 @@ class YTOctree(YTSelectionContainer3D):
 
     _spatial = True
     _type_name = "octree"
-
-    _sph_smoothing_styles = ["scatter", "gather"]
-    _sph_smoothing_style = None
-    _num_neighbors = None
-    _use_sph_normalization = None
 
     _con_args = ('left_edge', 'right_edge', 'n_ref')
     _container_fields = (("index", "dx"),
@@ -2748,22 +2743,22 @@ class YTOctree(YTSelectionContainer3D):
         if fields is None:
             return
 
-        sph_ptypes = getattr(self.ds, '_sph_ptypes', None)
+        sph_ptypes = getattr(self.ds, 'sph_ptypes', ["PartType0"])
         if fields[0] in sph_ptypes:
             # Try to get the smoothing style and normalization of the octree
-            smoothing_style = getattr(self, '_sph_smoothing_style', None)
-            normalize = getattr(self, '_use_sph_normalization', None)
+            smoothing_style = getattr(self, 'sph_smoothing_style', None)
+            normalize = getattr(self, 'use_sph_normalization', None)
 
             # But if the octree smoothing style is not set, fallback to the
             # underlying dataset settings
             if smoothing_style is None:
-                smoothing_style = getattr(self.ds, '_sph_smoothing_style', 'scatter')
+                smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
             if normalize is None:
-                normalize = getattr(self.ds, '_use_sph_normalization', False)
+                normalize = getattr(self.ds, 'use_sph_normalization', False)
 
             units = self.ds._get_field_info(fields).units
             if smoothing_style == "scatter":
-                self.scatter_smooth(fields, units, normalize)
+                self._scatter_smooth(fields, units, normalize)
             else:
                 self.gather_smooth(fields, units, normalize)
         elif fields[0] == "index":
@@ -2772,13 +2767,13 @@ class YTOctree(YTSelectionContainer3D):
         else:
             raise NotImplementedError
 
-    def gather_smooth(self, fields, units, normalize):
+    def _gather_smooth(self, fields, units, normalize):
         buff = np.zeros(self.tree.num_nodes, dtype="float64")
 
         # Again, attempt to load num_neighbors from the octree
-        num_neighbors = getattr(self, '_num_neighbors', None)
+        num_neighbors = getattr(self, 'num_neighbors', None)
         if num_neighbors is None:
-            num_neighbors = getattr(self.ds, '_num_neighbors', 32)
+            num_neighbors = getattr(self.ds, 'num_neighbors', 32)
 
         # For the gather approach we load up all of the data, this like other
         # gather approaches is not memory conservative and with spatial chunking
@@ -2807,7 +2802,7 @@ class YTOctree(YTSelectionContainer3D):
 
         self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)
 
-    def scatter_smooth(self, fields, units, normalize):
+    def _scatter_smooth(self, fields, units, normalize):
         buff = np.zeros(self.tree.num_nodes, dtype="float64")
 
         if normalize:
@@ -2838,36 +2833,3 @@ class YTOctree(YTSelectionContainer3D):
             normalization_1d_utility(buff, buff_den)
 
         self[fields] = self.ds.arr(buff[~self[("index", "refined")]], units)
-
-    @property
-    def num_neighbors(self):
-        return self._num_neighbors
-
-    @num_neighbors.setter
-    def num_neighbors(self, value):
-        if value < 0:
-            raise ValueError("Negative value not allowed: %s" % value)
-        self._num_neighbors = value
-
-    @property
-    def sph_smoothing_style(self):
-        return self._sph_smoothing_style
-
-    @sph_smoothing_style.setter
-    def sph_smoothing_style(self, value):
-        if value not in self._sph_smoothing_styles:
-            raise ValueError("Smoothing style not implemented: %s, please "
-                             "select one of the following: " % value,
-                             self._sph_smoothing_styles)
-
-        self._sph_smoothing_style = value
-
-    @property
-    def use_sph_normalization(self):
-        return self._use_sph_normalization
-
-    @use_sph_normalization.setter
-    def use_sph_normalization(self, value):
-        if value is not True and value is not False:
-            raise ValueError("SPH normalization needs to be True or False!")
-        self._use_sph_normalization = value
