@@ -141,7 +141,7 @@ Lyman continuum.
 Making the Spectrum
 ^^^^^^^^^^^^^^^^^^^
 
-Once all the lines and continuua are added, it is time to make a spectrum out
+Once all the lines and continua are added, it is time to make a spectrum out
 of some light ray data.
 
 .. code-block:: python
