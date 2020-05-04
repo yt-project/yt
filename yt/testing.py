@@ -1223,3 +1223,32 @@ class TempDirTest(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
+
+# We make this a class with a setup so we can cache the particles one time
+class ParticleSelectionComparison:
+
+    def __init__(self, ds):
+        self.ds = ds
+        # Construct an index so that we get all the data_files
+        ds.index
+        particles = {}
+        for data_file in ds.index.data_files:
+            for ptype, pos_arr in ds.index.io._yield_coordinates(data_file):
+                particles.setdefault(ptype, []).append(pos_arr)
+        for ptype in particles:
+            particles[ptype] = np.concatenate(particles[ptype])
+        self.particles = particles
+
+    def compare_dobj_selection(self, dobj):
+        for ptype in sorted(self.particles):
+            x, y, z = self.particles[ptype].T
+            # Set our radii to zero for now, I guess?
+            sel_index = dobj.selector.select_points(x, y, z, 0.0)
+            sel_pos = self.particles[ptype][sel_index, :]
+
+            obj_results = []
+            for chunk in dobj.chunks([], "io"):
+                obj_results.append(chunk[ptype, "particle_position"])
+            obj_results = np.concatenate(obj_results, axis = 0)
+
+            assert np.all(sel_pos == obj_results)
