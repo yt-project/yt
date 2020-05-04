@@ -123,9 +123,12 @@ def _hash_results(results):
     """
     # Here, results should be comprised of only the tests, not the test
     # parameters
+    # Use a new dictionary so as to not overwrite the non-hashed test
+    # results in case those are to be saved
+    hashed_results = {}
     for test_name, test_value in results.items():
-        results[test_name] = generate_hash(test_value)
-    return results
+        hashed_results[test_name] = generate_hash(test_value)
+    return hashed_results
 
 def _hash_dict(data):
     r"""

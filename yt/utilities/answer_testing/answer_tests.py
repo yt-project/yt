@@ -115,36 +115,28 @@ def analytic_halo_mass_function(ds, fit):
     return result
 
 def small_patch_amr(ds, field, weight, axis, ds_obj):
-    hex_digests = {} 
+    results = {}
     # Grid hierarchy test
-    gh_hd = grid_hierarchy(ds)
-    hex_digests['grid_hierarchy'] = gh_hd
+    results['grid_hierarchy'] = grid_hierarchy(ds)
     # Parentage relationships test
-    pr_hd = parentage_relationships(ds)
-    hex_digests['parentage_relationships'] = pr_hd
+    results['parentage_relationships'] = parentage_relationships(ds)
     # Grid values, projection values, and field values tests
-    gv_hd = grid_values(ds, field)
-    hex_digests['grid_values'] = gv_hd
-    fv_hd = field_values(ds, field, ds_obj)
-    hex_digests['field_values'] = fv_hd
-    pv_hd = projection_values(ds, axis, field, weight, ds_obj)
-    hex_digests['projection_values'] = pv_hd
-    return hex_digests
+    results['grid_values'] = grid_values(ds, field)
+    results['field_values'] = field_values(ds, field, ds_obj)
+    results['projection_values'] = projection_values(ds, axis, field, weight, ds_obj)
+    return results 
 
 def big_patch_amr(ds, field, weight, axis, ds_obj):
-    hex_digests = {} 
+    results = {} 
     # Grid hierarchy test
-    gh_hd = grid_hierarchy(ds)
-    hex_digests['grid_hierarchy'] = gh_hd
+    results['grid_hierarchy'] = grid_hierarchy(ds)
     # Parentage relationships test
-    pr_hd = parentage_relationships(ds)
-    hex_digests['parentage_relationships'] = pr_hd
+    results['parentage_relationships'] = parentage_relationships(ds)
     # Grid values, projection values, and field values tests
-    gv_hd = grid_values(ds, field)
-    hex_digests['grid_values'] = gv_hd
-    ppv_hd = pixelized_projection_values(ds, axis, field, weight, ds_obj)
-    hex_digests['pixelized_projection_values'] = ppv_hd 
-    return hex_digests
+    results['grid_values'] = grid_values(ds, field)
+    results['pixelized_projection_values'] = pixelized_projection_values(
+        ds, axis, field, weight, ds_obj)
+    return results
 
 def generic_array(func, args=None, kwargs=None):
     if args is None:

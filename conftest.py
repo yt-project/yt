@@ -26,7 +26,7 @@ from yt.utilities.answer_testing import utils
 pytest.answer_files = {}
 
 # List of answer files
-answer_file_list = 'tests/tests.yaml'
+answer_file_list = 'tests/tests_pytest.yaml'
 answer_dir = os.path.join(ytcfg.get('yt', 'test_data_dir'), 'answers')
 array_dir = os.path.join(answer_dir, 'raw_arrays')
 
