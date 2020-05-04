@@ -1232,18 +1232,26 @@ class ParticleSelectionComparison:
         # Construct an index so that we get all the data_files
         ds.index
         particles = {}
+        hsml = {}
         for data_file in ds.index.data_files:
             for ptype, pos_arr in ds.index.io._yield_coordinates(data_file):
                 particles.setdefault(ptype, []).append(pos_arr)
+                if ptype in getattr(ds, '_sph_ptypes', ()):
+                    hsml.setdefault(ptype, []).append(ds.index.io._get_smoothing_length(
+                        data_file, pos_arr.dtype, pos_arr.shape))
         for ptype in particles:
             particles[ptype] = np.concatenate(particles[ptype])
+            if ptype in hsml:
+                hsml[ptype] = np.concatenate(hsml[ptype])
         self.particles = particles
+        self.hsml = hsml
 
     def compare_dobj_selection(self, dobj):
         for ptype in sorted(self.particles):
             x, y, z = self.particles[ptype].T
             # Set our radii to zero for now, I guess?
-            sel_index = dobj.selector.select_points(x, y, z, 0.0)
+            radii = self.hsml.get(ptype, 0.0)
+            sel_index = dobj.selector.select_points(x, y, z, radii)
             sel_pos = self.particles[ptype][sel_index, :]
 
             obj_results = []
