@@ -590,7 +590,9 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         for k in new_result:
             assert (k in old_result)
         for k in new_result:
-            assert_rel_equal(new_result[k], old_result[k], 10)
+            # weight_field does not have units, so we do not directly compare them
+            if k == "weight_field_sum": continue
+            assert_allclose_units(new_result[k], old_result[k], 1e-10)
 
 class GridValuesTest(AnswerTestingTest):
     _type_name = "GridValues"
