@@ -1532,11 +1532,11 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void add_coarse(self, np.uint64_t mi1, int bbox = 2):
-        cdef bint flag_ref = self.is_refined(mi1)
+        cdef bint flag_ref
         self.coarse_select_bool[mi1] = 1
         # Neighbors
-        if (self.ngz > 0) and (flag_ref == 0):
-            if (bbox == 2):
+        if (self.ngz > 0) and (bbox == 2):
+            if self.is_refined(mi1):
                 self.add_neighbors_coarse(mi1)
 
     @cython.boundscheck(False)
@@ -1563,9 +1563,8 @@ cdef class ParticleBitmapSelector:
     cdef int add_refined(self, np.uint64_t mi1, np.uint64_t mi2, int bbox = 2) except -1:
         self.refined_select_bool[mi2] = 1
         # Neighbors
-        if (self.ngz > 0):
-            if (bbox == 2):
-                self.add_neighbors_refined(mi1, mi2)
+        if (self.ngz > 0) and (bbox == 2):
+            self.add_neighbors_refined(mi1, mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1752,11 +1751,14 @@ cdef class ParticleBitmapSelector:
                                np.uint64_t ind1[3]) except -1:
         cdef np.uint64_t imi, fmi
         cdef np.uint64_t mi
-        cdef np.uint64_t indexgap = 1 << (self.bitmap.index_order1 - nlevel)
-        imi = encode_morton_64bit(ind1[0], ind1[1], ind1[2])
-        fmi = encode_morton_64bit(
-            ind1[0]+indexgap-1, ind1[1]+indexgap-1, ind1[2]+indexgap-1)
-        for mi in range(imi, fmi+1):
+        cdef np.uint64_t start_ind[3], end_ind[3]
+        cdef np.uint64_t shift_by = (self.bitmap.index_order1 - nlevel)
+        for i in range(3):
+            start_ind[i] = ind1[i] << shift_by
+            end_ind[i] = start_ind[i] + (1 << shift_by) - 1
+        imi = encode_morton_64bit(start_ind[0], start_ind[1], start_ind[2])
+        fmi = encode_morton_64bit(end_ind[0], end_ind[1], end_ind[2])
+        for mi in range(imi, fmi):
             self.add_coarse(mi, 1)
 
     @cython.boundscheck(False)
@@ -1767,12 +1769,15 @@ cdef class ParticleBitmapSelector:
                                np.uint64_t mi1,
                                np.uint64_t ind2[3]) except -1:
         cdef np.uint64_t imi, fmi
-        cdef np.uint64_t indexgap = 1 << (
-            self.bitmap.index_order2 - (nlevel - self.bitmap.index_order1))
-        imi = encode_morton_64bit(ind2[0], ind2[1], ind2[2])
-        fmi = encode_morton_64bit(
-            ind2[0]+indexgap-1, ind2[1]+indexgap-1, ind2[2]+indexgap-1)
-        for mi2 in range(imi, fmi+1):
+        cdef np.uint64_t shift_by = (self.bitmap.index_order2 +
+                                     self.bitmap.index_order1) - nlevel
+        cdef np.uint64_t start_ind[3], end_ind[3]
+        for i in range(3):
+            start_ind[i] = ind2[i] << shift_by
+            end_ind[i] = start_ind[i] + (1 << shift_by) - 1
+        imi = encode_morton_64bit(start_ind[0], start_ind[1], start_ind[2])
+        fmi = encode_morton_64bit(end_ind[0], end_ind[1], end_ind[2])
+        for mi2 in range(imi, fmi + 1):
             self.add_refined(mi1, mi2, 1)
 
     @cython.boundscheck(False)
