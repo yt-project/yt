@@ -263,9 +263,9 @@ class EnzoSimulation(SimulationTimeSeries):
         else:
             if initial_time is not None:
                 if isinstance(initial_time, float):
-                    initial_time = self.quan(initial_time, "code_time")
+                    my_initial_time = self.quan(initial_time, "code_time")
                 elif isinstance(initial_time, tuple) and len(initial_time) == 2:
-                    initial_time = self.quan(*initial_time)
+                    my_initial_time = self.quan(*initial_time)
                 elif not isinstance(initial_time, YTArray):
                     raise RuntimeError(
                         "Error: initial_time must be given as a float or " +
@@ -277,14 +277,13 @@ class EnzoSimulation(SimulationTimeSeries):
 
             if final_time is not None:
                 if isinstance(final_time, float):
-                    final_time = self.quan(final_time, "code_time")
+                    my_final_time = self.quan(final_time, "code_time")
                 elif isinstance(final_time, tuple) and len(final_time) == 2:
-                    final_time = self.quan(*final_time)
+                    my_final_time = self.quan(*final_time)
                 elif not isinstance(final_time, YTArray):
                     raise RuntimeError(
                         "Error: final_time must be given as a float or " +
                         "tuple of (value, units).")
-                my_final_time = final_time.in_units("s")
             elif final_redshift is not None:
                 my_final_time = self.cosmology.t_from_z(final_redshift)
             else:
