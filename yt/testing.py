@@ -1224,8 +1224,13 @@ class TempDirTest(unittest.TestCase):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
 
-# We make this a class with a setup so we can cache the particles one time
 class ParticleSelectionComparison:
+    """
+    This is a test helper class that takes a particle dataset, caches the
+    particles it has on disk (manually reading them using lower-level IO
+    routines) and then received a data object that it compares against manually
+    running the data object's selection routines.
+    """
 
     def __init__(self, ds):
         self.ds = ds
@@ -1259,4 +1264,4 @@ class ParticleSelectionComparison:
                 obj_results.append(chunk[ptype, "particle_position"])
             obj_results = np.concatenate(obj_results, axis = 0)
 
-            assert np.all(sel_pos == obj_results)
+            return np.all(sel_pos == obj_results)

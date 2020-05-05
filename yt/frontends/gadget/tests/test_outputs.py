@@ -5,7 +5,9 @@ import shutil
 import tempfile
 
 import yt
-from yt.testing import requires_file
+from yt.testing import requires_file, \
+    ParticleSelectionComparison, \
+    assert_equal
 from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     requires_ds, \
@@ -106,6 +108,46 @@ def test_multifile_read():
     """
     assert isinstance(data_dir_load(snap_33), GadgetDataset)
     assert isinstance(data_dir_load(snap_33_dir), GadgetDataset)
+
+@requires_file(snap_33)
+def test_particle_subselection():
+    """
+    This checks that we correctly subselect from a dataset, first by making
+    sure we get all the particles, then by comparing manual selections against
+    them.
+    """
+    ds = data_dir_load(snap_33)
+    psc = ParticleSelectionComparison(ds)
+    
+    sp1 = ds.sphere("c", (0.1, "unitary"))
+    assert_equal(psc.compare_dobj_selection(sp1) , True)
+
+    sp2 = ds.sphere("c", (0.1, "unitary"))
+    assert_equal(psc.compare_dobj_selection(sp2) , True)
+
+    sp3 = ds.sphere((1.0, 1.0, 1.0), (0.05, "unitary"))
+    assert_equal(psc.compare_dobj_selection(sp3) , True)
+
+    sp4 = ds.sphere("c", (0.5, "unitary"))
+    assert_equal(psc.compare_dobj_selection(sp4) , True)
+
+    dd = ds.all_data()
+    assert_equal(psc.compare_dobj_selection(dd) , True)
+
+    reg1 = ds.r[ (0.1, 'unitary'):(0.9, 'unitary'),
+                 (0.1, 'unitary'):(0.9, 'unitary'),
+                 (0.1, 'unitary'):(0.9, 'unitary')]
+    assert_equal(psc.compare_dobj_selection(reg1) , True)
+
+    reg2 = ds.r[ (0.8, 'unitary'):(0.85, 'unitary'),
+                 (0.8, 'unitary'):(0.85, 'unitary'),
+                 (0.8, 'unitary'):(0.85, 'unitary')]
+    assert_equal(psc.compare_dobj_selection(reg2) , True)
+
+    reg3 = ds.r[ (0.3, 'unitary'):(0.6, 'unitary'),
+                 (0.2, 'unitary'):(0.8, 'unitary'),
+                 (0.0, 'unitary'):(0.1, 'unitary')]
+    assert_equal(psc.compare_dobj_selection(reg3) , True)
 
 @requires_ds(BE_Gadget)
 def test_bigendian_field_access():
