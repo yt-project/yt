@@ -1751,13 +1751,9 @@ cdef class ParticleBitmapSelector:
                                np.uint64_t ind1[3]) except -1:
         cdef np.uint64_t imi, fmi
         cdef np.uint64_t mi
-        cdef np.uint64_t start_ind[3], end_ind[3]
-        cdef np.uint64_t shift_by = (self.bitmap.index_order1 - nlevel)
-        for i in range(3):
-            start_ind[i] = ind1[i] << shift_by
-            end_ind[i] = start_ind[i] + (1 << shift_by) - 1
-        imi = encode_morton_64bit(start_ind[0], start_ind[1], start_ind[2])
-        fmi = encode_morton_64bit(end_ind[0], end_ind[1], end_ind[2])
+        cdef np.uint64_t shift_by = 3 * (self.bitmap.index_order1 - nlevel)
+        imi = encode_morton_64bit(ind1[0], ind1[1], ind1[2]) << shift_by
+        fmi = imi + (1 << shift_by)
         for mi in range(imi, fmi):
             self.add_coarse(mi, 1)
 
