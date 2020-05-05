@@ -122,7 +122,7 @@ def test_particle_subselection():
     sp1 = ds.sphere("c", (0.1, "unitary"))
     assert_equal(psc.compare_dobj_selection(sp1) , True)
 
-    sp2 = ds.sphere("c", (0.1, "unitary"))
+    sp2 = ds.sphere("c", (0.2, "unitary"))
     assert_equal(psc.compare_dobj_selection(sp2) , True)
 
     sp3 = ds.sphere((1.0, 1.0, 1.0), (0.05, "unitary"))

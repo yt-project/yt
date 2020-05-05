@@ -1229,7 +1229,8 @@ class ParticleSelectionComparison:
     This is a test helper class that takes a particle dataset, caches the
     particles it has on disk (manually reading them using lower-level IO
     routines) and then received a data object that it compares against manually
-    running the data object's selection routines.
+    running the data object's selection routines.  All supplied data objects
+    must be created from the input dataset.
     """
 
     def __init__(self, ds):
@@ -1237,6 +1238,7 @@ class ParticleSelectionComparison:
         # Construct an index so that we get all the data_files
         ds.index
         particles = {}
+        # hsml is the smoothing length we use for radial selection
         hsml = {}
         for data_file in ds.index.data_files:
             for ptype, pos_arr in ds.index.io._yield_coordinates(data_file):
