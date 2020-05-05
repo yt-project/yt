@@ -1532,7 +1532,6 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void add_coarse(self, np.uint64_t mi1, int bbox = 2):
-        cdef bint flag_ref
         self.coarse_select_bool[mi1] = 1
         # Neighbors
         if (self.ngz > 0) and (bbox == 2):
