@@ -126,9 +126,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         return new_field
 
 
-    def get_vort_validators(ax=None):
-        if ax is None:
-            ax = ""
+    def get_vort_validators(ax=""):
         vort_validators = [
             ValidateSpatial(1, [(ftype, "velocity_%s" % d) for d in "xyz".replace(ax, "")]),
             ValidateParameter('bulk_velocity')
