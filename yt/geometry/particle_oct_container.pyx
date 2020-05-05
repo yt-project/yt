@@ -1536,7 +1536,7 @@ cdef class ParticleBitmapSelector:
         self.coarse_select_bool[mi1] = 1
         # Neighbors
         if (self.ngz > 0) and (bbox == 2):
-            if self.is_refined(mi1):
+            if not self.is_refined(mi1):
                 self.add_neighbors_coarse(mi1)
 
     @cython.boundscheck(False)
