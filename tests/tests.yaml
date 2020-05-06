@@ -62,7 +62,7 @@ answer_tests:
   local_tipsy_003:
     - yt/frontends/tipsy/tests/test_outputs.py
 
-  local_varia_010:
+  local_varia_011:
     - yt/frontends/moab/tests/test_c5.py
     - yt/fields/tests/test_xray_fields.py
 
