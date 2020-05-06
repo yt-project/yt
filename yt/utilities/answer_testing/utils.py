@@ -145,7 +145,10 @@ def _hash_dict(data):
         The hex digest of the hashed dictionary.
     """
     hd = None
-    for key, value in sorted(data.items()):
+    for key, value in data.items():
+        # Some keys are tuples, not strings
+        if not isinstance(key, str):
+            key = key.__repr__()
         if hd is None:
             hd = hashlib.md5(bytearray(key.encode('utf8')) + bytearray(value))
         else:
@@ -334,7 +337,7 @@ def _dict_to_array(d):
     """
     nkeys = len(d.keys())
     arr = np.zeros((nkeys, 2))
-    for i, (k, v) in enumerate(sorted(d.items())):
+    for i, (k, v) in enumerate(d.items()):
         arr[i][0] = k
         arr[i][1] = v
     return arr
