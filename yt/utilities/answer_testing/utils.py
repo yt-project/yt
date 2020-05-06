@@ -185,7 +185,7 @@ def generate_hash(data):
         if isinstance(data, dict):
             hd = _hash_dict(data)
         elif data is None:
-            hd = hashlib.md5(bytes(str(-1).encode('utf-8')))
+            hd = hashlib.md5(bytes(str(-1).encode('utf-8'))).hexdigest()
         else:
             raise TypeError
     return hd
