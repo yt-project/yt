@@ -329,6 +329,7 @@ def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     """
     args = args or ()
     kwargs = kwargs or {}
+    kwargs.setdefault('unit_system', 'code')
     path = ytcfg.get("yt", "test_data_dir")
     if isinstance(ds_fn, Dataset): return ds_fn
     if not os.path.isdir(path):
