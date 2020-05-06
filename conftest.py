@@ -169,18 +169,13 @@ def _param_list(request):
     Saves the non-ds, non-fixture function arguments for saving to
     the answer file.
     """
+    # pytest treats parameterized arguments as fixtures, so there's no
+    # clean way to separate them out from other other fixtures (that I
+    # know of), so we do it explicitly
+    blacklist = ['hashing', 'answer_file', 'request']
     test_params = {}
-    func = request.node.function
-    # co_varnames is all of the variable names local to the function
-    # starting with self, then the passed args, then the vars defined
-    # in the function body. This excludes fixture names
-    args = func.__code__.co_varnames[1:func.__code__.co_argcount]
-    # funcargs includes the names and values of all arguments, including
-    # fixtures, so we use args to weed out the fixtures. Need to have
-    # special treatment of the data files loaded in fixtures for the
-    # frontends
     for key, val in request.node.funcargs.items():
-        if key in args and not key.startswith('ds_'):
+        if key not in blacklist and not key.startswith('ds_'):
             test_params[key] = val
     # Convert python-specific data objects (such as tuples) to a more
     # io-friendly format (in order to not have python-specific anchors
