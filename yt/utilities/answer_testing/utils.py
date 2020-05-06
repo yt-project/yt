@@ -442,7 +442,7 @@ def requires_ds(ds_fn, file_check = False):
     def ftrue(func):
         @functools.wraps(func)
         def true_wrapper(*args, **kwargs):
-            return func
+            return func(*args, **kwargs)
         return true_wrapper
     if not can_run_ds(ds_fn, file_check):
         return ffalse
