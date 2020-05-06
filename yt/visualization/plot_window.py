@@ -135,7 +135,7 @@ def validate_mesh_fields(data_source, fields):
     canonical_fields = data_source._determine_fields(fields)
     invalid_fields = []
     for field in canonical_fields:
-        if data_source.ds.field_info[field].particle_type is True:
+        if data_source.ds.field_info[field].particle_type:
             invalid_fields.append(field)
 
     if len(invalid_fields) > 0:
@@ -204,7 +204,7 @@ class PlotWindow(ImagePlotContainer):
 
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
-        if self.data_source.center is not None and oblique is False:
+        if self.data_source.center is not None and not oblique:
             ax = self.data_source.axis
             xax = self.ds.coordinates.x_axis[ax]
             yax = self.ds.coordinates.y_axis[ax]
@@ -243,7 +243,7 @@ class PlotWindow(ImagePlotContainer):
     def frb():
         doc = "The frb property."
         def fget(self):
-            if self._frb is None or self._data_valid is False:
+            if self._frb is None or not self._data_valid:
                 self._recreate_frb()
             return self._frb
 
@@ -1044,7 +1044,7 @@ class PWViewerMPL(PlotWindow):
             # x-y axes minorticks
             if f not in self._minorticks:
                 self._minorticks[f] = True
-            if self._minorticks[f] is True:
+            if self._minorticks[f]:
                 self.plots[f].axes.minorticks_on()
             else:
                 self.plots[f].axes.minorticks_off()
@@ -1053,7 +1053,7 @@ class PWViewerMPL(PlotWindow):
             if f not in self._cbar_minorticks:
                 self._cbar_minorticks[f] = True
 
-            if self._cbar_minorticks[f] is True:
+            if self._cbar_minorticks[f]:
                 vmin = np.float64(self.plots[f].cb.norm.vmin)
                 vmax = np.float64(self.plots[f].cb.norm.vmax)
 
@@ -1080,10 +1080,10 @@ class PWViewerMPL(PlotWindow):
             if not self._cbar_minorticks[f]:
                 self.plots[f].cax.minorticks_off()
 
-            if draw_axes is False:
+            if not draw_axes:
                 self.plots[f]._toggle_axes(draw_axes, draw_frame)
 
-            if draw_colorbar is False:
+            if not draw_colorbar:
                 self.plots[f]._toggle_colorbar(draw_colorbar)
 
         self._set_font_properties()

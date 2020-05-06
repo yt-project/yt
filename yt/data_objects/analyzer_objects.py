@@ -22,7 +22,7 @@ analysis_task_registry = {}
 class RegisteredTask(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
-        if hasattr(cls, "skip") and cls.skip is False:
+        if hasattr(cls, "skip") and not cls.skip:
             return
         analysis_task_registry[cls.__name__] = cls
 

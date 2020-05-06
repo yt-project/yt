@@ -253,7 +253,7 @@ class ParticleProjectionPlot(PWViewerMPL):
 
         self.set_axes_unit(axes_unit)
 
-        if self._use_cbar is False:
+        if not self._use_cbar:
             self.hide_colorbar()
 
 

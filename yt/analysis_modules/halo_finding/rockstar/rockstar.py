@@ -199,7 +199,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             mylog.info("https://ui.adsabs.harvard.edu/abs/2013ApJ...762..109B")
         ParallelAnalysisInterface.__init__(self)
         # Decide how we're working.
-        if ytcfg.getboolean("yt", "inline") is True:
+        if ytcfg.getboolean("yt", "inline"):
             self.runner = InlineRunner()
         else:
             self.runner = StandardRunner(num_readers, num_writers)

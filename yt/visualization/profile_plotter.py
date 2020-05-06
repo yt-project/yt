@@ -365,7 +365,7 @@ class ProfilePlot(object):
         return ret
 
     def _setup_plots(self):
-        if self._plot_valid is True:
+        if self._plot_valid:
             return
         for f in self.axes:
             self.axes[f].cla()
@@ -1112,7 +1112,7 @@ class PhasePlot(ImagePlotContainer):
             # x-y axes minorticks
             if f not in self._minorticks:
                 self._minorticks[f] = True
-            if self._minorticks[f] is True:
+            if self._minorticks[f]:
                 self.plots[f].axes.minorticks_on()
             else:
                 self.plots[f].axes.minorticks_off()
@@ -1120,7 +1120,7 @@ class PhasePlot(ImagePlotContainer):
             # colorbar minorticks
             if f not in self._cbar_minorticks:
                 self._cbar_minorticks[f] = True
-            if self._cbar_minorticks[f] is True:
+            if self._cbar_minorticks[f]:
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
                 elif MPL_VERSION < LooseVersion("3.0.0"):
@@ -1140,7 +1140,7 @@ class PhasePlot(ImagePlotContainer):
         self._set_font_properties()
 
         # if this is a particle plot with one color only, hide the cbar here
-        if hasattr(self, "use_cbar") and self.use_cbar is False:
+        if hasattr(self, "use_cbar") and not self.use_cbar:
             self.plots[f].hide_colorbar()
 
         self._plot_valid = True
