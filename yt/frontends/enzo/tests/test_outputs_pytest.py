@@ -101,13 +101,13 @@ class TestEnzo:
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(enzotiny)
     def test_simulated_halo_mass_function(self, finder, ds_enzotiny):
-        shmf = simulated_halo_mass_function_test(ds_enzotiny, finder)
+        shmf = simulated_halo_mass_function(ds_enzotiny, finder)
         self.hashes.update({'simulated_halo_mass_function' : shmf})
 
     @pytest.mark.usefixtures('hashing')
     @utils.requires_ds(enzotiny)
     def test_analytic_halo_mass_function(self, fit, ds_enzotiny):
-        ahmf = analytic_halo_mass_function_test(ds_enzotiny, fit)
+        ahmf = analytic_halo_mass_function(ds_enzotiny, fit)
         self.hashes.update({'analytic_halo_mass_function' : ahmf})
 
     @pytest.mark.big_data
