@@ -18,7 +18,7 @@ answer_tests:
   local_chombo_003:
     - yt/frontends/chombo/tests/test_outputs.py
 
-  local_enzo_005:
+  local_enzo_006:
     - yt/frontends/enzo
 
   local_enzo_p_006:

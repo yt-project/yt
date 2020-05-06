@@ -126,7 +126,7 @@ Major Changes and New Features
 Documentation Changes
 ^^^^^^^^^^^^^^^^^^^^^
 
-Our documentataion has received some attention in the following PRs:
+Our documentation has received some attention in the following PRs:
 
 - include donation/funding links in README `PR 2520 <https://github.com/yt-project/yt/pull/2520>`__.
 - Included instructions on how to install yt on the 
@@ -461,7 +461,7 @@ Additional Improvements
 - Added an ``equivalence`` keyword argument to ``YTArray.in_units()`` and
   ``YTArray.to()``. This makes it possible to specify an equivalence when
   converting data to a new unit. Also added ``YTArray.to_value()`` which allows
-  convering to a new unit, then stripping off the units to return a plain numpy
+  converting to a new unit, then stripping off the units to return a plain numpy
   array. See `PR 1563 <https://github.com/yt-project/yt/pull/1563>`__.
 - Rather than crashing, yt will now assume default values for cosmology
   parameters in Gadget HDF5 data if it cannot find the relevant header

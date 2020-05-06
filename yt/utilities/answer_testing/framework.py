@@ -336,7 +336,7 @@ class AnswerTestingTest(object):
         elif isinstance(ds_fn, Dataset):
             self.ds = ds_fn
         else:
-            self.ds = data_dir_load(ds_fn)
+            self.ds = data_dir_load(ds_fn, kwargs = {'unit_system': 'code'})
 
     def __call__(self):
         if AnswerTestingTest.result_storage is None:
@@ -475,6 +475,11 @@ class FieldValuesTest(AnswerTestingTest):
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
+            # What we do here is check if the old_result has units; if not, we
+            # assume they will be the same as the units of new_result.
+            if isinstance(old_result, np.ndarray) and not hasattr(old_result, "in_units"):
+                # coerce it here to the same units
+                old_result = old_result * new_result[0].uq
             assert_allclose_units(new_result, old_result, 10.**(-self.decimals),
                                   err_msg=err_msg, verbose=True)
 
@@ -599,11 +604,9 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         for k in new_result:
             assert (k in old_result)
         for k in new_result:
-            if hasattr(new_result[k], "d"):
-                new_result[k] = new_result[k].d
-            if hasattr(old_result[k], "d"):
-                old_result[k] = old_result[k].d
-            assert_rel_equal(new_result[k], old_result[k], 10)
+            # weight_field does not have units, so we do not directly compare them
+            if k == "weight_field_sum": continue
+            assert_allclose_units(new_result[k], old_result[k], 1e-10)
 
 class GridValuesTest(AnswerTestingTest):
     _type_name = "GridValues"
@@ -990,8 +993,7 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                     yield ProjectionValuesTest(
                         ds_fn, axis, field, weight_field,
                         dobj_name)
-                yield FieldValuesTest(
-                        ds_fn, field, dobj_name)
+                yield FieldValuesTest(ds_fn, field, dobj_name)
 
 def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
     if not can_run_ds(ds_fn):
