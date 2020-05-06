@@ -725,7 +725,7 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
-        if field is 'all':
+        if field == 'all':
             fields = list(self.plots.keys())
         else:
             fields = ensure_list(field)
