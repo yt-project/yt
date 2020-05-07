@@ -231,18 +231,14 @@ def _compare_result(data, outputFile):
     # Compare
     _check_vals(data, savedData)
 
-def _handle_hashes(save_dir_name, fname, hashes, answer_store):
+def _handle_hashes(answer_file, hashes, answer_store):
     r"""
     Driver function for deciding whether to save the test results or
     compare them to already saved results.
 
     Parameters
     ----------
-    save_dir_name : str
-        Name of the directory to save results or where results are
-        already saved.
-
-    fname : str
+    answer_file : str
         Name of the file to either save results to or where results
         are already saved.
 
@@ -253,8 +249,6 @@ def _handle_hashes(save_dir_name, fname, hashes, answer_store):
         If true, save the just-generated test results, otherwise,
         compare them to the previously saved results.
     """
-    # Set up the answer file in the answer directory
-    answer_file = os.path.join(save_dir_name, fname)
     # Save the result
     if answer_store:
         _save_result(hashes, answer_file)
@@ -263,20 +257,16 @@ def _handle_hashes(save_dir_name, fname, hashes, answer_store):
         _compare_result(hashes, answer_file)
 
 
-def _handle_raw_arrays(save_dir_name, fbasename, arrays, answer_store, func_name):
+def _handle_raw_arrays(answer_file, arrays, answer_store, func_name):
     r"""
     Driver routine for either saving the raw arrays resulting from the
     tests, or compare them to previously saved results.
 
     Parameters
     ----------
-    save_dir_name : str
-        Name of the directory to save results or where results are
+    answer_file : str
+        Name of the file to either save results to or where results are
         already saved.
-
-    fbasename : str
-        Base name (no extension) of the file to either save results
-        to or where results are already saved.
 
     arrays : dict
         The raw arrays generated from the tests, with the test name
@@ -289,7 +279,6 @@ def _handle_raw_arrays(save_dir_name, fbasename, arrays, answer_store, func_name
     func_name : str
         The name of the function that created the answers being saved.
     """
-    answer_file = os.path.join(save_dir_name, fbasename + '.h5')
     if answer_store:
         _save_raw_arrays(arrays, answer_file, func_name)
     else:
@@ -322,25 +311,33 @@ def _save_raw_arrays(arrays, answer_file, func_name):
     """
     with h5py.File(answer_file, 'a') as f:
         grp = f.create_group(func_name)
-        for test_name, test_array in arrays.items():
+        for test_name, test_data in arrays.items():
             # Some answer tests (e.g., grid_values, projection_values)
             # return a dictionary, which cannot be handled by h5py
-            if isinstance(test_array, dict):
-                test_array = _dict_to_array(test_array)
-            grp.create_dataset(test_name, data=test_array)
+            if isinstance(test_data, dict):
+                _parse_raw_answer_dict(test_data, grp) 
+            else:
+                # Some tests return None, which hdf5 can't handle, and there is
+                # no proxy, so we have to make one ourselves. Using -1
+                if test_data is None:
+                    test_data = -1
+                grp.create_dataset(test_name, data=test_data)
 
 
-def _dict_to_array(d):
-    r"""
-    Converts a dictionary into a 2D numpy array, where array[0][0] = key
-    and array[0][1] = value.
+def _parse_raw_answer_dict(d, h5grp):
     """
-    nkeys = len(d.keys())
-    arr = np.zeros((nkeys, 2))
-    for i, (k, v) in enumerate(d.items()):
-        arr[i][0] = k
-        arr[i][1] = v
-    return arr
+    Doc string.
+    """
+    for k, v in d.items():
+        if isinstance(v, dict):
+            h5_sub_grp = h5grp.create_group(k)
+            _parse_raw_answer_dict(v, h5_sub_grp)
+        else:
+            if not isinstance(k, str):
+                k = str(k)
+            h5grp.create_dataset(k, data=v)
+            
+
 
 
 def _compare_raw_arrays(arrays, answer_file, func_name):
