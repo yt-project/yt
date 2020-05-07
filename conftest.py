@@ -38,20 +38,29 @@ def pytest_addoption(parser):
     parser.addoption(
         "--with-answer-testing",
         action="store_true",
-        default=False,
     )
     parser.addoption(
         "--answer-store",
         action="store_true",
-        default=False,
     )
     parser.addoption(
         "--answer-big-data",
         action="store_true",
-        default=False,
     )
     parser.addoption(
         "--answer-raw-arrays",
+        action="store_true",
+    )
+    parser.addoption(
+        "--raw-answer-store",
+        action="store_true",
+    )
+    parser.addoption(
+        "--force-overwrite",
+        action="store_true",
+    )
+    parser.addoption(
+        "--no-hash",
         action="store_true",
     )
 
@@ -248,11 +257,12 @@ def hashing(request):
     # Add the function name as the "master" key to the hashes dict
     hashes = {request.node.name : hashes}
     # Either save or compare
-    utils._handle_hashes(answer_dir, request.cls.answer_file, hashes,
-        request.config.getoption('--answer-store'))
+    if not request.config.getoption("--no-hash"):
+        utils._handle_hashes(request.cls.answer_file, hashes,
+            request.config.getoption('--answer-store'))
     if request.config.getoption('--answer-raw-arrays'):
         # answer_file has .yaml appended to it, but here we're saving
         # the arrays as .npy files, so we remove the .yaml extension
-        utils._handle_raw_arrays(array_dir, request.cls.answer_file.split('.')[0],
-            request.cls.hashes, request.config.getoption('--answer-store'),
+        utils._handle_raw_arrays(request.cls.raw_answer_file,
+            request.cls.hashes, request.config.getoption('--raw-answer-store'),
             request.node.name)
