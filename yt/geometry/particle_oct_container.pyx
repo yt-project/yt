@@ -552,7 +552,10 @@ cdef class ParticleBitmap:
                         # OK, now we compute the left and right edges for this shift.
                         for i in range(3):
                             bounds[i][0] = i64max(<np.uint64_t>((s_ppos[i] - LE[i] - radius)/dds[i]), 0)
-                            bounds[i][1] = i64min(<np.uint64_t>((s_ppos[i] - LE[i] + radius)/dds[i]), mi_max)
+                            bounds[i][1] = i64min(<np.uint64_t>((s_ppos[i] - LE[i] + radius)/dds[i]), mi_max) + 1
+                        # We go to the upper bound plus one so that we have *inclusive* loops -- the upper bound
+                        # is the cell *index*, so we want to make sure we include that cell.  This is also why
+                        # we don't need to worry about mi_max being the max index rather than the cell count.
                         for xex in range(bounds[0][0], bounds[0][1]):
                             for yex in range(bounds[1][0], bounds[1][1]):
                                 for zex in range(bounds[2][0], bounds[2][1]):

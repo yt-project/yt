@@ -5,7 +5,9 @@ import shutil
 import tempfile
 
 import yt
-from yt.testing import requires_file
+from yt.testing import requires_file, \
+    ParticleSelectionComparison, \
+    assert_equal
 from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     requires_ds, \
@@ -106,6 +108,73 @@ def test_multifile_read():
     """
     assert isinstance(data_dir_load(snap_33), GadgetDataset)
     assert isinstance(data_dir_load(snap_33_dir), GadgetDataset)
+
+@requires_file(snap_33)
+def test_particle_subselection():
+    #This checks that we correctly subselect from a dataset, first by making
+    #sure we get all the particles, then by comparing manual selections against
+    #them.
+    ds = data_dir_load(snap_33)
+    psc = ParticleSelectionComparison(ds)
+
+    sp1 = ds.sphere("c", (0.1, "unitary"))
+    psc.compare_dobj_selection(sp1)
+
+    sp2 = ds.sphere("c", (0.2, "unitary"))
+    psc.compare_dobj_selection(sp2)
+
+    # Test wrapping around each axis individually: x
+    sp3_x = ds.sphere((1.0, 12.5, 12.5), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp3_x)
+
+    # Test wrapping around each axis individually: y
+    sp3_y = ds.sphere((12.5, 1.0, 12.5), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp3_y)
+
+    # Test wrapping around each axis individually: z
+    sp3_z = ds.sphere((12.5, 12.5, 1.0), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp3_z)
+
+    # Test wrapping around all three axes simultaneously on left
+    sp3_all = ds.sphere((1.0, 1.0, 1.0), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp3_all)
+
+    # Test wrapping around each axis individually on right: x
+    sp4_x = ds.sphere((24.0, 12.5, 12.5), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp4_x)
+
+    # Test wrapping around each axis individually on right: y
+    sp4_y = ds.sphere((12.5, 24.0, 12.5), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp4_y)
+
+    # Test wrapping around each axis individually on right: z
+    sp4_z = ds.sphere((12.5, 12.5, 24.0), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp4_z)
+
+    # Test wrapping around all three axes simultaneously on right
+    sp4_all = ds.sphere((24.0, 24.0, 24.0), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp4_all)
+
+    sp5 = ds.sphere("c", (0.5, "unitary"))
+    psc.compare_dobj_selection(sp5)
+
+    dd = ds.all_data()
+    psc.compare_dobj_selection(dd)
+
+    reg1 = ds.r[ (0.1, 'unitary'):(0.9, 'unitary'),
+                 (0.1, 'unitary'):(0.9, 'unitary'),
+                 (0.1, 'unitary'):(0.9, 'unitary')]
+    psc.compare_dobj_selection(reg1)
+
+    reg2 = ds.r[ (0.8, 'unitary'):(0.85, 'unitary'),
+                 (0.8, 'unitary'):(0.85, 'unitary'),
+                 (0.8, 'unitary'):(0.85, 'unitary')]
+    psc.compare_dobj_selection(reg2)
+
+    reg3 = ds.r[ (0.3, 'unitary'):(0.6, 'unitary'),
+                 (0.2, 'unitary'):(0.8, 'unitary'),
+                 (0.0, 'unitary'):(0.1, 'unitary')]
+    psc.compare_dobj_selection(reg3)
 
 @requires_ds(BE_Gadget)
 def test_bigendian_field_access():

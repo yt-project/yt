@@ -1223,3 +1223,49 @@ class TempDirTest(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
+
+class ParticleSelectionComparison:
+    """
+    This is a test helper class that takes a particle dataset, caches the
+    particles it has on disk (manually reading them using lower-level IO
+    routines) and then received a data object that it compares against manually
+    running the data object's selection routines.  All supplied data objects
+    must be created from the input dataset.
+    """
+
+    def __init__(self, ds):
+        self.ds = ds
+        # Construct an index so that we get all the data_files
+        ds.index
+        particles = {}
+        # hsml is the smoothing length we use for radial selection
+        hsml = {}
+        for data_file in ds.index.data_files:
+            for ptype, pos_arr in ds.index.io._yield_coordinates(data_file):
+                particles.setdefault(ptype, []).append(pos_arr)
+                if ptype in getattr(ds, '_sph_ptypes', ()):
+                    hsml.setdefault(ptype, []).append(ds.index.io._get_smoothing_length(
+                        data_file, pos_arr.dtype, pos_arr.shape))
+        for ptype in particles:
+            particles[ptype] = np.concatenate(particles[ptype])
+            if ptype in hsml:
+                hsml[ptype] = np.concatenate(hsml[ptype])
+        self.particles = particles
+        self.hsml = hsml
+
+    def compare_dobj_selection(self, dobj):
+        for ptype in sorted(self.particles):
+            x, y, z = self.particles[ptype].T
+            # Set our radii to zero for now, I guess?
+            radii = self.hsml.get(ptype, 0.0)
+            sel_index = dobj.selector.select_points(x, y, z, radii)
+            if sel_index is None:
+                sel_pos = np.empty((0, 3))
+            else:
+                sel_pos = self.particles[ptype][sel_index, :]
+
+            obj_results = []
+            for chunk in dobj.chunks([], "io"):
+                obj_results.append(chunk[ptype, "particle_position"])
+            obj_results = np.concatenate(obj_results, axis = 0)
+            assert_equal(sel_pos, obj_results)
