@@ -135,12 +135,28 @@ def test_particle_subselection():
     sp3_z = ds.sphere((12.5, 12.5, 1.0), (2.0, "code_length"))
     psc.compare_dobj_selection(sp3_z)
 
-    # Test wrapping around all three axes simultaneously
+    # Test wrapping around all three axes simultaneously on left
     sp3_all = ds.sphere((1.0, 1.0, 1.0), (2.0, "code_length"))
     psc.compare_dobj_selection(sp3_all)
 
-    sp4 = ds.sphere("c", (0.5, "unitary"))
-    psc.compare_dobj_selection(sp4)
+    # Test wrapping around each axis individually on right: x
+    sp4_x = ds.sphere((24.0, 12.5, 12.5), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp4_x)
+
+    # Test wrapping around each axis individually on right: y
+    sp4_y = ds.sphere((12.5, 24.0, 12.5), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp4_y)
+
+    # Test wrapping around each axis individually on right: z
+    sp4_z = ds.sphere((12.5, 12.5, 24.0), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp4_z)
+
+    # Test wrapping around all three axes simultaneously on right
+    sp4_all = ds.sphere((24.0, 24.0, 24.0), (2.0, "code_length"))
+    psc.compare_dobj_selection(sp4_all)
+
+    sp5 = ds.sphere("c", (0.5, "unitary"))
+    psc.compare_dobj_selection(sp5)
 
     dd = ds.all_data()
     psc.compare_dobj_selection(dd)
