@@ -566,7 +566,7 @@ cdef class ParticleBitmap:
                                             "Index for a softening region " +
                                             "({}) exceeds ".format(miex) +
                                             "max ({})".format(msize))
-            
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
