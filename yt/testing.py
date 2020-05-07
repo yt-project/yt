@@ -523,7 +523,7 @@ def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=None):
 
     if refined in (None, True):
         refined = [True]
-    if refined is False:
+    if not refined:
         refined = [False]
         return refined
 

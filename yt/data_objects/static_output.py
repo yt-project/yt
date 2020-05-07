@@ -185,7 +185,7 @@ class Dataset(metaclass = RegisteredDataset):
             obj = object.__new__(cls)
         elif cache_key not in _cached_datasets:
             obj = object.__new__(cls)
-            if obj._skip_cache is False:
+            if not obj._skip_cache:
                 _cached_datasets[cache_key] = obj
         else:
             obj = _cached_datasets[cache_key]
@@ -918,7 +918,7 @@ class Dataset(metaclass = RegisteredDataset):
     @property
     def particle_type_counts(self):
         self.index
-        if self.particles_exist is False:
+        if not self.particles_exist:
             return {}
 
         # frontends or index implementation can populate this dict while

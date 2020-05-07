@@ -157,7 +157,8 @@ class AnswerTesting(Plugin):
         run_big_data = options.big_data
 
     def finalize(self, result=None):
-        if self.store_results is False: return
+        if not self.store_results:
+            return
         self.storage.dump(self.result_storage)
 
     def help(self):
@@ -951,7 +952,7 @@ def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data is False and big_data is True:
+    if not run_big_data and big_data:
         return ffalse
     elif not can_run_sim(sim_fn, sim_type, file_check):
         return ffalse
@@ -973,7 +974,7 @@ def requires_ds(ds_fn, big_data = False, file_check = False):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data is False and big_data is True:
+    if not run_big_data and big_data:
         return ffalse
     elif not can_run_ds(ds_fn, file_check):
         return ffalse
@@ -1028,7 +1029,7 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
             else:
                 particle_type = False
             for axis in [0, 1, 2]:
-                if particle_type is False:
+                if not particle_type:
                     yield PixelizedProjectionValuesTest(
                         ds, axis, field, weight_field,
                         dobj_name)

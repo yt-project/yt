@@ -79,7 +79,7 @@ def _print_failed_source_update(reinstall=False):
         print("    $ conda update yt")
         print()
         print("to update your yt installation.")
-        if reinstall is True:
+        if reinstall:
             print()
             print("To update all of your packages, you can do:")
             print()
@@ -1063,11 +1063,11 @@ class YTStatsCmd(YTCommand):
         ds.print_stats()
         vals = {}
         if args.field in ds.derived_field_list:
-            if args.max is True:
+            if args.max:
                 vals['min'] = ds.find_max(args.field)
                 print("Maximum %s: %0.5e at %s" % (args.field,
                     vals['min'][0], vals['min'][1]))
-            if args.min is True:
+            if args.min:
                 vals['max'] = ds.find_min(args.field)
                 print("Minimum %s: %0.5e at %s" % (args.field,
                     vals['max'][0], vals['max'][1]))

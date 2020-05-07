@@ -267,10 +267,10 @@ class DatasetSeries(object):
         ...
 
         """
-        if self.parallel is False:
+        if not self.parallel:
             njobs = 1
-        elif dynamic is False:
-            if self.parallel is True:
+        elif not dynamic:
+            if self.parallel:
                 njobs = -1
             else:
                 njobs = self.parallel

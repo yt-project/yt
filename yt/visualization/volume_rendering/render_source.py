@@ -57,7 +57,7 @@ def validate_volume(f):
         if obj.weight_field is not None:
             fields.append(obj.weight_field)
             log_fields.append(obj.log_field)
-        if obj._volume_valid is False:
+        if not obj._volume_valid:
             obj.volume.set_fields(fields, log_fields,
                                   no_ghost=(not obj.use_ghost_zones))
         obj._volume_valid = True
@@ -227,7 +227,7 @@ class VolumeSource(RenderSource):
         self._field = value.fields
         self._log_field = value.log_fields
         self._volume = value
-        self._volume_valid is True
+        assert self._volume_valid
 
     @volume.deleter
     def volume(self):
@@ -458,7 +458,7 @@ class VolumeSource(RenderSource):
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
-        if self.transfer_function.grey_opacity is False:
+        if not self.transfer_function.grey_opacity:
             image[:, :, 3] = 1
         return image
 

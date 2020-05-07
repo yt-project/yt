@@ -280,9 +280,11 @@ class GAMERDataset(Dataset):
             periodic_bc = 1
         else:
             periodic_bc = 0
-        self.periodicity = ( parameters['Opt__BC_Flu'][0]==periodic_bc,
-                             parameters['Opt__BC_Flu'][2]==periodic_bc,
-                             parameters['Opt__BC_Flu'][4]==periodic_bc )
+        self.periodicity = (
+            bool(parameters['Opt__BC_Flu'][0]==periodic_bc),
+            bool(parameters['Opt__BC_Flu'][2]==periodic_bc),
+            bool(parameters['Opt__BC_Flu'][4]==periodic_bc),
+        )
 
         # cosmological parameters
         if parameters['Comoving']:

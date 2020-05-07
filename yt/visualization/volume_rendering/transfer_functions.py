@@ -585,7 +585,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.yaxis.set_ticks(xticks)
         def x_format(x, pos):
             val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0]
-            if log_scale is True:
+            if log_scale:
                 val = 10**val
             if label_fmt is None:
                 if abs(val) < 1.e-3 or abs(val) > 1.e4:

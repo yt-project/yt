@@ -168,7 +168,7 @@ def time_execution(func):
         mylog.debug('%s took %0.3f s', func.__name__, (t2-t1))
         return res
     from yt.config import ytcfg
-    if ytcfg.getboolean("yt","timefunctions") is True:
+    if ytcfg.getboolean("yt","timefunctions"):
         return wrapper
     else:
         return func
@@ -1144,7 +1144,7 @@ interactivity = False
 def toggle_interactivity():
     global interactivity
     interactivity = not interactivity
-    if interactivity is True:
+    if interactivity:
         if '__IPYTHON__' in dir(builtins):
             import IPython
             shell = IPython.get_ipython()

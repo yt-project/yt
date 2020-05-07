@@ -343,7 +343,7 @@ class AthenaConverter(Converter):
                 self.parse_line(line, grid)
                 if grid['read_type'] == 'vector':
                     break
-                if table_read is False:             
+                if not table_read:
                     line = f.readline()
                 if 'TABLE' in line.strip().split():
                     table_read = True

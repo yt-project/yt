@@ -227,7 +227,7 @@ class YTProj(YTSelectionContainer2D):
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           [], "io", local_only = True)):
-                if _units_initialized is False:
+                if not _units_initialized:
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)

@@ -207,7 +207,7 @@ def _get_backup_file(ds):
         # backup file already exists, open it. We use parallel
         # h5py if it is available
         if communication_system.communicators[-1].size > 1 and \
-                h5py.get_config().mpi is True:
+                h5py.get_config().mpi:
             mpi4py_communicator = communication_system.communicators[-1].comm
             f = h5py.File(backup_filename, "r+", driver='mpio', 
                           comm=mpi4py_communicator)
@@ -249,7 +249,7 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
     # h5py if it is available.
     ###
     if communication_system.communicators[-1].size > 1 and \
-            h5py.get_config().mpi is True:
+            h5py.get_config().mpi:
         mpi4py_communicator = communication_system.communicators[-1].comm
         f = h5py.File(gdf_path, "w", driver='mpio', 
                       comm=mpi4py_communicator)
