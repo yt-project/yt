@@ -157,20 +157,59 @@ def answer_file(request):
         >>>     def test1(self):
                     ...
     """
-    if request.cls.__name__ in pytest.answer_files:
-        answer_file = pytest.answer_files[request.cls.__name__]
-        # Make sure we're not overwriting an existing answer set
-        if os.path.isfile(os.path.join(answer_dir, answer_file)):
-            if request.config.getoption('--answer-store'):
-                raise FileExistsError("Error, attempting to overwrite "
-                    "answer file {}. Either specify a new version or "
-                    "set the `--force-override-answers` option".format(
-                        answer_file
-                    )
-                )
-    else:
-        assert False
+    # See if the class being tested is one we know about
+    try:
+        answer_file, raw_answer_file  = pytest.answer_files[request.cls.__name__]
+        answer_file = os.path.join(answer_dir, answer_file)
+        raw_answer_file = os.path.join(array_dir, raw_answer_file)
+    except KeyError:
+        raise KeyError("Answer file: `{}` not found in list: `{}`.".format(
+            request.config.__name__, answer_file_list))
+    except ValueError:
+        raise ValueError("Either no hashed answer file name or no raw "
+            "answer file name given for: `{}` in: `{}`.".format(
+            request.cls.__name__, answer_file_list))
+    no_hash = request.config.getoption("--no-hash")
+    answer_store = request.config.getoption("--answer-store")
+    answer_raw_arrays = request.config.getoption("--answer-raw-arrays")
+    raw_answer_store = request.config.getoption("--raw-answer-store")
+    force_overwrite = request.config.getoption("--force-overwrite")
+    # If we're saving answers, make sure answer file doesn't already exist
+    # unless force-overwrite is enabled. Only need to check if that type of
+    # answer file is under consideration (e.g., we don't need to check the
+    # hash answer files if the user wants to only save raw answer data)
+    if not no_hash:
+        if answer_store and os.path.isfile(answer_file):
+            if not force_overwrite:
+                raise FileExistsError("Attempting to overwrite existing answer " +
+                "file: `{}`. If you're sure about this, use the `--force-overwrite` " +
+                "option.".format(answer_file))
+        # If we're comparing new and old answers, first make sure that the
+        # file containing the old answers exists so we don't waste time running
+        # all the tests only to find we have nothing to compare to
+        elif not answer_store and not os.path.isfile(answer_file):
+            raise FileNotFoundError("Cannot find `{}` containing gold " +
+                "answers.".format(answer_file))
+    # Now do the same thing as above but for the raw arrays
+    if answer_raw_arrays:
+        if raw_answer_store and os.path.isfile(raw_answer_file):
+            if not force_overwrite:
+                raise FileExistsError("Attempting to overwrite existing answer " +
+                "file: `{}`. If you're sure about this, use the `--force-overwrite` " +
+                "option.".format(raw_answer_file))
+        elif not raw_answer_store and not os.path.isfile(raw_answer_file):
+            raise FileNotFoundError("Cannot find `{}` containing gold " +
+                "answers.".format(raw_answer_file))
+    # If the file exists and we are using the force-overwrite option, then
+    # we need to delete the existing file, otherwise it will get appended
+    # to and this will mess everything up, including with group name conflicts
+    # in h5py when saving raw arrays
+    if not no_hash and answer_store and os.path.isfile(answer_file) and force_overwrite:
+        os.remove(answer_file)
+    if answer_raw_arrays and raw_answer_store and os.path.isfile(raw_answer_file) and force_overwrite:
+        os.remove(raw_answer_file)
     request.cls.answer_file = answer_file
+    request.cls.raw_answer_file = raw_answer_file
 
 
 def _param_list(request):
