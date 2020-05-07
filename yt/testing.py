@@ -1259,11 +1259,13 @@ class ParticleSelectionComparison:
             # Set our radii to zero for now, I guess?
             radii = self.hsml.get(ptype, 0.0)
             sel_index = dobj.selector.select_points(x, y, z, radii)
-            sel_pos = self.particles[ptype][sel_index, :]
+            if sel_index is None:
+                sel_pos = np.empty((0, 3))
+            else:
+                sel_pos = self.particles[ptype][sel_index, :]
 
             obj_results = []
             for chunk in dobj.chunks([], "io"):
                 obj_results.append(chunk[ptype, "particle_position"])
             obj_results = np.concatenate(obj_results, axis = 0)
-
-            return np.all(sel_pos == obj_results)
+            assert_equal(sel_pos, obj_results)
