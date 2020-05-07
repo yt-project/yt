@@ -184,7 +184,7 @@ class HaloMassFcn():
             if log_mass_max is None:
                 self.log_mass_max = 16
         # If we're making the analytic function...
-        if self.make_analytic is True:
+        if self.make_analytic:
             # Try to set cosmological parameters from the simulation dataset
             if simulation_ds is not None:
                 self.omega_matter0 = self.simulation_ds.omega_matter

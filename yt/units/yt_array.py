@@ -468,7 +468,7 @@ class YTArray(np.ndarray):
                 bypass_validation=False):
         if dtype is None:
             dtype = getattr(input_array, 'dtype', np.float64)
-        if bypass_validation is True:
+        if bypass_validation:
             obj = np.asarray(input_array, dtype=dtype).view(cls)
             obj.units = input_units
             if registry is not None:

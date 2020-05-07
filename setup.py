@@ -42,7 +42,7 @@ if os.path.exists('MANIFEST'):
 with open('README.md') as file:
     long_description = file.read()
 
-if check_for_openmp() is True:
+if check_for_openmp():
     omp_args = ['-fopenmp']
 else:
     omp_args = None

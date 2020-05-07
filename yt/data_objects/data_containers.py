@@ -75,7 +75,7 @@ data_object_registry = {}
 def sanitize_weight_field(ds, field, weight):
     field_object = ds._get_field_info(field)
     if weight is None:
-        if field_object.particle_type is True:
+        if field_object.particle_type:
             weight_field = (field_object.name[0], 'particle_ones')
         else:
             weight_field = ('index', 'ones')
@@ -1546,7 +1546,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             fields_to_get.append(field)
         if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
-        elif self._locked is True:
+        elif self._locked:
             raise GenerationInProgress(fields)
         # Track which ones we want in the end
         ofields = set(list(self.field_data.keys())

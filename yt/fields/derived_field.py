@@ -111,7 +111,7 @@ class DerivedField(object):
         self.display_name = display_name
         self.not_in_all = not_in_all
         self.display_field = display_field
-        if particle_type is True:
+        if particle_type:
             warnings.warn("particle_type for derived fields "
                           "has been replaced with sampling_type = 'particle'",
                           DeprecationWarning)

@@ -338,7 +338,7 @@ class YTQuadTreeProj(YTSelectionContainer2D):
                                           [], "io", local_only = True)):
                 mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
                             chunk.ires.size, get_memory_usage()/1024.)
-                if _units_initialized is False:
+                if not _units_initialized:
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)

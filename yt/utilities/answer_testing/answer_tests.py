@@ -206,7 +206,7 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
         particle_type = True
     else:
         particle_type = False
-    if particle_type is False:
+    if not particle_type:
         ppv_hd = pixelized_projection_values(ds, axis, field, weight, ds_obj)
         hex_digests['pixelized_projection_values'] = ppv_hd
     fv_hd = field_values(ds, field, ds_obj, particle_type=particle_type)

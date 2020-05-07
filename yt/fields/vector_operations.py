@@ -63,7 +63,7 @@ def create_magnitude_field(registry, basename, field_units,
             mag += (data[fn])**2
         return np.sqrt(mag)
 
-    if particle_type is True:
+    if particle_type:
         sampling_type = 'particle'
     else:
         sampling_type = 'cell'
@@ -91,7 +91,7 @@ def create_relative_field(registry, basename, field_units, ftype='gas',
             return d - bulk[iax]
         return _relative_vector
 
-    if particle_type is True:
+    if particle_type:
         sampling_type = 'particle'
     else:
         sampling_type = 'cell'

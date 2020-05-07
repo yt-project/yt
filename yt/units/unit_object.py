@@ -628,7 +628,7 @@ def _lookup_unit_symbol(symbol_str, unit_symbol_lut):
         unit_is_si_prefixable = (symbol_wo_prefix in unit_symbol_lut and
                                  symbol_wo_prefix in prefixable_units)
 
-        if unit_is_si_prefixable is True:
+        if unit_is_si_prefixable:
             # lookup successful, it's a symbol with a prefix
             unit_data = unit_symbol_lut[symbol_wo_prefix]
             prefix_value = unit_prefixes[possible_prefix]

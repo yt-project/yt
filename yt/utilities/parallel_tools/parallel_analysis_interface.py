@@ -124,7 +124,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     ytcfg["yt","__global_parallel_size"] = str(communicator.size)
     ytcfg["yt","__parallel"] = "True"
     if exe_name == "embed_enzo" or \
-        ("_parallel" in dir(sys) and sys._parallel is True):
+        ("_parallel" in dir(sys) and sys._parallel):
         ytcfg["yt","inline"] = "True"
     if communicator.rank > 0:
         if ytcfg.getboolean("yt","LogFile"):

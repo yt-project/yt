@@ -67,7 +67,7 @@ class ParameterFileStore(object):
         Otherwise, use read-only settings.
 
         """
-        if self._register is False: return
+        if not self._register: return
         if ytcfg.getboolean("yt", "StoreParameterFiles"):
             self._read_only = False
             self.init_db()

@@ -282,10 +282,10 @@ def test_maestro_parameters():
     assert(type(ds.parameters['plot_base_name']) is str)
 
     # Check boolean parameters: T or F
-    assert(ds.parameters['use_thermal_diffusion'] is False)
+    assert(not ds.parameters['use_thermal_diffusion'])
     assert(type(ds.parameters['use_thermal_diffusion']) is bool)
 
-    assert(ds.parameters['do_burning'] is True)
+    assert(ds.parameters['do_burning'])
     assert(type(ds.parameters['do_burning']) is bool)
 
     # Check a float parameter with a decimal point

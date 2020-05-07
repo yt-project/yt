@@ -84,7 +84,7 @@ def run_install_script(install_script_path, inst_py3, binary_yt=False):
         with open('install_script_edited.sh', 'w') as target:
             data = source.read()
             for dep in OPTIONAL_DEPS:
-                if binary_yt is True and dep in YT_SOURCE_ONLY_DEPS:
+                if binary_yt and dep in YT_SOURCE_ONLY_DEPS:
                     continue
                 if dep == 'rockstar':
                     # compiling rockstar is broken on newer MacOS releases
@@ -92,9 +92,9 @@ def run_install_script(install_script_path, inst_py3, binary_yt=False):
                         continue
                 dname = 'INST_%s' % dep.upper()
                 data = data.replace(dname + '=0', dname + '=1')
-            if inst_py3 is True:
+            if inst_py3:
                 data = data.replace('INST_PY3=0', 'INST_PY3=1')
-            if binary_yt is False:
+            if not binary_yt:
                 data = data.replace('INST_YT_SOURCE=0', 'INST_YT_SOURCE=1')
             target.write(data)
     shutil.copyfile('install_script_edited.sh', 'install_script.sh')
@@ -110,7 +110,7 @@ def verify_yt_installation(binary_yt):
     yt_dir = yt_dir[0]
     python_path = os.sep.join([yt_dir, 'bin', 'python'])
     for dep in OPTIONAL_DEPS + REQUIRED_DEPS:
-        if binary_yt is True and dep in YT_SOURCE_ONLY_DEPS:
+        if binary_yt and dep in YT_SOURCE_ONLY_DEPS:
             continue
         if dep == 'git':
             git_path = os.sep.join([yt_dir, 'bin', 'git'])
