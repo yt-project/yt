@@ -484,22 +484,20 @@ cdef class ParticleBitmap:
         cdef np.uint64_t mi, miex, mi_max
         cdef np.uint64_t mi_split[3]
         cdef np.float64_t ppos[3]
-        cdef int skip, Nex
-        cdef int Nex_min[3]
-        cdef int Nex_max[3]
-        cdef np.float64_t rpos_min, rpos_max
-        cdef np.uint64_t xex_min, xex_max, yex_min, yex_max, zex_min, zex_max
+        cdef np.float64_t s_ppos[3] # shifted ppos
+        cdef int skip
+        cdef np.uint64_t bounds[3][2]
         cdef np.uint64_t xex, yex, zex
-        cdef int ix, iy, iz, ixe, iye, ize
-        cdef np.ndarray[np.uint64_t, ndim=1] xex_range = np.empty(7, 'uint64')
-        cdef np.ndarray[np.uint64_t, ndim=1] yex_range = np.empty(7, 'uint64')
-        cdef np.ndarray[np.uint64_t, ndim=1] zex_range = np.empty(7, 'uint64')
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
+        cdef np.float64_t DW[3]
         cdef np.uint8_t PER[3]
         cdef np.float64_t dds[3]
+        cdef np.float64_t radius
         cdef np.uint8_t[:] mask = self.masks[:, file_id]
         cdef np.int64_t msize = (1 << (self.index_order1 * 3))
+        cdef int axiter[3][2]
+        cdef np.float64_t axiterv[3][2]
         mi_max = (1 << self.index_order1) - 1
         # Copy over things for this file (type cast necessary?)
         for i in range(3):
@@ -507,10 +505,14 @@ cdef class ParticleBitmap:
             RE[i] = self.right_edge[i]
             PER[i] = self.periodicity[i]
             dds[i] = self.dds_mi1[i]
+            DW[i] = RE[i] - LE[i]
+            axiter[i][0] = 0 # We always do an offset of 0
+            axiterv[i][0] = 0.0
         # Mark index of particles that are in this file
         for p in range(pos.shape[0]):
             skip = 0
             for i in range(3):
+                axiter[i][1] = 999
                 # Skip particles outside the domain
                 if pos[p,i] >= RE[i] or pos[p,i] < LE[i]:
                     skip = 1
@@ -521,87 +523,46 @@ cdef class ParticleBitmap:
                                           dds, mi_split)
             mask[mi] = 1
             # Expand mask by softening
-            if hsml is not None:
-                if hsml[p] < 0:
-                    raise RuntimeError(
-                        "Smoothing length for particle %s is negative with "
-                        "value \"%s\"" % p, hsml[p])
-                Nex = 1
-                for i in range(3):
-                    Nex_min[i] = 0
-                    Nex_max[i] = 0
-                    rpos_min = ppos[i] - (dds[i]*mi_split[i] + LE[i])
-                    rpos_max = dds[i] - rpos_min
-                    if rpos_min > hsml[p]:
-                        Nex_min[i] = <int>((rpos_min-hsml[p])/dds[i]) + 1
-                    if rpos_max > hsml[p]:
-                        Nex_max[i] = <int>((rpos_max-hsml[p])/dds[i]) + 1
-                    Nex *= (Nex_max[i] + Nex_min[i] + 1)
-                if Nex > 1:
-                    # Ensure that min/max values for x,y,z indexes are obeyed
-                    if (Nex_max[0] + Nex_min[0] + 1) > xex_range.shape[0]:
-                        xex_range = np.empty(Nex_max[0] + Nex_min[0] + 1, 'uint64')
-                    if (Nex_max[1] + Nex_min[1] + 1) > yex_range.shape[0]:
-                        yex_range = np.empty(Nex_max[1] + Nex_min[1] + 1, 'uint64')
-                    if (Nex_max[2] + Nex_min[2] + 1) > zex_range.shape[0]:
-                        zex_range = np.empty(Nex_max[2] + Nex_min[2] + 1, 'uint64')
-                    xex_min = mi_split[0] - min(Nex_min[0], <int>mi_split[0])
-                    xex_max = mi_split[0] + min(Nex_max[0], <int>(mi_max - mi_split[0])) + 1
-                    yex_min = mi_split[1] - min(Nex_min[1], <int>mi_split[1])
-                    yex_max = mi_split[1] + min(Nex_max[1], <int>(mi_max - mi_split[1])) + 1
-                    zex_min = mi_split[2] - min(Nex_min[2], <int>mi_split[2])
-                    zex_max = mi_split[2] + min(Nex_max[2], <int>(mi_max - mi_split[2])) + 1
-                    ixe = iye = ize = 0
-                    for xex in range(xex_min, xex_max):
-                        xex_range[ixe] = xex
-                        ixe += 1
-                    for yex in range(yex_min, yex_max):
-                        yex_range[iye] = yex
-                        iye += 1
-                    for zex in range(zex_min, zex_max):
-                        zex_range[ize] = zex
-                        ize += 1
-                    # Add periodic wrapping
-                    if PER[0]:
-                        if Nex_min[0] > <int>mi_split[0]:
-                            for xex in range(mi_max + 1 - (Nex_min[0] - mi_split[0]), mi_max + 1):
-                                xex_range[ixe] = xex
-                                ixe += 1
-                        if Nex_max[0] > <int>(mi_max-mi_split[0]):
-                            for xex in range(0, Nex_max[0] - (mi_max-mi_split[0])):
-                                xex_range[ixe] = xex
-                                ixe += 1
-                    if PER[1]:
-                        if Nex_min[1] > <int>mi_split[1]:
-                            for yex in range(mi_max + 1 - (Nex_min[1] - mi_split[1]), mi_max + 1):
-                                yex_range[iye] = yex
-                                iye += 1
-                        if Nex_max[1] > <int>(mi_max-mi_split[1]):
-                            for yex in range(0, Nex_max[1] - (mi_max-mi_split[1])):
-                                yex_range[iye] = yex
-                                iye += 1
-                    if PER[2]:
-                        if Nex_min[2] > <int>mi_split[2]:
-                            for zex in range(mi_max + 1 - (Nex_min[2] - mi_split[2]), mi_max + 1):
-                                zex_range[ize] = zex
-                                ize += 1
-                        if Nex_max[2] > <int>(mi_max-mi_split[2]):
-                            for zex in range(0, Nex_max[2] - (mi_max-mi_split[2])):
-                                zex_range[ize] = zex
-                                ize += 1
-                    for ix in range(ixe):
-                        xex = xex_range[ix]
-                        for iy in range(iye):
-                            yex = yex_range[iy]
-                            for iz in range(ize):
-                                zex = zex_range[iz]
-                                miex = encode_morton_64bit(xex, yex, zex)
-                                if miex >= msize:
-                                    raise IndexError(
-                                        "Index for a softening region " +
-                                        "({}) exceeds ".format(miex) +
-                                        "max ({})".format(msize))
-                                mask[miex] = 1
+            if hsml is None:
+                continue
+            if hsml[p] < 0:
+                raise RuntimeError(
+                    "Smoothing length for particle %s is negative with "
+                    "value \"%s\"" % p, hsml[p])
+            radius = hsml[p]
+            # We first check if we're bounded within the domain; this follows the logic in the
+            # pixelize_cartesian routine.  We assume that no smoothing
+            # length can wrap around both directions.
+            for i in range(3):
+                if PER[i] and ppos[i] - radius < LE[i]:
+                    axiter[i][1] = +1
+                    axiterv[i][1] = DW[i]
+                elif PER[i] and ppos[i] + radius > RE[i]:
+                    axiter[i][1] = -1
+                    axiterv[i][1] = -DW[i]
+            for xi in range(2):
+                if axiter[0][xi] == 999: continue
+                s_ppos[0] = ppos[0] + axiterv[0][xi]
+                for yi in range(2):
+                    if axiter[1][yi] == 999: continue
+                    s_ppos[1] = ppos[1] + axiterv[1][yi]
+                    for zi in range(2):
+                        if axiter[2][zi] == 999: continue
+                        s_ppos[2] = ppos[2] + axiterv[2][zi]
+                        # OK, now we compute the left and right edges for this shift.
+                        for i in range(3):
+                            bounds[i][0] = i64max(<np.uint64_t>((s_ppos[i] - LE[i] - radius)/dds[i]), 0)
+                            bounds[i][1] = i64min(<np.uint64_t>((s_ppos[i] - LE[i] + radius)/dds[i]), mi_max)
+                        for xex in range(bounds[0][0], bounds[0][1]):
+                            for yex in range(bounds[1][0], bounds[1][1]):
+                                for zex in range(bounds[2][0], bounds[2][1]):
+                                    miex = encode_morton_64bit(xex, yex, zex)
+                                    mask[miex] = 1
+                                    if miex >= msize:
+                                        raise IndexError(
+                                            "Index for a softening region " +
+                                            "({}) exceeds ".format(miex) +
+                                            "max ({})".format(msize))
             
     @cython.boundscheck(False)
     @cython.wraparound(False)
