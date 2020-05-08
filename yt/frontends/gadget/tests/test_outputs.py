@@ -6,8 +6,7 @@ import tempfile
 
 import yt
 from yt.testing import requires_file, \
-    ParticleSelectionComparison, \
-    assert_equal
+    ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     requires_ds, \
