@@ -315,7 +315,8 @@ def _save_raw_arrays(arrays, answer_file, func_name):
             # Some answer tests (e.g., grid_values, projection_values)
             # return a dictionary, which cannot be handled by h5py
             if isinstance(test_data, dict):
-                _parse_raw_answer_dict(test_data, grp) 
+                sub_grp = grp.create_group(test_name)
+                _parse_raw_answer_dict(test_data, sub_grp) 
             else:
                 # Some tests return None, which hdf5 can't handle, and there is
                 # no proxy, so we have to make one ourselves. Using -1
