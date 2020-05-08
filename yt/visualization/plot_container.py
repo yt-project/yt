@@ -895,12 +895,20 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
-        plot_units = self.frb[field].units
+
         def _sanitize_units(z):
+            # convert dimensionful inputs to float
             if isinstance(z, tuple):
                 z = YTQuantity(*z)
             if isinstance(z, YTQuantity):
-                z = z.to(plot_units).value
+                try:
+                    plot_units = self.frb[field].units
+                    z = z.to(plot_units).value
+                except AttributeError:
+                    # only certain subclasses have a frb attribute they can rely on for inspecting units
+                    from yt.funcs import mylog
+                    mylog.warning("%s class doesn't support zmin/zmax set as tuples or YTQuantity" %self.__class__.__name__)
+                    z = z.value
             return z
 
         myzmin = _sanitize_units(zmin)
