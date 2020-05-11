@@ -12,6 +12,7 @@ A base class for "image" plots with colorbars.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+from yt.funcs import mylog
 from yt.units import YTQuantity
 from yt.extern.six.moves import builtins
 from yt.extern.six import  \
@@ -906,7 +907,6 @@ class ImagePlotContainer(PlotContainer):
                     z = z.to(plot_units).value
                 except AttributeError:
                     # only certain subclasses have a frb attribute they can rely on for inspecting units
-                    from yt.funcs import mylog
                     mylog.warning("%s class doesn't support zmin/zmax set as tuples or YTQuantity" %self.__class__.__name__)
                     z = z.value
             return z
