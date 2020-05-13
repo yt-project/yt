@@ -21,7 +21,8 @@ import getpass
 from math import floor, ceil
 from numbers import Number as numeric_type
 
-import urllib
+import urllib.request
+import urllib.parse
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.lru_cache import lru_cache
 from yt.utilities.exceptions import YTInvalidWidthError
