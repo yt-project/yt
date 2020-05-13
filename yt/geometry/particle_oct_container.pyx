@@ -684,8 +684,8 @@ cdef class ParticleBitmap:
                 # Determine sub index within cell of primary index
                 mi2 = bounded_morton_split_relative_dds(
                     ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split2)
-                if coarse_refined_map.count(mi1) == 0:
-                    coarse_refined_map[mi1] = vector[bool](max_mi2_elements, False)
+                if coarse_refined_map[mi1].size() == 0:
+                    coarse_refined_map[mi1].resize(max_mi2_elements, False)
                 coarse_refined_map[mi1][mi2] = True
             else: # only hit if we have smoothing lengths.
                 # We have to do essentially the identical process to in the coarse indexing,
@@ -723,12 +723,13 @@ cdef class ParticleBitmap:
                                         if mask[miex] <= 1:
                                             continue
                                         # Now we need to fill our sub-range
-                                        if coarse_refined_map.count(miex) == 0:
-                                            coarse_refined_map[miex] = vector[bool](max_mi2_elements, False)
+                                        if coarse_refined_map[miex].size() == 0:
+                                            coarse_refined_map[miex].resize(max_mi2_elements, False)
                                         self.__fill_refined_ranges(s_ppos, radius, LE, RE,
                                                                    dds1, xex, yex, zex,
                                                                    dds2, mi1_max, mi2_max, miex,
-                                                                   coarse_refined_map[miex])
+                                                                   coarse_refined_map[miex], ppos, mask[miex],
+                                                                   max_mi2_elements)
         print("THIS MANY COARSE CELLS", coarse_refined_map.size())
         cdef np.uint64_t count
         for it1 in coarse_refined_map:
@@ -740,7 +741,7 @@ cdef class ParticleBitmap:
                 sub_mi1[nsub_mi] = mi1
                 sub_mi2[nsub_mi] = it2
                 #nsub_mi += 1
-            print("IN ", mi1, "THIS MANY REFINED CELLS", count)
+            #print("IN ", mi1, "THIS MANY REFINED CELLS", count)
         return nsub_mi
 
         if 0:
@@ -890,12 +891,17 @@ cdef class ParticleBitmap:
         # Only subs of particles in the mask
         return nsub_mi
 
-    cdef np.uint64_t __fill_refined_ranges(self, np.float64_t s_ppos[3], np.float64_t radius,
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef np.int64_t __fill_refined_ranges(self, np.float64_t s_ppos[3], np.float64_t radius,
                                            np.float64_t LE[3], np.float64_t RE[3],
                                            np.float64_t dds1[3], np.uint64_t xex, np.uint64_t yex, np.uint64_t zex,
                                            np.float64_t dds2[3],
                                            np.uint64_t mi1_max, np.uint64_t mi2_max, np.uint64_t miex1,
-                                           vector[bool] &refined_set) except *:
+                                           vector[bool] &refined_set, np.float64_t ppos[3], np.uint64_t mcount,
+                                          np.uint64_t max_mi2_elements) except -1:
         cdef int i
         cdef np.uint64_t new_nsub = 0
         cdef np.uint64_t bounds_l[3], bounds_r[3]
@@ -903,19 +909,30 @@ cdef class ParticleBitmap:
         cdef np.float64_t clip_pos_l[3], clip_pos_r[3], cell_edge_l, cell_edge_r
         cdef np.uint64_t ex1[3]
         ex1[0] = xex; ex1[1] = yex; ex1[2] = zex
+        # Check a few special cases
         for i in range(3):
-        # Figure out our bounds inside our cell
+            # Figure out our bounds inside our coarse cell, in the space of the
+            # full domain
             cell_edge_l = ex1[i] * dds1[i] + LE[i]
-            cell_edge_r = (ex1[i] + 1) * dds1[i] + LE[i]
+            cell_edge_r = cell_edge_l + dds1[i]
             clip_pos_l[i] = fmax(s_ppos[i] - radius, cell_edge_l + dds2[i]/2.0)
             clip_pos_r[i] = fmin(s_ppos[i] + radius, cell_edge_r - dds2[i]/2.0)
         mi2 = bounded_morton_split_relative_dds(clip_pos_l[0], clip_pos_l[1], clip_pos_l[2],
                                                 LE, dds1, dds2, bounds_l)
         mi2 = bounded_morton_split_relative_dds(clip_pos_r[0], clip_pos_r[1], clip_pos_r[2],
                                                 LE, dds1, dds2, bounds_r)
+        if bounds_l[0] == bounds_r[0] and bounds_l[1] == bounds_r[1] and bounds_l[2] == bounds_r[2]:
+            miex2 = encode_morton_64bit(bounds_l[0], bounds_l[1], bounds_l[2])
+            refined_set[miex2] = True
+            return 1
         if bounds_r[0] < bounds_l[0] or bounds_r[1] < bounds_l[1] or bounds_r[2] < bounds_l[2]:
             print(bounds_r[0] - bounds_l[0], bounds_r[1] - bounds_l[1], bounds_r[2] - bounds_l[2])
-            raise RuntimeError
+            return -1
+        if (bounds_l[0] == bounds_l[1] == bounds_l[2] == 0) and \
+           (bounds_r[0] == bounds_r[1] == bounds_r[2] == mi2_max):
+            for miex2 in range(max_mi2_elements):
+                refined_set[miex2] = True
+            return max_mi2_elements
         for xex2 in range(bounds_l[0], bounds_r[0] + 1):
             for yex2 in range(bounds_l[1], bounds_r[1] + 1):
                 for zex2 in range(bounds_l[2], bounds_r[2] + 1):
