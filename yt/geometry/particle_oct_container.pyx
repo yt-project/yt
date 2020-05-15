@@ -639,6 +639,7 @@ cdef class ParticleBitmap:
         cdef int Nex_max[3]
         cdef np.float64_t rpos_min, rpos_max
         cdef np.uint64_t xex2_min, xex2_max, yex2_min, yex2_max, zex2_min, zex2_max
+        cdef np.uint64_t xex, yex, zex
         cdef np.uint64_t xex1, yex1, zex1
         cdef np.uint64_t xex2, yex2, zex2
         cdef int ix, iy, iz, ixe, iye, ize
@@ -653,6 +654,7 @@ cdef class ParticleBitmap:
         cdef int axiter[3][2]
         cdef np.float64_t axiterv[3][2]
         cdef CoarseRefinedSets coarse_refined_map
+        cdef map[np.uint64_t, np.uint64_t] refined_count
         cdef np.uint64_t nset = 0
         mi1_max = (1 << self.index_order1) - 1
         mi2_max = (1 << self.index_order2) - 1
@@ -688,7 +690,10 @@ cdef class ParticleBitmap:
                     ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split2)
                 if coarse_refined_map[mi1].size() == 0:
                     coarse_refined_map[mi1].resize(max_mi2_elements, False)
-                coarse_refined_map[mi1][mi2] = True
+                    refined_count[mi1] = 0
+                if coarse_refined_map[mi1][mi2] == False:
+                    coarse_refined_map[mi1][mi2] = True
+                    refined_count[mi1] += 1
             else: # only hit if we have smoothing lengths.
                 # We have to do essentially the identical process to in the coarse indexing,
                 # except here we need to fill in all the subranges as well as the coarse ranges
@@ -725,18 +730,22 @@ cdef class ParticleBitmap:
                             for xex in range(bounds[0][0], bounds[1][0] + 1):
                                 for yex in range(bounds[0][1], bounds[1][1] + 1):
                                     for zex in range(bounds[0][2], bounds[1][2] + 1):
-                                        miex = encode_morton_64bit(xex, yex, zex)
-                                        if mask[miex] <= 1:
+                                        miex1 = encode_morton_64bit(xex, yex, zex)
+                                        if mask[miex1] <= 1:
                                             continue
                                         # Now we need to fill our sub-range
-                                        if coarse_refined_map[miex].size() == 0:
-                                            coarse_refined_map[miex].resize(max_mi2_elements, False)
-                                        nset += self.__fill_refined_ranges(s_ppos, radius, LE, RE,
+                                        if coarse_refined_map[miex1].size() == 0:
+                                            coarse_refined_map[miex1].resize(max_mi2_elements, False)
+                                            refined_count[miex1] = 0
+                                        if refined_count[miex1] >= max_mi2_elements:
+                                            continue
+                                        refined_count[miex1] += self.__fill_refined_ranges(s_ppos, radius, LE, RE,
                                                                    dds1, xex, yex, zex,
-                                                                   dds2, mi1_max, mi2_max, miex,
-                                                                   coarse_refined_map[miex], ppos, mask[miex],
+                                                                   dds2, mi1_max, mi2_max, miex1,
+                                                                   coarse_refined_map[miex1], ppos, mask[miex1],
                                                                    max_mi2_elements)
         print("THIS MANY COARSE CELLS", coarse_refined_map.size())
+        print("THIS MANY NSET", nset, nset / pos.shape[0], nsub_mi)
         cdef np.uint64_t count, vec_i
         cdef total_count = 0
         for it1 in coarse_refined_map:
@@ -750,8 +759,11 @@ cdef class ParticleBitmap:
                     #sub_mi2[nsub_mi] = vec_i
                     nsub_mi += 1
                 vec_i += 1
+            if count != refined_count[mi1]:
+                print("WHY IS THIS WRONG", count, refined_count[mi1])
             #print("IN ", mi1, "THIS MANY REFINED CELLS", count)
             total_count += count
+        print("NSUB_MI NOW", total_count, total_count / (coarse_refined_map.size() * max_mi2_elements), nsub_mi, sub_mi1.shape[0], sub_mi2.shape[0])
         return nsub_mi
 
         if 0:
@@ -938,8 +950,9 @@ cdef class ParticleBitmap:
                ex2[1] < bounds_l[1] or ex2[1] > bounds_r[1] or \
                ex2[2] < bounds_l[2] or ex2[2] > bounds_r[2]:
                 continue
-            refined_set[miex2] = True
-            new_nsub += 1
+            if refined_set[miex2] == False:
+                refined_set[miex2] = True
+                new_nsub += 1
         return new_nsub
 
     @cython.boundscheck(False)
