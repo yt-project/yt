@@ -900,7 +900,7 @@ class ImagePlotContainer(PlotContainer):
         def _sanitize_units(z):
             # convert dimensionful inputs to float
             if isinstance(z, tuple):
-                z = YTQuantity(*z)
+                z = self.ds.quan(*z)
             if isinstance(z, YTQuantity):
                 try:
                     plot_units = self.frb[field].units
