@@ -140,5 +140,6 @@ answer_tests:
 other_tests:
   unittests:
      - '--exclude=test_mesh_slices'  # disable randomly failing test
+     - '--exclude=test_load_from_path'  # py2
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
