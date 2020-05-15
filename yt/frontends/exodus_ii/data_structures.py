@@ -337,7 +337,26 @@ class ExodusIIDataset(Dataset):
         connectivity = []
         with self._handle.open_ds() as ds:
             for i in range(self.parameters['num_meshes']):
-                connectivity.append(ds.variables["connect%d" % (i+1)][:].astype("i8"))
+                var = ds.variables["connect%d" % (i+1)]
+                try:
+                    elem_type = var.elem_type.lower()
+                    if elem_type == 'nsided':
+                        arbitrary_polyhedron = True
+                    elif elem_type == 'nfaced':
+                        raise NotImplementedError('3D arbitrary polyhedra are not implemented yet')
+                    else:
+                        arbitrary_polyhedron = False
+                except AttributeError:
+                    arbitrary_polyhedron = False
+
+                conn = var[:].astype("i8")
+                if arbitrary_polyhedron:
+                    nodes_per_element = ds.variables['ebepecnt%d' % (i+1)]
+                    if np.any(nodes_per_element != nodes_per_element[0]):
+                        raise NotImplementedError('only equal-size polyhedra supported')
+                    conn.shape = (conn.shape[0] // nodes_per_element[0],
+                                  nodes_per_element[0])
+                connectivity.append(conn)
             return connectivity
 
     def _load_domain_edge(self):
