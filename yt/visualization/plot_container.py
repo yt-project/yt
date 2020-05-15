@@ -12,6 +12,8 @@ A base class for "image" plots with colorbars.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+from yt.funcs import mylog
+from yt.units import YTQuantity
 from yt.extern.six.moves import builtins
 from yt.extern.six import  \
     iteritems, \
@@ -877,10 +879,10 @@ class ImagePlotContainer(PlotContainer):
         field : string
             the field to set a colormap scale
             if field == 'all', applies to all plots.
-        zmin : float
+        zmin : float, tuple, YTQuantity or str
             the new minimum of the colormap scale. If 'min', will
             set to the minimum value in the current view.
-        zmax : float
+        zmax : float, tuple, YTQuantity or str
             the new maximum of the colormap scale. If 'max', will
             set to the maximum value in the current view.
 
@@ -894,8 +896,23 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
-        myzmin = zmin
-        myzmax = zmax
+
+        def _sanitize_units(z):
+            # convert dimensionful inputs to float
+            if isinstance(z, tuple):
+                z = self.ds.quan(*z)
+            if isinstance(z, YTQuantity):
+                try:
+                    plot_units = self.frb[field].units
+                    z = z.to(plot_units).value
+                except AttributeError:
+                    # only certain subclasses have a frb attribute they can rely on for inspecting units
+                    mylog.warning("%s class doesn't support zmin/zmax set as tuples or YTQuantity" %self.__class__.__name__)
+                    z = z.value
+            return z
+
+        myzmin = _sanitize_units(zmin)
+        myzmax = _sanitize_units(zmax)
         if zmin == 'min':
             myzmin = self.plots[field].image._A.min()
         if zmax == 'max':
