@@ -14,12 +14,12 @@ from yt.config import ytcfg
 # we import this in a weird way from numpy.testing to avoid triggering
 # flake8 errors from the unused imports. These test functions are imported
 # elsewhere in yt from here so we want them to be imported here.
-from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA
-from numpy.testing import assert_approx_equal, assert_array_almost_equal  # NOQA
-from numpy.testing import assert_equal, assert_array_less  # NOQA
-from numpy.testing import assert_string_equal  # NOQA
-from numpy.testing import assert_array_almost_equal_nulp  # NOQA
-from numpy.testing import assert_allclose, assert_raises  # NOQA
+from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA isort:skip
+from numpy.testing import assert_approx_equal, assert_array_almost_equal  # NOQA isort:skip
+from numpy.testing import assert_equal, assert_array_less  # NOQA isort:skip
+from numpy.testing import assert_string_equal  # NOQA isort:skip
+from numpy.testing import assert_array_almost_equal_nulp  # NOQA isort:skip
+from numpy.testing import assert_allclose, assert_raises  # NOQA isort:skip
 from numpy.random import RandomState
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
