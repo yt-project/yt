@@ -20,8 +20,8 @@
     :license: BSD, see LICENSE for more details.
 """
 # This source code was originally in flask/exthook.py
-import sys
 import os
+import sys
 
 
 class ExtensionImporter:

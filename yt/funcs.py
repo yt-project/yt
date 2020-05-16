@@ -15,7 +15,6 @@ import subprocess
 import numpy as np
 import itertools
 import base64
-import numpy
 import matplotlib
 import getpass
 import glob
