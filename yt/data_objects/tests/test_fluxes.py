@@ -77,6 +77,8 @@ class ExporterTests(TestCase):
                             plot_index=i, color_field_max=ma,
                             color_field_min=mi)
 
+        for i, _ in enumerate(rhos):
+            basename = "my_galaxy_color_%d" % i
             assert os.path.exists('%s.obj' % basename)
             assert os.path.exists('%s.mtl' % basename)
 
@@ -94,6 +96,8 @@ class ExporterTests(TestCase):
                             emit_field='emissivity',
                             dist_fac=1.0, plot_index=i)
 
+        for i, _ in enumerate(rhos):
+            basename = "my_galaxy_emis_%d" % i
             assert os.path.exists('%s.obj' % basename)
             assert os.path.exists('%s.mtl' % basename)
 
