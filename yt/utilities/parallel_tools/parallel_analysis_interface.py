@@ -730,8 +730,11 @@ class Communicator:
             if data is None:
                 ncols = -1
                 size = 0
-                dtype = 'float64'
-                mylog.info('Warning: Array passed to par_combine_object was None. Setting dtype to float64. This may break things!')
+                dtype = "float64"
+                mylog.warning(
+                    "Array passed to par_combine_object was None. "
+                    "Setting dtype to float64. This may break things!"
+                )
             else:
                 dtype = data.dtype
                 if len(data) == 0:

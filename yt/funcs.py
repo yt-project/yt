@@ -472,7 +472,10 @@ def paste_traceback_detailed(exc_type, exc, tb):
     print("Traceback pasted to http://paste.yt-project.org/show/%s" % (ret))
     print()
 
-_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
+
+_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"  # NOQA 501
+
+
 def _rdbeta(key):
     enc_s = base64.decodestring(_ss)
     dec_s = ''.join([ chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)) ])

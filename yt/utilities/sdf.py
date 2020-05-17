@@ -817,9 +817,12 @@ class SDFIndex:
         """
         ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
-        if np.any(iright-ileft) > self.domain_dims:
-            mylog.warning("Attempting to get data from bounding box larger than the domain. You may want to check your units.")
-        #iright[iright <= ileft+1] += 1
+        if np.any(iright - ileft) > self.domain_dims:
+            mylog.warning(
+                "Attempting to get data from bounding box larger than the domain. "
+                "You may want to check your units."
+            )
+        # iright[iright <= ileft+1] += 1
 
         return self.get_ibbox(ileft, iright)
 
@@ -882,9 +885,12 @@ class SDFIndex:
             combined = 0
             while nexti < num_inds:
                 nextind = inds[nexti]
-                #        print('b: %i l: %i end: %i  next: %i' % ( base, length, base + length, self.indexdata['base'][nextind] ))
-                if combined < 1024 and base + length == self.indexdata['base'][nextind]:
-                    length += self.indexdata['len'][nextind]
+                # print(
+                #    "b: %i l: %i end: %i  next: %i"
+                #    % (base, length, base + length, self.indexdata["base"][nextind])
+                # )
+                if combined < 1024 and base + length == self.indexdata["base"][nextind]:
+                    length += self.indexdata["len"][nextind]
                     i += 1
                     nexti += 1
                     combined += 1
@@ -1117,10 +1123,20 @@ class SDFIndex:
         level_buff = 0
         level_lk = self.get_key(cell_iarr + level_buff)
         level_rk = self.get_key(cell_iarr + level_buff) + 1
-        lmax_lk = (level_lk << shift*3)
-        lmax_rk = (((level_rk) << shift*3) -1)
-        #print("Level ", level, np.binary_repr(level_lk, width=self.level*3), np.binary_repr(level_rk, width=self.level*3))
-        #print("Level ", self.level, np.binary_repr(lmax_lk, width=self.level*3), np.binary_repr(lmax_rk, width=self.level*3))
+        lmax_lk = level_lk << shift * 3
+        lmax_rk = ((level_rk) << shift * 3) - 1
+        # print(
+        #    "Level ",
+        #    level,
+        #    np.binary_repr(level_lk, width=self.level * 3),
+        #    np.binary_repr(level_rk, width=self.level * 3),
+        # )
+        # print(
+        #    "Level ",
+        #    self.level,
+        #    np.binary_repr(lmax_lk, width=self.level * 3),
+        #    np.binary_repr(lmax_rk, width=self.level * 3),
+        # )
         return lmax_lk, lmax_rk
 
     def find_max_cell(self):
