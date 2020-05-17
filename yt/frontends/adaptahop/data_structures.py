@@ -12,6 +12,7 @@ import re
 import stat
 
 import numpy as np
+from unyt import Mpc
 
 from yt.data_objects.data_containers import YTSelectionContainer
 from yt.data_objects.static_output import Dataset
@@ -20,7 +21,6 @@ from yt.frontends.halo_catalog.data_structures import (
     HaloCatalogParticleIndex,
 )
 from yt.funcs import setdefaultattr
-from yt.units import Mpc
 from yt.utilities.cython_fortran_utils import FortranFile
 
 from .definitions import HEADER_ATTRIBUTES

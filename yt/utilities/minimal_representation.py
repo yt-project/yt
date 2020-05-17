@@ -8,10 +8,10 @@ from tempfile import TemporaryFile
 from uuid import uuid4
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.config import ytcfg
 from yt.funcs import compare_dicts, get_pbar, iterable
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTHubRegisterError
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5
@@ -41,7 +41,7 @@ def _sanitize_list(flist):
 
 def _serialize_to_h5(g, cdict):
     for item in cdict:
-        if isinstance(cdict[item], (YTQuantity, YTArray)):
+        if isinstance(cdict[item], (unyt_quantity, unyt_array)):
             g[item] = cdict[item].d
             g[item].attrs["units"] = str(cdict[item].units)
         elif isinstance(cdict[item], dict):
@@ -155,7 +155,7 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
                     if isinstance(fname, (tuple, list)):
                         fname = "*".join(fname)
 
-                    if isinstance(fdata, (YTQuantity, YTArray)):
+                    if isinstance(fdata, (unyt_quantity, unyt_array)):
                         g.create_dataset(fname, data=fdata.d, compression="lzf")
                         g[fname].attrs["units"] = str(fdata.units)
                     else:

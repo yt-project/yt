@@ -1,8 +1,8 @@
 import numpy as np
+from unyt import unyt_array
 
 from yt.data_objects.profiles import create_profile
 from yt.funcs import ensure_list, fix_axis
-from yt.units.yt_array import YTArray
 from yt.visualization.fixed_resolution import ParticleImageBuffer
 from yt.visualization.profile_plotter import PhasePlot
 
@@ -38,8 +38,8 @@ class ParticleAxisAlignedDummyDataSource:
         else:
             self.field_parameters = field_parameters
 
-        LE = center - 0.5 * YTArray(width)
-        RE = center + 0.5 * YTArray(width)
+        LE = center - 0.5 * unyt_array(width)
+        RE = center + 0.5 * unyt_array(width)
         for ax in range(3):
             if not ds.periodicity[ax]:
                 LE[ax] = max(LE[ax], ds.domain_left_edge[ax])
@@ -107,7 +107,7 @@ class ParticleProjectionPlot(PWViewerMPL):
          field is supported by providing a tuple such as ("min","temperature") or
          ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
+         in a unyt_array. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -446,7 +446,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
          field is supported by providing a tuple such as ("min","temperature") or
          ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
+         in a unyt_array. If a list or unitless array is supplied, code units are
          assumed. This argument is only accepted by ``ParticleProjectionPlot``.
     width : tuple or a float.
          Width can have four different formats to support windows with variable

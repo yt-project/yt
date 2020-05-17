@@ -1,4 +1,5 @@
-from yt.units.yt_array import YTArray
+from unyt import unyt_array
+
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -57,7 +58,7 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
        3.57339907e-30   2.83150720e-30] g/cm**3
     >>> data = {"density": yt.YTArray(1e-24 * np.ones(10), "g/cm**3"),
     ...         "temperature": yt.YTArray(1000. * np.ones(10), "K")}
-    >>> ds_data = {"current_time": yt.YTQuantity(10, "Myr")}
+    >>> ds_data = {"current_time": yt.YTArray(10, "Myr")}
     >>> yt.save_as_dataset(ds_data, "random_data.h5", data)
     >>> new_ds = yt.load("random_data.h5")
     >>> print (new_ds.data["temperature"])
@@ -141,7 +142,7 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
 
 
 def _hdf5_yt_array(fh, field, ds=None):
-    r"""Load an hdf5 dataset as a YTArray.
+    r"""Load an hdf5 dataset as a unyt_array.
 
     Reads in a dataset from an open hdf5 file or group and uses the
     "units" attribute, if it exists, to apply units.
@@ -158,12 +159,12 @@ def _hdf5_yt_array(fh, field, ds=None):
 
     Returns
     -------
-    A YTArray of the requested field.
+    A unyt_array of the requested field.
 
     """
 
     if ds is None:
-        new_arr = YTArray
+        new_arr = unyt_array
     else:
         new_arr = ds.arr
     units = ""
@@ -175,9 +176,9 @@ def _hdf5_yt_array(fh, field, ds=None):
 
 
 def _yt_array_hdf5(fh, field, data):
-    r"""Save a YTArray to an open hdf5 file or group.
+    r"""Save a unyt_array to an open hdf5 file or group.
 
-    Save a YTArray to an open hdf5 file or group, and save the
+    Save a unyt_array to an open hdf5 file or group, and save the
     units to a "units" attribute.
 
     Parameters
@@ -186,7 +187,7 @@ def _yt_array_hdf5(fh, field, data):
         The hdf5 file or group to which the data will be written.
     field : str
         The name of the field to be saved.
-    data : YTArray
+    data : unyt_array
         The data array to be saved.
 
     Returns
@@ -198,14 +199,14 @@ def _yt_array_hdf5(fh, field, data):
 
     dataset = fh.create_dataset(str(field), data=data)
     units = ""
-    if isinstance(data, YTArray):
+    if isinstance(data, unyt_array):
         units = str(data.units)
     dataset.attrs["units"] = units
     return dataset
 
 
 def _yt_array_hdf5_attr(fh, attr, val):
-    r"""Save a YTArray or YTQuantity as an hdf5 attribute.
+    r"""Save a unyt_array or unyt_quantity as an hdf5 attribute.
 
     Save an hdf5 attribute.  If it has units, save an
     additional attribute with the units.

@@ -25,9 +25,9 @@ from numbers import Number as numeric_type
 
 import matplotlib
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.extern.tqdm import tqdm
-from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
 
@@ -100,8 +100,8 @@ def read_struct(f, fmt):
 def just_one(obj):
     # If we have an iterable, sometimes we only want one item
     if hasattr(obj, "flat"):
-        if isinstance(obj, YTArray):
-            return YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
+        if isinstance(obj, unyt_array):
+            return unyt_quantity(obj.flat[0], obj.units, registry=obj.units.registry)
         return obj.flat[0]
     elif iterable(obj):
         return obj[0]
@@ -856,19 +856,19 @@ def get_yt_supp():
 
 def fix_length(length, ds):
     registry = ds.unit_registry
-    if isinstance(length, YTArray):
+    if isinstance(length, unyt_array):
         if registry is not None:
             length.units.registry = registry
         return length.in_units("code_length")
     if isinstance(length, numeric_type):
-        return YTArray(length, "code_length", registry=registry)
+        return unyt_array(length, "code_length", registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
     unit_is_string = isinstance(length[1], str)
     length_is_number = isinstance(length[0], numeric_type) and not isinstance(
-        length[0], YTArray
+        length[0], unyt_array
     )
     if length_valid_tuple and unit_is_string and length_is_number:
-        return YTArray(*length, registry=registry)
+        return unyt_array(*length, registry=registry)
     else:
         raise RuntimeError("Length %s is invalid" % str(length))
 
@@ -1006,7 +1006,7 @@ def validate_width_tuple(width):
     if not iterable(width) or len(width) != 2:
         raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
     is_numeric = isinstance(width[0], numeric_type)
-    length_has_units = isinstance(width[0], YTArray)
+    length_has_units = isinstance(width[0], unyt_array)
     unit_is_string = isinstance(width[1], str)
     if not is_numeric or length_has_units and unit_is_string:
         msg = "width (%s) is invalid. " % str(width)
@@ -1354,7 +1354,7 @@ def array_like_field(data, x, field):
         units = finfo.output_units
     else:
         units = finfo.units
-    if isinstance(x, YTArray):
+    if isinstance(x, unyt_array):
         arr = copy.deepcopy(x)
         arr.convert_to_units(units)
         return arr
@@ -1376,7 +1376,7 @@ def validate_float(obj):
     """Validates if the passed argument is a float value.
 
     Raises an exception if `obj` is a single float value
-    or a YTQuantity of size 1.
+    or a unyt_quantity of size 1.
 
     Parameters
     ----------
@@ -1392,14 +1392,14 @@ def validate_float(obj):
     --------
     >>> validate_float(1)
     >>> validate_float(1.50)
-    >>> validate_float(YTQuantity(1,"cm"))
+    >>> validate_float(unyt_quantity(1,"cm"))
     >>> validate_float((1,"cm"))
     >>> validate_float([1, 1, 1])
     Traceback (most recent call last):
     ...
     TypeError: Expected a numeric value (or size-1 array), received 'list' of length 3
 
-    >>> validate_float([YTQuantity(1, "cm"), YTQuantity(2,"cm")])
+    >>> validate_float([unyt_quantity(1, "cm"), unyt_quantity(2,"cm")])
     Traceback (most recent call last):
     ...
     TypeError: Expected a numeric value (or size-1 array), received 'list' of length 2
@@ -1465,10 +1465,10 @@ def validate_center(center):
                 "'m', 'max', 'min'] or the prefix to be "
                 "'max_'/'min_', received '%s'." % center
             )
-    elif not isinstance(center, (numeric_type, YTQuantity)) and not iterable(center):
+    elif not isinstance(center, (numeric_type, unyt_quantity)) and not iterable(center):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
-            "list/tuple/np.ndarray/YTArray/YTQuantity, "
+            "list/tuple/np.ndarray/unyt_array/unyt_quantity, "
             "received '%s'." % str(type(center)).split("'")[1]
         )
 

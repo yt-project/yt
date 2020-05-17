@@ -1,10 +1,10 @@
 from collections import defaultdict
 
 import numpy as np
+from unyt import unyt_array
+from unyt.unit_object import Unit
 
 from yt.funcs import iterable, mylog
-from yt.units.unit_object import Unit
-from yt.units.yt_array import YTArray
 from yt.visualization.base_plot_types import PlotMPL
 from yt.visualization.plot_container import (
     PlotContainer,
@@ -22,17 +22,17 @@ class LineBuffer:
     This takes a data source and implements a protocol for generating a
     'pixelized', fixed-resolution line buffer. In other words, LineBuffer
     takes a starting point, ending point, and number of sampling points and
-    can subsequently generate YTArrays of field values along the sample points.
+    can subsequently generate unyt_arrays of field values along the sample points.
 
     Parameters
     ----------
     ds : :class:`yt.data_objects.static_output.Dataset`
         This is the dataset object holding the data that can be sampled by the
         LineBuffer
-    start_point : n-element list, tuple, ndarray, or YTArray
+    start_point : n-element list, tuple, ndarray, or unyt_array
         Contains the coordinates of the first point for constructing the LineBuffer.
         Must contain n elements where n is the dimensionality of the dataset.
-    end_point : n-element list, tuple, ndarray, or YTArray
+    end_point : n-element list, tuple, ndarray, or unyt_array
         Contains the coordinates of the first point for constructing the LineBuffer.
         Must contain n elements where n is the dimensionality of the dataset.
     npoints : int
@@ -117,10 +117,10 @@ class LinePlot(PlotContainer):
         simulation output to be plotted.
     fields : string / tuple, or list of strings / tuples
         The name(s) of the field(s) to be plotted.
-    start_point : n-element list, tuple, ndarray, or YTArray
+    start_point : n-element list, tuple, ndarray, or unyt_array
         Contains the coordinates of the first point for constructing the line.
         Must contain n elements where n is the dimensionality of the dataset.
-    end_point : n-element list, tuple, ndarray, or YTArray
+    end_point : n-element list, tuple, ndarray, or unyt_array
         Contains the coordinates of the first point for constructing the line.
         Must contain n elements where n is the dimensionality of the dataset.
     npoints : int
@@ -433,7 +433,7 @@ class LinePlot(PlotContainer):
 def _validate_point(point, ds, start=False):
     if not iterable(point):
         raise RuntimeError("Input point must be array-like")
-    if not isinstance(point, YTArray):
+    if not isinstance(point, unyt_array):
         point = ds.arr(point, "code_length")
     if len(point.shape) != 1:
         raise RuntimeError("Input point must be a 1D array")

@@ -1,8 +1,9 @@
 import numpy as np
+from unyt import unyt_array
+from unyt.array import uconcatenate, uvstack
 
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
-from yt.units.yt_array import YTArray, uconcatenate, uvstack
 from yt.utilities.lib.pixelization_routines import (
     interpolate_sph_grid_gather,
     normalization_2d_utility,
@@ -271,8 +272,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 field_data,
                 index_offset=offset,
             )
-            arc_length = YTArray(arc_length, start_point.units)
-            plot_values = YTArray(plot_values, field_data.units)
+            arc_length = unyt_array(arc_length, start_point.units)
+            plot_values = unyt_array(plot_values, field_data.units)
         else:
             ray = self.ds.ray(start_point, end_point)
             arc_length, plot_values = _sample_ray(ray, npoints, field)

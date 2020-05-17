@@ -10,9 +10,9 @@ Simple utilities that don't fit anywhere else
 
 
 import numpy as np
+from unyt import unyt_array
 
 from yt.funcs import get_pbar
-from yt.units.yt_array import YTArray
 
 cimport cython
 cimport libc.math as math
@@ -589,7 +589,7 @@ def obtain_position_vector(
         xf = data[field_names[0]]
         yf = data[field_names[1]]
         zf = data[field_names[2]]
-        rf = YTArray(np.empty((3, xf.shape[0]), 'float64'), xf.units)
+        rf = unyt_array(np.empty((3, xf.shape[0]), 'float64'), xf.units)
         for i in range(xf.shape[0]):
             rf[0, i] = xf[i] - c[0]
             rf[1, i] = yf[i] - c[1]
@@ -601,8 +601,8 @@ def obtain_position_vector(
         yg = data[field_names[1]]
         zg = data[field_names[2]]
         shape = (3, xg.shape[0], xg.shape[1], xg.shape[2])
-        rg = YTArray(np.empty(shape, 'float64'), xg.units)
-        #rg = YTArray(rg, xg.units)
+        rg = unyt_array(np.empty(shape, 'float64'), xg.units)
+        #rg = unyt_array(rg, xg.units)
         for i in range(xg.shape[0]):
             for j in range(xg.shape[1]):
                 for k in range(xg.shape[2]):
@@ -639,7 +639,7 @@ def obtain_relative_velocity_vector(
         vzf = data[field_names[2]].astype("float64")
         vyf.convert_to_units(vxf.units)
         vzf.convert_to_units(vxf.units)
-        rvf = YTArray(np.empty((3, vxf.shape[0]), 'float64'), vxf.units)
+        rvf = unyt_array(np.empty((3, vxf.shape[0]), 'float64'), vxf.units)
         if bulk_vector is None:
             bv[0] = bv[1] = bv[2] = 0.0
         else:
@@ -660,7 +660,7 @@ def obtain_relative_velocity_vector(
         vyg.convert_to_units(vxg.units)
         vzg.convert_to_units(vxg.units)
         shape = (3, vxg.shape[0], vxg.shape[1], vxg.shape[2])
-        rvg = YTArray(np.empty(shape, 'float64'), vxg.units)
+        rvg = unyt_array(np.empty(shape, 'float64'), vxg.units)
         if bulk_vector is None:
             bv[0] = bv[1] = bv[2] = 0.0
         else:

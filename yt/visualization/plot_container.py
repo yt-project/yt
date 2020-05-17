@@ -6,6 +6,8 @@ from functools import wraps
 
 import matplotlib
 import numpy as np
+from unyt import unyt_quantity
+from unyt.unit_object import Unit
 
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
@@ -17,8 +19,6 @@ from yt.funcs import (
     iterable,
     mylog,
 )
-from yt.units import YTQuantity
-from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.visualization.color_maps import yt_colormaps
@@ -882,10 +882,10 @@ class ImagePlotContainer(PlotContainer):
         field : string
             the field to set a colormap scale
             if field == 'all', applies to all plots.
-        zmin : float, tuple, YTQuantity or str
+        zmin : float, tuple, unyt_quantity or str
             the new minimum of the colormap scale. If 'min', will
             set to the minimum value in the current view.
-        zmax : float, tuple, YTQuantity or str
+        zmax : float, tuple, unyt_quantity or str
             the new maximum of the colormap scale. If 'max', will
             set to the maximum value in the current view.
 
@@ -904,14 +904,14 @@ class ImagePlotContainer(PlotContainer):
             # convert dimensionful inputs to float
             if isinstance(z, tuple):
                 z = self.ds.quan(*z)
-            if isinstance(z, YTQuantity):
+            if isinstance(z, unyt_quantity):
                 try:
                     plot_units = self.frb[_field].units
                     z = z.to(plot_units).value
                 except AttributeError:
                     # only certain subclasses have a frb attribute they can rely on for inspecting units
                     mylog.warning(
-                        "%s class doesn't support zmin/zmax set as tuples or YTQuantity"
+                        "%s class doesn't support zmin/zmax set as tuples or unyt_quantity"
                         % self.__class__.__name__
                     )
                     z = z.value

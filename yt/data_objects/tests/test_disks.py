@@ -1,7 +1,7 @@
 from nose.tools import assert_raises
 from numpy.testing import assert_equal
+from unyt import unyt_quantity
 
-from yt import YTQuantity
 from yt.testing import fake_random_ds
 
 
@@ -40,7 +40,7 @@ def test_bad_disk_input():
             [0, 0, 1],
             (10, "kpc"),
             (20, "kpc"),
-            fields=YTQuantity(1, "kpc"),
+            fields=unyt_quantity(1, "kpc"),
         )
     desired = "Expected an iterable object, received" " 'unyt.array.unyt_quantity'"
     assert_equal(str(ex.exception), desired)

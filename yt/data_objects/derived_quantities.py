@@ -1,7 +1,6 @@
 import numpy as np
 
-from yt.funcs import camelcase_to_underscore, ensure_list
-from yt.units.yt_array import array_like_field
+from yt.funcs import array_like_field, camelcase_to_underscore, ensure_list
 from yt.utilities.exceptions import YTParticleTypeNotFound
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
@@ -61,7 +60,7 @@ class DerivedQuantity(ParallelAnalysisInterface, metaclass=RegisteredDerivedQuan
         for key in sorted(storage):
             for i in range(self.num_vals):
                 values[i].append(storage[key][i])
-        # These will be YTArrays
+        # These will be unyt_arrays
         values = [self.data_source.ds.arr(values[i]) for i in range(self.num_vals)]
         values = self.reduce_intermediate(values)
         return values
@@ -96,8 +95,8 @@ class WeightedAverageQuantity(DerivedQuantity):
     r"""
     Calculates the weight average of a field or fields.
 
-    Returns a YTQuantity for each field requested; if one,
-    it returns a single YTQuantity, if many, it returns a list of YTQuantities
+    Returns a unyt_quantity for each field requested; if one,
+    it returns a single unyt_quantity, if many, it returns a list of YTQuantities
     in order of the listed fields.
 
     Where f is the field and w is the weight, the weighted average is
@@ -182,7 +181,7 @@ class TotalQuantity(DerivedQuantity):
 
 class TotalMass(TotalQuantity):
     r"""
-    Calculates the total mass of the object. Returns a YTArray where the
+    Calculates the total mass of the object. Returns a unyt_array where the
     first element is total gas mass and the second element is total particle
     mass.
 
@@ -284,7 +283,7 @@ class CenterOfMass(DerivedQuantity):
         w = values.pop(0).sum(dtype=np.float64)
         if len(values) > 0:
             # Note that this could be shorter if we pre-initialized our x,y,z,w
-            # values as YTQuantity objects.
+            # values as unyt_quantity objects.
             x += values.pop(0).sum(dtype=np.float64)
             y += values.pop(0).sum(dtype=np.float64)
             z += values.pop(0).sum(dtype=np.float64)
@@ -365,7 +364,7 @@ class BulkVelocity(DerivedQuantity):
         w = values.pop(0).sum(dtype=np.float64)
         if len(values) > 0:
             # Note that this could be shorter if we pre-initialized our x,y,z,w
-            # values as YTQuantity objects.
+            # values as unyt_quantity objects.
             x += values.pop(0).sum(dtype=np.float64)
             y += values.pop(0).sum(dtype=np.float64)
             z += values.pop(0).sum(dtype=np.float64)
@@ -376,9 +375,9 @@ class BulkVelocity(DerivedQuantity):
 class WeightedVariance(DerivedQuantity):
     r"""
     Calculates the weighted variance and weighted mean for a field
-    or list of fields. Returns a YTArray for each field requested; if one,
-    it returns a single YTArray, if many, it returns a list of YTArrays
-    in order of the listed fields.  The first element of each YTArray is
+    or list of fields. Returns a unyt_array for each field requested; if one,
+    it returns a single unyt_array, if many, it returns a list of unyt_arrays
+    in order of the listed fields.  The first element of each unyt_array is
     the weighted variance, and the second element is the weighted mean.
 
     Where f is the field, w is the weight, and <f_w> is the weighted mean,
@@ -460,7 +459,7 @@ class AngularMomentumVector(DerivedQuantity):
     Calculates the angular momentum vector, using gas (grid-based) and/or particles.
 
     The angular momentum vector is the mass-weighted mean specific angular momentum.
-    Returns a YTArray of the vector.
+    Returns a unyt_array of the vector.
 
     Parameters
     ----------
@@ -561,9 +560,9 @@ class AngularMomentumVector(DerivedQuantity):
 class Extrema(DerivedQuantity):
     r"""
     Calculates the min and max value of a field or list of fields.
-    Returns a YTArray for each field requested.  If one, a single YTArray
-    is returned, if many, a list of YTArrays in order of field list is
-    returned.  The first element of each YTArray is the minimum of the
+    Returns a unyt_array for each field requested.  If one, a single unyt_array
+    is returned, if many, a list of unyt_arrays in order of field list is
+    returned.  The first element of each unyt_array is the minimum of the
     field and the second is the maximum of the field.
 
     Parameters

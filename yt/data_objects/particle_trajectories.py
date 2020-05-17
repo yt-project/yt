@@ -4,8 +4,7 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
-from yt.funcs import get_pbar, mylog
-from yt.units.yt_array import array_like_field
+from yt.funcs import array_like_field, get_pbar, mylog
 from yt.utilities.exceptions import YTIllDefinedParticleData
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 from yt.utilities.on_demand_imports import _h5py as h5py

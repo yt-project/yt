@@ -1,4 +1,5 @@
 import numpy as np
+from unyt import kpc
 
 from yt.convenience import load
 from yt.fields.derived_field import ValidateParameter
@@ -12,7 +13,6 @@ from yt.testing import (
     requires_file,
     requires_module,
 )
-from yt.units import kpc
 
 # cylindrical data for covering_grid test
 cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
@@ -269,11 +269,11 @@ def test_arbitrary_field_parameters():
 def test_arbitrary_grid_edge():
     # Tests bug fix for issue #2087
     # Regardless of how left_edge and right_edge are passed, the result should be
-    # a YTArray with a unit registry that matches that of the dataset.
+    # a unyt_array with a unit registry that matches that of the dataset.
     dims = [32, 32, 32]
     ds = fake_random_ds(dims)
-    # Test when edge is a list, numpy array, YTArray with dataset units, and
-    # YTArray with non-dataset units
+    # Test when edge is a list, numpy array, unyt_array with dataset units, and
+    # unyt_array with non-dataset units
     ledge = [
         [0.0, 0.0, 0.0],
         np.array([0.0, 0.0, 0.0]),

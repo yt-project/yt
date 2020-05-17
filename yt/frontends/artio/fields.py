@@ -1,7 +1,7 @@
 import numpy as np
+from unyt import unyt_array
 
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.units.yt_array import YTArray
 from yt.utilities.physical_constants import amu_cgs, boltzmann_constant_cgs
 
 b_units = "code_magnetic"
@@ -133,7 +133,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         if ptype == "STAR":
 
             def _creation_time(field, data):
-                return YTArray(
+                return unyt_array(
                     data.ds._handle.tphys_from_tcode_array(data["STAR", "BIRTH_TIME"]),
                     "yr",
                 )

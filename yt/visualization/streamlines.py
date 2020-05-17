@@ -1,8 +1,8 @@
 import numpy as np
+from unyt import unyt_array
 
 from yt.data_objects.construction_data_containers import YTStreamline
 from yt.funcs import get_pbar
-from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
@@ -13,7 +13,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 def sanitize_length(length, ds):
     # Ensure that lengths passed in with units are returned as code_length
     # magnitudes without units
-    if isinstance(length, YTArray):
+    if isinstance(length, unyt_array):
         return ds.arr(length).in_units("code_length").d
     else:
         return length

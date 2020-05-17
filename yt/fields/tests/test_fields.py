@@ -1,4 +1,5 @@
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt import load
 from yt.frontends.stream.fields import StreamFieldInfo
@@ -14,7 +15,7 @@ from yt.testing import (
     fake_random_ds,
     requires_file,
 )
-from yt.units.yt_array import YTArray, YTQuantity, array_like_field
+from yt.units.yt_array import array_like_field
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     YTDimensionalityError,
@@ -26,17 +27,17 @@ from yt.utilities.exceptions import (
 def get_params(ds):
     return dict(
         axis=0,
-        center=YTArray((0.0, 0.0, 0.0), "cm", registry=ds.unit_registry),
-        bulk_velocity=YTArray((0.0, 0.0, 0.0), "cm/s", registry=ds.unit_registry),
-        bulk_magnetic_field=YTArray((0.0, 0.0, 0.0), "G", registry=ds.unit_registry),
-        normal=YTArray((0.0, 0.0, 1.0), "", registry=ds.unit_registry),
-        cp_x_vec=YTArray((1.0, 0.0, 0.0), "", registry=ds.unit_registry),
-        cp_y_vec=YTArray((0.0, 1.0, 0.0), "", registry=ds.unit_registry),
-        cp_z_vec=YTArray((0.0, 0.0, 1.0), "", registry=ds.unit_registry),
+        center=unyt_array((0.0, 0.0, 0.0), "cm", registry=ds.unit_registry),
+        bulk_velocity=unyt_array((0.0, 0.0, 0.0), "cm/s", registry=ds.unit_registry),
+        bulk_magnetic_field=unyt_array((0.0, 0.0, 0.0), "G", registry=ds.unit_registry),
+        normal=unyt_array((0.0, 0.0, 1.0), "", registry=ds.unit_registry),
+        cp_x_vec=unyt_array((1.0, 0.0, 0.0), "", registry=ds.unit_registry),
+        cp_y_vec=unyt_array((0.0, 1.0, 0.0), "", registry=ds.unit_registry),
+        cp_z_vec=unyt_array((0.0, 0.0, 1.0), "", registry=ds.unit_registry),
         omega_baryon=0.04,
         observer_redshift=0.0,
         source_redshift=3.0,
-        virial_radius=YTQuantity(1.0, "cm"),
+        virial_radius=unyt_quantity(1.0, "cm"),
     )
 
 

@@ -7,13 +7,12 @@ from functools import wraps
 from io import StringIO
 
 import numpy as np
+from unyt import UnitRegistry, unyt_array
 
 import yt.utilities.logger
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.funcs import ensure_list, iterable
-from yt.units.unit_registry import UnitRegistry
-from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
 from yt.utilities.lib.quad_tree import QuadTree, merge_quadtrees
 from yt.utilities.logger import ytLogger as mylog
@@ -828,7 +827,7 @@ class Communicator:
         # this type of array. Otherwise, we'll pickle it.
         if isinstance(data, np.ndarray) and get_mpi_type(data.dtype) is not None:
             if self.comm.rank == root:
-                if isinstance(data, YTArray):
+                if isinstance(data, unyt_array):
                     info = (
                         data.shape,
                         data.dtype,
@@ -838,7 +837,7 @@ class Communicator:
                     if isinstance(data, ImageArray):
                         info += ("ImageArray",)
                     else:
-                        info += ("YTArray",)
+                        info += ("unyt_array",)
                 else:
                     info = (data.shape, data.dtype)
             else:
@@ -854,7 +853,7 @@ class Communicator:
                             registry=registry,
                         )
                     else:
-                        data = YTArray(
+                        data = unyt_array(
                             np.empty(info[0], dtype=info[1]), info[2], registry=registry
                         )
                 else:
@@ -1078,12 +1077,12 @@ class Communicator:
             return
         tmp = arr.view(self.__tocast)  # Cast to CHAR
         # communicate type and shape and optionally units
-        if isinstance(arr, YTArray):
+        if isinstance(arr, unyt_array):
             unit_metadata = (str(arr.units), arr.units.registry.lut)
             if isinstance(arr, ImageArray):
                 unit_metadata += ("ImageArray",)
             else:
-                unit_metadata += ("YTArray",)
+                unit_metadata += ("unyt_array",)
         else:
             unit_metadata = ()
         self.comm.send((arr.dtype.str, arr.shape) + unit_metadata, dest=dest, tag=tag)
@@ -1101,7 +1100,7 @@ class Communicator:
             if metadata[-1] == "ImageArray":
                 arr = ImageArray(arr, units=metadata[2], registry=registry)
             else:
-                arr = YTArray(arr, metadata[2], registry=registry)
+                arr = unyt_array(arr, metadata[2], registry=registry)
         tmp = arr.view(self.__tocast)
         self.comm.Recv([tmp, MPI.CHAR], source=source, tag=tag)
         return arr
@@ -1118,13 +1117,13 @@ class Communicator:
         offset = offsets[self.comm.rank]
         tmp_send = send.view(self.__tocast)
         recv = np.empty(total_size, dtype=send.dtype)
-        if isinstance(send, YTArray):
+        if isinstance(send, unyt_array):
             # We assume send.units is consistent with the units
             # on the receiving end.
             if isinstance(send, ImageArray):
                 recv = ImageArray(recv, units=send.units)
             else:
-                recv = YTArray(recv, send.units)
+                recv = unyt_array(recv, send.units)
         recv[offset : offset + send.size] = send[:]
         dtr = send.dtype.itemsize / tmp_send.dtype.itemsize  # > 1
         roff = [off * dtr for off in offsets]

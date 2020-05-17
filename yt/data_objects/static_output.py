@@ -10,6 +10,9 @@ from collections import defaultdict
 from stat import ST_CTIME
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
+from unyt.dimensions import current_mks
+from unyt.unit_object import Unit, define_unit
 
 from yt.config import ytcfg
 from yt.data_objects.data_containers import data_object_registry
@@ -39,11 +42,8 @@ from yt.geometry.coordinates.api import (
     SphericalCoordinateHandler,
 )
 from yt.units import UnitContainer, _wrap_display_ytarray
-from yt.units.dimensions import current_mks
-from yt.units.unit_object import Unit, define_unit
 from yt.units.unit_registry import UnitRegistry
 from yt.units.unit_systems import create_code_unit_system, unit_system_registry
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     YTFieldNotFound,
@@ -119,7 +119,7 @@ class MutableAttribute:
             try:
                 ret._ipython_display_ = functools.partial(_wrap_display_ytarray, ret)
             # This will error out if the items have yet to be turned into
-            # YTArrays, in which case we just let it go.
+            # unyt_arrays, in which case we just let it go.
             except AttributeError:
                 pass
         return ret
@@ -307,12 +307,12 @@ class Dataset(metaclass=RegisteredDataset):
         else:
             self.domain_center = 0.5 * (self.domain_right_edge + self.domain_left_edge)
             self.domain_width = self.domain_right_edge - self.domain_left_edge
-        if not isinstance(self.current_time, YTQuantity):
+        if not isinstance(self.current_time, unyt_quantity):
             self.current_time = self.quan(self.current_time, "code_time")
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
-            if not isinstance(v, YTArray) and v is not None:
+            if not isinstance(v, unyt_array) and v is not None:
                 # Note that we don't add on _ipython_display_ here because
                 # everything is stored inside a MutableAttribute.
                 v = self.arr(v, "code_length")
@@ -417,7 +417,7 @@ class Dataset(metaclass=RegisteredDataset):
         self, v, quantity="distance", return_quantity=False
     ):
         """
-        Returns the largest whole unit smaller than the YTQuantity passed to
+        Returns the largest whole unit smaller than the unyt_quantity passed to
         it as a string.
 
         The quantity keyword can be equal to `distance` or `time`.  In the
@@ -425,9 +425,9 @@ class Dataset(metaclass=RegisteredDataset):
         'km', etc.  For time, the units are: 'Myr', 'kyr', 'yr', 'day', 'hr',
         's', 'ms', etc.
 
-        If return_quantity is set to True, it finds the largest YTQuantity
+        If return_quantity is set to True, it finds the largest unyt_quantity
         object with a whole unit and a power of ten as the coefficient, and it
-        returns this YTQuantity.
+        returns this unyt_quantity.
         """
         good_u = None
         if quantity == "distance":
@@ -997,9 +997,9 @@ class Dataset(metaclass=RegisteredDataset):
         # but need to check if left_edge or right_edge is a
         # list or other non-array iterable before calculating
         # the center
-        if isinstance(left_edge[0], YTQuantity):
-            left_edge = YTArray(left_edge)
-            right_edge = YTArray(right_edge)
+        if isinstance(left_edge[0], unyt_quantity):
+            left_edge = unyt_array(left_edge)
+            right_edge = unyt_array(right_edge)
 
         left_edge = np.asanyarray(left_edge, dtype="float64")
         right_edge = np.asanyarray(right_edge, dtype="float64")
@@ -1081,7 +1081,7 @@ class Dataset(metaclass=RegisteredDataset):
         self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
-        import yt.units.dimensions as dimensions
+        from unyt import dimensions
 
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
@@ -1112,7 +1112,7 @@ class Dataset(metaclass=RegisteredDataset):
         Creates the unit registry for this dataset.
 
         """
-        from yt.units.dimensions import length
+        from unyt.dimensions import length
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
@@ -1221,7 +1221,7 @@ class Dataset(metaclass=RegisteredDataset):
         ]:
             val = self.units_override.get("%s_unit" % unit, None)
             if val is not None:
-                if isinstance(val, YTQuantity):
+                if isinstance(val, unyt_quantity):
                     val = (val.v, str(val.units))
                 elif not isinstance(val, tuple):
                     val = (val, cgs)
@@ -1244,9 +1244,9 @@ class Dataset(metaclass=RegisteredDataset):
 
     @property
     def arr(self):
-        """Converts an array into a :class:`yt.units.yt_array.YTArray`
+        """Converts an array into a :class:`yt.units.yt_array.unyt_array`
 
-        The returned YTArray will be dimensionless by default, but can be
+        The returned unyt_array will be dimensionless by default, but can be
         cast to arbitrary units using the ``units`` keyword argument.
 
         Parameters
@@ -1270,31 +1270,31 @@ class Dataset(metaclass=RegisteredDataset):
         >>> a = ds.arr([1, 2, 3], 'cm')
         >>> b = ds.arr([4, 5, 6], 'm')
         >>> a + b
-        YTArray([ 401.,  502.,  603.]) cm
+        unyt_array([ 401.,  502.,  603.]) cm
         >>> b + a
-        YTArray([ 4.01,  5.02,  6.03]) m
+        unyt_array([ 4.01,  5.02,  6.03]) m
 
         Arrays returned by this function know about the dataset's unit system
 
         >>> a = ds.arr(np.ones(5), 'code_length')
         >>> a.in_units('Mpccm/h')
-        YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
+        unyt_array([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
                  1.00010449]) Mpc
 
         """
 
         if self._arr is not None:
             return self._arr
-        self._arr = functools.partial(YTArray, registry=self.unit_registry)
+        self._arr = functools.partial(unyt_array, registry=self.unit_registry)
         return self._arr
 
     _quan = None
 
     @property
     def quan(self):
-        """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
+        """Converts an scalar into a :class:`yt.units.yt_array.unyt_quantity`
 
-        The returned YTQuantity will be dimensionless by default, but can be
+        The returned unyt_quantity will be dimensionless by default, but can be
         cast to arbitrary units using the ``units`` keyword argument.
 
         Parameters
@@ -1333,7 +1333,7 @@ class Dataset(metaclass=RegisteredDataset):
 
         if self._quan is not None:
             return self._quan
-        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
+        self._quan = functools.partial(unyt_quantity, registry=self.unit_registry)
         return self._quan
 
     def add_field(self, name, function=None, sampling_type=None, **kwargs):
@@ -1650,7 +1650,7 @@ class Dataset(metaclass=RegisteredDataset):
         ----------
         symbol : string
             The symbol for the new unit.
-        value : tuple or ~yt.units.yt_array.YTQuantity
+        value : tuple or ~yt.units.yt_array.unyt_quantity
             The definition of the new unit in terms of some other units. For example,
             one would define a new "mph" unit with (1.0, "mile/hr")
         tex_repr : string, optional
@@ -1664,7 +1664,7 @@ class Dataset(metaclass=RegisteredDataset):
         Examples
         --------
         >>> ds.define_unit("mph", (1.0, "mile/hr"))
-        >>> two_weeks = YTQuantity(14.0, "days")
+        >>> two_weeks = unyt_quantity(14.0, "days")
         >>> ds.define_unit("fortnight", two_weeks)
         """
         define_unit(

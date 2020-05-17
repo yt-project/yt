@@ -7,6 +7,8 @@ from itertools import chain, product, repeat
 from numbers import Number as numeric_type
 
 import numpy as np
+from unyt import unyt_quantity
+from unyt.array import uconcatenate
 
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.grid_patch import AMRGridPatch
@@ -24,7 +26,6 @@ from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_container import OctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
-from yt.units.yt_array import YTQuantity, uconcatenate
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTIllDefinedAMR,
@@ -337,7 +338,7 @@ class StreamDataset(Dataset):
                 uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
-            elif isinstance(unit, YTQuantity):
+            elif isinstance(unit, unyt_quantity):
                 uq = unit
             elif isinstance(unit, tuple):
                 uq = self.quan(unit[0], unit[1])
@@ -511,7 +512,7 @@ def process_data(data, grid_dims=None):
     for field, val in data.items():
         # val is a data array
         if isinstance(val, np.ndarray):
-            # val is a YTArray
+            # val is a unyt_array
             if hasattr(val, "units"):
                 field_units[field] = val.units
                 new_data[field] = val.copy().d
@@ -675,7 +676,7 @@ def load_uniform_grid(
     ...                        bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
     >>> dd['density']
-    YTArray([ 0.87568064,  0.33686453,  0.70467189, ...,  0.70439916,
+    unyt_array([ 0.87568064,  0.33686453,  0.70467189, ...,  0.70439916,
             0.97506269,  0.03047113]) g/cm**3
     """
 

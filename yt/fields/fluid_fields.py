@@ -1,8 +1,8 @@
 import numpy as np
+from unyt.unit_object import Unit
 
 from yt.funcs import mylog
 from yt.geometry.geometry_handler import is_curvilinear
-from yt.units.unit_object import Unit
 from yt.utilities.chemical_formulas import default_mu
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 

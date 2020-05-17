@@ -1,3 +1,4 @@
+"""This module is a wrapper around unyt"""
 from unyt.array import (
     loadtxt,
     savetxt,
@@ -21,11 +22,11 @@ from yt.units.physical_constants import *
 from yt.units.physical_constants import _ConstantContainer
 from yt.units.unit_symbols import *
 from yt.units.unit_symbols import _SymbolContainer
-from yt.utilities.exceptions import YTArrayTooLargeToDisplay
-
-YTArray = unyt_array
-
-YTQuantity = unyt_quantity
+from yt.units.yt_array import (  # aliases kept for backward compatibility
+    YTArray,
+    YTQuantity,
+)
+from yt.utilities.exceptions import unyt_arrayTooLargeToDisplay
 
 
 class UnitContainer:
@@ -73,14 +74,14 @@ class UnitContainer:
 
 def display_ytarray(arr):
     r"""
-    Display a YTArray in a Jupyter widget that enables unit switching.
+    Display a unyt_array in a Jupyter widget that enables unit switching.
 
     The array returned by this function is read-only, and only works with
     arrays of size 3 or lower.
 
     Parameters
     ----------
-    arr : YTArray
+    arr : unyt_array
         The Array to display; must be of size 3 or lower.
 
     Examples
@@ -89,7 +90,7 @@ def display_ytarray(arr):
     >>> display_ytarray(ds.domain_width)
     """
     if arr.size > 3:
-        raise YTArrayTooLargeToDisplay(arr.size, 3)
+        raise unyt_arrayTooLargeToDisplay(arr.size, 3)
     import ipywidgets
 
     unit_registry = arr.units.registry

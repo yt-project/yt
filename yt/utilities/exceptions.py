@@ -840,7 +840,7 @@ class YTModuleRemoved(Exception):
         Exception.__init__(self, message)
 
 
-class YTArrayTooLargeToDisplay(YTException):
+class unyt_arrayTooLargeToDisplay(YTException):
     def __init__(self, size, max_size):
         self.size = size
         self.max_size = max_size

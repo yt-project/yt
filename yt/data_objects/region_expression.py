@@ -1,7 +1,8 @@
 import weakref
 
+from unyt import unyt_quantity
+
 from yt.funcs import obj_length
-from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTDimensionalityError, YTFieldNotParseable
 from yt.visualization.line_plot import LineBuffer
 
@@ -69,7 +70,7 @@ class RegionExpression:
     def _spec_to_value(self, input):
         if isinstance(input, tuple):
             v = self.ds.quan(input[0], input[1]).to("code_length")
-        elif isinstance(input, YTQuantity):
+        elif isinstance(input, unyt_quantity):
             v = self.ds.quan(input).to("code_length")
         else:
             v = self.ds.quan(input, "code_length")

@@ -114,7 +114,7 @@ class SkeletonDataset(Dataset):
     def _parse_parameter_file(self):
         # This needs to set up the following items.  Note that these are all
         # assumed to be in code units; domain_left_edge and domain_right_edge
-        # will be converted to YTArray automatically at a later time.
+        # will be converted to unyt_array automatically at a later time.
         # This includes the cosmological parameters.
         #
         #   self.unique_identifier      <= unique identifier for the dataset

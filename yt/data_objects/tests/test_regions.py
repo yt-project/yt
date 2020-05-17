@@ -1,5 +1,6 @@
+from unyt import cm
+
 from yt.testing import assert_array_equal, fake_amr_ds, fake_random_ds
-from yt.units import cm
 
 
 def test_box_creation():

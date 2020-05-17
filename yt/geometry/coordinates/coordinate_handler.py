@@ -2,9 +2,9 @@ import weakref
 from numbers import Number
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.funcs import fix_unitary, iterable, validate_width_tuple
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
 
 
@@ -42,7 +42,7 @@ def validate_iterable_width(width, ds, unit=None):
         )
     elif isinstance(width[0], Number) and isinstance(width[1], Number):
         return (ds.quan(width[0], "code_length"), ds.quan(width[1], "code_length"))
-    elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
+    elif isinstance(width[0], unyt_quantity) and isinstance(width[1], unyt_quantity):
         return (ds.quan(width[0]), ds.quan(width[1]))
     else:
         validate_width_tuple(width)
@@ -205,7 +205,7 @@ class CoordinateHandler:
             depth = (
                 self.ds.quan(depth, "code_length", registry=self.ds.unit_registry),
             )
-        elif isinstance(depth, YTQuantity):
+        elif isinstance(depth, unyt_quantity):
             depth = (depth,)
         else:
             raise YTInvalidWidthError(depth)
@@ -228,7 +228,7 @@ class CoordinateHandler:
             width = (w[0], w[1])
         elif iterable(width):
             width = validate_iterable_width(width, self.ds)
-        elif isinstance(width, YTQuantity):
+        elif isinstance(width, unyt_quantity):
             width = (width, width)
         elif isinstance(width, Number):
             width = (
@@ -254,7 +254,7 @@ class CoordinateHandler:
                 center = (self.ds.domain_left_edge + self.ds.domain_right_edge) / 2
             else:
                 raise RuntimeError('center keyword "%s" not recognized' % center)
-        elif isinstance(center, YTArray):
+        elif isinstance(center, unyt_array):
             return self.ds.arr(center), self.convert_to_cartesian(center)
         elif iterable(center):
             if isinstance(center[0], str) and isinstance(center[1], str):
@@ -286,7 +286,7 @@ class CoordinateHandler:
 
 def cartesian_to_cylindrical(coord, center=(0, 0, 0)):
     c2 = np.zeros_like(coord)
-    if not isinstance(center, YTArray):
+    if not isinstance(center, unyt_array):
         center = center * coord.uq
     c2[..., 0] = (
         (coord[..., 0] - center[0]) ** 2.0 + (coord[..., 1] - center[1]) ** 2.0
@@ -298,7 +298,7 @@ def cartesian_to_cylindrical(coord, center=(0, 0, 0)):
 
 def cylindrical_to_cartesian(coord, center=(0, 0, 0)):
     c2 = np.zeros_like(coord)
-    if not isinstance(center, YTArray):
+    if not isinstance(center, unyt_array):
         center = center * coord.uq
     c2[..., 0] = np.cos(coord[..., 0]) * coord[..., 1] + center[0]
     c2[..., 1] = np.sin(coord[..., 0]) * coord[..., 1] + center[1]

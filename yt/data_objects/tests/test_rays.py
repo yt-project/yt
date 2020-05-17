@@ -1,8 +1,8 @@
 import numpy as np
+from unyt import uconcatenate
 
 from yt import load
 from yt.testing import assert_equal, assert_rel_equal, fake_random_ds, requires_file
-from yt.units.yt_array import uconcatenate
 
 
 def test_ray():

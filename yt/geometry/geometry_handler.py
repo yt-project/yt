@@ -4,10 +4,11 @@ import pickle
 import weakref
 
 import numpy as np
+from unyt import unyt_array
+from unyt.array import uconcatenate
 
 from yt.config import ytcfg
 from yt.funcs import iterable
-from yt.units.yt_array import YTArray, uconcatenate
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
@@ -325,10 +326,12 @@ class YTDataChunk:
     def fcoords(self):
         if self._fast_index is not None:
             ci = self._fast_index.select_fcoords(self.dobj.selector, self.data_size)
-            ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
+            ci = unyt_array(
+                ci, units="code_length", registry=self.dobj.ds.unit_registry
+            )
             return ci
         ci = np.empty((self.data_size, 3), dtype="float64")
-        ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
+        ci = unyt_array(ci, units="code_length", registry=self.dobj.ds.unit_registry)
         if self.data_size == 0:
             return ci
         ind = 0
@@ -361,10 +364,12 @@ class YTDataChunk:
     def fwidth(self):
         if self._fast_index is not None:
             ci = self._fast_index.select_fwidth(self.dobj.selector, self.data_size)
-            ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
+            ci = unyt_array(
+                ci, units="code_length", registry=self.dobj.ds.unit_registry
+            )
             return ci
         ci = np.empty((self.data_size, 3), dtype="float64")
-        ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
+        ci = unyt_array(ci, units="code_length", registry=self.dobj.ds.unit_registry)
         if self.data_size == 0:
             return ci
         ind = 0
@@ -420,7 +425,7 @@ class YTDataChunk:
         nodes_per_elem = self.dobj.index.meshes[0].connectivity_indices.shape[1]
         dim = self.dobj.ds.dimensionality
         ci = np.empty((self.data_size, nodes_per_elem, dim), dtype="float64")
-        ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
+        ci = unyt_array(ci, units="code_length", registry=self.dobj.ds.unit_registry)
         if self.data_size == 0:
             return ci
         ind = 0

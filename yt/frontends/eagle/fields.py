@@ -1,6 +1,7 @@
+from unyt import unyt_quantity
+
 from yt.frontends.eagle.definitions import eaglenetwork_ion_lookup
 from yt.frontends.owls.fields import OWLSFieldInfo
-from yt.units.yt_array import YTQuantity
 from yt.utilities.periodic_table import periodic_table
 
 
@@ -149,7 +150,9 @@ class EagleNetworkFieldInfo(OWLSFieldInfo):
                 symbol = ion[0:2].capitalize()
             else:
                 symbol = ion[0:1].capitalize()
-            m_ion = YTQuantity(periodic_table.elements_by_symbol[symbol].weight, "amu")
+            m_ion = unyt_quantity(
+                periodic_table.elements_by_symbol[symbol].weight, "amu"
+            )
 
             # hydrogen number density
             n_H = data["PartType0", "H_number_density"]

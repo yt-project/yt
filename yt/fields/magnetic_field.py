@@ -1,8 +1,8 @@
 import numpy as np
+from unyt import dimensions
+from unyt.array import ustack
 
 from yt.fields.derived_field import ValidateParameter
-from yt.units import dimensions
-from yt.units.yt_array import ustack
 from yt.utilities.math_utils import get_sph_phi_component, get_sph_theta_component
 
 from .field_plugin_registry import register_field_plugin

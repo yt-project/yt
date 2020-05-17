@@ -1,6 +1,6 @@
 from nose.tools import assert_raises
+from unyt import unyt_quantity
 
-from yt import YTQuantity
 from yt.funcs import validate_axis, validate_center
 from yt.testing import assert_equal, fake_amr_ds
 
@@ -35,7 +35,7 @@ def test_validate_center():
     )
     assert_equal(str(ex.exception), desired)
 
-    validate_center(YTQuantity(0.25, "cm"))
+    validate_center(unyt_quantity(0.25, "cm"))
     validate_center([0.25, 0.25, 0.25])
 
     class CustomCenter:
@@ -46,7 +46,7 @@ def test_validate_center():
         validate_center(CustomCenter(10))
     desired = (
         "Expected 'center' to be a numeric object of type "
-        "list/tuple/np.ndarray/YTArray/YTQuantity, received "
+        "list/tuple/np.ndarray/unyt_array/unyt_quantity, received "
         "'yt.tests.test_funcs.test_validate_center.<locals>."
         "CustomCenter'."
     )

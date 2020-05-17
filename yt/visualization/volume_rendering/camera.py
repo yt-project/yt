@@ -2,9 +2,9 @@ import weakref
 from numbers import Number as numeric_type
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.funcs import ensure_numpy_array, iterable
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
 
@@ -16,7 +16,7 @@ def _sanitize_camera_property_units(value, scene):
     if iterable(value):
         if len(value) == 1:
             return _sanitize_camera_property_units(value[0], scene)
-        elif isinstance(value, YTArray) and len(value) == 3:
+        elif isinstance(value, unyt_array) and len(value) == 3:
             return scene.arr(value).in_units("unitary")
         elif (
             len(value) == 2
@@ -39,7 +39,7 @@ def _sanitize_camera_property_units(value, scene):
                     )
             return scene.arr(value, "unitary")
     else:
-        if isinstance(value, (YTQuantity, YTArray)):
+        if isinstance(value, (unyt_quantity, unyt_array)):
             return scene.arr([value.d] * 3, value.units).in_units("unitary")
         elif isinstance(value, numeric_type):
             return scene.arr([value] * 3, "unitary")
@@ -158,7 +158,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        position : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        position : number, unyt_quantity, :obj:`!iterable`, or 3 element unyt_array
             If a scalar, assumes that the position is the same in all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
@@ -192,7 +192,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        width : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        width : number, unyt_quantity, :obj:`!iterable`, or 3 element unyt_array
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
             all three directions. If an iterable, must contain only scalars or
@@ -222,7 +222,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        focus : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        focus : number, unyt_quantity, :obj:`!iterable`, or 3 element unyt_array
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
             all three directions. If an iterable, must contain only scalars or
@@ -340,9 +340,9 @@ class Camera(Orientation):
         if not iterable(width):
             width = data_source.ds.arr([width, width, width], units="code_length")
             # left/right, top/bottom, front/back
-        if not isinstance(width, YTArray):
+        if not isinstance(width, unyt_array):
             width = data_source.ds.arr(width, units="code_length")
-        if not isinstance(focus, YTArray):
+        if not isinstance(focus, unyt_array):
             focus = data_source.ds.arr(focus, units="code_length")
 
         # We can't use the property setters yet, since they rely on attributes
@@ -365,7 +365,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        width : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        width : number, unyt_quantity, :obj:`!iterable`, or 3 element unyt_array
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
             all three directions. If an iterable, must contain only scalars or
@@ -384,7 +384,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        width : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        width : number, unyt_quantity, :obj:`!iterable`, or 3 element unyt_array
             If a scalar, assumes that the position is the same in all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
@@ -408,7 +408,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        focus : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
+        focus : number, unyt_quantity, :obj:`!iterable`, or 3 element unyt_array
             If a scalar, assumes that the focus is the same is all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
@@ -658,7 +658,7 @@ class Camera(Orientation):
 
         Parameters
         ----------
-        final : YTArray
+        final : unyt_array
             The final center to move to after `n_steps`
         n_steps : int
             The number of snapshots to make.
@@ -681,7 +681,7 @@ class Camera(Orientation):
         ...     sc.save("move_%04i.png" % i)
 
         """
-        assert isinstance(final, YTArray)
+        assert isinstance(final, unyt_array)
         if exponential:
             position_diff = (final / self.position) * 1.0
             dx = position_diff ** (1.0 / n_steps)

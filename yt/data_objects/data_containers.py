@@ -7,6 +7,8 @@ from collections import defaultdict
 from contextlib import contextmanager
 
 import numpy as np
+from unyt import dimensions as ytdims, unyt_array, unyt_quantity
+from unyt.array import uconcatenate
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry.selection_routines
@@ -24,8 +26,6 @@ from yt.funcs import (
     validate_width_tuple,
 )
 from yt.geometry.selection_routines import compose_selector
-from yt.units import dimensions as ytdims
-from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
     YTBooleanObjectError,
@@ -187,11 +187,11 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         if center is None:
             self.center = None
             return
-        elif isinstance(center, YTArray):
+        elif isinstance(center, unyt_array):
             self.center = self.ds.arr(center.astype("float64"))
             self.center.convert_to_units("code_length")
         elif isinstance(center, (list, tuple, np.ndarray)):
-            if isinstance(center[0], YTQuantity):
+            if isinstance(center[0], unyt_quantity):
                 self.center = self.ds.arr([c.copy() for c in center], dtype="float64")
                 self.center.convert_to_units("code_length")
             else:
@@ -1747,7 +1747,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         fd.convert_to_units(fi.units)
                     except AttributeError:
                         # If the field returns an ndarray, coerce to a
-                        # dimensionless YTArray and verify that field is
+                        # dimensionless unyt_array and verify that field is
                         # supposed to be unitless
                         fd = self.ds.arr(fd, "")
                         if fi.units != "":
@@ -2069,7 +2069,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center = self.center
             if center is None:
                 center = (self.ds.domain_right_edge + self.ds.domain_left_edge) / 2.0
-        elif iterable(center) and not isinstance(center, YTArray):
+        elif iterable(center) and not isinstance(center, unyt_array):
             center = self.ds.arr(center, "code_length")
         if iterable(width):
             w, u = width
@@ -2077,14 +2077,14 @@ class YTSelectionContainer2D(YTSelectionContainer):
                 height = u
                 w, u = w
             width = self.ds.quan(w, units=u)
-        elif not isinstance(width, YTArray):
+        elif not isinstance(width, unyt_array):
             width = self.ds.quan(width, "code_length")
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
             height = self.ds.quan(h, units=u)
-        elif not isinstance(height, YTArray):
+        elif not isinstance(height, unyt_array):
             height = self.ds.quan(height, "code_length")
         if not iterable(resolution):
             resolution = (resolution, resolution)

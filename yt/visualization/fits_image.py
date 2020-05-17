@@ -4,14 +4,13 @@ from itertools import count
 from numbers import Number as numeric_type
 
 import numpy as np
+from unyt import dimensions, unyt_array, unyt_quantity
+from unyt.unit_object import Unit
 
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
 from yt.funcs import ensure_list, fix_axis, issue_deprecation_warning, iterable, mylog
-from yt.units import dimensions
-from yt.units.unit_object import Unit
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -28,7 +27,7 @@ class UnitfulHDU:
 
     @property
     def data(self):
-        return YTArray(self.hdu.data, self.units)
+        return unyt_array(self.hdu.data, self.units)
 
     def __repr__(self):
         im_shape = " x ".join([str(s) for s in self.shape])
@@ -75,18 +74,18 @@ class FITSImageData:
             The units of the WCS coordinates and the length unit of the file.
             Defaults to the length unit of the dataset, if there is one, or
             "cm" if there is not.
-        width : float or YTQuantity
+        width : float or unyt_quantity
             The width of the image. Either a single value or iterable of values.
             If a float, assumed to be in *units*. Only used if this information
             is not already provided by *data*.
-        img_ctr : array_like or YTArray
+        img_ctr : array_like or unyt_array
             The center coordinates of the image. If a list or NumPy array,
             it is assumed to be in *units*. Only used if this information
             is not already provided by *data*.
         wcs : `~astropy.wcs.WCS` instance, optional
             Supply an AstroPy WCS instance. Will override automatic WCS
             creation from FixedResolutionBuffers and YTCoveringGrids.
-        current_time : float, tuple, or YTQuantity, optional
+        current_time : float, tuple, or unyt_quantity, optional
             The current time of the image(s). If not specified, one will
             be set from the dataset if there is one. If a float, it will
             be assumed to be in *time_unit* units.
@@ -160,7 +159,7 @@ class FITSImageData:
             width = 1.0
         if isinstance(width, tuple):
             if ds is None:
-                width = YTQuantity(width[0], width[1])
+                width = unyt_quantity(width[0], width[1])
             else:
                 width = ds.quan(width[0], width[1])
         if img_ctr is None:
@@ -323,7 +322,7 @@ class FITSImageData:
                 # parameters to determine the cell widths
                 if not iterable(width):
                     width = [width] * self.dimensionality
-                if isinstance(width[0], YTQuantity):
+                if isinstance(width[0], unyt_quantity):
                     cdelt = [
                         wh.to_value(wcs_unit) / n for wh, n in zip(width, self.shape)
                     ]
@@ -349,12 +348,12 @@ class FITSImageData:
             if ds is not None:
                 current_time = ds.current_time
             else:
-                self.current_time = YTQuantity(0.0, "s")
+                self.current_time = unyt_quantity(0.0, "s")
                 return
         elif isinstance(current_time, numeric_type):
-            current_time = YTQuantity(current_time, tunit)
+            current_time = unyt_quantity(current_time, tunit)
         elif isinstance(current_time, tuple):
-            current_time = YTQuantity(current_time[0], current_time[1])
+            current_time = unyt_quantity(current_time[0], current_time[1])
         self.current_time = current_time.to(tunit)
 
     def _set_units(self, ds, base_units):
@@ -385,13 +384,13 @@ class FITSImageData:
                 u = unit
 
             if isinstance(u, str):
-                uq = YTQuantity(1.0, u)
+                uq = unyt_quantity(1.0, u)
             elif isinstance(u, numeric_type):
-                uq = YTQuantity(u, cgs_unit)
-            elif isinstance(u, YTQuantity):
+                uq = unyt_quantity(u, cgs_unit)
+            elif isinstance(u, unyt_quantity):
                 uq = u.copy()
             elif isinstance(u, tuple):
-                uq = YTQuantity(u[0], u[1])
+                uq = unyt_quantity(u[0], u[1])
             else:
                 uq = None
 
@@ -407,7 +406,7 @@ class FITSImageData:
                 mylog.warning(
                     "Converting length units " "from %s to %s." % (uq, uq.units)
                 )
-                uq = YTQuantity(1.0, uq.units)
+                uq = unyt_quantity(1.0, uq.units)
 
             setattr(self, attr, uq)
 
@@ -419,7 +418,7 @@ class FITSImageData:
                 key = unit[0].upper() + "UNIT"
             if key not in header:
                 continue
-            u = YTQuantity(header[key], header.comments[key].strip("[]"))
+            u = unyt_quantity(header[key], header.comments[key].strip("[]"))
             setattr(self, unit + "_unit", u)
 
     def set_wcs(self, wcs, wcsname=None, suffix=None):
@@ -473,12 +472,12 @@ class FITSImageData:
         ----------
         field : string
             The name of the field to convolve.
-        kernel : float, YTQuantity, (value, unit) tuple, or AstroPy Kernel object
+        kernel : float, unyt_quantity, (value, unit) tuple, or AstroPy Kernel object
             The kernel to convolve the image with. If this is an AstroPy Kernel
             object, the image will be convolved with it. Otherwise, it is
             assumed that the kernel is a Gaussian and that this value is
             the standard deviation. If a float, it is assumed that the units
-            are pixels, but a (value, unit) tuple or YTQuantity can be supplied
+            are pixels, but a (value, unit) tuple or unyt_quantity can be supplied
             to specify the standard deviation in physical units.
 
         Examples
@@ -495,9 +494,9 @@ class FITSImageData:
         if not isinstance(kernel, conv.Kernel):
             if not isinstance(kernel, numeric_type):
                 unit = str(self.wcs.wcs.cunit[0])
-                pix_scale = YTQuantity(self.wcs.wcs.cdelt[0], unit)
+                pix_scale = unyt_quantity(self.wcs.wcs.cdelt[0], unit)
                 if isinstance(kernel, tuple):
-                    stddev = YTQuantity(kernel[0], kernel[1]).to(unit)
+                    stddev = unyt_quantity(kernel[0], kernel[1]).to(unit)
                 else:
                     stddev = kernel.to(unit)
                 kernel = stddev / pix_scale
@@ -676,7 +675,7 @@ class FITSImageData:
         if field not in self.keys():
             raise KeyError("%s not an image!" % field)
         idx = self.fields.index(field)
-        new_data = YTArray(self.hdulist[idx].data, self.field_units[field]).to(units)
+        new_data = unyt_array(self.hdulist[idx].data, self.field_units[field]).to(units)
         self.hdulist[idx].data = new_data.v
         self.hdulist[idx].header["bunit"] = units
         self.field_units[field] = units
@@ -760,7 +759,7 @@ class FITSImageData:
         ----------
         sky_center : iterable of floats
             Reference coordinates of the WCS in degrees.
-        sky_scale : tuple or YTQuantity
+        sky_scale : tuple or unyt_quantity
             Conversion between an angle unit and a length unit,
             e.g. (3.0, "arcsec/kpc")
         ctype : list of strings, optional
@@ -785,10 +784,10 @@ class FITSImageData:
         old_wcs = self.wcs
         naxis = old_wcs.naxis
         crval = [sky_center[0], sky_center[1]]
-        if isinstance(sky_scale, YTQuantity):
+        if isinstance(sky_scale, unyt_quantity):
             scaleq = sky_scale
         else:
-            scaleq = YTQuantity(sky_scale[0], sky_scale[1])
+            scaleq = unyt_quantity(sky_scale[0], sky_scale[1])
         if scaleq.units.dimensions != dimensions.angle / dimensions.length:
             raise RuntimeError(
                 "sky_scale %s not in correct " % sky_scale
@@ -796,8 +795,8 @@ class FITSImageData:
             )
         deltas = old_wcs.wcs.cdelt
         units = [str(unit) for unit in old_wcs.wcs.cunit]
-        new_dx = (YTQuantity(-deltas[0], units[0]) * scaleq).in_units("deg")
-        new_dy = (YTQuantity(deltas[1], units[1]) * scaleq).in_units("deg")
+        new_dx = (unyt_quantity(-deltas[0], units[0]) * scaleq).in_units("deg")
+        new_dy = (unyt_quantity(deltas[1], units[1]) * scaleq).in_units("deg")
         new_wcs = _astropy.pywcs.WCS(naxis=naxis)
         cdelt = [new_dx.v, new_dy.v]
         cunit = ["deg"] * 2
@@ -943,7 +942,7 @@ class FITSSlice(FITSImageData):
         field is supported by providing a tuple such as ("min","temperature")
         or ("max","dark_matter_density"). Units can be specified by passing in
         *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code
+        passing in a unyt_array. If a list or unitless array is supplied, code
         units are assumed.
     width : tuple or a float.
         Width can have four different formats to support variable
@@ -1014,7 +1013,7 @@ class FITSProjection(FITSImageData):
         field is supported by providing a tuple such as ("min","temperature")
         or ("max","dark_matter_density"). Units can be specified by passing in
         *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code
+        passing in a unyt_array. If a list or unitless array is supplied, code
         units are assumed.
     width : tuple or a float.
         Width can have four different formats to support variable
@@ -1090,7 +1089,7 @@ class FITSOffAxisSlice(FITSImageData):
         field is supported by providing a tuple such as ("min","temperature")
         or ("max","dark_matter_density"). Units can be specified by passing in
         *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code
+        passing in a unyt_array. If a list or unitless array is supplied, code
         units are assumed.
     width : tuple or a float.
         Width can have four different formats to support variable
@@ -1168,7 +1167,7 @@ class FITSOffAxisProjection(FITSImageData):
         field is supported by providing a tuple such as ("min","temperature")
         or ("max","dark_matter_density"). Units can be specified by passing in
         *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code
+        passing in a unyt_array. If a list or unitless array is supplied, code
         units are assumed.
     width : tuple or a float.
         Width can have four different formats to support variable

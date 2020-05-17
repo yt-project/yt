@@ -1,4 +1,6 @@
 import numpy as np
+from unyt import unyt_array, unyt_quantity
+from unyt.array import udot, unorm
 
 from yt.data_objects.data_containers import (
     YTSelectionContainer,
@@ -24,7 +26,6 @@ from yt.funcs import (
     validate_width_tuple,
 )
 from yt.geometry.selection_routines import points_in_cells
-from yt.units.yt_array import YTArray, YTQuantity, udot, unorm
 from yt.utilities.exceptions import (
     YTEllipsoidOrdering,
     YTException,
@@ -76,7 +77,7 @@ class YTPoint(YTSelectionContainer0D):
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
         super(YTPoint, self).__init__(ds, field_parameters, data_source)
-        if isinstance(p, YTArray):
+        if isinstance(p, unyt_array):
             # we pass p through ds.arr to ensure code units are attached
             self.p = self.ds.arr(p)
         else:
@@ -153,11 +154,11 @@ class YTOrthoRay(YTSelectionContainer1D):
         self.px_dx = "d%s" % ("xyz"[self.px_ax])
         self.py_dx = "d%s" % ("xyz"[self.py_ax])
         # Convert coordinates to code length.
-        if isinstance(coords[0], YTQuantity):
+        if isinstance(coords[0], unyt_quantity):
             self.px = self.ds.quan(coords[0]).to("code_length")
         else:
             self.px = self.ds.quan(coords[0], "code_length")
-        if isinstance(coords[1], YTQuantity):
+        if isinstance(coords[1], unyt_quantity):
             self.py = self.ds.quan(coords[1]).to("code_length")
         else:
             self.py = self.ds.quan(coords[1], "code_length")
@@ -228,11 +229,11 @@ class YTRay(YTSelectionContainer1D):
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
         super(YTRay, self).__init__(ds, field_parameters, data_source)
-        if isinstance(start_point, YTArray):
+        if isinstance(start_point, unyt_array):
             self.start_point = self.ds.arr(start_point).to("code_length")
         else:
             self.start_point = self.ds.arr(start_point, "code_length", dtype="float64")
-        if isinstance(end_point, YTArray):
+        if isinstance(end_point, unyt_array):
             self.end_point = self.ds.arr(end_point).to("code_length")
         else:
             self.end_point = self.ds.arr(end_point, "code_length", dtype="float64")
@@ -761,15 +762,15 @@ class YTRegion(YTSelectionContainer3D):
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
         YTSelectionContainer3D.__init__(self, center, ds, field_parameters, data_source)
-        if not isinstance(left_edge, YTArray):
+        if not isinstance(left_edge, unyt_array):
             self.left_edge = self.ds.arr(left_edge, "code_length", dtype="float64")
         else:
-            # need to assign this dataset's unit registry to the YTArray
+            # need to assign this dataset's unit registry to the unyt_array
             self.left_edge = self.ds.arr(left_edge.copy(), dtype="float64")
-        if not isinstance(right_edge, YTArray):
+        if not isinstance(right_edge, unyt_array):
             self.right_edge = self.ds.arr(right_edge, "code_length", dtype="float64")
         else:
-            # need to assign this dataset's unit registry to the YTArray
+            # need to assign this dataset's unit registry to the unyt_array
             self.right_edge = self.ds.arr(right_edge.copy(), dtype="float64")
 
     def _get_bbox(self):
@@ -810,10 +811,10 @@ class YTSphere(YTSelectionContainer3D):
     ----------
     center : array_like
         The center of the sphere.
-    radius : float, width specifier, or YTQuantity
+    radius : float, width specifier, or unyt_quantity
         The radius of the sphere. If passed a float,
         that will be interpreted in code units. Also
-        accepts a (radius, unit) tuple or YTQuantity
+        accepts a (radius, unit) tuple or unyt_quantity
         instance with units attached.
 
     Examples
@@ -862,7 +863,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
 
     Parameters
     ----------
-    points : YTArray
+    points : unyt_array
         The points that the sphere will contain.
 
     Examples
@@ -882,7 +883,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        validate_object(points, YTArray)
+        validate_object(points, unyt_array)
 
         points = fix_length(points, ds)
         if len(points) < 2:

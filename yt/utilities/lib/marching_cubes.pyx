@@ -25,7 +25,7 @@ from libc.stdlib cimport abs, free, malloc
 
 from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
 
-from yt.units.yt_array import YTArray
+from unyt import unyt_array
 
 
 cdef extern from "marching_cubes.h":
@@ -269,7 +269,7 @@ def march_cubes_grid(np.float64_t isovalue,
     FillTriangleValues(sampled, triangles.first, nskip)
     FillAndWipeTriangles(vertices, triangles.first)
     if hasattr(obj_sample, 'units'):
-        sampled = YTArray(sampled, obj_sample.units)
+        sampled = unyt_array(sampled, obj_sample.units)
     return vertices, sampled
 
 @cython.boundscheck(False)

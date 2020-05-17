@@ -4,6 +4,7 @@ import tempfile
 import unittest
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 import yt
 from yt.data_objects.particle_filters import add_particle_filter
@@ -544,7 +545,7 @@ class TestBadProfiles(unittest.TestCase):
             "temperature": temperature,
             "cell_mass": cell_mass,
         }
-        fake_ds_med = {"current_time": yt.YTQuantity(10, "Myr")}
+        fake_ds_med = {"current_time": unyt_quantity(10, "Myr")}
         yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data)
 
         ds = yt.load("mydata.h5")
@@ -569,7 +570,7 @@ class TestBadProfiles(unittest.TestCase):
             "temperature": temperature,
             "cell_mass": cell_mass,
         }
-        fake_ds_med = {"current_time": yt.YTQuantity(10, "Myr")}
+        fake_ds_med = {"current_time": unyt_quantity(10, "Myr")}
         yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data)
 
         ds = yt.load("mydata.h5")
@@ -603,7 +604,6 @@ def test_index_field_units():
 
 @requires_module("astropy")
 def test_export_astropy():
-    from yt.units.yt_array import YTArray
 
     ds = fake_random_ds(64)
     ad = ds.all_data()
@@ -621,9 +621,9 @@ def test_export_astropy():
     assert_equal(prof.x.d, at1["radius"].value)
     assert_equal(prof["density"].d, at1["density"].value)
     assert_equal(prof["velocity_x"].d, at1["velocity_x"].value)
-    assert prof.x.units == YTArray.from_astropy(at1["radius"]).units
-    assert prof["density"].units == YTArray.from_astropy(at1["density"]).units
-    assert prof["velocity_x"].units == YTArray.from_astropy(at1["velocity_x"]).units
+    assert prof.x.units == unyt_array.from_astropy(at1["radius"]).units
+    assert prof["density"].units == unyt_array.from_astropy(at1["density"]).units
+    assert prof["velocity_x"].units == unyt_array.from_astropy(at1["velocity_x"]).units
     assert np.all(at1.mask["density"] == prof.used)
     at2 = prof.to_astropy_table(fields="density", only_used=True)
     assert "radius" in at2.colnames

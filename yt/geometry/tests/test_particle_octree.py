@@ -1,14 +1,12 @@
 import os
 
 import numpy as np
+from unyt import UnitRegistry, dimensions, unyt_array
 
-import yt.units.dimensions as dimensions
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.particle_oct_container import ParticleBitmap, ParticleOctreeContainer
 from yt.geometry.selection_routines import RegionSelector
 from yt.testing import assert_array_equal, assert_equal, assert_true
-from yt.units.unit_registry import UnitRegistry
-from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import (
     get_hilbert_indices,
     get_hilbert_points,
@@ -64,10 +62,10 @@ class FakeDS:
 class FakeRegion:
     def __init__(self, nfiles, periodic=False):
         self.ds = FakeDS()
-        self.ds.domain_left_edge = YTArray(
+        self.ds.domain_left_edge = unyt_array(
             [0.0, 0.0, 0.0], "code_length", registry=self.ds.unit_registry
         )
-        self.ds.domain_right_edge = YTArray(
+        self.ds.domain_right_edge = unyt_array(
             [nfiles, nfiles, nfiles],
             "code_length",
             registry=self.ds.unit_registry,
@@ -78,10 +76,10 @@ class FakeRegion:
         self.nfiles = nfiles
 
     def set_edges(self, file_id, dx=0.1):
-        self.left_edge = YTArray(
+        self.left_edge = unyt_array(
             [file_id + dx, 0.0, 0.0], "code_length", registry=self.ds.unit_registry
         )
-        self.right_edge = YTArray(
+        self.right_edge = unyt_array(
             [file_id + 1 - dx, self.nfiles, self.nfiles],
             "code_length",
             registry=self.ds.unit_registry,
@@ -91,10 +89,10 @@ class FakeRegion:
 class FakeBoxRegion:
     def __init__(self, nfiles, left_edge, right_edge):
         self.ds = FakeDS()
-        self.ds.domain_left_edge = YTArray(
+        self.ds.domain_left_edge = unyt_array(
             left_edge, "code_length", registry=self.ds.unit_registry
         )
-        self.ds.domain_right_edge = YTArray(
+        self.ds.domain_right_edge = unyt_array(
             right_edge, "code_length", registry=self.ds.unit_registry
         )
         self.ds.domain_width = self.ds.domain_right_edge - self.ds.domain_left_edge

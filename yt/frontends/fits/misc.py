@@ -3,10 +3,10 @@ import os
 from io import BytesIO
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.fields.derived_field import ValidateSpatial
 from yt.funcs import issue_deprecation_warning, mylog
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _astropy
 
 
@@ -86,7 +86,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
         The centers of the slabs, where the keys are the names
         of the new fields and the values are (float, string) tuples or
         YTQuantities, specifying a value for each center and its unit.
-    slab_width : YTQuantity or (float, string) tuple
+    slab_width : unyt_quantity or (float, string) tuple
         The width of the slab along the spectral axis.
 
     Examples
@@ -105,13 +105,13 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
     from yt.visualization.fits_image import FITSImageData
 
     cube = SpectralCube.read(filename)
-    if not isinstance(slab_width, YTQuantity):
-        slab_width = YTQuantity(slab_width[0], slab_width[1])
+    if not isinstance(slab_width, unyt_quantity):
+        slab_width = unyt_quantity(slab_width[0], slab_width[1])
     slab_data = {}
     field_units = cube.header.get("bunit", "dimensionless")
     for k, v in slab_centers.items():
-        if not isinstance(v, YTQuantity):
-            slab_center = YTQuantity(v[0], v[1])
+        if not isinstance(v, unyt_quantity):
+            slab_center = unyt_quantity(v[0], v[1])
         else:
             slab_center = v
         mylog.info(
@@ -120,7 +120,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
         slab_lo = (slab_center - 0.5 * slab_width).to_astropy()
         slab_hi = (slab_center + 0.5 * slab_width).to_astropy()
         subcube = cube.spectral_slab(slab_lo, slab_hi)
-        slab_data[k] = YTArray(subcube.filled_data[:, :, :], field_units)
+        slab_data[k] = unyt_array(subcube.filled_data[:, :, :], field_units)
     width = subcube.header["naxis3"] * cube.header["cdelt3"]
     w = subcube.wcs.copy()
     w.wcs.crpix[-1] = 0.5

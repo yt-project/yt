@@ -1,7 +1,7 @@
 import numpy as np
+from unyt.array import uconcatenate
 
 from yt.funcs import get_pbar, issue_deprecation_warning
-from yt.units.yt_array import uconcatenate
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 
 

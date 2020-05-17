@@ -3,6 +3,7 @@ import shutil
 import tempfile
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.convenience import load
 from yt.data_objects.api import create_profile
@@ -15,7 +16,6 @@ from yt.frontends.ytdata.api import (
     save_as_dataset,
 )
 from yt.testing import assert_allclose_units, assert_array_equal, assert_equal
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import (
     AnswerTestingTest,
     data_dir_load,
@@ -240,8 +240,8 @@ def test_nonspatial_data():
     yield YTDataFieldTest(full_fn, "region_density", geometric=False)
     yield YTDataFieldTest(full_fn, "sphere_density", geometric=False)
 
-    my_data = {"density": YTArray(np.linspace(1.0, 20.0, 10), "g/cm**3")}
-    fake_ds = {"current_time": YTQuantity(10, "Myr")}
+    my_data = {"density": unyt_array(np.linspace(1.0, 20.0, 10), "g/cm**3")}
+    fake_ds = {"current_time": unyt_quantity(10, "Myr")}
     fn = "random_data.h5"
     save_as_dataset(fake_ds, fn, my_data)
     full_fn = os.path.join(tmpdir, fn)

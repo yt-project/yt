@@ -2,9 +2,9 @@ import re
 import string
 
 import numpy as np
+from unyt import unyt_quantity
 
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.units import YTQuantity
 from yt.utilities.physical_constants import amu_cgs, boltzmann_constant_cgs, c
 
 rho_units = "code_mass / code_length**3"
@@ -93,7 +93,7 @@ class WarpXFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         def get_mass(field, data):
             species_mass = data.ds.index.parameters[ptype + "_mass"]
-            return data["particle_weight"] * YTQuantity(species_mass, "kg")
+            return data["particle_weight"] * unyt_quantity(species_mass, "kg")
 
         self.add_field(
             (ptype, "particle_mass"),
@@ -104,7 +104,7 @@ class WarpXFieldInfo(FieldInfoContainer):
 
         def get_charge(field, data):
             species_charge = data.ds.index.parameters[ptype + "_charge"]
-            return data["particle_weight"] * YTQuantity(species_charge, "C")
+            return data["particle_weight"] * unyt_quantity(species_charge, "C")
 
         self.add_field(
             (ptype, "particle_charge"),

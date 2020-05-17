@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.testing import (
     assert_almost_equal,
@@ -9,7 +10,6 @@ from yt.testing import (
     requires_file,
     requires_module,
 )
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import data_dir_load
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.on_demand_imports import _yaml as yaml
@@ -24,7 +24,7 @@ def z_from_t_analytic(my_time, hubble_constant=0.7, omega_matter=0.3, omega_lamb
     units.
     """
 
-    hubble_constant = YTQuantity(hubble_constant, "100*km/s/Mpc")
+    hubble_constant = unyt_quantity(hubble_constant, "100*km/s/Mpc")
     omega_curvature = 1.0 - omega_matter - omega_lambda
 
     OMEGA_TOLERANCE = 1e-5
@@ -32,8 +32,8 @@ def z_from_t_analytic(my_time, hubble_constant=0.7, omega_matter=0.3, omega_lamb
 
     # Convert the time to Time * H0.
 
-    if not isinstance(my_time, YTArray):
-        my_time = YTArray(my_time, "s")
+    if not isinstance(my_time, unyt_array):
+        my_time = unyt_array(my_time, "s")
 
     t0 = (my_time.in_units("s") * hubble_constant.in_units("1/s")).to_ndarray()
 
@@ -94,7 +94,7 @@ def t_from_z_analytic(z, hubble_constant=0.7, omega_matter=0.3, omega_lambda=0.7
     CosmologyComputeTimeFromRedshift.C, but altered to use physical units.
     """
 
-    hubble_constant = YTQuantity(hubble_constant, "100*km/s/Mpc")
+    hubble_constant = unyt_quantity(hubble_constant, "100*km/s/Mpc")
     omega_curvature = 1.0 - omega_matter - omega_lambda
 
     # For a flat universe with omega_matter = 1, things are easy.

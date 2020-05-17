@@ -4,6 +4,7 @@ from collections import defaultdict
 from functools import partial
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.frontends.art.definitions import (
     hydro_struct,
@@ -11,7 +12,6 @@ from yt.frontends.art.definitions import (
     particle_star_fields,
     star_struct,
 )
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.fortran_utils import read_vector, skip
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
@@ -298,13 +298,13 @@ def interpolate_ages(
         t_stars, a_stars = read_star_field(file_stars, field="t_stars")
         # timestamp of file should match amr timestamp
         if current_time:
-            tdiff = YTQuantity(b2t(t_stars), "Gyr") - current_time.in_units("Gyr")
+            tdiff = unyt_quantity(b2t(t_stars), "Gyr") - current_time.in_units("Gyr")
             if np.abs(tdiff) > 1e-4:
                 mylog.info("Timestamp mismatch in star " + "particle header: %s", tdiff)
         mylog.info("Interpolating ages")
         interp_tb, interp_ages = b2t(data)
-        interp_tb = YTArray(interp_tb, "Gyr")
-        interp_ages = YTArray(interp_ages, "Gyr")
+        interp_tb = unyt_array(interp_tb, "Gyr")
+        interp_ages = unyt_array(interp_ages, "Gyr")
     temp = np.interp(data, interp_tb, interp_ages)
     return interp_tb, interp_ages, temp
 

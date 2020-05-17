@@ -3,9 +3,10 @@ import inspect
 import re
 import warnings
 
+from unyt.unit_object import Unit
+
 import yt.units.dimensions as ytdims
 from yt.funcs import VisibleDeprecationWarning, ensure_list
-from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
 
 from .field_detector import FieldDetector
@@ -74,7 +75,7 @@ class DerivedField:
        For fields that exist on disk, which we may want to convert to other
        fields or that get aliased to themselves, we can specify a different
        desired output unit than the unit found on disk.
-    dimensions : str or object from yt.units.dimensions
+    dimensions : str or object from unyt.dimensions
        The dimensions of the field, only needed if units="auto" and only used
        for error checking.
     nodal_flag : array-like with three components

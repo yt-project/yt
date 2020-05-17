@@ -1,10 +1,10 @@
 import numpy as np
+from unyt import uconcatenate
 
 import yt.utilities.flagging_methods as fm
 import yt.utilities.initial_conditions as ic
 from yt.frontends.stream.api import load_uniform_grid, refine_amr
 from yt.testing import assert_almost_equal, assert_equal
-from yt.units.yt_array import uconcatenate
 from yt.utilities.particle_generator import (
     FromListParticleGenerator,
     LatticeParticleGenerator,

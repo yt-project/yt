@@ -1,8 +1,7 @@
 import math
 
 import numpy as np
-
-from yt.units.yt_array import YTArray
+from unyt import unyt_array
 
 prec_accum = {
     np.int: np.int64,
@@ -136,8 +135,8 @@ def periodic_ray(start, end, left=None, right=None):
     periodic_ray(start, end, left=None, right=None)
 
     Break up periodic ray into non-periodic segments.
-    Accepts start and end points of periodic ray as YTArrays.
-    Accepts optional left and right edges of periodic volume as YTArrays.
+    Accepts start and end points of periodic ray as unyt_arrays.
+    Accepts optional left and right edges of periodic volume as unyt_arrays.
     Returns a list of lists of coordinates, where each element of the
     top-most list is a 2-list of start coords and end coords of the
     non-periodic ray:
@@ -165,8 +164,8 @@ def periodic_ray(start, end, left=None, right=None):
     >>> start = yt.YTArray([0.5, 0.5, 0.5])
     >>> end = yt.YTArray([1.25, 1.25, 1.25])
     >>> periodic_ray(start, end)
-    [[YTArray([0.5, 0.5, 0.5]) (dimensionless), YTArray([1., 1., 1.]) (dimensionless)],
-     [YTArray([0., 0., 0.]) (dimensionless), YTArray([0.25, 0.25, 0.25]) (dimensionless)]]
+    [[unyt_array([0.5, 0.5, 0.5]) (dimensionless), unyt_array([1., 1., 1.]) (dimensionless)],
+     [unyt_array([0., 0., 0.]) (dimensionless), unyt_array([0.25, 0.25, 0.25]) (dimensionless)]]
 
     """
 
@@ -1482,7 +1481,7 @@ def get_sph_r_component(vectors, theta, phi, normal):
     tile_shape = [1] + list(vectors.shape)[1:]
 
     Jx, Jy, Jz = (
-        YTArray(np.tile(rprime, tile_shape), "")
+        unyt_array(np.tile(rprime, tile_shape), "")
         for rprime in (res_xprime, res_yprime, res_zprime)
     )
 
@@ -1504,8 +1503,8 @@ def get_sph_phi_component(vectors, phi, normal):
     res_yprime = resize_vector(yprime, vectors)
 
     tile_shape = [1] + list(vectors.shape)[1:]
-    Jx = YTArray(np.tile(res_xprime, tile_shape), "")
-    Jy = YTArray(np.tile(res_yprime, tile_shape), "")
+    Jx = unyt_array(np.tile(res_xprime, tile_shape), "")
+    Jy = unyt_array(np.tile(res_yprime, tile_shape), "")
 
     phihat = -Jx * np.sin(phi) + Jy * np.cos(phi)
 
@@ -1523,7 +1522,7 @@ def get_sph_theta_component(vectors, theta, phi, normal):
 
     tile_shape = [1] + list(vectors.shape)[1:]
     Jx, Jy, Jz = (
-        YTArray(np.tile(rprime, tile_shape), "")
+        unyt_array(np.tile(rprime, tile_shape), "")
         for rprime in (res_xprime, res_yprime, res_zprime)
     )
 

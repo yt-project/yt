@@ -6,7 +6,9 @@ from numbers import Number
 
 import matplotlib
 import numpy as np
-from unyt.exceptions import UnitConversionError
+from unyt import unyt_array, unyt_quantity
+from unyt.exceptions import UnitConversionError, UnitParseError
+from unyt.unit_object import Unit
 
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
@@ -19,9 +21,6 @@ from yt.funcs import (
     mylog,
     obj_length,
 )
-from yt.units.unit_object import Unit
-from yt.units.unit_registry import UnitParseError
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import (
     YTCannotParseUnitDisplayName,
     YTDataTypeUnsupported,
@@ -104,12 +103,12 @@ def get_axes_unit(width, ds):
             axes_unit = (width[1], width[1])
         elif iterable(width[1]):
             axes_unit = (width[0][1], width[1][1])
-        elif isinstance(width[0], YTArray):
+        elif isinstance(width[0], unyt_array):
             axes_unit = (str(width[0].units), str(width[1].units))
         else:
             axes_unit = None
     else:
-        if isinstance(width, YTArray):
+        if isinstance(width, unyt_array):
             axes_unit = (str(width.units), str(width.units))
         else:
             axes_unit = None
@@ -370,7 +369,9 @@ class PlotWindow(ImagePlotContainer):
                 self.ds.quan(deltas[0][0], deltas[0][1]),
                 self.ds.quan(deltas[1][0], deltas[1][1]),
             )
-        elif isinstance(deltas[0], YTQuantity) and isinstance(deltas[1], YTQuantity):
+        elif isinstance(deltas[0], unyt_quantity) and isinstance(
+            deltas[1], unyt_quantity
+        ):
             pass
         else:
             raise RuntimeError(
@@ -670,7 +671,7 @@ class PlotWindow(ImagePlotContainer):
 
         unit : string
             The name of the unit new_center is given in.  If new_center is a
-            YTArray or tuple of YTQuantities, this keyword is ignored.
+            unyt_array or tuple of YTQuantities, this keyword is ignored.
 
         """
         error = RuntimeError(
@@ -685,7 +686,7 @@ class PlotWindow(ImagePlotContainer):
             if len(new_center) != 2:
                 raise error
             for el in new_center:
-                if not isinstance(el, Number) and not isinstance(el, YTQuantity):
+                if not isinstance(el, Number) and not isinstance(el, unyt_quantity):
                     raise error
             if isinstance(new_center[0], Number):
                 new_center = [self.ds.quan(c, unit) for c in new_center]
@@ -1308,7 +1309,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          field is supported by providing a tuple such as ("min","temperature") or
          ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
+         in a unyt_array. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1493,7 +1494,7 @@ class ProjectionPlot(PWViewerMPL):
          field is supported by providing a tuple such as ("min","temperature") or
          ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
+         in a unyt_array. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1730,7 +1731,7 @@ class OffAxisSlicePlot(PWViewerMPL):
          field is supported by providing a tuple such as ("min","temperature") or
          ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
+         in a unyt_array. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -1909,7 +1910,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
          field is supported by providing a tuple such as ("min","temperature") or
          ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
+         in a unyt_array. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -2175,7 +2176,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          field is supported by providing a tuple such as ("min","temperature") or
          ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
+         in a unyt_array. If a list or unitless array is supplied, code units are
          assumed.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -2350,7 +2351,7 @@ def plot_2d(
          field is supported by providing a tuple such as ("min","temperature") or
          ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
-         in a YTArray. If a list or unitless array is supplied, code units are
+         in a unyt_array. If a list or unitless array is supplied, code units are
          assumed. For plot_2d, this keyword accepts a coordinate in two dimensions.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
@@ -2441,7 +2442,7 @@ def plot_2d(
         if not c0_string and not c1_string:
             if obj_length(center[0]) == 2 and c1_string:
                 center = ds.arr(center[0], center[1])
-            elif not isinstance(center, YTArray):
+            elif not isinstance(center, unyt_array):
                 center = ds.arr(center, "code_length")
             center.convert_to_units("code_length")
         center = ds.arr([center[0], center[1], ds.domain_center[2]])

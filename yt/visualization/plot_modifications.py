@@ -5,6 +5,9 @@ from numbers import Number
 
 import matplotlib
 import numpy as np
+from unyt import dimensions, unyt_array, unyt_quantity
+from unyt.array import uhstack
+from unyt.unit_object import Unit
 
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.level_sets.clump_handling import Clump
@@ -14,9 +17,6 @@ from yt.frontends.ytdata.data_structures import YTClumpContainer
 from yt.funcs import iterable, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
-from yt.units import dimensions
-from yt.units.unit_object import Unit
-from yt.units.yt_array import YTArray, YTQuantity, uhstack
 from yt.utilities.exceptions import YTDataTypeUnsupported
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.line_integral_convolution import line_integral_convolution_2d
@@ -74,12 +74,12 @@ class PlotCallback(metaclass=RegisteredCallback):
         """
         Convert coordinates from simulation data coordinates to projected
         data coordinates.  Simulation data coordinates are three dimensional,
-        and can either be specified as a YTArray or as a list or array in
+        and can either be specified as a unyt_array or as a list or array in
         code_length units.  Projected data units are 2D versions of the
         simulation data units relative to the axes of the final plot.
         """
         if len(coord) == 3:
-            if not isinstance(coord, YTArray):
+            if not isinstance(coord, unyt_array):
                 coord = plot.data.ds.arr(coord, "code_length")
             coord.convert_to_units("code_length")
             ax = plot.data.axis
@@ -200,7 +200,7 @@ class PlotCallback(metaclass=RegisteredCallback):
                 2D coordinates within figure object from (0,0) in lower left
                 to (1,1) in upper right.  Same as matplotlib figure coords.
         """
-        # Assure coords are either a YTArray or numpy array
+        # Assure coords are either a unyt_array or numpy array
         coord = np.asanyarray(coord, dtype="float64")
         # if in data coords, project them to plot coords
         if coord_system == "data":
@@ -1519,7 +1519,7 @@ class SphereCallback(PlotCallback):
     center : 2- or 3-element tuple, list, or array
         These are the coordinates where the circle will be overplotted
 
-    radius : YTArray, float, or (1, ('kpc')) style tuple
+    radius : unyt_array, float, or (1, ('kpc')) style tuple
         The radius of the circle in code coordinates
 
     circle_args : dict, optional
@@ -1593,8 +1593,8 @@ class SphereCallback(PlotCallback):
         if iterable(self.radius):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
             self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
-        if isinstance(self.radius, YTQuantity):
-            if isinstance(self.center, YTArray):
+        if isinstance(self.radius, unyt_quantity):
+            if isinstance(self.center, unyt_array):
                 units = self.center.units
             else:
                 units = "code_length"
@@ -2046,7 +2046,7 @@ class ParticleCallback(PlotCallback):
         if iterable(self.width):
             validate_width_tuple(self.width)
             self.width = plot.data.ds.quan(self.width[0], self.width[1])
-        elif isinstance(self.width, YTQuantity):
+        elif isinstance(self.width, unyt_quantity):
             self.width = plot.data.ds.quan(self.width.value, self.width.units)
         else:
             self.width = plot.data.ds.quan(self.width, "code_length")
@@ -2359,7 +2359,7 @@ class TimestampCallback(PlotCallback):
 
             "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
-    time_offset : float, (value, unit) tuple, or YTQuantity, optional
+    time_offset : float, (value, unit) tuple, or unyt_quantity, optional
         Apply an offset to the time shown in the annotation from the
         value of the current time. If a scalar value with no units is
         passed in, the value of the *time_unit* kwarg is used for the
@@ -2491,9 +2491,9 @@ class TimestampCallback(PlotCallback):
                     toffset = plot.ds.quan(self.time_offset[0], self.time_offset[1])
                 elif isinstance(self.time_offset, Number):
                     toffset = plot.ds.quan(self.time_offset, self.time_unit)
-                elif not isinstance(self.time_offset, YTQuantity):
+                elif not isinstance(self.time_offset, unyt_quantity):
                     raise RuntimeError(
-                        "'time_offset' must be a float, tuple, or" "YTQuantity!"
+                        "'time_offset' must be a float, tuple, or" "unyt_quantity!"
                     )
                 t -= toffset.in_units(self.time_unit)
             if isinstance(self.time_unit, Unit):

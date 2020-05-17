@@ -3,9 +3,9 @@ import tempfile
 
 import mock
 import numpy as np
+from unyt import Unit
 
 from yt.testing import assert_equal, assert_rel_equal, fake_amr_ds, fake_random_ds
-from yt.units.unit_object import Unit
 
 LENGTH_UNIT = 2.0
 

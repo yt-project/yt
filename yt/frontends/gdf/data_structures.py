@@ -2,13 +2,13 @@ import os
 import weakref
 
 import numpy as np
+from unyt.dimensions import dimensionless as sympy_one
+from unyt.unit_object import Unit
 
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import ensure_tuple, just_one, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.units.dimensions import dimensionless as sympy_one
-from yt.units.unit_object import Unit
 from yt.units.unit_systems import unit_system_registry
 from yt.utilities.exceptions import YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import get_box_grids_level

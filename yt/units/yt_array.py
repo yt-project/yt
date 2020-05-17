@@ -1,19 +1,19 @@
+from unyt import unyt_array as YTArray, unyt_quantity as YTQuantity
 from unyt.array import *
 
 from yt.funcs import array_like_field
-from yt.units import YTArray, YTQuantity
 
 
 def display_ytarray(arr):
     r"""
-    Display a YTArray in a Jupyter widget that enables unit switching.
+    Display a unyt_array in a Jupyter widget that enables unit switching.
 
     The array returned by this function is read-only, and only works with
     arrays of size 3 or lower.
 
     Parameters
     ----------
-    arr : YTArray
+    arr : unyt_array
         The Array to display; must be of size 3 or lower.
 
     Examples
@@ -22,7 +22,7 @@ def display_ytarray(arr):
     >>> display_ytarray(ds.domain_width)
     """
     if arr.size > 3:
-        raise YTArrayTooLargeToDisplay(arr.size, 3)
+        raise unyt_arrayTooLargeToDisplay(arr.size, 3)
     import ipywidgets
 
     unit_registry = arr.units.registry

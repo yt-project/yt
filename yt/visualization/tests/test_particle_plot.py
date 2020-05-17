@@ -5,6 +5,7 @@ import unittest
 
 import mock
 import numpy as np
+from unyt import unyt_array
 
 from yt.convenience import load
 from yt.data_objects.particle_filters import add_particle_filter
@@ -15,7 +16,6 @@ from yt.testing import (
     fake_particle_ds,
     requires_file,
 )
-from yt.units.yt_array import YTArray
 from yt.utilities.answer_testing.framework import (
     PhasePlotAttributeTest,
     PlotWindowAttributeTest,
@@ -66,7 +66,7 @@ CENTER_SPECS = (
     "Center",
     [0.5, 0.5, 0.5],
     [[0.2, 0.3, 0.4], "cm"],
-    YTArray([0.3, 0.4, 0.7], "cm"),
+    unyt_array([0.3, 0.4, 0.7], "cm"),
 )
 
 WEIGHT_FIELDS = (None, "particle_ones", ("all", "particle_mass"))

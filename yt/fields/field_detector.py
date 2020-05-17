@@ -1,8 +1,7 @@
 from collections import defaultdict
 
 import numpy as np
-
-from yt.units.yt_array import YTArray
+from unyt import unyt_array
 
 from .field_exceptions import NeedsGridType
 
@@ -155,20 +154,20 @@ class FieldDetector(defaultdict):
                 or "MagneticField" in (item, item[1])
             ):
                 # A vector
-                self[item] = YTArray(
+                self[item] = unyt_array(
                     np.ones((self.NumberOfParticles, 3)),
                     finfo.units,
                     registry=self.ds.unit_registry,
                 )
             elif "FourMetalFractions" in (item, item[1]):
-                self[item] = YTArray(
+                self[item] = unyt_array(
                     np.ones((self.NumberOfParticles, 4)),
                     finfo.units,
                     registry=self.ds.unit_registry,
                 )
             else:
                 # Not a vector
-                self[item] = YTArray(
+                self[item] = unyt_array(
                     np.ones(self.NumberOfParticles),
                     finfo.units,
                     registry=self.ds.unit_registry,
@@ -219,7 +218,7 @@ class FieldDetector(defaultdict):
         if finfo.sampling_type == "particle":
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
-        return YTArray(
+        return unyt_array(
             defaultdict.__missing__(self, field_name),
             units=finfo.units,
             registry=self.ds.unit_registry,
@@ -249,7 +248,7 @@ class FieldDetector(defaultdict):
             return rv
         elif param.endswith("_hat"):
             ax = param[0]
-            rv = YTArray((0.0, 0.0, 0.0), fp_units[param])
+            rv = unyt_array((0.0, 0.0, 0.0), fp_units[param])
             rv["xyz".index(ax)] = 1.0
             return rv
         elif param == "fof_groups":

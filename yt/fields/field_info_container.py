@@ -2,11 +2,11 @@ import warnings
 from numbers import Number as numeric_type
 
 import numpy as np
+from unyt.dimensions import dimensionless
+from unyt.unit_object import Unit
 
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
-from yt.units.dimensions import dimensionless
-from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
 
 from .derived_field import DerivedField, NullFunc, TranslationFunc

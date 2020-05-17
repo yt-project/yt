@@ -814,7 +814,7 @@ class ProfilePlot:
           Dictionary of text keyword arguments to be passed to matplotlib
 
         >>>  import yt
-        >>>  from yt.units import kpc
+        >>>  from unyt import kpc
         >>>  ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>>  my_galaxy = ds.disk(ds.domain_center, [0.0, 0.0, 1.0], 10*kpc, 3*kpc)
         >>>  plot = yt.ProfilePlot(my_galaxy, "density", ["temperature"])

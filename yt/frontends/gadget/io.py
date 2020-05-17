@@ -2,9 +2,9 @@ import os
 from collections import defaultdict
 
 import numpy as np
+from unyt import uconcatenate
 
 from yt.frontends.sph.io import IOHandlerSPH
-from yt.units.yt_array import uconcatenate
 from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py

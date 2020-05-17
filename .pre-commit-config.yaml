@@ -3,7 +3,7 @@
     hooks:
     -   id: flake8
 -   repo: https://github.com/timothycrosley/isort
-    rev: ''
+    rev: '5.1.4'
     hooks:
     -   id: isort
 -   repo: https://github.com/ambv/black

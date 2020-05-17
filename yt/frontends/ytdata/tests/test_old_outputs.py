@@ -18,6 +18,7 @@ import shutil
 import tempfile
 
 import numpy as np
+from unyt import unyt_array
 
 from yt.data_objects.api import create_profile
 from yt.frontends.ytdata.api import (
@@ -32,7 +33,6 @@ from yt.frontends.ytdata.tests.test_outputs import (
     compare_unit_attributes,
 )
 from yt.testing import assert_allclose_units, assert_array_equal, requires_file
-from yt.units.yt_array import YTArray
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds
 from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
@@ -175,7 +175,7 @@ def test_old_nonspatial_data():
     yield YTDataFieldTest(full_fn, "region_density", geometric=False)
     yield YTDataFieldTest(full_fn, "sphere_density", geometric=False)
 
-    my_data = {"density": YTArray(np.linspace(1.0, 20.0, 10), "g/cm**3")}
+    my_data = {"density": unyt_array(np.linspace(1.0, 20.0, 10), "g/cm**3")}
     fn = "random_data.h5"
     full_fn = os.path.join(ytdata_dir, fn)
     new_ds = data_dir_load(full_fn)

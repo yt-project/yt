@@ -1,17 +1,18 @@
 import numpy as np
+from unyt import unyt_quantity
+from unyt.unit_object import Unit
 
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
+    array_like_field,
     ensure_list,
     get_output_filename,
     issue_deprecation_warning,
     iterable,
     mylog,
 )
-from yt.units.unit_object import Unit
-from yt.units.yt_array import YTQuantity, array_like_field
 from yt.utilities.exceptions import (
     YTIllDefinedBounds,
     YTIllDefinedProfile,
@@ -35,12 +36,12 @@ def _sanitize_min_max_units(amin, amax, finfo, registry):
     umax = getattr(amax, "units", None)
     if umin is None:
         umin = Unit(finfo.output_units, registry=registry)
-        rmin = YTQuantity(amin, umin)
+        rmin = unyt_quantity(amin, umin)
     else:
         rmin = amin.in_units(finfo.output_units)
     if umax is None:
         umax = Unit(finfo.output_units, registry=registry)
-        rmax = YTQuantity(amax, umax)
+        rmax = unyt_quantity(amax, umax)
     else:
         rmax = amax.in_units(finfo.output_units)
     return rmin, rmax

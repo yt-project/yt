@@ -4,6 +4,8 @@ from collections import defaultdict
 from numbers import Number as numeric_type
 
 import numpy as np
+from unyt import UnitRegistry, dimensions, unyt_quantity
+from unyt.array import uconcatenate
 
 from yt.data_objects.data_containers import GenerationInProgress
 from yt.data_objects.grid_patch import AMRGridPatch
@@ -18,9 +20,6 @@ from yt.fields.field_exceptions import NeedsGridType
 from yt.funcs import is_root, parse_h5_attr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
-from yt.units import dimensions
-from yt.units.unit_registry import UnitRegistry
-from yt.units.yt_array import YTQuantity, uconcatenate
 from yt.utilities.exceptions import YTFieldTypeNotFound
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -130,7 +129,7 @@ class SavedDataset(Dataset):
         base_units = np.ones(len(attrs))
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
             if attr in self.parameters and isinstance(
-                self.parameters[attr], YTQuantity
+                self.parameters[attr], unyt_quantity
             ):
                 uq = self.parameters[attr]
             elif attr in self.parameters and "%s_units" % attr in self.parameters:
@@ -143,7 +142,7 @@ class SavedDataset(Dataset):
                 uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
-            elif isinstance(unit, YTQuantity):
+            elif isinstance(unit, unyt_quantity):
                 uq = unit
             elif isinstance(unit, tuple):
                 uq = self.quan(unit[0], unit[1])

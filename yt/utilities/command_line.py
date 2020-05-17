@@ -41,6 +41,7 @@ from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 # isort: off
 # This needs to be set before importing startup_tasks
 ytcfg["yt", "__command_line"] = "True"  # isort: skip
+
 from yt.startup_tasks import parser, subparsers  # isort: skip # noqa: E402
 
 # isort: on

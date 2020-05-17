@@ -1,8 +1,8 @@
 import numpy as np
+from unyt.array import uvstack
 
 from yt.funcs import mylog, parse_h5_attr
 from yt.geometry.selection_routines import GridSelector
-from yt.units.yt_array import uvstack
 from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton

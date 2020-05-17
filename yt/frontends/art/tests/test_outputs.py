@@ -1,3 +1,5 @@
+from unyt import unyt_quantity
+
 from yt.frontends.art.api import ARTDataset
 from yt.testing import (
     ParticleSelectionComparison,
@@ -6,7 +8,6 @@ from yt.testing import (
     requires_file,
     units_override_check,
 )
-from yt.units.yt_array import YTQuantity
 from yt.utilities.answer_testing.framework import (
     FieldValuesTest,
     PixelizedProjectionValuesTest,
@@ -70,8 +71,8 @@ def test_d9p():
             npart_read += 1
         assert_equal(npart_read, npart_header)
 
-    AnaBoxSize = YTQuantity(7.1442196564, "Mpc")
-    AnaVolume = YTQuantity(364.640074656, "Mpc**3")
+    AnaBoxSize = unyt_quantity(7.1442196564, "Mpc")
+    AnaVolume = unyt_quantity(364.640074656, "Mpc**3")
     Volume = 1
     for i in ds.domain_width.in_units("Mpc"):
         assert_almost_equal(i, AnaBoxSize)
@@ -81,26 +82,26 @@ def test_d9p():
     AnaNCells = 4087490
     assert_equal(len(ad[("index", "cell_volume")]), AnaNCells)
 
-    AnaTotDMMass = YTQuantity(1.01191786808255e14, "Msun")
+    AnaTotDMMass = unyt_quantity(1.01191786808255e14, "Msun")
     assert_almost_equal(
         ad[("darkmatter", "particle_mass")].sum().in_units("Msun"), AnaTotDMMass
     )
 
-    AnaTotStarMass = YTQuantity(1776701.3990607238, "Msun")
+    AnaTotStarMass = unyt_quantity(1776701.3990607238, "Msun")
     assert_almost_equal(
         ad[("stars", "particle_mass")].sum().in_units("Msun"), AnaTotStarMass
     )
 
-    AnaTotStarMassInitial = YTQuantity(2423468.2801332865, "Msun")
+    AnaTotStarMassInitial = unyt_quantity(2423468.2801332865, "Msun")
     assert_almost_equal(
         ad[("stars", "particle_mass_initial")].sum().in_units("Msun"),
         AnaTotStarMassInitial,
     )
 
-    AnaTotGasMass = YTQuantity(1.7826982029216785e13, "Msun")
+    AnaTotGasMass = unyt_quantity(1.7826982029216785e13, "Msun")
     assert_almost_equal(ad[("gas", "cell_mass")].sum().in_units("Msun"), AnaTotGasMass)
 
-    AnaTotTemp = YTQuantity(150219844793.39072, "K")  # just leaves
+    AnaTotTemp = unyt_quantity(150219844793.39072, "K")  # just leaves
     assert_equal(ad[("gas", "temperature")].sum(), AnaTotTemp)
 
 

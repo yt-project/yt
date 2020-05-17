@@ -3,12 +3,11 @@ import functools
 from collections import OrderedDict
 
 import numpy as np
+from unyt import UnitRegistry, unyt_array, unyt_quantity
+from unyt.dimensions import length
 
 from yt.config import ytcfg
 from yt.funcs import get_image_suffix, mylog
-from yt.units.dimensions import length
-from yt.units.unit_registry import UnitRegistry
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
 
 from .camera import Camera
@@ -147,7 +146,7 @@ class Scene:
                 )
 
         if isinstance(render_source, (LineSource, PointSource)):
-            if isinstance(render_source.positions, YTArray):
+            if isinstance(render_source.positions, unyt_array):
                 render_source.positions = (
                     self.arr(render_source.positions).in_units("code_length").d
                 )
@@ -688,13 +687,13 @@ class Scene:
         def fset(self, value):
             self._unit_registry = value
             if self.camera is not None:
-                self.camera.width = YTArray(
+                self.camera.width = unyt_array(
                     self.camera.width.in_units("unitary"), registry=value
                 )
-                self.camera.focus = YTArray(
+                self.camera.focus = unyt_array(
                     self.camera.focus.in_units("unitary"), registry=value
                 )
-                self.camera.position = YTArray(
+                self.camera.position = unyt_array(
                     self.camera.position.in_units("unitary"), registry=value
                 )
 
@@ -888,9 +887,9 @@ class Scene:
 
     @property
     def arr(self):
-        """Converts an array into a :class:`yt.units.yt_array.YTArray`
+        """Converts an array into a :class:`yt.units.yt_array.unyt_array`
 
-        The returned YTArray will be dimensionless by default, but can be
+        The returned unyt_array will be dimensionless by default, but can be
         cast to arbitrary units using the ``units`` keyword argument.
 
         Parameters
@@ -912,30 +911,30 @@ class Scene:
         >>> a = sc.arr([1, 2, 3], 'cm')
         >>> b = sc.arr([4, 5, 6], 'm')
         >>> a + b
-        YTArray([ 401.,  502.,  603.]) cm
+        unyt_array([ 401.,  502.,  603.]) cm
         >>> b + a
-        YTArray([ 4.01,  5.02,  6.03]) m
+        unyt_array([ 4.01,  5.02,  6.03]) m
 
         Arrays returned by this function know about the scene's unit system
 
         >>> a = sc.arr(np.ones(5), 'unitary')
         >>> a.in_units('Mpc')
-        YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
+        unyt_array([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
                  1.00010449]) Mpc
 
         """
         if self._arr is not None:
             return self._arr
-        self._arr = functools.partial(YTArray, registry=self.unit_registry)
+        self._arr = functools.partial(unyt_array, registry=self.unit_registry)
         return self._arr
 
     _quan = None
 
     @property
     def quan(self):
-        """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
+        """Converts an scalar into a :class:`yt.units.yt_array.unyt_quantity`
 
-        The returned YTQuantity will be dimensionless by default, but can be
+        The returned unyt_quantity will be dimensionless by default, but can be
         cast to arbitrary units using the ``units`` keyword argument.
 
         Parameters
@@ -971,7 +970,7 @@ class Scene:
         """
         if self._quan is not None:
             return self._quan
-        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
+        self._quan = functools.partial(unyt_quantity, registry=self.unit_registry)
         return self._quan
 
     def _repr_png_(self):

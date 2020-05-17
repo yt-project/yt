@@ -1,9 +1,9 @@
 import numpy as np  # NOQA
+from unyt import unyt_quantity
 
 import yt  # NOQA
 from yt.frontends.amrvac.api import AMRVACDataset, AMRVACGrid
 from yt.testing import assert_allclose_units, assert_raises, requires_file
-from yt.units import YTQuantity
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,
@@ -59,8 +59,8 @@ def test_grid_attributes():
     assert ds.index.max_level == 2
     for g in grids:
         assert isinstance(g, AMRVACGrid)
-        assert isinstance(g.LeftEdge, yt.units.yt_array.YTArray)
-        assert isinstance(g.RightEdge, yt.units.yt_array.YTArray)
+        assert isinstance(g.LeftEdge, yt.units.yt_array.unyt_array)
+        assert isinstance(g.RightEdge, yt.units.yt_array.unyt_array)
         assert isinstance(g.ActiveDimensions, np.ndarray)
         assert isinstance(g.Level, (np.int32, np.int64, int))
 
@@ -152,15 +152,15 @@ magnetic_unit = (1.997608879907716, "gauss")
 
 
 def _assert_normalisations_equal(ds):
-    assert_allclose_units(ds.length_unit, YTQuantity(*length_unit))
-    assert_allclose_units(ds.numberdensity_unit, YTQuantity(*numberdensity_unit))
-    assert_allclose_units(ds.temperature_unit, YTQuantity(*temperature_unit))
-    assert_allclose_units(ds.density_unit, YTQuantity(*density_unit))
-    assert_allclose_units(ds.mass_unit, YTQuantity(*mass_unit))
-    assert_allclose_units(ds.velocity_unit, YTQuantity(*velocity_unit))
-    assert_allclose_units(ds.pressure_unit, YTQuantity(*pressure_unit))
-    assert_allclose_units(ds.time_unit, YTQuantity(*time_unit))
-    assert_allclose_units(ds.magnetic_unit, YTQuantity(*magnetic_unit))
+    assert_allclose_units(ds.length_unit, unyt_quantity(*length_unit))
+    assert_allclose_units(ds.numberdensity_unit, unyt_quantity(*numberdensity_unit))
+    assert_allclose_units(ds.temperature_unit, unyt_quantity(*temperature_unit))
+    assert_allclose_units(ds.density_unit, unyt_quantity(*density_unit))
+    assert_allclose_units(ds.mass_unit, unyt_quantity(*mass_unit))
+    assert_allclose_units(ds.velocity_unit, unyt_quantity(*velocity_unit))
+    assert_allclose_units(ds.pressure_unit, unyt_quantity(*pressure_unit))
+    assert_allclose_units(ds.time_unit, unyt_quantity(*time_unit))
+    assert_allclose_units(ds.magnetic_unit, unyt_quantity(*magnetic_unit))
 
 
 @requires_file(khi_cartesian_2D)
@@ -219,21 +219,23 @@ def test_normalisations_length_vel_mass():
 def test_normalisations_default():
     # test default normalisations, without overrides
     ds = data_dir_load(khi_cartesian_2D)
-    assert_allclose_units(ds.length_unit, YTQuantity(1, "cm"))
-    assert_allclose_units(ds.numberdensity_unit, YTQuantity(1, "cm**-3"))
-    assert_allclose_units(ds.temperature_unit, YTQuantity(1, "K"))
+    assert_allclose_units(ds.length_unit, unyt_quantity(1, "cm"))
+    assert_allclose_units(ds.numberdensity_unit, unyt_quantity(1, "cm**-3"))
+    assert_allclose_units(ds.temperature_unit, unyt_quantity(1, "K"))
     assert_allclose_units(
-        ds.density_unit, YTQuantity(2.341670657200000e-24, "g*cm**-3")
+        ds.density_unit, unyt_quantity(2.341670657200000e-24, "g*cm**-3")
     )
-    assert_allclose_units(ds.mass_unit, YTQuantity(2.341670657200000e-24, "g"))
+    assert_allclose_units(ds.mass_unit, unyt_quantity(2.341670657200000e-24, "g"))
     assert_allclose_units(
-        ds.velocity_unit, YTQuantity(1.164508387441102e04, "cm*s**-1")
+        ds.velocity_unit, unyt_quantity(1.164508387441102e04, "cm*s**-1")
     )
     assert_allclose_units(
-        ds.pressure_unit, YTQuantity(3.175492240000000e-16, "dyn*cm**-2")
+        ds.pressure_unit, unyt_quantity(3.175492240000000e-16, "dyn*cm**-2")
     )
-    assert_allclose_units(ds.time_unit, YTQuantity(8.587314705370271e-05, "s"))
-    assert_allclose_units(ds.magnetic_unit, YTQuantity(6.316993934686148e-08, "gauss"))
+    assert_allclose_units(ds.time_unit, unyt_quantity(8.587314705370271e-05, "s"))
+    assert_allclose_units(
+        ds.magnetic_unit, unyt_quantity(6.316993934686148e-08, "gauss")
+    )
 
 
 @requires_file(khi_cartesian_2D)

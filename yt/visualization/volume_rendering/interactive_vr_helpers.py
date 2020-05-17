@@ -25,10 +25,10 @@ def _render_opengl(
         The width and the height of the Interactive Data Visualization window.
         For performance reasons it is recommended to use values that are natural
         powers of 2.
-    cam_position : 3 element YTArray, optional
+    cam_position : 3 element unyt_array, optional
         The camera position in physical coordinates. If unspecified,
         data_source's domain right edge will be used.
-    cam_focus: 3 element YTArray, optional
+    cam_focus: 3 element unyt_array, optional
         The focus defines the point the camera is pointed at. If unspecified,
         data_source's domain center will be used.
 

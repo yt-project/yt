@@ -1,11 +1,10 @@
 import numpy as np
 import pyx
 from matplotlib import cm, pyplot as plt
+from unyt import Unit, unyt_quantity
 
 from yt.config import ytcfg
 from yt.funcs import issue_deprecation_warning
-from yt.units.unit_object import Unit
-from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
 
 from .plot_window import PlotWindow
@@ -141,9 +140,9 @@ class DualEPS:
         >>> d.save_fig()
         """
 
-        if isinstance(xrange[0], YTQuantity):
+        if isinstance(xrange[0], unyt_quantity):
             xrange = (xrange[0].value, xrange[1].value)
-        if isinstance(yrange[0], YTQuantity):
+        if isinstance(yrange[0], unyt_quantity):
             yrange = (yrange[0].value, yrange[1].value)
         if tickcolor is None:
             c1 = pyx.graph.axis.painter.regular(tickattrs=[pyx.color.cmyk.black])
@@ -434,16 +433,16 @@ class DualEPS:
             # limits for axes
             xlimits = subplot.get_xlim()
             _xrange = (
-                YTQuantity(xlimits[0], "m"),
-                YTQuantity(xlimits[1], "m"),
+                unyt_quantity(xlimits[0], "m"),
+                unyt_quantity(xlimits[1], "m"),
             )  # unit hardcoded but afaik it is not used anywhere so it doesn't matter
             if list(plot.axes.ylim.viewvalues())[0][0] is None:
                 ylimits = subplot.get_ylim()
             else:
                 ylimits = list(plot.axes.ylim.viewvalues())[0]
             _yrange = (
-                YTQuantity(ylimits[0], "m"),
-                YTQuantity(ylimits[1], "m"),
+                unyt_quantity(ylimits[0], "m"),
+                unyt_quantity(ylimits[1], "m"),
             )  # unit hardcoded but afaik it is not used anywhere so it doesn't matter
             # axis labels
             xaxis = subplot.xaxis

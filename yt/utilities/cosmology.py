@@ -1,12 +1,10 @@
 import functools
 
 import numpy as np
+from unyt import UnitRegistry, dimensions, unyt_array, unyt_quantity
+from unyt.unit_object import Unit
 
 from yt.funcs import issue_deprecation_warning
-from yt.units import dimensions
-from yt.units.unit_object import Unit
-from yt.units.unit_registry import UnitRegistry
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.physical_constants import (
     gravitational_constant_cgs as G,
     speed_of_light_cgs,
@@ -541,7 +539,7 @@ class Cosmology:
 
         Parameters
         ----------
-        t : YTQuantity or float
+        t : unyt_quantity or float
             Time since the Big Bang.  If a float is given, units are
             assumed to be seconds.
 
@@ -554,7 +552,7 @@ class Cosmology:
 
         """
 
-        if not isinstance(t, YTArray):
+        if not isinstance(t, unyt_array):
             t = self.arr(t, "s")
         lt = np.log10((t * self.hubble_constant).to(""))
 
@@ -602,7 +600,7 @@ class Cosmology:
 
         Parameters
         ----------
-        t : YTQuantity or float
+        t : unyt_quantity or float
             Time since the Big Bang.  If a float is given, units are
             assumed to be seconds.
 
@@ -650,7 +648,7 @@ class Cosmology:
     def arr(self):
         if self._arr is not None:
             return self._arr
-        self._arr = functools.partial(YTArray, registry=self.unit_registry)
+        self._arr = functools.partial(unyt_array, registry=self.unit_registry)
         return self._arr
 
     _quan = None
@@ -659,7 +657,7 @@ class Cosmology:
     def quan(self):
         if self._quan is not None:
             return self._quan
-        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
+        self._quan = functools.partial(unyt_quantity, registry=self.unit_registry)
         return self._quan
 
 

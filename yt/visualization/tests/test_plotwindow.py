@@ -10,6 +10,7 @@ from distutils.version import LooseVersion
 import matplotlib
 import numpy as np
 from nose.tools import assert_true
+from unyt import kboltz, unyt_array, unyt_quantity
 
 from yt.frontends.stream.api import load_uniform_grid
 from yt.testing import (
@@ -22,8 +23,6 @@ from yt.testing import (
     fake_random_ds,
     requires_file,
 )
-from yt.units import kboltz
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import (
     PlotWindowAttributeTest,
     data_dir_load,
@@ -87,7 +86,7 @@ CENTER_SPECS = (
     "Center",
     [0.5, 0.5, 0.5],
     [[0.2, 0.3, 0.4], "cm"],
-    YTArray([0.3, 0.4, 0.7], "cm"),
+    unyt_array([0.3, 0.4, 0.7], "cm"),
 )
 
 WIDTH_SPECS = {
@@ -270,9 +269,9 @@ class TestSetWidth(unittest.TestCase):
         assert_array_equal(
             [self.slc.xlim, self.slc.ylim, self.slc.width],
             [
-                (YTQuantity(0.25, "cm"), YTQuantity(0.75, "cm")),
-                (YTQuantity(0.25, "cm"), YTQuantity(0.75, "cm")),
-                (YTQuantity(0.5, "cm"), YTQuantity(0.5, "cm")),
+                (unyt_quantity(0.25, "cm"), unyt_quantity(0.75, "cm")),
+                (unyt_quantity(0.25, "cm"), unyt_quantity(0.75, "cm")),
+                (unyt_quantity(0.5, "cm"), unyt_quantity(0.5, "cm")),
             ],
         )
 
@@ -280,9 +279,9 @@ class TestSetWidth(unittest.TestCase):
         assert_array_equal(
             [self.slc.xlim, self.slc.ylim, self.slc.width],
             [
-                (YTQuantity(0.25, "cm"), YTQuantity(0.75, "cm")),
-                (YTQuantity(0.125, "cm"), YTQuantity(0.875, "cm")),
-                (YTQuantity(0.5, "cm"), YTQuantity(0.75, "cm")),
+                (unyt_quantity(0.25, "cm"), unyt_quantity(0.75, "cm")),
+                (unyt_quantity(0.125, "cm"), unyt_quantity(0.875, "cm")),
+                (unyt_quantity(0.5, "cm"), unyt_quantity(0.75, "cm")),
             ],
         )
 

@@ -1,7 +1,7 @@
 import numpy as np
+from unyt import unyt_array
 
 from yt.funcs import mylog
-from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTException
 
 
@@ -14,9 +14,9 @@ def _validate_unit_vectors(normal_vector, north_vector):
 
     # Make sure vectors are unitless
     if north_vector is not None:
-        north_vector = YTArray(north_vector, "", dtype="float64")
+        north_vector = unyt_array(north_vector, "", dtype="float64")
     if normal_vector is not None:
-        normal_vector = YTArray(normal_vector, "", dtype="float64")
+        normal_vector = unyt_array(normal_vector, "", dtype="float64")
 
     if not np.dot(normal_vector, normal_vector) > 0:
         raise YTException("normal_vector cannot be the zero vector.")
@@ -85,5 +85,5 @@ class Orientation:
         east_vector /= np.sqrt(np.dot(east_vector, east_vector))
         self.normal_vector = normal_vector
         self.north_vector = north_vector
-        self.unit_vectors = YTArray([east_vector, north_vector, normal_vector], "")
+        self.unit_vectors = unyt_array([east_vector, north_vector, normal_vector], "")
         self.inv_mat = np.linalg.pinv(self.unit_vectors)

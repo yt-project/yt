@@ -7,6 +7,9 @@ from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
+from unyt import unyt_array
+from unyt.array import uconcatenate
+from unyt.unit_object import Unit
 
 from yt.config import ytcfg
 from yt.data_objects.data_containers import (
@@ -22,8 +25,6 @@ from yt.frontends.stream.api import load_uniform_grid
 from yt.funcs import ensure_list, get_memory_usage, iterable, mylog, only_on_root
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
-from yt.units.unit_object import Unit
-from yt.units.yt_array import YTArray, uconcatenate
 from yt.utilities.exceptions import (
     YTNoAPIKey,
     YTParticleDepositionNotImplemented,
@@ -593,7 +594,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         0 is the root grid dx for that dataset.
     left_edge : array_like
         The left edge of the region to be extracted.  Specify units by supplying
-        a YTArray, otherwise code length units are assumed.
+        a unyt_array, otherwise code length units are assumed.
     dims : array_like
         Number of cells along each axis of resulting covering_grid
     fields : array_like, optional
@@ -1485,7 +1486,7 @@ class YTSurface(YTSelectionContainer3D):
     surface_field : string
         Any field that can be obtained in a data object.  This is the field
         which will be isocontoured.
-    field_value : float, YTQuantity, or unit tuple
+    field_value : float, unyt_quantity, or unit tuple
         The value at which the isocontour should be calculated.
 
     Examples
@@ -1493,7 +1494,7 @@ class YTSurface(YTSelectionContainer3D):
     This will create a data object, find a nice value in the center, and
     output the vertices to "triangles.obj" after rescaling them.
 
-    >>> from yt.units import kpc
+    >>> from unyt import kpc
     >>> sp = ds.sphere("max", (10, "kpc")
     >>> surf = ds.surface(sp, "density", 5e-27)
     >>> print(surf["temperature"])
@@ -1563,7 +1564,7 @@ class YTSurface(YTSelectionContainer3D):
         verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op="cat", datatype="array")
         # verts is an ndarray here and will always be in code units, so we
-        # expose it in the public API as a YTArray
+        # expose it in the public API as a unyt_array
         self._vertices = self.ds.arr(verts, "code_length")
         if fields is not None:
             samples = uconcatenate(samples)
@@ -2296,7 +2297,7 @@ class YTSurface(YTSelectionContainer3D):
         Examples
         --------
 
-        >>> from yt.units import kpc
+        >>> from unyt import kpc
         >>> sp = ds.sphere("max", (10, "kpc")
         >>> surf = ds.surface(sp, "density", 5e-27)
         >>> print(surf["temperature"])
@@ -2350,10 +2351,12 @@ class YTSurface(YTSelectionContainer3D):
             DLE = self.ds.domain_left_edge
             DRE = self.ds.domain_right_edge
             bounds = [(DLE[i], DRE[i]) for i in range(3)]
-        elif any([not all([isinstance(be, YTArray) for be in b]) for b in bounds]):
+        elif any([not all([isinstance(be, unyt_array) for be in b]) for b in bounds]):
             bounds = [
                 tuple(
-                    be if isinstance(be, YTArray) else self.ds.quan(be, "code_length")
+                    be
+                    if isinstance(be, unyt_array)
+                    else self.ds.quan(be, "code_length")
                     for be in b
                 )
                 for b in bounds
@@ -2475,7 +2478,7 @@ class YTSurface(YTSelectionContainer3D):
         Examples
         --------
 
-        >>> from yt.units import kpc
+        >>> from unyt import kpc
         >>> dd = ds.sphere("max", (200, "kpc"))
         >>> rho = 5e-27
         >>> bounds = [(dd.center[i] - 100.0*kpc,
@@ -2575,10 +2578,10 @@ class YTOctree(YTSelectionContainer3D):
     ----------
     right_edge : array_like
         The right edge of the region to be extracted.  Specify units by supplying
-        a YTArray, otherwise code length units are assumed.
+        a unyt_array, otherwise code length units are assumed.
     left_edge : array_like
         The left edge of the region to be extracted.  Specify units by supplying
-        a YTArray, otherwise code length units are assumed.
+        a unyt_array, otherwise code length units are assumed.
     n_ref: int
         This is the maximum number of particles per leaf in the resulting
         octree.

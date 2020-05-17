@@ -1,8 +1,8 @@
 import numpy as np
+from unyt.unit_object import Unit
 
 from yt.data_objects.api import ImageArray
 from yt.funcs import iterable, mylog
-from yt.units.unit_object import Unit
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.lib.pixelization_routines import (
     normalization_2d_utility,

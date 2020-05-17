@@ -1,14 +1,16 @@
 from contextlib import contextmanager
 
 import numpy as np
+from unyt import unyt_array
+from unyt.dimensions import length
 
-import yt.geometry.particle_deposit as particle_deposit
-import yt.geometry.particle_smooth as particle_smooth
 from yt.data_objects.data_containers import YTSelectionContainer
 from yt.funcs import mylog
+from yt.geometry import (
+    particle_deposit as particle_deposit,
+    particle_smooth as particle_smooth,
+)
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
-from yt.units.dimensions import length
-from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import (
     YTFieldTypeNotFound,
     YTInvalidPositionArray,
@@ -593,7 +595,7 @@ class OctreeSubsetBlockSlice:
             yield i, OctreeSubsetBlockSlicePosition(i, self)
 
 
-class YTPositionArray(YTArray):
+class YTPositionArray(unyt_array):
     @property
     def morton(self):
         self.validate()

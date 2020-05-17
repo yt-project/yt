@@ -152,7 +152,7 @@ def create_squared_field(
 
 
 def create_vector_fields(registry, basename, field_units, ftype="gas", slice_info=None):
-    from yt.units.unit_object import Unit
+    from unyt.unit_object import Unit
 
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:

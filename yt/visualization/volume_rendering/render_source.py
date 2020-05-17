@@ -831,7 +831,7 @@ class PointSource(OpaqueSource):
     >>> import yt
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import PointSource
-    >>> from yt.units import kpc
+    >>> from unyt import kpc
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
 
     >>> im, sc = yt.volume_render(ds)
@@ -954,7 +954,7 @@ class LineSource(OpaqueSource):
     >>> import yt
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import LineSource
-    >>> from yt.units import kpc
+    >>> from unyt import kpc
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
 
     >>> im, sc = yt.volume_render(ds)

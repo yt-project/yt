@@ -107,7 +107,7 @@ class TestDataContainers(unittest.TestCase):
 
     @requires_module("astropy")
     def test_to_astropy_table(self):
-        from yt.units.yt_array import YTArray
+        from unyt import unyt_array
 
         fields = ["density", "velocity_z"]
         ds = fake_random_ds(6)
@@ -115,8 +115,8 @@ class TestDataContainers(unittest.TestCase):
         at1 = dd.to_astropy_table(fields)
         assert_array_equal(dd[fields[0]].d, at1[fields[0]].value)
         assert_array_equal(dd[fields[1]].d, at1[fields[1]].value)
-        assert dd[fields[0]].units == YTArray.from_astropy(at1[fields[0]]).units
-        assert dd[fields[1]].units == YTArray.from_astropy(at1[fields[1]]).units
+        assert dd[fields[0]].units == unyt_array.from_astropy(at1[fields[0]]).units
+        assert dd[fields[1]].units == unyt_array.from_astropy(at1[fields[1]]).units
 
     def test_std(self):
         ds = fake_random_ds(3)

@@ -6,6 +6,7 @@ import weakref
 from functools import wraps
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.config import ytcfg
 from yt.convenience import load
@@ -18,7 +19,6 @@ from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.derived_quantities import derived_quantity_registry
 from yt.data_objects.particle_trajectories import ParticleTrajectories
 from yt.funcs import ensure_list, issue_deprecation_warning, iterable, mylog
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTException, YTOutputNotIdentified
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     communication_system,
@@ -581,7 +581,7 @@ class SimulationTimeSeries(DatasetSeries, metaclass=RegisteredSimulationTimeSeri
     def arr(self):
         if self._arr is not None:
             return self._arr
-        self._arr = functools.partial(YTArray, registry=self.unit_registry)
+        self._arr = functools.partial(unyt_array, registry=self.unit_registry)
         return self._arr
 
     _quan = None
@@ -590,7 +590,7 @@ class SimulationTimeSeries(DatasetSeries, metaclass=RegisteredSimulationTimeSeri
     def quan(self):
         if self._quan is not None:
             return self._quan
-        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
+        self._quan = functools.partial(unyt_quantity, registry=self.unit_registry)
         return self._quan
 
     @parallel_root_only
@@ -655,7 +655,7 @@ class SimulationTimeSeries(DatasetSeries, metaclass=RegisteredSimulationTimeSeri
 
         """
 
-        if not isinstance(values, YTArray):
+        if not isinstance(values, unyt_array):
             if isinstance(values, tuple) and len(values) == 2:
                 values = self.arr(*values)
             else:

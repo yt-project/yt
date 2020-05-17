@@ -1,9 +1,9 @@
 import numpy as np
+from unyt import unyt_quantity
 
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.frontends.open_pmd.misc import is_const_component, parse_unit_dimension
-from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5
 from yt.utilities.physical_constants import mu_0, speed_of_light
@@ -157,7 +157,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     parsed = parse_unit_dimension(
                         np.asarray(field.attrs["unitDimension"], dtype=np.int)
                     )
-                    unit = str(YTQuantity(1, parsed).units)
+                    unit = str(unyt_quantity(1, parsed).units)
                     aliases = []
                     # Save a list of magnetic fields for aliasing later on
                     # We can not reasonably infer field type/unit by name in openPMD
@@ -170,7 +170,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         parsed = parse_unit_dimension(
                             np.asarray(field.attrs["unitDimension"], dtype=np.int)
                         )
-                        unit = str(YTQuantity(1, parsed).units)
+                        unit = str(unyt_quantity(1, parsed).units)
                         aliases = []
                         # Save a list of magnetic fields for aliasing later on
                         # We can not reasonably infer field type by name in openPMD
@@ -190,7 +190,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     try:
                         record = species[recname]
                         parsed = parse_unit_dimension(record.attrs["unitDimension"])
-                        unit = str(YTQuantity(1, parsed).units)
+                        unit = str(unyt_quantity(1, parsed).units)
                         ytattrib = str(recname).replace("_", "-")
                         if ytattrib == "position":
                             # Symbolically rename position to preserve yt's

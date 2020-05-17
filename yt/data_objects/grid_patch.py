@@ -2,13 +2,13 @@ import warnings
 import weakref
 
 import numpy as np
+from unyt import unyt_array
 
-import yt.geometry.particle_deposit as particle_deposit
 from yt.config import ytcfg
 from yt.data_objects.data_containers import YTSelectionContainer
 from yt.funcs import iterable
+from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.selection_routines import convert_mask_to_indices
-from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import (
     YTFieldTypeNotFound,
     YTParticleDepositionNotImplemented,
@@ -137,7 +137,7 @@ class AMRGridPatch(YTSelectionContainer):
             self.dds[2] = ds.domain_right_edge[2] - ds.domain_left_edge[2]
         elif self.ds.dimensionality < 2:
             self.dds[1] = ds.domain_right_edge[1] - ds.domain_left_edge[1]
-        self.dds = self.dds.view(YTArray)
+        self.dds = self.dds.view(unyt_array)
         self.dds.units = self.index.grid_left_edge.units
 
     def __repr__(self):

@@ -1,10 +1,10 @@
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.convenience import load as yt_load
 from yt.frontends.halo_catalog.data_structures import HaloCatalogDataset
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.testing import TempDirTest, assert_array_equal, requires_module
-from yt.units.yt_array import YTArray, YTQuantity
 
 
 def fake_halo_catalog(data):
@@ -19,9 +19,9 @@ def fake_halo_catalog(data):
         "omega_matter": 0.3,
         "hubble_constant": 0.7,
         "current_redshift": 0,
-        "current_time": YTQuantity(1, "yr"),
-        "domain_left_edge": YTArray(np.zeros(3), "cm"),
-        "domain_right_edge": YTArray(np.ones(3), "cm"),
+        "current_time": unyt_quantity(1, "yr"),
+        "domain_left_edge": unyt_array(np.zeros(3), "cm"),
+        "domain_right_edge": unyt_array(np.ones(3), "cm"),
     }
     save_as_dataset(ds, filename, data, field_types=ftypes, extra_attrs=extra_attrs)
     return filename
@@ -38,7 +38,7 @@ class HaloCatalogTest(TempDirTest):
         ]
         units = ["g"] + ["cm"] * 3
         data = dict(
-            (field, YTArray(rs.random_sample(n_halos), unit))
+            (field, unyt_array(rs.random_sample(n_halos), unit))
             for field, unit in zip(fields, units)
         )
 
@@ -64,7 +64,7 @@ class HaloCatalogTest(TempDirTest):
         ]
         units = ["g"] + ["cm"] * 3
         data = dict(
-            (field, YTArray(rs.random_sample(n_halos), unit))
+            (field, unyt_array(rs.random_sample(n_halos), unit))
             for field, unit in zip(fields, units)
         )
 

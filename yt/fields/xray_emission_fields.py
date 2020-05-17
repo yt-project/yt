@@ -1,11 +1,11 @@
 import os
 
 import numpy as np
+from unyt import unyt_array, unyt_quantity
 
 from yt.config import ytcfg
 from yt.fields.derived_field import DerivedField
 from yt.funcs import mylog, only_on_root, parse_h5_attr
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import YTException, YTFieldNotFound
 from yt.utilities.linear_interpolators import (
@@ -102,7 +102,7 @@ class XrayEmissivityIntegrator:
             self.log_nH = in_file["log_nH"][:]
         if use_metals:
             self.emissivity_metals = in_file["emissivity_metals"][:]
-        self.ebin = YTArray(in_file["E"], "keV")
+        self.ebin = unyt_array(in_file["E"], "keV")
         in_file.close()
         self.dE = np.diff(self.ebin)
         self.emid = 0.5 * (self.ebin[1:] + self.ebin[:-1]).to("erg")
@@ -112,8 +112,8 @@ class XrayEmissivityIntegrator:
         data = getattr(self, "emissivity_%s" % data_type)
         if not energy:
             data = data[..., :] / self.emid.v
-        e_min = YTQuantity(e_min, "keV") * (1.0 + self.redshift)
-        e_max = YTQuantity(e_max, "keV") * (1.0 + self.redshift)
+        e_min = unyt_quantity(e_min, "keV") * (1.0 + self.redshift)
+        e_max = unyt_quantity(e_max, "keV") * (1.0 + self.redshift)
         if (e_min - self.ebin[0]) / e_min < -1e-3 or (
             e_max - self.ebin[-1]
         ) / e_max > 1e-3:
@@ -184,7 +184,7 @@ def add_xray_emissivity_field(
         If set and redshift > 0.0, this cosmology will be used when computing the
         cosmological dependence of the emission fields. If not set, yt's default
         LCDM cosmology will be used.
-    dist : (value, unit) tuple or :class:`~yt.units.yt_array.YTQuantity`, optional
+    dist : (value, unit) tuple or :class:`~yt.units.yt_array.unyt_quantity`, optional
         The distance to the source, used for making intensity fields. You should
         only use this if your source is nearby (not cosmological). Default: None
     ftype : string, optional
@@ -261,7 +261,7 @@ def add_xray_emissivity_field(
 
         my_emissivity[np.isnan(my_emissivity)] = 0
 
-        return data[ftype, "norm_field"] * YTArray(my_emissivity, "erg*cm**3/s")
+        return data[ftype, "norm_field"] * unyt_array(my_emissivity, "erg*cm**3/s")
 
     emiss_name = (ftype, "xray_emissivity_%s_%s_keV" % (e_min, e_max))
     ds.add_field(
@@ -298,7 +298,7 @@ def add_xray_emissivity_field(
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
 
-        return data[ftype, "norm_field"] * YTArray(my_emissivity, "photons*cm**3/s")
+        return data[ftype, "norm_field"] * unyt_array(my_emissivity, "photons*cm**3/s")
 
     phot_name = (ftype, "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max))
     ds.add_field(
@@ -327,12 +327,12 @@ def add_xray_emissivity_field(
             )
         else:
             redshift = 0.0  # Only for local sources!
-            if not isinstance(dist, YTQuantity):
+            if not isinstance(dist, unyt_quantity):
                 try:
                     dist = ds.quan(dist[0], dist[1])
                 except TypeError:
                     raise RuntimeError(
-                        "Please specifiy 'dist' as a YTQuantity "
+                        "Please specifiy 'dist' as a unyt_quantity "
                         "or a (value, unit) tuple!"
                     )
             else:

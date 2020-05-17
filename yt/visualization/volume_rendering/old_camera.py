@@ -2,12 +2,12 @@ import builtins
 from copy import deepcopy
 
 import numpy as np
+from unyt import unyt_array
 
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
 from yt.data_objects.data_containers import data_object_registry
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, iterable, mylog
-from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.lib.grid_traversal import (
@@ -183,9 +183,9 @@ class Camera(ParallelAnalysisInterface):
             width = width.in_units("code_length").value
         if not iterable(width):
             width = (width, width, width)  # left/right, top/bottom, front/back
-        if not isinstance(width, YTArray):
+        if not isinstance(width, unyt_array):
             width = self.ds.arr(width, units="code_length")
-        if not isinstance(center, YTArray):
+        if not isinstance(center, unyt_array):
             center = self.ds.arr(center, units="code_length")
         # Ensure that width and center are in the same units
         # Cf. https://bitbucket.org/yt_analysis/yt/issue/1080
@@ -234,14 +234,14 @@ class Camera(ParallelAnalysisInterface):
     def _setup_box_properties(self, width, center, unit_vectors):
         self.width = width
         self.center = center
-        self.box_vectors = YTArray(
+        self.box_vectors = unyt_array(
             [
                 unit_vectors[0] * width[0],
                 unit_vectors[1] * width[1],
                 unit_vectors[2] * width[2],
             ]
         )
-        self.origin = center - 0.5 * width.dot(YTArray(unit_vectors, ""))
+        self.origin = center - 0.5 * width.dot(unyt_array(unit_vectors, ""))
         self.back_center = center - 0.5 * width[2] * unit_vectors[2]
         self.front_center = center + 0.5 * width[2] * unit_vectors[2]
 
@@ -431,10 +431,10 @@ class Camera(ParallelAnalysisInterface):
         im : ImageArray or 2D ndarray
             Existing image that has the same resolution as the Camera,
             which will be painted by grid lines.
-        x0 : YTArray or ndarray
+        x0 : unyt_array or ndarray
             Starting coordinate.  If passed in as an ndarray,
             assumed to be in code units.
-        x1 : YTArray or ndarray
+        x1 : unyt_array or ndarray
             Ending coordinate, in simulation coordinates.  If passed in as
             an ndarray, assumed to be in code units.
         color : array like, optional
@@ -1007,13 +1007,13 @@ class Camera(ParallelAnalysisInterface):
         ...     iw.write_bitmap(snapshot, "move_%04i.png" % i)
         """
         dW = None
-        if not isinstance(final, YTArray):
+        if not isinstance(final, unyt_array):
             final = self.ds.arr(final, units="code_length")
         if exponential:
             if final_width is not None:
                 if not iterable(final_width):
                     final_width = [final_width, final_width, final_width]
-                if not isinstance(final_width, YTArray):
+                if not isinstance(final_width, unyt_array):
                     final_width = self.ds.arr(final_width, units="code_length")
                     # left/right, top/bottom, front/back
                 if (self.center == 0.0).all():
@@ -1028,7 +1028,7 @@ class Camera(ParallelAnalysisInterface):
             if final_width is not None:
                 if not iterable(final_width):
                     final_width = [final_width, final_width, final_width]
-                if not isinstance(final_width, YTArray):
+                if not isinstance(final_width, unyt_array):
                     final_width = self.ds.arr(final_width, units="code_length")
                     # left/right, top/bottom, front/back
                 dW = (1.0 * final_width - self.width) / n_steps

@@ -1,10 +1,10 @@
 import builtins
 
 import numpy as np
+from unyt import unyt_quantity
 
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
-from yt.units.yt_array import YTQuantity
 from yt.utilities import png_writer as pw
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.lib import image_utilities as au
@@ -242,7 +242,7 @@ def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
         ma = np.nanmax(image[~np.isinf(image)]) * image.uq
         color_bounds = mi, ma
     else:
-        color_bounds = [YTQuantity(func(c), image.units) for c in color_bounds]
+        color_bounds = [unyt_quantity(func(c), image.units) for c in color_bounds]
     image = (image - color_bounds[0]) / (color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
     to_plot = np.clip(to_plot, 0, 255)

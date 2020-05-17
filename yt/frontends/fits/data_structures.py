@@ -7,6 +7,9 @@ from collections import defaultdict
 
 import numpy as np
 import numpy.core.defchararray as np_char
+from unyt import dimensions, unyt_quantity
+from unyt._unit_lookup_table import default_unit_symbol_lut, unit_prefixes
+from unyt.unit_object import UnitParseError
 
 from yt.config import ytcfg
 from yt.data_objects.grid_patch import AMRGridPatch
@@ -14,10 +17,6 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import ensure_list, issue_deprecation_warning, mylog, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.units import dimensions
-from yt.units.unit_lookup_table import default_unit_symbol_lut, unit_prefixes
-from yt.units.unit_object import UnitParseError
-from yt.units.yt_array import YTQuantity
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.file_handler import FITSFileHandler
 from yt.utilities.io_handler import io_registry
@@ -83,7 +82,7 @@ class FITSHierarchy(GridIndex):
             try:
                 # First let AstroPy attempt to figure the unit out
                 u = 1.0 * _astropy.units.Unit(bunit, format="fits")
-                u = YTQuantity.from_astropy(u).units
+                u = unyt_quantity.from_astropy(u).units
             except ValueError:
                 try:
                     # Let yt try it by itself

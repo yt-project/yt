@@ -4,8 +4,8 @@ import os
 from collections import OrderedDict
 
 from OpenGL import GL as GL
+from unyt import unyt_quantity
 
-from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import (
     YTInvalidShaderType,
     YTUnknownUniformKind,
@@ -74,7 +74,7 @@ class ShaderProgram:
         # but we will not be using that here.
         if isinstance(value, int):
             return GL.glUniform1i
-        elif isinstance(value, (YTQuantity, float)):
+        elif isinstance(value, (unyt_quantity, float)):
             return GL.glUniform1f
         else:
             kind = value.dtype.kind

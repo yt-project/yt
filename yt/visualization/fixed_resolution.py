@@ -294,7 +294,7 @@ class FixedResolutionBuffer:
                 unit, equivalency, **equivalency_kwargs
             )
             # equiv_array isn't necessarily an ImageArray. This is an issue
-            # inherent to the way the unit system handles YTArray
+            # inherent to the way the unit system handles unyt_array
             # subclasses and I don't see how to modify the unit system to
             # fix this. Instead, we paper over this issue and hard code
             # that equiv_array is an ImageArray

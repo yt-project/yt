@@ -11,17 +11,19 @@ import os
 import numpy as np
 import pytest
 import yaml
+from unyt import unyt_array, unyt_quantity
 
-import yt.visualization.particle_plots as particle_plots
-import yt.visualization.plot_window as pw
-import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
 from yt.convenience import load, simulation
 from yt.data_objects.selection_data_containers import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
-from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTOutputNotIdentified
+from yt.visualization import (
+    particle_plots as particle_plots,
+    plot_window as pw,
+    profile_plotter as profile_plotter,
+)
 from yt.visualization.volume_rendering.scene import Scene
 
 
@@ -438,9 +440,9 @@ def fake_halo_catalog(data):
         "omega_matter": 0.3,
         "hubble_constant": 0.7,
         "current_redshift": 0,
-        "current_time": YTQuantity(1, "yr"),
-        "domain_left_edge": YTArray(np.zeros(3), "cm"),
-        "domain_right_edge": YTArray(np.ones(3), "cm"),
+        "current_time": unyt_quantity(1, "yr"),
+        "domain_left_edge": unyt_array(np.zeros(3), "cm"),
+        "domain_right_edge": unyt_array(np.ones(3), "cm"),
     }
     save_as_dataset(ds, filename, data, field_types=ftypes, extra_attrs=extra_attrs)
     return filename

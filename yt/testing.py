@@ -11,13 +11,13 @@ import unittest
 import matplotlib
 import numpy as np
 from numpy.random import RandomState
+from unyt import unyt_array, unyt_quantity
 from unyt.exceptions import UnitOperationError
 
 import yt
 from yt.config import ytcfg
 from yt.convenience import load
 from yt.funcs import iterable
-from yt.units.yt_array import YTArray, YTQuantity
 
 # we import this in a weird way from numpy.testing to avoid triggering
 # flake8 errors from the unused imports. These test functions are imported
@@ -1134,8 +1134,8 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     """
     # Create a copy to ensure this function does not alter input arrays
-    act = YTArray(actual)
-    des = YTArray(desired)
+    act = unyt_array(actual)
+    des = unyt_array(desired)
 
     try:
         des = des.in_units(act.units)
@@ -1145,12 +1145,12 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
             "equivalent dimensions" % (act.units, des.units)
         )
 
-    rt = YTArray(rtol)
+    rt = unyt_array(rtol)
     if not rt.units.is_dimensionless:
         raise AssertionError("Units of rtol (%s) are not " "dimensionless" % rt.units)
 
-    if not isinstance(atol, YTArray):
-        at = YTQuantity(atol, des.units)
+    if not isinstance(atol, unyt_array):
+        at = unyt_quantity(atol, des.units)
 
     try:
         at = at.in_units(act.units)

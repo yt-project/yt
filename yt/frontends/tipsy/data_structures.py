@@ -246,7 +246,7 @@ class TipsyDataset(SPHDataset):
                 self.hubble_constant *= np.sqrt(G * density_unit)
                 # Finally, we scale the hubble constant by 100 km/s/Mpc
                 self.hubble_constant /= self.quan(100, "km/s/Mpc")
-                # If we leave it as a YTQuantity, the cosmology object
+                # If we leave it as a unyt_quantity, the cosmology object
                 # used below will add units back on.
                 self.hubble_constant = self.hubble_constant.to_value("")
         else:
