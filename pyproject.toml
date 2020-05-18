@@ -1,0 +1,12 @@
+[build-system]
+# See https://github.com/scipy/scipy/pull/10431 for the AIX issue.
+requires = [
+  "setuptools>=19.6",
+  "wheel",
+
+  # keep in sync with travis.yml "minimal" specs (Cython and numpy for py36)
+  "Cython>=0.26.1",
+  "numpy==1.13.3; python_version=='3.6' and platform_system!='AIX'",
+  "numpy==1.18.1; python_version=='3.7' and platform_system!='AIX'",
+  "numpy==1.18.4; python_version=='3.8' and platform_system!='AIX'",
+]
