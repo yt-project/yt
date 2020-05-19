@@ -747,23 +747,23 @@ cdef class ParticleBitmap:
         print("THIS MANY COARSE CELLS", coarse_refined_map.size())
         print("THIS MANY NSET", nset, nset / pos.shape[0], nsub_mi)
         cdef np.uint64_t count, vec_i
-        cdef total_count = 0
+        cdef np.uint64_t total_count = 0
         for it1 in coarse_refined_map:
             mi1 = it1.first
             count = 0
             vec_i = 0
-            for it2 in it1.second:
-                if it2 == True:
+            for vec_i in range(it1.second.size()):
+                if it1.second[vec_i] == True:
                     count += 1
                     #sub_mi1[nsub_mi] = mi1
                     #sub_mi2[nsub_mi] = vec_i
                     nsub_mi += 1
-                vec_i += 1
             if count != refined_count[mi1]:
                 print("WHY IS THIS WRONG", count, refined_count[mi1])
             #print("IN ", mi1, "THIS MANY REFINED CELLS", count)
             total_count += count
-        print("NSUB_MI NOW", total_count, total_count / (coarse_refined_map.size() * max_mi2_elements), nsub_mi, sub_mi1.shape[0], sub_mi2.shape[0])
+        if coarse_refined_map.size() > 0:
+            print("NSUB_MI NOW", total_count, total_count / (coarse_refined_map.size() * max_mi2_elements), nsub_mi, sub_mi1.shape[0], sub_mi2.shape[0])
         return nsub_mi
 
         if 0:
@@ -929,7 +929,8 @@ cdef class ParticleBitmap:
         cdef np.uint64_t bounds_l[3], bounds_r[3]
         cdef np.uint64_t miex2, mi2, miex2_min, miex2_max
         cdef np.float64_t clip_pos_l[3], clip_pos_r[3], cell_edge_l, cell_edge_r
-        cdef np.uint64_t ex1[3], ex2[3]
+        cdef np.uint64_t ex1[3], ex2[3], ex3[3]
+        cdef np.uint64_t xex_max, yex_max, zex_max
         ex1[0] = xex; ex1[1] = yex; ex1[2] = zex
         # Check a few special cases
         for i in range(3):
@@ -943,16 +944,22 @@ cdef class ParticleBitmap:
                                                 LE, dds1, dds2, bounds_l)
         miex2_max = bounded_morton_split_relative_dds(clip_pos_r[0], clip_pos_r[1], clip_pos_r[2],
                                                 LE, dds1, dds2, bounds_r)
+        xex_max = encode_morton_64bit(mi2_max, 0, 0)
+        yex_max = encode_morton_64bit(0, mi2_max, 0)
+        zex_max = encode_morton_64bit(0, 0, mi2_max)
         for miex2 in range(miex2_min, miex2_max + 1):
             #miex2 = encode_morton_64bit(xex2, yex2, zex2)
-            decode_morton_64bit(miex2, ex2)
-            if ex2[0] < bounds_l[0] or ex2[0] > bounds_r[0] or \
-               ex2[1] < bounds_l[1] or ex2[1] > bounds_r[1] or \
-               ex2[2] < bounds_l[2] or ex2[2] > bounds_r[2]:
-                continue
-            if refined_set[miex2] == False:
-                refined_set[miex2] = True
-                new_nsub += 1
+            #decode_morton_64bit(miex2, ex2)
+            # Let's check all our cases here
+            if refined_set[miex2] == True: continue
+            if (miex2 & xex_max) < (miex2_min & xex_max): continue
+            if (miex2 & yex_max) < (miex2_min & yex_max): continue
+            if (miex2 & zex_max) < (miex2_min & zex_max): continue
+            if (miex2 & xex_max) > (miex2_max & xex_max): continue
+            if (miex2 & yex_max) > (miex2_max & yex_max): continue
+            if (miex2 & zex_max) > (miex2_max & zex_max): continue
+            refined_set[miex2] = True
+            new_nsub += 1
         return new_nsub
 
     @cython.boundscheck(False)
