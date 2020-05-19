@@ -1,10 +1,19 @@
 cimport numpy as np
+from libcpp.vector cimport vector
+from libcpp.set cimport set as cset
+from libcpp.pair cimport pair
+
+from yt.utilities.lib.ewah_bool_array cimport \
+    sstream, ewah_map, ewah_bool_array, ewah_bool_iterator
+
+ctypedef bint bitarrtype
+ctypedef pair[np.uint64_t, np.uint64_t] ind_pair
 
 cdef class FileBitmasks:
     cdef np.uint32_t nfiles
-    cdef void** ewah_coll
-    cdef void** ewah_keys
-    cdef void** ewah_refn
+    cdef ewah_map** ewah_coll
+    cdef ewah_bool_array** ewah_keys
+    cdef ewah_bool_array** ewah_refn
 
     cdef void _reset(self)
     cdef bint _iseq(self, FileBitmasks solf)
@@ -43,10 +52,10 @@ cdef class FileBitmasks:
     cdef bint _check(self)
 
 cdef class BoolArrayCollection:
-    cdef void* ewah_coll
-    cdef void* ewah_keys
-    cdef void* ewah_refn
-    cdef void* ewah_coar
+    cdef ewah_map* ewah_coll
+    cdef ewah_bool_array* ewah_keys
+    cdef ewah_bool_array* ewah_refn
+    cdef ewah_bool_array* ewah_coar
 
     cdef void _reset(self)
     cdef int _richcmp(self, BoolArrayCollection solf, int op) except -1
@@ -85,9 +94,9 @@ cdef class BoolArrayCollection:
 cdef class BoolArrayCollectionUncompressed:
     cdef int nele1
     cdef int nele2
-    cdef void* ewah_coll
-    cdef void* ewah_keys
-    cdef void* ewah_refn
+    cdef ewah_map* ewah_coll
+    cdef bitarrtype* ewah_keys
+    cdef bitarrtype* ewah_refn
 
     cdef void _set(self, np.uint64_t i1, np.uint64_t i2=*)
     cdef void _set_coarse(self, np.uint64_t i1)
@@ -108,7 +117,7 @@ cdef class BoolArrayCollectionUncompressed:
     cdef void _compress(self, BoolArrayCollection solf)
 
 cdef class SparseUnorderedBitmaskSet:
-    cdef void* entries
+    cdef cset[np.uint64_t] entries
     cdef void _set(self, np.uint64_t ind)
     cdef void _fill(self, np.uint8_t[:] mask)
     cdef void _fill_ewah(self, BoolArrayCollection mm)
@@ -118,7 +127,7 @@ cdef class SparseUnorderedBitmaskSet:
 
 cdef class SparseUnorderedBitmaskVector:
     cdef int total
-    cdef void* entries
+    cdef vector[np.uint64_t] entries
     cdef void _set(self, np.uint64_t ind)
     cdef void _fill(self, np.uint8_t[:] mask)
     cdef void _fill_ewah(self, BoolArrayCollection mm)
@@ -129,7 +138,7 @@ cdef class SparseUnorderedBitmaskVector:
     cdef void _prune(self)
 
 cdef class SparseUnorderedRefinedBitmaskSet:
-    cdef void* entries
+    cdef cset[ind_pair] entries
     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2)
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:])
     cdef void _fill_ewah(self, BoolArrayCollection mm)
@@ -139,7 +148,7 @@ cdef class SparseUnorderedRefinedBitmaskSet:
 
 cdef class SparseUnorderedRefinedBitmaskVector:
     cdef int total
-    cdef void* entries
+    cdef vector[ind_pair] entries
     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2)
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:])
     cdef void _fill_ewah(self, BoolArrayCollection mm)
