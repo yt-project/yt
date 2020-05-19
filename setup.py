@@ -153,7 +153,7 @@ cython_extensions = [
               ],
               libraries=std_libs,
               language="c++",
-              extra_compile_arg=["-std=c++03"]),
+              extra_compile_args=["-std=c++03"]),
     Extension("yt.utilities.lib.cykdtree.utils",
               [
                   "yt/utilities/lib/cykdtree/utils.pyx",
@@ -162,7 +162,7 @@ cython_extensions = [
               depends=["yt/utilities/lib/cykdtree/c_utils.hpp"],
               libraries=std_libs,
               language="c++",
-              extra_compile_arg=["-std=c++03"]),    
+              extra_compile_args=["-std=c++03"]),
     Extension("yt.utilities.lib.fnv_hash",
               ["yt/utilities/lib/fnv_hash.pyx"],
               include_dirs=["yt/utilities/lib/"],
