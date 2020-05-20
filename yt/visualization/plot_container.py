@@ -95,8 +95,8 @@ def get_log_minorticks(vmin, vmax):
     """
     expA = np.floor(np.log10(vmin))
     expB = np.floor(np.log10(vmax))
-    cofA = np.ceil(vmin/10**expA)
-    cofB = np.floor(vmax/10**expB)
+    cofA = np.ceil(vmin/10**expA).astype("int64")
+    cofB = np.floor(vmax/10**expB).astype("int64")
     lmticks = []
     while cofA*10**expA <= cofB*10**expB:
         if expA < expB:
@@ -725,7 +725,7 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
-        if field is 'all':
+        if field == 'all':
             fields = list(self.plots.keys())
         else:
             fields = ensure_list(field)

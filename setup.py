@@ -320,18 +320,6 @@ if check_for_pyembree() is not None:
 
     cython_extensions += embree_extensions
 
-if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
-    gpd = os.environ["GPERFTOOLS"]
-    idir = os.path.join(gpd, "include")
-    ldir = os.path.join(gpd, "lib")
-    print(("INCLUDE AND LIB DIRS", idir, ldir))
-    cython_extensions.append(
-        Extension("yt.utilities.lib.perftools_wrap",
-                  ["yt/utilities/lib/perftools_wrap.pyx"],
-                  libraries=["profiler"],
-                  library_dirs=[ldir],
-                  include_dirs=[idir]))
-
 class build_ext(_build_ext):
     # subclass setuptools extension builder to avoid importing cython and numpy
     # at top level in setup.py. See http://stackoverflow.com/a/21621689/1382869
@@ -399,63 +387,65 @@ class sdist(_sdist):
         )
         _sdist.run(self)
 
-setup(
-    name="yt",
-    version=VERSION,
-    description="An analysis and visualization toolkit for volumetric data",
-    long_description = long_description,
-    long_description_content_type='text/markdown',
-    classifiers=["Development Status :: 5 - Production/Stable",
-                 "Environment :: Console",
-                 "Intended Audience :: Science/Research",
-                 "License :: OSI Approved :: BSD License",
-                 "Operating System :: MacOS :: MacOS X",
-                 "Operating System :: POSIX :: AIX",
-                 "Operating System :: POSIX :: Linux",
-                 "Programming Language :: C",
-                 "Programming Language :: Python :: 3",
-                 "Programming Language :: Python :: 3.5",
-                 "Programming Language :: Python :: 3.6",
-                 "Programming Language :: Python :: 3.7",
-                 "Topic :: Scientific/Engineering :: Astronomy",
-                 "Topic :: Scientific/Engineering :: Physics",
-                 "Topic :: Scientific/Engineering :: Visualization"],
-    keywords='astronomy astrophysics visualization ' +
-    'amr adaptivemeshrefinement',
-    entry_points={'console_scripts': [
-        'yt = yt.utilities.command_line:run_main',
-    ],
-        'nose.plugins.0.10': [
-            'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
-    ]
-    },
-    packages=find_packages(),
-    include_package_data = True,
-    install_requires=[
-        'matplotlib>=1.5.3',
-        'setuptools>=19.6',
-        'sympy>=1.2',
-        'numpy>=1.10.4',
-        'IPython>=1.0',
-        'unyt>=2.2.2',
-    ],
-    extras_require = {
-        'hub':  ["girder_client"],
-        'mapserver': ["bottle"]
-    },
-    cmdclass={'sdist': sdist, 'build_ext': build_ext},
-    author="The yt project",
-    author_email="yt-dev@python.org",
-    url="https://github.com/yt-project/yt",
-    project_urls={
-        'Homepage': 'https://yt-project.org/',
-        'Documentation': 'https://yt-project.org/doc/',
-        'Source': 'https://github.com/yt-project/yt/',
-        'Tracker': 'https://github.com/yt-project/yt/issues'
-    },
-    license="BSD 3-Clause",
-    zip_safe=False,
-    scripts=["scripts/iyt"],
-    ext_modules=cython_extensions + extensions,
-    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*'
-)
+
+if __name__ == "__main__":
+    setup(
+        name="yt",
+        version=VERSION,
+        description="An analysis and visualization toolkit for volumetric data",
+        long_description = long_description,
+        long_description_content_type='text/markdown',
+        classifiers=["Development Status :: 5 - Production/Stable",
+                     "Environment :: Console",
+                     "Intended Audience :: Science/Research",
+                     "License :: OSI Approved :: BSD License",
+                     "Operating System :: MacOS :: MacOS X",
+                     "Operating System :: POSIX :: AIX",
+                     "Operating System :: POSIX :: Linux",
+                     "Programming Language :: C",
+                     "Programming Language :: Python :: 3",
+                     "Programming Language :: Python :: 3.5",
+                     "Programming Language :: Python :: 3.6",
+                     "Programming Language :: Python :: 3.7",
+                     "Topic :: Scientific/Engineering :: Astronomy",
+                     "Topic :: Scientific/Engineering :: Physics",
+                     "Topic :: Scientific/Engineering :: Visualization"],
+        keywords='astronomy astrophysics visualization ' +
+        'amr adaptivemeshrefinement',
+        entry_points={'console_scripts': [
+            'yt = yt.utilities.command_line:run_main',
+        ],
+            'nose.plugins.0.10': [
+                'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
+        ]
+        },
+        packages=find_packages(),
+        include_package_data = True,
+        install_requires=[
+            'matplotlib>=1.5.3',
+            'setuptools>=19.6',
+            'sympy>=1.2',
+            'numpy>=1.10.4',
+            'IPython>=1.0',
+            'unyt>=2.2.2',
+        ],
+        extras_require = {
+            'hub':  ["girder_client"],
+            'mapserver': ["bottle"]
+        },
+        cmdclass={'sdist': sdist, 'build_ext': build_ext},
+        author="The yt project",
+        author_email="yt-dev@python.org",
+        url="https://github.com/yt-project/yt",
+        project_urls={
+            'Homepage': 'https://yt-project.org/',
+            'Documentation': 'https://yt-project.org/doc/',
+            'Source': 'https://github.com/yt-project/yt/',
+            'Tracker': 'https://github.com/yt-project/yt/issues'
+        },
+        license="BSD 3-Clause",
+        zip_safe=False,
+        scripts=["scripts/iyt"],
+        ext_modules=cython_extensions + extensions,
+        python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*'
+    )

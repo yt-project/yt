@@ -391,10 +391,10 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
 
         # Interpolate the R, G, and B channels from one color to the next
         # Use np.round to make sure you're on a discrete index
-        interval = np.round(next_index)-np.round(rolling_index)
+        interval = int(np.round(next_index)-np.round(rolling_index))
         for j in np.arange(3):
             cmap[int(np.rint(rolling_index)):int(np.rint(next_index)), j] = \
-                np.linspace(color[j], next_color[j], interval)
+                np.linspace(color[j], next_color[j], num=interval)
 
         rolling_index = next_index
 
