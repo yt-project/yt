@@ -2664,10 +2664,18 @@ class YTOctree(YTSelectionContainer3D):
                 .d
             )
 
-        if len(positions) == 0:
+        if positions == []:
+            mylog.info('No particles found!')
             self._octree = None
             return
+
         positions = np.concatenate(positions)
+
+        # Second check for zero particles
+        if positions.shape[0] == 0:
+            mylog.info('No particles found!')
+            self._octree = None
+            return
 
         mylog.info('Allocating Octree for %s particles' % positions.shape[0])
         self._octree = CyOctree(
@@ -2688,22 +2696,24 @@ class YTOctree(YTSelectionContainer3D):
 
         self._generate_tree()
 
-        pos = ds.arr(self._octree.node_positions, "code_length")
-        self[('index', 'positions')] = pos
-        self[('index', 'x')] = pos[:, 0]
-        self[('index', 'y')] = pos[:, 1]
-        self[('index', 'z')] = pos[:, 2]
-        self[('index', 'refined')] = self._octree.node_refined
+        if self._octree is not None:
+            pos = ds.arr(self._octree.node_positions, "code_length")
+            self[('index', 'positions')] = pos
+            self[('index', 'x')] = pos[:, 0]
+            self[('index', 'y')] = pos[:, 1]
+            self[('index', 'z')] = pos[:, 2]
 
-        sizes = ds.arr(self._octree.node_sizes, "code_length")
-        self[('index', 'sizes')] = sizes
-        self[('index', 'dx')] = sizes[:, 0]
-        self[('index', 'dy')] = sizes[:, 1]
-        self[('index', 'dz')] = sizes[:, 2]
+            self[('index', 'refined')] = self._octree.node_refined
 
-        self[('index', 'depth')] = self._octree.node_depth
+            sizes = ds.arr(self._octree.node_sizes, "code_length")
+            self[('index', 'sizes')] = sizes
+            self[('index', 'dx')] = sizes[:, 0]
+            self[('index', 'dy')] = sizes[:, 1]
+            self[('index', 'dz')] = sizes[:, 2]
 
-        return self._octree
+            self[('index', 'depth')] = self._octree.node_depth
+
+            return self._octree
 
     def _sanitize_ptypes(self, ptypes):
         if ptypes is None:
