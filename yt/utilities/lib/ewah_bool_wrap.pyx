@@ -606,16 +606,10 @@ cdef class FileBitmasks:
         return self._check()
 
     def __dealloc__(self):
-        cdef ewah_bool_array *ewah_keys
-        cdef ewah_bool_array *ewah_refn
-        cdef ewah_map *ewah_coll
         for ifile in range(self.nfiles):
-            ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
-            ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
-            ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
-            del ewah_keys
-            del ewah_refn
-            del ewah_coll
+            del self.ewah_keys[ifile]
+            del self.ewah_refn[ifile]
+            del self.ewah_coll[ifile]
 
     def print_info(self, ifile, prefix=''):
         print("{}{: 8d} coarse, {: 8d} refined, {: 8d} total".format(

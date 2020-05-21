@@ -12,6 +12,7 @@ from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
 cimport oct_visitors
 from oct_visitors cimport cind, OctVisitor
 from libc.stdlib cimport malloc, free, qsort
+from libc.string cimport memset
 from libc.math cimport floor, ceil, fmod
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport bounded_morton, \
@@ -55,7 +56,7 @@ from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as 
 from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollectionUncompressed as BoolArrayColl
 from ..utilities.lib.ewah_bool_wrap cimport FileBitmasks
 
-ctypedef map[np.uint64_t, vector[bool]] CoarseRefinedSets
+ctypedef map[np.uint64_t, np.uint8_t*] CoarseRefinedSets
 
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
@@ -414,6 +415,7 @@ cdef class ParticleBitmap:
     cdef public np.int32_t index_order1
     cdef public np.int32_t index_order2
     cdef public object masks
+    cdef public object particle_counts
     cdef public object counts
     cdef public object max_count
     cdef public object _last_selector
@@ -458,6 +460,7 @@ cdef class ParticleBitmap:
         # by particles.
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
+        self.particle_counts = np.zeros(1 << (index_order1 * 3), dtype="uint64")
         self.bitmasks = FileBitmasks(self.nfiles)
         self.collisions = BoolArrayCollection()
 
@@ -499,6 +502,7 @@ cdef class ParticleBitmap:
         cdef np.float64_t dds[3]
         cdef np.float64_t radius
         cdef np.uint8_t[:] mask = self.masks[:, file_id]
+        cdef np.uint64_t[:] particle_counts = self.particle_counts
         cdef np.int64_t msize = (1 << (self.index_order1 * 3))
         cdef int axiter[3][2]
         cdef np.float64_t axiterv[3][2]
@@ -526,6 +530,7 @@ cdef class ParticleBitmap:
             mi = bounded_morton_split_dds(ppos[0], ppos[1], ppos[2], LE,
                                           dds, mi_split)
             mask[mi] = 1
+            particle_counts[mi] += 1
             # Expand mask by softening
             if hsml is None:
                 continue
@@ -566,6 +571,7 @@ cdef class ParticleBitmap:
                                 for zex in range(bounds[2][0], bounds[2][1]):
                                     miex = encode_morton_64bit(xex, yex, zex)
                                     mask[miex] = 1
+                                    particle_counts[miex] += 1
                                     if miex >= msize:
                                         raise IndexError(
                                             "Index for a softening region " +
@@ -600,10 +606,13 @@ cdef class ParticleBitmap:
                                  np.ndarray[np.uint8_t, ndim=1] mask,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-                                 np.uint64_t file_id, np.int64_t nsub_mi):
+                                 np.uint64_t file_id, np.int64_t nsub_mi,
+                                 np.uint64_t count_threshold = 128,
+                                 np.uint8_t mask_threshold = 2):
         return self.__refined_index_data_file(pos, hsml, mask,
                                               sub_mi1, sub_mi2, 
-                                              file_id, nsub_mi)
+                                              file_id, nsub_mi, 
+                                              count_threshold, mask_threshold)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -616,15 +625,17 @@ cdef class ParticleBitmap:
         np.ndarray[np.uint8_t, ndim=1] mask,
         np.ndarray[np.uint64_t, ndim=1] sub_mi1,
         np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-        np.uint64_t file_id, np.int64_t nsub_mi
+        np.uint64_t file_id, np.int64_t nsub_mi,
+        np.uint64_t count_threshold, np.uint8_t mask_threshold
     ) except -1:
         # Initialize
-        cdef np.int64_t i, p
+        cdef np.int64_t i, p, sorted_ind
         cdef np.uint64_t mi1, mi2
         cdef np.float64_t ppos[3]
         cdef np.float64_t s_ppos[3] # shifted ppos
         cdef int skip, Nex
         cdef np.uint64_t bounds[2][3]
+        cdef np.uint8_t fully_enclosed
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.float64_t DW[3]
@@ -635,6 +646,7 @@ cdef class ParticleBitmap:
         cdef np.uint64_t mi_split1[3]
         cdef np.uint64_t mi_split2[3]
         cdef np.uint64_t miex1, miex2, mi1_max, mi2_max
+        cdef np.uint64_t[:] particle_counts = self.particle_counts
         cdef int Nex_min[3]
         cdef int Nex_max[3]
         cdef np.float64_t rpos_min, rpos_max
@@ -655,7 +667,7 @@ cdef class ParticleBitmap:
         cdef np.float64_t axiterv[3][2]
         cdef CoarseRefinedSets coarse_refined_map
         cdef map[np.uint64_t, np.uint64_t] refined_count
-        cdef np.uint64_t nset = 0
+        cdef np.uint64_t nset = 0, nfully_enclosed = 0, n_calls = 0
         mi1_max = (1 << self.index_order1) - 1
         mi2_max = (1 << self.index_order2) - 1
         cdef np.uint64_t max_mi2_elements = 1 << (3*self.index_order2)
@@ -669,8 +681,18 @@ cdef class ParticleBitmap:
             DW[i] = RE[i] - LE[i]
             axiter[i][0] = 0 # We always do an offset of 0
             axiterv[i][0] = 0.0
-        # Loop over positions skipping those outside the domain
+        cdef np.ndarray[np.uint64_t, ndim=1] morton_indices = np.empty(pos.shape[0], dtype="u8")
         for p in range(pos.shape[0]):
+            morton_indices[p] = bounded_morton(pos[p, 0], pos[p, 1], pos[p, 2],
+                                               LE, RE, self.index_order1)
+        # Loop over positions skipping those outside the domain
+        cdef np.ndarray[np.uint64_t, ndim=1, cast=True] sorted_order 
+        if hsml is None:
+            sorted_order = np.argsort(morton_indices)
+        else:
+            sorted_order = np.argsort(hsml)[::-1]
+        for sorted_ind in range(sorted_order.shape[0]):
+            p = sorted_order[sorted_ind]
             skip = 0
             for i in range(3):
                 axiter[i][1] = 999
@@ -683,14 +705,16 @@ cdef class ParticleBitmap:
             mi1 = bounded_morton_split_dds(ppos[0], ppos[1], ppos[2], LE,
                                            dds1, mi_split1)
             if hsml is None:
-                if mask[mi1] <= 1: # only one thing in this area
+                if mask[mi1] < mask_threshold \
+                        or particle_counts[mi1] < count_threshold:
                     continue
                 # Determine sub index within cell of primary index
                 mi2 = bounded_morton_split_relative_dds(
                     ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split2)
-                if coarse_refined_map[mi1].size() == 0:
-                    coarse_refined_map[mi1].resize(max_mi2_elements, False)
-                    refined_count[mi1] = 0
+                if refined_count[mi1] == 0:
+                    coarse_refined_map[mi1] = <np.uint8_t*> malloc(
+                        sizeof(np.uint8_t) * max_mi2_elements)
+                    memset(coarse_refined_map[mi1], 0, max_mi2_elements)
                 if coarse_refined_map[mi1][mi2] == False:
                     coarse_refined_map[mi1][mi2] = True
                     refined_count[mi1] += 1
@@ -699,8 +723,8 @@ cdef class ParticleBitmap:
                 # except here we need to fill in all the subranges as well as the coarse ranges
                 # Note that we are also doing the null case, where we do no shifting
                 radius = hsml[p]
-                if mask[mi1] <= 1: # only one thing in this area
-                    continue
+                #if mask[mi1] <= 4: # only one thing in this area
+                #    continue
                 for i in range(3):
                     if PER[i] and ppos[i] - radius < LE[i]:
                         axiter[i][1] = +1
@@ -720,25 +744,47 @@ cdef class ParticleBitmap:
                             # OK, now we compute the left and right edges for this shift.
                             for i in range(3):
                                 # casting to int64 is not nice but is so we can have negative values we clip
-                                clip_pos_l[i] = fmax(s_ppos[i] - radius, LE[i] + dds1[i]/2)
-                                clip_pos_r[i] = fmin(s_ppos[i] + radius, RE[i] - dds1[i]/2)
+                                clip_pos_l[i] = fmax(s_ppos[i] - radius, LE[i] + dds1[i]/10)
+                                clip_pos_r[i] = fmin(s_ppos[i] + radius, RE[i] - dds1[i]/10)
+
                             bounded_morton_split_dds(clip_pos_l[0], clip_pos_l[1], clip_pos_l[2], LE, dds1, bounds[0])
                             bounded_morton_split_dds(clip_pos_r[0], clip_pos_r[1], clip_pos_r[2], LE, dds1, bounds[1])
+
                             # We go to the upper bound plus one so that we have *inclusive* loops -- the upper bound
                             # is the cell *index*, so we want to make sure we include that cell.  This is also why
                             # we don't need to worry about mi_max being the max index rather than the cell count.
+                            # One additional thing to note is that for all of
+                            # the *internal* cells, i.e., those that are both
+                            # greater than the left edge and less than the
+                            # right edge, we are fully enclosed.
                             for xex in range(bounds[0][0], bounds[1][0] + 1):
                                 for yex in range(bounds[0][1], bounds[1][1] + 1):
                                     for zex in range(bounds[0][2], bounds[1][2] + 1):
                                         miex1 = encode_morton_64bit(xex, yex, zex)
-                                        if mask[miex1] <= 1:
+                                        if mask[miex1] < mask_threshold or \
+                                                particle_counts[miex1] < count_threshold:
                                             continue
+                                        # this explicitly requires that it be *between*
+                                        # them, not overlapping
+                                        if xex > bounds[0][0] and xex < bounds[1][0] and \
+                                           yex > bounds[0][1] and yex < bounds[1][1] and \
+                                           zex > bounds[0][2] and zex < bounds[1][2]:
+                                            fully_enclosed = 1
+                                        else:
+                                            fully_enclosed = 0
                                         # Now we need to fill our sub-range
-                                        if coarse_refined_map[miex1].size() == 0:
-                                            coarse_refined_map[miex1].resize(max_mi2_elements, False)
-                                            refined_count[miex1] = 0
-                                        if refined_count[miex1] >= max_mi2_elements:
+                                        if refined_count[miex1] == 0:
+                                            coarse_refined_map[miex1] = <np.uint8_t*> malloc(
+                                                sizeof(np.uint8_t) * max_mi2_elements)
+                                            memset(coarse_refined_map[miex1], 0, max_mi2_elements)
+                                        elif refined_count[miex1] >= max_mi2_elements:
                                             continue
+                                        if fully_enclosed == 1:
+                                            nfully_enclosed += 1
+                                            memset(coarse_refined_map[miex1], 0xFF, max_mi2_elements)
+                                            refined_count[miex1] = max_mi2_elements
+                                            continue
+                                        n_calls += 1
                                         refined_count[miex1] += self.__fill_refined_ranges(s_ppos, radius, LE, RE,
                                                                    dds1, xex, yex, zex,
                                                                    dds2, mi1_max, mi2_max, miex1,
@@ -746,18 +792,21 @@ cdef class ParticleBitmap:
                                                                    max_mi2_elements)
         print("THIS MANY COARSE CELLS", coarse_refined_map.size())
         print("THIS MANY NSET", nset, nset / pos.shape[0], nsub_mi)
+        if n_calls > 0:
+            print("THIS MANY TERMINATIONS AND THIS MANY CALLS", nfully_enclosed, n_calls, nfully_enclosed / n_calls)
         cdef np.uint64_t count, vec_i
         cdef np.uint64_t total_count = 0
         for it1 in coarse_refined_map:
             mi1 = it1.first
             count = 0
             vec_i = 0
-            for vec_i in range(it1.second.size()):
-                if it1.second[vec_i] == True:
+            for vec_i in range(max_mi2_elements):
+                if it1.second[vec_i] > 0:
                     count += 1
                     #sub_mi1[nsub_mi] = mi1
                     #sub_mi2[nsub_mi] = vec_i
                     nsub_mi += 1
+            free(coarse_refined_map[mi1])
             if count != refined_count[mi1]:
                 print("WHY IS THIS WRONG", count, refined_count[mi1])
             #print("IN ", mi1, "THIS MANY REFINED CELLS", count)
@@ -922,7 +971,7 @@ cdef class ParticleBitmap:
                                            np.float64_t dds1[3], np.uint64_t xex, np.uint64_t yex, np.uint64_t zex,
                                            np.float64_t dds2[3],
                                            np.uint64_t mi1_max, np.uint64_t mi2_max, np.uint64_t miex1,
-                                           vector[bool] &refined_set, np.float64_t ppos[3], np.uint64_t mcount,
+                                           np.uint8_t *refined_set, np.float64_t ppos[3], np.uint64_t mcount,
                                           np.uint64_t max_mi2_elements) except -1:
         cdef int i
         cdef np.uint64_t new_nsub = 0
@@ -938,6 +987,8 @@ cdef class ParticleBitmap:
             # full domain
             cell_edge_l = ex1[i] * dds1[i] + LE[i]
             cell_edge_r = cell_edge_l + dds1[i]
+            if s_ppos[i] + radius < cell_edge_l or s_ppos[i] - radius > cell_edge_r:
+                return 0
             clip_pos_l[i] = fmax(s_ppos[i] - radius, cell_edge_l + dds2[i]/2.0)
             clip_pos_r[i] = fmin(s_ppos[i] + radius, cell_edge_r - dds2[i]/2.0)
         miex2_min = bounded_morton_split_relative_dds(clip_pos_l[0], clip_pos_l[1], clip_pos_l[2],
@@ -951,14 +1002,14 @@ cdef class ParticleBitmap:
             #miex2 = encode_morton_64bit(xex2, yex2, zex2)
             #decode_morton_64bit(miex2, ex2)
             # Let's check all our cases here
-            if refined_set[miex2] == True: continue
+            if refined_set[miex2] > 0: continue
             if (miex2 & xex_max) < (miex2_min & xex_max): continue
             if (miex2 & yex_max) < (miex2_min & yex_max): continue
             if (miex2 & zex_max) < (miex2_min & zex_max): continue
             if (miex2 & xex_max) > (miex2_max & xex_max): continue
             if (miex2 & yex_max) > (miex2_max & yex_max): continue
             if (miex2 & zex_max) > (miex2_max & zex_max): continue
-            refined_set[miex2] = True
+            refined_set[miex2] = 1
             new_nsub += 1
         return new_nsub
 
