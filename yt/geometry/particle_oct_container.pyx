@@ -428,7 +428,7 @@ cdef class ParticleBitmap:
     cdef np.uint32_t *file_markers
     cdef np.uint64_t n_file_markers
     cdef np.uint64_t file_marker_i
-    cdef FileBitmasks bitmasks
+    cdef public FileBitmasks bitmasks
     cdef public BoolArrayCollection collisions
 
     def __init__(self, left_edge, right_edge, periodicity, file_hash, nfiles, 
@@ -601,6 +601,7 @@ cdef class ParticleBitmap:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     def _refined_index_data_file(self,
+                                 BoolArrayCollection in_collection,
                                  np.ndarray[floating, ndim=2] pos,
                                  np.ndarray[floating, ndim=1] hsml,
                                  np.ndarray[np.uint8_t, ndim=1] mask,
@@ -609,31 +610,38 @@ cdef class ParticleBitmap:
                                  np.uint64_t file_id, np.int64_t nsub_mi,
                                  np.uint64_t count_threshold = 128,
                                  np.uint8_t mask_threshold = 2):
-        return self.__refined_index_data_file(pos, hsml, mask,
+        if in_collection is None:
+            in_collection = BoolArrayCollection()
+        cdef BoolArrayCollection _in_coll = in_collection
+        cdef np.int64_t nsub
+        out_collection = self.__refined_index_data_file(_in_coll, pos, hsml, mask,
                                               sub_mi1, sub_mi2, 
-                                              file_id, nsub_mi, 
+                                              file_id, &nsub,
                                               count_threshold, mask_threshold)
+        return nsub, out_collection
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef np.int64_t __refined_index_data_file(
+    cdef BoolArrayCollection __refined_index_data_file(
         self,
+        BoolArrayCollection in_collection,
         np.ndarray[floating, ndim=2] pos,
         np.ndarray[floating, ndim=1] hsml,
         np.ndarray[np.uint8_t, ndim=1] mask,
         np.ndarray[np.uint64_t, ndim=1] sub_mi1,
         np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-        np.uint64_t file_id, np.int64_t nsub_mi,
+        np.uint64_t file_id, np.int64_t *nsub_mi,
         np.uint64_t count_threshold, np.uint8_t mask_threshold
-    ) except -1:
+    ):
         # Initialize
         cdef np.int64_t i, p, sorted_ind
         cdef np.uint64_t mi1, mi2
         cdef np.float64_t ppos[3]
         cdef np.float64_t s_ppos[3] # shifted ppos
         cdef int skip, Nex
+        cdef BoolArrayCollection this_collection, out_collection
         cdef np.uint64_t bounds[2][3]
         cdef np.uint8_t fully_enclosed
         cdef np.float64_t LE[3]
@@ -790,12 +798,10 @@ cdef class ParticleBitmap:
                                                                    dds2, mi1_max, mi2_max, miex1,
                                                                    coarse_refined_map[miex1], ppos, mask[miex1],
                                                                    max_mi2_elements)
-        print("THIS MANY COARSE CELLS", coarse_refined_map.size())
-        print("THIS MANY NSET", nset, nset / pos.shape[0], nsub_mi)
-        if n_calls > 0:
-            print("THIS MANY TERMINATIONS AND THIS MANY CALLS", nfully_enclosed, n_calls, nfully_enclosed / n_calls)
         cdef np.uint64_t count, vec_i
         cdef np.uint64_t total_count = 0
+        this_collection = BoolArrayCollection()
+        print("Appending to the new BoolArrayCollection")
         for it1 in coarse_refined_map:
             mi1 = it1.first
             count = 0
@@ -803,164 +809,15 @@ cdef class ParticleBitmap:
             for vec_i in range(max_mi2_elements):
                 if it1.second[vec_i] > 0:
                     count += 1
-                    #sub_mi1[nsub_mi] = mi1
-                    #sub_mi2[nsub_mi] = vec_i
-                    nsub_mi += 1
+                    nsub_mi[0] += 1
+                    this_collection._set(mi1, vec_i)
             free(coarse_refined_map[mi1])
-            if count != refined_count[mi1]:
-                print("WHY IS THIS WRONG", count, refined_count[mi1])
-            #print("IN ", mi1, "THIS MANY REFINED CELLS", count)
             total_count += count
-        if coarse_refined_map.size() > 0:
-            print("NSUB_MI NOW", total_count, total_count / (coarse_refined_map.size() * max_mi2_elements), nsub_mi, sub_mi1.shape[0], sub_mi2.shape[0])
-        return nsub_mi
-
-        if 0:
-            # Expand for smoothing
-            Nex = 1
-            for i in range(3):
-                Nex_min[i] = 0
-                Nex_max[i] = 0
-                rpos_min = ppos[i] - (dds2[i]*mi_split2[i] + dds1[i]*mi_split1[i] + LE[i])
-                rpos_max = dds2[i] - rpos_min
-                if rpos_min > hsml[p]:
-                    Nex_min[i] = <int>((rpos_min-hsml[p])/dds2[i]) + 1
-                if rpos_max > hsml[p]:
-                    Nex_max[i] = <int>((rpos_max-hsml[p])/dds2[i]) + 1
-                Nex *= (Nex_max[i] + Nex_min[i] + 1)
-            if Nex > 1:
-                # Ensure that min/max values for x,y,z indexes are obeyed
-                if (Nex_max[0] + Nex_min[0] + 1) > xex1_range.shape[0]:
-                    xex1_range = np.empty(Nex_max[0] + Nex_min[0] + 1, 'uint64')
-                    xex2_range = np.empty(Nex_max[0] + Nex_min[0] + 1, 'uint64')
-                if (Nex_max[1] + Nex_min[1] + 1) > yex1_range.shape[0]:
-                    yex1_range = np.empty(Nex_max[1] + Nex_min[1] + 1, 'uint64')
-                    yex2_range = np.empty(Nex_max[1] + Nex_min[1] + 1, 'uint64')
-                if (Nex_max[2] + Nex_min[2] + 1) > zex1_range.shape[0]:
-                    zex1_range = np.empty(Nex_max[2] + Nex_min[2] + 1, 'uint64')
-                    zex2_range = np.empty(Nex_max[2] + Nex_min[2] + 1, 'uint64')
-                xex2_min = mi_split2[0] - min(Nex_min[0], <int>mi_split2[0])
-                xex2_max = mi_split2[0] + min(Nex_max[0], <int>(mi2_max - mi_split2[0])) + 1
-                yex2_min = mi_split2[1] - min(Nex_min[1], <int>mi_split2[1])
-                yex2_max = mi_split2[1] + min(Nex_max[1], <int>(mi2_max - mi_split2[1])) + 1
-                zex2_min = mi_split2[2] - min(Nex_min[2], <int>mi_split2[2])
-                zex2_max = mi_split2[2] + min(Nex_max[2], <int>(mi2_max - mi_split2[2])) + 1
-                ixe = iye = ize = 0
-                for xex2 in range(xex2_min, xex2_max):
-                    xex1_range[ixe] = mi_split1[0]
-                    xex2_range[ixe] = xex2
-                    ixe += 1
-                for yex2 in range(yex2_min, yex2_max):
-                    yex1_range[iye] = mi_split1[1]
-                    yex2_range[iye] = yex2
-                    iye += 1
-                for zex2 in range(zex2_min, zex2_max):
-                    zex1_range[ize] = mi_split1[2]
-                    zex2_range[ize] = zex2
-                    ize += 1
-                # Expand to adjacent coarse cells, wrapping periodically
-                # if need be
-                # x
-                if Nex_min[0] > <int>mi_split2[0]:
-                    if mi_split1[0] > 0:
-                        for xex2 in range(mi2_max + 1 - (Nex_min[0] - mi_split2[0]), mi2_max + 1): 
-                            xex1_range[ixe] = mi_split1[0] - 1
-                            xex2_range[ixe] = xex2
-                            ixe += 1
-                    elif PER[0]:
-                        for xex2 in range(mi2_max + 1 - (Nex_min[0] - mi_split2[0]), mi2_max + 1): 
-                            xex1_range[ixe] = mi1_max
-                            xex2_range[ixe] = xex2
-                            ixe += 1
-                if Nex_max[0] > <int>(mi2_max-mi_split2[0]):  
-                    if mi_split1[0] < mi1_max:
-                        for xex2 in range(0, Nex_max[0] - (mi2_max-mi_split2[0])): 
-                            xex1_range[ixe] = mi_split1[0] + 1
-                            xex2_range[ixe] = xex2
-                            ixe += 1
-                    elif PER[0]:
-                        for xex2 in range(0, Nex_max[0] - (mi2_max-mi_split2[0])): 
-                            xex1_range[ixe] = 0
-                            xex2_range[ixe] = xex2
-                            ixe += 1
-                # y
-                if Nex_min[1] > <int>mi_split2[1]:
-                    if mi_split1[1] > 0:
-                        for yex2 in range(mi2_max + 1 - (Nex_min[1] - mi_split2[1]), mi2_max + 1): 
-                            yex1_range[iye] = mi_split1[1] - 1
-                            yex2_range[iye] = yex2
-                            iye += 1
-                    elif PER[1]:
-                        for yex2 in range(mi2_max + 1 - (Nex_min[1] - mi_split2[1]), mi2_max + 1): 
-                            yex1_range[iye] = mi1_max
-                            yex2_range[iye] = yex2
-                            iye += 1
-                if Nex_max[1] > <int>(mi2_max-mi_split2[1]):  
-                    if mi_split1[1] < mi1_max:
-                        for yex2 in range(0, Nex_max[1] - (mi2_max-mi_split2[1])): 
-                            yex1_range[iye] = mi_split1[1] + 1
-                            yex2_range[iye] = yex2
-                            iye += 1
-                    elif PER[1]:
-                        for yex2 in range(0, Nex_max[1] - (mi2_max-mi_split2[1])): 
-                            yex1_range[iye] = 0
-                            yex2_range[iye] = yex2
-                            iye += 1
-                # z
-                if Nex_min[2] > <int>mi_split2[2]:
-                    if mi_split1[2] > 0:
-                        for zex2 in range(mi2_max + 1 - (Nex_min[2] - mi_split2[2]), mi2_max + 1): 
-                            zex1_range[ize] = mi_split1[2] - 1
-                            zex2_range[ize] = zex2
-                            ize += 1
-                    elif PER[2]:
-                        for zex2 in range(mi2_max + 1 - (Nex_min[2] - mi_split2[2]), mi2_max + 1): 
-                            zex1_range[ize] = mi1_max
-                            zex2_range[ize] = zex2
-                            ize += 1
-                if Nex_max[2] > <int>(mi2_max-mi_split2[2]):  
-                    if mi_split1[2] < mi1_max:
-                        for zex2 in range(0, Nex_max[2] - (mi2_max-mi_split2[2])): 
-                            zex1_range[ize] = mi_split1[2] + 1
-                            zex2_range[ize] = zex2
-                            ize += 1
-                    elif PER[2]:
-                        for zex2 in range(0, Nex_max[2] - (mi2_max-mi_split2[2])): 
-                            zex1_range[ize] = 0
-                            zex2_range[ize] = zex2
-                            ize += 1
-                for ix in range(ixe):
-                    xex1 = xex1_range[ix]
-                    xex2 = xex2_range[ix]
-                    for iy in range(iye):
-                        yex1 = yex1_range[iy]
-                        yex2 = yex2_range[iy]
-                        for iz in range(ize):
-                            zex1 = zex1_range[iz]
-                            zex2 = zex2_range[iz]
-                            if (xex1 == mi_split1[0] and xex2 == mi_split2[0] and
-                                yex1 == mi_split1[1] and yex2 == mi_split2[1] and
-                                zex1 == mi_split1[2] and zex2 == mi_split2[2]):
-                                continue
-                            miex1 = encode_morton_64bit(xex1, yex1, zex1)
-                            miex2 = encode_morton_64bit(xex2, yex2, zex2)
-                            if nsub_mi >= msize:
-                                # Uncomment these lines to allow periodic
-                                # caching of refined indices
-                                # self.bitmasks._set_refined_index_array(
-                                #     file_id, nsub_mi, sub_mi1, sub_mi2)
-                                # nsub_mi = 0
-                                raise IndexError(
-                                    "Refined index exceeded original "
-                                    "estimate.\n"
-                                    "nsub_mi = %s, "
-                                    "sub_mi1.shape[0] = %s"
-                                    % (nsub_mi, sub_mi1.shape[0]))
-                            sub_mi1[nsub_mi] = miex1
-                            sub_mi2[nsub_mi] = miex2
-                            nsub_mi += 1
-        # Only subs of particles in the mask
-        return nsub_mi
+        out_collection = BoolArrayCollection()
+        print("Logical or-ing")
+        in_collection._logicalor(this_collection, out_collection)
+        print("Completed")
+        return out_collection
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

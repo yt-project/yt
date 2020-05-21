@@ -169,13 +169,16 @@ class ParticleIndex(Index):
         mi1_dds = self.ds.domain_width.max() / (1 << self.regions.index_order1)
         mi2_dds = mi1_dds / (1 << self.regions.index_order2)
         pb = get_pbar("Initializing refined index", len(self.data_files))
+        mask_threshold = getattr(self, '_index_mask_threshold', 2)
         count_threshold = getattr(self, '_index_count_threshold',
-                                  (1 << (3*self.regions.index_order2))/512)
+                                  (1 << (3*self.regions.index_order2))/128)
+        print("Count threshold ", count_threshold)
         total_refined = 0
         total_coarse_refined = ((mask >= 2) & (self.regions.particle_counts > count_threshold)).sum()
         print("Total coarse refined zones: {} out of {} for {}%".format(
             total_coarse_refined, mask.size, 100 * total_coarse_refined / mask.size))
         for i, data_file in enumerate(self.data_files):
+            coll = None
             pb.update(i)
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
@@ -190,18 +193,18 @@ class ParticleIndex(Index):
                 else:
                     hsml = None
                 #hsml = None
-                nsub_mi = self.regions._refined_index_data_file(
-                    pos, hsml, mask, sub_mi1, sub_mi2,
+                nsub_mi, coll = self.regions._refined_index_data_file(
+                    coll, pos, hsml, mask, sub_mi1, sub_mi2,
                     data_file.file_id, nsub_mi, count_threshold = count_threshold,
-                    mask_threshold = 2)
+                    mask_threshold = mask_threshold)
                 total_refined += nsub_mi
-            continue
-            self.regions._set_refined_index_data_file(
-                sub_mi1, sub_mi2,
-                data_file.file_id, nsub_mi)
+            self.regions.bitmasks.append(data_file.file_id, coll)
+            #self.regions._set_refined_index_data_file(
+            #    sub_mi1, sub_mi2,
+            #    data_file.file_id, nsub_mi)
         pb.finish()
-        print("TOTAL REFINED", total_refined)
-        #self.regions.find_collisions_refined()
+        #print("TOTAL REFINED", total_refined)
+        self.regions.find_collisions_refined()
 
     def _detect_output_fields(self):
         # TODO: Add additional fields

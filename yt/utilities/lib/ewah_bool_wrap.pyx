@@ -321,6 +321,9 @@ cdef class FileBitmasks:
         out = ewah_refn[0].numberOfOnes()
         return out
 
+    def append(self, np.uint32_t ifile, BoolArrayCollection solf):
+        self._append(ifile, solf)
+
     cdef void _append(self, np.uint32_t ifile, BoolArrayCollection solf):
         cdef ewah_bool_array *ewah_keys1 = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef ewah_bool_array *ewah_refn1 = (<ewah_bool_array **> self.ewah_refn)[ifile]
