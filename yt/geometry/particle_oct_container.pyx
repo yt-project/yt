@@ -31,7 +31,7 @@ from yt.funcs import get_pbar
 
 from particle_deposit cimport gind
 from yt.utilities.lib.ewah_bool_array cimport \
-    ewah_bool_array, ewah_bool_iterator, ewah_map, bool_array
+    ewah_bool_array, ewah_bool_iterator, ewah_map, bool_array, ewah_word_type
 #from yt.utilities.lib.ewah_bool_wrap cimport \
 from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 from libcpp cimport bool
@@ -411,6 +411,7 @@ cdef class ParticleBitmap:
     cdef np.float64_t idds[3]
     cdef np.int32_t dims[3]
     cdef np.int64_t file_hash
+    cdef np.uint64_t directional_max2[3]
     cdef public np.uint64_t nfiles
     cdef public np.int32_t index_order1
     cdef public np.int32_t index_order2
@@ -456,6 +457,10 @@ cdef class ParticleBitmap:
         # We use 64-bit masks
         self.index_order1 = index_order1
         self.index_order2 = index_order2
+        mi2_max = (1 << self.index_order2) - 1
+        self.directional_max2[0] = encode_morton_64bit(mi2_max, 0, 0)
+        self.directional_max2[1] = encode_morton_64bit(0, mi2_max, 0)
+        self.directional_max2[2] = encode_morton_64bit(0, 0, mi2_max)
         # This will be an on/off flag for which morton index values are touched
         # by particles.
         # This is the simple way, for now.
@@ -799,31 +804,20 @@ cdef class ParticleBitmap:
         cdef np.uint64_t count, vec_i
         cdef np.uint64_t total_count = 0
         cdef bool_array *buf = NULL
+        cdef ewah_word_type w
         this_collection = BoolArrayCollection()
         cdef ewah_bool_array *refined_arr = NULL
-        print("Appending to the new BoolArrayCollection", coarse_refined_map.size())
-        cdef np.uint64_t ncrm = 0
         for it1 in coarse_refined_map:
-            if ncrm % 1000 == 0:
-                print(ncrm)
-            ncrm += 1
             mi1 = it1.first
             refined_arr = &this_collection.ewah_coll[0][mi1]
             this_collection.ewah_keys[0].set(mi1)
             this_collection.ewah_refn[0].set(mi1)
-            count = 0
-            vec_i = 0
             buf = &it1.second
-            for vec_i in range(max_mi2_elements):
-                if buf.get(vec_i) > 0:
-                    count += 1
-                    refined_arr.set(vec_i)
-                    nsub_mi[0] += 1
-            total_count += count
+            for vec_i in range(buf.sizeInBytes() / sizeof(ewah_word_type)):
+                w = buf.getWord(vec_i)
+                refined_arr.addWord(w)
         out_collection = BoolArrayCollection()
-        print("Logical or-ing")
         in_collection._logicalor(this_collection, out_collection)
-        print("Completed")
         return out_collection
 
     @cython.boundscheck(False)
@@ -844,6 +838,8 @@ cdef class ParticleBitmap:
         cdef np.float64_t clip_pos_l[3], clip_pos_r[3], cell_edge_l, cell_edge_r
         cdef np.uint64_t ex1[3], ex2[3], ex3[3]
         cdef np.uint64_t xex_max, yex_max, zex_max
+        cdef np.uint64_t xiex_min, yiex_min, ziex_min
+        cdef np.uint64_t xiex_max, yiex_max, ziex_max
         ex1[0] = xex; ex1[1] = yex; ex1[2] = zex
         # Check a few special cases
         for i in range(3):
@@ -859,23 +855,29 @@ cdef class ParticleBitmap:
                                                 LE, dds1, dds2, bounds_l)
         miex2_max = bounded_morton_split_relative_dds(clip_pos_r[0], clip_pos_r[1], clip_pos_r[2],
                                                 LE, dds1, dds2, bounds_r)
-        xex_max = encode_morton_64bit(mi2_max, 0, 0)
-        yex_max = encode_morton_64bit(0, mi2_max, 0)
-        zex_max = encode_morton_64bit(0, 0, mi2_max)
+        xex_max = self.directional_max2[0]
+        yex_max = self.directional_max2[1]
+        zex_max = self.directional_max2[2]
+        xiex_min = miex2_min & xex_max
+        yiex_min = miex2_min & yex_max
+        ziex_min = miex2_min & zex_max
+        xiex_max = miex2_max & xex_max
+        yiex_max = miex2_max & yex_max
+        ziex_max = miex2_max & zex_max
+        # This could *probably* be sped up by iterating over words.
         for miex2 in range(miex2_min, miex2_max + 1):
             #miex2 = encode_morton_64bit(xex2, yex2, zex2)
             #decode_morton_64bit(miex2, ex2)
             # Let's check all our cases here
-            if refined_set.get(miex2): continue
-            if (miex2 & xex_max) < (miex2_min & xex_max): continue
-            if (miex2 & yex_max) < (miex2_min & yex_max): continue
-            if (miex2 & zex_max) < (miex2_min & zex_max): continue
-            if (miex2 & xex_max) > (miex2_max & xex_max): continue
-            if (miex2 & yex_max) > (miex2_max & yex_max): continue
-            if (miex2 & zex_max) > (miex2_max & zex_max): continue
+            if (miex2 & xex_max) < (xiex_min): continue
+            if (miex2 & xex_max) > (xiex_max): continue
+            if (miex2 & yex_max) < (yiex_min): continue
+            if (miex2 & yex_max) > (yiex_max): continue
+            if (miex2 & zex_max) < (ziex_min): continue
+            if (miex2 & zex_max) > (ziex_max): continue
             refined_set.set(miex2)
             new_nsub += 1
-        return new_nsub
+        return refined_set.numberOfOnes()
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

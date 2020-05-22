@@ -66,6 +66,7 @@ cdef extern from "ewah.h":
         void readBuffer(stringstream &incoming, const size_t buffersize)
         void write(stringstream &out, bint savesizeinbits)
         void writeBuffer(stringstream &out)
+        size_t addWord(uword newdata)
         vector[uword] &getBuffer()
         # const_iterator begin()
         # const_iterator end()
@@ -80,14 +81,18 @@ cdef extern from "boolarray.h":
         bool get(size_t pos)
         void reset()
         size_t sizeInBits()
+        size_t sizeInBytes()
         size_t numberOfOnes()
         void inplace_logicalxor(BoolArray &other)
         void inplace_logicalnot()
         size_t padWithZeroes(size_t totalbits)
+        uword getWord(size_t pos)
+        size_t wordinbits
 
-ctypedef EWAHBoolArray[np.uint64_t] ewah_bool_array
-ctypedef EWAHBoolArraySetBitForwardIterator[np.uint64_t] ewah_bool_iterator
+ctypedef np.uint64_t ewah_word_type
+ctypedef EWAHBoolArray[ewah_word_type] ewah_bool_array
+ctypedef EWAHBoolArraySetBitForwardIterator[ewah_word_type] ewah_bool_iterator
 ctypedef vector[size_t] bitset_array
 ctypedef map[np.uint64_t, ewah_bool_array] ewah_map
 ctypedef stringstream sstream
-ctypedef BoolArray[np.uint64_t] bool_array
+ctypedef BoolArray[ewah_word_type] bool_array

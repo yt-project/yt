@@ -170,40 +170,30 @@ class ParticleIndex(Index):
         mi2_dds = mi1_dds / (1 << self.regions.index_order2)
         pb = get_pbar("Initializing refined index", len(self.data_files))
         mask_threshold = getattr(self, '_index_mask_threshold', 2)
-        count_threshold = getattr(self, '_index_count_threshold',
-                                  (1 << (3*self.regions.index_order2))/128)
-        print("Count threshold ", count_threshold)
+        count_threshold = getattr(self, '_index_count_threshold', 256)
+        mylog.debug("Using estimated thresholds of %s and %s for refinement", mask_threshold, count_threshold)
         total_refined = 0
         total_coarse_refined = ((mask >= 2) & (self.regions.particle_counts > count_threshold)).sum()
-        print("Total coarse refined zones: {} out of {} for {}%".format(
-            total_coarse_refined, mask.size, 100 * total_coarse_refined / mask.size))
+        mylog.debug("This should produce roughly %s zones, for %s of the domain",
+                    total_coarse_refined, 100 * total_coarse_refined / mask.size)
         for i, data_file in enumerate(self.data_files):
             coll = None
             pb.update(i)
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
-                print(i, ptype, pos.shape)
                 if pos.size == 0: continue
                 if hasattr(self.ds, '_sph_ptypes') and ptype == self.ds._sph_ptypes[0]:
                     hsml = self.io._get_smoothing_length(
                         data_file, pos.dtype, pos.shape)
-                    print("Has smoothing length: max coverage of %0.3e %0.3e and min coverage of %0.3e %0.3e" % (
-                        hsml.max() / mi1_dds, hsml.max() / mi2_dds,
-                        hsml.min() / mi1_dds, hsml.min() / mi2_dds))
                 else:
                     hsml = None
-                #hsml = None
                 nsub_mi, coll = self.regions._refined_index_data_file(
                     coll, pos, hsml, mask, sub_mi1, sub_mi2,
                     data_file.file_id, nsub_mi, count_threshold = count_threshold,
                     mask_threshold = mask_threshold)
                 total_refined += nsub_mi
             self.regions.bitmasks.append(data_file.file_id, coll)
-            #self.regions._set_refined_index_data_file(
-            #    sub_mi1, sub_mi2,
-            #    data_file.file_id, nsub_mi)
         pb.finish()
-        #print("TOTAL REFINED", total_refined)
         self.regions.find_collisions_refined()
 
     def _detect_output_fields(self):
