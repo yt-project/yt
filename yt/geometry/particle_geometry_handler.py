@@ -166,8 +166,6 @@ class ParticleIndex(Index):
                         for d in self.data_files) * 28
         sub_mi1 = np.zeros(max_npart, "uint64")
         sub_mi2 = np.zeros(max_npart, "uint64")
-        mi1_dds = self.ds.domain_width.max() / (1 << self.regions.index_order1)
-        mi2_dds = mi1_dds / (1 << self.regions.index_order2)
         pb = get_pbar("Initializing refined index", len(self.data_files))
         mask_threshold = getattr(self, '_index_mask_threshold', 2)
         count_threshold = getattr(self, '_index_count_threshold', 256)
