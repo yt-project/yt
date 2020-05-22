@@ -31,7 +31,7 @@ from yt.funcs import get_pbar
 
 from particle_deposit cimport gind
 from yt.utilities.lib.ewah_bool_array cimport \
-    ewah_bool_array, ewah_bool_iterator, ewah_map
+    ewah_bool_array, ewah_bool_iterator, ewah_map, bool_array
 #from yt.utilities.lib.ewah_bool_wrap cimport \
 from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 from libcpp cimport bool
@@ -56,7 +56,7 @@ from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as 
 from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollectionUncompressed as BoolArrayColl
 from ..utilities.lib.ewah_bool_wrap cimport FileBitmasks
 
-ctypedef map[np.uint64_t, np.uint8_t*] CoarseRefinedSets
+ctypedef map[np.uint64_t, bool_array] CoarseRefinedSets
 
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
@@ -720,11 +720,9 @@ cdef class ParticleBitmap:
                 mi2 = bounded_morton_split_relative_dds(
                     ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split2)
                 if refined_count[mi1] == 0:
-                    coarse_refined_map[mi1] = <np.uint8_t*> malloc(
-                        sizeof(np.uint8_t) * max_mi2_elements)
-                    memset(coarse_refined_map[mi1], 0, max_mi2_elements)
-                if coarse_refined_map[mi1][mi2] == False:
-                    coarse_refined_map[mi1][mi2] = True
+                    coarse_refined_map[mi1].padWithZeroes(max_mi2_elements)
+                if coarse_refined_map[mi1].get(mi2) == False:
+                    coarse_refined_map[mi1].set(mi2)
                     refined_count[mi1] += 1
             else: # only hit if we have smoothing lengths.
                 # We have to do essentially the identical process to in the coarse indexing,
@@ -782,14 +780,14 @@ cdef class ParticleBitmap:
                                             fully_enclosed = 0
                                         # Now we need to fill our sub-range
                                         if refined_count[miex1] == 0:
-                                            coarse_refined_map[miex1] = <np.uint8_t*> malloc(
-                                                sizeof(np.uint8_t) * max_mi2_elements)
-                                            memset(coarse_refined_map[miex1], 0, max_mi2_elements)
+                                            coarse_refined_map[miex1].padWithZeroes(max_mi2_elements)
                                         elif refined_count[miex1] >= max_mi2_elements:
                                             continue
                                         if fully_enclosed == 1:
                                             nfully_enclosed += 1
-                                            memset(coarse_refined_map[miex1], 0xFF, max_mi2_elements)
+                                            coarse_refined_map[miex1].inplace_logicalxor(
+                                                coarse_refined_map[miex1])
+                                            coarse_refined_map[miex1].inplace_logicalnot()
                                             refined_count[miex1] = max_mi2_elements
                                             continue
                                         n_calls += 1
@@ -800,18 +798,27 @@ cdef class ParticleBitmap:
                                                                    max_mi2_elements)
         cdef np.uint64_t count, vec_i
         cdef np.uint64_t total_count = 0
+        cdef bool_array *buf = NULL
         this_collection = BoolArrayCollection()
-        print("Appending to the new BoolArrayCollection")
+        cdef ewah_bool_array *refined_arr = NULL
+        print("Appending to the new BoolArrayCollection", coarse_refined_map.size())
+        cdef np.uint64_t ncrm = 0
         for it1 in coarse_refined_map:
+            if ncrm % 1000 == 0:
+                print(ncrm)
+            ncrm += 1
             mi1 = it1.first
+            refined_arr = &this_collection.ewah_coll[0][mi1]
+            this_collection.ewah_keys[0].set(mi1)
+            this_collection.ewah_refn[0].set(mi1)
             count = 0
             vec_i = 0
+            buf = &it1.second
             for vec_i in range(max_mi2_elements):
-                if it1.second[vec_i] > 0:
+                if buf.get(vec_i) > 0:
                     count += 1
+                    refined_arr.set(vec_i)
                     nsub_mi[0] += 1
-                    this_collection._set(mi1, vec_i)
-            free(coarse_refined_map[mi1])
             total_count += count
         out_collection = BoolArrayCollection()
         print("Logical or-ing")
@@ -828,7 +835,7 @@ cdef class ParticleBitmap:
                                            np.float64_t dds1[3], np.uint64_t xex, np.uint64_t yex, np.uint64_t zex,
                                            np.float64_t dds2[3],
                                            np.uint64_t mi1_max, np.uint64_t mi2_max, np.uint64_t miex1,
-                                           np.uint8_t *refined_set, np.float64_t ppos[3], np.uint64_t mcount,
+                                           bool_array &refined_set, np.float64_t ppos[3], np.uint64_t mcount,
                                           np.uint64_t max_mi2_elements) except -1:
         cdef int i
         cdef np.uint64_t new_nsub = 0
@@ -859,14 +866,14 @@ cdef class ParticleBitmap:
             #miex2 = encode_morton_64bit(xex2, yex2, zex2)
             #decode_morton_64bit(miex2, ex2)
             # Let's check all our cases here
-            if refined_set[miex2] > 0: continue
+            if refined_set.get(miex2): continue
             if (miex2 & xex_max) < (miex2_min & xex_max): continue
             if (miex2 & yex_max) < (miex2_min & yex_max): continue
             if (miex2 & zex_max) < (miex2_min & zex_max): continue
             if (miex2 & xex_max) > (miex2_max & xex_max): continue
             if (miex2 & yex_max) > (miex2_max & yex_max): continue
             if (miex2 & zex_max) > (miex2_max & zex_max): continue
-            refined_set[miex2] = 1
+            refined_set.set(miex2)
             new_nsub += 1
         return new_nsub
 
