@@ -38,7 +38,6 @@ from libcpp cimport bool
 from libcpp.map cimport map
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
-from libcpp.unordered_set cimport unordered_set as uset
 from cython.operator cimport dereference, preincrement
 import struct
 import os
