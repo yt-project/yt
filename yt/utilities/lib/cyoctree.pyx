@@ -219,6 +219,10 @@ cdef class CyOctree:
         octree_reallocate(self.c_octree, self.c_octree.num_nodes)
 
     @property
+    def bound_particles(self):
+        return self.c_octree.pend[0]
+
+    @property
     def num_nodes(self):
         return self.c_octree.num_nodes
 

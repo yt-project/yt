@@ -2671,7 +2671,7 @@ class YTOctree(YTSelectionContainer3D):
 
         positions = np.concatenate(positions)
 
-        # Second check for zero particles
+        # Second check for zero particles - the first method sometimes fails
         if positions.shape[0] == 0:
             mylog.info('No particles found!')
             self._octree = None
@@ -2685,6 +2685,7 @@ class YTOctree(YTSelectionContainer3D):
             n_ref=self.n_ref,
         )
         mylog.info('Allocated %s nodes in octree' % self._octree.num_nodes)
+        mylog.info('Octree bound %s particles' % self._octree.bound_particles)
 
     @property
     def tree(self):
@@ -2732,7 +2733,13 @@ class YTOctree(YTSelectionContainer3D):
         return ptypes
 
     def _setup_data_source(self):
-        self._data_source = self.ds.region(self.center, self.left_edge, self.right_edge)
+        mylog.info(("Allocating octree with spatial range " +
+                    "[{0:.4e}, {1:.4e}, {2:.4e}] code_length to " +
+                    "[{3:.4e}, {4:.4e}, {5:.4e}] code_length").format(
+            *self.left_edge.to("code_length").d,
+            *self.right_edge.to("code_length").d))
+        self._data_source = self.ds.region(
+            self.center, self.left_edge, self.right_edge)
 
     def _sanitize_edge(self, edge, default):
         if edge is None:
