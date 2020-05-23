@@ -47,7 +47,7 @@ def test_recipe():
         recipe = os.path.basename(fname)
         if recipe in BLACKLIST:
             continue
-        check_recipe.description = "Testing recipe: %s" % recipe
+        check_recipe.description = f"Testing recipe: {recipe}"
         if recipe in PARALLEL_TEST:
             yield check_recipe, \
                 ["mpiexec", "-n", PARALLEL_TEST[recipe], "python", fname]

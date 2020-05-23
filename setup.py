@@ -264,15 +264,15 @@ lib_exts = [
 ]
 for ext_name in lib_exts:
     cython_extensions.append(
-        Extension("yt.utilities.lib.{}".format(ext_name),
-                  ["yt/utilities/lib/{}.pyx".format(ext_name)],
+        Extension(f"yt.utilities.lib.{ext_name}",
+                  [f"yt/utilities/lib/{ext_name}.pyx"],
                   libraries=std_libs))
 
 lib_exts = ["write_array", "ragged_arrays", "line_integral_convolution"]
 for ext_name in lib_exts:
     cython_extensions.append(
-        Extension("yt.utilities.lib.{}".format(ext_name),
-                  ["yt/utilities/lib/{}.pyx".format(ext_name)]))
+        Extension(f"yt.utilities.lib.{ext_name}",
+                  [f"yt/utilities/lib/{ext_name}.pyx"]))
 
 extensions = [
     Extension("yt.frontends.artio._artio_caller",
@@ -334,16 +334,14 @@ cython and numpy to be installed. Please install these packages using
 the appropriate package manager for your python environment.""")
         if LooseVersion(cython.__version__) < LooseVersion('0.26.1'):
             raise RuntimeError(
-"""Building yt from source requires Cython 0.26.1 or newer but
-Cython %s is installed. Please update Cython using the appropriate
-package manager for your python environment.""" %
-                cython.__version__)
+f"""Building yt from source requires Cython 0.26.1 or newer but
+Cython {cython.__version__} is installed. Please update Cython using the appropriate
+package manager for your python environment.""")
         if LooseVersion(numpy.__version__) < LooseVersion('1.13.3'):
             raise RuntimeError(
-"""Building yt from source requires NumPy 1.13.3 or newer but
-NumPy %s is installed. Please update NumPy using the appropriate
-package manager for your python environment.""" %
-                numpy.__version__)
+f"""Building yt from source requires NumPy 1.13.3 or newer but
+NumPy {numpy.__version__} is installed. Please update NumPy using the appropriate
+package manager for your python environment.""")
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
             self.distribution.ext_modules,

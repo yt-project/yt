@@ -33,8 +33,8 @@ def run_recipe(payload):
     dest = os.path.join(os.path.dirname(recipe), '_static', module_name)
     if module_name in BLACKLIST:
         return 0
-    if not os.path.exists("%s/_temp/%s.done" % (CWD, module_name)):
-        sys.stderr.write('Started %s\n' % module_name)
+    if not os.path.exists(f"{CWD}/_temp/{module_name}.done"):
+        sys.stderr.write(f'Started {module_name}\n')
         tmpdir = tempfile.mkdtemp()
         os.chdir(tmpdir)
         prep_dirs()
@@ -47,20 +47,20 @@ def run_recipe(payload):
             subprocess.check_call(cmd)
         except:
             trace = "".join(traceback.format_exception(*sys.exc_info()))
-            trace += " in module: %s\n" % module_name
-            trace += " recipe: %s\n" % recipe
+            trace += f" in module: {module_name}\n"
+            trace += f" recipe: {recipe}\n"
             raise Exception(trace)
-        open("%s/_temp/%s.done" % (CWD, module_name), 'wb').close()
+        open(f"{CWD}/_temp/{module_name}.done", 'wb').close()
         for pattern in FPATTERNS:
             for fname in glob.glob(pattern):
                 if fname not in BADF:
-                    shutil.move(fname, "%s__%s" % (dest, fname))
+                    shutil.move(fname, f"{dest}__{fname}")
         for pattern in DPATTERNS:
             for dname in glob.glob(pattern):
                 shutil.move(dname, dest)
         os.chdir(CWD)
         shutil.rmtree(tmpdir, True)
-        sys.stderr.write('Finished with %s\n' % module_name)
+        sys.stderr.write(f'Finished with {module_name}\n')
     return 0
 
 for path in ['_temp', 'source/cookbook/_static',
@@ -75,7 +75,7 @@ recipes = []
 for rpath in ['source/cookbook', 'source/visualizing/colormaps']:
     fpath = os.path.join(CWD, rpath)
     sys.path.append(fpath)
-    recipes += glob.glob('%s/*.py' % fpath)
+    recipes += glob.glob(f'{fpath}/*.py')
 WPOOL = Pool(processes=6)
 RES = WPOOL.map_async(run_recipe, ((recipe,) for recipe in recipes))
 RES.get()

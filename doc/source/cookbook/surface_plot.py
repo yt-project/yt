@@ -36,4 +36,4 @@ bounds[:,1] = centers[:] + max_extent/2
 ax.auto_scale_xyz(bounds[0,:], bounds[1,:], bounds[2,:])
 
 # Save the figure
-plt.savefig("%s_Surface.png" % ds)
+plt.savefig(f"{ds}_Surface.png")

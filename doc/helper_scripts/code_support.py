@@ -84,12 +84,12 @@ codes = dict(
 
 print("|| . ||", end=' ')
 for c in code_names:
-    print("%s || " % (c), end=' ')
+    print(f"{c} || ", end=' ')
 print()
 
 for vn in vals:
-    print("|| !%s ||" % (vn), end=' ')
+    print(f"|| !{vn} ||", end=' ')
     for c in code_names:
-        print("%s || " % (codes[c].support[vn]), end=' ')
+        print(f"{codes[c].support[vn]} || ", end=' ')
     print()
 

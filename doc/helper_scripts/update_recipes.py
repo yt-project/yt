@@ -35,20 +35,20 @@ commands.pull(uii, repo, "http://bitbucket.org/yt_analysis/cookbook/")
 ctx = repo["tip"]
 for file in ctx:
     if not file.startswith("recipes/"): continue
-    print("Parsing %s" % (file))
+    print(f"Parsing {file}")
     lines = ctx[file].data().split("\n")
     fn = file[8:-3]
     title = fn.replace("_", " ").capitalize()
     title += "\n" + "-" * len(title) + "\n"*2
-    title = ".. _cookbook-%s:\n\n%s" % (fn, title)
+    title = f".. _cookbook-{fn}:\n\n{title}"
     if lines[0] != '"""':
         print("    Bad docstring: breaking.")
         print(file)
     di = lines[1:].index('"""')
     docstring = lines[1:di+1]
     recipe = lines[di+2:]
-    recipes.write(".. include:: %s.inc\n" % fn)
-    output = open("source/cookbook/%s.inc" % fn, "w")
+    recipes.write(f".. include:: {fn}.inc\n")
+    output = open(f"source/cookbook/{fn}.inc", "w")
     output.write(title)
     output.write("\n".join(docstring))
     output.write("\n")
@@ -57,24 +57,24 @@ for file in ctx:
     output.write("\n\n.. code-block:: python\n\n")
     for line in recipe:
         output.write("   " + line + "\n")
-    if os.path.isdir("../cookbook/images/%s" % (fn)):
+    if os.path.isdir(f"../cookbook/images/{fn}"):
         output.write("\n")
-        ndir = "source/cookbook/_%s/" % (fn)
+        ndir = f"source/cookbook/_{fn}/"
         if not os.path.isdir(ndir): os.mkdir(ndir)
         written = False
-        for ifn in sorted(glob.glob("../cookbook/images/%s/*.png" % (fn))):
+        for ifn in sorted(glob.glob(f"../cookbook/images/{fn}/*.png")):
             written = cond_output(output, written)
-            ofn = "%s/%s_%s" % (ndir, fn, os.path.basename(ifn))
+            ofn = f"{ndir}/{fn}_{os.path.basename(ifn)}"
             open(ofn, "wb").write(open(ifn, "rb").read())
-            output.write(".. image:: _%s/%s_%s\n" % (fn, fn, os.path.basename(ifn)) +
+            output.write(f".. image:: _{fn}/{fn}_{os.path.basename(ifn)}\n" +
                          "   :width: 240\n" +
-                         "   :target: ../_images/%s_%s\n" % (fn, os.path.basename(ifn))
+                         f"   :target: ../_images/{fn}_{os.path.basename(ifn)}\n"
                         )
-        for ifn in sorted(glob.glob("../cookbook/images/%s/*.txt" % (fn))):
+        for ifn in sorted(glob.glob(f"../cookbook/images/{fn}/*.txt")):
             written = cond_output(output, written)
-            open("%s/%s_%s" % (ndir, fn, os.path.basename(ifn)), "w").write(open(ifn, "r").read())
+            open(f"{ndir}/{fn}_{os.path.basename(ifn)}", "w").write(open(ifn, "r").read())
             output.write("\n``%s``\n\n" % os.path.basename(ifn))
-            output.write(".. literalinclude:: _%s/%s_%s\n" % (fn, fn, os.path.basename(ifn)))
+            output.write(f".. literalinclude:: _{fn}/{fn}_{os.path.basename(ifn)}\n")
     output.write("\n\n")
     output.close()
 

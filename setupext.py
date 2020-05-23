@@ -181,7 +181,7 @@ def read_embree_location():
             '}'
         )
         file.flush()
-        p = Popen(compiler + ['-I%s/include/' % rd, filename], 
+        p = Popen(compiler + [f'-I{rd}/include/', filename], 
                   stdin=PIPE, stdout=PIPE, stderr=PIPE)
         output, err = p.communicate()
         exit_code = p.returncode

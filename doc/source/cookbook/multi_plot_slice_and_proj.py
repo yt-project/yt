@@ -76,4 +76,4 @@ for p, cax, t in zip(plots[0:6:2], colorbars, titles):
     cbar.set_label(t)
 
 # And now we're done!
-fig.savefig("%s_3x2" % ds)
+fig.savefig(f"{ds}_3x2")

@@ -26,7 +26,7 @@ def write_docstring(f, name, cls):
     clsname = cls._type_name
     sig = inspect.formatargspec(*inspect.getargspec(cls.__init__))
     sig = sig.replace("**kwargs", "**field_parameters")
-    clsproxy = "yt.visualization.plot_modifications.%s" % (cls.__name__)
+    clsproxy = f"yt.visualization.plot_modifications.{cls.__name__}"
     #docstring = "\n".join(["   %s" % line for line in docstring.split("\n")])
     #print(docstring)
     f.write(template % dict(clsname = clsname, sig = sig, clsproxy=clsproxy,
@@ -35,6 +35,6 @@ def write_docstring(f, name, cls):
 
 for n,c in sorted(callback_registry.items()):
     write_docstring(output, n, c)
-    print(".. autoclass:: yt.visualization.plot_modifications.%s" % n)
+    print(f".. autoclass:: yt.visualization.plot_modifications.{n}")
     print("   :members:")
     print()

@@ -41,7 +41,7 @@ DEPENDENCY_IMPORT_TESTS = {
 
 
 def call_unix_command(command):
-    print ('Running "%s" in %s' % (command, os.getcwd()))
+    print (f'Running "{command}" in {os.getcwd()}')
     output = ''
     try:
         output = subprocess.check_output(command, stderr=subprocess.STDOUT,
@@ -111,7 +111,7 @@ def verify_yt_installation(binary_yt):
             continue
         if dep == 'git':
             git_path = os.sep.join([yt_dir, 'bin', 'git'])
-            call_unix_command('{} --version'.format(git_path))
+            call_unix_command(f'{git_path} --version')
         if dep in DEPENDENCY_IMPORT_TESTS:
             cmd = "{} -c '{}'"
             if dep == 'rockstar':
@@ -125,7 +125,7 @@ def verify_yt_installation(binary_yt):
             call_unix_command(cmd.format(
                 python_path, DEPENDENCY_IMPORT_TESTS[dep]))
         else:
-            call_unix_command("{} -c 'import {}'".format(python_path, dep))
+            call_unix_command(f"{python_path} -c 'import {dep}'")
     return yt_dir
 
 

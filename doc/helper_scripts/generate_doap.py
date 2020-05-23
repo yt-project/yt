@@ -94,7 +94,7 @@ def developer_names():
         for dev in c.rawcommand(cmd).split("\n"):
             if len(dev.strip()) == 0: continue
             emails.add(dev.rsplit(None, 2)[0])
-        print("Generating real names for {0} emails".format(len(emails)))
+        print(f"Generating real names for {len(emails)} emails")
         names = set([])
         for email in sorted(emails):
             if email in name_ignores:
@@ -102,9 +102,9 @@ def developer_names():
             if email in name_mappings:
                 names.add(name_mappings[email])
                 continue
-            cset = c.log(revrange="last(author('%s'))" % email)
+            cset = c.log(revrange=f"last(author('{email}'))")
             if len(cset) == 0:
-                print("Error finding {0}".format(email))
+                print(f"Error finding {email}")
                 realname = email
             else:
                 realname, addr = parseaddr(cset[0][4])

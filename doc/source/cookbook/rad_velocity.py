@@ -40,4 +40,4 @@ ax.set_xlabel(r"$\mathrm{r\ (kpc)}$")
 ax.set_ylabel(r"$\mathrm{v_r\ (km/s)}$")
 ax.legend(["Without Correction", "With Correction"])
 
-fig.savefig("%s_profiles.png" % ds)
+fig.savefig(f"{ds}_profiles.png")

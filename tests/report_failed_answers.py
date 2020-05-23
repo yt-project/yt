@@ -189,7 +189,7 @@ def generate_answers(answer_dir, answers):
     status = True
     test_argv = [os.path.basename(__file__), '--with-answer-testing',
                  '--nologcapture', '-s', '-d', '-v', '--local',
-                 '--local-dir=%s' % answer_dir, '--answer-store']
+                 f'--local-dir={answer_dir}', '--answer-store']
 
     for job in answers:
         log.info("\n Generating answers for " + job)

@@ -21,7 +21,7 @@ sc.camera.position = [1.7, 1.7, 1.7]
 sc.annotate_axes(alpha=.02)
 sc.annotate_domain(ds, color=[1, 1, 1, .01])
 
-text_string = "T = {} Gyr".format(float(ds.current_time.to('Gyr')))
+text_string = f"T = {float(ds.current_time.to('Gyr'))} Gyr"
 
 # save an annotated version of the volume rendering including a representation
 # of the transfer function and a nice label showing the simulation time.

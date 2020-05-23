@@ -53,7 +53,7 @@ ds.cosmology = Cosmology(hubble_constant=ds.hubble_constant,
                          omega_lambda=ds.omega_lambda,
                          unit_registry=ds.unit_registry)
 for my_unit in ["m", "pc", "AU", "au"]:
-    new_unit = "%scm" % my_unit
+    new_unit = f"{my_unit}cm"
     my_u = Unit(my_unit, registry=ds.unit_registry)
     ds.unit_registry.add(new_unit, my_u.base_value,
                          dimensions.length, "\\rm{%s}/(1+z)" % my_unit,
@@ -132,7 +132,7 @@ def print_all_fields(fl):
     for fn in sorted(fl):
         df = fl[fn]
         f = df._function
-        s = "%s" % (df.name,)
+        s = f"{df.name}"
         print(s)
         print("^" * len(s))
         print()
@@ -145,7 +145,7 @@ def print_all_fields(fl):
                 print("   * Units: :math:`%s`" % fix_units(df.units))
             else:
                 print("   * Units: :math:`%s`" % fix_units(df.units, in_cgs=True))
-        print("   * Sampling Method: %s" % (df.sampling_type))
+        print(f"   * Sampling Method: {df.sampling_type}")
         print()
         print("**Field Source**")
         print()
@@ -173,15 +173,15 @@ class FieldInfo:
         u = field[1][0]
         if len(u) > 0:
             self.units = ":math:`\mathrm{%s}`" % fix_units(u)
-        a = ["``%s``" % f for f in field[1][1] if f]
+        a = [f"``{f}``" for f in field[1][1] if f]
         self.aliases = " ".join(a)
         self.dname = ""
         if field[1][2] is not None:
-            self.dname = ":math:`{}`".format(field[1][2])
+            self.dname = f":math:`{field[1][2]}`"
 
         if ftype is not "particle_type":
             ftype = "'"+ftype+"'"
-        self.name = "(%s, '%s')" % (ftype, name)
+        self.name = f"({ftype}, '{name}')"
         self.ptype = ptype
 
 

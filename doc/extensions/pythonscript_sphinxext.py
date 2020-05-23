@@ -40,14 +40,13 @@ class PythonScriptDirective(Directive):
         # Use sphinx logger?
         uid = uuid.uuid4().hex[:8]
         print("")
-        print(">> Contents of the script: %s" % uid)
+        print(f">> Contents of the script: {uid}")
         print(content)
         print("")
 
         start = time.time()
         subprocess.call(['python', 'temp.py'])
-        print(">> The execution of the script %s took %f s" %
-              (uid, time.time() - start))
+        print(f">> The execution of the script {uid} took {time.time() - start:f} s")
         text = ''
         for im in sorted(glob.glob("*.png")):
             text += get_image_tag(im, image_dir, image_rel_dir)
@@ -86,7 +85,7 @@ def get_image_tag(filename, image_dir, image_rel_dir):
     my_uuid = uuid.uuid4().hex
     shutil.move(filename, image_dir + os.path.sep + my_uuid + filename)
     relative_filename = image_rel_dir + os.path.sep + my_uuid + filename
-    return '<img src="%s" width="600"><br>' % relative_filename
+    return f'<img src="{relative_filename}" width="600"><br>'
 
 
 def make_image_dir(setup, rst_dir):

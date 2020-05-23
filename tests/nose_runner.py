@@ -27,15 +27,15 @@ class NoseWorker(multiprocessing.Process):
         while True:
             next_task = self.task_queue.get()
             if next_task is None:
-                print("%s: Exiting" % proc_name)
+                print(f"{proc_name}: Exiting")
                 self.task_queue.task_done()
                 break
-            print('%s: %s' % (proc_name, next_task))
+            print(f'{proc_name}: {next_task}')
             result = next_task()
             self.task_queue.task_done()
             self.result_queue.put(result)
             if next_task.exclusive:
-                print("%s: Exiting (exclusive)" % proc_name)
+                print(f"{proc_name}: Exiting (exclusive)")
                 break
         return
 
@@ -55,18 +55,18 @@ class NoseTask(object):
                 not os.path.isdir(os.path.join(answers_dir, self.name)):
             nose.run(argv=self.argv + ['--answer-store'],
                      addplugins=[AnswerTesting()], exit=False)
-        if os.path.isfile("{}.xml".format(self.name)):
-            os.remove("{}.xml".format(self.name))
+        if os.path.isfile(f"{self.name}.xml"):
+            os.remove(f"{self.name}.xml")
         nose.run(argv=self.argv, addplugins=[AnswerTesting()], exit=False)
         sys.stderr = old_stderr
         return mystderr.getvalue()
 
     def __str__(self):
-        return 'WILL DO self.name = %s' % self.name
+        return f'WILL DO self.name = {self.name}'
 
 
 def generate_tasks_input():
-    pyver = "py{}{}".format(sys.version_info.major, sys.version_info.minor)
+    pyver = f"py{sys.version_info.major}{sys.version_info.minor}"
     if sys.version_info < (3, 0, 0):
         DROP_TAG = "py3"
     else:
@@ -82,7 +82,7 @@ def generate_tasks_input():
 
     base_argv = ['-s', '--nologcapture', '--with-xunit']
 
-    base_answer_argv = ['--local-dir=%s' % answers_dir, '--with-answer-testing',
+    base_answer_argv = [f'--local-dir={answers_dir}', '--with-answer-testing',
                         '--answer-big-data', '--local']
 
     args = []
@@ -92,13 +92,13 @@ def generate_tasks_input():
     for answer in list(tests["answer_tests"].keys()):
         if tests["answer_tests"][answer] is None:
             continue
-        argv = ["{}_{}".format(pyver, answer)]
+        argv = [f"{pyver}_{answer}"]
         argv += base_argv + base_answer_argv
-        argv.append('--answer-name=%s' % argv[0])
+        argv.append(f'--answer-name={argv[0]}')
         argv += tests["answer_tests"][answer]
         args.append((argv, False))
 
-    args = [(item + ['--xunit-file=%s.xml' % item[0]], exclusive)
+    args = [(item + [f'--xunit-file={item[0]}.xml'], exclusive)
             for item, exclusive in args]
     return args
 
