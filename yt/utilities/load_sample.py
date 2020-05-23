@@ -48,11 +48,14 @@ def load_sample(name=None, specific_file=None, pbar=True):
     base_path = fido.fido.path
     fileext, name, extension = _validate_sampledata_name(name)
 
+    downloader = None
     if pbar:
-        from pooch import HTTPDownloader
-        downloader = HTTPDownloader(progressbar=True)
-    else:
-        downloader = None
+        try:
+            import tqdm
+            from pooch import HTTPDownloader
+            downloader = HTTPDownloader(progressbar=True)
+        except ImportError:
+            mylog.warning("tqdm is not installed, progress bar can not be displayed.")
 
     if extension == "h5":
         fname = fetch_noncompressed_file(fileext, fido, downloader=downloader)
