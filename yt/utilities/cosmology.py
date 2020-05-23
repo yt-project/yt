@@ -87,7 +87,7 @@ class Cosmology(object):
             unit_registry = UnitRegistry(unit_system=unit_system)
             unit_registry.add("h", hubble_constant, dimensions.dimensionless, r"h")
             for my_unit in ["m", "pc", "AU", "au"]:
-                new_unit = "%scm" % my_unit
+                new_unit = f"{my_unit}cm"
                 my_u = Unit(my_unit, registry=unit_registry)
                 # technically not true, but distances here are actually comoving
                 unit_registry.add(

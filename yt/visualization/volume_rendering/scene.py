@@ -278,14 +278,14 @@ class Scene(object):
                     field = rs.field
                 else:
                     field = rs.field[-1]
-                fname = "%s_Render_%s.png" % (basename, field)
+                fname = f"{basename}_Render_{field}.png"
             # if no volume source present, use a default filename
             else:
                 fname = "Render_opaque.png"
         suffix = get_image_suffix(fname)
         if suffix == '':
             suffix = '.png'
-            fname = '%s%s' % (fname, suffix)
+            fname = f'{fname}{suffix}'
 
         self.render()
 
@@ -308,7 +308,7 @@ class Scene(object):
                 canvas = FigureCanvasPS(fig)
             else:
                 raise NotImplementedError(
-                    "Unknown file suffix '{}'".format(suffix))
+                    f"Unknown file suffix '{suffix}'")
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
             out = self._last_render
@@ -396,14 +396,14 @@ class Scene(object):
                     field = rs.field
                 else:
                     field = rs.field[-1]
-                fname = "%s_Render_%s.png" % (basename, field)
+                fname = f"{basename}_Render_{field}.png"
             # if no volume source present, use a default filename
             else:
                 fname = "Render_opaque.png"
         suffix = get_image_suffix(fname)
         if suffix == '':
             suffix = '.png'
-            fname = '%s%s' % (fname, suffix)
+            fname = f'{fname}{suffix}'
 
         self.render()
 
@@ -921,7 +921,7 @@ class Scene(object):
         disp = "<Scene Object>:"
         disp += "\nSources: \n"
         for k, v in self.sources.items():
-            disp += "    %s: %s\n" % (k, v)
+            disp += f"    {k}: {v}\n"
         disp += "Camera: \n"
-        disp += "    %s" % self.camera
+        disp += f"    {self.camera}"
         return disp

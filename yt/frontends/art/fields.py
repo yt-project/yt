@@ -57,11 +57,11 @@ class ARTFieldInfo(FieldInfoContainer):
 
         def _get_vel(axis):
             def velocity(field, data):
-                return (data[('gas','momentum_%s' % axis)] /
+                return (data[('gas',f'momentum_{axis}')] /
                         data[('gas','density')])
             return velocity
         for ax in 'xyz':
-            self.add_field(('gas','velocity_%s' % ax),
+            self.add_field(('gas',f'velocity_{ax}'),
                            sampling_type="cell",
                            function = _get_vel(ax),
                            units=unit_system["velocity"])
@@ -134,7 +134,7 @@ class ARTFieldInfo(FieldInfoContainer):
                 return nucleus_densityIa + nucleus_densityII
             return _specific_metal_density
         for atom in atoms:
-            self.add_field(('gas','%s_nuclei_mass_density'%atom),
+            self.add_field(('gas',f'{atom}_nuclei_mass_density'),
                             sampling_type="cell",
                             function=_specific_metal_density_function(atom),
                             units=unit_system["density"])

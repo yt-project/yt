@@ -359,7 +359,7 @@ class GridIndex(Index):
         elif chunk_sizing == "old":
             size = self._grid_chunksize
         else:
-            raise RuntimeError("%s is an invalid value for the 'chunk_sizing' argument." % chunk_sizing)
+            raise RuntimeError(f"{chunk_sizing} is an invalid value for the 'chunk_sizing' argument.")
         for fn in sorted(gfiles):
             gs = gfiles[fn]
             for grids in (gs[pos:pos + size] for pos

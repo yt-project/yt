@@ -150,7 +150,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
             field_data = np.zeros_like(data["gas", "%s_number_density" % \
                                             data.ds.field_info.species_names[0]])
             for species in data.ds.field_info.species_names:
-                field_data += data["gas", "%s_number_density" % species]
+                field_data += data["gas", f"{species}_number_density"]
             return field_data
     else:
         def _number_density(field, data):
@@ -195,7 +195,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi+1:]
         slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
         def func(field, data):
-            ds = div_fac * data[ftype, "d%s" % ax]
+            ds = div_fac * data[ftype, f"d{ax}"]
             f  = data[grad_field][slice_3dr]/ds[slice_3d]
             f -= data[grad_field][slice_3dl]/ds[slice_3d]
             new_field = np.zeros_like(data[grad_field], dtype=np.float64)
@@ -209,12 +209,12 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
 
     for axi, ax in enumerate('xyz'):
         f = grad_func(axi, ax)
-        registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
+        registry.add_field((ftype, f"{fname}_gradient_{ax}"),
                            sampling_type="local",
                            function=f,
                            validators=[ValidateSpatial(1, [grad_field])],
                            units=grad_units)
 
-    create_magnitude_field(registry, "%s_gradient" % fname,
+    create_magnitude_field(registry, f"{fname}_gradient",
                            grad_units, ftype=ftype,
                            validators = [ValidateSpatial(1, [grad_field])])

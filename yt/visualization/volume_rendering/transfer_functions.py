@@ -595,7 +595,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                     else:
                         return r"$0$"
                 else:
-                    return "%.1g" % (val)
+                    return f"{val:.1g}"
             else:
                 return label_fmt % (val)
         ax.yaxis.set_major_formatter(FuncFormatter(x_format))
@@ -875,7 +875,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             # Now we set up the scattering
             scat = (johnson_filters[f]["Lchar"]**-4 / mscat)*anorm
             tf = TransferFunction(rho_bounds)
-            mylog.debug("Adding: %s with relative scattering %s" % (f, scat))
+            mylog.debug(f"Adding: {f} with relative scattering {scat}")
             tf.y *= 0.0
             tf.y += scat
             self.add_field_table(tf, 1, weight_field_id = 1)

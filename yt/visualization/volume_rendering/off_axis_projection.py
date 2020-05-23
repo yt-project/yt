@@ -129,7 +129,7 @@ def off_axis_projection(data_source, center, normal_vector,
         raise_error = False
 
         ptype = sph_ptypes[0]
-        ppos = ["particle_position_%s" % ax for ax in "xyz"]
+        ppos = [f"particle_position_{ax}" for ax in "xyz"]
         # Assure that the field we're trying to off-axis project 
         # has a field type as the SPH particle type or if the field is an 
         # alias to an SPH field or is a 'gas' field

@@ -32,14 +32,13 @@ def stats_run(npart, nproc, ndim, periodic=False, overwrite=False,
         perstr = "_periodic"
     if suppress_final_output:
         outstr = "_noout"
-    fname_stat = 'stat_{}part_{}proc_{}dim{}{}.txt'.format(
-        npart, nproc, ndim, perstr, outstr)
+    fname_stat = f'stat_{npart}part_{nproc}proc_{ndim}dim{perstr}{outstr}.txt'
     if overwrite or not os.path.isfile(fname_stat):
         cProfile.run(
             "from yt.utilities.lib.cykdtree.tests import run_test; "+
-            "run_test({}, {}, nproc={}, ".format(npart, ndim, nproc) +
-            "periodic={}, ".format(periodic) +
-            "suppress_final_output={})".format(suppress_final_output),
+            f"run_test({npart}, {ndim}, nproc={nproc}, " +
+            f"periodic={periodic}, " +
+            f"suppress_final_output={suppress_final_output})",
             fname_stat)
     if display:
         p = pstats.Stats(fname_stat)
@@ -118,13 +117,13 @@ def strong_scaling(npart=1e6, nrep=1, periodic=False,
                 npart, nproc, ndim, nrep=nrep,
                 periodic=periodic, leafsize=leafsize,
                 suppress_final_output=suppress_final_output)
-            print("Finished {}D on {}.".format(ndim, nproc))
+            print(f"Finished {ndim}D on {nproc}.")
     fig, axs = plt.subplots(1, 1)
     for i in range(len(ndim_list)):
         ndim = ndim_list[i]
         clr = clr_list[i]
         axs.errorbar(nproc_list, times[:, i, 0], yerr=times[:, i, 1],
-                     fmt=clr, label='ndim = {}'.format(ndim))
+                     fmt=clr, label=f'ndim = {ndim}')
     axs.set_xlabel("# of Processors")
     axs.set_ylabel("Time (s)")
     axs.legend()
@@ -178,7 +177,7 @@ def weak_scaling(npart=1e4, nrep=1, periodic=False, leafsize=10,
         ndim = ndim_list[i]
         clr = clr_list[i]
         axs.errorbar(nproc_list, times[:, i, 0], yerr=times[:, i, 1],
-                     fmt=clr, label='ndim = {}'.format(ndim))
+                     fmt=clr, label=f'ndim = {ndim}')
     axs.set_xlabel("# of Processors")
     axs.set_ylabel("Time (s)")
     axs.legend()

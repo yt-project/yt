@@ -404,7 +404,7 @@ class OpenPMDDataset(Dataset):
             if len(particles) > 1:
                 # Only use on-disk particle names if there is more than one species
                 self.particle_types = particles
-            mylog.debug("self.particle_types: {}".format(self.particle_types))
+            mylog.debug(f"self.particle_types: {self.particle_types}")
             self.particle_types_raw = self.particle_types
             self.particle_types = tuple(self.particle_types)
         except(KeyError):
@@ -425,7 +425,7 @@ class OpenPMDDataset(Dataset):
         encoding = handle.attrs["iterationEncoding"].decode()
         if "groupBased" in encoding:
             iterations = list(handle["/data"].keys())
-            mylog.info("Found {} iterations in file".format(len(iterations)))
+            mylog.info(f"Found {len(iterations)} iterations in file")
         elif "fileBased" in encoding:
             itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
             regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
@@ -435,14 +435,14 @@ class OpenPMDDataset(Dataset):
             for filename in listdir(path):
                 if match(regex, filename):
                     iterations.append(filename)
-            mylog.info("Found {} iterations in directory".format(len(iterations)))
+            mylog.info(f"Found {len(iterations)} iterations in directory")
 
         if len(iterations) == 0:
             mylog.warning("No iterations found!")
         if "groupBased" in encoding and len(iterations) > 1:
-            mylog.warning("Only chose to load one iteration ({})".format(iteration))
+            mylog.warning(f"Only chose to load one iteration ({iteration})")
 
-        self.base_path = "/data/{}/".format(iteration)
+        self.base_path = f"/data/{iteration}/"
         self.meshes_path = self._handle["/"].attrs["meshesPath"].decode()
         try:
             handle[self.base_path + self.meshes_path]
@@ -581,7 +581,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
             self._setup_function(o)
             return o
         else:
-            raise KeyError("Unknown iteration {}".format(key))
+            raise KeyError(f"Unknown iteration {key}")
 
     def _load(self, it, **kwargs):
         return OpenPMDDataset(self.filename, iteration=it)

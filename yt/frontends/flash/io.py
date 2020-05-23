@@ -53,7 +53,7 @@ class IOHandlerFLASH(BaseIOHandler):
                 # outside; here, though, we're iterating over them on the
                 # inside because we may exhaust our chunks.
                 ftype, fname = field
-                ds = f["/%s" % fname]
+                ds = f[f"/{fname}"]
                 for gs in grid_sequences(chunk.objs):
                     start = gs[0].id - gs[0]._id_offset
                     end = gs[-1].id - gs[-1]._id_offset + 1
@@ -65,7 +65,7 @@ class IOHandlerFLASH(BaseIOHandler):
         chunks = list(chunks)
         f_part = self._particle_handle
         p_ind = self.ds.index._particle_indices
-        px, py, pz = (self._particle_fields["particle_pos%s" % ax]
+        px, py, pz = (self._particle_fields[f"particle_pos{ax}"]
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
         assert(len(ptf) == 1)
@@ -84,7 +84,7 @@ class IOHandlerFLASH(BaseIOHandler):
         chunks = list(chunks)
         f_part = self._particle_handle
         p_ind = self.ds.index._particle_indices
-        px, py, pz = (self._particle_fields["particle_pos%s" % ax]
+        px, py, pz = (self._particle_fields[f"particle_pos{ax}"]
                       for ax in 'xyz')
         p_fields = f_part["/tracer particles"]
         assert(len(ptf) == 1)
@@ -110,7 +110,7 @@ class IOHandlerFLASH(BaseIOHandler):
         # our context here includes datasets and whatnot that are opened in the
         # hdf5 file
         if ds is None:
-            ds = self._handle["/%s" % field[1]]
+            ds = self._handle[f"/{field[1]}"]
         if offset == -1:
             data = ds[obj.id - obj._id_offset, :,:,:].transpose()
         else:
@@ -136,7 +136,7 @@ class IOHandlerFLASH(BaseIOHandler):
         if len(fluid_fields) == 0: return rv
         for field in fluid_fields:
             ftype, fname = field
-            ds = f["/%s" % fname]
+            ds = f[f"/{fname}"]
             for gs in grid_sequences(chunk.objs):
                 start = gs[0].id - gs[0]._id_offset
                 end = gs[-1].id - gs[-1]._id_offset + 1
@@ -154,7 +154,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         # Now we cache the particle fields
         self._handle = ds._handle
         self._particle_fields = determine_particle_fields(self._handle)
-        self._position_fields = [self._particle_fields["particle_pos%s" % ax]
+        self._position_fields = [self._particle_fields[f"particle_pos{ax}"]
                                  for ax in 'xyz']
         self._chunksize = 32**3
 

@@ -52,10 +52,10 @@ class GAMERFieldInfo(FieldInfoContainer):
         # velocity
         def velocity_xyz(v):
             def _velocity(field, data):
-                return data["gas", "momentum_%s"%v] / data["gas","density"]
+                return data["gas", f"momentum_{v}"] / data["gas","density"]
             return _velocity
         for v in "xyz":
-            self.add_field(("gas","velocity_%s"%v),
+            self.add_field(("gas",f"velocity_{v}"),
                            sampling_type="cell",
                            function = velocity_xyz(v),
                            units = unit_system["velocity"] )

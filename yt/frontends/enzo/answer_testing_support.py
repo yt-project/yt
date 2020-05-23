@@ -91,7 +91,7 @@ class ShockTubeTest(object):
             for xmin, xmax in zip(self.left_edges, self.right_edges):
                 mask = (position >= xmin)*(position <= xmax)
                 exact_field = np.interp(position[mask], exact['pos'], exact[k])
-                myname = "ShockTubeTest_%s" % k
+                myname = f"ShockTubeTest_{k}"
                 # yield test vs analytical solution 
                 yield AssertWrapper(myname, assert_allclose, field[mask], 
                                     exact_field, self.rtol, self.atol)

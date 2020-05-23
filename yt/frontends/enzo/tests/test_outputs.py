@@ -38,7 +38,7 @@ def check_color_conservation(ds):
     # Enumerate our species here
     for s in sorted(species_names):
         if s == "El": continue
-        dens_yt -= dd["%s_density" % s]
+        dens_yt -= dd[f"{s}_density"]
     dens_yt -= dd["metal_density"]
     delta_yt = np.abs(dens_yt / dd["density"])
 
@@ -126,8 +126,8 @@ def test_active_particle_datasets():
     assert_equal(len(two_sph.particle_unions), 1)
     pfields = ['GridID', 'creation_time', 'dynamical_time',
                'identifier', 'level', 'metallicity', 'particle_mass']
-    pfields += ['particle_position_%s' % d for d in 'xyz']
-    pfields += ['particle_velocity_%s' % d for d in 'xyz']
+    pfields += [f'particle_position_{d}' for d in 'xyz']
+    pfields += [f'particle_velocity_{d}' for d in 'xyz']
 
     acc_part_fields = \
         [('AccretingParticle', pf) for pf in ['AccretionRate'] + pfields]

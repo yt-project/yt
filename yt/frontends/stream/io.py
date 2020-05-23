@@ -56,7 +56,7 @@ class IOHandlerStream(BaseIOHandler):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
-                        x, y, z = (gf[ptype, "particle_position_%s" % ax] for
+                        x, y, z = (gf[ptype, f"particle_position_{ax}"] for
                                    ax in 'xyz')
                     yield ptype, (x, y, z)
 
@@ -70,7 +70,7 @@ class IOHandlerStream(BaseIOHandler):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
-                        x, y, z = (gf[ptype, "particle_position_%s" % ax] for
+                        x, y, z = (gf[ptype, f"particle_position_{ax}"] for
                                    ax in 'xyz')
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
@@ -138,7 +138,7 @@ class StreamParticleIOHandler(BaseIOHandler):
                     y = ppos[:,1]
                     z = ppos[:,2]
                 else:
-                    x, y, z = (f[ptype, "particle_position_%s" % ax]
+                    x, y, z = (f[ptype, f"particle_position_{ax}"]
                                for ax in 'xyz')
                 if (ptype, 'smoothing_length') in self.ds.field_list:
                     hsml = f[ptype, 'smoothing_length']
@@ -158,7 +158,7 @@ class StreamParticleIOHandler(BaseIOHandler):
                 continue
             try:
                 pos = np.column_stack([self.fields[data_file.filename][
-                    (ptype, "particle_position_%s" % ax)] for ax in 'xyz'])
+                    (ptype, f"particle_position_{ax}")] for ax in 'xyz'])
             except KeyError:
                 pos = self.fields[data_file.filename][ptype, "particle_position"]
             if np.any(pos.min(axis=0) < data_file.ds.domain_left_edge) or \

@@ -100,8 +100,8 @@ class FieldInfoContainer(dict):
                  self[ptype, "particle_position"]._function == NullFunc:
                 self.pop((ptype, "particle_position"))
             particle_vector_functions(ptype,
-                    ["particle_position_%s" % ax for ax in 'xyz'],
-                    ["particle_velocity_%s" % ax for ax in 'xyz'],
+                    [f"particle_position_{ax}" for ax in 'xyz'],
+                    [f"particle_velocity_{ax}" for ax in 'xyz'],
                     self)
         particle_deposition_functions(ptype, "particle_position",
             "particle_mass", self)
@@ -168,7 +168,7 @@ class FieldInfoContainer(dict):
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
             if not isinstance(units, str) and args[0] != "":
-                units = "((%s)*%s)" % (args[0], units)
+                units = f"(({args[0]})*{units})"
             if isinstance(units, (numeric_type, np.number, np.ndarray)) and \
                 args[0] == "" and units != 1.0:
                 mylog.warning("Cannot interpret units: %s * %s, " +
@@ -318,7 +318,7 @@ class FieldInfoContainer(dict):
 
     def __missing__(self, key):
         if self.fallback is None:
-            raise KeyError("No field named %s" % (key,))
+            raise KeyError(f"No field named {key}")
         return self.fallback[key]
 
     @classmethod

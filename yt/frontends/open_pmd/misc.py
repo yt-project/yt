@@ -50,7 +50,7 @@ def parse_unit_dimension(unit_dimension):
           "cd"]
     for i in np.arange(7):
         if unit_dimension[i] != 0:
-            dim.append("{}**{}".format(si[i], unit_dimension[i]))
+            dim.append(f"{si[i]}**{unit_dimension[i]}")
     return "*".join(dim)
 
 

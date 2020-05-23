@@ -35,7 +35,7 @@ def test_profiles():
     for nb in [8, 16, 32, 64]:
         for input_units in ['mks', 'cgs']:
             (rmi, rma), (tmi, tma), (dmi, dma) = [
-                getattr(ex, 'in_%s' % input_units)() for ex in
+                getattr(ex, f'in_{input_units}')() for ex in
                  dd.quantities["Extrema"](["density", "temperature", "dinosaurs"])]
             # We log all the fields or don't log 'em all.  No need to do them
             # individually.

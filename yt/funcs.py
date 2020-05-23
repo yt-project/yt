@@ -147,7 +147,7 @@ def get_memory_usage(subtract_share = False):
         pagesize = resource.getpagesize()
     except NameError:
         return -1024
-    status_file = "/proc/%s/statm" % (pid)
+    status_file = f"/proc/{pid}/statm"
     if not os.path.isfile(status_file):
         return -1024
     line = open(status_file).read()
@@ -245,7 +245,7 @@ def deprecate(replacement):
         def run_func(*args, **kwargs):
             message = "%s has been deprecated and may be removed without notice!"
             if replacement is not None:
-                message += " Use %s instead." % replacement
+                message += f" Use {replacement} instead."
             warnings.warn(message % func.__name__, VisibleDeprecationWarning,
                           stacklevel=2)
             func(*args, **kwargs)
@@ -448,7 +448,7 @@ def paste_traceback(exc_type, exc, tb):
     s = s.getvalue()
     ret = p.pastes.newPaste('pytb', s, None, '', '', True)
     print()
-    print("Traceback pasted to http://paste.yt-project.org/show/%s" % (ret))
+    print(f"Traceback pasted to http://paste.yt-project.org/show/{ret}")
     print()
 
 def paste_traceback_detailed(exc_type, exc, tb):
@@ -469,7 +469,7 @@ def paste_traceback_detailed(exc_type, exc, tb):
             allow_none=True)
     ret = p.pastes.newPaste('text', s, None, '', '', True)
     print()
-    print("Traceback pasted to http://paste.yt-project.org/show/%s" % (ret))
+    print(f"Traceback pasted to http://paste.yt-project.org/show/{ret}")
     print()
 
 _ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
@@ -509,12 +509,12 @@ def update_git(path):
             print("update the code. You will have to do this yourself.")
             print("Here's a set of sample commands:")
             print("")
-            print("    $ cd %s" % (path))
+            print(f"    $ cd {path}")
             print("    $ git stash")
             print("    $ git checkout master")
             print("    $ git pull")
             print("    $ git stash pop")
-            print("    $ %s setup.py develop" % (sys.executable))
+            print(f"    $ {sys.executable} setup.py develop")
             print("")
             return 1
         if repo.active_branch.name != 'master':
@@ -522,10 +522,10 @@ def update_git(path):
             print("update the code. You will have to do this yourself.")
             print("Here's a set of sample commands:")
             print("")
-            print("    $ cd %s" % (path))
+            print(f"    $ cd {path}")
             print("    $ git checkout master")
             print("    $ git pull")
-            print("    $ %s setup.py develop" % (sys.executable))
+            print(f"    $ {sys.executable} setup.py develop")
             print("")
             return 1
         print("Updating the repository")
@@ -542,7 +542,7 @@ def update_git(path):
         master.checkout()
         remote.pull()
         new_version = repo.git.rev_parse('HEAD', short=12)
-        f.write('Updated from %s to %s\n\n' % (old_version, new_version))
+        f.write(f'Updated from {old_version} to {new_version}\n\n')
         rebuild_modules(path, f)
     print('Updated successfully')
 
@@ -562,9 +562,9 @@ def update_hg(path):
             print("update the code. You will have to do this yourself.")
             print("Here's a set of sample commands:")
             print("")
-            print("    $ cd %s" % (path))
+            print(f"    $ cd {path}")
             print("    $ hg up -C yt  # This will delete any unsaved changes")
-            print("    $ %s setup.py develop" % (sys.executable))
+            print(f"    $ {sys.executable} setup.py develop")
             print("")
             return 1
         print("Updating the repository")
@@ -575,7 +575,7 @@ def update_hg(path):
             repo.update('master', check=True)
         else:
             repo.update('yt', check=True)
-        f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
+        f.write(f"Updated from {ident} to {repo.identify()}\n\n")
         rebuild_modules(path, f)
     print("Updated successfully.")
 
@@ -702,7 +702,7 @@ def simple_download_file(url, filename):
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
-    uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
+    uri = f'https://api.bitbucket.org/1.0/{endpoint}/'
     # since bitbucket doesn't return the required WWW-Authenticate header when
     # making a request without Authorization, we cannot use the standard urllib2
     # auth handlers; we have to add the requisite header from the start
@@ -712,7 +712,7 @@ def bb_apicall(endpoint, data, use_pass = True):
     if use_pass:
         username = input("Bitbucket Username? ")
         password = getpass.getpass()
-        upw = '%s:%s' % (username, password)
+        upw = f'{username}:{password}'
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib.request.urlopen(req).read()
 
@@ -735,7 +735,7 @@ def get_yt_supp():
             print("This command will do it:")
             print()
             print("$ hg clone http://bitbucket.org/yt_analysis/yt-supplemental/ ", end=' ')
-            print("%s" % (supp_path))
+            print(f"{supp_path}")
             print()
             sys.exit(1)
         rv = hglib.clone("http://bitbucket.org/yt_analysis/yt-supplemental/", 
@@ -878,7 +878,7 @@ def ensure_dir(path):
 def validate_width_tuple(width):
     if not iterable(width) or len(width) != 2:
         raise YTInvalidWidthError(
-            "width (%s) is not a two element tuple" % width)
+            f"width ({width}) is not a two element tuple")
     is_numeric = isinstance(width[0], numeric_type)
     length_has_units = isinstance(width[0], YTArray)
     unit_is_string = isinstance(width[1], str)
@@ -949,7 +949,7 @@ def deprecated_class(cls):
         # Note we use SyntaxWarning because by default, DeprecationWarning is
         # not shown.
         warnings.warn(
-            "This usage is deprecated.  Please use %s instead." % cls.__name__,
+            f"This usage is deprecated.  Please use {cls.__name__} instead.",
             SyntaxWarning, stacklevel=2)
         return cls(*args, **kwargs)
     return _func
@@ -1051,7 +1051,7 @@ def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
     filesize   = os.path.getsize(infile)
     iterations = int(float(filesize)/float(BLOCKSIZE))
 
-    pbar = get_pbar('Generating %s hash' % algorithm, iterations)
+    pbar = get_pbar(f'Generating {algorithm} hash', iterations)
 
     iter = 0
     with open(infile,'rb') as f:

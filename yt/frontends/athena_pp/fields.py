@@ -33,13 +33,13 @@ class AthenaPPFieldInfo(FieldInfoContainer):
             mom_field = ("athena_pp", "mom%d" % (i+1))
             if vel_field in self.field_list:
                 self.add_output_field(vel_field, sampling_type="cell", units="code_length/code_time")
-                self.alias(("gas","%s_%s" % (vel_prefix, comp)), vel_field,
+                self.alias(("gas",f"{vel_prefix}_{comp}"), vel_field,
                            units=unit_system["velocity"])
             elif mom_field in self.field_list:
                 self.add_output_field(mom_field,
                                       sampling_type="cell",
                                       units="code_mass/code_time/code_length**2")
-                self.add_field(("gas","%s_%s" % (vel_prefix, comp)), sampling_type="cell",
+                self.add_field(("gas",f"{vel_prefix}_{comp}"), sampling_type="cell",
                                function=velocity_field(i+1), units=unit_system["velocity"])
         # Figure out thermal energy field
         if ("athena_pp","press") in self.field_list:

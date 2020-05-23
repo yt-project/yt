@@ -23,7 +23,7 @@ def get_position_fields(field, data):
             ftype = finfo.alias_name[0]
         else:
             ftype = finfo.name[0]
-        position_fields = [(ftype, 'particle_position_%s' % d)
+        position_fields = [(ftype, f'particle_position_{d}')
                            for d in axis_names]
     else:
         position_fields = axis_names
@@ -253,7 +253,7 @@ class CenterOfMass(DerivedQuantity):
                      for ax in 'xyz']
             vals.append(data["gas", "mass"].sum(dtype=np.float64))
         if self.use_particles:
-            vals += [(data[particle_type, "particle_position_%s" % ax] *
+            vals += [(data[particle_type, f"particle_position_{ax}"] *
                       data[particle_type, "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
             vals.append(data[particle_type, "particle_mass"].sum(dtype=np.float64))
@@ -318,12 +318,12 @@ class BulkVelocity(DerivedQuantity):
     def process_chunk(self, data, use_gas=True, use_particles=False, particle_type="nbody"):
         vals = []
         if use_gas:
-            vals += [(data["gas", "velocity_%s" % ax] *
+            vals += [(data["gas", f"velocity_{ax}"] *
                       data["gas", "mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
             vals.append(data["gas", "mass"].sum(dtype=np.float64))
         if use_particles and 'nbody' in data.ds.particle_types:
-            vals += [(data[particle_type, "particle_velocity_%s" % ax] *
+            vals += [(data[particle_type, f"particle_velocity_{ax}"] *
                       data[particle_type, "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
             vals.append(data[particle_type, "particle_mass"].sum(dtype=np.float64))
@@ -472,12 +472,12 @@ class AngularMomentumVector(DerivedQuantity):
     def process_chunk(self, data, use_gas = True, use_particles = False, particle_type= "all"):
         rvals = []
         if self.use_gas:
-            rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
+            rvals.extend([(data["gas", f"specific_angular_momentum_{axis}"] *
                            data["gas", "mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
             rvals.append(data["gas", "mass"].sum(dtype=np.float64))
         if self.use_particles:
-            rvals.extend([(data[self.particle_type, "particle_specific_angular_momentum_%s" % axis] *
+            rvals.extend([(data[self.particle_type, f"particle_specific_angular_momentum_{axis}"] *
                            data[self.particle_type, "particle_mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
             rvals.append(data[self.particle_type, "particle_mass"].sum(dtype=np.float64))

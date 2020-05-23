@@ -51,7 +51,7 @@ class AHFHalosFile(HaloCatalogFile):
         halos = self.read_data(usecols=['Xc', 'Yc', 'Zc'])
         pos = np.empty((halos.size, 3), dtype="float64")
         for i, ax in enumerate('XYZ'):
-            pos[:, i] = halos['%sc' % ax].astype('float64')
+            pos[:, i] = halos[f'{ax}c'].astype('float64')
 
         return pos
 

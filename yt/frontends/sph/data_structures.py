@@ -36,7 +36,7 @@ class SPHDataset(ParticleDataset):
     @num_neighbors.setter
     def num_neighbors(self, value):
         if value < 0:
-            raise ValueError("Negative value not allowed: %s" % value)
+            raise ValueError(f"Negative value not allowed: {value}")
         self._num_neighbors = value
 
     @property
@@ -94,7 +94,7 @@ class SPHParticleIndex(ParticleIndex):
             self._kdtree = None
             return
         positions = np.concatenate(positions)
-        mylog.info('Allocating KDTree for %s particles' % positions.shape[0])
+        mylog.info(f'Allocating KDTree for {positions.shape[0]} particles')
         self._kdtree = PyKDTree(
             positions.astype('float64'),
             left_edge=self.ds.domain_left_edge,

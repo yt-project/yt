@@ -88,14 +88,14 @@ class ShaderProgram(object):
         return func
 
     def _set_scalar_uniform(self, kind, size_spec):
-        gl_func = getattr(GL, "glUniform%s%sv" % (size_spec, kind))
+        gl_func = getattr(GL, f"glUniform{size_spec}{kind}v")
         def _func(location, value):
             return gl_func(location, 1, value)
         return _func
 
     def _set_matrix_uniform(self, kind, size_spec):
         assert(size_spec[0] == size_spec[1])
-        gl_func = getattr(GL, "glUniformMatrix%s%sv" % (size_spec[0], kind))
+        gl_func = getattr(GL, f"glUniformMatrix{size_spec[0]}{kind}v")
         def _func(location, value):
             return gl_func(location, 1, GL.GL_TRUE, value)
         return _func

@@ -226,14 +226,14 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         def gen_flux(key, igroup):
             def _photon_flux(field, data):
-                rv = data['ramses-rt', 'Photon_flux_%s_%s' % (key, igroup + 1)] * flux_conv
+                rv = data['ramses-rt', f'Photon_flux_{key}_{igroup + 1}'] * flux_conv
                 return rv
             return _photon_flux
 
         flux_unit = str(1/self.ds.unit_system['time']/self.ds.unit_system['length']**2)
         for key in 'xyz':
             for igroup in range(ngroups):
-                self.add_field(('rt', 'photon_flux_%s_%s' % (key, igroup + 1)), sampling_type='cell',
+                self.add_field(('rt', f'photon_flux_{key}_{igroup + 1}'), sampling_type='cell',
                                function=gen_flux(key, igroup),
                                units=flux_unit)
 

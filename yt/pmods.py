@@ -323,7 +323,7 @@ def __find_head_package__(parent, name):
         head = name
         tail = ""
     if parent:
-        qname = "%s.%s" % (parent.__name__, head)
+        qname = f"{parent.__name__}.{head}"
     else:
         qname = head
     q = __import_module__(head, qname, parent)
@@ -341,7 +341,7 @@ def __load_tail__(q, tail):
         i = tail.find('.')
         if i < 0: i = len(tail)
         head, tail = tail[:i], tail[i+1:]
-        mname = "%s.%s" % (m.__name__, head)
+        mname = f"{m.__name__}.{head}"
         m = __import_module__(head, mname, m)
         if not m:
             raise ImportError("No module named " + mname)
@@ -359,7 +359,7 @@ def __ensure_fromlist__(m, fromlist, recursive=0):
                     __ensure_fromlist__(m, all, 1)
             continue
         if sub != "*" and not hasattr(m, sub):
-            subname = "%s.%s" % (m.__name__, sub)
+            subname = f"{m.__name__}.{sub}"
             submod = __import_module__(sub, subname, m)
             if not submod:
                 raise ImportError("No module named " + subname)

@@ -364,7 +364,7 @@ class EnzoPDataset(Dataset):
                 for attr in ["hubble_constant",
                              "omega_matter",
                              "omega_lambda"]:
-                    setattr(self, attr, co_dict["%s_now" % attr])
+                    setattr(self, attr, co_dict[f"{attr}_now"])
 
                 # Current redshift is not stored, so it's not possible
                 # to set all cosmological units yet.
@@ -429,7 +429,7 @@ class EnzoPDataset(Dataset):
             for d, u in zip(("length", "time"),
                             ("cm", "s")):
                 val = nested_dict_get(p, ("Units", d), default=1)
-                setdefaultattr(self, '%s_unit' % d, self.quan(val, u))
+                setdefaultattr(self, f'{d}_unit', self.quan(val, u))
             mass = nested_dict_get(p, ("Units", "mass"))
             if mass is None:
                 density = nested_dict_get(p, ("Units", "density"))

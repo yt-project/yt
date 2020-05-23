@@ -12,7 +12,7 @@ def export_rgba(image, fn, h5=True, fits=False, ):
     if (not h5 and not fits) or (h5 and fits):
         raise ValueError("Choose either HDF5 or FITS format!")
     if h5:
-        f = h5py.File('%s.h5'%fn, "w")
+        f = h5py.File(f'{fn}.h5', "w")
         f.create_dataset("R", data=image[:,:,0])
         f.create_dataset("G", data=image[:,:,1])
         f.create_dataset("B", data=image[:,:,2])
@@ -26,7 +26,7 @@ def export_rgba(image, fn, h5=True, fits=False, ):
         data["b"] = image[:,:,2]
         data["a"] = image[:,:,3]
         fib = FITSImageData(data)
-        fib.writeto('%s.fits'%fn,overwrite=True)
+        fib.writeto(f'{fn}.fits',overwrite=True)
 
 def import_rgba(name, h5=True):
     """
@@ -77,7 +77,7 @@ def plot_channel(image, name, cmap='gist_heat', log=True, dex=3, zero_factor=1.0
         pylab.imshow(image,cmap=mycm, interpolation='nearest')
     if label is not None:
         pylab.text(20, 20,label, color = label_color, size=label_size) 
-    pylab.savefig("%s_%s.png" % (name,cmap))
+    pylab.savefig(f"{name}_{cmap}.png")
     pylab.clf()
 
 def plot_rgb(image, name, label=None, label_color='w', label_size='large'):
@@ -99,5 +99,5 @@ def plot_rgb(image, name, label=None, label_color='w', label_size='large'):
     pylab.imshow(image, interpolation='nearest')
     if label is not None:
         pylab.text(20, 20, label, color = label_color, size=label_size) 
-    pylab.savefig("%s_rgb.png" % name)
+    pylab.savefig(f"{name}_rgb.png")
     pylab.clf()

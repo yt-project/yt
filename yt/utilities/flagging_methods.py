@@ -156,4 +156,4 @@ class ProtoSubgrid(object):
         return [psg1, psg2]
 
     def __str__(self):
-        return "LI: (%s) DIMS: (%s)" % (self.left_index, self.dimensions)
+        return f"LI: ({self.left_index}) DIMS: ({self.dimensions})"

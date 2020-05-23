@@ -299,11 +299,11 @@ class SDFRead(dict):
     def write(self, filename):
         f = open(filename, 'w')
         f.write("# SDF 1.0\n")
-        f.write("parameter byteorder = %s;\n" % (self.parameters['byteorder']))
+        f.write(f"parameter byteorder = {self.parameters['byteorder']};\n")
         for c in self.comments:
             if "\x0c" in c: continue
             if "SDF 1.0" in c: continue
-            f.write("%s" % c)
+            f.write(f"{c}")
         for k, v in sorted(self.parameters.items()):
             if k == 'byteorder': continue
             try:
@@ -311,9 +311,9 @@ class SDFRead(dict):
             except:
                 t = type(v).__name__
             if t == str.__name__:
-                f.write("parameter %s = \"%s\";\n" % (k, v))
+                f.write(f"parameter {k} = \"{v}\";\n")
             else:
-                f.write("%s %s = %s;\n" % (t, k, v))
+                f.write(f"{t} {k} = {v};\n")
 
         struct_order = []
         for s in self.structs:
@@ -322,7 +322,7 @@ class SDFRead(dict):
             for var in s.dtype.descr:
                 k, v = var[0], _rev_types[var[1]]
                 to_write.append(k)
-                f.write("\t%s %s;\n" % (v, k))
+                f.write(f"\t{v} {k};\n")
             f.write("}[%i];\n" % s.size)
             struct_order.append(to_write)
         f.write("#\x0c\n")
@@ -330,13 +330,13 @@ class SDFRead(dict):
         return struct_order, f
 
     def __repr__(self):
-        disp = "<SDFRead Object> file: %s\n" % self.filename
+        disp = f"<SDFRead Object> file: {self.filename}\n"
         disp += "parameters: \n"
         for k, v in self.parameters.items():
-            disp += "\t%s: %s\n" % (k, v)
+            disp += f"\t{k}: {v}\n"
         disp += "arrays: \n"
         for k, v in self.items():
-            disp += "\t%s[%s]\n" % (k, v.size)
+            disp += f"\t{k}[{v.size}]\n"
         return disp
 
     def parse_header(self):
@@ -378,12 +378,12 @@ class SDFRead(dict):
             vtype = "str"
 
         try:
-            vval = eval("np."+vtype+"(%s)" % vval)
+            vval = eval("np."+vtype+f"({vval})")
         except AttributeError:
             if vtype not in _types:
                 mylog.warning("Skipping parameter %s", vname)
                 return
-            vval = eval("np."+_types[vtype]+"(%s)" % vval)
+            vval = eval("np."+_types[vtype]+f"({vval})")
 
         self.parameters[vname] = vval
 
@@ -654,7 +654,7 @@ class SDFIndex(object):
                     f2 = 1<<int(np.log2(ic_Nmesh-1)+1)
                     if (f2 != ic_Nmesh):
                         expand_root = 1.0*f2/ic_Nmesh - 1.0;
-                        mylog.debug("Expanding: %s, %s, %s" % (f2, ic_Nmesh, expand_root))
+                        mylog.debug(f"Expanding: {f2}, {ic_Nmesh}, {expand_root}")
                         rmin *= (1.0 + expand_root)
                         rmax *= (1.0 + expand_root)
 
@@ -664,7 +664,7 @@ class SDFIndex(object):
             self.domain_buffer = (self.domain_dims - int(self.domain_dims/(1.0 + expand_root)))/2
             self.domain_active_dims = self.domain_dims - 2*self.domain_buffer
 
-        mylog.debug("MIDX rmin: %s, rmax: %s" % (self.rmin, self.rmax))
+        mylog.debug(f"MIDX rmin: {self.rmin}, rmax: {self.rmax}")
         mylog.debug("MIDX: domain_width: %s, domain_dims: %s, domain_active_dims: %s " %
                     (self.domain_width, self.domain_dims, self.domain_active_dims))
 
@@ -755,7 +755,7 @@ class SDFIndex(object):
         #print('Getting data from ileft to iright:',  ileft, iright)
 
         ix, iy, iz = (iright-ileft)*1j
-        mylog.debug('MIDX IBBOX: %s %s %s %s %s' % (ileft, iright, ix, iy, iz))
+        mylog.debug(f'MIDX IBBOX: {ileft} {iright} {ix} {iy} {iz}')
 
         # plus 1 that is sliced, plus a bit since mgrid is not inclusive
         Z, Y, X = np.mgrid[ileft[2]:iright[2]+1.01,
@@ -998,7 +998,7 @@ class SDFIndex(object):
         if pos_fields is None:
             pos_fields = 'x','y','z'
         xf, yf, zf = pos_fields
-        mylog.debug("Using position fields: %s" % pos_fields)
+        mylog.debug(f"Using position fields: {pos_fields}")
 
         # I'm sorry.
         pos = mpcuq * np.array([data[xf].in_units('Mpccm/h'), data[yf].in_units('Mpccm/h'), data[zf].in_units('Mpccm/h')]).T
@@ -1007,7 +1007,7 @@ class SDFIndex(object):
         # if it is even needed for a given left/right
         _shift_periodic(pos, left, right, DW)
 
-        mylog.debug("Periodic filtering, %s %s %s %s" % (left, right, pos.min(axis=0), pos.max(axis=0)))
+        mylog.debug(f"Periodic filtering, {left} {right} {pos.min(axis=0)} {pos.max(axis=0)}")
         # Now get all particles that are within the bbox
         mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
 
@@ -1029,7 +1029,7 @@ class SDFIndex(object):
         and a right.
         """
         _ensure_xyz_fields(fields)
-        mylog.debug('MIDX Loading region from %s to %s' %(left, right))
+        mylog.debug(f'MIDX Loading region from {left} to {right}')
         inds = self.get_bbox(left, right)
         # Need to put left/right in float32 to avoid fp roundoff errors
         # in the bbox later.
@@ -1050,7 +1050,7 @@ class SDFIndex(object):
         a radius.
         """
         _ensure_xyz_fields(fields)
-        mylog.debug('MIDX Loading spherical region %s to %s' %(center, radius))
+        mylog.debug(f'MIDX Loading spherical region {center} to {radius}')
         inds = self.get_bbox(center-radius, center+radius)
 
         for dd in self.filter_sphere(
@@ -1059,7 +1059,7 @@ class SDFIndex(object):
             yield dd
 
     def iter_ibbox_data(self, left, right, fields):
-        mylog.debug('MIDX Loading region from %s to %s' %(left, right))
+        mylog.debug(f'MIDX Loading region from {left} to {right}')
         inds = self.get_ibbox(left, right)
         return self.iter_data(inds, fields)
 

@@ -57,10 +57,10 @@ class ARTIOFieldInfo(FieldInfoContainer):
         unit_system = self.ds.unit_system
         def _get_vel(axis):
             def velocity(field, data):
-                return data["momentum_%s" % axis]/data["density"]
+                return data[f"momentum_{axis}"]/data["density"]
             return velocity
         for ax in 'xyz':
-            self.add_field(("gas", "velocity_%s" % ax),
+            self.add_field(("gas", f"velocity_{ax}"),
                            sampling_type="cell",
                            function = _get_vel(ax),
                            units = unit_system["velocity"])

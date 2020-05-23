@@ -93,7 +93,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         d = data.deposit(pos, method = "count")
         return data.apply_units(d, field.units)
 
-    registry.add_field(("deposit", "%s_count" % ptype),
+    registry.add_field(("deposit", f"{ptype}_count"),
                        sampling_type="cell",
                        function = particle_count,
                        validators = [ValidateSpatial()],
@@ -107,7 +107,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         d = data.deposit(pos, [pmass], method = "sum")
         return data.apply_units(d, field.units)
 
-    registry.add_field(("deposit", "%s_mass" % ptype),
+    registry.add_field(("deposit", f"{ptype}_mass"),
                        sampling_type="cell",
                        function = particle_mass,
                        validators = [ValidateSpatial()],
@@ -124,7 +124,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         d /= data["index", "cell_volume"]
         return d
 
-    registry.add_field(("deposit", "%s_density" % ptype),
+    registry.add_field(("deposit", f"{ptype}_density"),
                        sampling_type="cell",
                        function = particle_density,
                        validators = [ValidateSpatial()],
@@ -138,7 +138,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         d /= data["index", "cell_volume"]
         return d
 
-    registry.add_field(("deposit", "%s_cic" % ptype),
+    registry.add_field(("deposit", f"{ptype}_cic"),
                        sampling_type="cell",
                        function = particle_cic,
                        validators = [ValidateSpatial()],
@@ -166,7 +166,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     for ax in 'xyz':
         for method, name in zip(("cic", "sum"), ("cic", "nn")):
             function = _get_density_weighted_deposit_field(
-                "particle_velocity_%s" % ax, "code_velocity", method)
+                f"particle_velocity_{ax}", "code_velocity", method)
             registry.add_field(
                 ("deposit", ("%s_"+name+"_velocity_%s") % (ptype, ax)),
                 sampling_type="cell",
@@ -230,11 +230,11 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
         return _particle_velocity, _particle_position
     for axi, ax in enumerate("xyz"):
         v, p = _get_coord_funcs(axi, ptype)
-        registry.add_field((ptype, "particle_velocity_%s" % ax),
+        registry.add_field((ptype, f"particle_velocity_{ax}"),
                            sampling_type="particle",
                            function = v,
                            units = "code_velocity")
-        registry.add_field((ptype, "particle_position_%s" % ax),
+        registry.add_field((ptype, f"particle_position_{ax}"),
                            sampling_type="particle",
                            function = p,
                            units = "code_length")
@@ -315,20 +315,20 @@ def standard_particle_fields(registry, ptype,
             return data[_ptype, "particle_specific_angular_momentum"][:, axi]
         def _particle_angular_momentum_component(field, data):
             return data[_ptype, "particle_mass"] * \
-                data[ptype, "particle_specific_angular_momentum_%s" % ax]
+                data[ptype, f"particle_specific_angular_momentum_{ax}"]
         return _particle_specific_angular_momentum_component, \
             _particle_angular_momentum_component
     for axi, ax in enumerate("xyz"):
         f, v = _get_spec_ang_mom_comp(axi, ax, ptype)
         registry.add_field(
-            (ptype, "particle_specific_angular_momentum_%s" % ax),
+            (ptype, f"particle_specific_angular_momentum_{ax}"),
             sampling_type="particle",
             function=f,
             units=unit_system["specific_angular_momentum"],
             validators=[ValidateParameter("center")]
         )
         registry.add_field(
-            (ptype, "particle_angular_momentum_%s" % ax),
+            (ptype, f"particle_angular_momentum_{ax}"),
             sampling_type="particle",
             function=v, units=unit_system["angular_momentum"],
             validators=[ValidateParameter('center')])
@@ -369,7 +369,7 @@ def standard_particle_fields(registry, ptype,
 
         Note that the orientation of the x and y axes are arbitrary.
         """
-        field_names = [(ptype, 'particle_position_%s' % ax) for ax in "xyz"]
+        field_names = [(ptype, f'particle_position_{ax}') for ax in "xyz"]
         return obtain_position_vector(data, field_names=field_names).T
 
     def _particle_position_relative(field, data):
@@ -401,7 +401,7 @@ def standard_particle_fields(registry, ptype,
 
         Note that the orientation of the x and y axes are arbitrary.
         """
-        field_names = [(ptype, 'particle_velocity_%s' % ax) for ax in "xyz"]
+        field_names = [(ptype, f'particle_velocity_{ax}') for ax in "xyz"]
         return obtain_relative_velocity_vector(data, field_names=field_names).T
 
     def _particle_velocity_relative(field, data):
@@ -433,15 +433,15 @@ def standard_particle_fields(registry, ptype,
         return _particle_vel_rel, _particle_pos_rel
     for axi, ax in enumerate("xyz"):
         v, p = _get_coord_funcs_relative(axi, ptype)
-        registry.add_field((ptype, "particle_velocity_relative_%s" % ax),
+        registry.add_field((ptype, f"particle_velocity_relative_{ax}"),
                            sampling_type="particle",
                            function=v,
                            units="code_velocity")
-        registry.add_field((ptype, "particle_position_relative_%s" % ax),
+        registry.add_field((ptype, f"particle_position_relative_{ax}"),
             sampling_type="particle", function = p, units = "code_length")
-        registry.add_field((ptype, "relative_particle_velocity_%s" % ax),
+        registry.add_field((ptype, f"relative_particle_velocity_{ax}"),
             sampling_type="particle", function = v, units = "code_velocity")
-        registry.add_field((ptype, "relative_particle_position_%s" % ax),
+        registry.add_field((ptype, f"relative_particle_position_{ax}"),
             sampling_type="particle", function = p, units = "code_length")
 
     # this is just particle radius but we add it with an alias for the sake of
@@ -775,7 +775,7 @@ def add_particle_average(registry, ptype, field_name,
         if density: v /= data["index", "cell_volume"]
         v[np.isnan(v)] = 0.0
         return v
-    fn = ("deposit", "%s_avg_%s" % (ptype, field_name))
+    fn = ("deposit", f"{ptype}_avg_{field_name}")
     registry.add_field(fn,
                        sampling_type="cell",
                        function=_pfunc_avg,
@@ -802,7 +802,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
 
 
 def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
-    field_name = (ptype, "nearest_neighbor_distance_%s" % (nneighbors))
+    field_name = (ptype, f"nearest_neighbor_distance_{nneighbors}")
     def _nth_neighbor(field, data):
         pos = data[ptype, coord_name]
         pos.convert_to_units("code_length")

@@ -8,7 +8,7 @@ from yt import SlicePlot
 def test_point():
     ds = fake_sph_orientation_ds()
     field_data = ds.stream_handler.fields['stream_file']
-    ppos = [field_data['io', 'particle_position_%s' % d] for d in 'xyz']
+    ppos = [field_data['io', f'particle_position_{d}'] for d in 'xyz']
     ppos = np.array(ppos).T
     for pos in ppos:
         for i in range(-1, 2):

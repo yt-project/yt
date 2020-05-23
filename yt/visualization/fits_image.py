@@ -33,7 +33,7 @@ class UnitfulHDU(object):
 
     def __repr__(self):
         im_shape = " x ".join([str(s) for s in self.shape])
-        return "FITSImage: %s (%s, %s)" % (self.name, im_shape, self.units)
+        return f"FITSImage: {self.name} ({im_shape}, {self.units})"
 
 
 class FITSImageData(object):
@@ -216,7 +216,7 @@ class FITSImageData(object):
                     else:
                         raise RuntimeError("Cannot distinguish between fields "
                                            "with same name %s!" % fd)
-                    self.fields[i] = "%s_%s" % (ftype, fname)
+                    self.fields[i] = f"{ftype}_{fname}"
 
         first = True
         for i, name, field in zip(count(), self.fields, fields):
@@ -232,7 +232,7 @@ class FITSImageData(object):
                     self.field_units[name] = str(funits)
                 else:
                     self.field_units[name] = "dimensionless"
-                mylog.info("Making a FITS image of field %s" % name)
+                mylog.info(f"Making a FITS image of field {name}")
                 if isinstance(this_img, ImageArray):
                     if i == 0:
                         self.shape = this_img.shape[::-1]
@@ -254,11 +254,11 @@ class FITSImageData(object):
                         short_unit = "bf"
                     else:
                         short_unit = unit[0]
-                    key = "{}unit".format(short_unit)
-                    value = getattr(self, "{}_unit".format(unit))
+                    key = f"{short_unit}unit"
+                    value = getattr(self, f"{unit}_unit")
                     if value is not None:
                         hdu.header[key] = float(value.value)
-                        hdu.header.comments[key] = "[%s]" % value.units
+                        hdu.header.comments[key] = f"[{value.units}]"
                 hdu.header["time"] = float(self.current_time.value)
                 self.hdulist.append(hdu)
 
@@ -349,14 +349,13 @@ class FITSImageData(object):
                 uq = None
 
             if uq is not None and uq.units.is_code_unit:
-                mylog.warning("Cannot use code units of '%s' " % uq.units +
+                mylog.warning(f"Cannot use code units of '{uq.units}' " +
                               "when creating a FITSImageData instance! "
                               "Converting to a cgs equivalent.")
                 uq.convert_to_cgs()
 
             if attr == "length_unit" and uq.value != 1.0:
-                mylog.warning("Converting length units "
-                              "from %s to %s." % (uq, uq.units))
+                mylog.warning(f"Converting length units from {uq} to {uq.units}.")
                 uq = YTQuantity(1.0, uq.units)
 
             setattr(self, attr, uq)
@@ -440,7 +439,7 @@ class FITSImageData(object):
             raise RuntimeError("Convolution currently only works for 2D FITSImageData!")
         conv = _astropy.conv
         if field not in self.keys():
-            raise KeyError("%s not an image!" % field)
+            raise KeyError(f"{field} not an image!")
         idx = self.fields.index(field)
         if not isinstance(kernel, conv.Kernel):
             if not isinstance(kernel, numeric_type):
@@ -466,7 +465,7 @@ class FITSImageData(object):
                 img.header[key] = value
         else:
             if field not in self.keys():
-                raise KeyError("%s not an image!" % field)
+                raise KeyError(f"{field} not an image!")
             idx = self.fields.index(field)
             self.hdulist[idx].header[key] = value
 
@@ -522,7 +521,7 @@ class FITSImageData(object):
             name = '(No file associated with this FITSImageData)'
         else:
             name = self.hdulist._file.name
-        results = ['Filename: {}'.format(name), header]
+        results = [f'Filename: {name}', header]
         for line in hinfo:
             units = self.field_units[self.hdulist[line[0]].header['btype']]
             summary = tuple(list(line[:-1]) + [units])
@@ -617,7 +616,7 @@ class FITSImageData(object):
         Set the units of *field* to *units*.
         """
         if field not in self.keys():
-            raise KeyError("%s not an image!" % field)
+            raise KeyError(f"{field} not an image!")
         idx = self.fields.index(field)
         new_data = YTArray(self.hdulist[idx].data, 
                            self.field_units[field]).to(units)
@@ -632,7 +631,7 @@ class FITSImageData(object):
         instance.
         """
         if key not in self.keys():
-            raise KeyError("%s not an image!" % key)
+            raise KeyError(f"{key} not an image!")
         idx = self.fields.index(key)
         im = self.hdulist.pop(idx)
         self.field_units.pop(key)
@@ -727,7 +726,7 @@ class FITSImageData(object):
         else:
             scaleq = YTQuantity(sky_scale[0],sky_scale[1])
         if scaleq.units.dimensions != dimensions.angle/dimensions.length:
-            raise RuntimeError("sky_scale %s not in correct " % sky_scale +
+            raise RuntimeError(f"sky_scale {sky_scale} not in correct " +
                                "dimensions of angle/length!")
         deltas = old_wcs.wcs.cdelt
         units = [str(unit) for unit in old_wcs.wcs.cunit]

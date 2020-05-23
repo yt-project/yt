@@ -124,8 +124,7 @@ def t_from_z_analytic(z, hubble_constant=0.7,
                      np.power(1+z, 1.5))
 
     else:
-        raise NotImplementedError("%s, %s, %s" %
-                                  (hubble_constant, omega_matter, omega_lambda))
+        raise NotImplementedError(f"{hubble_constant}, {omega_matter}, {omega_lambda}")
 
     # Now convert from Time * H0 to time.
 
@@ -172,7 +171,7 @@ def test_z_t_analytic():
 
         assert_rel_equal(
             t_an, t_co, 4,
-            err_msg='t_from_z does not match analytic version for cosmology %s.' % cosmo)
+            err_msg=f't_from_z does not match analytic version for cosmology {cosmo}.')
 
         # random sample in log(t/t0) from -3 to 1
         t0 = np.power(10, 4 * my_random.random_sample(1000) - 3)
@@ -184,7 +183,7 @@ def test_z_t_analytic():
         # compare scale factors since z approaches 0
         assert_rel_equal(
             1 / (1 + z_an), 1 / (1 + z_co), 5,
-            err_msg='z_from_t does not match analytic version for cosmology %s.' % cosmo)
+            err_msg=f'z_from_t does not match analytic version for cosmology {cosmo}.')
 
 def test_dark_factor():
     """

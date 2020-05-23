@@ -43,7 +43,7 @@ class LensTest(TestCase):
         tf.grey_opacity = True
         sc.add_source(vol)
         sc.render()
-        sc.save('test_perspective_%s.png' % self.field[1], sigma_clip=6.0)
+        sc.save(f'test_perspective_{self.field[1]}.png', sigma_clip=6.0)
 
     def test_stereoperspective_lens(self):
         sc = Scene()
@@ -55,7 +55,7 @@ class LensTest(TestCase):
         tf.grey_opacity = True
         sc.add_source(vol)
         sc.render()
-        sc.save('test_stereoperspective_%s.png' % self.field[1], sigma_clip=6.0)
+        sc.save(f'test_stereoperspective_{self.field[1]}.png', sigma_clip=6.0)
 
     def test_fisheye_lens(self):
         dd = self.ds.sphere(self.ds.domain_center,
@@ -71,7 +71,7 @@ class LensTest(TestCase):
         tf.grey_opacity = True
         sc.add_source(vol)
         sc.render()
-        sc.save('test_fisheye_%s.png' % self.field[1], sigma_clip=6.0)
+        sc.save(f'test_fisheye_{self.field[1]}.png', sigma_clip=6.0)
 
     def test_plane_lens(self):
         dd = self.ds.sphere(self.ds.domain_center,
@@ -85,7 +85,7 @@ class LensTest(TestCase):
         tf.grey_opacity = True
         sc.add_source(vol)
         sc.render()
-        sc.save('test_plane_%s.png' % self.field[1], sigma_clip=6.0)
+        sc.save(f'test_plane_{self.field[1]}.png', sigma_clip=6.0)
 
     def test_spherical_lens(self):
         sc = Scene()
@@ -97,7 +97,7 @@ class LensTest(TestCase):
         tf.grey_opacity = True
         sc.add_source(vol)
         sc.render()
-        sc.save('test_spherical_%s.png' % self.field[1], sigma_clip=6.0)
+        sc.save(f'test_spherical_{self.field[1]}.png', sigma_clip=6.0)
 
     def test_stereospherical_lens(self):
         w = (self.ds.domain_width).in_units('code_length')
@@ -111,4 +111,4 @@ class LensTest(TestCase):
         tf.grey_opacity = True
         sc.add_source(vol)
         sc.render()
-        sc.save('test_stereospherical_%s.png' % self.field[1], sigma_clip=6.0)
+        sc.save(f'test_stereospherical_{self.field[1]}.png', sigma_clip=6.0)

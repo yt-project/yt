@@ -258,7 +258,7 @@ class DerivedField(object):
         if self._function is NullFunc:
             raise RuntimeError(
                 "Something has gone terribly wrong, _function is NullFunc " +
-                "for %s" % (self.name,))
+                f"for {self.name}")
         with self.unit_registry(data):
             dd = self._function(self, data)
         for field_name in data.keys():
@@ -316,16 +316,16 @@ class DerivedField(object):
         if self._function == NullFunc:
             s = "On-Disk Field "
         elif func_name == "_TranslationFunc":
-            s = "Alias Field for \"%s\" " % (self.alias_name,)
+            s = f"Alias Field for \"{self.alias_name}\" "
         else:
             s = "Derived Field "
         if isinstance(self.name, tuple):
             s += "(%s, %s): " % self.name
         else:
-            s += "%s: " % (self.name)
-        s += "(units: %s" % self.units
+            s += f"{self.name}: "
+        s += f"(units: {self.units}"
         if self.display_name is not None:
-            s += ", display_name: '%s'" % (self.display_name)
+            s += f", display_name: '{self.display_name}'"
         if self.sampling_type == "particle":
             s += ", particle field"
         s += ")"

@@ -128,7 +128,7 @@ class OWLSSubfindDataset(ParticleDataset):
                          os.path.basename(self.parameter_filename).split(".", 1)[0]))
         
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        self.filename_template = f"{prefix}.%(num)i.{suffix}"
         self.file_count = len(glob.glob(prefix + "*" + self._suffix))
         if self.file_count == 0:
             raise YTException(message="No data files found.", ds=self)

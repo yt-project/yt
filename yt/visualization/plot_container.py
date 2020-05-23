@@ -473,12 +473,12 @@ class PlotContainer(object):
             if isinstance(k, tuple):
                 k = k[1]
             if axis:
-                n = "%s_%s_%s_%s" % (name, type, axis, k.replace(' ', '_'))
+                n = f"{name}_{type}_{axis}_{k.replace(' ', '_')}"
             else:
                 # for cutting planes
-                n = "%s_%s_%s" % (name, type, k.replace(' ', '_'))
+                n = f"{name}_{type}_{k.replace(' ', '_')}"
             if weight:
-                n += "_%s" % (weight)
+                n += f"_{weight}"
             if suffix != '':
                 n = ".".join([n,suffix])
             names.append(v.save(n, mpl_kwargs))
@@ -587,7 +587,7 @@ class PlotContainer(object):
                         self.data_source.axis][i]
                 elif hasattr(self.ds.coordinates, "default_unit_label"):
                     axax = getattr(self.ds.coordinates,
-                                   "%s_axis" % ("xy"[i]))[self.data_source.axis]
+                                   f"{'xy'[i]}_axis")[self.data_source.axis]
                     unn = self.ds.coordinates.default_unit_label.get(
                         axax, None)
             if unn is not None:

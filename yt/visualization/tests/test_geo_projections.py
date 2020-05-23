@@ -26,7 +26,7 @@ def compare(ds, field, idir, test_prefix, test_name, projection,
         image_file = sl.save(filename_prefix)
         return image_file
 
-    slice_image.__name__ = "slice_{}".format(test_prefix)
+    slice_image.__name__ = f"slice_{test_prefix}"
     test = GenericImageTest(ds, slice_image, decimals)
     test.prefix = test_prefix
     test.answer_name = test_name
@@ -44,7 +44,7 @@ def test_geo_slices_amr():
             # avoid crashes, see https://github.com/SciTools/cartopy/issues/1177
             continue
         for field in ds.field_list:
-            prefix = "%s_%s_%s" % (field[0], field[1], transform)
+            prefix = f"{field[0]}_{field[1]}_{transform}"
             yield compare(ds, field, 'altitude', test_prefix=prefix,
                           test_name="geo_slices_amr", projection=transform)
 

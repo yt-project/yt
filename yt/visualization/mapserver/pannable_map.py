@@ -32,16 +32,16 @@ class PannableMapServer(object):
         self.field = field
         self.cmap = cmap
 
-        bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
-        bottle.route("%s/map/:field/:L/:x/:y.png" % route_prefix)(self.map)
-        bottle.route("%s/" % route_prefix)(self.index)
-        bottle.route("%s/:field" % route_prefix)(self.index)
-        bottle.route("%s/index.html" % route_prefix)(self.index)
-        bottle.route("%s/list" % route_prefix, "GET")(self.list_fields)
+        bottle.route(f"{route_prefix}/map/:field/:L/:x/:y.png")(self.map)
+        bottle.route(f"{route_prefix}/map/:field/:L/:x/:y.png")(self.map)
+        bottle.route(f"{route_prefix}/")(self.index)
+        bottle.route(f"{route_prefix}/:field")(self.index)
+        bottle.route(f"{route_prefix}/index.html")(self.index)
+        bottle.route(f"{route_prefix}/list", "GET")(self.list_fields)
         # This is a double-check, since we do not always mandate this for
         # slices:
         self.data[self.field] = self.data[self.field].astype("float64")
-        bottle.route("%s/static/:path" % route_prefix, "GET")(self.static)
+        bottle.route(f"{route_prefix}/static/:path", "GET")(self.static)
 
         self.takelog = takelog
         self._lock = False
@@ -125,8 +125,8 @@ class PannableMapServer(object):
 
         # Add deposit fields (only cic + density for now)
         for ptype in self.ds.particle_types:
-            d[ptype] = [(('deposit', '%s_cic'     % ptype), False),
-                        (('deposit', '%s_density' % ptype), False)]
+            d[ptype] = [(('deposit', f'{ptype}_cic'), False),
+                        (('deposit', f'{ptype}_density'), False)]
 
         # Add fluid fields (only gas for now)
         for ftype in self.ds.fluid_types:

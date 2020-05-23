@@ -373,7 +373,7 @@ class ARTDataset(Dataset):
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = ("%s" % args[0])
+        f = (f"{args[0]}")
         prefix, suffix = filename_pattern['amr']
         if not os.path.isfile(f):
             return False
@@ -614,7 +614,7 @@ class DarkMatterARTDataset(ARTDataset):
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = ("%s" % args[0])
+        f = (f"{args[0]}")
         prefix, suffix = filename_pattern['particle_data']
         if not os.path.isfile(f):
             return False

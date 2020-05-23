@@ -331,7 +331,7 @@ class YTProj(YTSelectionContainer2D):
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
                 ax_name = self.ds.coordinates.axis_name[self.axis]
-                path_element_name = ("index", "path_element_%s" % (ax_name))
+                path_element_name = ("index", f"path_element_{ax_name}")
                 path_length_unit = self.ds.field_info[path_element_name].units
                 path_length_unit = Unit(path_length_unit,
                                         registry=self.ds.unit_registry)
@@ -450,7 +450,7 @@ class YTQuadTreeProj(YTProj):
             deserialized_successfully = self._mrep.restore(store_file, self.ds)
 
             if deserialized_successfully:
-                mylog.info("Using previous projection data from %s" % store_file)
+                mylog.info(f"Using previous projection data from {store_file}")
                 for field, field_data in self._mrep.field_data.items():
                     self[field] = field_data
         if not deserialized_successfully:
@@ -491,7 +491,7 @@ class YTQuadTreeProj(YTProj):
             dl = self.ds.quan(1.0, "")
         else:
             ax_name = self.ds.coordinates.axis_name[self.axis]
-            dl = chunk["index", "path_element_%s" % (ax_name)]
+            dl = chunk["index", f"path_element_{ax_name}"]
             # This is done for cases where our path element does not have a CGS
             # equivalent.  Once "preferred units" have been implemented, this
             # will not be necessary at all, as the final conversion will occur
@@ -738,12 +738,12 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 fi = self.ds._get_field_info(field)
                 ptype = fi.name[0]
                 if ptype not in self.ds._sph_ptypes:
-                    raise KeyError("%s is not a SPH particle type!" % ptype)
+                    raise KeyError(f"{ptype} is not a SPH particle type!")
                 buff = np.zeros(size, dtype="float64")
                 if normalize:
                     buff_den = np.zeros(size, dtype="float64")
 
-                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+                pbar = tqdm(desc=f"Interpolating SPH field {field}")
                 for chunk in self._data_source.chunks([field],"io"):
                     px = chunk[(ptype,'particle_position_x')].in_base("code").d
                     py = chunk[(ptype,'particle_position_y')].in_base("code").d
@@ -852,7 +852,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     def deposit(self, positions, fields = None, method = None,
                 kernel_name = 'cubic'):
-        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         # We allocate number of zones, not number of octs. Everything
@@ -1315,7 +1315,7 @@ class YTSurface(YTSelectionContainer3D):
             fields = fields[0]
         # Now we have a "fields" value that is either a string or None
         if fields is not None:
-            mylog.info("Extracting (sampling: %s)" % (fields,))
+            mylog.info(f"Extracting (sampling: {fields})")
         verts = []
         samples = []
         for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
@@ -1712,16 +1712,16 @@ class YTSurface(YTSelectionContainer3D):
         for i in range(0,lut[0].shape[0]):
             omname = "material_" + str(i) + '_' + str(plot_index)  # name of the material
             fmtl.write("newmtl " + omname +'\n') # the specific material (color) for this face
-            fmtl.write("Ka %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # ambient color, keep off
-            fmtl.write("Kd %.6f %.6f %.6f\n" %(lut[0][i], lut[1][i], lut[2][i])) # color of face
-            fmtl.write("Ks %.6f %.6f %.6f\n" %(0.0, 0.0, 0.0)) # specular color, keep off
-            fmtl.write("d %.6f\n" %(transparency))  # transparency
-            fmtl.write("em %.6f\n" %(emiss[i])) # emissivity per color
+            fmtl.write(f"Ka {0.0:.6f} {0.0:.6f} {0.0:.6f}\n") # ambient color, keep off
+            fmtl.write(f"Kd {lut[0][i]:.6f} {lut[1][i]:.6f} {lut[2][i]:.6f}\n") # color of face
+            fmtl.write(f"Ks {0.0:.6f} {0.0:.6f} {0.0:.6f}\n") # specular color, keep off
+            fmtl.write(f"d {transparency:.6f}\n")  # transparency
+            fmtl.write(f"em {emiss[i]:.6f}\n") # emissivity per color
             fmtl.write("illum 2\n") # not relevant, 2 means highlights on?
             fmtl.write("Ns %.6f\n\n" %(0.0)) #keep off, some other specular thing
         #(2) write vertices
         for i in range(0,self.vertices.shape[1]):
-            fobj.write("v %.6f %.6f %.6f\n" %(v["x"][i], v["y"][i], v["z"][i]))
+            fobj.write(f"v {v['x'][i]:.6f} {v['y'][i]:.6f} {v['z'][i]:.6f}\n")
         fobj.write("#done defining vertices\n\n")
         #(3) define faces and materials for each face
         for i in range(0,self.triangles.shape[0]):
@@ -2112,25 +2112,25 @@ class YTSurface(YTSelectionContainer3D):
     def _upload_to_sketchfab(self, data, files):
         import requests
         SKETCHFAB_DOMAIN = 'sketchfab.com'
-        SKETCHFAB_API_URL = 'https://api.{}/v2/models'.format(SKETCHFAB_DOMAIN)
-        SKETCHFAB_MODEL_URL = 'https://{}/models/'.format(SKETCHFAB_DOMAIN)
+        SKETCHFAB_API_URL = f'https://api.{SKETCHFAB_DOMAIN}/v2/models'
+        SKETCHFAB_MODEL_URL = f'https://{SKETCHFAB_DOMAIN}/models/'
 
         try:
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
         except requests.exceptions.RequestException as e:
-            mylog.error("An error occured: {}".format(e))
+            mylog.error(f"An error occured: {e}")
             return
 
         result = r.json()
 
         if r.status_code != requests.codes.created:
-            mylog.error("Upload to SketchFab failed with error: {}".format(result))
+            mylog.error(f"Upload to SketchFab failed with error: {result}")
             return
 
         model_uid = result['uid']
         model_url = SKETCHFAB_MODEL_URL + model_uid
         if model_uid:
-            mylog.info("Model uploaded to: {}".format(model_url))
+            mylog.info(f"Model uploaded to: {model_url}")
         else:
             mylog.error("Problem uploading.")
 
@@ -2215,7 +2215,7 @@ class YTOctree(YTSelectionContainer3D):
             self._octree = None
             return
 
-        mylog.info('Allocating Octree for %s particles' % positions.shape[0])
+        mylog.info(f'Allocating Octree for {positions.shape[0]} particles')
         self.loaded = False
         self._octree = CyOctree(
             positions.astype('float64', copy=False),
@@ -2280,7 +2280,7 @@ class YTOctree(YTSelectionContainer3D):
         self.ds.index
         for ptype in ptypes:
             if ptype not in self.ds.particle_types:
-                mess = "{} not found. Particle type must ".format(ptype)
+                mess = f"{ptype} not found. Particle type must "
                 mess += "be in the dataset!"
                 raise TypeError(mess)
 
@@ -2363,7 +2363,7 @@ class YTOctree(YTSelectionContainer3D):
             buff_den = np.empty(0)
 
         ptype = fields[0]
-        pbar = tqdm(desc="Interpolating (scatter) SPH field {}".format(fields[0]))
+        pbar = tqdm(desc=f"Interpolating (scatter) SPH field {fields[0]}")
         for chunk in self._data_source.chunks([fields], "io"):
             px = chunk[(ptype,'particle_position_x')].in_base("code").d
             py = chunk[(ptype,'particle_position_y')].in_base("code").d

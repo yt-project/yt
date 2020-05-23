@@ -45,7 +45,7 @@ _xmlrpc_service = None
 
 def fail(msg, code):
     """Bail out with an error message."""
-    print('ERROR: %s' % msg, file=sys.stderr)
+    print(f'ERROR: {msg}', file=sys.stderr)
     sys.exit(code)
 
 
@@ -116,7 +116,7 @@ def get_xmlrpc_service():
             _xmlrpc_service = xmlrpc.client.ServerProxy(SERVICE_URL + 'xmlrpc/',
                                                         allow_none=True)
         except Exception as err:
-            fail('Could not connect to Pastebin: %s' % err, -1)
+            fail(f'Could not connect to Pastebin: {err}', -1)
     return _xmlrpc_service
 
 
@@ -196,7 +196,7 @@ def download_paste(uid):
     xmlrpc = get_xmlrpc_service()
     paste = xmlrpc.pastes.getPaste(uid)
     if not paste:
-        fail('Paste "%s" does not exist.' % uid, 5)
+        fail(f'Paste "{uid}" does not exist.', 5)
     if sys.version_info >= (3,0,0):
         code = paste['code']
     else:
@@ -239,9 +239,9 @@ def compile_paste(filenames, langopt):
         for fname in filenames:
             data = read_file(open(fname, 'rb'))
             if langopt:
-                result.append('### %s [%s]\n\n' % (fname, langopt))
+                result.append(f'### {fname} [{langopt}]\n\n')
             else:
-                result.append('### %s\n\n' % fname)
+                result.append(f'### {fname}\n\n')
             result.append(data)
             result.append('\n\n')
         data = ''.join(result)
@@ -296,7 +296,7 @@ def main( filename, languages=False, language=None, encoding='utf-8',
 
     # check language if given
     if language and not language_exists(language):
-        print('Language %s is not supported.' % language)
+        print(f'Language {language} is not supported.')
         return
 
     # load file(s)
@@ -304,7 +304,7 @@ def main( filename, languages=False, language=None, encoding='utf-8',
     try:
         data, language, filename, mimetype = compile_paste(args, language)
     except Exception as err:
-        fail('Error while reading the file(s): %s' % err, 2)
+        fail(f'Error while reading the file(s): {err}', 2)
     if not data:
         fail('Aborted, no content to paste.', 4)
 
@@ -313,7 +313,7 @@ def main( filename, languages=False, language=None, encoding='utf-8',
     if sys.version_info >= (3,0,0):
         code = code.decode('utf-8')
     pid = create_paste(code, language, filename, mimetype, private)
-    url = '%sshow/%s/' % (SERVICE_URL, pid)
+    url = f'{SERVICE_URL}show/{pid}/'
     print(url)
     if open_browser:
         open_webbrowser(url)

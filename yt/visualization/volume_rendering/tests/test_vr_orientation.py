@@ -89,6 +89,6 @@ def test_orientation():
             return image.write_image(filename_prefix)
 
         test5 = GenericImageTest(ds, offaxis_image_func, decimals)
-        test5.prefix = "oap_orientation_{}".format(i)
+        test5.prefix = f"oap_orientation_{i}"
         test5.answer_name = test_name
         yield test5

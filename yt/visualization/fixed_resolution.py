@@ -464,7 +464,7 @@ class FixedResolutionBuffer(object):
 
         """
 
-        keyword = "%s_%s_frb" % (str(self.ds), self.data_source._type_name)
+        keyword = f"{str(self.ds)}_{self.data_source._type_name}_frb"
         filename = get_output_filename(filename, keyword, ".h5")
 
         data = {}

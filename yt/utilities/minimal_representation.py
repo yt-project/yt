@@ -90,7 +90,7 @@ class UploaderBar(object):
 
     def __call__(self, name, prog, total):
         if self.pbar is None:
-            self.pbar = get_pbar("Uploading %s " % self.my_name, total)
+            self.pbar = get_pbar(f"Uploading {self.my_name} ", total)
         self.pbar.update(prog)
         if prog == total:
             self.pbar.finish()
@@ -124,7 +124,7 @@ class MinimalRepresentation(metaclass = abc.ABCMeta):
     def _return_filtered_object(self, attrs):
         new_attrs = tuple(attr for attr in self._attr_list
                           if attr not in attrs)
-        new_class = type('Filtered%s' % self.__class__.__name__,
+        new_class = type(f'Filtered{self.__class__.__name__}',
                          (FilteredRepresentation,),
                          {'_attr_list': new_attrs})
         return new_class(self)
@@ -203,7 +203,7 @@ class MinimalRepresentation(metaclass = abc.ABCMeta):
             else:
                 raise ex
         uploader_info = json.loads(rv)
-        new_url = url + "/handler/%s" % uploader_info['handler_uuid']
+        new_url = url + f"/handler/{uploader_info['handler_uuid']}"
         for i, (cn, cv) in enumerate(chunks):
             f = TemporaryFile()
             np.save(f, cv)

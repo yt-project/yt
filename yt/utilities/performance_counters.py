@@ -107,8 +107,8 @@ class ProfilingController(object):
                      ytcfg.getint("yt", "__global_parallel_rank"),
                     ytcfg.getint("yt", "__global_parallel_size"))
         else:
-            pfn = "%s" % (filename_prefix)
+            pfn = f"{filename_prefix}"
         for n, p in sorted(self.profilers.items()):
-            fn = "%s_%s.cprof" % (pfn, n)
+            fn = f"{pfn}_{n}.cprof"
             mylog.info("Dumping %s into %s", n, fn)
             p.dump_stats(fn)

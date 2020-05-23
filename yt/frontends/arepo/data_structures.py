@@ -57,7 +57,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
             if unit in handle["/Header"].attrs:
                 uvals[unit] = handle["/Header"].attrs[unit]
             else:
-                mylog.warning("Arepo header is missing %s!" % unit)
+                mylog.warning(f"Arepo header is missing {unit}!")
                 missing = True
         handle.close()
         if missing:
@@ -70,6 +70,6 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         munit = np.sqrt(self.mass_unit /
                         (self.time_unit**2 * self.length_unit)).to("gauss")
         if self.cosmological_simulation:
-            self.magnetic_unit = self.quan(munit.value, "%s/a**2" % munit.units)
+            self.magnetic_unit = self.quan(munit.value, f"{munit.units}/a**2")
         else:
             self.magnetic_unit = munit

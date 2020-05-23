@@ -50,7 +50,7 @@ class RAMSESDomainFile(object):
             os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (
             basedir, num, domain_id)
-        part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
+        part_file_descriptor = f"{basedir}/part_file_descriptor.txt"
         if ds.num_groups > 0:
             igroup = ((domain_id-1) // ds.group_size) + 1
             basename = "%s/group_%05i/%%s_%s.out%05i" % (
@@ -59,7 +59,7 @@ class RAMSESDomainFile(object):
             basename = "%s/%%s_%s.out%05i" % (
                 basedir, num, domain_id)
         for t in ['grav', 'amr']:
-            setattr(self, "%s_fn" % t, basename % t)
+            setattr(self, f"{t}_fn", basename % t)
         self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
 
@@ -69,7 +69,7 @@ class RAMSESDomainFile(object):
                           if FH.any_exist(ds)]
         self.field_handlers = field_handlers
         for fh in field_handlers:
-            mylog.debug('Detected fluid type %s in domain_id=%s' % (fh.ftype, domain_id))
+            mylog.debug(f'Detected fluid type {fh.ftype} in domain_id={domain_id}')
             fh.detect_fields(ds)
             # self._add_ftype(fh.ftype)
 
@@ -79,7 +79,7 @@ class RAMSESDomainFile(object):
                              if PH.any_exist(ds)]
         self.particle_handlers = particle_handlers
         for ph in particle_handlers:
-            mylog.debug('Detected particle type %s in domain_id=%s' % (ph.ptype, domain_id))
+            mylog.debug(f'Detected particle type {ph.ptype} in domain_id={domain_id}')
             ph.read_header()
             # self._add_ptype(ph.ptype)
 
@@ -427,8 +427,8 @@ class RAMSESDataset(Dataset):
                                     filtered_type='io', requires=['particle_family'])
 
             for k in particle_families.keys():
-                mylog.info('Adding particle_type: %s' % k)
-                self.add_particle_filter('%s' % k)
+                mylog.info(f'Adding particle_type: {k}')
+                self.add_particle_filter(f'{k}')
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

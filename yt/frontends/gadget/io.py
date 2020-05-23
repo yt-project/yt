@@ -46,7 +46,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
                     continue
-                c = f["/%s/Coordinates" % ptype][si:ei, :].astype("float64")
+                c = f[f"/{ptype}/Coordinates"][si:ei, :].astype("float64")
                 x, y, z = (np.squeeze(_) for _ in np.split(c, 3, axis=1))
                 if ptype == self.ds._sph_ptypes[0]:
                     pdtype = c.dtype
@@ -108,7 +108,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
                     continue
-                g = f["/%s" % ptype]
+                g = f[f"/{ptype}"]
                 if getattr(selector, 'is_all_data', False):
                     mask = slice(None, None, None)
                     mask_sum = data_file.total_particles[ptype]
@@ -170,7 +170,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         f.close()
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
-        npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount))
+        npart = dict((f"PartType{i}", v) for i, v in enumerate(pcount))
         return npart
 
     def _identify_fields(self, data_file):

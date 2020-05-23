@@ -151,7 +151,7 @@ class GadgetBinaryHeader(object):
         for filename in [self.filename, self.filename + '.0']:
             if os.path.exists(filename):
                 return open(filename, 'rb')
-        raise RuntimeError("Snapshot file %s does not exist." % self.filename)
+        raise RuntimeError(f"Snapshot file {self.filename} does not exist.")
 
     def validate(self):
         """Validate data integrity."""
@@ -394,7 +394,7 @@ class GadgetDataset(SPHDataset):
                          os.path.basename(self.parameter_filename).split(".", 1)[0]))
 
         if hvals["NumFiles"] > 1:
-            self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)
+            self.filename_template = f"{prefix}.%(num)s{self._suffix}"
         else:
             self.filename_template = self.parameter_filename
 
@@ -597,7 +597,7 @@ class GadgetHDF5Dataset(GadgetDataset):
 
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
         if self.parameters["NumFiles"] > 1:
-            self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+            self.filename_template = f"{prefix}.%(num)i.{suffix}"
         else:
             self.filename_template = self.parameter_filename
 

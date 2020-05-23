@@ -92,7 +92,7 @@ class FITSHierarchy(GridIndex):
                            "K": "temperature"}
         for k,v in field_from_unit.items():
             if k in units:
-                mylog.warning("Guessing this is a %s field based on its units of %s." % (v,k))
+                mylog.warning(f"Guessing this is a {v} field based on its units of {k}.")
                 return v
         return None
 
@@ -183,9 +183,9 @@ class FITSHierarchy(GridIndex):
                             self._scale_map[fname][1] = hdu.header["bscale"]
                         self.field_list.append(("fits", fname))
                         self.dataset.field_units[fname] = units
-                        mylog.info("Adding field %s to the list of fields." % (fname))
+                        mylog.info(f"Adding field {fname} to the list of fields.")
                         if units == "dimensionless":
-                            mylog.warning("Could not determine dimensions for field %s, " % (fname) +
+                            mylog.warning(f"Could not determine dimensions for field {fname}, " +
                                           "setting to dimensionless.")
                 else:
                     mylog.warning("Image block %s does not have " % (hdu.name.lower()) +
@@ -350,7 +350,7 @@ class FITSDataset(Dataset):
         self._handle = FITSFileHandler(self.filenames[0])
         if (isinstance(self.filenames[0], _astropy.pyfits.hdu.image._ImageBaseHDU) or
             isinstance(self.filenames[0], _astropy.pyfits.HDUList)):
-            fn = "InMemoryFITSFile_%s" % uuid.uuid4().hex
+            fn = f"InMemoryFITSFile_{uuid.uuid4().hex}"
         else:
             fn = self.filenames[0]
         self._handle._fits_files.append(self._handle)
@@ -397,7 +397,7 @@ class FITSDataset(Dataset):
             if len(set(file_units)) == 1:
                 length_factor = self.wcs.wcs.cdelt[0]
                 length_unit = str(file_units[0])
-                mylog.info("Found length units of %s." % length_unit)
+                mylog.info(f"Found length units of {length_unit}.")
             else:
                 self.no_cgs_equiv_length = True
                 mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
@@ -410,7 +410,7 @@ class FITSDataset(Dataset):
             if getattr(self, unit+'_unit', None) is not None:
                 continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
-            setdefaultattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
+            setdefaultattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                      (self.time_unit**2 * self.length_unit))
         self.magnetic_unit.convert_to_units("gauss")
@@ -556,23 +556,23 @@ class YTFITSDataset(FITSDataset):
             if unit == "magnetic":
                 short_unit = "bfunit"
             else:
-                short_unit = "%sunit" % unit[0]
+                short_unit = f"{unit[0]}unit"
             if short_unit in self.primary_header:
                 # units should now be in header
                 u = self.quan(self.primary_header[short_unit],
                               self.primary_header.comments[short_unit].strip("[]"))
-                mylog.info("Found %s units of %s." % (unit, u))
+                mylog.info(f"Found {unit} units of {u}.")
             else:
                 if unit == "length":
                     # Falling back to old way of getting units for length
                     # in old files
                     u = self.quan(1.0, str(self.wcs.wcs.cunit[0]))
-                    mylog.info("Found %s units of %s." % (unit, u))
+                    mylog.info(f"Found {unit} units of {u}.")
                 else:
                     # Give up otherwise
                     u = self.quan(1.0, cgs)
-                    mylog.warning("No unit for %s found. Assuming 1.0 code_%s = 1.0 %s" % (unit, unit, cgs))
-            setdefaultattr(self, '%s_unit' % unit, u)
+                    mylog.warning(f"No unit for {unit} found. Assuming 1.0 code_{unit} = 1.0 {cgs}")
+            setdefaultattr(self, f'{unit}_unit', u)
 
     def _determine_bbox(self):
         dx = np.zeros(3)
@@ -652,7 +652,7 @@ class SkyDataFITSDataset(FITSDataset):
         if units == "rad":
             units = "radian"
         pixel_area = np.prod(np.abs(self.wcs_2d.wcs.cdelt))
-        pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
+        pixel_area = self.quan(pixel_area, f"{units}**2").in_cgs()
         pixel_dims = pixel_area.units.dimensions
         self.unit_registry.add("pixel", float(pixel_area.value), dimensions=pixel_dims)
         if "beam_size" in self.specified_parameters:
@@ -736,7 +736,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
             self.spectral_factor = float(max(self.domain_dimensions[[self.lon_axis,
                                                                      self.lat_axis]]))
             self.spectral_factor /= self.domain_dimensions[self.spec_axis]
-            mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
+            mylog.info(f"Setting the spectral factor to {self.spectral_factor:f}")
         Dz = self.domain_right_edge[self.spec_axis]-self.domain_left_edge[self.spec_axis]
         dre = self.domain_right_edge
         dre[self.spec_axis] = (self.domain_left_edge[self.spec_axis] +
@@ -775,7 +775,7 @@ class EventsFITSHierarchy(FITSHierarchy):
         self.field_list = []
         for k,v in ds.events_info.items():
             fname = "event_"+k
-            mylog.info("Adding field %s to the list of fields." % (fname))
+            mylog.info(f"Adding field {fname} to the list of fields.")
             self.field_list.append(("io",fname))
             if k in ["x","y"]:
                 field_unit = "code_length"

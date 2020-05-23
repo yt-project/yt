@@ -80,7 +80,7 @@ class GadgetSimulation(SimulationTimeSeries):
                                        dimensions.dimensionless)
             # Comoving lengths
             for my_unit in ["m", "pc", "AU"]:
-                new_unit = "%scm" % my_unit
+                new_unit = f"{my_unit}cm"
                 # technically not true, but should be ok
                 self.unit_registry.add(
                     new_unit, self.unit_registry.lut[my_unit][0],
@@ -374,8 +374,7 @@ class GadgetSimulation(SimulationTimeSeries):
             count = "*"
         else:
             count = "%03d" % index
-        filename = "%s_%s%s" % (self.parameters["SnapshotFileBase"],
-                                count, suffix)
+        filename = f"{self.parameters['SnapshotFileBase']}_{count}{suffix}"
         return os.path.join(self.data_dir, filename)
                 
     def _get_all_outputs(self, find_outputs=False):

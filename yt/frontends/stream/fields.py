@@ -67,7 +67,7 @@ class StreamFieldInfo(FieldInfoContainer):
                 self.add_output_field(field,
                                       sampling_type="cell",
                                       units=units)
-        setup_magnetic_field_aliases(self, "stream", ["magnetic_field_%s" % ax for ax in "xyz"])
+        setup_magnetic_field_aliases(self, "stream", [f"magnetic_field_{ax}" for ax in "xyz"])
 
     def add_output_field(self, name, sampling_type, **kwargs):
         if name in self.ds.stream_handler.field_units:

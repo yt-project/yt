@@ -325,8 +325,7 @@ class PlotWindow(ImagePlotContainer):
         """
         if len(deltas) != 2:
             raise RuntimeError(
-                "The pan function accepts a two-element sequence.\n"
-                "Received %s." % (deltas, ))
+                f"The pan function accepts a two-element sequence.\nReceived {deltas}.")
         if isinstance(deltas[0], Number) and isinstance(deltas[1], Number):
             deltas = (self.ds.quan(deltas[0], 'code_length'),
                       self.ds.quan(deltas[1], 'code_length'))
@@ -387,8 +386,7 @@ class PlotWindow(ImagePlotContainer):
         new_unit = ensure_list(new_unit)
         if len(field) > 1 and len(new_unit) != len(field):
             raise RuntimeError(
-                "Field list {} and unit "
-                "list {} are incompatible".format(field, new_unit))
+                f"Field list {field} and unit list {new_unit} are incompatible")
         for f, u in zip(field, new_unit):
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
             self._equivalencies[f] = (equivalency, equivalency_kwargs)
@@ -819,7 +817,7 @@ class PWViewerMPL(PlotWindow):
             return (self.ds.quan(0.0, 'code_length'),
                     self.ds.quan(0.0, 'code_length'))
         else:
-            mylog.warn("origin = {0}".format(origin))
+            mylog.warn(f"origin = {origin}")
             msg = \
                   ('origin keyword "{0}" not recognized, must declare "domain" '
                    'or "center" as the last term in origin.').format(self.origin)
@@ -832,7 +830,7 @@ class PWViewerMPL(PlotWindow):
             elif origin[0] == 'center':
                 yc = (yllim + yrlim)/2.0
             else:
-                mylog.warn("origin = {0}".format(origin))
+                mylog.warn(f"origin = {origin}")
                 msg = ('origin keyword "{0}" not recognized, must declare "lower" '
                        '"upper" or "center" as the first term in origin.')
                 msg = msg.format(self.origin)
@@ -845,7 +843,7 @@ class PWViewerMPL(PlotWindow):
             elif origin[1] == 'center':
                 xc = (xllim + xrlim)/2.0
             else:
-                mylog.warn("origin = {0}".format(origin))
+                mylog.warn(f"origin = {origin}")
                 msg = ('origin keyword "{0}" not recognized, must declare "left" '
                        '"right" or "center" as the second term in origin.')
                 msg = msg.format(self.origin)
@@ -911,7 +909,7 @@ class PWViewerMPL(PlotWindow):
                     msg = "Plot image for field %s has no positive " \
                           "values.  Max = %f." % (f, np.nanmax(image))
                 elif not np.any(np.isfinite(image)):
-                    msg = "Plot image for field %s is filled with NaNs." % (f,)
+                    msg = f"Plot image for field {f} is filled with NaNs."
                 elif np.nanmax(image) > 0. and np.nanmin(image) < 0:
                     msg = "Plot image for field %s has both positive "\
                           "and negative values. Min = %f, Max = %f."\
@@ -1406,15 +1404,14 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             field_parameters = {}
 
         if ds.geometry == "spherical" or ds.geometry == "cylindrical":
-            mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
+            mylog.info(f"Setting origin='native' for {ds.geometry} geometry.")
             origin = 'native'
 
         if isinstance(ds, YTSpatialPlotDataset):
             slc = ds.all_data()
             slc.axis = axis
             if slc.axis != ds.parameters["axis"]:
-                raise RuntimeError("Original slice axis is %s." %
-                                   ds.parameters["axis"])
+                raise RuntimeError(f"Original slice axis is {ds.parameters['axis']}.")
         else:
             slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
                            center=center, data_source=data_source)

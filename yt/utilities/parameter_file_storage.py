@@ -20,10 +20,10 @@ class UnknownDatasetType(Exception):
         self.name = name
 
     def __str__(self):
-        return "%s" % self.name
+        return f"{self.name}"
 
     def __repr__(self):
-        return "%s" % self.name
+        return f"{self.name}"
 
 class ParameterFileStore(object):
     """
@@ -81,7 +81,7 @@ class ParameterFileStore(object):
         base_file_name = ytcfg.get("yt", "ParameterFileStore")
         if not os.access(os.path.expanduser("~/"), os.W_OK):
             return os.path.abspath(base_file_name)
-        return os.path.expanduser("~/.yt/%s" % base_file_name)
+        return os.path.expanduser(f"~/.yt/{base_file_name}")
 
     def get_ds_hash(self, hash):
         """ This returns a dataset based on a hash. """
@@ -165,7 +165,7 @@ class ParameterFileStore(object):
     def _write_out(self):
         if self._read_only: return
         fn = self._get_db_name()
-        f = open("%s.tmp" % fn, 'wb')
+        f = open(f"{fn}.tmp", 'wb')
         w = csv.DictWriter(f, _field_names)
         maxn = ytcfg.getint("yt","maximumstoreddatasets") # number written
         for h,v in islice(sorted(self._records.items(),
@@ -173,7 +173,7 @@ class ParameterFileStore(object):
             v['hash'] = h
             w.writerow(v)
         f.close()
-        os.rename("%s.tmp" % fn, fn)
+        os.rename(f"{fn}.tmp", fn)
 
     @parallel_simple_proxy
     def read_db(self):
@@ -204,8 +204,7 @@ class EnzoRunDatabase(object):
 
     def find_uuid(self, u):
         cursor = self.conn.execute(
-            "select ds_path from enzo_outputs where dset_uuid = '%s'" % (
-                u))
+            f"select ds_path from enzo_outputs where dset_uuid = '{u}'")
         # It's a 'unique key'
         result = cursor.fetchone()
         if result is None: return None

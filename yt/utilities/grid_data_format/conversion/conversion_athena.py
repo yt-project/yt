@@ -99,7 +99,7 @@ class AthenaDistributedConverter(Converter):
             else:
                 fn = self.source_dir+'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
 
-            print('Reading file %s' % fn)
+            print(f'Reading file {fn}')
             f = open(fn,'rb')
             grid = {}
             grid['read_field'] = None

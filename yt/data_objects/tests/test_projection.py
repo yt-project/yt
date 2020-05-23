@@ -92,7 +92,7 @@ def test_projection():
                             proj_unit = "cm"
                         if field_unit != '' and field_unit != Unit():
                             proj_unit = \
-                                "({0}) * {1}".format(field_unit, proj_unit)
+                                f"({field_unit}) * {proj_unit}"
                         assert_equal(
                             frb[proj_field].units,
                             Unit(proj_unit, registry=ds.unit_registry))
@@ -108,7 +108,7 @@ def test_projection():
             # wf == None
             assert_equal(wf, None)
             v1 = proj["density"].sum()
-            v2 = (dd["density"] * dd["d%s" % an]).sum()
+            v2 = (dd["density"] * dd[f"d{an}"]).sum()
             assert_rel_equal(v1, v2.in_units(v1.units), 10)
     teardown_func(fns)
 

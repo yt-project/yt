@@ -133,7 +133,7 @@ been deprecated, use profile.standard_deviation instead."""
                 self.field_units[fd] = \
                     Unit(new_unit, registry=self.ds.unit_registry)
             else:
-                raise KeyError("%s not in profile!" % (field))
+                raise KeyError(f"{field} not in profile!")
 
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
@@ -345,7 +345,7 @@ been deprecated, use profile.standard_deviation instead."""
 
         """
 
-        keyword = "%s_%s" % (str(self.ds), self.__class__.__name__)
+        keyword = f"{str(self.ds)}_{self.__class__.__name__}"
         filename = get_output_filename(filename, keyword, ".h5")
 
         args = ("field", "log")
@@ -372,17 +372,17 @@ been deprecated, use profile.standard_deviation instead."""
                 dimensionality += 1
                 data[ax] = getattr(self, ax)
                 bin_data.append(data[ax])
-                bin_field_name = "%s_bins" % ax
+                bin_field_name = f"{ax}_bins"
                 data[bin_field_name] = getattr(self, bin_field_name)
-                extra_attrs["%s_range" % ax] = self.ds.arr([data[bin_field_name][0],
+                extra_attrs[f"{ax}_range"] = self.ds.arr([data[bin_field_name][0],
                                                             data[bin_field_name][-1]])
                 for arg in args:
-                    key = "%s_%s" % (ax, arg)
+                    key = f"{ax}_{arg}"
                     extra_attrs[key] = getattr(self, key)
 
         bin_fields = np.meshgrid(*bin_data)
         for i, ax in enumerate("xyz"[:dimensionality]):
-            data[getattr(self, "%s_field" % ax)] = bin_fields[i]
+            data[getattr(self, f"{ax}_field")] = bin_fields[i]
 
         extra_attrs["dimensionality"] = dimensionality
         ftypes = dict([(field, "data") for field in data if field[0] != std])
@@ -405,13 +405,13 @@ class ProfileNDFromDataset(ProfileND):
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[:ds.dimensionality]:
             setattr(self, ax, ds.data[ax])
-            setattr(self, "%s_bins" % ax, ds.data["%s_bins" % ax])
-            field_name = tuple(ds.parameters["%s_field" % ax])
-            setattr(self, "%s_field" % ax, field_name)
+            setattr(self, f"{ax}_bins", ds.data[f"{ax}_bins"])
+            field_name = tuple(ds.parameters[f"{ax}_field"])
+            setattr(self, f"{ax}_field", field_name)
             self.field_info[field_name] = ds.field_info[field_name]
-            setattr(self, "%s_log" % ax, ds.parameters["%s_log" % ax])
-            exclude_fields.extend([ax, "%s_bins" % ax,
-                                   ds.parameters["%s_field" % ax][1]])
+            setattr(self, f"{ax}_log", ds.parameters[f"{ax}_log"])
+            exclude_fields.extend([ax, f"{ax}_bins",
+                                   ds.parameters[f"{ax}_field"][1]])
         self.weight = ds.data["weight"]
         self.used = ds.data["used"].d.astype(bool)
         profile_fields = [f for f in ds.field_list
@@ -1118,7 +1118,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 try:
                     field_ex = list(extrema[bin_field])
                 except KeyError:
-                    raise RuntimeError("Could not find field {0} or {1} in extrema".format(bin_field[-1], bin_field))
+                    raise RuntimeError(f"Could not find field {bin_field[-1]} or {bin_field} in extrema")
 
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
@@ -1195,7 +1195,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         kwargs['deposition'] = deposition
     if override_bins is not None:
         for o_bin, ax in zip(o_bins, ['x','y','z']):
-            kwargs["override_bins_{0}".format(ax)] = o_bin
+            kwargs[f"override_bins_{ax}"] = o_bin
     obj = cls(*args, **kwargs)
     setattr(obj, "accumulation", accumulation)
     setattr(obj, "fractional", fractional)

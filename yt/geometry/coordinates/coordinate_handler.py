@@ -236,7 +236,7 @@ class CoordinateHandler(object):
                 self.ds.index
                 center = (self.ds.domain_left_edge + self.ds.domain_right_edge) / 2
             else:
-                raise RuntimeError('center keyword \"%s\" not recognized' % center)
+                raise RuntimeError(f'center keyword "{center}" not recognized')
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
         elif iterable(center):
@@ -246,14 +246,14 @@ class CoordinateHandler(object):
                 elif center[0].lower() == "max":
                     v, center = self.ds.find_max(center[1])
                 else:
-                    raise RuntimeError("center keyword \"%s\" not recognized" % center)
+                    raise RuntimeError(f"center keyword \"{center}\" not recognized")
                 center = self.ds.arr(center, 'code_length')
             elif iterable(center[0]) and isinstance(center[1], str):
                 center = self.ds.arr(center[0], center[1])
             else:
                 center = self.ds.arr(center, 'code_length')
         else:
-            raise RuntimeError("center keyword \"%s\" not recognized" % center)
+            raise RuntimeError(f"center keyword \"{center}\" not recognized")
         # This has to return both a center and a display_center
         display_center = self.convert_to_cartesian(center)
         return center, display_center

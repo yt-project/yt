@@ -24,8 +24,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
     def _open_stream(self, data_file, field):
         # This does not actually stream yet!
         ftype, fname = field
-        s = "%s/%s/%s/%s" % (self._url,
-            data_file.file_id, ftype, fname)
+        s = f"{self._url}/{data_file.file_id}/{ftype}/{fname}"
         mylog.info("Loading URL %s", s)
         requests = get_requests()
         resp = requests.get(s)

@@ -27,7 +27,7 @@ def setup_poynting_vector(self):
         return poynting
 
     for ax in "xyz":
-        self.add_field(("openPMD", "poynting_vector_%s" % ax),
+        self.add_field(("openPMD", f"poynting_vector_{ax}"),
                        sampling_type="cell",
                        function=_get_poyn(ax),
                        units="W/m**2")
@@ -50,7 +50,7 @@ def setup_velocity(self, ptype):
     def _get_vel(axis):
         def velocity(field, data):
             c = speed_of_light
-            momentum = data[ptype, "particle_momentum_{}".format(axis)]
+            momentum = data[ptype, f"particle_momentum_{axis}"]
             mass = data[ptype, "particle_mass"]
             weighting = data[ptype, "particle_weighting"]
             return momentum / np.sqrt(
@@ -61,7 +61,7 @@ def setup_velocity(self, ptype):
         return velocity
 
     for ax in "xyz":
-        self.add_field((ptype, "particle_velocity_%s" % ax),
+        self.add_field((ptype, f"particle_velocity_{ax}"),
                        sampling_type="particle",
                        function=_get_vel(ax),
                        units="m/s")
@@ -70,13 +70,13 @@ def setup_velocity(self, ptype):
 def setup_absolute_positions(self, ptype):
     def _abs_pos(axis):
         def ap(field, data):
-            return np.add(data[ptype, "particle_positionCoarse_{}".format(axis)],
-                          data[ptype, "particle_positionOffset_{}".format(axis)])
+            return np.add(data[ptype, f"particle_positionCoarse_{axis}"],
+                          data[ptype, f"particle_positionOffset_{axis}"])
 
         return ap
 
     for ax in "xyz":
-        self.add_field((ptype, "particle_position_%s" % ax),
+        self.add_field((ptype, f"particle_position_{ax}"),
                        sampling_type="particle",
                        function=_abs_pos(ax),
                        units="m")
@@ -151,7 +151,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                             self._mag_fields.append(ytname)
                         self.known_other_fields += ((ytname, (unit, aliases, None)),)
             for i in self.known_other_fields:
-                mylog.debug("open_pmd - known_other_fields - {}".format(i))
+                mylog.debug(f"open_pmd - known_other_fields - {i}")
         except(KeyError):
             pass
 
@@ -180,9 +180,9 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                                 self.known_particle_fields += ((ytname, (unit, aliases, None)),)
                     except(KeyError):
                         if recname != "particlePatches":
-                            mylog.info("open_pmd - {}_{} does not seem to have unitDimension".format(pname, recname))
+                            mylog.info(f"open_pmd - {pname}_{recname} does not seem to have unitDimension")
             for i in self.known_particle_fields:
-                mylog.debug("open_pmd - known_particle_fields - {}".format(i))
+                mylog.debug(f"open_pmd - known_particle_fields - {i}")
         except(KeyError):
             pass
 

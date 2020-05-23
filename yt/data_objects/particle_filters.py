@@ -114,7 +114,7 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
         requires = []
     filter = ParticleFilter(name, function, requires, filtered_type)
     if filter_registry.get(name, None) is not None:
-        mylog.warning('The %s particle filter already exists. Overriding.' % name)
+        mylog.warning(f'The {name} particle filter already exists. Overriding.')
     filter_registry[name] = filter
 
 

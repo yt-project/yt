@@ -18,7 +18,7 @@ def get_random_block_string(max_n=64, random_state=None, level=None):
     if level is None:
         level = random_state.randint(0, high=max_l)
     if level > 0:
-        my_block = "%s:%s" % (num2[:-level], num2[-level:])
+        my_block = f"{num2[:-level]}:{num2[-level:]}"
     else:
         my_block = num2
     my_block = "B" + my_block
@@ -44,7 +44,7 @@ def test_root_blocks():
             max_n=max_n, random_state=rs, level=0)
         n2, l2, b2 = get_random_block_string(
             max_n=32, random_state=rs, level=0)
-        block = "%s:%s" % (b1, b2[1:])
+        block = f"{b1}:{b2[1:]}"
 
         nrb = get_root_blocks(block, min_dim=1)
         assert nrb == max_n

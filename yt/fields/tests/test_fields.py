@@ -67,7 +67,7 @@ class TestFieldAccess(object):
     def __init__(self, field_name, ds, nprocs):
         # Note this should be a field name
         self.field_name = field_name
-        self.description = "Accessing_%s_%s" % (field_name, nprocs)
+        self.description = f"Accessing_{field_name}_{nprocs}"
         self.nprocs = nprocs
         self.ds = ds
 
@@ -179,7 +179,7 @@ def test_all_fields():
             continue
 
         for nprocs in [1, 4, 8]:
-            test_all_fields.__name__ = "%s_%s" % (field, nprocs)
+            test_all_fields.__name__ = f"{field}_{nprocs}"
             yield TestFieldAccess(field, datasets[nprocs], nprocs)
 
 def test_add_deposited_particle_field():

@@ -39,8 +39,8 @@ class HaloCatalogTest(TempDirTest):
     def test_halo_catalog(self):
         rs = np.random.RandomState(3670474)
         n_halos = 100
-        fields = ['particle_%s' % name for name in
-                  ['mass'] + ['position_%s' % ax for ax in 'xyz']]
+        fields = [f'particle_{name}' for name in
+                  ['mass'] + [f'position_{ax}' for ax in 'xyz']]
         units = ['g'] + ['cm']*3
         data = dict((field, YTArray(rs.random_sample(n_halos), unit))
                     for field, unit in zip(fields, units))
@@ -61,8 +61,8 @@ class HaloCatalogTest(TempDirTest):
     def test_halo_catalog_boundary_particles(self):
         rs = np.random.RandomState(3670474)
         n_halos = 100
-        fields = ['particle_%s' % name for name in
-                  ['mass'] + ['position_%s' % ax for ax in 'xyz']]
+        fields = [f'particle_{name}' for name in
+                  ['mass'] + [f'position_{ax}' for ax in 'xyz']]
         units = ['g'] + ['cm']*3
         data = dict((field, YTArray(rs.random_sample(n_halos), unit))
                     for field, unit in zip(fields, units))

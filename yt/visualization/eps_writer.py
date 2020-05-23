@@ -327,18 +327,18 @@ class DualEPS(object):
                     if data.axis != 4:
                         xi = plot.ds.coordinates.x_axis[data.axis]
                         x_name = plot.ds.coordinates.axis_name[xi]
-                        _xlabel = '%s (%s)' % (x_name, units)
+                        _xlabel = f'{x_name} ({units})'
                     else:
-                        _xlabel = 'x (%s)' % (units)
+                        _xlabel = f'x ({units})'
                 if ylabel is not None:
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
                         yi = plot.ds.coordinates.y_axis[data.axis]
                         y_name = plot.ds.coordinates.axis_name[yi]
-                        _ylabel = '%s (%s)' % (y_name, units)
+                        _ylabel = f'{y_name} ({units})'
                     else:
-                        _ylabel = 'y (%s)' % (units)
+                        _ylabel = f'y ({units})'
             if tickcolor is None:
                 _tickcolor = pyx.color.cmyk.white
         elif isinstance(plot, ProfilePlot):
@@ -603,7 +603,7 @@ class DualEPS(object):
             size = (self.figsize[0], 0.1*self.figsize[1])
             imsize = (256,1)
         else:
-            raise RuntimeError("orientation %s unknown" % orientation)
+            raise RuntimeError(f"orientation {orientation} unknown")
             return
 
         # If shrink is a scalar, then convert into tuple
@@ -964,7 +964,7 @@ class DualEPS(object):
         elif format == "jpg":
              self.canvas.writeGSfile(filename+".jpeg", "jpeg", resolution=resolution)
         else:
-            raise RuntimeError("format %s unknown." % (format))
+            raise RuntimeError(f"format {format} unknown.")
             
 #=============================================================================
 #=============================================================================

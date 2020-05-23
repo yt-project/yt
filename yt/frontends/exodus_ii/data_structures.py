@@ -299,7 +299,7 @@ class ExodusIIDataset(Dataset):
         mylog.info("Loading coordinates")
         with self._handle.open_ds() as ds:
             if "coord" not in ds.variables:
-                coords = np.array([ds.variables["coord%s" % ax][:]
+                coords = np.array([ds.variables[f"coord{ax}"][:]
                                    for ax in coord_axes]).transpose().copy()
             else:
                 coords = np.array([coord for coord in
@@ -320,8 +320,8 @@ class ExodusIIDataset(Dataset):
         coord_axes = 'xyz'[:self.dimensionality]
         with self._handle.open_ds() as ds:
             for i, ax in enumerate(coord_axes):
-                if "disp_%s" % ax in self.parameters['nod_names']:
-                    ind = self.parameters['nod_names'].index("disp_%s" % ax)
+                if f"disp_{ax}" in self.parameters['nod_names']:
+                    ind = self.parameters['nod_names'].index(f"disp_{ax}")
                     disp = ds.variables['vals_nod_var%d' % (ind + 1)][self.step]
                     new_coords[:, i] = coords[:, i] + fac*disp + offset[i]
 

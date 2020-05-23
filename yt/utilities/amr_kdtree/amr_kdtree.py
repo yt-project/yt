@@ -101,7 +101,7 @@ class Tree(object):
 
         # Calculate the Volume
         vol = self.trunk.kd_sum_volume()
-        mylog.debug('AMRKDTree volume = %e' % vol)
+        mylog.debug(f'AMRKDTree volume = {vol:e}')
         self.trunk.kd_node_check()
 
     def sum_cells(self, all_cells=False):
@@ -419,7 +419,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if not self._initialized:
             self.initialize_source()
         if fn is None:
-            fn = '%s_kd_bricks.h5'%self.ds
+            fn = f'{self.ds}_kd_bricks.h5'
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
         f = h5py.File(fn,'w')
@@ -428,7 +428,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             if node.data is not None:
                 for fi,field in enumerate(self.fields):
                     try:
-                        f.create_dataset("/brick_%s_%s" % (hex(i),field),
+                        f.create_dataset(f"/brick_{hex(i)}_{field}",
                                          data = node.data.my_data[fi].astype('float64'))
                     except:
                         pass
@@ -439,7 +439,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
     def load_kd_bricks(self,fn=None):
         if fn is None:
-            fn = '%s_kd_bricks.h5' % self.ds
+            fn = f'{self.ds}_kd_bricks.h5'
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
         try:

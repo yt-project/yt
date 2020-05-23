@@ -16,7 +16,7 @@ def get_radius(data, field_prefix, ftype):
     for i, ax in enumerate('xyz'):
         # This will coerce the units, so we don't need to worry that we copied
         # it from a cm**2 array.
-        np.subtract(data[ftype, "%s%s" % (field_prefix, ax)].in_base(unit_system.name),
+        np.subtract(data[ftype, f"{field_prefix}{ax}"].in_base(unit_system.name),
                     center[i], r)
         if data.ds.periodicity[i] is True:
             np.abs(r, r)

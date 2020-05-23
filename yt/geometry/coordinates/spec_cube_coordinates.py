@@ -52,19 +52,19 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
                     return rv
                 return _length_func
 
-            registry.add_field(("index", "d%s" % ax),
+            registry.add_field(("index", f"d{ax}"),
                                sampling_type="cell",
                                function=f1,
                                display_field=False,
                                units="code_length")
 
-            registry.add_field(("index", "path_element_%s" % ax),
+            registry.add_field(("index", f"path_element_{ax}"),
                                sampling_type="cell",
                                function=_get_length_func(),
                                display_field=False,
                                units="")
 
-            registry.add_field(("index", "%s" % ax),
+            registry.add_field(("index", f"{ax}"),
                                sampling_type="cell",
                                function=f2,
                                display_field=False,

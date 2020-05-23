@@ -236,7 +236,7 @@ class GAMERDataset(Dataset):
                               "Use units_override to specify the units")
 
             for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
-                setdefaultattr(self, "%s_unit"%unit, self.quan(1.0, cgs))
+                setdefaultattr(self, f"{unit}_unit", self.quan(1.0, cgs))
 
                 if len(self.units_override) == 0:
                     mylog.warning("Assuming %s unit = 1.0 %s", unit, cgs)

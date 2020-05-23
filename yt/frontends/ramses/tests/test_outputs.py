@@ -287,12 +287,12 @@ def test_grav_detection():
 
     # Test detection
     for k in 'xyz':
-        assert ('gravity', '%s-acceleration' % k) in ds.field_list
-        assert ('gas', 'acceleration_%s' % k) in ds.derived_field_list
+        assert ('gravity', f'{k}-acceleration') in ds.field_list
+        assert ('gas', f'acceleration_{k}') in ds.derived_field_list
 
     # Test access
     for k in 'xyz':
-        ds.r['gas', 'acceleration_%s' % k]
+        ds.r['gas', f'acceleration_{k}']
 
 @requires_file(ramses_sink)
 @requires_file(output_00080)

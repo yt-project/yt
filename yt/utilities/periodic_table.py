@@ -132,7 +132,7 @@ class Element:
         self.symbol = symbol
 
     def __repr__(self):
-        return "Element: %s (%s)" % (self.symbol, self.name)
+        return f"Element: {self.symbol} ({self.name})"
 
 class PeriodicTable:
     def __init__(self):

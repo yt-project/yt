@@ -392,7 +392,7 @@ class VolumeSource(RenderSource):
         elif self.sampler_type == 'projection':
             sampler = new_projection_sampler(camera, self)
         else:
-            NotImplementedError("%s not implemented yet" % self.sampler_type)
+            NotImplementedError(f"{self.sampler_type} not implemented yet")
         self.sampler = sampler
         assert(self.sampler is not None)
 
@@ -429,7 +429,7 @@ class VolumeSource(RenderSource):
                         raise RuntimeError
 
         for brick in self.volume.traverse(camera.lens.viewpoint):
-            mylog.debug("Using sampler %s" % self.sampler)
+            mylog.debug(f"Using sampler {self.sampler}")
             self.sampler(brick, num_threads=self.num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
         mylog.debug("Done casting rays")

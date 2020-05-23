@@ -68,8 +68,8 @@ class ObjectFindingMixin(object) :
             source.quantities["MaxLocation"]( field )
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
               max_val, mx, my, mz)
-        self.parameters["Max%sValue" % (field)] = max_val
-        self.parameters["Max%sPos" % (field)] = "%s" % ((mx,my,mz),)
+        self.parameters[f"Max{field}Value"] = max_val
+        self.parameters[f"Max{field}Pos"] = f"{mx, my, mz}"
         return max_val, np.array((mx,my,mz), dtype='float64')
 
     def find_min(self, field):
@@ -90,8 +90,8 @@ class ObjectFindingMixin(object) :
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f in grid %s at level %s", \
               minVal, pos[0], pos[1], pos[2], minGrid, minGrid.Level)
         self.center = pos
-        self.parameters["Min%sValue" % (field)] = minVal
-        self.parameters["Min%sPos" % (field)] = "%s" % (pos)
+        self.parameters[f"Min{field}Value"] = minVal
+        self.parameters[f"Min{field}Pos"] = f"{pos}"
         return minVal, pos
 
     def find_point(self, coord):

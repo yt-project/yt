@@ -1496,7 +1496,7 @@ class HEALpixCamera(Camera):
         if self.comm.rank == 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             if label is None:
-                label = "Projected %s" % (self.fields[0])
+                label = f"Projected {self.fields[0]}"
             if clim is not None:
                 cmin, cmax = clim
             else:
@@ -1701,7 +1701,7 @@ class MosaicCamera(Camera):
         dy = self.width[1]
         offi = (self.imi + 0.5)
         offj = (self.imj + 0.5)
-        mylog.info("Mosaic offset: %f %f" % (offi,offj))
+        mylog.info(f"Mosaic offset: {offi:f} {offj:f}")
         global_center = self.center
         self.center = self.origin
         self.center += offi*dx*self.orienter.unit_vectors[0]

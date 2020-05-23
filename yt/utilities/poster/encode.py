@@ -184,22 +184,21 @@ class MultipartParam(object):
         """Returns the header of the encoding of this parameter"""
         boundary = encode_and_quote(boundary)
 
-        headers = ["--%s" % boundary]
+        headers = [f"--{boundary}"]
 
         if self.filename:
-            disposition = 'form-data; name="%s"; filename="%s"' % (self.name,
-                    self.filename)
+            disposition = f'form-data; name="{self.name}"; filename="{self.filename}"'
         else:
-            disposition = 'form-data; name="%s"' % self.name
+            disposition = f'form-data; name="{self.name}"'
 
-        headers.append("Content-Disposition: %s" % disposition)
+        headers.append(f"Content-Disposition: {disposition}")
 
         if self.filetype:
             filetype = self.filetype
         else:
             filetype = "text/plain; charset=utf-8"
 
-        headers.append("Content-Type: %s" % filetype)
+        headers.append(f"Content-Type: {filetype}")
 
         headers.append("")
         headers.append("")
@@ -216,7 +215,7 @@ class MultipartParam(object):
         if re.search("^--%s$" % re.escape(boundary), value, re.M):
             raise ValueError("boundary found in encoded string")
 
-        return "%s%s\r\n" % (self.encode_hdr(boundary), value)
+        return f"{self.encode_hdr(boundary)}{value}\r\n"
 
     def iter_encode(self, boundary, blocksize=4096):
         """Yields the encoding of this parameter
@@ -308,7 +307,7 @@ def get_headers(params, boundary):
     for the multipart/form-data encoding of ``params``."""
     headers = {}
     boundary = urllib.quote_plus(boundary)
-    headers['Content-Type'] = "multipart/form-data; boundary=%s" % boundary
+    headers['Content-Type'] = f"multipart/form-data; boundary={boundary}"
     headers['Content-Length'] = str(get_body_size(params, boundary))
     return headers
 
@@ -347,7 +346,7 @@ class multipart_yielder:
             self.param_iter = None
             self.p = None
             self.i = None
-            block = "--%s--\r\n" % self.boundary
+            block = f"--{self.boundary}--\r\n"
             self.current += len(block)
             if self.cb:
                 self.cb(self.p, self.current, self.total)

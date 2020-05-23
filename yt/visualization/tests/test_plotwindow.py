@@ -137,8 +137,8 @@ def simple_streamlines(test_obj, plot):
     yax = test_obj.ds.coordinates.y_axis[ax]
     xn = test_obj.ds.coordinates.axis_name[xax]
     yn = test_obj.ds.coordinates.axis_name[yax]
-    plot.annotate_streamlines("velocity_%s" % xn,
-                              "velocity_%s" % yn)
+    plot.annotate_streamlines(f"velocity_{xn}",
+                              f"velocity_{yn}")
 
 CALLBACK_TESTS = (
     ("simple_contour", (simple_contour,)),

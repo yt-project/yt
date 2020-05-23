@@ -66,18 +66,18 @@ def compare_vector_conversions(data_source):
 
             for i, d in enumerate('xyz'):
                 assert_allclose_units(
-                    data_source['velocity_%s' % d] - bulk_velocity[i],
-                    data_source['relative_velocity_%s' % d])
+                    data_source[f'velocity_{d}'] - bulk_velocity[i],
+                    data_source[f'relative_velocity_{d}'])
 
         for i, ax in enumerate('xyz'):
             data_source.set_field_parameter("axis", i)
             data_source.clear_data()
             assert_allclose_units(data_source["velocity_los"], 
-                                  data_source["relative_velocity_%s" % ax])
+                                  data_source[f"relative_velocity_{ax}"])
 
         for i, ax in enumerate("xyz"):
             prj = data_source.ds.proj("velocity_los", i, weight_field="density")
-            assert_allclose_units(prj["velocity_los"], prj["velocity_%s" % ax])
+            assert_allclose_units(prj["velocity_los"], prj[f"velocity_{ax}"])
 
         data_source.clear_data()
         ax = [0.1, 0.2, -0.3]

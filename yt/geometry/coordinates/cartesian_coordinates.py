@@ -89,26 +89,26 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):
             f1, f2 = _get_coord_fields(axi)
-            registry.add_field(("index", "d%s" % ax),
+            registry.add_field(("index", f"d{ax}"),
                                sampling_type="cell",
                                function = f1,
                                display_field = False,
                                units = "code_length")
 
-            registry.add_field(("index", "path_element_%s" % ax),
+            registry.add_field(("index", f"path_element_{ax}"),
                                sampling_type="cell",
                                function = f1,
                                display_field = False,
                                units = "code_length")
 
-            registry.add_field(("index", "%s" % ax),
+            registry.add_field(("index", f"{ax}"),
                                sampling_type="cell",
                                function = f2,
                                display_field = False,
                                units = "code_length")
 
             f3 = _get_vert_fields(axi)
-            registry.add_field(("index", "vertex_%s" % ax),
+            registry.add_field(("index", f"vertex_{ax}"),
                                sampling_type="cell",
                                function = f3,
                                display_field = False,

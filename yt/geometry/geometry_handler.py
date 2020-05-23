@@ -51,11 +51,11 @@ class Index(ParallelAnalysisInterface):
         fn = self.ds.storage_filename
         if fn is None:
             if os.path.isfile(os.path.join(self.directory,
-                                "%s.yt" % self.ds.unique_identifier)):
-                fn = os.path.join(self.directory,"%s.yt" % self.ds.unique_identifier)
+                                f"{self.ds.unique_identifier}.yt")):
+                fn = os.path.join(self.directory,f"{self.ds.unique_identifier}.yt")
             else:
                 fn = os.path.join(self.directory,
-                        "%s.yt" % self.dataset.basename)
+                        f"{self.dataset.basename}.yt")
         dir_to_check = os.path.dirname(fn)
         if dir_to_check == '':
             dir_to_check = '.'
@@ -157,7 +157,7 @@ class Index(ParallelAnalysisInterface):
         """
         if self._data_file is None:
             return None
-        if node[0] != "/": node = "/%s" % node
+        if node[0] != "/": node = f"/{node}"
 
         myGroup = self._data_file['/']
         for group in node.split('/'):
@@ -168,7 +168,7 @@ class Index(ParallelAnalysisInterface):
         if name not in myGroup:
             return None
 
-        full_name = "%s/%s" % (node, name)
+        full_name = f"{node}/{name}"
         try:
             return self._data_file[full_name][:]
         except TypeError:
@@ -245,7 +245,7 @@ class Index(ParallelAnalysisInterface):
             raise NotImplementedError
 
 def cached_property(func):
-    n = '_%s' % func.__name__
+    n = f'_{func.__name__}'
     def cached_func(self):
         if self._cache and getattr(self, n, None) is not None:
             return getattr(self, n)
@@ -274,7 +274,7 @@ class YTDataChunk(object):
     def _accumulate_values(self, method):
         # We call this generically.  It's somewhat slower, since we're doing
         # costly getattr functions, but this allows us to generalize.
-        mname = "select_%s" % method
+        mname = f"select_{method}"
         arrs = []
         for obj in self._fast_index or self.objs:
             f = getattr(obj, mname)

@@ -277,9 +277,9 @@ def test_load_particles_types():
     dd = ds1.all_data()
 
     for ax in "xyz":
-        assert dd["io", "particle_position_%s" % ax].size == num_particles
-        assert dd["all", "particle_position_%s" % ax].size == num_particles
-        assert dd["nbody", "particle_position_%s" % ax].size == num_particles
+        assert dd["io", f"particle_position_{ax}"].size == num_particles
+        assert dd["all", f"particle_position_{ax}"].size == num_particles
+        assert dd["nbody", f"particle_position_{ax}"].size == num_particles
 
     num_dm_particles = 10000
     num_star_particles = 50000
@@ -304,9 +304,9 @@ def test_load_particles_types():
     for ax in "xyz":
         npart = 0
         for ptype in ds2.particle_types_raw:
-            npart += dd[ptype, "particle_position_%s" % ax].size
+            npart += dd[ptype, f"particle_position_{ax}"].size
         assert npart == num_tot_particles
-        assert dd["all", "particle_position_%s" % ax].size == num_tot_particles
+        assert dd["all", f"particle_position_{ax}"].size == num_tot_particles
 
 def test_load_particles_with_data_source():
     ds1 = fake_particle_ds()
@@ -314,7 +314,7 @@ def test_load_particles_with_data_source():
     # Load from dataset
     ad = ds1.all_data()
     fields = ['particle_mass']
-    fields += ['particle_position_{}'.format(ax) for ax in 'xyz']
+    fields += [f'particle_position_{ax}' for ax in 'xyz']
     data = {field: ad[field] for field in fields}
     ds2 = load_particles(data, data_source=ad)
 

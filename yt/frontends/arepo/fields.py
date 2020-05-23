@@ -91,7 +91,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
 
             for species in ['H', 'H_p0', 'H_p1']:
                 for suf in ["_density", "_number_density"]:
-                    field = "%s%s" % (species, suf)
+                    field = f"{species}{suf}"
                     self.alias(("gas", field), (ptype, field))
 
             self.alias(("gas", "H_nuclei_density"), ("gas", "H_number_density"))

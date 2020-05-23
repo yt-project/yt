@@ -51,14 +51,14 @@ def sph_fields_validate(ds_fn):
         assert_array_almost_equal(gas_field, part_field)
 
         npart = ds.particle_type_counts[ds._sph_ptypes[0]]
-        err_msg = "Field %s is not the correct shape" % (gf,)
+        err_msg = f"Field {gf} is not the correct shape"
         assert_equal(npart, gas_field.shape[0], err_msg=err_msg)
 
     dd = ds.r[0.4:0.6, 0.4:0.6, 0.4:0.6]
 
     for i, ax in enumerate('xyz'):
         dd.set_field_parameter(
-            'cp_%s_vec' % (ax,), yt.YTArray([1, 1, 1]))
+            f'cp_{ax}_vec', yt.YTArray([1, 1, 1]))
         dd.set_field_parameter('axis', i)
     dd.set_field_parameter('omega_baryon', 0.3)
 

@@ -246,7 +246,7 @@ class AthenaPPDataset(Dataset):
                          unit_system=unit_system)
         self.filename = filename
         if storage_filename is None:
-            storage_filename = '%s.yt' % filename.split('/')[-1]
+            storage_filename = f"{filename.split('/')[-1]}.yt"
         self.storage_filename = storage_filename
         self.backup_filename = self.filename[:-4] + "_backup.gdf"
 
@@ -263,7 +263,7 @@ class AthenaPPDataset(Dataset):
             if getattr(self, unit+'_unit', None) is not None:
                 continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
-            setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
+            setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
 
         self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                      (self.time_unit**2 * self.length_unit))

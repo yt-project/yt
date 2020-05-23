@@ -230,7 +230,7 @@ def cmap_cycle(event_coll, event):
     event_coll.camera.cmap = np.array(cmap(np.linspace(0, 1, 256)),
         dtype=np.float32)
     event_coll.camera.cmap_new = True
-    print("Setting colormap to {}".format(cmap.name))
+    print(f"Setting colormap to {cmap.name}")
     return True
 
 @register_event("cmap_max_up")
@@ -320,7 +320,7 @@ def print_help(event_coll, event):
     for cb in (f for f in sorted(event_coll.key_callbacks)
                if isinstance(f, tuple)):
         for e in event_coll.key_callbacks[cb]:
-            print("%s - %s" % (key_map[cb[0]], e.__doc__))
+            print(f"{key_map[cb[0]]} - {e.__doc__}")
     return False
 
 @register_event("nplane_closer")

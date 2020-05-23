@@ -76,7 +76,7 @@ class FieldFileHandler(metaclass = RAMSESFieldFileHandlerRegistry):
             igroup = ((domain.domain_id-1) // ds.group_size) + 1
             full_path = os.path.join(
                 basename,
-                'group_{:05d}'.format(igroup),
+                f'group_{igroup:05d}',
                 self.fname.format(iout=iout, icpu=domain.domain_id))
         else:
             full_path = os.path.join(
@@ -87,8 +87,7 @@ class FieldFileHandler(metaclass = RAMSESFieldFileHandlerRegistry):
             self.fname = full_path
         else:
             raise FileNotFoundError(
-                'Could not find fluid file (type: %s). Tried %s' %
-                (self.ftype, full_path))
+                f'Could not find fluid file (type: {self.ftype}). Tried {full_path}')
 
         if self.file_descriptor is not None:
             self.file_descriptor = os.path.join(
@@ -358,7 +357,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             fields.append("var"+str(len(fields)))
             count_extra += 1
         if count_extra > 0:
-            mylog.debug('Detected %s extra fluid fields.' % count_extra)
+            mylog.debug(f'Detected {count_extra} extra fluid fields.')
         cls.field_list = [(cls.ftype, e) for e in fields]
 
         cls.set_detected_fields(ds, fields)
@@ -389,10 +388,10 @@ class GravFieldFileHandler(FieldFileHandler):
         ndim = ds.dimensionality
 
         if nvar == ndim + 1:
-            fields = ['potential'] + ['%s-acceleration' % k for k in 'xyz'[:ndim]]
+            fields = ['potential'] + [f'{k}-acceleration' for k in 'xyz'[:ndim]]
             ndetected = ndim
         else:
-            fields = ['%s-acceleration' % k for k in 'xyz'[:ndim]]
+            fields = [f'{k}-acceleration' for k in 'xyz'[:ndim]]
             ndetected = ndim
 
         if ndetected != nvar and not ds._warned_extra_fields['gravity']:
@@ -401,7 +400,7 @@ class GravFieldFileHandler(FieldFileHandler):
             ds._warned_extra_fields['gravity'] = True
 
             for i in range(nvar-ndetected):
-                fields.append('var%s' % i)
+                fields.append(f'var{i}')
 
         cls.field_list = [(cls.ftype, e) for e in fields]
 

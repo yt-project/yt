@@ -10,8 +10,7 @@ class NotAModule(object):
     def __init__(self, pkg_name):
         self.pkg_name = pkg_name
         self.error = ImportError(
-            "This functionality requires the %s "
-            "package to be installed." % self.pkg_name)
+            f"This functionality requires the {self.pkg_name} package to be installed.")
 
     def __getattr__(self, item):
         raise self.error

@@ -36,8 +36,7 @@ def rpdb_excepthook(exc_type, exc, tb):
     traceback.print_exception(exc_type, exc, tb)
     task = ytcfg.getint("yt", "__global_parallel_rank")
     size = ytcfg.getint("yt", "__global_parallel_size")
-    print("Starting RPDB server on task %s ; connect with 'yt rpdb -t %s'" \
-            % (task,task))
+    print(f"Starting RPDB server on task {task} ; connect with 'yt rpdb -t {task}'")
     handler = pdb_handler(tb)
     server = PdbXMLRPCServer(("localhost", 8010+task))
     server.register_introspection_functions()
@@ -84,7 +83,7 @@ class rpdb_cmd(cmd.Cmd):
         return True
 
     def do_help(self, line):
-        print(self.proxy.execute("help %s" % line))
+        print(self.proxy.execute(f"help {line}"))
 
     def postcmd(self, stop, line):
         return stop
@@ -109,7 +108,7 @@ def run_rpdb(task = None):
             task + int(sys.argv[-1])
         except: pass
     port += task
-    sp = ServerProxy("http://localhost:%s/" % port)
+    sp = ServerProxy(f"http://localhost:{port}/")
     try:
         pp = rpdb_cmd(sp)
     except socket.error:

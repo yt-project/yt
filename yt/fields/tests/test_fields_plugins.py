@@ -76,7 +76,7 @@ class TestPluginFile(unittest.TestCase):
     def testCustomField(self):
         plugin_file = os.path.join(
             CONFIG_DIR, ytcfg.get('yt', 'pluginfilename'))
-        msg = 'INFO:yt:Loading plugins from %s' % plugin_file
+        msg = f'INFO:yt:Loading plugins from {plugin_file}'
 
         if sys.version_info >= (3, 4, 0):
             with self.assertLogs('yt', level='INFO') as cm:

@@ -101,7 +101,7 @@ class UnstructuredMesh(YTSelectionContainer):
                 kernel_name = 'cubic'):
         raise NotImplementedError
         # Here we perform our particle deposition.
-        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         # We allocate number of zones, not number of octs

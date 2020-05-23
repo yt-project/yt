@@ -84,7 +84,7 @@ class ExtensionImporter(object):
             if '.' not in modname:
                 setattr(sys.modules[self.wrapper_module], modname, module)
             return module
-        raise ImportError('No module named %s' % fullname)
+        raise ImportError(f'No module named {fullname}')
 
     def is_important_traceback(self, important_module, tb):
         """Walks a traceback's frames and checks if any of the frames

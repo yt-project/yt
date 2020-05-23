@@ -124,7 +124,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
                 kernel_name = 'cubic'):
         # Here we perform our particle deposition.
         if fields is None: fields = []
-        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
@@ -202,8 +202,8 @@ class ARTIOIndex(Index):
             source.quantities["MaxLocation"](field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
                    max_val, mx, my, mz)
-        self.ds.parameters["Max%sValue" % (field)] = max_val
-        self.ds.parameters["Max%sPos" % (field)] = "%s" % ((mx, my, mz),)
+        self.ds.parameters[f"Max{field}Value"] = max_val
+        self.ds.parameters[f"Max{field}Pos"] = f"{mx, my, mz}"
         return max_val, np.array((mx, my, mz), dtype='float64')
 
     def _detect_output_fields(self):
@@ -383,7 +383,7 @@ class ARTIODataset(Dataset):
             if labels.count("N-BODY") > 1:
                 for species, label in enumerate(labels):
                     if label == "N-BODY":
-                        labels[species] = "N-BODY_{}".format(species)
+                        labels[species] = f"N-BODY_{species}"
 
             self.particle_types_raw = \
                 self.artio_parameters["particle_species_labels"]
