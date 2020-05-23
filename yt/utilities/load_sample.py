@@ -150,6 +150,6 @@ def fetch_noncompressed_file(name, fido, downloader=None):
     """
     Load an uncompressed file from the data registry
     """
-    fname = fido.fido.fetch(name, downloader)
+    fname = fido.fido.fetch(name, downloader=downloader)
     return fname
 
