@@ -51,7 +51,7 @@ def load_sample(name=None, specific_file=None, pbar=True):
     downloader = None
     if pbar:
         try:
-            import tqdm
+            import tqdm  # noqa: F401
             from pooch import HTTPDownloader
             downloader = HTTPDownloader(progressbar=True)
         except ImportError:
