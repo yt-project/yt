@@ -87,7 +87,7 @@ def run_install_script(install_script_path, inst_py3, binary_yt=False):
                     # compiling rockstar is broken on newer MacOS releases
                     if platform.mac_ver()[0].startswith(('10.12', '10.13')):
                         continue
-                dname = 'INST_%s' % dep.upper()
+                dname = f'INST_{dep.upper()}'
                 data = data.replace(f"{dname}=0", f"{dname}=1")
             if inst_py3 is True:
                 data = data.replace('INST_PY3=0', 'INST_PY3=1')

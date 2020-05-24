@@ -142,9 +142,9 @@ def print_all_fields(fl):
                          'particle_position_y', 'particle_position_z', \
                          'entropy', 'kT', 'metallicity', 'dx', 'dy', 'dz',\
                          'cell_volume', 'x', 'y', 'z']:
-                print("   * Units: :math:`%s`" % fix_units(df.units))
+                print(f"   * Units: :math:`{fix_units(df.units)}`")
             else:
-                print("   * Units: :math:`%s`" % fix_units(df.units, in_cgs=True))
+                print(f"   * Units: :math:`{fix_units(df.units, in_cgs=True)}`")
         print(f"   * Sampling Method: {df.sampling_type}")
         print()
         print("**Field Source**")
@@ -227,8 +227,8 @@ for frontend in current_frontends:
         else:
             known_particle_fields = []
         if nfields > 0:
-            print(".. _%s_specific_fields:\n" % dset_name.replace("Dataset", ""))
-            h = "%s-Specific Fields" % dset_name.replace("Dataset", "")
+            print(f".. _{dset_name.replace('Dataset', '')}_specific_fields:\n")
+            h = f"{dset_name.replace('Dataset', '')}-Specific Fields"
             print(h)
             print(f"{'-' * len(h)}\n")
 

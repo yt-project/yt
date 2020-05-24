@@ -23,7 +23,7 @@ BLACKLIST = ["opengl_ipython", "opengl_vr"]
 
 
 def prep_dirs():
-    for directory in glob.glob('%s/*' % ytcfg.get("yt", "test_data_dir")):
+    for directory in glob.glob(f"{ytcfg.get('yt', 'test_data_dir')}/*"):
         os.symlink(directory, os.path.basename(directory))
 
 

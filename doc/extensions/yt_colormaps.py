@@ -53,7 +53,7 @@ class ColormapScript(Directive):
             im_name = os.path.join("_static", os.path.basename(im))
             lines.append(f".. image:: {im_name}")
             lines.append("   :width: 400")
-            lines.append("   :target: ../../_images/%s" % os.path.basename(im))
+            lines.append(f"   :target: ../../_images/{os.path.basename(im)}")
             lines.append("\n")
         lines.append("\n")
         self.state_machine.insert_input(lines, rst_file)

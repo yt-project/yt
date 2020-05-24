@@ -12,4 +12,4 @@ for cmap in cm.datad:
         continue
     p.set_cmap(field="density", cmap=cmap)
     p.annotate_title(cmap)
-    p.save('Projection_%s.png' % cmap.replace(' ', '_'))
+    p.save(f"Projection_{cmap.replace(' ', '_')}.png")
