@@ -588,7 +588,7 @@ def rebuild_modules(path, f):
     f.write(stdout.decode('utf-8'))
     f.write("\n\n")
     if p.returncode:
-        print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
+        print(f"BROKEN: See {os.path.join(path, 'yt_updater.log')}")
         sys.exit(1)
     f.write("Successful!\n")
 
@@ -713,7 +713,7 @@ def bb_apicall(endpoint, data, use_pass = True):
         username = input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = f'{username}:{password}'
-        req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
+        req.add_header('Authorization', f'Basic {base64.b64encode(upw).strip()}')
     return urllib.request.urlopen(req).read()
 
 def get_yt_supp():
@@ -761,7 +761,7 @@ def fix_length(length, ds):
     if length_valid_tuple and unit_is_string and length_is_number:
         return YTArray(*length, registry=registry)
     else:
-        raise RuntimeError("Length %s is invalid" % str(length))
+        raise RuntimeError(f"Length {str(length)} is invalid")
 
 @contextlib.contextmanager
 def parallel_profile(prefix):
@@ -883,7 +883,7 @@ def validate_width_tuple(width):
     length_has_units = isinstance(width[0], YTArray)
     unit_is_string = isinstance(width[1], str)
     if not is_numeric or length_has_units and unit_is_string:
-        msg = "width (%s) is invalid. " % str(width)
+        msg = f"width ({str(width)}) is invalid. "
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)
 

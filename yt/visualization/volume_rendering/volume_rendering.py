@@ -57,7 +57,7 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
         if field not in data_source.ds.derived_field_list:
             raise YTSceneFieldNotFound("""Could not find field '%s' in %s.
                   Please specify a field in create_scene()""" % (field, data_source.ds))
-        mylog.info('Setting default field to %s' % field.__repr__())
+        mylog.info(f'Setting default field to {field.__repr__()}')
 
     if hasattr(data_source.ds.index, "meshes"):
         source = MeshSource(data_source, field=field)

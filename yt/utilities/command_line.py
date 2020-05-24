@@ -110,7 +110,7 @@ def _print_installation_information(path):
     print(f"Version = {yt.__version__}")
     vstring = get_hg_or_git_version(path)
     if vstring is not None:
-        print("Changeset = %s" % vstring.strip())
+        print(f"Changeset = {vstring.strip()}")
     print("---")
     return vstring
 
@@ -441,7 +441,7 @@ def bb_apicall(endpoint, data, use_pass = True):
         username = input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = f'{username}:{password}'
-        req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
+        req.add_header('Authorization', f'Basic {base64.b64encode(upw).strip()}')
     return urllib.request.urlopen(req).read()
 
 class YTBugreportCmd(YTCommand):

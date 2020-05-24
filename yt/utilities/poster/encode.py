@@ -212,7 +212,7 @@ class MultipartParam(object):
         else:
             value = self.value
 
-        if re.search("^--%s$" % re.escape(boundary), value, re.M):
+        if re.search(f"^--{re.escape(boundary)}$", value, re.M):
             raise ValueError("boundary found in encoded string")
 
         return f"{self.encode_hdr(boundary)}{value}\r\n"
@@ -236,8 +236,8 @@ class MultipartParam(object):
             if self.cb:
                 self.cb(self, current, total)
             last_block = ""
-            encoded_boundary = "--%s" % encode_and_quote(boundary)
-            boundary_exp = re.compile("^%s$" % re.escape(encoded_boundary),
+            encoded_boundary = f"--{encode_and_quote(boundary)}"
+            boundary_exp = re.compile(f"^{re.escape(encoded_boundary)}$",
                     re.M)
             while True:
                 block = self.fileobj.read(blocksize)

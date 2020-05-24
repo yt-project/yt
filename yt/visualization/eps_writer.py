@@ -508,7 +508,7 @@ class DualEPS(object):
             else:
                 self.field = plot.data_source._determine_fields(field)[0]
             if self.field not in plot.plots.keys():
-                raise RuntimeError("Field '%s' does not exist!" % str(self.field))
+                raise RuntimeError(f"Field '{str(self.field)}' does not exist!")
             if isinstance(plot, PlotWindow):
                 plot.hide_colorbar()
                 plot.hide_axes()

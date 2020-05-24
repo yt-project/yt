@@ -75,7 +75,7 @@ class AnswerTesting(Plugin):
             try:
                 version = get_yt_version()
             except:
-                version = "UNKNOWN%s" % (time.time())
+                version = f"UNKNOWN{time.time()}"
         self._my_version = version
         return self._my_version
 

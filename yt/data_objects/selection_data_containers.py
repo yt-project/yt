@@ -830,7 +830,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
 
         points = fix_length(points, ds)
         if len(points) < 2:
-            raise YTException("Not enough points. Expected at least 2, got %s" % len(points))
+            raise YTException(f"Not enough points. Expected at least 2, got {len(points)}")
         mylog.debug('Building minimal sphere around points.')
         mb = _miniball.Miniball(points)
         if not mb.is_valid():

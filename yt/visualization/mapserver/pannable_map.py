@@ -112,7 +112,7 @@ class PannableMapServer(object):
 
     def static(self, path):
         if path[-4:].lower() in (".png", ".gif", ".jpg"):
-            bottle.response.headers['Content-Type'] = "image/%s" % (path[-3:].lower())
+            bottle.response.headers['Content-Type'] = f"image/{path[-3:].lower()}"
         elif path[-4:].lower() == ".css":
             bottle.response.headers['Content-Type'] = "text/css"
         elif path[-3:].lower() == ".js":

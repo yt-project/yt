@@ -80,7 +80,7 @@ class EventCollection(object):
         if not callable(func):
             func = event_registry[func]
         if isinstance(key, str):
-            key = getattr(glfw, "KEY_%s" % key.upper())
+            key = getattr(glfw, f"KEY_{key.upper()}")
         if isinstance(action, str):
             action = getattr(glfw, action.upper())
         if not isinstance(mods, tuple):
@@ -88,7 +88,7 @@ class EventCollection(object):
         mod = 0
         for m in mods:
             if isinstance(m, str):
-                m = getattr(glfw, "MOD_%s" % m.upper())
+                m = getattr(glfw, f"MOD_{m.upper()}")
             elif m is None:
                 m = 0
             mod |= m

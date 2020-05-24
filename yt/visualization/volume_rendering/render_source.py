@@ -463,8 +463,8 @@ class VolumeSource(RenderSource):
         return image
 
     def __repr__(self):
-        disp = "<Volume Source>:%s " % str(self.data_source)
-        disp += "transfer_function:%s" % str(self._transfer_function)
+        disp = f"<Volume Source>:{str(self.data_source)} "
+        disp += f"transfer_function:{str(self._transfer_function)}"
         return disp
 
 
@@ -769,7 +769,7 @@ class MeshSource(OpaqueSource):
         return image
 
     def __repr__(self):
-        disp = "<Mesh Source>:%s " % str(self.data_source)
+        disp = f"<Mesh Source>:{str(self.data_source)} "
         return disp
 
 

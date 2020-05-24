@@ -2228,7 +2228,7 @@ class YTOctree(YTSelectionContainer3D):
         )
 
         if fname is not None:
-            mylog.info('Saving octree to file %s' % os.path.basename(fname))
+            mylog.info(f'Saving octree to file {os.path.basename(fname)}')
             self._octree.save(fname)
 
     @property
@@ -2255,7 +2255,7 @@ class YTOctree(YTSelectionContainer3D):
             self._generate_tree(fname)
         else:
             self.loaded = True
-            mylog.info('Loading octree from %s' % os.path.basename(fname))
+            mylog.info(f'Loading octree from {os.path.basename(fname)}')
             self._octree = CyOctree()
             self._octree.load(fname)
             if self._octree.data_version != self.ds._file_hash:

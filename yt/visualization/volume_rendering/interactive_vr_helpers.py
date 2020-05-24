@@ -58,7 +58,7 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
         if field not in dobj.ds.derived_field_list:
             raise YTSceneFieldNotFound("""Could not find field '%s' in %s.
                   Please specify a field in create_scene()""" % (field, dobj.ds))
-        mylog.info('Setting default field to %s' % field.__repr__())
+        mylog.info(f'Setting default field to {field.__repr__()}')
     if window_size is None:
         window_size = (1024, 1024)
     if cam_position is None:

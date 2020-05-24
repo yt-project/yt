@@ -850,7 +850,7 @@ class YTClumpContainer(TreeContainer):
             return g[f][self.global_id]
         if self.contour_id == -1:
             return g[f]
-        cfield = (f[0], "contours_%s" % self.contour_key.decode('utf-8'))
+        cfield = (f[0], f"contours_{self.contour_key.decode('utf-8')}")
         if f[0] == "grid":
             return g[f][g[cfield] == self.contour_id]
         return self.parent[f][g[cfield] == self.contour_id]

@@ -269,7 +269,7 @@ class YTTooManyVertices(YTException):
 
 class YTInvalidWidthError(YTException):
     def __init__(self, width):
-        self.error = "width (%s) is invalid" % str(width)
+        self.error = f"width ({str(width)}) is invalid"
 
     def __str__(self):
         return str(self.error)

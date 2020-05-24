@@ -172,7 +172,7 @@ class Shader(metaclass = RegisteredShader):
             raise NotImplementedError
         source = self._get_source(source)
         shader_type_enum = getattr(GL,
-            'GL_%s_SHADER' % self.shader_type.upper())
+            f'GL_{self.shader_type.upper()}_SHADER')
         shader = GL.glCreateShader(shader_type_enum)
         # We could do templating here if we wanted.
         self.shader_source = source

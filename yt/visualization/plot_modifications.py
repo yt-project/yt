@@ -1015,8 +1015,7 @@ class ClumpContourCallback(PlotCallback):
                 ftype = "grid"
             else:
                 raise RuntimeError(
-                    "Unknown field type for object of type %s." %
-                    type(clump))
+                    f"Unknown field type for object of type {type(clump)}.")
 
             xf_copy = clump[ftype, xf].copy().in_units("code_length")
             yf_copy = clump[ftype, yf].copy().in_units("code_length")

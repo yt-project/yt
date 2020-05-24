@@ -444,7 +444,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 pos += 4
             else:
                 raise RuntimeError(
-                    "incorrect Gadget format %s!" % str(self._format))
+                    f"incorrect Gadget format {str(self._format)}!")
             any_ptypes = False
             for ptype in self._ptypes:
                 if field == "Mass" and ptype not in self.var_mass:

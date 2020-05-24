@@ -78,7 +78,7 @@ class SPHParticleIndex(ParticleIndex):
         from yt.utilities.lib.cykdtree import PyKDTree
         if fname is not None:
             if os.path.exists(fname):
-                mylog.info('Loading KDTree from %s' % os.path.basename(fname))
+                mylog.info(f'Loading KDTree from {os.path.basename(fname)}')
                 kdtree = PyKDTree.from_file(fname)
                 if kdtree.data_version != self.ds._file_hash:
                     mylog.info('Detected hash mismatch, regenerating KDTree')

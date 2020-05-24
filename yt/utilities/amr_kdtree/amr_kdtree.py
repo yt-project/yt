@@ -551,7 +551,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             if splitdims[i] != -1:
                 n.create_split(splitdims[i], splitposs[i])
 
-        mylog.info('AMRKDTree rebuilt, Final Volume: %e' % self.tree.trunk.kd_sum_volume())
+        mylog.info(f'AMRKDTree rebuilt, Final Volume: {self.tree.trunk.kd_sum_volume():e}')
         return self.tree.trunk
 
     def count_volume(self):
