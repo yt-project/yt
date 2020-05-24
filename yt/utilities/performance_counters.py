@@ -71,7 +71,7 @@ class PerformanceCounters(object):
                 line = "%s%s%i : %s : still running\n" % (line, " "*shifts[i]*multi, shifts[i], i)
             else:
                 line = "%s%s%i : %s : %0.3e\n" % (line, " "*shifts[i]*multi, shifts[i], i, self.counters[i])
-        mylog.info("\n" + line)
+        mylog.info(f"\n{line}")
 
     def exit(self):
         if self._on:

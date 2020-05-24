@@ -20,7 +20,7 @@ def teardown():
 @requires_file(G30)
 def test_store():
     ds = yt.load(G30)
-    store = ds.parameter_filename + '.yt'
+    store = f"{ds.parameter_filename}.yt"
     field = "density"
     if os.path.isfile(store):
         os.remove(store)

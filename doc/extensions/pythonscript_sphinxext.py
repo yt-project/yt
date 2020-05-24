@@ -89,9 +89,9 @@ def get_image_tag(filename, image_dir, image_rel_dir):
 
 
 def make_image_dir(setup, rst_dir):
-    image_dir = setup.app.builder.outdir + os.path.sep + '_images'
+    image_dir = f"{setup.app.builder.outdir + os.path.sep}_images"
     rel_dir = os.path.relpath(setup.confdir, rst_dir)
-    image_rel_dir = rel_dir + os.path.sep + '_images'
+    image_rel_dir = f"{rel_dir + os.path.sep}_images"
     thread_safe_mkdir(image_dir)
     return image_dir, image_rel_dir
 

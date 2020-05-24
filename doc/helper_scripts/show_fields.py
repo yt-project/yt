@@ -157,7 +157,7 @@ def print_all_fields(fl):
             print(".. code-block:: python")
             print()
             for line in inspect.getsource(f).split("\n"):
-                print("  " + line)
+                print(f"  {line}")
             print()
 
 
@@ -180,7 +180,7 @@ class FieldInfo:
             self.dname = f":math:`{field[1][2]}`"
 
         if ftype is not "particle_type":
-            ftype = "'"+ftype+"'"
+            ftype = f"'{ftype}'"
         self.name = f"({ftype}, '{name}')"
         self.ptype = ptype
 
@@ -230,7 +230,7 @@ for frontend in current_frontends:
             print(".. _%s_specific_fields:\n" % dset_name.replace("Dataset", ""))
             h = "%s-Specific Fields" % dset_name.replace("Dataset", "")
             print(h)
-            print("-" * len(h) + "\n")
+            print(f"{'-' * len(h)}\n")
 
             field_stuff = []
             for field in known_other_fields:

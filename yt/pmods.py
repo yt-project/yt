@@ -333,7 +333,7 @@ def __find_head_package__(parent, name):
         parent = None
         q = __import_module__(head, qname, parent)
         if q: return q, tail
-    raise ImportError("No module named " + qname)
+    raise ImportError(f"No module named {qname}")
 
 def __load_tail__(q, tail):
     m = q
@@ -344,7 +344,7 @@ def __load_tail__(q, tail):
         mname = f"{m.__name__}.{head}"
         m = __import_module__(head, mname, m)
         if not m:
-            raise ImportError("No module named " + mname)
+            raise ImportError(f"No module named {mname}")
     return m
 
 def __ensure_fromlist__(m, fromlist, recursive=0):
@@ -362,7 +362,7 @@ def __ensure_fromlist__(m, fromlist, recursive=0):
             subname = f"{m.__name__}.{sub}"
             submod = __import_module__(sub, subname, m)
             if not submod:
-                raise ImportError("No module named " + subname)
+                raise ImportError(f"No module named {subname}")
 
 # Now we import all the yt.mods items.
 with mpi_import():

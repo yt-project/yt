@@ -151,7 +151,7 @@ if cmocean is not None:
         # cmocean has a colormap named 'algae', so let's avoid overwriting
         # yt's algae or any other colormap we've already added
         if cmname in yt_colormaps:
-            cmname = cmname + '_cmocean'
+            cmname = f"{cmname}_cmocean"
         yt_colormaps[cmname] = cm
         try:
             mcm.register_cmap(cmname, yt_colormaps[cmname])

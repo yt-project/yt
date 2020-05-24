@@ -2332,7 +2332,7 @@ class ScaleCallback(PlotCallback):
         frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
         # FontProperties instances use set_<property>() setter functions
         for key, val in self.text_args.items():
-            setter_func = "set_"+key
+            setter_func = f"set_{key}"
             try:
                 getattr(fontproperties, setter_func)(val)
             except AttributeError:

@@ -88,7 +88,7 @@ def run_install_script(install_script_path, inst_py3, binary_yt=False):
                     if platform.mac_ver()[0].startswith(('10.12', '10.13')):
                         continue
                 dname = 'INST_%s' % dep.upper()
-                data = data.replace(dname + '=0', dname + '=1')
+                data = data.replace(f"{dname}=0", f"{dname}=1")
             if inst_py3 is True:
                 data = data.replace('INST_PY3=0', 'INST_PY3=1')
             if binary_yt is False:
@@ -121,7 +121,7 @@ def verify_yt_installation(binary_yt):
                 cmd = 'LD_LIBRARY_PATH={} '.format(
                     os.sep.join([os.curdir, yt_dir, 'lib'])) + cmd
                 if sys.platform == 'darwin':
-                    cmd = 'DY' + cmd
+                    cmd = f"DY{cmd}"
             call_unix_command(cmd.format(
                 python_path, DEPENDENCY_IMPORT_TESTS[dep]))
         else:

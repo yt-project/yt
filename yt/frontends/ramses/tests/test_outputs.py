@@ -147,8 +147,8 @@ def test_ramses_rt():
     species = ['H_p1', 'He_p1', 'He_p2']
     for specie in species:
         special_fields.extend(
-            [('gas', specie+'_fraction'), ('gas', specie+'_density'),
-             ('gas', specie+'_mass')])
+            [('gas', f"{specie}_fraction"), ('gas', f"{specie}_density"),
+             ('gas', f"{specie}_mass")])
 
     for field in special_fields:
         assert(field in ds.derived_field_list)

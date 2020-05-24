@@ -8424,5 +8424,5 @@ color_map_luts['Rainbow + black'] = color_map_luts['idl40']
 # So for example, the reversal of "Waves" is "Waves_r"
 temp = {}
 for k,v in color_map_luts.items():
-    temp[k+"_r"] = (v[0][::-1], v[1][::-1], v[2][::-1], v[3][::-1])
+    temp[f"{k}_r"] = (v[0][::-1], v[1][::-1], v[2][::-1], v[3][::-1])
 color_map_luts.update(temp)

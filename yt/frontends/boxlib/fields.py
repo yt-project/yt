@@ -93,7 +93,7 @@ class WarpXFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
 
         def get_mass(field, data):
-            species_mass = data.ds.index.parameters[ptype + '_mass']
+            species_mass = data.ds.index.parameters[f"{ptype}_mass"]
             return data["particle_weight"]*YTQuantity(species_mass, 'kg')
 
         self.add_field((ptype, "particle_mass"), sampling_type="particle",
@@ -101,7 +101,7 @@ class WarpXFieldInfo(FieldInfoContainer):
                        units="kg")
 
         def get_charge(field, data):
-            species_charge = data.ds.index.parameters[ptype + '_charge']
+            species_charge = data.ds.index.parameters[f"{ptype}_charge"]
             return data["particle_weight"]*YTQuantity(species_charge, 'C')
 
         self.add_field((ptype, "particle_charge"), sampling_type="particle",

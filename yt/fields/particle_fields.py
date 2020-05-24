@@ -168,7 +168,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             function = _get_density_weighted_deposit_field(
                 f"particle_velocity_{ax}", "code_velocity", method)
             registry.add_field(
-                ("deposit", ("%s_"+name+"_velocity_%s") % (ptype, ax)),
+                ("deposit", (f"%s_{name}_velocity_%s") % (ptype, ax)),
                 sampling_type="cell",
                 function=function,
                 units=unit_system["velocity"],
@@ -179,7 +179,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         function = _get_density_weighted_deposit_field(
             "age", "code_time", method)
         registry.add_field(
-            ("deposit", ("%s_"+name+"_age") % (ptype)),
+            ("deposit", (f"%s_{name}_age") % (ptype)),
             sampling_type="cell",
             function=function,
             units=unit_system["time"],
@@ -797,7 +797,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         smoothing_length_name, density_name, smoothed_field, registry,
         nneighbors = 64, kernel_name = 'cubic'):
     issue_deprecation_warning(
-        "This function is deprecated. " + DEP_MSG_SMOOTH_FIELD
+        f"This function is deprecated. {DEP_MSG_SMOOTH_FIELD}"
     )
 
 

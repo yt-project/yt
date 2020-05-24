@@ -224,7 +224,7 @@ class AthenaHierarchy(GridIndex):
         dataset_dir = os.path.dirname(self.index_filename)
         dname = os.path.split(self.index_filename)[-1]
         if dataset_dir.endswith("id0"):
-            dname = "id0/"+dname
+            dname = f"id0/{dname}"
             dataset_dir = dataset_dir[:-3]
 
         gridlistread = glob.glob(os.path.join(dataset_dir, f'id*/{dname[4:-9]}-id*{dname[-9:]}'))
@@ -443,7 +443,7 @@ class AthenaDataset(Dataset):
         if storage_filename is None:
             storage_filename = f"{filename.split('/')[-1]}.yt"
         self.storage_filename = storage_filename
-        self.backup_filename = self.filename[:-4] + "_backup.gdf"
+        self.backup_filename = f"{self.filename[:-4]}_backup.gdf"
         # Unfortunately we now have to mandate that the index gets
         # instantiated so that we can make sure we have the correct left
         # and right domain edges.
@@ -458,7 +458,7 @@ class AthenaDataset(Dataset):
             self.no_cgs_equiv_length = True
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
             # We set these to cgs for now, but they may have been overridden
-            if getattr(self, unit+'_unit', None) is not None:
+            if getattr(self, f"{unit}_unit", None) is not None:
                 continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
@@ -529,7 +529,7 @@ class AthenaDataset(Dataset):
         dataset_dir = os.path.dirname(self.parameter_filename)
         dname = os.path.split(self.parameter_filename)[-1]
         if dataset_dir.endswith("id0"):
-            dname = "id0/"+dname
+            dname = f"id0/{dname}"
             dataset_dir = dataset_dir[:-3]
 
         gridlistread = glob.glob(os.path.join(dataset_dir, f'id*/{dname[4:-9]}-id*{dname[-9:]}'))

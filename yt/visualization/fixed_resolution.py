@@ -513,7 +513,7 @@ class FixedResolutionBuffer(object):
             FilterMaker = filter_registry[key]
             filt = apply_filter(FilterMaker)
             filt.__doc__ = FilterMaker.__doc__
-            self.__dict__['apply_' + filtername] = \
+            self.__dict__[f"apply_{filtername}"] = \
                 types.MethodType(filt, self)
 
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):

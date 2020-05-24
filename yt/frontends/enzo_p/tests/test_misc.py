@@ -11,7 +11,7 @@ def get_random_block_string(max_n=64, random_state=None, level=None):
         random_state = np.random.RandomState()
 
     max_l = int(np.log2(max_n))
-    form = "%0" + str(max_l) + "d"
+    form = f"%0{str(max_l)}d"
     num10 = random_state.randint(0, high=max_n)
     num2 = form % int(bin(num10)[2:])
 
@@ -21,7 +21,7 @@ def get_random_block_string(max_n=64, random_state=None, level=None):
         my_block = f"{num2[:-level]}:{num2[-level:]}"
     else:
         my_block = num2
-    my_block = "B" + my_block
+    my_block = f"B{my_block}"
 
     return num10, level, my_block
 

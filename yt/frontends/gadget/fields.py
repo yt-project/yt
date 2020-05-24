@@ -37,7 +37,7 @@ class GadgetFieldInfo(SPHFieldInfo):
                     return data[(ptype, 'FourMetalFractions')][:,i]
                 return _Fraction
 
-            self.add_field((ptype, metal_name+"_fraction"),
+            self.add_field((ptype, f"{metal_name}_fraction"),
                            sampling_type="particle",
                            function=_Fraction_wrap(i),
                            units="")
@@ -49,7 +49,7 @@ class GadgetFieldInfo(SPHFieldInfo):
                            data[(ptype, 'density')]
                 return _Metal_density
 
-            self.add_field((ptype, metal_name+"_density"),
+            self.add_field((ptype, f"{metal_name}_density"),
                            sampling_type="particle",
                            function=_Density_wrap(i),
                            units=self.ds.unit_system["density"])

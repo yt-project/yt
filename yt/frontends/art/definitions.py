@@ -76,7 +76,7 @@ particle_header_struct = [
      'Om0', 'Oml0', 'hubble', 'Wp5', 'Ocurv', 'Omb0',
      'extras', 'unknown'),
      1,
-     '45sffffi'+'fffffff'+'iiii'+'ffffff'+'396s'+'f')
+     f"45sffffifffffffiiiiffffff396sf")
 ]
 
 dmparticle_header_struct = [

@@ -115,7 +115,7 @@ class SPHParticleIndex(ParticleIndex):
 
         if getattr(ds, 'kdtree_filename', None) is None:
             if os.path.exists(ds.parameter_filename):
-                fname = ds.parameter_filename + ".kdtree"
+                fname = f"{ds.parameter_filename}.kdtree"
             else:
                 # we don't want to write to disk for in-memory data
                 fname = None

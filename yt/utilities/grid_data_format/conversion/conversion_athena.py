@@ -23,10 +23,10 @@ class AthenaDistributedConverter(Converter):
         self.ddn = int(name[1])
         if source_dir is None:
             source_dir = './'
-        self.source_dir = source_dir+'/'
+        self.source_dir = f"{source_dir}/"
         self.basename = name[0]
         if outname is None:
-            outname = self.basename+'.%04i'%self.ddn+'.gdf'
+            outname = f"{self.basename + '.%04i' % self.ddn}.gdf"
         self.outname = outname
         if field_conversions is None:
             field_conversions = {}
@@ -83,7 +83,7 @@ class AthenaDistributedConverter(Converter):
 
     def read_and_write_index(self,basename, ddn, gdf_name):
         """ Read Athena legacy vtk file from multiple cpus """
-        proc_names = glob(self.source_dir+'id*')
+        proc_names = glob(f"{self.source_dir}id*")
         #print('Reading a dataset from %i Processor Files' % len(proc_names))
         N = len(proc_names)
         grid_dims = np.empty([N,3],dtype='int64')
@@ -95,9 +95,9 @@ class AthenaDistributedConverter(Converter):
 
         for i in range(N):
             if i == 0:
-                fn = self.source_dir+'id%i/'%i + basename + '.%04i'%ddn + '.vtk'
+                fn = f"{self.source_dir + 'id%i/' % i + basename + '.%04i' % ddn}.vtk"
             else:
-                fn = self.source_dir+'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
+                fn = f"{self.source_dir + 'id%i/' % i + basename + '-id%i' % i + '.%04i' % ddn}.vtk"
 
             print(f'Reading file {fn}')
             f = open(fn,'rb')
@@ -197,14 +197,14 @@ class AthenaDistributedConverter(Converter):
 
 
     def read_and_write_data(self, basename, ddn, gdf_name):
-        proc_names = glob(self.source_dir+'id*')
+        proc_names = glob(f"{self.source_dir}id*")
         #print('Reading a dataset from %i Processor Files' % len(proc_names))
         N = len(proc_names)
         for i in range(N):
             if i == 0:
-                fn = self.source_dir+'id%i/'%i + basename + '.%04i'%ddn + '.vtk'
+                fn = f"{self.source_dir + 'id%i/' % i + basename + '.%04i' % ddn}.vtk"
             else:
-                fn = self.source_dir+'id%i/'%i + basename + '-id%i'%i + '.%04i'%ddn + '.vtk'
+                fn = f"{self.source_dir + 'id%i/' % i + basename + '-id%i' % i + '.%04i' % ddn}.vtk"
             f = open(fn,'rb')
             #print('Reading data from %s' % fn)
             line = f.readline()
@@ -253,14 +253,14 @@ class AthenaDistributedConverter(Converter):
                     data_y = data[1::3].reshape(grid_dims,order='F')
                     data_z = data[2::3].reshape(grid_dims,order='F')
                     if i == 0:
-                        self.fields.append(field+'_x')
-                        self.fields.append(field+'_y')
-                        self.fields.append(field+'_z')
+                        self.fields.append(f"{field}_x")
+                        self.fields.append(f"{field}_y")
+                        self.fields.append(f"{field}_z")
 
                     # print('writing field %s' % field)
-                    self.write_gdf_field(gdf_name, i, field+'_x', data_x)
-                    self.write_gdf_field(gdf_name, i, field+'_y', data_y)
-                    self.write_gdf_field(gdf_name, i, field+'_z', data_z)
+                    self.write_gdf_field(gdf_name, i, f"{field}_x", data_x)
+                    self.write_gdf_field(gdf_name, i, f"{field}_y", data_y)
+                    self.write_gdf_field(gdf_name, i, f"{field}_z", data_z)
                     del data, data_x, data_y, data_z
                 del line
                 line = f.readline()  # NOQA
@@ -300,7 +300,7 @@ class AthenaConverter(Converter):
         self.ddn = int(name[1])
         self.basename = fn
         if outname is None:
-            outname = fn+'.gdf'
+            outname = f"{fn}.gdf"
         self.outname = outname
         if field_conversions is None:
             field_conversions = {}
@@ -365,12 +365,12 @@ class AthenaConverter(Converter):
                 self.fields.append(grid['read_field'])
             elif grid['read_type'] == 'vector':
                 data = np.fromfile(f, dtype='>f4', count=3*grid['ncells'])
-                grid[grid['read_field']+'_x'] = data[0::3].reshape(grid['dimensions'],order='F')
-                grid[grid['read_field']+'_y'] = data[1::3].reshape(grid['dimensions'],order='F')
-                grid[grid['read_field']+'_z'] = data[2::3].reshape(grid['dimensions'],order='F')
-                self.fields.append(grid['read_field']+'_x')
-                self.fields.append(grid['read_field']+'_y')
-                self.fields.append(grid['read_field']+'_z')
+                grid[f"{grid['read_field']}_x"] = data[0::3].reshape(grid['dimensions'],order='F')
+                grid[f"{grid['read_field']}_y"] = data[1::3].reshape(grid['dimensions'],order='F')
+                grid[f"{grid['read_field']}_z"] = data[2::3].reshape(grid['dimensions'],order='F')
+                self.fields.append(f"{grid['read_field']}_x")
+                self.fields.append(f"{grid['read_field']}_y")
+                self.fields.append(f"{grid['read_field']}_z")
             else:
                 raise TypeError
             grid['read_field'] = None
@@ -476,7 +476,7 @@ class AthenaConverter(Converter):
         f.close()
 
     def convert(self):
-        grid = self.read_grid(self.basename+'.vtk')
+        grid = self.read_grid(f"{self.basename}.vtk")
         self.write_to_gdf(self.outname,grid)
         
 # import sys

@@ -39,7 +39,7 @@ PR_QUERY = """
 def clone_new_repo(source=None):
     """Clones a new copy of yt_analysis/yt and returns a path to it"""
     path = tempfile.mkdtemp()
-    dest_repo_path = path+'/yt-backport'
+    dest_repo_path = f"{path}/yt-backport"
     if source is None:
         source = YT_REPO
     git.Repo.clone_from(source, dest_repo_path)

@@ -29,7 +29,7 @@ def run_with_capture(*args, **kwargs):
     if sp.returncode != 0:
         retstderr = " ".join(args[0])
         retstderr += "\n\nTHIS IS THE REAL CAUSE OF THE FAILURE:\n" 
-        retstderr += err.decode("UTF-8") + "\n"
+        retstderr += f"{err.decode('UTF-8')}\n"
         raise subprocess.CalledProcessError(sp.returncode, retstderr)
 
     return sp.returncode
@@ -68,5 +68,5 @@ def check_recipe(cmd):
     if proc.returncode != 0:
         retstderr = " ".join(cmd)
         retstderr += "\n\nTHIS IS THE REAL CAUSE OF THE FAILURE:\n" 
-        retstderr += err.decode("UTF-8") + "\n"
+        retstderr += f"{err.decode('UTF-8')}\n"
         raise subprocess.CalledProcessError(proc.returncode, retstderr)

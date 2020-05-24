@@ -634,7 +634,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                     data_fields.append(g_field)
                     ftypes[g_field] = "grid"
                     data[g_field] = self[g_field]
-                g_field = ("index", "d" + ax)
+                g_field = ("index", f"d{ax}")
                 if g_field in self.ds.field_info and g_field not in data:
                     data_fields.append(g_field)
                     ftypes[g_field] = "grid"

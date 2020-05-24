@@ -25,12 +25,12 @@ def test_saving_loading():
     os.chdir(tmpdir)
 
     ds = fake_sph_grid_ds()
-    ds.tree_filename = tmpdir+"test.octree"
+    ds.tree_filename = f"{tmpdir}test.octree"
     ds._file_hash = 1
     octree = ds.octree(n_ref=1)
 
     ds2 = fake_sph_grid_ds()
-    ds2.tree_filename = tmpdir+"test.octree"
+    ds2.tree_filename = f"{tmpdir}test.octree"
     ds2._file_hash = 1
     octree_loaded = ds2.octree(n_ref=1)
 

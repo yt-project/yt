@@ -133,7 +133,7 @@ def generate_doap():
             f.write("</developer>\n")
         for release in known_releases + get_release_tags():
             f.write(templates["release"] % {
-                'name': "yt " + release[0], 'revision': release[0], 'date': release[1]}
+                'name': f"yt {release[0]}", 'revision': release[0], 'date': release[1]}
             )
         f.write(templates["footer"])
 

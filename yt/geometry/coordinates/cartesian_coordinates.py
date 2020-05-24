@@ -41,7 +41,7 @@ def _sample_ray(ray, npoints, field):
     sample_points = [np.arange(npoints)*sample_dr[i] for i in range(3)]
     sample_points = uvstack(sample_points).T + start_point
     ray_coordinates = uvstack([ray[d] for d in 'xyz']).T
-    ray_dds = uvstack([ray['d'+d] for d in 'xyz']).T
+    ray_dds = uvstack([ray[f"d{d}"] for d in 'xyz']).T
     ray_field = ray[field]
     field_values = ray.ds.arr(np.zeros(npoints), ray_field.units)
     for i, sample_point in enumerate(sample_points):

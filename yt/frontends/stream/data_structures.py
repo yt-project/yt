@@ -507,7 +507,7 @@ def process_data(data, grid_dims=None):
                 new_data[field] = val[0]
             except AssertionError as e:
                 raise RuntimeError(
-                    "The data dict appears to be invalid.\n" + str(e))
+                    f"The data dict appears to be invalid.\n{str(e)}")
 
         # val is a list of data to be turned into an array
         elif iterable(val):
@@ -1291,9 +1291,9 @@ def load_particles(data, length_unit=None, bbox=None,
     # Parse units
     def parse_unit(unit, dimension):
         if unit is None:
-            unit = "code_" + dimension
+            unit = f"code_{dimension}"
             if data_source is not None:
-                unit = getattr(data_source.ds, dimension + '_unit', unit)
+                unit = getattr(data_source.ds, f"{dimension}_unit", unit)
         return unit
 
     length_unit = parse_unit(length_unit, "length")

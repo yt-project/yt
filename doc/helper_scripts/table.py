@@ -26,11 +26,9 @@ contents = [
   ]),
   ("Advanced Usage", [
      ("advanced/index.html", "Advanced yt usage",
-      "Advanced topics: parallelism, debugging, ways to drive yt, " +
-      "developing"),
+      f"Advanced topics: parallelism, debugging, ways to drive yt, developing"),
      ("getting_involved/index.html", "Getting Involved",
-      "How to participate in the community, contribute code and share " +
-      "scripts"),
+      f"How to participate in the community, contribute code and share scripts"),
   ]),
   ("Reference Materials", [
      ("cookbook/index.html", "The Cookbook",

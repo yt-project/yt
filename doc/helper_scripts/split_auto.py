@@ -59,7 +59,7 @@ for line in open("auto_generated.txt"):
 
 for key, val in file_names.items():
     title, file = val
-    fn = file.rsplit("/", 1)[0] + ".rst"
+    fn = f"{file.rsplit('/', 1)[0]}.rst"
     print(fn)
     f = open(fn, "w")
     dn = fn.split("/")[-1][:-4]

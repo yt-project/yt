@@ -85,7 +85,7 @@ class SavedDataset(Dataset):
             self._quan = None
             for dim in ["length", "mass", "pressure",
                         "temperature", "time", "velocity"]:
-                cu = "code_" + dim
+                cu = f"code_{dim}"
                 if cu not in self.unit_registry:
                     self.unit_registry.add(
                         cu, 1.0, getattr(dimensions, dim))

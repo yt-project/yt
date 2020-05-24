@@ -347,7 +347,7 @@ class EnzoPDataset(Dataset):
         self.periodicity = \
           ensure_tuple(np.ones(self.dimensionality, dtype=bool))
 
-        lcfn = self.parameter_filename[:-len(self._suffix)] + ".libconfig"
+        lcfn = f"{self.parameter_filename[:-len(self._suffix)]}.libconfig"
         if os.path.exists(lcfn):
             with io.open(lcfn, "r") as lf:
                 self.parameters = libconf.load(lf)

@@ -128,7 +128,7 @@ def strong_scaling(npart=1e6, nrep=1, periodic=False,
     axs.set_ylabel("Time (s)")
     axs.legend()
     fig.savefig(fname_plot)
-    print('    '+fname_plot)
+    print(f"    {fname_plot}")
 
 
 def weak_scaling(npart=1e4, nrep=1, periodic=False, leafsize=10,
@@ -182,4 +182,4 @@ def weak_scaling(npart=1e4, nrep=1, periodic=False, leafsize=10,
     axs.set_ylabel("Time (s)")
     axs.legend()
     fig.savefig(fname_plot)
-    print('    '+fname_plot)
+    print(f"    {fname_plot}")

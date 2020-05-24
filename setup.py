@@ -408,8 +408,7 @@ if __name__ == "__main__":
                      "Topic :: Scientific/Engineering :: Astronomy",
                      "Topic :: Scientific/Engineering :: Physics",
                      "Topic :: Scientific/Engineering :: Visualization"],
-        keywords='astronomy astrophysics visualization ' +
-        'amr adaptivemeshrefinement',
+        keywords=f"astronomy astrophysics visualization amr adaptivemeshrefinement",
         entry_points={'console_scripts': [
             'yt = yt.utilities.command_line:run_main',
         ],

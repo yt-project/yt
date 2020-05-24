@@ -136,7 +136,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         ind = self._known_ptypes.index(ptype)
                         data[:] = self.ds["Massarr"][ind]
                     elif field in self._element_names:
-                        rfield = 'ElementAbundance/' + field
+                        rfield = f"ElementAbundance/{field}"
                         data = g[rfield][si:ei][mask, ...]
                     elif field.startswith("Metallicity_"):
                         col = int(field.rsplit("_", 1)[-1])

@@ -281,7 +281,7 @@ class Dataset(metaclass = RegisteredDataset):
         self.basename = os.path.basename(filename)
         self.directory = os.path.expanduser(os.path.dirname(filename))
         self.fullpath = os.path.abspath(self.directory)
-        self.backup_filename = self.parameter_filename + '_backup.gdf'
+        self.backup_filename = f"{self.parameter_filename}_backup.gdf"
         self.read_from_backup = False
         if os.path.exists(self.backup_filename):
             self.read_from_backup = True
@@ -1361,7 +1361,7 @@ class Dataset(metaclass = RegisteredDataset):
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
                     "nearest": "nn", "simple_smooth": "ss", "count": "count"}
-        field_name = "%s_" + name_map[method] + "_%s"
+        field_name = f"%s_{name_map[method]}_%s"
         field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
 
         if method == "count":
@@ -1430,7 +1430,7 @@ class Dataset(metaclass = RegisteredDataset):
         The field name tuple for the newly created field.
         """
         issue_deprecation_warning(
-            "This method is deprecated. " + DEP_MSG_SMOOTH_FIELD
+            f"This method is deprecated. {DEP_MSG_SMOOTH_FIELD}"
         )
 
     def add_gradient_fields(self, input_field):
@@ -1470,9 +1470,9 @@ class Dataset(metaclass = RegisteredDataset):
         setup_gradient_fields(self.field_info, (ftype, input_field), units)
         # Now we make a list of the fields that were just made, to check them
         # and to return them
-        grad_fields = [(ftype,input_field+f"_gradient_{suffix}")
+        grad_fields = [(ftype,f"{input_field}_gradient_{suffix}")
                        for suffix in "xyz"]
-        grad_fields.append((ftype,input_field+"_gradient_magnitude"))
+        grad_fields.append((ftype,f"{input_field}_gradient_magnitude"))
         deps, _ = self.field_info.check_derived_fields(grad_fields)
         self.field_dependencies.update(deps)
         return grad_fields

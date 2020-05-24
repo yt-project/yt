@@ -107,7 +107,7 @@ class HaloCatalogDataset(SavedDataset):
         self.periodicity = (True, True, True)
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = f"{prefix}.%(num)s{self._suffix}"
-        self.file_count = len(glob.glob(prefix + "*" + self._suffix))
+        self.file_count = len(glob.glob(f"{prefix}*{self._suffix}"))
         self.particle_types = ("halos")
         self.particle_types_raw = ("halos")
         super(HaloCatalogDataset, self)._parse_parameter_file()

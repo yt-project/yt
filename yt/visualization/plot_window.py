@@ -853,8 +853,7 @@ class PWViewerMPL(PlotWindow):
         y_in_bounds = yc >= yllim and yc <= yrlim
 
         if not x_in_bounds and not y_in_bounds:
-            msg = ('origin inputs not in bounds of specified coordinate sytem' +
-                   'domain.')
+            msg = (f"origin inputs not in bounds of specified coordinate sytemdomain.")
             msg = msg.format(self.origin)
             raise RuntimeError(msg)
 
@@ -974,8 +973,8 @@ class PWViewerMPL(PlotWindow):
             axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
 
             if self.oblique:
-                labels = [r'$\rm{Image\ x'+axes_unit_labels[0]+'}$',
-                          r'$\rm{Image\ y'+axes_unit_labels[1]+'}$']
+                labels = [f"$\\rm{{Image\\ x{axes_unit_labels[0]}}}$",
+                          f"$\\rm{{Image\\ y{axes_unit_labels[1]}}}$"]
             else:
                 coordinates = self.ds.coordinates
                 axis_names = coordinates.image_axis_name[axis_index]
@@ -986,8 +985,8 @@ class PWViewerMPL(PlotWindow):
                     axes_unit_labels = \
                     [coordinates.axis_default_unit_name[xax],
                      coordinates.axis_default_unit_name[yax]]
-                labels = [r'$\rm{'+axis_names[0]+axes_unit_labels[0] + r'}$',
-                          r'$\rm{'+axis_names[1]+axes_unit_labels[1] + r'}$']
+                labels = [f"$\\rm{{{axis_names[0]}{axes_unit_labels[0]}}}$",
+                          f"$\\rm{{{axis_names[1]}{axes_unit_labels[1]}}}$"]
 
                 if hasattr(coordinates, "axis_field"):
                     if xax in coordinates.axis_field:
@@ -1031,7 +1030,7 @@ class PWViewerMPL(PlotWindow):
                 if units is None or units == '':
                     pass
                 else:
-                    colorbar_label += r'$\ \ \left('+units+r'\right)$'
+                    colorbar_label += f"$\\ \\ \\left({units}\\right)$"
 
             parser = MathTextParser('Agg')
             try:
@@ -1101,7 +1100,7 @@ class PWViewerMPL(PlotWindow):
             CallbackMaker = callback_registry[key]
             callback = invalidate_plot(apply_callback(CallbackMaker))
             callback.__doc__ = CallbackMaker.__doc__
-            self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
+            self.__dict__[f"annotate_{cbname}"] = types.MethodType(callback,self)
 
     @invalidate_plot
     def annotate_clear(self, index=None):

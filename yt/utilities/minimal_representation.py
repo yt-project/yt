@@ -203,7 +203,7 @@ class MinimalRepresentation(metaclass = abc.ABCMeta):
             else:
                 raise ex
         uploader_info = json.loads(rv)
-        new_url = url + f"/handler/{uploader_info['handler_uuid']}"
+        new_url = f"{url}/handler/{uploader_info['handler_uuid']}"
         for i, (cn, cv) in enumerate(chunks):
             f = TemporaryFile()
             np.save(f, cv)

@@ -113,7 +113,7 @@ def get_xmlrpc_service():
     import xmlrpc.client
     if _xmlrpc_service is None:
         try:
-            _xmlrpc_service = xmlrpc.client.ServerProxy(SERVICE_URL + 'xmlrpc/',
+            _xmlrpc_service = xmlrpc.client.ServerProxy(f"{SERVICE_URL}xmlrpc/",
                                                         allow_none=True)
         except Exception as err:
             fail(f'Could not connect to Pastebin: {err}', -1)

@@ -34,19 +34,19 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
         """
         if str((ptype, index, offset)) not in self._cached_ptype:
             self._cached_ptype = str((ptype, index, offset))
-            pds = self._handle[self.base_path + self.particles_path + "/" + ptype]
+            pds = self._handle[f"{self.base_path + self.particles_path}/{ptype}"]
             axes = list(pds["position"].keys())
             if offset is None:
-                if is_const_component(pds["position/" + axes[0]]):
-                    offset = pds["position/" + axes[0]].attrs["shape"]
+                if is_const_component(pds[f"position/{axes[0]}"]):
+                    offset = pds[f"position/{axes[0]}"].attrs["shape"]
                 else:
-                    offset = pds["position/" + axes[0]].len()
+                    offset = pds[f"position/{axes[0]}"].len()
             self.cache = np.empty((3, offset), dtype=np.float64)
             for i in np.arange(3):
                 ax = "xyz"[i]
                 if ax in axes:
-                    np.add(get_component(pds, "position/" + ax, index, offset),
-                           get_component(pds, "positionOffset/" + ax, index, offset),
+                    np.add(get_component(pds, f"position/{ax}", index, offset),
+                           get_component(pds, f"positionOffset/{ax}", index, offset),
                            self.cache[i])
                 else:
                     # Pad accordingly with zeros to make 1D/2D datasets compatible

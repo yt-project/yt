@@ -178,7 +178,7 @@ class PlotContainer(object):
             self.figure_size = float(figure_size[0]), float(figure_size[1])
         else:
             self.figure_size = float(figure_size)
-        font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
+        font_path = f"{matplotlib.get_data_path()}/fonts/ttf/STIXGeneral.ttf"
         self._font_properties = FontProperties(size=fontsize, fname=font_path)
         self._font_color = None
         self._xlabel = None
@@ -308,7 +308,7 @@ class PlotContainer(object):
         self._data_valid = self._plot_valid = False
 
         for d in 'xyz':
-            lim_name = d+'lim'
+            lim_name = f"{d}lim"
             if hasattr(self, lim_name):
                 lim = getattr(self, lim_name)
                 lim = tuple(new_ds.quan(l.value, str(l.units)) for l in lim)
@@ -591,7 +591,7 @@ class PlotContainer(object):
                     unn = self.ds.coordinates.default_unit_label.get(
                         axax, None)
             if unn is not None:
-                axes_unit_labels[i] = r'\ \ \left('+unn+r'\right)'
+                axes_unit_labels[i] = f"\\ \\ \\left({unn}\\right)"
                 continue
             # Use sympy to factor h out of the unit.  In this context 'un'
             # is a string, so we call the Unit constructor.
@@ -620,10 +620,10 @@ class PlotContainer(object):
                     un = Unit(un, registry=self.ds.unit_registry)
                     un = un.latex_representation()
                     if hinv:
-                        un = un + '\,h^{-1}'
+                        un = f"{un}\\,h^{{-1}}"
                     if comoving:
-                        un = un + '\,(1+z)^{-1}'
-                axes_unit_labels[i] = '\ \ ('+un+')'
+                        un = f"{un}\\,(1+z)^{{-1}}"
+                axes_unit_labels[i] = f"\\ \\ ({un})"
         return axes_unit_labels
 
 

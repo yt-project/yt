@@ -24,7 +24,7 @@ def determine_particle_fields(handle):
     try:
         particle_fields = [s[0].decode("ascii","ignore").strip()
                            for s in handle["/particle names"][:]]
-        _particle_fields = dict([("particle_" + s, i) for i, s in
+        _particle_fields = dict([(f"particle_{s}", i) for i, s in
                                  enumerate(particle_fields)])
     except KeyError:
         _particle_fields = {}

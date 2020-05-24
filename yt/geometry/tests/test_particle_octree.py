@@ -369,7 +369,7 @@ def makeall_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
     if center is None:
         center = DLE+0.5*DW
     def load_pos(file_id):
-        filename = fname_base+f'file{file_id}'
+        filename = f"{fname_base}file{file_id}"
         if os.path.isfile(filename):
             fd = open(filename,'rb')
             positions = pickle.load(fd)
@@ -378,7 +378,7 @@ def makeall_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
             positions = np.empty((0,3), dtype='float64')
         return positions
     def save_pos(file_id,positions):
-        filename = fname_base+f'file{file_id}'
+        filename = f"{fname_base}file{file_id}"
         fd = open(filename,'wb')
         pickle.dump(positions,fd)
         fd.close()

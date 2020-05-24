@@ -123,7 +123,7 @@ class IOHandlerART(BaseIOHandler):
                 off = 1.0/dd
                 tr[field] = rp([ax])[0]/dd - off
             if fname.startswith(f"particle_velocity_{ax}"):
-                tr[field], = rp(['v'+ax])
+                tr[field], = rp([f"v{ax}"])
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype='f8')
@@ -227,7 +227,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
                 off = 1.0/dd
                 tr[field] = rp([ax])[0]/dd - off
             if fname.startswith(f"particle_velocity_{ax}"):
-                tr[field], = rp(['v'+ax])
+                tr[field], = rp([f"v{ax}"])
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype='f8')
@@ -284,8 +284,7 @@ def interpolate_ages(data, file_stars, interp_tb=None, interp_ages=None,
         if current_time:
             tdiff = YTQuantity(b2t(t_stars), 'Gyr') - current_time.in_units('Gyr')
             if np.abs(tdiff) > 1e-4:
-                mylog.info("Timestamp mismatch in star " +
-                           "particle header: %s", tdiff)
+                mylog.info(f"Timestamp mismatch in star particle header: %s", tdiff)
         mylog.info("Interpolating ages")
         interp_tb, interp_ages = b2t(data)
         interp_tb = YTArray(interp_tb, 'Gyr')
@@ -492,8 +491,7 @@ def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
     return idc, ioctch
 
 nchem = 8+2
-dtyp = np.dtype(">i4,>i8,>i8"+f",>{nchem}f4" +
-                ",>%sf4" % (2)+",>i4")
+dtyp = np.dtype(f">i4,>i8,>i8,>{nchem}f4{',>%sf4' % 2},>i4")
 
 
 def _read_child_level(

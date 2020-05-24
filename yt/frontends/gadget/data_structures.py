@@ -64,7 +64,7 @@ class GadgetBinaryHeader(object):
             with self.open() as f:
                 f.seek(self.position_offset)
                 # Calculate particle number assuming single precision
-                np1 = struct.unpack(endianswap + 'I', f.read(4))[0] / (4 * 3)
+                np1 = struct.unpack(f"{endianswap}I", f.read(4))[0] / (4 * 3)
             if np1 == np0:
                 return 'f4'
             elif np1 == 2 * np0:
@@ -148,7 +148,7 @@ class GadgetBinaryHeader(object):
 
     def open(self):
         """Open snapshot file."""
-        for filename in [self.filename, self.filename + '.0']:
+        for filename in [self.filename, f"{self.filename}.0"]:
             if os.path.exists(filename):
                 return open(filename, 'rb')
         raise RuntimeError(f"Snapshot file {self.filename} does not exist.")
