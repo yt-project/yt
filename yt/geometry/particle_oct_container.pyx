@@ -682,7 +682,10 @@ cdef class ParticleBitmap:
         cdef np.uint64_t nset = 0, nfully_enclosed = 0, n_calls = 0
         mi1_max = (1 << self.index_order1) - 1
         mi2_max = (1 << self.index_order2) - 1
+        cdef np.uint64_t max_mi1_elements = 1 << (3*self.index_order1)
         cdef np.uint64_t max_mi2_elements = 1 << (3*self.index_order2)
+        for i in range(max_mi1_elements):
+            refined_count[i] = 0
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]

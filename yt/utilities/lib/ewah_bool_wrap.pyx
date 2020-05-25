@@ -870,15 +870,15 @@ cdef class BoolArrayCollection:
         return self._count_coarse()
 
     cdef void _logicalor(self, BoolArrayCollection solf, BoolArrayCollection out):
-        cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
-        cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
-        cdef ewahmap *ewah_coll1 = <ewahmap *> self.ewah_coll
-        cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
-        cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
-        cdef ewah_bool_array *ewah_keys3 = <ewah_bool_array *> out.ewah_keys
-        cdef ewah_bool_array *ewah_refn3 = <ewah_bool_array *> out.ewah_refn
-        cdef ewahmap *ewah_coll3 = <ewahmap *> out.ewah_coll
+        cdef ewah_bool_array *ewah_keys1 = self.ewah_keys
+        cdef ewah_bool_array *ewah_refn1 = self.ewah_refn
+        cdef ewahmap *ewah_coll1 = self.ewah_coll
+        cdef ewah_bool_array *ewah_keys2 = solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn2 = solf.ewah_refn
+        cdef ewahmap *ewah_coll2 = solf.ewah_coll
+        cdef ewah_bool_array *ewah_keys3 = out.ewah_keys
+        cdef ewah_bool_array *ewah_refn3 = out.ewah_refn
+        cdef ewahmap *ewah_coll3 = out.ewah_coll
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2
         cdef np.uint64_t mi1
@@ -901,6 +901,8 @@ cdef class BoolArrayCollection:
             if it_map1 != ewah_coll1[0].end():
                 mi1_ewah1 = dereference(it_map1).second
                 mi1_ewah1.logicalor(mi1_ewah2, ewah_coll3[0][mi1])
+            else:
+                ewah_coll3[0][mi1] = mi1_ewah2
             preincrement(it_map2)
 
     cdef void _append(self, BoolArrayCollection solf):
