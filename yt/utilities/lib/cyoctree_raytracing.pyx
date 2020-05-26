@@ -20,16 +20,14 @@ cdef extern from "octree_raytracing.cpp":
         void insert_node_no_ret(const int* ipos, const int lvl, T key)
         RayInfo[T]** cast_rays(const double* origins, const double* directions, const int Nrays)
         
-cdef class OctreeRayTracing:
+cdef class CythonOctreeRayTracing:
     cdef Octree3D[int]* oct
     cdef int depth
 
-    def __init__(self, data_source):
-        cdef double* LE = [0, 0, 0]
-        cdef double* RE = [1, 1, 1]
-        cdef int depth = data_source.ds.parameters['levelmax']
-        self.oct = new Octree3D[int](depth, LE, RE)
-        
+    def __init__(self, np.ndarray LE, np.ndarray RE, int depth):
+        cdef double* LE_ptr = <double *>LE.data
+        cdef double* RE_ptr = <double *>RE.data
+        self.oct = new Octree3D[int](depth, LE_ptr, RE_ptr)
         self.depth = depth
         
     @cython.boundscheck(False)
@@ -43,7 +41,7 @@ cdef class OctreeRayTracing:
             ii[1] = ipos_view[i, 1]
             ii[2] = ipos_view[i, 2]
             self.oct.insert_node_no_ret(ii, lvl_view[i], <int> key[i])
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)       
     def cast_rays(self, double[:, ::1] o, double[:, ::1] d):
