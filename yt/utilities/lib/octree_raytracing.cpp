@@ -147,6 +147,22 @@ public:
         DRE = size;
     }
 
+    Octree(int _maxDepth, F* _DLE, F* _DRE) :
+            twotondim (1<<Ndim),
+            maxDepth(_maxDepth) {
+        for (auto idim = 0; idim < Ndim; ++idim) {
+            DRE[idim] = _DRE[idim];
+            DLE[idim] = _DLE[idim];
+            size[idim] = _DRE[idim] - _DLE[idim];
+        }
+
+        root = new Node();
+        // Allocate root's children
+        root->children = (Node**) malloc(sizeof(Node*)*twotondim);
+        for (auto i = 0; i < twotondim; ++i) root->children = nullptr;
+    }
+
+
     ~Octree() {
         recursive_remove_node(root);
     };
