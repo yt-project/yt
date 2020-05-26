@@ -568,15 +568,14 @@ cdef class ParticleBitmap:
                         for i in range(3):
                             clip_pos_l[i] = fmax(s_ppos[i] - radius, LE[i] + dds[i]/10)
                             clip_pos_r[i] = fmin(s_ppos[i] + radius, RE[i] - dds[i]/10)
-
                         bounded_morton_split_dds(clip_pos_l[0], clip_pos_l[1], clip_pos_l[2], LE, dds, bounds[0])
                         bounded_morton_split_dds(clip_pos_r[0], clip_pos_r[1], clip_pos_r[2], LE, dds, bounds[1])
                         # We go to the upper bound plus one so that we have *inclusive* loops -- the upper bound
                         # is the cell *index*, so we want to make sure we include that cell.  This is also why
                         # we don't need to worry about mi_max being the max index rather than the cell count.
-                        for xex in range(bounds[0][0], bounds[1][0]):
-                            for yex in range(bounds[0][1], bounds[1][1]):
-                                for zex in range(bounds[0][2], bounds[1][2]):
+                        for xex in range(bounds[0][0], bounds[1][0] + 1):
+                            for yex in range(bounds[0][1], bounds[1][1] + 1):
+                                for zex in range(bounds[0][2], bounds[1][2] + 1):
                                     miex = encode_morton_64bit(xex, yex, zex)
                                     mask[miex] = 1
                                     particle_counts[miex] += 1
