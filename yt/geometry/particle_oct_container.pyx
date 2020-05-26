@@ -496,8 +496,10 @@ cdef class ParticleBitmap:
         cdef np.uint64_t mi_split[3]
         cdef np.float64_t ppos[3]
         cdef np.float64_t s_ppos[3] # shifted ppos
+        cdef np.float64_t clip_pos_l[3]
+        cdef np.float64_t clip_pos_r[3]
         cdef int skip
-        cdef np.uint64_t bounds[3][2]
+        cdef np.uint64_t bounds[2][3]
         cdef np.uint64_t xex, yex, zex
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
@@ -564,15 +566,17 @@ cdef class ParticleBitmap:
                         s_ppos[2] = ppos[2] + axiterv[2][zi]
                         # OK, now we compute the left and right edges for this shift.
                         for i in range(3):
-                            # Note that we cast here to int64_t because this could be negative
-                            bounds[i][0] = i64max(<np.int64_t>((s_ppos[i] - LE[i] - radius)/dds[i]), 0)
-                            bounds[i][1] = i64min(<np.int64_t>((s_ppos[i] - LE[i] + radius)/dds[i]), mi_max) + 1
+                            clip_pos_l[i] = fmax(s_ppos[i] - radius, LE[i] + dds[i]/10)
+                            clip_pos_r[i] = fmin(s_ppos[i] + radius, RE[i] - dds[i]/10)
+
+                        bounded_morton_split_dds(clip_pos_l[0], clip_pos_l[1], clip_pos_l[2], LE, dds, bounds[0])
+                        bounded_morton_split_dds(clip_pos_r[0], clip_pos_r[1], clip_pos_r[2], LE, dds, bounds[1])
                         # We go to the upper bound plus one so that we have *inclusive* loops -- the upper bound
                         # is the cell *index*, so we want to make sure we include that cell.  This is also why
                         # we don't need to worry about mi_max being the max index rather than the cell count.
-                        for xex in range(bounds[0][0], bounds[0][1]):
-                            for yex in range(bounds[1][0], bounds[1][1]):
-                                for zex in range(bounds[2][0], bounds[2][1]):
+                        for xex in range(bounds[0][0], bounds[1][0]):
+                            for yex in range(bounds[0][1], bounds[1][1]):
+                                for zex in range(bounds[0][2], bounds[1][2]):
                                     miex = encode_morton_64bit(xex, yex, zex)
                                     mask[miex] = 1
                                     particle_counts[miex] += 1
