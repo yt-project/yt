@@ -322,7 +322,7 @@ public:
     size_t numberOfOnes() const  {
         size_t count = 0;
         for (size_t i = 0; i < buffer.size(); ++i) {
-            count += countOnes(buffer[i]);
+            count += countOnes((uword) buffer[i]);
         }
         return count;
     }
