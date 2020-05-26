@@ -322,6 +322,7 @@ cdef class FileBitmasks:
         return out
 
     def append(self, np.uint32_t ifile, BoolArrayCollection solf):
+        if solf is None: return
         self._append(ifile, solf)
 
     cdef void _append(self, np.uint32_t ifile, BoolArrayCollection solf):
