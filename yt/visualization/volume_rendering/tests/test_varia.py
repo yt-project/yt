@@ -71,7 +71,7 @@ class VariousVRTests(TestCase):
 
     def test_lazy_volume_source_construction(self):
         sc = Scene()
-        source = VolumeSource(self.ds.all_data(), "density")
+        source = create_volume_source(self.ds.all_data(), "density")
 
         assert source._volume is None
         assert source._transfer_function is None

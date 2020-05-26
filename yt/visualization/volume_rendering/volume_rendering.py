@@ -1,7 +1,7 @@
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
 
-from .render_source import MeshSource, VolumeSource
+from .render_source import MeshSource, VolumeSource, create_volume_source
 from .scene import Scene
 from .utils import data_source_or_all
 
@@ -63,7 +63,7 @@ def create_scene(data_source, field=None, lens_type="plane-parallel"):
     if hasattr(data_source.ds.index, "meshes"):
         source = MeshSource(data_source, field=field)
     else:
-        source = VolumeSource(data_source, field=field)
+        source = create_volume_source(data_source, field=field)
 
     sc.add_source(source)
     sc.add_camera(data_source=data_source, lens_type=lens_type)

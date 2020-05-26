@@ -20,7 +20,7 @@ def test_orientation():
 
     sc = Scene()
 
-    vol = VolumeSource(ds, field=("gas", "density"))
+    vol = create_volume_source(ds, field=("gas", "density"))
     sc.add_source(vol)
 
     tf = vol.transfer_function

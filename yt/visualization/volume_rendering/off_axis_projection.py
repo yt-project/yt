@@ -303,7 +303,7 @@ def off_axis_projection(
 
     funits = data_source.ds._get_field_info(item).units
 
-    vol = VolumeSource(data_source, item)
+    vol = create_volume_source(data_source, item)
     if weight is None:
         vol.set_field(item)
     else:

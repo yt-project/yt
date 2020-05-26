@@ -14,7 +14,7 @@ north_vector = [0.0, 0.0, 1.0]
 # Follow the simple_volume_rendering cookbook for the first part of this.
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 sc = Scene()
-vol = VolumeSource(ds, field=field)
+vol = create_volume_source(ds, field=field)
 tf = vol.transfer_function
 tf.grey_opacity = True
 

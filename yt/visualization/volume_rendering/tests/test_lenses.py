@@ -42,7 +42,7 @@ class LensTest(TestCase):
         sc = Scene()
         cam = sc.add_camera(self.ds, lens_type="perspective")
         cam.position = self.ds.arr(np.array([1.0, 1.0, 1.0]), "code_length")
-        vol = VolumeSource(self.ds, field=self.field)
+        vol = create_volume_source(self.ds, field=self.field)
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
@@ -53,7 +53,7 @@ class LensTest(TestCase):
         cam = sc.add_camera(self.ds, lens_type="stereo-perspective")
         cam.resolution = [256, 128]
         cam.position = self.ds.arr(np.array([0.7, 0.7, 0.7]), "code_length")
-        vol = VolumeSource(self.ds, field=self.field)
+        vol = create_volume_source(self.ds, field=self.field)
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
@@ -67,7 +67,7 @@ class LensTest(TestCase):
         cam.set_width(self.ds.domain_width)
         v, c = self.ds.find_max("density")
         cam.set_position(c - 0.0005 * self.ds.domain_width)
-        vol = VolumeSource(dd, field=self.field)
+        vol = create_volume_source(dd, field=self.field)
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
@@ -79,7 +79,7 @@ class LensTest(TestCase):
         cam = sc.add_camera(dd, lens_type="plane-parallel")
         cam.set_width(self.ds.domain_width * 1e-2)
         v, c = self.ds.find_max("density")
-        vol = VolumeSource(dd, field=self.field)
+        vol = create_volume_source(dd, field=self.field)
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
@@ -90,7 +90,7 @@ class LensTest(TestCase):
         cam = sc.add_camera(self.ds, lens_type="spherical")
         cam.resolution = [256, 128]
         cam.position = self.ds.arr(np.array([0.6, 0.5, 0.5]), "code_length")
-        vol = VolumeSource(self.ds, field=self.field)
+        vol = create_volume_source(self.ds, field=self.field)
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
@@ -103,7 +103,7 @@ class LensTest(TestCase):
         cam = sc.add_camera(self.ds, lens_type="stereo-spherical")
         cam.resolution = [256, 256]
         cam.position = self.ds.arr(np.array([0.6, 0.5, 0.5]), "code_length")
-        vol = VolumeSource(self.ds, field=self.field)
+        vol = create_volume_source(self.ds, field=self.field)
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
