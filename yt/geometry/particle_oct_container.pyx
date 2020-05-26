@@ -509,7 +509,7 @@ cdef class ParticleBitmap:
         cdef np.float64_t radius
         cdef np.uint8_t[:] mask = self.masks[:, file_id]
         cdef np.uint64_t[:] particle_counts = self.particle_counts
-        cdef np.int64_t msize = (1 << (self.index_order1 * 3))
+        cdef np.uint64_t msize = (1 << (self.index_order1 * 3))
         cdef int axiter[3][2]
         cdef np.float64_t axiterv[3][2]
         mi_max = (1 << self.index_order1) - 1
@@ -643,7 +643,8 @@ cdef class ParticleBitmap:
         np.uint64_t count_threshold, np.uint8_t mask_threshold
     ):
         # Initialize
-        cdef np.int64_t i, p, sorted_ind
+        cdef np.int64_t p, sorted_ind
+        cdef np.uint64_t i
         cdef np.uint64_t mi1, mi2
         cdef np.float64_t ppos[3]
         cdef np.float64_t s_ppos[3] # shifted ppos
@@ -961,7 +962,7 @@ cdef class ParticleBitmap:
     def calcsize_bitmasks(self):
         # TODO: All cython
         cdef bytes serial_BAC
-        cdef int ifile
+        cdef np.uint64_t ifile
         cdef int out = 0
         out += struct.calcsize('Q')
         # Bitmaps for each file
@@ -983,7 +984,7 @@ cdef class ParticleBitmap:
 
     def save_bitmasks(self, fname):
         cdef bytes serial_BAC
-        cdef int ifile
+        cdef np.uint64_t ifile
         f = open(fname,'wb')
         # Header
         f.write(struct.pack('Q', _bitmask_version))
@@ -1057,7 +1058,7 @@ cdef class ParticleBitmap:
         return read_flag
 
     def print_info(self):
-        cdef int ifile
+        cdef np.uint64_t ifile
         for ifile in range(self.nfiles):
             self.bitmasks.print_info(ifile, "File: %03d" % ifile)
 
@@ -1080,7 +1081,8 @@ cdef class ParticleBitmap:
         cdef vector[size_t] vec_totref
         cdef vector[size_t].iterator it_mi1
         cdef int nm = 0, nc = 0
-        cdef int ifile
+        cdef np.uint64_t ifile, nbitmasks
+        nbitmasks = len(self.bitmasks)
         # Locate all indices with second level refinement
         for ifile in range(self.nfiles):
             arr = (<ewah_bool_array**> self.bitmasks.ewah_refn)[ifile][0]
@@ -1092,7 +1094,7 @@ cdef class ParticleBitmap:
             mi1 = dereference(it_mi1)
             arr_any.reset()
             arr_two.reset()
-            for ifile in range(len(self.bitmasks)):
+            for ifile in range(nbitmasks):
                 if self.bitmasks._isref(ifile, mi1) == 1:
                     arr = (<map[np.int64_t, ewah_bool_array]**> self.bitmasks.ewah_coll)[ifile][0][mi1]
                     arr_any.logicaland(arr, arr_two) # Indices in previous files
@@ -1249,7 +1251,7 @@ cdef class ParticleBitmap:
 
     def mask_to_files(self, BoolArrayCollection mm_s):
         cdef FileBitmasks mm_d = self.bitmasks
-        cdef np.int32_t ifile
+        cdef np.uint32_t ifile
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
         file_mask_p = np.zeros(self.nfiles, dtype="uint8")
         # Compare with mask of particles
@@ -1264,7 +1266,7 @@ cdef class ParticleBitmap:
 
     def masks_to_files(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
         cdef FileBitmasks mm_d = self.bitmasks
-        cdef np.int32_t ifile
+        cdef np.uint32_t ifile
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
         cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
         file_mask_p = np.zeros(self.nfiles, dtype="uint8")
@@ -1327,13 +1329,15 @@ cdef class ParticleBitmap:
         cdef ewah_bool_array *ewah_base
         if base_mask is not None:
             ewah_base = <ewah_bool_array *> base_mask.ewah_keys
+        else:
+            ewah_base = NULL
         cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct[0].begin())
         cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct[0].end())
         cdef np.ndarray[np.uint8_t, ndim=1] slct_arr
         slct_arr = np.zeros((1 << (self.index_order1 * 3)),'uint8')
         while iter_set[0] != iter_end[0]:
             mi = dereference(iter_set[0])
-            if base_mask is not None and ewah_base[0].get(mi) == 0:
+            if ewah_base != NULL and ewah_base[0].get(mi) == 0:
                 octree._index_base_roots[croot] = 0
                 slct_arr[mi] = 2
             else:
@@ -1345,7 +1349,7 @@ cdef class ParticleBitmap:
             croot += 1
             preincrement(iter_set[0])
         assert(croot == nroot)
-        if base_mask is not None:
+        if ewah_base != NULL:
             assert(np.sum(octree._index_base_roots) == ewah_base[0].numberOfOnes())
         # Get morton indices for all particles in this file and those
         # contaminating cells it has majority control of.
@@ -1496,7 +1500,7 @@ cdef class ParticleBitmapSelector:
             rpos[i] = self.DRE[i] - self.bitmap.dds_mi2[i]/2.0
         sbbox = self.selector.select_bbox_edge(pos, rpos)
         if sbbox == 1:
-            for mi1 in range(<np.int64_t>self.s1):
+            for mi1 in range(<np.uint64_t>self.s1):
                 mm_s0._set_coarse(mi1)
             mm_s0._compress(mm_s)
             return
@@ -1513,7 +1517,7 @@ cdef class ParticleBitmapSelector:
     def find_files(self,
                    np.ndarray[np.uint8_t, ndim=1] file_mask_p,
                    np.ndarray[np.uint8_t, ndim=1] file_mask_g):
-        cdef int i
+        cdef np.uint64_t i
         cdef np.int32_t level = 0
         cdef np.uint64_t mi1
         mi1 = ~(<np.uint64_t>0)
@@ -1547,7 +1551,7 @@ cdef class ParticleBitmapSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef bint is_refined_files(self, np.uint64_t mi1):
-        cdef int i
+        cdef np.uint64_t i
         if self.bitmap.collisions._isref(mi1):
             # Don't refine if files all selected already
             for i in range(self.nfiles):
@@ -1574,7 +1578,7 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void set_files_coarse(self, np.uint64_t mi1):
-        cdef int i
+        cdef np.uint64_t i
         cdef bint flag_ref = self.is_refined(mi1)
         # Flag files at coarse level
         if flag_ref == 0:
@@ -1601,7 +1605,7 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void set_files_refined(self, np.uint64_t mi1, np.uint64_t mi2):
-        cdef int i
+        cdef np.uint64_t i
         # Flag files
         for i in range(self.nfiles):
             if self.file_mask_p[i] == 0:
@@ -1616,14 +1620,14 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void add_neighbors_coarse(self, np.uint64_t mi1):
-        cdef int m
+        cdef np.uint64_t m
         cdef np.uint32_t ntot
         cdef np.uint64_t mi1_n
         ntot = morton_neighbors_coarse(mi1, self.max_index1, 
                                        self.periodicity,
                                        self.ngz, self.neighbors,
                                        self.ind1_n, self.neighbor_list1)
-        for m in range(<np.int32_t>ntot):
+        for m in range(ntot):
             mi1_n = self.neighbor_list1[m]
             self.coarse_ghosts_bool[mi1_n] = 1
 
@@ -1632,14 +1636,14 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void set_files_neighbors_coarse(self, np.uint64_t mi1):
-        cdef int i, m
+        cdef np.uint64_t i, m
         cdef np.uint32_t ntot
         cdef np.uint64_t mi1_n
         ntot = morton_neighbors_coarse(mi1, self.max_index1, 
                                        self.periodicity,
                                        self.ngz, self.neighbors,
                                        self.ind1_n, self.neighbor_list1)
-        for m in range(<np.int32_t>ntot):
+        for m in range(ntot):
             mi1_n = self.neighbor_list1[m]
             for i in range(self.nfiles):
                 if self.file_mask_g[i] == 0:

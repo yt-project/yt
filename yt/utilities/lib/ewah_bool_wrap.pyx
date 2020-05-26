@@ -306,19 +306,17 @@ cdef class FileBitmasks:
     def count_refined(self, ifile):
         return self._count_refined(ifile)
 
-    cdef int _count_coarse(self, np.uint32_t ifile):
+    cdef np.uint64_t _count_coarse(self, np.uint32_t ifile):
         return self._count_total(ifile) - self._count_refined(ifile)
 
-    cdef int _count_total(self, np.uint32_t ifile):
+    cdef np.uint64_t _count_total(self, np.uint32_t ifile):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
-        cdef int out
-        out = ewah_keys[0].numberOfOnes()
+        cdef np.uint64_t out = ewah_keys[0].numberOfOnes()
         return out
 
-    cdef int _count_refined(self, np.uint32_t ifile):
+    cdef np.uint64_t _count_refined(self, np.uint32_t ifile):
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
-        cdef int out
-        out = ewah_refn[0].numberOfOnes()
+        cdef np.uint64_t out = ewah_refn[0].numberOfOnes()
         return out
 
     def append(self, np.uint32_t ifile, BoolArrayCollection solf):
@@ -842,29 +840,26 @@ cdef class BoolArrayCollection:
     def ewah_coarse(self):
         return self._ewah_coarse()
 
-    cdef int _count_total(self):
+    cdef np.uint64_t _count_total(self):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
-        cdef int out
-        out = ewah_keys.numberOfOnes()
+        cdef np.uint64_t out = ewah_keys.numberOfOnes()
         return out
 
     def count_total(self):
         return self._count_total()
 
-    cdef int _count_refined(self):
+    cdef np.uint64_t _count_refined(self):
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
-        cdef int out
-        out = ewah_refn.numberOfOnes()
+        cdef np.uint64_t out = ewah_refn.numberOfOnes()
         return out
 
     def count_refined(self):
         return self._count_refined()
 
-    cdef int _count_coarse(self):
+    cdef np.uint64_t _count_coarse(self):
         self._ewah_coarse()
         cdef ewah_bool_array *ewah_coar = <ewah_bool_array *> self.ewah_coar
-        cdef int out
-        out = ewah_coar.numberOfOnes()
+        cdef np.uint64_t out = ewah_coar.numberOfOnes()
         return out
 
     def count_coarse(self):
@@ -1423,18 +1418,18 @@ cdef class BoolArrayCollectionUncompressed:
         cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         return <bint>ewah_refn[i]
 
-    cdef int _count_total(self):
+    cdef np.uint64_t _count_total(self):
         cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
         cdef np.uint64_t i
-        cdef int out = 0
+        cdef np.uint64_t out = 0
         for i in range(self.nele1):
             out += ewah_keys[i]
         return out
 
-    cdef int _count_refined(self):
+    cdef np.uint64_t _count_refined(self):
         cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef np.uint64_t i
-        cdef int out = 0
+        cdef np.uint64_t out = 0
         for i in range(self.nele1):
             out += ewah_refn[i]
         return out
@@ -1488,6 +1483,7 @@ cdef class BoolArrayCollectionUncompressed:
                 break
         if (mi1 < self.nele1):
             return 0
+        mi1 = self.nele1 # This is to get rid of a warning
         # Intersection at refined level
         for mi1 in range(self.nele1):
             if (ewah_refn1[mi1] == 1) and (ewah_refn2[mi1] == 1):
@@ -1516,8 +1512,8 @@ cdef class BoolArrayCollectionUncompressed:
         del ewah_coll
 
     def print_info(self, prefix=''):
-        cdef int nrefn = self._count_refined()
-        cdef int nkeys = self._count_total()
+        cdef np.uint64_t nrefn = self._count_refined()
+        cdef np.uint64_t nkeys = self._count_total()
         print("{}{: 8d} coarse, {: 8d} refined, {: 8d} total".format(prefix,
                                                                      nkeys - nrefn,
                                                                      nrefn,
@@ -1657,7 +1653,7 @@ cdef class SparseUnorderedRefinedBitmaskVector:
         self.total = 0
 
     cdef to_array(self):
-        cdef int i
+        cdef np.uint64_t i
         cdef np.ndarray[np.uint64_t, ndim=2] rv
         self._remove_duplicates()
         rv = np.empty((self.entries.size(),2),dtype='uint64')
@@ -1730,7 +1726,7 @@ cdef class SparseUnorderedRefinedBitmaskSet:
         self.entries.clear()
 
     cdef to_array(self):
-        cdef int i
+        cdef np.uint64_t i
         cdef np.ndarray[np.uint64_t, ndim=2] rv
         rv = np.empty((self.entries.size(),2),dtype='uint64')
         i = 0
