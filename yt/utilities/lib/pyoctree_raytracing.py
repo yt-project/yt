@@ -26,7 +26,7 @@ class OctreeRayTracing(object):
         xyz = np.stack([data_source[_].to('unitary').value for _ in 'x y z'.split()], axis=-1)
         lvl = data_source['grid_level'].astype(int).value + ds.parameters['levelmin']
 
-        ipos = np.floor(xyz * (1<<(ds.parameters['levelmax']))).astype(int)       
+        ipos = np.floor(xyz * (1<<(ds.parameters['levelmax']))).astype(int)
         self.octree.add_nodes(ipos.astype(np.int32), lvl.astype(np.int32), np.arange(len(ipos), dtype=np.int32))
 
     def set_fields(self, fields, log_fields, no_ghost, force=False):
@@ -50,13 +50,30 @@ class OctreeRayTracing(object):
         # TODO: cache data in the 3x3x3 neighbouring cells
 
     def cast_rays(self, vp_pos, vp_dir):
-        # TODO: cache indices of cells
-        self.cell_index, self.tvalues = \
-            self.octree.cast_rays(vp_pos, vp_dir)
+        """Cast the rays through the oct.
 
-    def sample(self, sampler):
-        # TODO: Apply to sampler to each oct encountered by all rays.
-        pass
+        Parameters
+        ----------
+        vp_pos, vp_dir : float arrays (Nrays, Ndim)
+            The position (unitary) and direction of each ray
+
+        Returns
+        -------
+        cell_index : list of integer arrays of shape (Ncell)
+            For each ray, contains an ordered array of cell ids
+            that it intersects with
+        tvalues : list of float arrays of shape (Ncell, 2)
+            The t value at entry and exit for each cell.
+        """
+        if not self._cell_index:
+            # TODO: cache indices of cells
+            self._cell_index, self._tvalues = \
+                self.octree.cast_rays(vp_pos, vp_dir)
+        return self._cell_index, self._tvalues
+
+    # def sample(self, sampler):
+    #     # TODO: Apply to sampler to each oct encountered by all rays.
+    #     self.octree.sample(sampler, self._cell_index, self._tvalues)
 
     def traverse(self, viewpoint):
         raise Exception()
