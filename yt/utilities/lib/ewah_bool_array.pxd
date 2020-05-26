@@ -89,7 +89,7 @@ cdef extern from "boolarray.h":
         uword getWord(size_t pos)
         size_t wordinbits
 
-ctypedef np.uint64_t ewah_word_type
+ctypedef np.uint32_t ewah_word_type
 ctypedef EWAHBoolArray[ewah_word_type] ewah_bool_array
 ctypedef EWAHBoolArraySetBitForwardIterator[ewah_word_type] ewah_bool_iterator
 ctypedef vector[size_t] bitset_array
