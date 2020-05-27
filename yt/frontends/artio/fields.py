@@ -50,7 +50,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("RT_HVAR_HII", (rho_units, ["HII density"], None)),
         ("RT_HVAR_HeI", (rho_units, ["HeI density"], None)),
         ("RT_HVAR_HeII", (rho_units, ["HeII density"], None)),
-        ("RT_HVAR_HeIII", (rho_units, ["HeIII density"], None)),
+        ("RT_HVAR_HeIII", (rho_units, ["He_p2_density"], None)),
     )
 
     known_particle_fields = (
