@@ -458,8 +458,6 @@ class VolumeSource(RenderSource):
         image: :class:`yt.data_objects.image_array.ImageArray` instance
             A reference to an image to fill
         """
-        if self._volume is not None:
-            image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
@@ -535,6 +533,13 @@ class KDTreeVolumeSource(VolumeSource):
             )
 
         return self.current_image
+
+    def finalize_image(self, camera, image):
+        if self._volume is not None:
+            image = self.volume.reduce_tree_images(
+                image, camera.lens.viewpoint)
+
+        return super(KDTreeVolumeSource, self).finalize_image(camera, image)
 
 
 class OctreeVolumeSource(VolumeSource):
