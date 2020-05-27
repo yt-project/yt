@@ -48,10 +48,10 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("VAR_POTENTIAL_HYDRO", ("", ["gas_potential"], None)),
         ("RT_HVAR_HI", (rho_units, ["H_density"], None)),
         ("RT_HVAR_HII", (rho_units, ["H_p1_density"], None)),
+        ("RT_HVAR_H2", (rho_units, ["H2_density"], None)),
         ("RT_HVAR_HeI", (rho_units, ["He_density"], None)),
         ("RT_HVAR_HeII", (rho_units, ["He_p1_density"], None)),
         ("RT_HVAR_HeIII", (rho_units, ["He_p2_density"], None)),
-        ("RT_HVAR_H2", (rho_units, ["H2_density"], None)),
     )
 
     known_particle_fields = (
