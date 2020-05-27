@@ -205,16 +205,11 @@ cdef class ImageSampler:
 
         cdef np.int64_t nx, ny, size
         cdef np.int64_t iter[4]
-        cdef VolumeContainer *vc #  = pg.container
+        cdef VolumeContainer *vc
         cdef ImageAccumulator *idata
 
-        self.extent_function(self, pg.container, iter)
-        iter[0] = i64clip(iter[0]-1, 0, self.nv[0])
-        iter[1] = i64clip(iter[1]+1, 0, self.nv[0])
-        iter[2] = i64clip(iter[2]-1, 0, self.nv[1])
-        iter[3] = i64clip(iter[3]+1, 0, self.nv[1])
-        nx = (iter[1] - iter[0])
-        ny = (iter[3] - iter[2])
+        nx = self.nv[0]
+        ny = self.nv[1]
         size = nx * ny
 
         cdef np.float64_t* vp_pos_ptr = <np.float64_t*> &self.vp_pos[0,0,0]
@@ -283,8 +278,8 @@ cdef class ImageSampler:
                         vc,
                         &self.vp_pos[vi, vj, 0],
                         &self.vp_dir[vi, vj, 0],
-                        ri.t[2*i  ]*vp_dir_len,
-                        ri.t[2*i+1]*vp_dir_len,
+                        ri.t[2*i  ]/vp_dir_len,
+                        ri.t[2*i+1]/vp_dir_len,
                         index,
                         <void *> idata
                         )

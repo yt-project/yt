@@ -35,23 +35,17 @@ class OctreeRayTracing(object):
 
     def set_fields(self, fields, log_fields, no_ghost, force=False):
         if no_ghost:
-            raise NotImplementedError('Cannot use no ghost with Octree datasets')
-        new_fields = self.data_source._determine_fields(fields)
-        regenerate_data = self.fields is None or \
-                          len(self.fields) != len(new_fields) or \
-                          self.fields != new_fields or force
-        if not iterable(log_fields):
-            log_fields = [log_fields]
-        new_log_fields = list(log_fields)
-        self.fields = new_fields
+            raise NotImplementedError('Ghost zones are required with Octree datasets')
 
-        if self.log_fields is not None and not regenerate_data:
-            flip_log = list(map(operator.ne, self.log_fields, new_log_fields))
-        else:
-            flip_log = [False] * len(new_log_fields)
-        self.log_fields = new_log_fields
+        assert len(fields) == 1
+        fields = self.data_source._determine_fields(fields)
 
-        # TODO: cache data in the 3x3x3 neighbouring cells
+        for field, take_log in zip(fields, log_fields):
+            if take_log:
+                tmp = np.log10(self.data_source[field])
+            else:
+                tmp = self.data_source[field]
+            self.data = [tmp]*8
 
     def cast_rays(self, vp_pos, vp_dir):
         """Cast the rays through the oct.
