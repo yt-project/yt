@@ -10,6 +10,7 @@ from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.utilities.lib.misc_utilities import zlines, zpoints
+from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.lib.pyoctree_raytracing import OctreeRayTracing
 from yt.utilities.on_demand_imports import NotAModule
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
@@ -124,6 +125,7 @@ def create_volume_source(data_source, field):
     elif issubclass(index_class, OctreeIndex):
         return OctreeVolumeSource(data_source, field)
 
+
 class VolumeSource(RenderSource):
     """A class for rendering data from a volumetric data source
 
@@ -170,6 +172,7 @@ class VolumeSource(RenderSource):
 
     _image = None
     data_source = None
+    volume_method = None
 
     def __init__(self, data_source, field):
         r"""Initialize a new volumetric source for rendering."""
@@ -471,6 +474,8 @@ class VolumeSource(RenderSource):
 
 
 class KDTreeVolumeSource(VolumeSource):
+    volume_method = "KDTree"
+
     def _get_volume(self):
         """The abstract volume associated with this VolumeSource
 
@@ -533,6 +538,8 @@ class KDTreeVolumeSource(VolumeSource):
 
 
 class OctreeVolumeSource(VolumeSource):
+    volume_method = "Octree"
+
     def __init__(self, *args, **kwa):
         super(OctreeVolumeSource, self).__init__(*args, **kwa)
         self.set_use_ghost_zones(True)
@@ -547,6 +554,18 @@ class OctreeVolumeSource(VolumeSource):
         if self._volume is None:
             mylog.info("Creating volume")
             volume = OctreeRayTracing(self.data_source)
+
+            data = self.data_source
+            ds = data.ds
+
+            xyz = np.stack(
+                [data[_].to("unitary").value for _ in "x y z".split()], axis=-1
+            )
+            lvl = data["grid_level"].astype(np.int32).value + ds.parameters["levelmin"]
+            ipos = np.floor(xyz * (1 << (ds.parameters["levelmax"]))).astype(np.int32)
+
+            mylog.debug("Adding cells to volume")
+            volume.octree.add_nodes(ipos, lvl, np.arange(len(ipos), dtype=np.int32))
             self._volume = volume
 
         return self._volume
@@ -573,36 +592,38 @@ class OctreeVolumeSource(VolumeSource):
         """
         self.zbuffer = zbuffer
         self.set_sampler(camera)
-        assert (self.sampler is not None)
+        assert self.sampler is not None
+
+        data = self.data_source
+        ds = data.ds
+
+        dx = data["dx"].to("unitary").value[:, None]
+        xyz = np.stack([data[_].to("unitary").value for _ in "x y z".split()], axis=-1)
+        LE = xyz - dx / 2
+        RE = xyz + dx / 2
+
+        mylog.debug("Gathering data")
+        # TODO: compute a 2x2x2, vertex-centred dataset
+        dt = np.stack([data[self.field] for _ in range(8)], axis=-1).reshape(
+            1, -1, 8, 1
+        )
+        mask = np.full_like(dt[0, ...], 1, dtype=np.uint8)
+        dims = np.array([1, 1, 1])
+        pg = PartitionedGrid(0, dt, mask, LE.flatten(), RE.flatten(), dims)
 
         mylog.debug("Casting rays")
-        if self.check_nans:
-            for brick in self.volume.bricks:
-                for data in brick.my_data:
-                    if np.any(np.isnan(data)):
-                        raise RuntimeError
-        
-        sampler_params = camera._get_sampler_params(self)
-
-        vp_pos = sampler_params['vp_pos'].to('unitary').value.reshape(-1, 3)
-        vp_dir = sampler_params['vp_dir'].value.reshape(-1, 3).copy()
-
-        self.volume.cast_rays(vp_pos, vp_dir)
+        self.sampler(pg, oct=self.volume.octree, num_threads=1)
         mylog.debug("Done casting rays")
 
-        mylog.debug("Sample rays")
-        self.volume.sample(self.sampler)
-        mylog.debug("Done sampling")
-
-        self.current_image = self.finalize_image(
-            camera, self.sampler.aimage)
+        self.current_image = self.finalize_image(camera, self.sampler.aimage)
 
         if zbuffer is None:
             self.zbuffer = ZBuffer(
-                self.current_image,
-                np.full(self.current_image.shape[:2], np.inf))
+                self.current_image, np.full(self.current_image.shape[:2], np.inf)
+            )
 
         return self.current_image
+
 
 class MeshSource(OpaqueSource):
     """A source for unstructured mesh data.

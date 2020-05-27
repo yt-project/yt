@@ -66,7 +66,10 @@ def new_volume_render_sampler(camera, render_source):
         params["transfer_function"],
         params["num_samples"],
     )
-    kwargs = {"lens_type": params["lens_type"]}
+    kwargs = {
+        "lens_type": params["lens_type"],
+        "volume_method": render_source.volume_method,
+    }
     if "camera_data" in params:
         kwargs["camera_data"] = params["camera_data"]
     if render_source.zbuffer is not None:

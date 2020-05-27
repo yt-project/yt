@@ -15,41 +15,16 @@ import numpy as np
 
 cimport cython
 cimport lenses
-cimport numpy as np
-from field_interpolation_tables cimport (
-    FieldInterpolationTable,
-    FIT_eval_transfer,
-    FIT_eval_transfer_with_light,
-    FIT_initialize_table,
-)
-from libc.math cimport (
-    M_PI,
-    acos,
-    asin,
-    atan,
-    atan2,
-    cos,
-    exp,
-    fabs,
-    floor,
-    log2,
-    sin,
-    sqrt,
-)
-from libc.stdlib cimport abs, calloc, free, malloc
+from .grid_traversal cimport walk_volume, sampler_function
+from .fixed_interpolator cimport \
+    offset_interpolate, \
+    fast_interpolate, \
+    trilinear_interpolate, \
+    eval_gradient, \
+    offset_fill, \
+    vertex_interp
 
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, imin
-
-from .fixed_interpolator cimport (
-    eval_gradient,
-    fast_interpolate,
-    offset_fill,
-    offset_interpolate,
-    trilinear_interpolate,
-    vertex_interp,
-)
-from .grid_traversal cimport walk_volume
-
+from .cyoctree_raytracing cimport CythonOctreeRayTracing, RayInfo
 
 cdef extern from "platform_dep.h":
     long int lrint(double x) nogil
@@ -88,6 +63,10 @@ cdef class ImageSampler:
                   *args, **kwargs):
         cdef int i
 
+        self.volume_method = kwargs.pop('volume_method', None)
+        if self.volume_method and self.volume_method not in ('KDTree', 'Octree'):
+            raise NotImplementedError(
+                'Invalid volume method "%s".' % self.svolume_method)
         camera_data = kwargs.pop("camera_data", None)
         if camera_data is not None:
             self.camera_data = camera_data
@@ -146,15 +125,20 @@ cdef class ImageSampler:
         for i in range(3):
             self.width[i] = width[i]
 
+    def __call__(self, PartitionedGrid pg, **kwa):
+        if self.volume_method == 'KDTree':
+            return self.cast_through_kdtree(pg, **kwa)
+        elif self.volume_method == 'Octree':
+            return self.cast_through_octree(pg, **kwa)
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __call__(self, PartitionedGrid pg, int num_threads = 0):
+    def cast_through_kdtree(self, PartitionedGrid pg, int num_threads = 0):
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
         cdef int vi, vj, hit, i, j
-        cdef np.int64_t iter[4]
         cdef VolumeContainer *vc = pg.container
         self.setup(pg)
         cdef np.float64_t *v_pos
@@ -162,6 +146,7 @@ cdef class ImageSampler:
         cdef np.float64_t max_t
         hit = 0
         cdef np.int64_t nx, ny, size
+        cdef np.int64_t iter[4]
         self.extent_function(self, vc, iter)
         iter[0] = i64clip(iter[0]-1, 0, self.nv[0])
         iter[1] = i64clip(iter[1]+1, 0, self.nv[0])
@@ -201,6 +186,107 @@ cdef class ImageSampler:
             free(v_pos)
             free(v_dir)
         return hit
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def cast_through_octree(self, PartitionedGrid pg, CythonOctreeRayTracing oct, int num_threads = 0):
+        cdef RayInfo[int]** ret
+        cdef RayInfo[int]* ri
+        self.setup(pg)
+
+        cdef sampler_function* sampler = <sampler_function*> self.sample
+
+        cdef np.int64_t nx, ny, size
+        cdef np.int64_t iter[4]
+        cdef VolumeContainer *vc #  = pg.container
+        cdef ImageAccumulator *idata
+
+        self.extent_function(self, pg.container, iter)
+        iter[0] = i64clip(iter[0]-1, 0, self.nv[0])
+        iter[1] = i64clip(iter[1]+1, 0, self.nv[0])
+        iter[2] = i64clip(iter[2]-1, 0, self.nv[1])
+        iter[3] = i64clip(iter[3]+1, 0, self.nv[1])
+        nx = (iter[1] - iter[0])
+        ny = (iter[3] - iter[2])
+        size = nx * ny
+
+        cdef np.float64_t* vp_pos_ptr = <np.float64_t*> &self.vp_pos[0,0,0]
+        cdef np.float64_t* vp_dir_ptr = <np.float64_t*> &self.vp_dir[0,0,0]
+
+        ret = oct.oct.cast_rays(vp_pos_ptr, vp_dir_ptr, size)
+
+        cdef int* cell_ind
+        cdef double* tval
+
+        cdef int i, j, k, vi, vj, icell
+        cdef int[3] index = [0, 0, 0]
+        cdef int chunksize = 100
+
+        cdef int n_fields = pg.container.n_fields
+
+        with nogil, parallel(num_threads=num_threads):
+            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+            idata.supp_data = self.supp_data
+
+            vc = <VolumeContainer*> malloc(sizeof(VolumeContainer))
+            vc.n_fields = 1
+            vc.data = <np.float64_t**> malloc(sizeof(np.float64_t*))
+            vc.mask = <np.uint8_t*> malloc(8*sizeof(np.uint8_t))
+            # The actual dimensions are 2x2x2, but the sampler
+            # assumes vertex-centred data for a 1x1x1 lattice (i.e.
+            # 2^3 vertices)
+            vc.dims[0] = 1
+            vc.dims[1] = 1
+            vc.dims[2] = 1
+            for j in prange(size, schedule='static', chunksize=chunksize):
+                vj = j % ny
+                vi = (j - vj) / ny
+
+                # Contains the ordered indices of the cells hit by the ray
+                # and the entry/exit t values
+                ri = ret[j]
+                if ri.keys.size() == 0:
+                    continue
+
+                for i in range(Nch):
+                    idata.rgba[i] = 0
+                for i in range(8):
+                    vc.mask[i] = 1
+
+                # Iterate over cells
+                for i in range(ri.keys.size()):
+                    icell = ri.keys[i]
+                    for k in range(n_fields):
+                        vc.data[k] = &pg.container.data[k][8*icell]
+
+                    # Fill the volume container with the current boundaries
+                    for k in range(3):
+                        vc.left_edge[k] = pg.container.left_edge[3*icell+k]
+                        vc.right_edge[k] = pg.container.right_edge[3*icell+k]
+                        vc.dds[k] = (vc.right_edge[k] - vc.left_edge[k])
+                        vc.idds[k] = 1/vc.dds[k]
+                    # Now call the sampler
+                    sampler(
+                        vc,
+                        &self.vp_pos[vi, vj, 0],
+                        &self.vp_dir[vi, vj, 0],
+                        ri.t[2*i  ],
+                        ri.t[2*i+1],
+                        index,
+                        <void *> idata
+                        )
+
+                for i in range(Nch):
+                    idata.rgba[i] = 0
+            free(vc.data)
+            free(vc)
+            free(idata)
+        # Free memory
+        for j in range(size):
+            free(ret[j])
+        free(ret)
+        pass
 
     cdef void setup(self, PartitionedGrid pg):
         return

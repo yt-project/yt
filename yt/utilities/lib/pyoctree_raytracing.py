@@ -14,6 +14,10 @@ class OctreeRayTracing(object):
     log_fields = None
     fields = None
 
+    # Internal data
+    _cell_index = None
+    _tvalues = None
+
     def __init__(self, data_source):
         self.data_source = data_source
         LE = np.array([0, 0, 0], dtype=np.float64)
