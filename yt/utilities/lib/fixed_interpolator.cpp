@@ -37,7 +37,6 @@ npy_float64 offset_interpolate(int ds[3], npy_float64 dp[3], npy_float64 *data)
     npy_float64 dv, vz[4];
 
     dv = 1.0 - dp[2];
-    printf("%d %d %d", ds[0], ds[1], ds[2]);
     vz[0] = dv*OINDEX(0,0,0) + dp[2]*OINDEX(0,0,1);
     vz[1] = dv*OINDEX(0,1,0) + dp[2]*OINDEX(0,1,1);
     vz[2] = dv*OINDEX(1,0,0) + dp[2]*OINDEX(1,0,1);

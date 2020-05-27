@@ -14,6 +14,12 @@ Image sampler definitions
 import numpy as np
 
 cimport cython
+from libc.stdlib cimport malloc, free
+from libc.math cimport sqrt
+from yt.utilities.lib.fp_utils cimport imin, fclip, i64clip
+from field_interpolation_tables cimport \
+    FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
+    FIT_eval_transfer_with_light
 cimport lenses
 from .grid_traversal cimport walk_volume, sampler_function
 from .fixed_interpolator cimport \
@@ -225,6 +231,8 @@ cdef class ImageSampler:
 
         cdef int n_fields = pg.container.n_fields
 
+        cdef np.float64_t vp_dir_len
+
         with nogil, parallel(num_threads=num_threads):
             idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
             idata.supp_data = self.supp_data
@@ -243,6 +251,10 @@ cdef class ImageSampler:
                 vj = j % ny
                 vi = (j - vj) / ny
 
+                vp_dir_len = sqrt(
+                    self.vp_dir[vi, vj, 0]**2 +
+                    self.vp_dir[vi, vj, 1]**2 +
+                    self.vp_dir[vi, vj, 2]**2)
                 # Contains the ordered indices of the cells hit by the ray
                 # and the entry/exit t values
                 ri = ret[j]
@@ -258,12 +270,12 @@ cdef class ImageSampler:
                 for i in range(ri.keys.size()):
                     icell = ri.keys[i]
                     for k in range(n_fields):
-                        vc.data[k] = &pg.container.data[k][8*icell]
+                        vc.data[k] = &pg.container.data[k][14*icell]
 
                     # Fill the volume container with the current boundaries
                     for k in range(3):
-                        vc.left_edge[k] = pg.container.left_edge[3*icell+k]
-                        vc.right_edge[k] = pg.container.right_edge[3*icell+k]
+                        vc.left_edge[k] = pg.container.data[0][14*icell+8+k]
+                        vc.right_edge[k] = pg.container.data[0][14*icell+11+k]
                         vc.dds[k] = (vc.right_edge[k] - vc.left_edge[k])
                         vc.idds[k] = 1/vc.dds[k]
                     # Now call the sampler
@@ -271,16 +283,16 @@ cdef class ImageSampler:
                         vc,
                         &self.vp_pos[vi, vj, 0],
                         &self.vp_dir[vi, vj, 0],
-                        ri.t[2*i  ],
-                        ri.t[2*i+1],
+                        ri.t[2*i  ]*vp_dir_len,
+                        ri.t[2*i+1]*vp_dir_len,
                         index,
                         <void *> idata
                         )
-
                 for i in range(Nch):
-                    idata.rgba[i] = 0
+                    self.image[vi, vj, i] = idata.rgba[i]
             free(vc.data)
             free(vc)
+            idata.supp_data = NULL
             free(idata)
         # Free memory
         for j in range(size):

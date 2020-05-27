@@ -536,8 +536,7 @@ class KDTreeVolumeSource(VolumeSource):
 
     def finalize_image(self, camera, image):
         if self._volume is not None:
-            image = self.volume.reduce_tree_images(
-                image, camera.lens.viewpoint)
+            image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
 
         return super(KDTreeVolumeSource, self).finalize_image(camera, image)
 
@@ -609,12 +608,12 @@ class OctreeVolumeSource(VolumeSource):
 
         mylog.debug("Gathering data")
         # TODO: compute a 2x2x2, vertex-centred dataset
-        dt = np.stack([data[self.field] for _ in range(8)], axis=-1).reshape(
-            1, -1, 8, 1
-        )
+        dt = np.stack(
+            [data[self.field].value for _ in range(8)] + [*LE.T, *RE.T], axis=-1
+        ).reshape(1, len(dx), 14, 1)
         mask = np.full_like(dt[0, ...], 1, dtype=np.uint8)
         dims = np.array([1, 1, 1])
-        pg = PartitionedGrid(0, dt, mask, LE.flatten(), RE.flatten(), dims)
+        pg = PartitionedGrid(0, dt, mask, LE.flatten(), RE.flatten(), dims, n_fields=1)
 
         mylog.debug("Casting rays")
         self.sampler(pg, oct=self.volume.octree, num_threads=1)
