@@ -137,7 +137,6 @@ _field_name_aliases = [
     ("HeI density",                      "He_density"),
     ("HeII density",                     "He_p1_density"),
     ("HeIII density",                    "He_p2_density"),
-#    ("H2 density",                       "H2_density"),
 ]
 
 _field_units_aliases = [
