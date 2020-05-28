@@ -1,11 +1,14 @@
 # AppVeyor.com is a Continuous Integration service to build and run tests under
 # Windows
+image:
+  - Visual Studio 2019
 
 environment:
 
   global:
       PYTHON: "C:\\Miniconda36-x64"
       APPVEYOR_RDP_PASSWORD: ArgleBargle123
+
 
   matrix:
       - PYTHON_VERSION: "3.6"
@@ -34,7 +37,7 @@ install:
     - "conda install --yes -c conda-forge numpy scipy nose pytest setuptools ipython
     Cython sympy fastcache h5py matplotlib=3.1.3 mock pandas cartopy conda-build unyt pooch pyyaml"
     # install yt
-    - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+    # - ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
     - "pip install -e ."
 
 # Not a .NET project
