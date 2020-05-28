@@ -4,7 +4,7 @@
 #include <array>
 #include <iostream>
 #include <cassert>
-#include <cmath>
+#include <math.h>
 #include <random>
 #include <string>
 #include <fstream>
@@ -57,7 +57,7 @@ struct Ray {
         for (auto idim = 0; idim < Ndim; ++idim) {
             dd += _d[idim] * _d[idim];
         }
-        dd = std::sqrt(dd);
+        dd = sqrt(dd);
         for (auto idim = 0; idim < Ndim; ++idim) {
             d[idim] = _d[idim] / dd;
         }
@@ -71,7 +71,7 @@ struct Ray {
         for (auto idim = 0; idim < Ndim; ++idim) {
             dd += _d[idim] * _d[idim];
         }
-        dd = std::sqrt(dd);
+        dd = sqrt(dd);
         for (auto idim = 0; idim < Ndim; ++idim) {
             d[idim] = _d[idim] / dd;
         }
@@ -465,7 +465,7 @@ void test3(){
     rr[1] = ry;
     rr[2] = rz;
     Ray<3> r(oo, rr, -1e99, 1e99);
-    std::cerr<< "Casting ray in direction:\t" << rx << ", " << ry << ", " << rz << "(len=" << std::sqrt(r.d[0]*r.d[0] + r.d[1]*r.d[1] + r.d[2]*r.d[2]) << ")" <<std::endl;
+    std::cerr<< "Casting ray in direction:\t" << rx << ", " << ry << ", " << rz << "(len=" << sqrt(r.d[0]*r.d[0] + r.d[1]*r.d[1] + r.d[2]*r.d[2]) << ")" <<std::endl;
     std::cerr<< "Origin:\t" << ", " << ox << ", " << oy << ", " << oz << std::endl;
 
     std::vector<std::array<int, 3>> ret;
